@@ -69,6 +69,7 @@ export function PersonalInfoSection({ profile, verification, onProfileChange }: 
                 setFullName(e.target.value);
                 onProfileChange({ full_name: e.target.value });
               }}
+              className="rounded-xl"
             />
           </div>
           <div className="space-y-2">
