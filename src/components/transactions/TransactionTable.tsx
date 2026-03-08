@@ -79,7 +79,11 @@ export function TransactionTable({ transactions, isLoading }: TransactionTablePr
               <TableRow
                 key={tx.transaction_id}
                 className="cursor-pointer"
-                onClick={() => navigate(`/dashboard/transactions/${tx.transaction_id}`)}
+                onClick={() => navigate(
+                  tx.primary_action === "verify_item"
+                    ? `/dashboard/transactions/${tx.transaction_id}/verify`
+                    : `/dashboard/transactions/${tx.transaction_id}`
+                )}
               >
                 {/* Transaction */}
                 <TableCell className="py-4 px-4">
