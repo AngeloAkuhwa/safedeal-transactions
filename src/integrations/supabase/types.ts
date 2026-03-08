@@ -2747,6 +2747,20 @@ export type Database = {
         Returns: boolean
       }
       is_user_region_allowed: { Args: { _user_id: string }; Returns: boolean }
+      validate_money_transition: {
+        Args: {
+          _new_status: Database["public"]["Enums"]["money_status"]
+          _old_status: Database["public"]["Enums"]["money_status"]
+        }
+        Returns: boolean
+      }
+      validate_transaction_transition: {
+        Args: {
+          _new_status: Database["public"]["Enums"]["transaction_status"]
+          _old_status: Database["public"]["Enums"]["transaction_status"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       admin_action_type:
