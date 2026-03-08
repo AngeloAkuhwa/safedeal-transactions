@@ -127,7 +127,7 @@ const BuyerTransactionVerify = () => {
                   {STATUS_LABELS[transaction.status] || transaction.status}
                 </Badge>
               </div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+              <h1 className="text-xl lg:text-2xl font-bold text-foreground">
                 Did the item match what you ordered?
               </h1>
               <p className="text-muted-foreground mt-1">
