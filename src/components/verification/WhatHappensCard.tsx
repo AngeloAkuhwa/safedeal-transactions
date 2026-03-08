@@ -15,11 +15,11 @@ export function WhatHappensCard({ deadlineAt }: WhatHappensCardProps) {
       <div className="space-y-4">
         {/* Auto-release info */}
         <div className="flex items-start gap-4">
-          <div className="w-10 h-10 bg-warning/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-            <Clock className="h-5 w-5 text-warning" />
+          <div className="w-8 h-8 bg-warning/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+            <Clock className="h-4 w-4 text-warning" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-foreground mb-1">
+            <h3 className="text-sm font-semibold text-foreground mb-1">
               Funds will auto-release when timer expires
             </h3>
             <p className="text-sm text-muted-foreground">
