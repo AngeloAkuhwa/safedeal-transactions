@@ -137,6 +137,9 @@ const BuyerTransactionDetail = () => {
     staleTime: 30_000,
   });
 
+  // Must call hooks unconditionally (before any early returns)
+  const countdown = useCountdown(data?.transaction.verification_deadline_at ?? null);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
