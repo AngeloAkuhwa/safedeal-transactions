@@ -55,7 +55,7 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
         <div className="bg-card rounded-2xl shadow-lg border border-border p-5">
           <div className="flex items-center gap-2 mb-4">
             <FileText className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-bold text-foreground">Agreement Snapshot</h3>
+            <h3 className="text-base font-bold text-foreground">Agreement Snapshot</h3>
           </div>
 
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
