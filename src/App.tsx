@@ -36,6 +36,7 @@ const App = () => (
             {/* Protected: requires session + role */}
             <Route element={<ProtectedRoute requireRole="buyer" />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/transactions" element={<BuyerTransactions />} />
             </Route>
 
             {/* Catch-all */}
