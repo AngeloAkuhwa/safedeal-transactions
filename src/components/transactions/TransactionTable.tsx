@@ -150,7 +150,11 @@ export function TransactionTable({ transactions, isLoading }: TransactionTablePr
           <div
             key={tx.transaction_id}
             className="rounded-xl border bg-card p-4 space-y-3 cursor-pointer active:bg-accent/50 transition-colors"
-            onClick={() => navigate(`/dashboard/transactions/${tx.transaction_id}`)}
+            onClick={() => navigate(
+              tx.primary_action === "verify_item"
+                ? `/dashboard/transactions/${tx.transaction_id}/verify`
+                : `/dashboard/transactions/${tx.transaction_id}`
+            )}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-0.5 min-w-0">
