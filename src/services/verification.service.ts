@@ -65,6 +65,14 @@ export interface VerificationData {
   }>;
 }
 
+export interface UploadedEvidence {
+  file_id: string;
+  secure_url: string;
+  mime_type: string;
+  original_file_name: string | null;
+  fingerprint: string;
+}
+
 export const getVerificationData = async (transactionId: string): Promise<VerificationData> => {
   const headers = await getAuthHeader();
   const { data, error } = await supabase.functions.invoke("transaction-verify", {
@@ -89,15 +97,83 @@ export const confirmReceipt = async (transactionId: string) => {
   return data as { success: boolean; already_confirmed?: boolean; redirect?: string };
 };
 
+async function computeSha256(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export const uploadEvidence = async (file: File): Promise<UploadedEvidence> => {
+  const headers = await getAuthHeader();
+
+  // 1. Compute SHA-256 hash
+  const fileHash = await computeSha256(file);
+
+  // 2. Get signed upload params
+  const { data: signData, error: signErr } = await supabase.functions.invoke("upload-evidence", {
+    headers,
+    body: { action: "sign_upload" },
+  });
+
+  if (signErr) throw new Error(signErr.message || "Failed to get upload signature");
+  if (signData?.error) throw new Error(signData.error);
+
+  const { timestamp, signature, api_key, cloud_name, folder } = signData;
+
+  // 3. Upload directly to Cloudinary
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("api_key", api_key);
+  formData.append("timestamp", String(timestamp));
+  formData.append("signature", signature);
+  formData.append("folder", folder);
+
+  const uploadRes = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`,
+    { method: "POST", body: formData },
+  );
+
+  if (!uploadRes.ok) {
+    const errBody = await uploadRes.text();
+    throw new Error(`Cloudinary upload failed: ${errBody}`);
+  }
+
+  const cloudinaryRes = await uploadRes.json();
+
+  // 4. Register file in database
+  const { data: regData, error: regErr } = await supabase.functions.invoke("upload-evidence", {
+    headers,
+    body: {
+      action: "register_file",
+      public_id: cloudinaryRes.public_id,
+      asset_id: cloudinaryRes.asset_id,
+      secure_url: cloudinaryRes.secure_url,
+      bytes: cloudinaryRes.bytes,
+      format: cloudinaryRes.format,
+      resource_type: cloudinaryRes.resource_type,
+      original_filename: cloudinaryRes.original_filename,
+      file_hash: fileHash,
+      hash_algorithm: "sha256",
+    },
+  });
+
+  if (regErr) throw new Error(regErr.message || "Failed to register file");
+  if (regData?.error) throw new Error(regData.error);
+
+  return regData as UploadedEvidence;
+};
+
 export const raiseDispute = async (
   transactionId: string,
   reason: string,
   description: string,
+  fileIds?: string[],
 ) => {
   const headers = await getAuthHeader();
   const { data, error } = await supabase.functions.invoke("transaction-verify", {
     headers,
-    body: { action: "raise_dispute", transactionId, reason, description },
+    body: { action: "raise_dispute", transactionId, reason, description, fileIds },
   });
 
   if (error) throw new Error(error.message || "Failed to raise dispute");

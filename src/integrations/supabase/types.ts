@@ -1019,8 +1019,10 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           deleted_from_provider: boolean
+          file_hash: string | null
           file_size_bytes: number | null
           file_url: string
+          hash_algorithm: string | null
           id: string
           is_temporary: boolean
           legal_hold: boolean
@@ -1041,8 +1043,10 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           deleted_from_provider?: boolean
+          file_hash?: string | null
           file_size_bytes?: number | null
           file_url: string
+          hash_algorithm?: string | null
           id?: string
           is_temporary?: boolean
           legal_hold?: boolean
@@ -1063,8 +1067,10 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           deleted_from_provider?: boolean
+          file_hash?: string | null
           file_size_bytes?: number | null
           file_url?: string
+          hash_algorithm?: string | null
           id?: string
           is_temporary?: boolean
           legal_hold?: boolean
