@@ -69,7 +69,7 @@ export function VerificationChecklist({ item }: VerificationChecklistProps) {
       </div>
 
       {/* Responsibility banner */}
-      <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 mb-6">
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-5">
         <div className="flex items-start gap-3">
           <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>
