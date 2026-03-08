@@ -1,0 +1,81 @@
+import { Shield, Lock, Zap, Headphones } from "lucide-react";
+
+const features = [
+  {
+    icon: Lock,
+    title: "Bank-Level Security",
+    description: "256-bit SSL encryption protects all your data and transactions",
+  },
+  {
+    icon: Zap,
+    title: "Instant Escrow Protection",
+    description: "Funds are held securely until both parties confirm the deal",
+  },
+  {
+    icon: Headphones,
+    title: "Dedicated Support",
+    description: "Our team is available to help resolve any transaction issues",
+  },
+];
+
+const AuthInfoPanel = () => {
+  return (
+    <div className="hidden lg:flex flex-col justify-between bg-primary/5 dark:bg-primary/10 p-10 xl:p-14 rounded-l-2xl">
+      <div>
+        <div className="flex items-center gap-2 mb-8">
+          <Shield className="h-8 w-8 text-primary" />
+          <span className="text-2xl font-bold text-foreground">SafeDeal</span>
+        </div>
+
+        <h2 className="text-3xl font-bold text-foreground mb-3">
+          Join SafeDeal
+        </h2>
+        <p className="text-muted-foreground mb-10 text-base leading-relaxed">
+          Create your account to start buying and selling securely with escrow
+          protection.
+        </p>
+
+        <div className="space-y-6">
+          {features.map((feature) => (
+            <div key={feature.title} className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <feature.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground text-sm">
+                  {feature.title}
+                </h3>
+                <p className="text-muted-foreground text-sm mt-0.5">
+                  {feature.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Testimonial */}
+      <div className="mt-10 rounded-xl border bg-card p-5">
+        <p className="text-sm text-foreground italic leading-relaxed">
+          "SafeDeal gave me the confidence to sell online. The escrow system
+          means I always get paid, and my buyers feel safe too."
+        </p>
+        <div className="mt-4 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+            AO
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Adunni Okafor
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Seller, Lagos
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AuthInfoPanel;
