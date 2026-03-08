@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { CheckCircle, AlertTriangle, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckCircle, AlertTriangle, ShieldCheck, ArrowRight, Pause } from "lucide-react";
 import { ConfirmReceiptDialog } from "./ConfirmReceiptDialog";
 import { DisputeForm } from "./DisputeForm";
 
@@ -28,79 +26,103 @@ export function VerificationActions({
   }).format(amount);
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">Take Action</CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Choose one of the options below based on your inspection
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Confirm CTA */}
-        <div className="rounded-lg border border-success/30 bg-success/5 p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-success" />
-            <h4 className="text-sm font-semibold text-foreground">Item Matches Agreement</h4>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Confirming will release {formatted} from escrow to the seller. This action is
-            irreversible.
-          </p>
-          <Button
-            className="w-full bg-success hover:bg-success/90 text-success-foreground"
+    <div className="bg-card rounded-2xl shadow-lg border border-border p-6 lg:p-8">
+      <h2 className="text-2xl font-bold text-foreground mb-6">Take Action</h2>
+
+      {/* 2-column grid */}
+      <div className="grid sm:grid-cols-2 gap-4 mb-6">
+        {/* Confirm button */}
+        <div className="space-y-3">
+          <button
             onClick={() => setConfirmOpen(true)}
+            className="group w-full bg-gradient-to-br from-success to-success/80 text-success-foreground font-bold py-6 rounded-2xl hover:shadow-2xl transition-all flex flex-col items-center justify-center gap-3 border-2 border-transparent hover:border-success/40"
           >
-            <CheckCircle className="h-4 w-4 mr-2" />
-            Confirm Item Received
-          </Button>
-        </div>
-
-        {/* Dispute CTA */}
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
-            <h4 className="text-sm font-semibold text-foreground">Something is Wrong</h4>
+            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <CheckCircle className="h-8 w-8" />
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold">Confirm Item Received</div>
+              <div className="text-xs opacity-80">Release funds to seller</div>
+            </div>
+          </button>
+          <div className="bg-success/5 border border-success/20 rounded-xl p-4">
+            <div className="flex items-start gap-2">
+              <ArrowRight className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-foreground mb-1">
+                  Confirming will release {formatted} to the seller
+                </p>
+                <p className="text-xs font-semibold text-muted-foreground">
+                  This action cannot be undone
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Opening a dispute will freeze the escrow funds until the issue is resolved by our
-            team.
-          </p>
-          <Button
-            variant="destructive"
-            className="w-full"
-            onClick={() => setDisputeOpen(!disputeOpen)}
-          >
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            Raise a Dispute
-          </Button>
         </div>
 
-        {/* Dispute form (expandable) */}
-        {disputeOpen && (
+        {/* Dispute button */}
+        <div className="space-y-3">
+          <button
+            onClick={() => setDisputeOpen(!disputeOpen)}
+            className="group w-full bg-gradient-to-br from-destructive to-destructive/80 text-destructive-foreground font-bold py-6 rounded-2xl hover:shadow-2xl transition-all flex flex-col items-center justify-center gap-3 border-2 border-transparent hover:border-destructive/40"
+          >
+            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <AlertTriangle className="h-8 w-8" />
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold">Raise a Dispute</div>
+              <div className="text-xs opacity-80">Report an issue</div>
+            </div>
+          </button>
+          <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4">
+            <div className="flex items-start gap-2">
+              <Pause className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-foreground mb-1">
+                  Opening a dispute immediately freezes release
+                </p>
+                <p className="text-xs font-semibold text-muted-foreground">
+                  SafeDeal will review evidence from both sides
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Protection reminder */}
+      <div className="bg-muted/50 border border-border rounded-xl p-5">
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-foreground mb-1">Protection Reminder</p>
+            <p className="text-xs text-muted-foreground">
+              If you confirm receipt, funds will be immediately released to the seller. If you raise
+              a dispute, an admin will review the case and make a final decision. Choose wisely
+              based on your verification.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Dispute form (expandable) */}
+      {disputeOpen && (
+        <div className="mt-6">
           <DisputeForm
             transactionId={transactionId}
             onCancel={() => setDisputeOpen(false)}
           />
-        )}
-
-        {/* Protection reminder */}
-        <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3">
-          <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-          <p className="text-xs text-muted-foreground">
-            Your funds are protected by SafeDeal escrow until you confirm or raise a dispute.
-            The seller cannot access funds during the verification window.
-          </p>
         </div>
+      )}
 
-        {/* Confirm dialog */}
-        <ConfirmReceiptDialog
-          open={confirmOpen}
-          onOpenChange={setConfirmOpen}
-          transactionId={transactionId}
-          transactionCode={transactionCode}
-          amount={formatted}
-        />
-      </CardContent>
-    </Card>
+      {/* Confirm dialog */}
+      <ConfirmReceiptDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        transactionId={transactionId}
+        transactionCode={transactionCode}
+        amount={formatted}
+      />
+    </div>
   );
 }
