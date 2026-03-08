@@ -2941,6 +2941,8 @@ export type Database = {
         | "disputed"
         | "cancelled"
         | "timed_out"
+        | "resolved"
+        | "refunded"
       user_role_type: "buyer" | "seller" | "admin"
     }
     CompositeTypes: {
@@ -3267,6 +3269,8 @@ export const Constants = {
         "disputed",
         "cancelled",
         "timed_out",
+        "resolved",
+        "refunded",
       ],
       user_role_type: ["buyer", "seller", "admin"],
     },
