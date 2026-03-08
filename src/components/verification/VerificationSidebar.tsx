@@ -52,7 +52,7 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
     <div className="space-y-6">
       {/* Agreement Snapshot */}
       {agreement && (
-        <div className="bg-card rounded-2xl shadow-lg border border-border p-6">
+        <div className="bg-card rounded-2xl shadow-lg border border-border p-5">
           <div className="flex items-center gap-2 mb-4">
             <FileText className="h-5 w-5 text-primary" />
             <h3 className="text-lg font-bold text-foreground">Agreement Snapshot</h3>
