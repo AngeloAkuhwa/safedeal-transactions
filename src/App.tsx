@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import BuyerTransactions from "./pages/BuyerTransactions";
 import BuyerNotifications from "./pages/BuyerNotifications";
 import BuyerDisputes from "./pages/BuyerDisputes";
+import BuyerDisputeDetail from "./pages/BuyerDisputeDetail";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
