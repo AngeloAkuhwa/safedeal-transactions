@@ -4,7 +4,7 @@ import { Shield, Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { getSession, signOut } from "@/services/auth.service";
-import { supabase } from "@/integrations/supabase/client";
+import { getProfile } from "@/services/profile.service";
 
 const Dashboard = () => {
   const navigate = useNavigate();
