@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import RoleSelection from "./pages/RoleSelection";
 import Dashboard from "./pages/Dashboard";
+import BuyerTransactions from "./pages/BuyerTransactions";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
