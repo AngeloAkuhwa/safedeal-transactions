@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agreement Locked</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        success: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        },
+                        warning: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        },
+                        danger: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                        },
+                        neutral: {
+                            50: '#fafafa',
+                            100: '#f5f5f5',
+                            200: '#e5e5e5',
+                            300: '#d4d4d4',
+                            400: '#a3a3a3',
+                            500: '#737373',
+                            600: '#525252',
+                            700: '#404040',
+                            800: '#262626',
+                            900: '#171717',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none;}
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(30px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .lock-pulse {
+            animation: lockPulse 2s ease-in-out infinite;
+        }
+        @keyframes lockPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+        }
+        .shield-glow {
+            animation: shieldGlow 3s ease-in-out infinite;
+        }
+        @keyframes shieldGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(14, 165, 233, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(14, 165, 233, 0.5); }
+        }
+        .success-checkmark {
+            animation: checkmarkDraw 0.8s ease-out;
+        }
+        @keyframes checkmarkDraw {
+            0% { stroke-dashoffset: 100; }
+            100% { stroke-dashoffset: 0; }
+        }
+        .locked-badge {
+            animation: fadeInScale 0.6s ease-out 0.3s backwards;
+        }
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-neutral-50">
+
+<header id="header" class="bg-white border-b border-neutral-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+                </div>
+                <span class="text-2xl font-bold text-neutral-900">SafeDeal</span>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button class="relative p-2 text-neutral-600 hover:text-neutral-900 transition-colors">
+                    <i class="fa-solid fa-bell text-xl"></i>
+                </button>
+                <div class="hidden sm:flex items-center space-x-3 pl-3 border-l border-neutral-200">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-1.jpg" alt="Buyer" class="w-9 h-9 rounded-full object-cover">
+                    <div class="hidden lg:block">
+                        <div class="text-sm font-semibold text-neutral-900">Sarah Johnson</div>
+                        <div class="text-xs text-neutral-500">Buyer</div>
+                    </div>
+                </div>
+                <button class="md:hidden text-neutral-600">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<section id="hero-success" class="bg-gradient-to-br from-success-50 via-primary-50 to-white py-16 lg:py-20">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="fade-in">
+            <div class="w-32 h-32 bg-gradient-to-br from-success-500 to-success-600 rounded-full flex items-center justify-center mx-auto mb-8 shield-glow lock-pulse">
+                <i class="fa-solid fa-lock text-white text-6xl"></i>
+            </div>
+            
+            <div class="inline-flex items-center space-x-2 px-5 py-2 bg-success-100 border border-success-300 rounded-full mb-6 locked-badge">
+                <i class="fa-solid fa-circle-check text-success-600 text-lg"></i>
+                <span class="text-success-800 font-bold text-sm">Payment Confirmed</span>
+            </div>
+
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-neutral-900 mb-4">
+                Agreement Locked Successfully
+            </h1>
+            <p class="text-lg sm:text-xl text-neutral-700 mb-8 max-w-2xl mx-auto">
+                Your payment has been received and the transaction agreement is now <span class="font-bold text-primary-600">permanently secured</span>. All terms are locked to protect both parties.
+            </p>
+
+            <div class="bg-white rounded-2xl shadow-xl border-2 border-primary-200 p-6 mb-8 max-w-2xl mx-auto">
+                <div class="flex items-center justify-center space-x-3 mb-4">
+                    <div class="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-shield-check text-primary-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-neutral-900">Anti-Fraud Protection Active</h3>
+                </div>
+                <p class="text-sm text-neutral-700 leading-relaxed">
+                    This transaction is now immutable. No party can modify the agreed terms, price, item details, or delivery conditions. Your funds are held securely in escrow until delivery confirmation.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="locked-agreement-snapshot" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="bg-white rounded-2xl shadow-2xl border-2 border-neutral-200 overflow-hidden fade-in">
+        <div class="bg-gradient-to-r from-neutral-900 to-neutral-800 px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-warning-500 rounded-xl flex items-center justify-center">
+                        <i class="fa-solid fa-lock text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Locked Agreement Snapshot</h2>
+                        <p class="text-neutral-300 text-sm">Immutable transaction record</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
+                    <i class="fa-solid fa-fingerprint text-warning-400"></i>
+                    <span class="text-white font-mono text-sm">#SD-2024-7839</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 lg:p-8">
+            <div class="grid lg:grid-cols-2 gap-6 mb-8">
+                <div id="item-details-locked" class="bg-neutral-50 rounded-xl border-2 border-neutral-200 p-6">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fa-solid fa-box text-primary-600 text-lg"></i>
+                        <h3 class="text-lg font-bold text-neutral-900">Item Details</h3>
+                        <span class="ml-auto inline-flex items-center px-2 py-1 bg-neutral-900 text-white text-xs font-bold rounded">
+                            <i class="fa-solid fa-lock text-xs mr-1"></i>
+                            LOCKED
+                        </span>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <div class="text-xs font-semibold text-neutral-600 mb-1">Item Title</div>
+                            <div class="text-base font-bold text-neutral-900">MacBook Pro 16-inch M3 Max</div>
+                        </div>
+                        
+                        <div>
+                            <div class="text-xs font-semibold text-neutral-600 mb-1">Description</div>
+                            <div class="text-sm text-neutral-700">Brand new MacBook Pro 16-inch with M3 Max chip, 32GB RAM, 1TB SSD. Space Black color. Sealed in original packaging with all accessories included.</div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-xs font-semibold text-neutral-600 mb-1">Quantity</div>
+                                <div class="text-base font-bold text-neutral-900">1 Unit</div>
+                            </div>
+                            <div>
+                                <div class="text-xs font-semibold text-neutral-600 mb-1">Condition</div>
+                                <div class="text-base font-bold text-success-600">Brand New</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="product-images-locked" class="bg-neutral-50 rounded-xl border-2 border-neutral-200 p-6">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fa-solid fa-images text-primary-600 text-lg"></i>
+                        <h3 class="text-lg font-bold text-neutral-900">Product Images</h3>
+                        <span class="ml-auto inline-flex items-center px-2 py-1 bg-neutral-900 text-white text-xs font-bold rounded">
+                            <i class="fa-solid fa-lock text-xs mr-1"></i>
+                            LOCKED
+                        </span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="aspect-square rounded-lg overflow-hidden border-2 border-neutral-300">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/d517cc0a27-d5670982ee0179ecf570.png" alt="Product" class="w-full h-full object-cover">
+                        </div>
+                        <div class="aspect-square rounded-lg overflow-hidden border-2 border-neutral-300">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/d517cc0a27-d5670982ee0179ecf570.png" alt="Product" class="w-full h-full object-cover">
+                        </div>
+                        <div class="aspect-square rounded-lg overflow-hidden border-2 border-neutral-300">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/d517cc0a27-d5670982ee0179ecf570.png" alt="Product" class="w-full h-full object-cover">
+                        </div>
+                        <div class="aspect-square rounded-lg overflow-hidden border-2 border-neutral-300 bg-neutral-200 flex items-center justify-center">
+                            <i class="fa-solid fa-image text-neutral-400 text-3xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-6">
+                <div id="payment-details-locked" class="bg-neutral-50 rounded-xl border-2 border-neutral-200 p-6">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fa-solid fa-dollar-sign text-primary-600 text-lg"></i>
+                        <h3 class="text-lg font-bold text-neutral-900">Payment Details</h3>
+                        <span class="ml-auto inline-flex items-center px-2 py-1 bg-neutral-900 text-white text-xs font-bold rounded">
+                            <i class="fa-solid fa-lock text-xs mr-1"></i>
+                            LOCKED
+                        </span>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center pb-3 border-b border-neutral-200">
+                            <span class="text-sm text-neutral-600">Agreed Price</span>
+                            <span class="text-xl font-bold text-neutral-900">$2,450.00</span>
+                        </div>
+                        <div class="flex justify-between items-center pb-3 border-b border-neutral-200">
+                            <span class="text-sm text-neutral-600">SafeDeal Fee (2.9%)</span>
+                            <span class="text-base font-semibold text-neutral-700">$71.05</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-base font-bold text-neutral-900">Total Paid</span>
+                            <span class="text-2xl font-bold text-primary-600">$2,521.05</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-neutral-200">
+                        <div class="flex items-center space-x-2 text-sm">
+                            <i class="fa-solid fa-shield-check text-success-600"></i>
+                            <span class="text-neutral-700">Funds held securely in escrow</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="delivery-terms-locked" class="bg-neutral-50 rounded-xl border-2 border-neutral-200 p-6">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fa-solid fa-truck text-primary-600 text-lg"></i>
+                        <h3 class="text-lg font-bold text-neutral-900">Delivery Terms</h3>
+                        <span class="ml-auto inline-flex items-center px-2 py-1 bg-neutral-900 text-white text-xs font-bold rounded">
+                            <i class="fa-solid fa-lock text-xs mr-1"></i>
+                            LOCKED
+                        </span>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <div class="text-xs font-semibold text-neutral-600 mb-1">Delivery Method</div>
+                            <div class="text-base font-bold text-neutral-900">Express Courier Service</div>
+                        </div>
+                        
+                        <div>
+                            <div class="text-xs font-semibold text-neutral-600 mb-1">Expected Delivery Date</div>
+                            <div class="text-base font-bold text-neutral-900">January 5, 2025</div>
+                        </div>
+
+                        <div>
+                            <div class="text-xs font-semibold text-neutral-600 mb-1">Verification Window</div>
+                            <div class="text-base font-bold text-warning-600">48 hours after delivery</div>
+                        </div>
+
+                        <div>
+                            <div class="text-xs font-semibold text-neutral-600 mb-1">Delivery Address</div>
+                            <div class="text-sm text-neutral-700">
+                                742 Evergreen Terrace<br>
+                                Springfield, IL 62701<br>
+                                United States
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="immutability-explanation" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+    <div class="bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl shadow-2xl p-8 lg:p-10 text-white fade-in">
+        <div class="flex items-start space-x-4 mb-6">
+            <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0">
+                <i class="fa-solid fa-shield-check text-white text-3xl"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl lg:text-3xl font-bold mb-2">What Does "Agreement Locked" Mean?</h2>
+                <p class="text-primary-100 text-base">Your transaction is now protected by SafeDeal's immutable agreement system</p>
+            </div>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
+                <div class="flex items-center space-x-3 mb-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-ban text-white text-lg"></i>
+                    </div>
+                    <h3 class="text-lg font-bold">Cannot Be Changed</h3>
+                </div>
+                <ul class="space-y-2 text-sm text-primary-50">
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-lock text-warning-400 mt-1 text-xs"></i>
+                        <span>Item details and specifications</span>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-lock text-warning-400 mt-1 text-xs"></i>
+                        <span>Agreed price and payment amount</span>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-lock text-warning-400 mt-1 text-xs"></i>
+                        <span>Product condition and quantity</span>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-lock text-warning-400 mt-1 text-xs"></i>
+                        <span>Delivery terms and timeline</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
+                <div class="flex items-center space-x-3 mb-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-shield-halved text-white text-lg"></i>
+                    </div>
+                    <h3 class="text-lg font-bold">Protection Activated</h3>
+                </div>
+                <ul class="space-y-2 text-sm text-primary-50">
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-check text-success-400 mt-1 text-xs"></i>
+                        <span>Funds held securely in escrow</span>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-check text-success-400 mt-1 text-xs"></i>
+                        <span>Seller must deliver exact item agreed</span>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-check text-success-400 mt-1 text-xs"></i>
+                        <span>Buyer verification window enforced</span>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-check text-success-400 mt-1 text-xs"></i>
+                        <span>Dispute protection available if needed</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-5 border border-white/30">
+            <div class="flex items-start space-x-3">
+                <i class="fa-solid fa-lightbulb text-warning-300 text-xl mt-0.5"></i>
+                <div>
+                    <p class="text-base font-semibold mb-2">Why This Matters for Your Protection</p>
+                    <p class="text-sm text-primary-50 leading-relaxed">
+                        By locking the agreement after payment, SafeDeal prevents fraud and ensures both parties are held to the exact terms agreed upon. The seller cannot substitute items, change prices, or modify conditions. If what you receive doesn't match this locked agreement, you have full dispute protection with this record as evidence.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="next-steps" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+    <div class="bg-white rounded-2xl shadow-xl border border-neutral-200 p-8 lg:p-10 fade-in">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center space-x-2 px-4 py-2 bg-primary-50 rounded-full mb-4">
+                <i class="fa-solid fa-arrow-right text-primary-600"></i>
+                <span class="text-primary-700 font-bold text-sm">What Happens Next</span>
+            </div>
+            <h2 class="text-2xl lg:text-3xl font-bold text-neutral-900 mb-3">Track Your Transaction</h2>
+            <p class="text-neutral-600 max-w-2xl mx-auto">
+                Monitor your order status in real-time and receive notifications at every step until delivery confirmation.
+            </p>
+        </div>
+
+        <div class="grid sm:grid-cols-3 gap-6 mb-8">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-box-open text-primary-600 text-2xl"></i>
+                </div>
+                <h3 class="text-base font-bold text-neutral-900 mb-2">Seller Processing</h3>
+                <p class="text-sm text-neutral-600">Seller prepares and ships your item according to locked terms</p>
+            </div>
+
+            <div class="text-center">
+                <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-truck-fast text-primary-600 text-2xl"></i>
+                </div>
+                <h3 class="text-base font-bold text-neutral-900 mb-2">In Transit</h3>
+                <p class="text-sm text-neutral-600">Track delivery progress with real-time updates</p>
+            </div>
+
+            <div class="text-center">
+                <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-clipboard-check text-primary-600 text-2xl"></i>
+                </div>
+                <h3 class="text-base font-bold text-neutral-900 mb-2">Verify & Confirm</h3>
+                <p class="text-sm text-neutral-600">Check item matches agreement and confirm or dispute</p>
+            </div>
+        </div>
+
+        <div class="bg-neutral-50 rounded-xl border border-neutral-200 p-6 mb-8">
+            <div class="flex items-start space-x-3">
+                <i class="fa-solid fa-bell text-primary-600 text-xl mt-0.5"></i>
+                <div>
+                    <h3 class="text-base font-bold text-neutral-900 mb-2">You'll Be Notified When:</h3>
+                    <ul class="space-y-2 text-sm text-neutral-700">
+                        <li class="flex items-center space-x-2">
+                            <i class="fa-solid fa-circle text-primary-600 text-xs"></i>
+                            <span>Seller marks the item as shipped</span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i class="fa-solid fa-circle text-primary-600 text-xs"></i>
+                            <span>Item is out for delivery</span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i class="fa-solid fa-circle text-primary-600 text-xs"></i>
+                            <span>Item has been delivered</span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i class="fa-solid fa-circle text-primary-600 text-xs"></i>
+                            <span>Verification window is about to expire</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <a href="#" class="inline-flex items-center space-x-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-bold px-10 py-5 rounded-xl hover:shadow-2xl transition-all text-lg">
+                <i class="fa-solid fa-chart-line text-xl"></i>
+                <span>View Transaction Tracking</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+            
+            <div class="mt-6">
+                <a href="#" class="text-primary-600 hover:text-primary-700 font-semibold text-sm transition-colors">
+                    <i class="fa-solid fa-arrow-left mr-2"></i>
+                    Return to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="trust-indicators" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+    <div class="grid sm:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl shadow-lg border border-neutral-200 p-6 text-center fade-in">
+            <div class="w-14 h-14 bg-success-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-lock text-success-600 text-2xl"></i>
+            </div>
+            <h3 class="text-base font-bold text-neutral-900 mb-2">Payment Secured</h3>
+            <p class="text-sm text-neutral-600">Your $2,521.05 is safely held in escrow</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg border border-neutral-200 p-6 text-center fade-in">
+            <div class="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-file-contract text-primary-600 text-2xl"></i>
+            </div>
+            <h3 class="text-base font-bold text-neutral-900 mb-2">Agreement Locked</h3>
+            <p class="text-sm text-neutral-600">Terms cannot be changed by any party</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg border border-neutral-200 p-6 text-center fade-in">
+            <div class="w-14 h-14 bg-warning-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-shield-check text-warning-600 text-2xl"></i>
+            </div>
+            <h3 class="text-base font-bold text-neutral-900 mb-2">Dispute Ready</h3>
+            <p class="text-sm text-neutral-600">Full protection if item doesn't match</p>
+        </div>
+    </div>
+</section>
+
+<footer id="footer" class="bg-neutral-900 text-neutral-300 pt-16 pb-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
+            <div class="lg:col-span-2">
+                <div class="flex items-center space-x-2 mb-4">
+                    <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+                    </div>
+                    <span class="text-2xl font-bold text-white">SafeDeal</span>
+                </div>
+                <p class="text-neutral-400 mb-6 max-w-sm">Protecting buyers and sellers in online transactions with secure escrow payments and transparent verification.</p>
+                <div class="flex space-x-4">
+                    <a href="#" class="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors">
+                        <i class="fa-brands fa-twitter"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors">
+                        <i class="fa-brands fa-facebook"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors">
+                        <i class="fa-brands fa-linkedin"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors">
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div>
+                <h4 class="text-white font-semibold mb-4">Product</h4>
+                <ul class="space-y-3">
+                    <li><a href="#" class="hover:text-white transition-colors">How It Works</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Features</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Pricing</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Security</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="text-white font-semibold mb-4">Company</h4>
+                <ul class="space-y-3">
+                    <li><a href="#" class="hover:text-white transition-colors">About Us</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Careers</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Blog</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Press Kit</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="text-white font-semibold mb-4">Support</h4>
+                <ul class="space-y-3">
+                    <li><a href="#" class="hover:text-white transition-colors">Help Center</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Contact Us</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="border-t border-neutral-800 pt-8">
+            <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <p class="text-neutral-500 text-sm">© 2024 SafeDeal. All rights reserved.</p>
+                <div class="flex items-center space-x-6 text-sm">
+                    <a href="#" class="hover:text-white transition-colors">Terms</a>
+                    <a href="#" class="hover:text-white transition-colors">Privacy</a>
+                    <a href="#" class="hover:text-white transition-colors">Cookies</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+window.addEventListener('load', function() {
+    const fadeElements = document.querySelectorAll('.fade-in');
+    fadeElements.forEach(function(element, index) {
+        setTimeout(function() {
+            element.style.opacity = '1';
+        }, index * 100);
+    });
+});
+</script>
+
+</body>
+</html>
