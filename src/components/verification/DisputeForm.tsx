@@ -49,12 +49,12 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
   const canSubmit = reason && description.trim().length >= 20 && !mutation.isPending;
 
   return (
-    <div className="bg-card rounded-2xl shadow-lg border-2 border-destructive/30 p-6 lg:p-8">
+    <div className="bg-card rounded-2xl shadow-lg border-2 border-destructive/30 p-5 lg:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
+      <div className="flex items-center justify-between mb-5 pb-3 border-b border-border">
         <div className="flex items-center gap-2">
           <Flag className="h-5 w-5 text-destructive" />
-          <h2 className="text-2xl font-bold text-foreground">Submit a Dispute</h2>
+          <h2 className="text-lg font-bold text-foreground">Submit a Dispute</h2>
         </div>
         <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
           <X className="h-6 w-6" />
@@ -103,8 +103,8 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
         {/* Upload zone (visual placeholder) */}
         <div className="space-y-3">
           <Label className="text-sm font-semibold">Upload Evidence</Label>
-          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all">
-            <CloudUpload className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+          <div className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all">
+            <CloudUpload className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
             <p className="text-sm font-semibold text-foreground mb-1">
               Click to upload photos or videos
             </p>
@@ -119,7 +119,7 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
         </div>
 
         {/* Review warning */}
-        <div className="bg-warning/5 border border-warning/20 rounded-xl p-5">
+        <div className="bg-warning/5 border border-warning/20 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
             <div>

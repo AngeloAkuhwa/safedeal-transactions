@@ -52,10 +52,10 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
     <div className="space-y-6">
       {/* Agreement Snapshot */}
       {agreement && (
-        <div className="bg-card rounded-2xl shadow-lg border border-border p-6">
+        <div className="bg-card rounded-2xl shadow-lg border border-border p-5">
           <div className="flex items-center gap-2 mb-4">
             <FileText className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-bold text-foreground">Agreement Snapshot</h3>
+            <h3 className="text-base font-bold text-foreground">Agreement Snapshot</h3>
           </div>
 
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
@@ -79,8 +79,8 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
 
       {/* Item Details */}
       {item && pricing && (
-        <div className="bg-card rounded-2xl shadow-lg border border-border p-6">
-          <h3 className="text-base font-bold text-foreground mb-4">Item Details</h3>
+        <div className="bg-card rounded-2xl shadow-lg border border-border p-5">
+          <h3 className="text-sm font-bold text-foreground mb-3">Item Details</h3>
 
           {/* Image placeholder */}
           <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-4 flex items-center justify-center">
@@ -114,10 +114,10 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
 
       {/* Seller Info */}
       {seller && (
-        <div className="bg-card rounded-2xl shadow-lg border border-border p-6">
-          <h3 className="text-base font-bold text-foreground mb-4">Seller Information</h3>
-          <div className="flex items-center gap-3 mb-4">
-            <Avatar className="h-12 w-12 rounded-xl border-2 border-border">
+        <div className="bg-card rounded-2xl shadow-lg border border-border p-5">
+          <h3 className="text-sm font-bold text-foreground mb-3">Seller Information</h3>
+          <div className="flex items-center gap-3 mb-3">
+            <Avatar className="h-10 w-10 rounded-xl border-2 border-border">
               <AvatarImage src={seller.avatar_url || undefined} />
               <AvatarFallback className="text-xs rounded-xl">
                 {getInitials(seller.full_name)}
@@ -145,8 +145,8 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
       )}
 
       {/* Timeline */}
-      <div className="bg-card rounded-2xl shadow-lg border border-border p-6">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="bg-card rounded-2xl shadow-lg border border-border p-5">
+        <div className="flex items-center gap-2 mb-3">
           <Clock className="h-5 w-5 text-primary" />
           <h3 className="text-base font-bold text-foreground">Quick Timeline</h3>
         </div>
@@ -192,10 +192,10 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
       </div>
 
       {/* Need Help */}
-      <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl shadow-lg p-6 text-primary-foreground">
-        <div className="flex items-center gap-2 mb-4">
-          <HelpCircle className="h-6 w-6" />
-          <h3 className="text-lg font-bold">Need Help?</h3>
+      <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl shadow-lg p-5 text-primary-foreground">
+        <div className="flex items-center gap-2 mb-3">
+          <HelpCircle className="h-5 w-5" />
+          <h3 className="text-base font-bold">Need Help?</h3>
         </div>
         <p className="text-sm opacity-80 mb-4">
           If you're unsure about verification or have questions about the dispute process, our

@@ -127,7 +127,7 @@ const BuyerTransactionVerify = () => {
                   {STATUS_LABELS[transaction.status] || transaction.status}
                 </Badge>
               </div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+              <h1 className="text-xl lg:text-2xl font-bold text-foreground">
                 Did the item match what you ordered?
               </h1>
               <p className="text-muted-foreground mt-1">
@@ -138,7 +138,7 @@ const BuyerTransactionVerify = () => {
               {pricing && (
                 <div className="text-right">
                   <div className="text-sm text-muted-foreground mb-1">Transaction Amount</div>
-                  <div className="text-2xl font-bold text-primary">
+                  <div className="text-xl font-bold text-primary">
                     {formatCurrency(Number(pricing.buyer_total_amount), pricing.currency_code)}
                   </div>
                 </div>
@@ -182,8 +182,8 @@ const BuyerTransactionVerify = () => {
       )}
 
       {/* Main content */}
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
+      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid lg:grid-cols-3 gap-6">
           {/* Left column */}
           <div className="lg:col-span-2 space-y-6">
             {transaction.verification_deadline_at && (

@@ -6,20 +6,20 @@ interface WhatHappensCardProps {
 
 export function WhatHappensCard({ deadlineAt }: WhatHappensCardProps) {
   return (
-    <div className="bg-card rounded-2xl shadow-lg border border-border p-6 lg:p-8">
-      <div className="flex items-center gap-2 mb-5">
+    <div className="bg-card rounded-2xl shadow-lg border border-border p-5 lg:p-6">
+      <div className="flex items-center gap-2 mb-4">
         <HelpCircle className="h-5 w-5 text-primary" />
-        <h2 className="text-xl font-bold text-foreground">What happens if I do nothing?</h2>
+        <h2 className="text-lg font-bold text-foreground">What happens if I do nothing?</h2>
       </div>
 
       <div className="space-y-4">
         {/* Auto-release info */}
         <div className="flex items-start gap-4">
-          <div className="w-10 h-10 bg-warning/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-            <Clock className="h-5 w-5 text-warning" />
+          <div className="w-8 h-8 bg-warning/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+            <Clock className="h-4 w-4 text-warning" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-foreground mb-1">
+            <h3 className="text-sm font-semibold text-foreground mb-1">
               Funds will auto-release when timer expires
             </h3>
             <p className="text-sm text-muted-foreground">
@@ -32,11 +32,11 @@ export function WhatHappensCard({ deadlineAt }: WhatHappensCardProps) {
 
         {/* Dispute deadline warning */}
         <div className="flex items-start gap-4">
-          <div className="w-10 h-10 bg-destructive/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
+          <div className="w-8 h-8 bg-destructive/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-foreground mb-1">
+            <h3 className="text-sm font-semibold text-foreground mb-1">
               Dispute must be opened before expiry
             </h3>
             <p className="text-sm text-muted-foreground">

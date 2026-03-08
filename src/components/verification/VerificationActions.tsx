@@ -35,13 +35,13 @@ export function VerificationActions({
         <div className="space-y-3">
           <button
             onClick={() => setConfirmOpen(true)}
-            className="group w-full bg-gradient-to-br from-success to-success/80 text-success-foreground font-bold py-6 rounded-2xl hover:shadow-2xl transition-all flex flex-col items-center justify-center gap-3 border-2 border-transparent hover:border-success/40"
+            className="group w-full bg-gradient-to-br from-success to-success/80 text-success-foreground font-bold py-5 rounded-2xl hover:shadow-2xl transition-all flex flex-col items-center justify-center gap-2.5 border-2 border-transparent hover:border-success/40"
           >
-            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <CheckCircle className="h-8 w-8" />
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <CheckCircle className="h-6 w-6" />
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold">Confirm Item Received</div>
+              <div className="text-base font-bold">Confirm Item Received</div>
               <div className="text-xs opacity-80">Release funds to seller</div>
             </div>
           </button>
@@ -64,13 +64,13 @@ export function VerificationActions({
         <div className="space-y-3">
           <button
             onClick={() => setDisputeOpen(!disputeOpen)}
-            className="group w-full bg-gradient-to-br from-destructive to-destructive/80 text-destructive-foreground font-bold py-6 rounded-2xl hover:shadow-2xl transition-all flex flex-col items-center justify-center gap-3 border-2 border-transparent hover:border-destructive/40"
+            className="group w-full bg-gradient-to-br from-destructive to-destructive/80 text-destructive-foreground font-bold py-5 rounded-2xl hover:shadow-2xl transition-all flex flex-col items-center justify-center gap-2.5 border-2 border-transparent hover:border-destructive/40"
           >
-            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <AlertTriangle className="h-8 w-8" />
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <AlertTriangle className="h-6 w-6" />
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold">Raise a Dispute</div>
+              <div className="text-base font-bold">Raise a Dispute</div>
               <div className="text-xs opacity-80">Report an issue</div>
             </div>
           </button>
@@ -91,7 +91,7 @@ export function VerificationActions({
       </div>
 
       {/* Protection reminder */}
-      <div className="bg-muted/50 border border-border rounded-xl p-5">
+      <div className="bg-muted/50 border border-border rounded-xl p-4">
         <div className="flex items-start gap-3">
           <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>

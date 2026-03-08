@@ -61,15 +61,15 @@ export function VerificationChecklist({ item }: VerificationChecklistProps) {
   ];
 
   return (
-    <div className="bg-card rounded-2xl shadow-lg border border-border p-6 lg:p-8">
+    <div className="bg-card rounded-2xl shadow-lg border border-border p-5 lg:p-6">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-6 pb-4 border-b border-border">
+      <div className="flex items-center gap-2 mb-5 pb-3 border-b border-border">
         <ClipboardCheck className="h-5 w-5 text-primary" />
-        <h2 className="text-2xl font-bold text-foreground">Verification Checklist</h2>
+        <h2 className="text-lg font-bold text-foreground">Verification Checklist</h2>
       </div>
 
       {/* Responsibility banner */}
-      <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 mb-6">
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-5">
         <div className="flex items-start gap-3">
           <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>
@@ -85,13 +85,13 @@ export function VerificationChecklist({ item }: VerificationChecklistProps) {
       {/* Checklist items */}
       <div className="space-y-4">
         {checks.map((c, i) => (
-          <div key={i} className="bg-muted/50 rounded-xl p-5 border border-border">
-            <div className="flex items-start gap-4">
-              <div className="w-8 h-8 bg-success/10 rounded-lg flex items-center justify-center shrink-0 mt-1">
-                <CheckCircle2 className="h-4 w-4 text-success" />
+          <div key={i} className="bg-muted/50 rounded-xl p-4 border border-border">
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 bg-success/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-success" />
               </div>
               <div className="flex-1">
-                <h3 className="text-base font-bold text-foreground mb-2">{c.title}</h3>
+                <h3 className="text-sm font-semibold text-foreground mb-1.5">{c.title}</h3>
                 <p className="text-sm text-muted-foreground mb-3">{c.subtitle}</p>
                 {c.dataCard}
               </div>
