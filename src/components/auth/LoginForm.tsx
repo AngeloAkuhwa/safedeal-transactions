@@ -71,7 +71,7 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
         });
 
         toast.success("Welcome back!");
-        navigate("/dashboard");
+        navigate("/role-selection");
       }
     } catch {
       toast.error("Something went wrong. Please try again.");
