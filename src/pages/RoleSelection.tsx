@@ -1,19 +1,77 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Shield, ShoppingBag, Store, ArrowLeft, Loader2 } from "lucide-react";
+import {
+  Shield, ShoppingBag, Store, ArrowLeft, Loader2, CheckCircle,
+  ArrowLeftRight, Users, Lock, FileText, Camera, Vault, LogOut
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Footer } from "@/components/landing/Footer";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type Role = "buyer" | "seller";
+
+const buyerFeatures = [
+  {
+    icon: Shield,
+    title: "Payment Protection",
+    description: "Funds held until you verify receipt",
+  },
+  {
+    icon: CheckCircle,
+    title: "Verification Control",
+    description: "Verify item before funds are released to seller",
+  },
+  {
+    icon: FileText,
+    title: "Dispute Window",
+    description: "Raise disputes before verification window expires",
+  },
+];
+
+const sellerFeatures = [
+  {
+    icon: Lock,
+    title: "Secure Payment Guarantee",
+    description: "Get paid after buyer confirmation or timeout",
+  },
+  {
+    icon: Camera,
+    title: "Delivery Proof Required",
+    description: "Upload delivery proof to protect your payment",
+  },
+  {
+    icon: CheckCircle,
+    title: "Automatic Release",
+    description: "Funds released after buyer confirms or window expires",
+  },
+];
+
+const infoCards = [
+  {
+    icon: ArrowLeftRight,
+    title: "Switch Anytime",
+    description: "Change your role from dashboard settings whenever needed",
+  },
+  {
+    icon: Users,
+    title: "Dual Roles",
+    description: "Use both buyer and seller features on the same account",
+  },
+  {
+    icon: Shield,
+    title: "Always Protected",
+    description: "SafeDeal protection applies to all your transactions",
+  },
+];
 
 const RoleSelection = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState<Role | null>(null);
 
   useEffect(() => {
     const check = async () => {
@@ -27,24 +85,25 @@ const RoleSelection = () => {
         return;
       }
 
-      // Pre-select based on existing default_role
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("default_role")
-        .eq("id", session.user.id)
-        .single();
+      // Check if user already has a role — skip this screen
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id);
 
-      if (profile?.default_role && (profile.default_role === "buyer" || profile.default_role === "seller")) {
-        setSelectedRole(profile.default_role as Role);
+      if (roles && roles.length > 0) {
+        navigate("/dashboard", { replace: true });
+        return;
       }
+
       setLoading(false);
     };
     check();
   }, [navigate]);
 
-  const handleContinue = async () => {
-    if (!selectedRole) return;
-    setSubmitting(true);
+  const handleSelectRole = async (role: Role) => {
+    if (submitting) return;
+    setSubmitting(role);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -52,23 +111,51 @@ const RoleSelection = () => {
         return;
       }
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({ default_role: selectedRole })
-        .eq("id", session.user.id);
+      // Check if role already exists
+      const { data: existing } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .eq("role", role);
 
-      if (error) {
-        toast.error("Could not save your role. Please try again.");
+      if (existing && existing.length > 0) {
+        toast.info("This role is already assigned to your account.");
+        navigate("/dashboard", { replace: true });
         return;
       }
 
-      toast.success(`Continuing as ${selectedRole === "buyer" ? "Buyer" : "Seller"}`);
+      // Insert into user_roles
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .insert({
+          user_id: session.user.id,
+          role,
+          is_primary: true,
+        });
+
+      if (roleError) {
+        toast.error("Could not assign role. Please try again.");
+        return;
+      }
+
+      // Update profiles.default_role
+      await supabase
+        .from("profiles")
+        .update({ default_role: role })
+        .eq("id", session.user.id);
+
+      toast.success(`You're all set as a ${role === "buyer" ? "Buyer" : "Seller"}!`);
       navigate("/dashboard", { replace: true });
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
-      setSubmitting(false);
+      setSubmitting(null);
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/", { replace: true });
   };
 
   if (loading) {
@@ -79,97 +166,222 @@ const RoleSelection = () => {
     );
   }
 
-  const roles = [
-    {
-      id: "buyer" as Role,
-      title: "Continue as Buyer",
-      description: "Browse and purchase items with escrow protection",
-      icon: ShoppingBag,
-    },
-    {
-      id: "seller" as Role,
-      title: "Continue as Seller",
-      description: "List items and receive secure payments",
-      icon: Store,
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-success/5 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="p-4 sm:p-6">
-        <div className="flex items-center justify-between max-w-lg mx-auto w-full">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Home
-          </Link>
+      <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <Shield className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold text-foreground">SafeDeal</span>
+            <Shield className="h-7 w-7 text-primary" />
+            <span className="text-xl font-bold text-foreground">SafeDeal</span>
           </Link>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-lg space-y-8">
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-              How would you like to use SafeDeal?
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              You can always switch roles later from your settings.
-            </p>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground">
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Log out</span>
+            </Button>
           </div>
+        </div>
+      </header>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {roles.map((role) => {
-              const Icon = role.icon;
-              const isSelected = selectedRole === role.id;
-              return (
-                <Card
-                  key={role.id}
-                  className={cn(
-                    "cursor-pointer transition-all hover:shadow-md",
-                    isSelected
-                      ? "ring-2 ring-primary border-primary bg-primary/5"
-                      : "hover:border-primary/50"
-                  )}
-                  onClick={() => setSelectedRole(role.id)}
+      {/* Main Content */}
+      <main className="flex-1">
+        {/* Hero */}
+        <section className="pt-10 pb-6 text-center px-4">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-4">
+            <Shield className="h-3.5 w-3.5" />
+            Account Setup
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">
+            Choose your role
+          </h1>
+          <p className="text-muted-foreground max-w-xl mx-auto text-sm sm:text-base">
+            Select how you'll be using SafeDeal. You can always switch roles later from your dashboard settings.
+          </p>
+        </section>
+
+        {/* Role Cards */}
+        <section className="max-w-5xl mx-auto px-4 pb-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Buyer Card */}
+            <Card className="relative overflow-hidden border-2 border-transparent hover:border-primary/40 transition-all group">
+              <div className="h-1.5 bg-primary w-full" />
+              <CardContent className="p-6 sm:p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <ShoppingBag className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-foreground">Buyer</h2>
+                    <p className="text-xs text-muted-foreground">Secure purchases</p>
+                  </div>
+                </div>
+
+                <p className="text-sm text-muted-foreground mb-6">
+                  Make secure purchases with payment protection. Your money is held safely until you confirm receipt of the item as described.
+                </p>
+
+                <div className="space-y-4 mb-6">
+                  {buyerFeatures.map((f) => (
+                    <div key={f.title} className="flex items-start gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <f.icon className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{f.title}</p>
+                        <p className="text-xs text-muted-foreground">{f.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Responsibility callout */}
+                <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 mb-6">
+                  <p className="text-xs font-semibold text-primary mb-1">Your Responsibility</p>
+                  <p className="text-xs text-muted-foreground">
+                    You must verify the received item before funds are released. If you don't act within the verification window, funds auto-release to the seller.
+                  </p>
+                </div>
+
+                <Button
+                  className="w-full"
+                  size="lg"
+                  disabled={!!submitting}
+                  onClick={() => handleSelectRole("buyer")}
                 >
-                  <CardContent className="p-6 flex flex-col items-center text-center gap-3">
-                    <div
-                      className={cn(
-                        "h-14 w-14 rounded-full flex items-center justify-center transition-colors",
-                        isSelected ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      <Icon className="h-7 w-7" />
-                    </div>
-                    <div>
-                      <h2 className="font-semibold text-foreground">{role.title}</h2>
-                      <p className="text-xs text-muted-foreground mt-1">{role.description}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                  {submitting === "buyer" && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Continue as Buyer
+                </Button>
+              </CardContent>
+            </Card>
 
-          <Button
-            className="w-full"
-            size="lg"
-            disabled={!selectedRole || submitting}
-            onClick={handleContinue}
-          >
-            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Continue
-          </Button>
-        </div>
-      </div>
+            {/* Seller Card */}
+            <Card className="relative overflow-hidden border-2 border-transparent hover:border-success/40 transition-all group">
+              <div className="h-1.5 bg-success w-full" />
+              <CardContent className="p-6 sm:p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
+                    <Store className="h-6 w-6 text-success" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-foreground">Seller</h2>
+                    <p className="text-xs text-muted-foreground">Protected transactions</p>
+                  </div>
+                </div>
+
+                <p className="text-sm text-muted-foreground mb-6">
+                  Create protected transactions and receive secure payments. Build trust with buyers through SafeDeal's transparent verification process.
+                </p>
+
+                <div className="space-y-4 mb-6">
+                  {sellerFeatures.map((f) => (
+                    <div key={f.title} className="flex items-start gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <f.icon className="h-4 w-4 text-success" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{f.title}</p>
+                        <p className="text-xs text-muted-foreground">{f.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Responsibility callout */}
+                <div className="rounded-lg bg-success/5 border border-success/20 p-4 mb-6">
+                  <p className="text-xs font-semibold text-success mb-1">Your Responsibility</p>
+                  <p className="text-xs text-muted-foreground">
+                    Provide accurate item descriptions, fulfill orders promptly, and upload delivery proof. Funds are released after buyer confirmation or verification timeout.
+                  </p>
+                </div>
+
+                <Button
+                  className="w-full bg-success hover:bg-success/90 text-success-foreground"
+                  size="lg"
+                  disabled={!!submitting}
+                  onClick={() => handleSelectRole("seller")}
+                >
+                  {submitting === "seller" && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Continue as Seller
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        {/* Info Cards */}
+        <section className="max-w-5xl mx-auto px-4 pb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {infoCards.map((card) => (
+              <Card key={card.title} className="text-center">
+                <CardContent className="p-6">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                    <card.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-foreground mb-1">{card.title}</h3>
+                  <p className="text-xs text-muted-foreground">{card.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        {/* Trust Protection Banner */}
+        <section className="max-w-5xl mx-auto px-4 pb-10">
+          <div className="rounded-xl bg-primary/5 border border-primary/20 p-6 sm:p-8 text-center">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <Shield className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-bold text-foreground">Both roles are protected by SafeDeal</h3>
+            </div>
+            <p className="text-sm text-muted-foreground max-w-2xl mx-auto mb-5">
+              Whether you're buying or selling, every transaction is secured through locked agreements, timestamped evidence records, and secure escrow holding. Your rights and responsibilities are clearly defined and enforced.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {[
+                { icon: Lock, label: "Locked Agreements" },
+                { icon: FileText, label: "Evidence Records" },
+                { icon: Vault, label: "Escrow Holding" },
+              ].map((chip) => (
+                <span
+                  key={chip.label}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-background border px-3 py-1.5 text-xs font-medium text-foreground"
+                >
+                  <chip.icon className="h-3.5 w-3.5 text-primary" />
+                  {chip.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Security Banner */}
+        <section className="max-w-5xl mx-auto px-4 pb-12">
+          <div className="rounded-xl border bg-card p-6 flex flex-col sm:flex-row items-center gap-4">
+            <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+              <Lock className="h-5 w-5 text-success" />
+            </div>
+            <div className="text-center sm:text-left flex-1">
+              <h4 className="text-sm font-semibold text-foreground">Your information is secure</h4>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Role selection helps us customize your dashboard and transaction experience. All data is encrypted and protected.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-1 text-xs font-medium text-success">
+                <Lock className="h-3 w-3" />
+                Bank-level encryption
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                <Shield className="h-3 w-3" />
+                GDPR compliant
+              </span>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <Footer />
     </div>
   );
 };
