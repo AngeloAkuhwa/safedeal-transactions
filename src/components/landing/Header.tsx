@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Shield, Menu } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Shield, Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { onAuthStateChange, getSession } from "@/services/auth.service";
+import { onAuthStateChange, getSession, signOut } from "@/services/auth.service";
+import { invalidateOldSessions } from "@/services/session.service";
+import { toast } from "@/components/ui/sonner";
 import type { User } from "@supabase/supabase-js";
 
 const navLinks = [
@@ -17,6 +19,7 @@ const navLinks = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const { data: { subscription } } = onAuthStateChange(async (_event, session) => {
@@ -27,6 +30,19 @@ export function Header() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      if (user) {
+        await invalidateOldSessions(user.id);
+      }
+      await signOut();
+      toast.success("Signed out successfully");
+      navigate("/", { replace: true });
+    } catch {
+      toast.error("Failed to sign out. Please try again.");
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
@@ -52,9 +68,15 @@ export function Header() {
         <div className="hidden items-center gap-2 md:flex">
           <ThemeToggle />
           {user ? (
-            <Button asChild>
-              <Link to="/role-selection">Dashboard</Link>
-            </Button>
+            <>
+              <Button asChild>
+                <Link to="/role-selection">Dashboard</Link>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground">
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
+            </>
           ) : (
             <>
               <Button variant="ghost" asChild>
@@ -95,9 +117,20 @@ export function Header() {
               </nav>
               <div className="mt-6 flex flex-col gap-2">
                 {user ? (
-                  <Button asChild onClick={() => setOpen(false)}>
-                    <Link to="/role-selection">Dashboard</Link>
-                  </Button>
+                  <>
+                    <Button asChild onClick={() => setOpen(false)}>
+                      <Link to="/role-selection">Dashboard</Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setOpen(false); handleLogout(); }}
+                      className="text-muted-foreground justify-start"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign Out
+                    </Button>
+                  </>
                 ) : (
                   <>
                     <Button variant="outline" asChild onClick={() => setOpen(false)}>
