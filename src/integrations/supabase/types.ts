@@ -58,6 +58,55 @@ export type Database = {
           },
         ]
       }
+      delivery_proof_files: {
+        Row: {
+          created_at: string
+          file_id: string
+          id: string
+          proof_type: Database["public"]["Enums"]["delivery_proof_type"]
+          transaction_id: string
+          uploaded_by_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_id: string
+          id?: string
+          proof_type: Database["public"]["Enums"]["delivery_proof_type"]
+          transaction_id: string
+          uploaded_by_user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_id?: string
+          id?: string
+          proof_type?: Database["public"]["Enums"]["delivery_proof_type"]
+          transaction_id?: string
+          uploaded_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_proof_files_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_proof_files_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_proof_files_uploaded_by_user_id_fkey"
+            columns: ["uploaded_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devices: {
         Row: {
           browser_name: string | null
@@ -208,6 +257,83 @@ export type Database = {
             columns: ["transaction_id"]
             isOneToOne: true
             referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      files: {
+        Row: {
+          context_type: Database["public"]["Enums"]["file_context_type"]
+          created_at: string
+          deleted_at: string | null
+          deleted_from_provider: boolean
+          file_size_bytes: number | null
+          file_url: string
+          id: string
+          is_temporary: boolean
+          legal_hold: boolean
+          metadata_json: Json | null
+          mime_type: string | null
+          original_file_name: string | null
+          provider: Database["public"]["Enums"]["file_provider"]
+          provider_asset_id: string
+          resource_type: Database["public"]["Enums"]["file_resource_type"]
+          retain_until: string | null
+          retention_category: Database["public"]["Enums"]["file_retention_category"]
+          secure_url: string | null
+          updated_at: string
+          uploaded_by_user_id: string | null
+        }
+        Insert: {
+          context_type: Database["public"]["Enums"]["file_context_type"]
+          created_at?: string
+          deleted_at?: string | null
+          deleted_from_provider?: boolean
+          file_size_bytes?: number | null
+          file_url: string
+          id?: string
+          is_temporary?: boolean
+          legal_hold?: boolean
+          metadata_json?: Json | null
+          mime_type?: string | null
+          original_file_name?: string | null
+          provider: Database["public"]["Enums"]["file_provider"]
+          provider_asset_id: string
+          resource_type: Database["public"]["Enums"]["file_resource_type"]
+          retain_until?: string | null
+          retention_category: Database["public"]["Enums"]["file_retention_category"]
+          secure_url?: string | null
+          updated_at?: string
+          uploaded_by_user_id?: string | null
+        }
+        Update: {
+          context_type?: Database["public"]["Enums"]["file_context_type"]
+          created_at?: string
+          deleted_at?: string | null
+          deleted_from_provider?: boolean
+          file_size_bytes?: number | null
+          file_url?: string
+          id?: string
+          is_temporary?: boolean
+          legal_hold?: boolean
+          metadata_json?: Json | null
+          mime_type?: string | null
+          original_file_name?: string | null
+          provider?: Database["public"]["Enums"]["file_provider"]
+          provider_asset_id?: string
+          resource_type?: Database["public"]["Enums"]["file_resource_type"]
+          retain_until?: string | null
+          retention_category?: Database["public"]["Enums"]["file_retention_category"]
+          secure_url?: string | null
+          updated_at?: string
+          uploaded_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "files_uploaded_by_user_id_fkey"
+            columns: ["uploaded_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -601,6 +727,48 @@ export type Database = {
         }
         Relationships: []
       }
+      transaction_agreement_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          locked_at: string
+          locked_by_user_id: string | null
+          snapshot_json: Json
+          transaction_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          locked_at: string
+          locked_by_user_id?: string | null
+          snapshot_json: Json
+          transaction_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          locked_at?: string
+          locked_by_user_id?: string | null
+          snapshot_json?: Json
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_agreement_snapshots_locked_by_user_id_fkey"
+            columns: ["locked_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_agreement_snapshots_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transaction_delivery_terms: {
         Row: {
           created_at: string
@@ -752,6 +920,48 @@ export type Database = {
             foreignKeyName: "transaction_links_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transaction_media: {
+        Row: {
+          created_at: string
+          file_id: string
+          id: string
+          media_type: Database["public"]["Enums"]["transaction_media_type"]
+          sort_order: number
+          transaction_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_id: string
+          id?: string
+          media_type: Database["public"]["Enums"]["transaction_media_type"]
+          sort_order?: number
+          transaction_id: string
+        }
+        Update: {
+          created_at?: string
+          file_id?: string
+          id?: string
+          media_type?: Database["public"]["Enums"]["transaction_media_type"]
+          sort_order?: number
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_media_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_media_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -1142,6 +1352,12 @@ export type Database = {
     }
     Enums: {
       delivery_method_type: "courier" | "pickup" | "meetup" | "hand_delivery"
+      delivery_proof_type:
+        | "shipping_receipt"
+        | "package_photo"
+        | "signature_proof"
+        | "shipment_video"
+        | "other"
       dispute_status:
         | "none"
         | "open"
@@ -1163,6 +1379,21 @@ export type Database = {
         | "releasing"
         | "released"
         | "refunded"
+      file_context_type:
+        | "transaction_media"
+        | "delivery_proof"
+        | "dispute_evidence"
+        | "response_evidence"
+        | "system_attachment"
+      file_provider: "cloudinary" | "manual"
+      file_resource_type: "image" | "video" | "raw" | "document"
+      file_retention_category:
+        | "draft_upload"
+        | "transaction_media"
+        | "delivery_proof"
+        | "dispute_evidence"
+        | "response_evidence"
+        | "system_attachment"
       item_condition:
         | "brand_new"
         | "like_new"
@@ -1200,6 +1431,7 @@ export type Database = {
         | "completed"
         | "failed"
         | "cancelled"
+      transaction_media_type: "image" | "video"
       transaction_party_role: "buyer" | "seller"
       transaction_status:
         | "draft"
@@ -1342,6 +1574,13 @@ export const Constants = {
   public: {
     Enums: {
       delivery_method_type: ["courier", "pickup", "meetup", "hand_delivery"],
+      delivery_proof_type: [
+        "shipping_receipt",
+        "package_photo",
+        "signature_proof",
+        "shipment_video",
+        "other",
+      ],
       dispute_status: [
         "none",
         "open",
@@ -1365,6 +1604,23 @@ export const Constants = {
         "releasing",
         "released",
         "refunded",
+      ],
+      file_context_type: [
+        "transaction_media",
+        "delivery_proof",
+        "dispute_evidence",
+        "response_evidence",
+        "system_attachment",
+      ],
+      file_provider: ["cloudinary", "manual"],
+      file_resource_type: ["image", "video", "raw", "document"],
+      file_retention_category: [
+        "draft_upload",
+        "transaction_media",
+        "delivery_proof",
+        "dispute_evidence",
+        "response_evidence",
+        "system_attachment",
       ],
       item_condition: [
         "brand_new",
@@ -1408,6 +1664,7 @@ export const Constants = {
         "failed",
         "cancelled",
       ],
+      transaction_media_type: ["image", "video"],
       transaction_party_role: ["buyer", "seller"],
       transaction_status: [
         "draft",
