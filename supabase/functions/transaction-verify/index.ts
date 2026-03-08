@@ -552,8 +552,57 @@ async function raiseDispute(
 
   const now = result.now!;
 
-  // 3. Parallel side-effect writes
-  await Promise.all([
+  // 3. Link evidence files if provided
+  if (fileIds && Array.isArray(fileIds) && fileIds.length > 0) {
+    if (fileIds.length > 10) {
+      return jsonResponse({ error: "Maximum 10 evidence files per dispute" }, 400);
+    }
+
+    // Validate ownership
+    const { data: ownedFiles, error: filesErr } = await admin
+      .from("files")
+      .select("id, resource_type, mime_type")
+      .in("id", fileIds)
+      .eq("uploaded_by_user_id", userId);
+
+    if (filesErr) {
+      console.error("File ownership check failed:", filesErr);
+      return jsonResponse({ error: "Failed to validate evidence files" }, 500);
+    }
+
+    if (!ownedFiles || ownedFiles.length !== fileIds.length) {
+      return jsonResponse({ error: "One or more evidence files are invalid or not owned by you" }, 403);
+    }
+
+    // Map resource_type to evidence_type
+    const evidenceTypeMap: Record<string, string> = {
+      image: "buyer_photo",
+      video: "buyer_video",
+      raw: "supporting_document",
+      document: "supporting_document",
+    };
+
+    // Insert dispute_evidence rows
+    const evidenceRows = ownedFiles.map((f: { id: string; resource_type: string; mime_type: string | null }) => ({
+      dispute_id: dispute.id,
+      file_id: f.id,
+      submitted_by_user_id: userId,
+      submitted_by_role: "buyer",
+      evidence_type: evidenceTypeMap[f.resource_type] || "other",
+    }));
+
+    await Promise.all([
+      admin.from("dispute_evidence").insert(evidenceRows),
+      admin
+        .from("files")
+        .update({ is_temporary: false })
+        .in("id", fileIds)
+        .eq("uploaded_by_user_id", userId),
+    ]);
+  }
+
+  // 4. Parallel side-effect writes
+  const sideEffects: Promise<unknown>[] = [
     // Freeze escrow
     admin
       .from("escrow_states")
@@ -598,7 +647,23 @@ async function raiseDispute(
       related_dispute_id: dispute.id,
       status: "pending",
     }),
-  ]);
+  ];
+
+  // Evidence upload event
+  if (fileIds && fileIds.length > 0) {
+    sideEffects.push(
+      admin.from("transaction_events").insert({
+        transaction_id: transactionId,
+        event_type: "dispute_evidence_uploaded",
+        actor_user_id: userId,
+        actor_role: "buyer",
+        event_data: { dispute_id: dispute.id, file_count: fileIds.length },
+        occurred_at: now,
+      }),
+    );
+  }
+
+  await Promise.all(sideEffects);
 
   return jsonResponse(
     {
