@@ -203,11 +203,15 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
     }
 
     setUploadedFiles((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, status: "uploading" as const, error: undefined } : f)),
+      prev.map((f) => (f.id === id ? { ...f, status: "uploading" as const, error: undefined, progress: 0 } : f)),
     );
 
     try {
-      const result = await uploadEvidence(fileEntry.file);
+      const result = await uploadEvidence(fileEntry.file, (pct) => {
+        setUploadedFiles((prev) =>
+          prev.map((f) => (f.id === id ? { ...f, progress: pct } : f)),
+        );
+      });
       setUploadedFiles((prev) =>
         prev.map((f) =>
           f.id === id
