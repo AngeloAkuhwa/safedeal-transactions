@@ -8,7 +8,7 @@ import { ImmutabilityExplanation } from "@/components/agreement/ImmutabilityExpl
 import { AgreementNextSteps } from "@/components/agreement/AgreementNextSteps";
 import { AgreementTrustIndicators } from "@/components/agreement/AgreementTrustIndicators";
 import { getAgreementData } from "@/services/agreement.service";
-import { getProfileData } from "@/services/profile.service";
+import { getBuyerProfile } from "@/services/profile.service";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BuyerTransactionAgreement() {
