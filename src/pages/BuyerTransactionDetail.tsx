@@ -276,59 +276,55 @@ const BuyerTransactionDetail = () => {
       {/* Content */}
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 py-6">
 
-        {/* ── Header Card (full width) ── */}
-        <Card className="shadow-sm mb-6 sm:mb-8">
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        {/* ── Header Card (dark background) ── */}
+        <div className="rounded-xl bg-foreground text-background p-6 mb-6 sm:mb-8 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-xl sm:text-2xl font-bold">{tx.transaction_code}</h1>
+                <Badge className="bg-success/20 text-success border-success/30 text-xs font-bold">{sBadge.label}</Badge>
+              </div>
+              <p className="text-sm opacity-70">
+                Created on {format(new Date(tx.created_at), "MMMM d, yyyy 'at' h:mm a")}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
+                <Truck className="h-4 w-4" /> Track Order
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="inline-flex items-center gap-1.5 text-sm font-medium opacity-70 hover:opacity-100 transition-opacity">
+                    <MoreHorizontal className="h-4 w-4" /> More Actions
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {agreement && (
+                    <DropdownMenuItem onClick={() => navigate(`/dashboard/transactions/${tx.id}/agreement`)}>
+                      <FileText className="h-4 w-4 mr-2" /> View Locked Agreement
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem><Download className="h-4 w-4 mr-2" /> Download Receipt</DropdownMenuItem>
+                  <DropdownMenuItem><HelpCircle className="h-4 w-4 mr-2" /> Contact Support</DropdownMenuItem>
+                  <DropdownMenuItem><Flag className="h-4 w-4 mr-2" /> Report Issue</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          {/* Escrow banner nested inside header card */}
+          {escrow && (escrow.state === "funds_held" || tx.money_status === "funds_held_in_escrow") && (
+            <div className="mt-4 bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
+              <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <h1 className="text-xl sm:text-2xl font-bold text-foreground">{tx.transaction_code}</h1>
-                  <Badge variant="outline" className={`${sBadge.className} text-xs font-bold`}>{sBadge.label}</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Created on {format(new Date(tx.created_at), "MMMM d, yyyy 'at' h:mm a")}
+                <p className="text-sm font-semibold">Escrow Protection Active</p>
+                <p className="text-sm opacity-70 mt-0.5">
+                  Your payment of <span className="font-semibold">{formatCurrency(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                {tx.status === "seller_dispatched" && (
-                  <button className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors">
-                    <Truck className="h-4 w-4" /> Track Order
-                  </button>
-                )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                      <MoreHorizontal className="h-4 w-4" /> More Actions
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {agreement && (
-                      <DropdownMenuItem onClick={() => navigate(`/dashboard/transactions/${tx.id}/agreement`)}>
-                        <FileText className="h-4 w-4 mr-2" /> View Locked Agreement
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem><Download className="h-4 w-4 mr-2" /> Download Receipt</DropdownMenuItem>
-                    <DropdownMenuItem><HelpCircle className="h-4 w-4 mr-2" /> Contact Support</DropdownMenuItem>
-                    <DropdownMenuItem><Flag className="h-4 w-4 mr-2" /> Report Issue</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
             </div>
-
-            {/* Escrow banner nested inside header card */}
-            {escrow && (escrow.state === "funds_held" || tx.money_status === "funds_held_in_escrow") && (
-              <div className="mt-4 bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
-                <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Escrow Protection Active</p>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    Your payment of <span className="font-semibold text-foreground">{formatCurrency(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.
-                  </p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          )}
+        </div>
 
         {/* ── 3-Column Grid ── */}
         <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
