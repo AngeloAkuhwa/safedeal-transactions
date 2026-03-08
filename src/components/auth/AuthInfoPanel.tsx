@@ -23,10 +23,10 @@ const AuthInfoPanel = () => {
   return (
     <div className="hidden lg:flex flex-col justify-between bg-primary/5 dark:bg-primary/10 p-10 xl:p-14 rounded-l-2xl">
       <div>
-        <div className="flex items-center gap-2 mb-8">
+        <Link to="/" className="flex items-center gap-2 mb-8 hover:opacity-80 transition-opacity">
           <Shield className="h-8 w-8 text-primary" />
           <span className="text-2xl font-bold text-foreground">SafeDeal</span>
-        </div>
+        </Link>
 
         <h2 className="text-3xl font-bold text-foreground mb-3">
           Join SafeDeal
