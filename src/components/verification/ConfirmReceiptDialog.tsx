@@ -1,12 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
@@ -49,50 +46,67 @@ export function ConfirmReceiptDialog({
   });
 
   const checks = [
-    "The item I received matches the agreed description",
-    "The quantity is correct",
+    "The item matches the agreement description",
+    "The quantity and condition are correct",
     "There are no defects or damage",
-    `I authorize the release of ${amount} to the seller`,
+    `You authorize release of ${amount} to the seller`,
   ];
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-md">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Confirm Item Received</AlertDialogTitle>
-          <AlertDialogDescription>
-            You are about to confirm receipt for{" "}
-            <span className="font-semibold text-foreground">{transactionCode}</span>. This
-            action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+      <AlertDialogContent className="max-w-lg rounded-3xl p-8">
+        {/* Large success icon */}
+        <div className="text-center mb-6">
+          <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="h-10 w-10 text-success" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Confirm Item Receipt?</h2>
+          <p className="text-sm text-muted-foreground">This action cannot be undone</p>
+        </div>
 
-        <div className="space-y-2 my-2">
-          {checks.map((c, i) => (
-            <div key={i} className="flex items-start gap-2 text-sm">
-              <span className="text-success font-bold mt-0.5">✓</span>
-              <span className="text-muted-foreground">{c}</span>
+        {/* Checklist */}
+        <div className="bg-muted/50 rounded-xl p-5 mb-6 border border-border">
+          <p className="text-sm text-muted-foreground mb-4">By confirming, you are declaring that:</p>
+          <ul className="space-y-2 text-sm text-foreground">
+            {checks.map((c, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <CheckCircle className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                <span>{c}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Danger warning */}
+        <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs text-destructive font-semibold mb-1">
+                Once you confirm, funds will be immediately released to the seller
+              </p>
+              <p className="text-xs text-destructive/80 font-semibold">
+                You will not be able to raise a dispute for this transaction
+              </p>
             </div>
-          ))}
+          </div>
         </div>
 
-        <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
-          <p className="text-xs text-destructive font-medium">
-            ⚠️ Once confirmed, escrow funds will be released to the seller immediately. You
-            will not be able to open a dispute after this action.
-          </p>
-        </div>
-
-        <AlertDialogFooter className="gap-2 sm:gap-0">
-          <AlertDialogCancel disabled={mutation.isPending}>Cancel</AlertDialogCancel>
+        <AlertDialogFooter className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <Button
-            className="bg-success hover:bg-success/90 text-success-foreground"
+            className="flex-1 bg-success hover:bg-success/90 text-success-foreground font-bold py-4 rounded-xl shadow-lg"
             onClick={() => mutation.mutate()}
             disabled={mutation.isPending}
           >
             {mutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Yes, Confirm Receipt
           </Button>
+          <AlertDialogCancel
+            disabled={mutation.isPending}
+            className="flex-1 font-semibold py-4 rounded-xl border-2"
+          >
+            Cancel
+          </AlertDialogCancel>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

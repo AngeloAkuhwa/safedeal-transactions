@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Loader2,
   ShieldAlert,
-  ChevronRight,
+  Clock,
   AlertTriangle,
+  X,
+  Lock,
+  FileText,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
@@ -13,6 +17,8 @@ import { VerificationCountdown } from "@/components/verification/VerificationCou
 import { VerificationChecklist } from "@/components/verification/VerificationChecklist";
 import { VerificationActions } from "@/components/verification/VerificationActions";
 import { VerificationSidebar } from "@/components/verification/VerificationSidebar";
+import { WhatHappensCard } from "@/components/verification/WhatHappensCard";
+import { AutoReleaseWarning } from "@/components/verification/AutoReleaseWarning";
 import { getVerificationData } from "@/services/verification.service";
 import { getBuyerProfile } from "@/services/profile.service";
 
@@ -36,6 +42,7 @@ const STATUS_LABELS: Record<string, string> = {
 const BuyerTransactionVerify = () => {
   const { transactionId } = useParams<{ transactionId: string }>();
   const navigate = useNavigate();
+  const [alertDismissed, setAlertDismissed] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ["buyer-profile"],
@@ -83,87 +90,100 @@ const BuyerTransactionVerify = () => {
   const { transaction, pricing } = data;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-muted/30 flex flex-col">
       <BuyerNav
         buyerName={profile?.profile.full_name || ""}
         avatarUrl={profile?.profile.avatar_url}
       />
 
-      {/* Trust banner */}
-      <div className="bg-warning/10 border-b border-warning/20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2.5 flex items-center gap-2">
-          <ShieldAlert className="h-4 w-4 text-warning shrink-0" />
-          <p className="text-xs text-warning font-medium">
-            Verification window is now open — confirm receipt or raise a dispute before the
-            deadline
-          </p>
-        </div>
-      </div>
-
-      {/* Hero header */}
-      <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent py-6 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-sm text-muted-foreground mb-4">
-            <Link to="/dashboard" className="hover:text-foreground transition-colors">
-              Dashboard
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5" />
-            <Link
-              to="/dashboard/transactions"
-              className="hover:text-foreground transition-colors"
-            >
-              Transactions
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5" />
-            <span className="text-foreground font-medium">Verify Item</span>
-          </nav>
-
-          {/* Transaction header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="space-y-1">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-                {transaction.transaction_code}
-              </h1>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="secondary" className="text-[10px] bg-warning/10 text-warning border-warning/20">
-                  {STATUS_LABELS[transaction.status] || transaction.status}
-                </Badge>
-                <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-primary/20">
-                  {STATUS_LABELS[transaction.money_status] || transaction.money_status}
-                </Badge>
-              </div>
-            </div>
-            {pricing && (
-              <div className="text-right">
-                <p className="text-2xl font-bold text-foreground">
-                  {formatCurrency(Number(pricing.buyer_total_amount), pricing.currency_code)}
-                </p>
-                <p className="text-xs text-muted-foreground">{pricing.currency_code}</p>
-              </div>
-            )}
+      {/* Trust banner - full gradient amber */}
+      <section className="bg-gradient-to-r from-warning to-warning/80 py-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center gap-3 text-warning-foreground">
+            <Clock className="h-5 w-5 animate-pulse" />
+            <p className="text-sm font-semibold">
+              Verification window is now open — Please confirm or dispute within 72 hours
+            </p>
+            <AlertTriangle className="h-4 w-4" />
           </div>
         </div>
       </section>
 
-      {/* Action required alert */}
-      <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 mt-4">
-        <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4">
-          <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-foreground">Action Required</p>
-            <p className="text-xs text-muted-foreground">
-              Please verify the item you received against the locked agreement. If everything
-              matches, confirm receipt. If there is any issue, raise a dispute to protect your
-              funds.
-            </p>
+      {/* Transaction header - white bg */}
+      <section className="bg-card border-b border-border py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              {/* Badges row */}
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
+                  <FileText className="h-3 w-3 mr-1" />
+                  {transaction.transaction_code}
+                </Badge>
+                <Badge className="bg-success/10 text-success border-success/20 hover:bg-success/10">
+                  Delivered
+                </Badge>
+                <Badge className="bg-warning/10 text-warning border-warning/20 hover:bg-warning/10">
+                  {STATUS_LABELS[transaction.status] || transaction.status}
+                </Badge>
+              </div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+                Did the item match what you ordered?
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Review the item and confirm receipt or raise a dispute
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              {pricing && (
+                <div className="text-right">
+                  <div className="text-sm text-muted-foreground mb-1">Transaction Amount</div>
+                  <div className="text-2xl font-bold text-primary">
+                    {formatCurrency(Number(pricing.buyer_total_amount), pricing.currency_code)}
+                  </div>
+                </div>
+              )}
+              <div className="text-right">
+                <div className="text-sm text-muted-foreground mb-1">Money Status</div>
+                <Badge className="bg-warning/10 text-warning border-warning/20 hover:bg-warning/10 px-3 py-1.5 text-sm font-semibold">
+                  <Lock className="h-3.5 w-3.5 mr-1.5" />
+                  {STATUS_LABELS[transaction.money_status] || transaction.money_status}
+                </Badge>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Notification alert - left-bordered, dismissible */}
+      {!alertDismissed && (
+        <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="bg-warning/5 border-l-4 border-warning rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Clock className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-foreground mb-1">
+                  Action Required: Verify your item within 72 hours
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  If no action is taken, funds will automatically be released to the seller.
+                  Please confirm the item matches the agreement or raise a dispute if there's an issue.
+                </p>
+              </div>
+              <button
+                onClick={() => setAlertDismissed(true)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Main content */}
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid lg:grid-cols-3 gap-8">
           {/* Left column */}
           <div className="lg:col-span-2 space-y-6">
             {transaction.verification_deadline_at && (
@@ -179,11 +199,20 @@ const BuyerTransactionVerify = () => {
               amount={pricing ? Number(pricing.buyer_total_amount) : 0}
               currency={pricing?.currency_code || "NGN"}
             />
+            <WhatHappensCard deadlineAt={transaction.verification_deadline_at} />
+            {transaction.verification_deadline_at && (
+              <AutoReleaseWarning
+                deadlineAt={transaction.verification_deadline_at}
+                deliveredAt={transaction.delivered_at}
+              />
+            )}
           </div>
 
           {/* Right column */}
-          <div className="lg:sticky lg:top-6 lg:self-start">
-            <VerificationSidebar data={data} />
+          <div className="lg:col-span-1">
+            <div className="lg:sticky lg:top-24">
+              <VerificationSidebar data={data} />
+            </div>
           </div>
         </div>
       </main>

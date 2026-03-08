@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { Clock, Calendar } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Clock } from "lucide-react";
 import { format } from "date-fns";
 
 interface VerificationCountdownProps {
@@ -13,8 +12,7 @@ function calcRemaining(deadline: Date) {
   const hours = Math.floor(diff / 3_600_000);
   const minutes = Math.floor((diff % 3_600_000) / 60_000);
   const seconds = Math.floor((diff % 60_000) / 1_000);
-  const pct = Math.min(100, Math.max(0, (diff / (72 * 3_600_000)) * 100));
-  return { hours, minutes, seconds, expired: diff === 0, pct };
+  return { hours, minutes, seconds, expired: diff === 0 };
 }
 
 export function VerificationCountdown({ deadlineAt, deliveredAt }: VerificationCountdownProps) {
@@ -26,60 +24,41 @@ export function VerificationCountdown({ deadlineAt, deliveredAt }: VerificationC
     return () => clearInterval(id);
   }, [deadlineAt]);
 
+  const timerStr = `${String(rem.hours).padStart(2, "0")}:${String(rem.minutes).padStart(2, "0")}:${String(rem.seconds).padStart(2, "0")}`;
+
   return (
-    <Card className="border-warning/30 bg-gradient-to-br from-warning/5 via-warning/3 to-transparent overflow-hidden">
-      <CardContent className="p-5 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-warning/10 flex items-center justify-center">
-            <Clock className="h-5 w-5 text-warning" />
+    <div className="bg-gradient-to-br from-warning to-warning/80 rounded-2xl shadow-xl p-8 text-warning-foreground">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div className="flex items-start gap-4">
+          <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shrink-0">
+            <Clock className="h-8 w-8" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Verification Window</h3>
-            <p className="text-xs text-muted-foreground">
+            <h2 className="text-2xl font-bold mb-2">Verification Countdown</h2>
+            <p className="text-sm opacity-80 mb-1">
               {rem.expired
-                ? "Window has expired"
-                : "Time remaining to verify your item"}
+                ? "Verification window has expired"
+                : "Funds will auto-release if no action is taken"}
             </p>
+            {deliveredAt && (
+              <p className="text-xs opacity-60">
+                Delivered on {format(new Date(deliveredAt), "MMM dd, yyyy 'at' h:mm a")}
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Countdown */}
-        <div className="flex items-center justify-center gap-4">
-          {[
-            { val: rem.hours, label: "Hours" },
-            { val: rem.minutes, label: "Minutes" },
-            { val: rem.seconds, label: "Seconds" },
-          ].map((u) => (
-            <div key={u.label} className="text-center">
-              <div className="text-3xl font-bold tabular-nums text-foreground">
-                {String(u.val).padStart(2, "0")}
-              </div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                {u.label}
-              </div>
+        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/30">
+          <div className="text-center">
+            <div className="text-5xl font-bold mb-2 tabular-nums">{timerStr}</div>
+            <div className="flex justify-center gap-8 text-sm opacity-80">
+              <span>Hours</span>
+              <span>Minutes</span>
+              <span>Seconds</span>
             </div>
-          ))}
+          </div>
         </div>
-
-        {/* Progress */}
-        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-          <div
-            className="h-full rounded-full bg-warning transition-all duration-1000"
-            style={{ width: `${rem.pct}%` }}
-          />
-        </div>
-
-        {/* Dates */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          {deliveredAt && (
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              Delivered {format(new Date(deliveredAt), "MMM dd, yyyy")}
-            </span>
-          )}
-          <span>Deadline: {format(deadline, "MMM dd, yyyy HH:mm")}</span>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
