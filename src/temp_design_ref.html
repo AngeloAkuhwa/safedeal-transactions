@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buyer Disputes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        success: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        },
+                        warning: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        },
+                        danger: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                        },
+                        neutral: {
+                            50: '#fafafa',
+                            100: '#f5f5f5',
+                            200: '#e5e5e5',
+                            300: '#d4d4d4',
+                            400: '#a3a3a3',
+                            500: '#737373',
+                            600: '#525252',
+                            700: '#404040',
+                            800: '#262626',
+                            900: '#171717',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none;}
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-neutral-50">
+
+<header id="header" class="bg-white border-b border-neutral-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+                </div>
+                <span class="text-2xl font-bold text-neutral-900">SafeDeal</span>
+            </div>
+            
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="#" class="text-neutral-600 hover:text-neutral-900 font-medium transition-colors">Dashboard</a>
+                <a href="#" class="text-neutral-600 hover:text-neutral-900 font-medium transition-colors">Transactions</a>
+                <a href="#" class="text-primary-600 font-semibold border-b-2 border-primary-600 pb-1 transition-colors">Disputes</a>
+                <a href="#" class="text-neutral-600 hover:text-neutral-900 font-medium transition-colors">Notifications</a>
+                <a href="#" class="text-neutral-600 hover:text-neutral-900 font-medium transition-colors">Profile</a>
+            </nav>
+
+            <div class="flex items-center space-x-3">
+                <button class="relative p-2 text-neutral-600 hover:text-neutral-900 transition-colors">
+                    <i class="fa-solid fa-bell text-xl"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-danger-500 rounded-full"></span>
+                </button>
+                <div class="hidden sm:flex items-center space-x-3 pl-3 border-l border-neutral-200">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="User" class="w-9 h-9 rounded-full object-cover">
+                    <div class="hidden lg:block">
+                        <div class="text-sm font-semibold text-neutral-900">John Buyer</div>
+                        <div class="text-xs text-neutral-500">Buyer</div>
+                    </div>
+                </div>
+                <button class="md:hidden text-neutral-600">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<section id="disputes-hero" class="bg-gradient-to-r from-danger-600 to-danger-700 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between">
+            <div class="mb-6 lg:mb-0">
+                <h1 class="text-3xl lg:text-4xl font-bold text-white mb-2">My Disputes</h1>
+                <p class="text-danger-100 text-lg">Track all active and resolved disputes related to your protected transactions.</p>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button class="px-6 py-3 bg-white text-danger-600 font-bold rounded-xl hover:shadow-xl transition-all flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-circle-question"></i>
+                    <span>Dispute Help</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="dispute-metrics" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 mb-8">
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div id="metric-open-disputes" class="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 hover:shadow-xl transition-all fade-in">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 bg-danger-100 rounded-xl flex items-center justify-center">
+                    <i class="fa-solid fa-scale-balanced text-danger-600 text-xl"></i>
+                </div>
+                <span class="text-xs font-semibold text-danger-600 bg-danger-50 px-3 py-1 rounded-full">Open</span>
+            </div>
+            <div class="text-3xl font-bold text-neutral-900 mb-1">1</div>
+            <div class="text-sm text-neutral-600 font-medium">Open Disputes</div>
+        </div>
+
+        <div id="metric-under-review" class="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 hover:shadow-xl transition-all fade-in">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 bg-warning-100 rounded-xl flex items-center justify-center">
+                    <i class="fa-solid fa-hourglass-half text-warning-600 text-xl"></i>
+                </div>
+                <span class="text-xs font-semibold text-warning-600 bg-warning-50 px-3 py-1 rounded-full">Review</span>
+            </div>
+            <div class="text-3xl font-bold text-neutral-900 mb-1">2</div>
+            <div class="text-sm text-neutral-600 font-medium">Under Review</div>
+        </div>
+
+        <div id="metric-resolved" class="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 hover:shadow-xl transition-all fade-in">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 bg-success-100 rounded-xl flex items-center justify-center">
+                    <i class="fa-solid fa-check-circle text-success-600 text-xl"></i>
+                </div>
+                <span class="text-xs font-semibold text-success-600 bg-success-50 px-3 py-1 rounded-full">Resolved</span>
+            </div>
+            <div class="text-3xl font-bold text-neutral-900 mb-1">5</div>
+            <div class="text-sm text-neutral-600 font-medium">Resolved</div>
+        </div>
+
+        <div id="metric-refunds" class="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 hover:shadow-xl transition-all fade-in">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+                    <i class="fa-solid fa-money-bill-transfer text-primary-600 text-xl"></i>
+                </div>
+                <span class="text-xs font-semibold text-primary-600 bg-primary-50 px-3 py-1 rounded-full">Issued</span>
+            </div>
+            <div class="text-3xl font-bold text-neutral-900 mb-1">$3,747</div>
+            <div class="text-sm text-neutral-600 font-medium">Refunds Issued</div>
+        </div>
+    </div>
+</section>
+
+<section id="trust-banner" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+    <div class="bg-primary-50 border border-primary-200 rounded-2xl p-6 lg:p-8 fade-in">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center space-y-4 lg:space-y-0 lg:space-x-6">
+            <div class="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-bold text-neutral-900 mb-2">How SafeDeal Protects You</h3>
+                <ul class="space-y-2 text-sm text-neutral-700">
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-check text-primary-600 mt-0.5"></i>
+                        <span>SafeDeal reviews disputes using the locked transaction agreement and submitted evidence</span>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-check text-primary-600 mt-0.5"></i>
+                        <span>Funds remain frozen until the dispute is resolved</span>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-check text-primary-600 mt-0.5"></i>
+                        <span>All evidence submitted becomes part of the permanent dispute record</span>
+                    </li>
+                </ul>
+            </div>
+            <button class="px-6 py-3 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition-all flex items-center space-x-2 flex-shrink-0">
+                <i class="fa-solid fa-book"></i>
+                <span>Dispute Guide</span>
+            </button>
+        </div>
+    </div>
+</section>
+
+<section id="filters-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+    <div class="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 lg:p-8 fade-in">
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div id="search-filter">
+                <label class="block text-sm font-semibold text-neutral-700 mb-2">Search</label>
+                <div class="relative">
+                    <input type="text" placeholder="Transaction code or Dispute ID" class="w-full pl-10 pr-4 py-3 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"></i>
+                </div>
+            </div>
+
+            <div id="status-filter">
+                <label class="block text-sm font-semibold text-neutral-700 mb-2">Status</label>
+                <select class="w-full px-4 py-3 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white">
+                    <option>All Statuses</option>
+                    <option>Open</option>
+                    <option>Seller Response Pending</option>
+                    <option>Under Review</option>
+                    <option>Resolved</option>
+                </select>
+            </div>
+
+            <div id="date-filter">
+                <label class="block text-sm font-semibold text-neutral-700 mb-2">Date Range</label>
+                <select class="w-full px-4 py-3 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white">
+                    <option>All Time</option>
+                    <option>Last 7 Days</option>
+                    <option>Last 30 Days</option>
+                    <option>Last 90 Days</option>
+                    <option>Custom Range</option>
+                </select>
+            </div>
+
+            <div id="outcome-filter">
+                <label class="block text-sm font-semibold text-neutral-700 mb-2">Outcome</label>
+                <select class="w-full px-4 py-3 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white">
+                    <option>All Outcomes</option>
+                    <option>Buyer Refunded</option>
+                    <option>Seller Released</option>
+                    <option>Pending</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between mt-6 pt-6 border-t border-neutral-200">
+            <div class="text-sm text-neutral-600 mb-4 sm:mb-0">
+                Showing <span class="font-semibold text-neutral-900">8</span> disputes
+            </div>
+            <div class="flex space-x-3">
+                <button class="px-4 py-2 bg-neutral-200 text-neutral-700 font-semibold rounded-lg hover:bg-neutral-300 transition-colors">
+                    Reset Filters
+                </button>
+                <button class="px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors">
+                    Apply Filters
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="disputes-table-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+    <div class="bg-white rounded-2xl shadow-lg border border-neutral-200 overflow-hidden fade-in">
+        <div class="p-6 lg:p-8 border-b border-neutral-200">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-danger-100 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-list text-danger-600"></i>
+                </div>
+                <h2 class="text-xl font-bold text-neutral-900">All Disputes</h2>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-neutral-50 border-b border-neutral-200">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Dispute ID</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Transaction</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Item</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Seller</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Reason</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Money Status</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Date Opened</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-neutral-200">
+                    <tr id="dispute-row-1" class="hover:bg-neutral-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-neutral-900">#DSP-2024-0041</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-primary-600">#SD-2024-8469</div>
+                            <div class="text-xs text-neutral-500">Dec 25, 2024</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-semibold text-neutral-900">Sony A7 IV Camera Body</div>
+                            <div class="text-xs text-neutral-500">$2,498.00</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center space-x-2">
+                                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-8.jpg" alt="Seller" class="w-8 h-8 rounded-full object-cover">
+                                <span class="text-sm font-medium text-neutral-900">Photo Pro</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-neutral-900">Item not as described</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-warning-100 text-warning-700">
+                                <i class="fa-solid fa-hourglass-half mr-1.5"></i>
+                                Under Review
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-warning-100 text-warning-700">
+                                <i class="fa-solid fa-lock mr-1.5"></i>
+                                Funds Frozen
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-neutral-900">Dec 28, 2024</div>
+                            <div class="text-xs text-neutral-500">3 days ago</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button class="px-4 py-2 bg-danger-600 text-white text-sm font-semibold rounded-lg hover:bg-danger-700 transition-colors">
+                                View Dispute
+                            </button>
+                        </td>
+                    </tr>
+
+                    <tr id="dispute-row-2" class="hover:bg-neutral-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-neutral-900">#DSP-2024-0040</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-primary-600">#SD-2024-8465</div>
+                            <div class="text-xs text-neutral-500">Dec 18, 2024</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-semibold text-neutral-900">Samsung Galaxy Watch 6</div>
+                            <div class="text-xs text-neutral-500">$349.00</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center space-x-2">
+                                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg" alt="Seller" class="w-8 h-8 rounded-full object-cover">
+                                <span class="text-sm font-medium text-neutral-900">Tech Store</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-neutral-900">Damaged item</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-warning-100 text-warning-700">
+                                <i class="fa-solid fa-clock mr-1.5"></i>
+                                Seller Response Pending
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-warning-100 text-warning-700">
+                                <i class="fa-solid fa-lock mr-1.5"></i>
+                                Funds Frozen
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-neutral-900">Dec 26, 2024</div>
+                            <div class="text-xs text-neutral-500">5 days ago</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex flex-col space-y-2">
+                                <button class="px-4 py-2 bg-danger-600 text-white text-sm font-semibold rounded-lg hover:bg-danger-700 transition-colors whitespace-nowrap">
+                                    View Dispute
+                                </button>
+                                <button class="px-4 py-2 bg-primary-600 text-white text-sm font-semibold rounded-lg hover:bg-primary-700 transition-colors whitespace-nowrap">
+                                    Upload Evidence
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr id="dispute-row-3" class="hover:bg-neutral-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-neutral-900">#DSP-2024-0039</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-primary-600">#SD-2024-8462</div>
+                            <div class="text-xs text-neutral-500">Dec 15, 2024</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-semibold text-neutral-900">Nintendo Switch OLED</div>
+                            <div class="text-xs text-neutral-500">$349.99</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center space-x-2">
+                                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-9.jpg" alt="Seller" class="w-8 h-8 rounded-full object-cover">
+                                <span class="text-sm font-medium text-neutral-900">Game Hub</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-neutral-900">Wrong item received</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-success-100 text-success-700">
+                                <i class="fa-solid fa-check-circle mr-1.5"></i>
+                                Resolved
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-success-100 text-success-700">
+                                <i class="fa-solid fa-money-bill-transfer mr-1.5"></i>
+                                Refund Issued
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-neutral-900">Dec 22, 2024</div>
+                            <div class="text-xs text-neutral-500">9 days ago</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button class="px-4 py-2 bg-neutral-200 text-neutral-700 text-sm font-semibold rounded-lg hover:bg-neutral-300 transition-colors">
+                                View Resolution
+                            </button>
+                        </td>
+                    </tr>
+
+                    <tr id="dispute-row-4" class="hover:bg-neutral-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-neutral-900">#DSP-2024-0038</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-primary-600">#SD-2024-8460</div>
+                            <div class="text-xs text-neutral-500">Dec 12, 2024</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-semibold text-neutral-900">Apple Watch Series 9</div>
+                            <div class="text-xs text-neutral-500">$429.00</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center space-x-2">
+                                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-3.jpg" alt="Seller" class="w-8 h-8 rounded-full object-cover">
+                                <span class="text-sm font-medium text-neutral-900">Watch Pro</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-neutral-900">Item not delivered</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-success-100 text-success-700">
+                                <i class="fa-solid fa-check-circle mr-1.5"></i>
+                                Resolved
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-success-100 text-success-700">
+                                <i class="fa-solid fa-money-bill-transfer mr-1.5"></i>
+                                Refund Issued
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-neutral-900">Dec 18, 2024</div>
+                            <div class="text-xs text-neutral-500">13 days ago</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button class="px-4 py-2 bg-neutral-200 text-neutral-700 text-sm font-semibold rounded-lg hover:bg-neutral-300 transition-colors">
+                                View Resolution
+                            </button>
+                        </td>
+                    </tr>
+
+                    <tr id="dispute-row-5" class="hover:bg-neutral-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-neutral-900">#DSP-2024-0037</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-primary-600">#SD-2024-8458</div>
+                            <div class="text-xs text-neutral-500">Dec 10, 2024</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-semibold text-neutral-900">Bose QuietComfort 45</div>
+                            <div class="text-xs text-neutral-500">$329.00</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center space-x-2">
+                                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-8.jpg" alt="Seller" class="w-8 h-8 rounded-full object-cover">
+                                <span class="text-sm font-medium text-neutral-900">Audio Shop</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-neutral-900">Incomplete order</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-success-100 text-success-700">
+                                <i class="fa-solid fa-check-circle mr-1.5"></i>
+                                Resolved
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-neutral-100 text-neutral-700">
+                                <i class="fa-solid fa-arrow-right-arrow-left mr-1.5"></i>
+                                Funds Released
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-neutral-900">Dec 15, 2024</div>
+                            <div class="text-xs text-neutral-500">16 days ago</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button class="px-4 py-2 bg-neutral-200 text-neutral-700 text-sm font-semibold rounded-lg hover:bg-neutral-300 transition-colors">
+                                View Resolution
+                            </button>
+                        </td>
+                    </tr>
+
+                    <tr id="dispute-row-6" class="hover:bg-neutral-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-neutral-900">#DSP-2024-0036</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-primary-600">#SD-2024-8455</div>
+                            <div class="text-xs text-neutral-500">Dec 8, 2024</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-semibold text-neutral-900">DJI Mini 3 Pro Drone</div>
+                            <div class="text-xs text-neutral-500">$759.00</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center space-x-2">
+                                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg" alt="Seller" class="w-8 h-8 rounded-full object-cover">
+                                <span class="text-sm font-medium text-neutral-900">Drone Store</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-neutral-900">Item not as described</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-success-100 text-success-700">
+                                <i class="fa-solid fa-check-circle mr-1.5"></i>
+                                Resolved
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-success-100 text-success-700">
+                                <i class="fa-solid fa-money-bill-transfer mr-1.5"></i>
+                                Refund Issued
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-neutral-900">Dec 12, 2024</div>
+                            <div class="text-xs text-neutral-500">19 days ago</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button class="px-4 py-2 bg-neutral-200 text-neutral-700 text-sm font-semibold rounded-lg hover:bg-neutral-300 transition-colors">
+                                View Resolution
+                            </button>
+                        </td>
+                    </tr>
+
+                    <tr id="dispute-row-7" class="hover:bg-neutral-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-neutral-900">#DSP-2024-0035</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-primary-600">#SD-2024-8452</div>
+                            <div class="text-xs text-neutral-500">Dec 5, 2024</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-semibold text-neutral-900">LG 27" 4K Monitor</div>
+                            <div class="text-xs text-neutral-500">$399.00</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center space-x-2">
+                                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-9.jpg" alt="Seller" class="w-8 h-8 rounded-full object-cover">
+                                <span class="text-sm font-medium text-neutral-900">Display Pro</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-neutral-900">Damaged item</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-success-100 text-success-700">
+                                <i class="fa-solid fa-check-circle mr-1.5"></i>
+                                Resolved
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-success-100 text-success-700">
+                                <i class="fa-solid fa-money-bill-transfer mr-1.5"></i>
+                                Refund Issued
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-neutral-900">Dec 10, 2024</div>
+                            <div class="text-xs text-neutral-500">21 days ago</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button class="px-4 py-2 bg-neutral-200 text-neutral-700 text-sm font-semibold rounded-lg hover:bg-neutral-300 transition-colors">
+                                View Resolution
+                            </button>
+                        </td>
+                    </tr>
+
+                    <tr id="dispute-row-8" class="hover:bg-neutral-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-neutral-900">#DSP-2024-0034</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-primary-600">#SD-2024-8450</div>
+                            <div class="text-xs text-neutral-500">Dec 3, 2024</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-semibold text-neutral-900">Logitech MX Master 3S</div>
+                            <div class="text-xs text-neutral-500">$99.99</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center space-x-2">
+                                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-3.jpg" alt="Seller" class="w-8 h-8 rounded-full object-cover">
+                                <span class="text-sm font-medium text-neutral-900">Peripherals Hub</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-neutral-900">Wrong item received</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-warning-100 text-warning-700">
+                                <i class="fa-solid fa-hourglass-half mr-1.5"></i>
+                                Under Review
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-warning-100 text-warning-700">
+                                <i class="fa-solid fa-lock mr-1.5"></i>
+                                Funds Frozen
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-neutral-900">Dec 24, 2024</div>
+                            <div class="text-xs text-neutral-500">7 days ago</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button class="px-4 py-2 bg-danger-600 text-white text-sm font-semibold rounded-lg hover:bg-danger-700 transition-colors">
+                                View Dispute
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="pagination" class="p-6 border-t border-neutral-200">
+            <div class="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+                <div class="text-sm text-neutral-600">
+                    Showing <span class="font-semibold text-neutral-900">1-8</span> of <span class="font-semibold text-neutral-900">8</span> disputes
+                </div>
+                <div class="flex space-x-2">
+                    <button class="px-4 py-2 border border-neutral-300 rounded-lg text-neutral-600 font-semibold hover:bg-neutral-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fa-solid fa-chevron-left mr-2"></i>
+                        Previous
+                    </button>
+                    <button class="px-4 py-2 bg-primary-600 text-white rounded-lg font-semibold">
+                        1
+                    </button>
+                    <button class="px-4 py-2 border border-neutral-300 rounded-lg text-neutral-600 font-semibold hover:bg-neutral-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Next
+                        <i class="fa-solid fa-chevron-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="empty-state-reference" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 hidden">
+    <div class="bg-white rounded-2xl shadow-lg border border-neutral-200 p-12 text-center fade-in">
+        <div class="w-24 h-24 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <i class="fa-solid fa-scale-balanced text-neutral-400 text-4xl"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-neutral-900 mb-3">No Disputes Yet</h3>
+        <p class="text-neutral-600 mb-8 max-w-md mx-auto">You have not opened any disputes yet. SafeDeal protects your purchases and helps resolve issues fairly.</p>
+        <div class="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+            <button class="px-6 py-3 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition-all flex items-center space-x-2">
+                <i class="fa-solid fa-book"></i>
+                <span>Learn About Disputes</span>
+            </button>
+            <button class="px-6 py-3 bg-neutral-200 text-neutral-700 font-bold rounded-xl hover:bg-neutral-300 transition-all flex items-center space-x-2">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back to Dashboard</span>
+            </button>
+        </div>
+    </div>
+</section>
+
+<footer id="footer" class="bg-neutral-900 text-neutral-300 pt-16 pb-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
+            <div class="lg:col-span-2">
+                <div class="flex items-center space-x-2 mb-4">
+                    <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+                    </div>
+                    <span class="text-2xl font-bold text-white">SafeDeal</span>
+                </div>
+                <p class="text-neutral-400 mb-6 max-w-sm">Protecting buyers and sellers in online transactions with secure escrow payments and transparent verification.</p>
+                <div class="flex space-x-4">
+                    <a href="#" class="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors">
+                        <i class="fa-brands fa-twitter"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors">
+                        <i class="fa-brands fa-facebook"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors">
+                        <i class="fa-brands fa-linkedin"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors">
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div>
+                <h4 class="text-white font-semibold mb-4">Product</h4>
+                <ul class="space-y-3">
+                    <li><a href="#" class="hover:text-white transition-colors">How It Works</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Features</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Pricing</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Security</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="text-white font-semibold mb-4">Company</h4>
+                <ul class="space-y-3">
+                    <li><a href="#" class="hover:text-white transition-colors">About Us</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Careers</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Blog</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Press Kit</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="text-white font-semibold mb-4">Support</h4>
+                <ul class="space-y-3">
+                    <li><a href="#" class="hover:text-white transition-colors">Help Center</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Contact Us</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="border-t border-neutral-800 pt-8">
+            <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <p class="text-neutral-500 text-sm">© 2024 SafeDeal. All rights reserved.</p>
+                <div class="flex items-center space-x-6 text-sm">
+                    <a href="#" class="hover:text-white transition-colors">Terms</a>
+                    <a href="#" class="hover:text-white transition-colors">Privacy</a>
+                    <a href="#" class="hover:text-white transition-colors">Cookies</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>
