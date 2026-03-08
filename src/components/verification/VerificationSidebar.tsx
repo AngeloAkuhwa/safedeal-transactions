@@ -114,10 +114,10 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
 
       {/* Seller Info */}
       {seller && (
-        <div className="bg-card rounded-2xl shadow-lg border border-border p-6">
-          <h3 className="text-base font-bold text-foreground mb-4">Seller Information</h3>
-          <div className="flex items-center gap-3 mb-4">
-            <Avatar className="h-12 w-12 rounded-xl border-2 border-border">
+        <div className="bg-card rounded-2xl shadow-lg border border-border p-5">
+          <h3 className="text-sm font-bold text-foreground mb-3">Seller Information</h3>
+          <div className="flex items-center gap-3 mb-3">
+            <Avatar className="h-10 w-10 rounded-xl border-2 border-border">
               <AvatarImage src={seller.avatar_url || undefined} />
               <AvatarFallback className="text-xs rounded-xl">
                 {getInitials(seller.full_name)}
