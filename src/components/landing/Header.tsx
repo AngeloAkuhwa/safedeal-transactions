@@ -51,12 +51,20 @@ export function Header() {
 
         <div className="hidden items-center gap-2 md:flex">
           <ThemeToggle />
-          <Button variant="ghost" asChild>
-            <Link to="/auth?mode=login">Log In</Link>
-          </Button>
-          <Button asChild>
-            <Link to="/auth">Sign Up</Link>
-          </Button>
+          {user ? (
+            <Button asChild>
+              <Link to="/role-selection">Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
+                <Link to="/auth?mode=login">Log In</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/auth">Sign Up</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile menu */}
