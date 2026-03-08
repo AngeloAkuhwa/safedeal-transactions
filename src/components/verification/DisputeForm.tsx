@@ -41,6 +41,7 @@ interface UploadedFile {
   mime: string;
   status: "uploading" | "done" | "error";
   fingerprint: string;
+  progress?: number;
   error?: string;
   localPreview?: string;
   file?: File;
