@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { getSession } from "@/services/auth.service";
 import { Shield, ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AuthInfoPanel from "@/components/auth/AuthInfoPanel";
