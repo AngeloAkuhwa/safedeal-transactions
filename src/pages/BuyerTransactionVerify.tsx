@@ -93,6 +93,10 @@ const BuyerTransactionVerify = () => {
     ? Math.round((new Date(transaction.verification_deadline_at).getTime() - new Date(transaction.delivered_at).getTime()) / 3_600_000)
     : 72;
 
+  const remainingHours = transaction.verification_deadline_at
+    ? Math.max(0, Math.ceil((new Date(transaction.verification_deadline_at).getTime() - Date.now()) / 3_600_000))
+    : windowHours;
+
   return (
     <div className="min-h-screen bg-muted/30 flex flex-col">
       <BuyerNav
@@ -106,7 +110,7 @@ const BuyerTransactionVerify = () => {
           <div className="flex items-center justify-center gap-3 text-warning-foreground">
             <Clock className="h-5 w-5 animate-pulse" />
             <p className="text-sm font-semibold">
-              Verification window is now open — Please confirm or dispute within {windowHours} hours
+              Verification window is now open — Please confirm or dispute within {remainingHours} hours
             </p>
             <AlertTriangle className="h-4 w-4" />
           </div>
@@ -167,7 +171,7 @@ const BuyerTransactionVerify = () => {
               <Clock className="h-5 w-5 text-warning shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-foreground mb-1">
-                  Action Required: Verify your item within {windowHours} hours
+                  Action Required: Verify your item within {remainingHours} hours
                 </p>
                 <p className="text-xs text-muted-foreground">
                   If no action is taken, funds will automatically be released to the seller.
