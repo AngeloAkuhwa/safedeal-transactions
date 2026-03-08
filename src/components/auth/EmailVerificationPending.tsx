@@ -43,7 +43,7 @@ const EmailVerificationPending = ({ email, onGoToLogin }: EmailVerificationPendi
         toast.info("Please check your email and click the verification link, then try again.");
       } else if (data.session.user.email_confirmed_at) {
         toast.success("Email verified! Redirecting…");
-        navigate("/dashboard");
+        navigate("/role-selection");
       } else {
         toast.info("Your email is not verified yet. Please check your inbox.");
       }
