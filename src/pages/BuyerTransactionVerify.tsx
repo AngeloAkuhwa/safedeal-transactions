@@ -167,7 +167,7 @@ const BuyerTransactionVerify = () => {
               <Clock className="h-5 w-5 text-warning shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-foreground mb-1">
-                  Action Required: Verify your item within 72 hours
+                  Action Required: Verify your item within {windowHours} hours
                 </p>
                 <p className="text-xs text-muted-foreground">
                   If no action is taken, funds will automatically be released to the seller.
