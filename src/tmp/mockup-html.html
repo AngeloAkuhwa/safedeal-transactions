@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buyer Transaction Review</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        success: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        },
+                        warning: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        },
+                        danger: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                        },
+                        neutral: {
+                            50: '#fafafa',
+                            100: '#f5f5f5',
+                            200: '#e5e5e5',
+                            300: '#d4d4d4',
+                            400: '#a3a3a3',
+                            500: '#737373',
+                            600: '#525252',
+                            700: '#404040',
+                            800: '#262626',
+                            900: '#171717',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none;}
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .trust-pulse {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .image-gallery {
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+        .image-gallery img {
+            scroll-snap-align: start;
+        }
+    </style>
+</head>
+<body class="bg-neutral-50">
+
+<header id="header" class="bg-white border-b border-neutral-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+                </div>
+                <span class="text-2xl font-bold text-neutral-900">SafeDeal</span>
+            </div>
+            
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="#" class="text-neutral-600 hover:text-neutral-900 font-medium transition-colors">Seller Dashboard</a>
+                <a href="#" class="text-primary-600 font-semibold border-b-2 border-primary-600 pb-1">Transactions</a>
+                <a href="#" class="text-neutral-600 hover:text-neutral-900 font-medium transition-colors">Admin Disputes</a>
+            </nav>
+
+            <div class="flex items-center space-x-3">
+                <button class="relative p-2 text-neutral-600 hover:text-neutral-900 transition-colors">
+                    <i class="fa-solid fa-bell text-xl"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-danger-500 rounded-full"></span>
+                </button>
+                <div class="hidden sm:flex items-center space-x-3 pl-3 border-l border-neutral-200">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-1.jpg" alt="User" class="w-9 h-9 rounded-full object-cover">
+                    <div class="hidden lg:block">
+                        <div class="text-sm font-semibold text-neutral-900">Sarah Johnson</div>
+                        <div class="text-xs text-neutral-500">Buyer Account</div>
+                    </div>
+                </div>
+                <button class="md:hidden text-neutral-600">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<section id="trust-banner" class="bg-gradient-to-r from-success-600 to-success-700 py-3">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-center space-x-3 text-white">
+            <i class="fa-solid fa-shield-check text-xl trust-pulse"></i>
+            <p class="text-sm font-semibold">Your payment will be held securely until you confirm the item received</p>
+            <i class="fa-solid fa-lock text-lg"></i>
+        </div>
+    </div>
+</section>
+
+<section id="fraud-prevention-banner" class="bg-gradient-to-r from-danger-600 to-danger-700 py-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-center space-x-3 text-white">
+            <i class="fa-solid fa-triangle-exclamation text-xl animate-pulse"></i>
+            <p class="text-sm font-bold">WARNING: Never complete payment outside SafeDeal. Paying outside SafeDeal removes all buyer protection.</p>
+            <i class="fa-solid fa-shield-xmark text-lg"></i>
+        </div>
+    </div>
+</section>
+
+<section id="transaction-header" class="bg-white border-b border-neutral-200 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            <div>
+                <div class="flex items-center space-x-2 mb-2">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">
+                        <i class="fa-solid fa-file-contract mr-1"></i>
+                        Transaction #SD-2024-8472
+                    </span>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-warning-100 text-warning-700">
+                        <span class="w-2 h-2 bg-warning-600 rounded-full mr-1.5 animate-pulse"></span>
+                        Payment Pending
+                    </span>
+                </div>
+                <h1 class="text-2xl lg:text-3xl font-bold text-neutral-900">Review Transaction Agreement</h1>
+                <p class="text-neutral-600 mt-1">Please review all details carefully before proceeding with payment</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button class="px-4 py-2 border border-neutral-300 rounded-lg text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors flex items-center space-x-2">
+                    <i class="fa-solid fa-question-circle"></i>
+                    <span>Help</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="money-state-preview" class="py-4 bg-neutral-100 border-y border-neutral-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-warning-100 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-hourglass-half text-warning-600"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-neutral-500 uppercase">Transaction Status</p>
+                    <p class="text-sm font-bold text-neutral-900">Awaiting Payment</p>
+                </div>
+            </div>
+            <div class="hidden sm:block w-px h-10 bg-neutral-300"></div>
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-neutral-200 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-lock-open text-neutral-500"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-neutral-500 uppercase">Money Status</p>
+                    <p class="text-sm font-bold text-neutral-700">Not Yet Secured</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="lock-warning" class="py-6 bg-gradient-to-br from-danger-50 to-orange-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white border-2 border-danger-400 rounded-2xl shadow-lg p-6">
+            <div class="flex items-start space-x-4">
+                <div class="w-14 h-14 bg-danger-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid fa-lock text-danger-600 text-2xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-neutral-900 mb-3">Critical: Agreement Becomes Permanently Locked After Payment</h3>
+                    <div class="space-y-2 mb-4">
+                        <div class="flex items-start space-x-2">
+                            <i class="fa-solid fa-circle-xmark text-danger-600 mt-1"></i>
+                            <p class="text-sm text-neutral-700"><span class="font-bold">Item details</span> (title, description, images) cannot be changed</p>
+                        </div>
+                        <div class="flex items-start space-x-2">
+                            <i class="fa-solid fa-circle-xmark text-danger-600 mt-1"></i>
+                            <p class="text-sm text-neutral-700"><span class="font-bold">Quantity and condition</span> specifications are frozen</p>
+                        </div>
+                        <div class="flex items-start space-x-2">
+                            <i class="fa-solid fa-circle-xmark text-danger-600 mt-1"></i>
+                            <p class="text-sm text-neutral-700"><span class="font-bold">Agreed price and currency</span> become immutable</p>
+                        </div>
+                        <div class="flex items-start space-x-2">
+                            <i class="fa-solid fa-circle-xmark text-danger-600 mt-1"></i>
+                            <p class="text-sm text-neutral-700"><span class="font-bold">Delivery terms and verification window</span> are locked</p>
+                        </div>
+                    </div>
+                    <div class="bg-danger-100 border border-danger-300 rounded-lg p-3">
+                        <div class="flex items-center space-x-2 text-sm text-danger-800">
+                            <i class="fa-solid fa-exclamation-triangle"></i>
+                            <span class="font-bold">Neither buyer nor seller can modify the agreement after payment is made</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid lg:grid-cols-3 gap-8">
+        
+        <div id="left-column" class="lg:col-span-2 space-y-6">
+            
+            <div id="seller-identity-card" class="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 fade-in">
+                <div class="flex items-center space-x-2 mb-4 pb-4 border-b border-neutral-200">
+                    <i class="fa-solid fa-store text-primary-600 text-lg"></i>
+                    <h2 class="text-xl font-bold text-neutral-900">Seller Information</h2>
+                </div>
+                <div class="flex items-start space-x-4 mb-6">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-8.jpg" alt="Seller" class="w-16 h-16 rounded-xl object-cover border-2 border-neutral-200">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-neutral-900 mb-1">John Seller</h3>
+                        <p class="text-sm text-neutral-600 mb-3">john.seller@email.com</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-success-100 text-success-700">
+                                <i class="fa-solid fa-check-circle mr-1"></i>
+                                Verified Seller
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">
+                                <i class="fa-solid fa-star mr-1"></i>
+                                4.8 Rating
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-neutral-100 text-neutral-700">
+                                <i class="fa-solid fa-handshake mr-1"></i>
+                                127 Transactions
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-success-50 to-primary-50 rounded-xl p-5 border-2 border-success-200 mb-4">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 bg-success-600 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-shield-check text-white"></i>
+                        </div>
+                        <h4 class="text-base font-bold text-neutral-900">Verified Seller Trust Profile</h4>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white rounded-lg p-3 border border-success-200">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <i class="fa-solid fa-id-card text-success-600 text-lg"></i>
+                                <span class="text-xs font-bold text-neutral-900 uppercase">Identity</span>
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                <i class="fa-solid fa-circle-check text-success-600 text-xs"></i>
+                                <span class="text-sm font-bold text-success-700">Verified</span>
+                            </div>
+                            <p class="text-xs text-neutral-600 mt-1">Government ID confirmed</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-3 border border-success-200">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <i class="fa-solid fa-phone text-success-600 text-lg"></i>
+                                <span class="text-xs font-bold text-neutral-900 uppercase">Phone</span>
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                <i class="fa-solid fa-circle-check text-success-600 text-xs"></i>
+                                <span class="text-sm font-bold text-success-700">Verified</span>
+                            </div>
+                            <p class="text-xs text-neutral-600 mt-1">SMS authenticated</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-3 border border-success-200">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <i class="fa-solid fa-building-columns text-success-600 text-lg"></i>
+                                <span class="text-xs font-bold text-neutral-900 uppercase">Payout</span>
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                <i class="fa-solid fa-circle-check text-success-600 text-xs"></i>
+                                <span class="text-sm font-bold text-success-700">Verified</span>
+                            </div>
+                            <p class="text-xs text-neutral-600 mt-1">Bank account linked</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-3 border border-primary-200">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <i class="fa-solid fa-calendar-days text-primary-600 text-lg"></i>
+                                <span class="text-xs font-bold text-neutral-900 uppercase">Member Since</span>
+                            </div>
+                            <p class="text-sm font-bold text-neutral-900">Jan 2023</p>
+                            <p class="text-xs text-neutral-600 mt-1">2 years active</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div class="bg-white rounded-lg p-3 border border-primary-200">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <i class="fa-solid fa-chart-line text-primary-600 text-lg"></i>
+                                <span class="text-xs font-bold text-neutral-900 uppercase">Success Rate</span>
+                            </div>
+                            <p class="text-2xl font-bold text-primary-600">97.6%</p>
+                            <p class="text-xs text-neutral-600 mt-1">124 of 127 completed</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-3 border border-warning-200">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <i class="fa-solid fa-star text-warning-600 text-lg"></i>
+                                <span class="text-xs font-bold text-neutral-900 uppercase">Avg Rating</span>
+                            </div>
+                            <p class="text-2xl font-bold text-warning-600">4.8/5</p>
+                            <p class="text-xs text-neutral-600 mt-1">From 118 reviews</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-success-50 border border-success-200 rounded-xl p-3">
+                    <div class="flex items-center space-x-2 text-sm text-success-800">
+                        <i class="fa-solid fa-shield-check"></i>
+                        <span class="font-semibold">This seller has completed full SafeDeal verification</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="item-details-card" class="bg-white rounded-2xl shadow-lg border border-neutral-200 overflow-hidden fade-in">
+                <div class="p-6 border-b border-neutral-200">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fa-solid fa-box text-primary-600 text-lg"></i>
+                        <h2 class="text-xl font-bold text-neutral-900">Item Details</h2>
+                    </div>
+                    <h3 class="text-2xl font-bold text-neutral-900 mb-2">MacBook Pro 16-inch M2</h3>
+                    <p class="text-neutral-700 leading-relaxed">High-performance MacBook Pro with M2 Max chip, 32GB RAM, 1TB SSD. Includes original box, charger, and all accessories. Device is in excellent condition with minimal signs of use. AppleCare+ coverage valid until March 2025.</p>
+                </div>
+
+                <div id="product-images" class="relative">
+                    <div class="image-gallery flex overflow-x-auto space-x-4 p-6 bg-neutral-50">
+                        <div class="flex-shrink-0 w-80 h-80 bg-white rounded-xl overflow-hidden border-2 border-neutral-200 shadow-md">
+                            <img class="w-full h-full object-cover" src="https://storage.googleapis.com/uxpilot-auth.appspot.com/d517cc0a27-d5670982ee0179ecf570.png" alt="MacBook Pro 16 inch silver laptop on clean white background, professional product photography, front view" />
+                        </div>
+                        <div class="flex-shrink-0 w-80 h-80 bg-white rounded-xl overflow-hidden border-2 border-neutral-200 shadow-md">
+                            <img class="w-full h-full object-cover" src="https://storage.googleapis.com/uxpilot-auth.appspot.com/e4163bf153-693cea37da12661c9347.png" alt="MacBook Pro keyboard and trackpad close-up, pristine condition, professional product photography" />
+                        </div>
+                        <div class="flex-shrink-0 w-80 h-80 bg-white rounded-xl overflow-hidden border-2 border-neutral-200 shadow-md">
+                            <img class="w-full h-full object-cover" src="https://storage.googleapis.com/uxpilot-auth.appspot.com/f41ec13062-05b429e893f0e7f7a717.png" alt="MacBook Pro ports and side view, showing USB-C ports and clean aluminum body" />
+                        </div>
+                        <div class="flex-shrink-0 w-80 h-80 bg-white rounded-xl overflow-hidden border-2 border-neutral-200 shadow-md">
+                            <img class="w-full h-full object-cover" src="https://storage.googleapis.com/uxpilot-auth.appspot.com/697ff81edc-7a291b53160ef852b5d1.png" alt="MacBook Pro original box with accessories and charger, complete package" />
+                        </div>
+                    </div>
+                    <div class="absolute top-1/2 -translate-y-1/2 left-2 right-2 flex justify-between pointer-events-none">
+                        <button class="w-10 h-10 bg-white bg-opacity-90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center pointer-events-auto hover:bg-opacity-100 transition-all">
+                            <i class="fa-solid fa-chevron-left text-neutral-700"></i>
+                        </button>
+                        <button class="w-10 h-10 bg-white bg-opacity-90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center pointer-events-auto hover:bg-opacity-100 transition-all">
+                            <i class="fa-solid fa-chevron-right text-neutral-700"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-white">
+                    <div class="grid sm:grid-cols-3 gap-4">
+                        <div class="bg-neutral-50 rounded-xl p-4 border border-neutral-200">
+                            <p class="text-xs font-semibold text-neutral-500 uppercase mb-1">Quantity</p>
+                            <p class="text-2xl font-bold text-neutral-900">1</p>
+                        </div>
+                        <div class="bg-neutral-50 rounded-xl p-4 border border-neutral-200">
+                            <p class="text-xs font-semibold text-neutral-500 uppercase mb-1">Condition</p>
+                            <div class="flex items-center space-x-1">
+                                <span class="text-lg font-bold text-success-600">Like New</span>
+                                <i class="fa-solid fa-star text-success-600 text-sm"></i>
+                            </div>
+                        </div>
+                        <div class="bg-neutral-50 rounded-xl p-4 border border-neutral-200">
+                            <p class="text-xs font-semibold text-neutral-500 uppercase mb-1">Warranty</p>
+                            <p class="text-base font-bold text-neutral-900">AppleCare+</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="delivery-details-card" class="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 fade-in">
+                <div class="flex items-center space-x-2 mb-4 pb-4 border-b border-neutral-200">
+                    <i class="fa-solid fa-truck text-primary-600 text-lg"></i>
+                    <h2 class="text-xl font-bold text-neutral-900">Delivery & Verification</h2>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-shipping-fast text-primary-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-neutral-500 uppercase">Delivery Method</p>
+                            <p class="text-lg font-bold text-neutral-900">Express Shipping</p>
+                            <p class="text-sm text-neutral-600">Tracked and insured delivery</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start space-x-3">
+                        <div class="w-10 h-10 bg-warning-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-calendar-check text-warning-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-neutral-500 uppercase">Expected Delivery</p>
+                            <p class="text-lg font-bold text-neutral-900">December 28, 2024</p>
+                            <p class="text-sm text-neutral-600">3-5 business days from payment</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start space-x-3">
+                        <div class="w-10 h-10 bg-success-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-clock text-success-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-neutral-500 uppercase">Verification Window</p>
+                            <p class="text-lg font-bold text-neutral-900">72 Hours</p>
+                            <p class="text-sm text-neutral-600">Time to verify item after delivery</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 bg-primary-50 border border-primary-200 rounded-xl p-4">
+                    <div class="flex items-start space-x-3">
+                        <i class="fa-solid fa-circle-info text-primary-600 mt-0.5"></i>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-primary-900 mb-1">Verification Process</p>
+                            <p class="text-xs text-primary-700">After delivery, you'll have 72 hours to inspect the item and confirm it matches this agreement. If there's an issue, you can raise a dispute during this window.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="transaction-timeline-card" class="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 fade-in">
+                <div class="flex items-center space-x-2 mb-6 pb-4 border-b border-neutral-200">
+                    <i class="fa-solid fa-timeline text-primary-600 text-lg"></i>
+                    <h2 class="text-xl font-bold text-neutral-900">Transaction Timeline</h2>
+                </div>
+
+                <div class="relative">
+                    <div class="absolute left-5 top-0 bottom-0 w-0.5 bg-neutral-200"></div>
+                    
+                    <div class="relative flex items-start space-x-4 mb-6">
+                        <div class="w-10 h-10 bg-success-600 rounded-full flex items-center justify-center flex-shrink-0 z-10 shadow-lg">
+                            <i class="fa-solid fa-check text-white"></i>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <p class="text-sm font-bold text-neutral-900">Transaction Created</p>
+                            <p class="text-xs text-neutral-600">Agreement prepared by seller</p>
+                        </div>
+                        <span class="text-xs text-neutral-500 font-medium">Completed</span>
+                    </div>
+
+                    <div class="relative flex items-start space-x-4 mb-6">
+                        <div class="w-10 h-10 bg-warning-500 rounded-full flex items-center justify-center flex-shrink-0 z-10 shadow-lg animate-pulse">
+                            <i class="fa-solid fa-credit-card text-white"></i>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <p class="text-sm font-bold text-neutral-900">Payment Pending</p>
+                            <p class="text-xs text-neutral-600">Awaiting your secure payment</p>
+                        </div>
+                        <span class="text-xs text-warning-600 font-semibold">Current</span>
+                    </div>
+
+                    <div class="relative flex items-start space-x-4 mb-6">
+                        <div class="w-10 h-10 bg-neutral-300 rounded-full flex items-center justify-center flex-shrink-0 z-10">
+                            <i class="fa-solid fa-lock text-neutral-600"></i>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <p class="text-sm font-bold text-neutral-500">Funds Held Securely</p>
+                            <p class="text-xs text-neutral-500">Payment held in escrow</p>
+                        </div>
+                        <span class="text-xs text-neutral-400 font-medium">Pending</span>
+                    </div>
+
+                    <div class="relative flex items-start space-x-4 mb-6">
+                        <div class="w-10 h-10 bg-neutral-300 rounded-full flex items-center justify-center flex-shrink-0 z-10">
+                            <i class="fa-solid fa-box text-neutral-600"></i>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <p class="text-sm font-bold text-neutral-500">Seller Fulfillment</p>
+                            <p class="text-xs text-neutral-500">Item processing & dispatch</p>
+                        </div>
+                        <span class="text-xs text-neutral-400 font-medium">Pending</span>
+                    </div>
+
+                    <div class="relative flex items-start space-x-4 mb-6">
+                        <div class="w-10 h-10 bg-neutral-300 rounded-full flex items-center justify-center flex-shrink-0 z-10">
+                            <i class="fa-solid fa-truck text-neutral-600"></i>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <p class="text-sm font-bold text-neutral-500">Delivered</p>
+                            <p class="text-xs text-neutral-500">Item delivered to you</p>
+                        </div>
+                        <span class="text-xs text-neutral-400 font-medium">Pending</span>
+                    </div>
+
+                    <div class="relative flex items-start space-x-4 mb-6">
+                        <div class="w-10 h-10 bg-neutral-300 rounded-full flex items-center justify-center flex-shrink-0 z-10">
+                            <i class="fa-solid fa-clipboard-check text-neutral-600"></i>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <p class="text-sm font-bold text-neutral-500">Verification</p>
+                            <p class="text-xs text-neutral-500">Confirm item received</p>
+                        </div>
+                        <span class="text-xs text-neutral-400 font-medium">Pending</span>
+                    </div>
+
+                    <div class="relative flex items-start space-x-4">
+                        <div class="w-10 h-10 bg-neutral-300 rounded-full flex items-center justify-center flex-shrink-0 z-10">
+                            <i class="fa-solid fa-circle-check text-neutral-600"></i>
+                        </div>
+                        <div class="flex-1 pt-1">
+                            <p class="text-sm font-bold text-neutral-500">Completed</p>
+                            <p class="text-xs text-neutral-500">Funds released to seller</p>
+                        </div>
+                        <span class="text-xs text-neutral-400 font-medium">Pending</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="right-column" class="lg:col-span-1">
+            <div class="lg:sticky lg:top-24 space-y-6">
+                
+                <div id="safedeal-escrow-protection" class="bg-gradient-to-br from-success-600 to-success-700 rounded-2xl shadow-2xl p-6 text-white fade-in border-2 border-success-400">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">SafeDeal Escrow Protection</h3>
+                    </div>
+                    
+                    <div class="space-y-4 mb-6">
+                        <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 border border-white border-opacity-20">
+                            <div class="flex items-start space-x-3">
+                                <i class="fa-solid fa-lock text-2xl mt-1"></i>
+                                <div>
+                                    <p class="font-bold mb-1">Your Payment is Held Securely</p>
+                                    <p class="text-sm text-success-50">SafeDeal holds your $2,450.00 in a secure escrow account. The seller cannot access these funds yet.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 border border-white border-opacity-20">
+                            <div class="flex items-start space-x-3">
+                                <i class="fa-solid fa-hand-holding-dollar text-2xl mt-1"></i>
+                                <div>
+                                    <p class="font-bold mb-1">Seller Paid Only After Confirmation</p>
+                                    <p class="text-sm text-success-50">The seller receives payment only when you confirm the item matches this agreement.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 border border-white border-opacity-20">
+                            <div class="flex items-start space-x-3">
+                                <i class="fa-solid fa-scale-balanced text-2xl mt-1"></i>
+                                <div>
+                                    <p class="font-bold mb-1">SafeDeal Steps In If Needed</p>
+                                    <p class="text-sm text-success-50">If you raise a dispute, SafeDeal reviews evidence from both parties and makes a fair decision.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-xl p-3 border border-white border-opacity-30">
+                        <div class="flex items-center space-x-2 text-sm">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span class="font-bold">100% Buyer Protection Guarantee</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="critical-fraud-warning" class="bg-gradient-to-br from-danger-600 to-danger-700 rounded-2xl shadow-2xl border-4 border-danger-800 p-6 text-white fade-in">
+                    <div class="flex items-start space-x-4 mb-4">
+                        <div class="w-16 h-16 bg-white rounded-xl flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-triangle-exclamation text-danger-600 text-3xl animate-pulse"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold mb-2">CRITICAL: Never Pay Outside SafeDeal</h3>
+                            <p class="text-danger-100 text-sm font-medium">This warning protects you from fraud and scams</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3 mb-5">
+                        <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 border-2 border-white border-opacity-30">
+                            <div class="flex items-start space-x-3">
+                                <i class="fa-solid fa-xmark-circle text-2xl mt-0.5"></i>
+                                <div>
+                                    <p class="font-bold text-lg mb-1">NEVER pay the seller directly</p>
+                                    <p class="text-sm text-danger-50">Do not use bank transfer, PayPal, Venmo, cash apps, wire transfer, or cryptocurrency to pay the seller directly</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 border-2 border-white border-opacity-30">
+                            <div class="flex items-start space-x-3">
+                                <i class="fa-solid fa-shield-xmark text-2xl mt-0.5"></i>
+                                <div>
+                                    <p class="font-bold text-lg mb-1">Off-platform payment removes ALL protection</p>
+                                    <p class="text-sm text-danger-50">If you pay outside SafeDeal, you lose escrow protection, dispute rights, and refund eligibility</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 border-2 border-white border-opacity-30">
+                            <div class="flex items-start space-x-3">
+                                <i class="fa-solid fa-user-shield text-2xl mt-0.5"></i>
+                                <div>
+                                    <p class="font-bold text-lg mb-1">SafeDeal holds your payment securely</p>
+                                    <p class="text-sm text-danger-50">Only pay through SafeDeal's secure payment system on this page. Your funds are protected until you confirm receipt</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-danger-900 bg-opacity-50 rounded-lg p-4 border-2 border-white border-opacity-40">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-exclamation-triangle text-xl"></i>
+                            <p class="text-sm font-bold">If a seller asks you to pay outside SafeDeal, report them immediately and do not proceed</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="next-action-card" class="bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl shadow-2xl p-6 text-white fade-in">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                        <span class="text-xs font-bold uppercase tracking-wider">Next Action Required</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Pay Securely</h3>
+                    <p class="text-sm text-primary-100 mb-6">Complete your payment to lock this agreement and begin the protected transaction process.</p>
+                    
+                    <button class="w-full bg-white text-primary-600 font-bold py-4 rounded-xl hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 mb-4">
+                        <i class="fa-solid fa-lock text-lg"></i>
+                        <span>Pay $2,450.00</span>
+                    </button>
+
+                    <button class="w-full bg-transparent border-2 border-white border-opacity-30 text-white font-semibold py-3 rounded-xl hover:bg-white hover:bg-opacity-10 transition-all flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-times"></i>
+                        <span>Decline Transaction</span>
+                    </button>
+
+                    <div class="mt-4 pt-4 border-t border-white border-opacity-20">
+                        <p class="text-xs text-primary-100 text-center">
+                            <i class="fa-solid fa-info-circle mr-1"></i>
+                            Funds held in escrow until you confirm receipt
+                        </p>
+                    </div>
+                </div>
+
+                <div id="payment-summary-card" class="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 fade-in">
+                    <h3 class="text-lg font-bold text-neutral-900 mb-4">Payment Summary</h3>
+                    
+                    <div class="space-y-3 mb-4 pb-4 border-b border-neutral-200">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-neutral-600">Item Price</span>
+                            <span class="text-base font-semibold text-neutral-900">$2,450.00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-neutral-600">SafeDeal Protection Fee</span>
+                            <span class="text-base font-semibold text-neutral-900">$0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-neutral-600">Currency</span>
+                            <span class="text-base font-semibold text-neutral-900">USD</span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="text-base font-bold text-neutral-900">Total Amount</span>
+                        <span class="text-2xl font-bold text-primary-600">$2,450.00</span>
+                    </div>
+
+                    <div class="bg-success-50 border border-success-200 rounded-xl p-3">
+                        <div class="flex items-center space-x-2 text-xs text-success-800">
+                            <i class="fa-solid fa-shield-check"></i>
+                            <span class="font-semibold">100% Buyer Protection</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="protection-features-card" class="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 fade-in">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fa-solid fa-shield-halved text-success-600 text-lg"></i>
+                        <h3 class="text-lg font-bold text-neutral-900">Your Protection</h3>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 bg-success-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-lock text-success-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-neutral-900">Funds Held in Escrow</p>
+                                <p class="text-xs text-neutral-600">Payment secured until you confirm receipt</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-file-contract text-primary-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-neutral-900">Immutable Agreement</p>
+                                <p class="text-xs text-neutral-600">Terms locked after payment</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 bg-warning-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-clock text-warning-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-neutral-900">72-Hour Verification</p>
+                                <p class="text-xs text-neutral-600">Time to inspect and confirm</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 bg-danger-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-scale-balanced text-danger-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-neutral-900">Dispute Resolution</p>
+                                <p class="text-xs text-neutral-600">Fair mediation if needed</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="trust-indicators-card" class="bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-2xl shadow-lg p-6 text-white fade-in">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fa-solid fa-certificate text-warning-400 text-lg"></i>
+                        <h3 class="text-base font-bold">Trusted & Secure</h3>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-2 text-sm">
+                            <i class="fa-solid fa-check-circle text-success-400"></i>
+                            <span>256-bit SSL Encryption</span>
+                        </div>
+                        <div class="flex items-center space-x-2 text-sm">
+                            <i class="fa-solid fa-check-circle text-success-400"></i>
+                            <span>PCI DSS Compliant</span>
+                        </div>
+                        <div class="flex items-center space-x-2 text-sm">
+                            <i class="fa-solid fa-check-circle text-success-400"></i>
+                            <span>24/7 Transaction Monitoring</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<section id="how-it-works" class="py-12 bg-white border-t border-neutral-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-neutral-900 mb-3">How SafeDeal Protects You</h2>
+            <p class="text-neutral-600 max-w-2xl mx-auto">Your payment is secured every step of the way until you confirm the item matches this agreement</p>
+        </div>
+
+        <div class="grid md:grid-cols-4 gap-6">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-credit-card text-primary-600 text-2xl"></i>
+                </div>
+                <h4 class="text-lg font-bold text-neutral-900 mb-2">1. Secure Payment</h4>
+                <p class="text-sm text-neutral-600">Your payment is processed through encrypted channels and held securely</p>
+            </div>
+
+            <div class="text-center">
+                <div class="w-16 h-16 bg-warning-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-lock text-warning-600 text-2xl"></i>
+                </div>
+                <h4 class="text-lg font-bold text-neutral-900 mb-2">2. Agreement Locked</h4>
+                <p class="text-sm text-neutral-600">Transaction terms become immutable to protect both parties</p>
+            </div>
+
+            <div class="text-center">
+                <div class="w-16 h-16 bg-success-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-truck text-success-600 text-2xl"></i>
+                </div>
+                <h4 class="text-lg font-bold text-neutral-900 mb-2">3. Seller Ships</h4>
+                <p class="text-sm text-neutral-600">Seller fulfills order with tracking and delivery proof</p>
+            </div>
+
+            <div class="text-center">
+                <div class="w-16 h-16 bg-danger-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-check-circle text-danger-600 text-2xl"></i>
+                </div>
+                <h4 class="text-lg font-bold text-neutral-900 mb-2">4. You Verify</h4>
+                <p class="text-sm text-neutral-600">Confirm item or raise dispute within verification window</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="faq-section" class="py-12 bg-neutral-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold text-neutral-900 mb-3">Frequently Asked Questions</h2>
+            <p class="text-neutral-600">Common questions about the SafeDeal buyer process</p>
+        </div>
+
+        <div class="space-y-4">
+            <div class="bg-white rounded-xl border border-neutral-200 p-6">
+                <div class="flex items-start space-x-3">
+                    <i class="fa-solid fa-circle-question text-primary-600 text-xl mt-1"></i>
+                    <div class="flex-1">
+                        <h4 class="text-base font-bold text-neutral-900 mb-2">What happens after I pay?</h4>
+                        <p class="text-sm text-neutral-700">Your payment is held securely by SafeDeal. The transaction agreement becomes locked, and the seller is notified to begin fulfillment. You'll receive tracking information once the item ships.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-neutral-200 p-6">
+                <div class="flex items-start space-x-3">
+                    <i class="fa-solid fa-circle-question text-primary-600 text-xl mt-1"></i>
+                    <div class="flex-1">
+                        <h4 class="text-base font-bold text-neutral-900 mb-2">What if the item doesn't match?</h4>
+                        <p class="text-sm text-neutral-700">You have 72 hours after delivery to verify the item. If it doesn't match this agreement, you can raise a dispute with evidence. SafeDeal will review and mediate fairly.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-neutral-200 p-6">
+                <div class="flex items-start space-x-3">
+                    <i class="fa-solid fa-circle-question text-primary-600 text-xl mt-1"></i>
+                    <div class="flex-1">
+                        <h4 class="text-base font-bold text-neutral-900 mb-2">When does the seller receive payment?</h4>
+                        <p class="text-sm text-neutral-700">The seller receives payment only after you confirm the item matches the agreement, or after the 72-hour verification window expires without a dispute.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-neutral-200 p-6">
+                <div class="flex items-start space-x-3">
+                    <i class="fa-solid fa-circle-question text-primary-600 text-xl mt-1"></i>
+                    <div class="flex-1">
+                        <h4 class="text-base font-bold text-neutral-900 mb-2">Is my payment information secure?</h4>
+                        <p class="text-sm text-neutral-700">Yes. SafeDeal uses bank-level 256-bit SSL encryption and is PCI DSS compliant. Your payment information is never shared with the seller.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer id="footer" class="bg-neutral-900 text-neutral-300 pt-16 pb-8 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
+            <div class="lg:col-span-2">
+                <div class="flex items-center space-x-2 mb-4">
+                    <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+                    </div>
+                    <span class="text-2xl font-bold text-white">SafeDeal</span>
+                </div>
+                <p class="text-neutral-400 mb-6 max-w-sm">Protecting buyers and sellers in online transactions with secure escrow payments and transparent verification.</p>
+                <div class="flex space-x-4">
+                    <a href="#" class="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors">
+                        <i class="fa-brands fa-twitter"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors">
+                        <i class="fa-brands fa-facebook"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors">
+                        <i class="fa-brands fa-linkedin"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors">
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div>
+                <h4 class="text-white font-semibold mb-4">Product</h4>
+                <ul class="space-y-3">
+                    <li><a href="#" class="hover:text-white transition-colors">How It Works</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Features</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Pricing</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Security</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="text-white font-semibold mb-4">Company</h4>
+                <ul class="space-y-3">
+                    <li><a href="#" class="hover:text-white transition-colors">About Us</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Careers</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Blog</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Press Kit</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="text-white font-semibold mb-4">Support</h4>
+                <ul class="space-y-3">
+                    <li><a href="#" class="hover:text-white transition-colors">Help Center</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Contact Us</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="border-t border-neutral-800 pt-8">
+            <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <p class="text-neutral-500 text-sm">© 2024 SafeDeal. All rights reserved.</p>
+                <div class="flex items-center space-x-6 text-sm">
+                    <a href="#" class="hover:text-white transition-colors">Terms</a>
+                    <a href="#" class="hover:text-white transition-colors">Privacy</a>
+                    <a href="#" class="hover:text-white transition-colors">Cookies</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>
