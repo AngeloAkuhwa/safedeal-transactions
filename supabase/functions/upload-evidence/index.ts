@@ -23,7 +23,8 @@ async function hmacSha1(secret: string, message: string): Promise<string> {
     ["sign"],
   );
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
-  return btoa(String.fromCharCode(...new Uint8Array(sig)));
+  const bytes = new Uint8Array(sig);
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 Deno.serve(async (req) => {
@@ -156,6 +157,17 @@ async function registerFile(
   const allowedFormats = ["jpg", "jpeg", "png", "mp4", "pdf"];
   if (!allowedFormats.includes(format.toLowerCase())) {
     return jsonResponse({ error: `File format '${format}' is not allowed. Allowed: ${allowedFormats.join(", ")}` }, 400);
+  }
+
+  // Cross-validate resource_type vs format
+  const validCombinations: Record<string, string[]> = {
+    image: ["jpg", "jpeg", "png"],
+    video: ["mp4"],
+    raw: ["pdf"],
+  };
+  const allowedForResource = validCombinations[resource_type];
+  if (!allowedForResource || !allowedForResource.includes(format.toLowerCase())) {
+    return jsonResponse({ error: `resource_type '${resource_type}' does not match format '${format}'` }, 400);
   }
 
   // Validate size (10MB)

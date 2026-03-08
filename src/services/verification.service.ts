@@ -104,11 +104,29 @@ async function computeSha256(file: File): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+async function detectFileSignature(file: File): Promise<"jpeg" | "png" | "pdf" | "mp4" | "unknown"> {
+  const buf = await file.slice(0, 16).arrayBuffer();
+  const bytes = new Uint8Array(buf);
+
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpeg";
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "png";
+  if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "pdf";
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) return "mp4";
+
+  return "unknown";
+}
+
 export const uploadEvidence = async (
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<UploadedEvidence> => {
   const headers = await getAuthHeader();
+
+  // 0. Validate real file type via magic bytes
+  const fileSig = await detectFileSignature(file);
+  if (fileSig === "unknown") {
+    throw new Error("Unsupported or suspicious file type. Allowed: JPEG, PNG, PDF, MP4");
+  }
 
   // 1. Compute SHA-256 hash
   const fileHash = await computeSha256(file);
