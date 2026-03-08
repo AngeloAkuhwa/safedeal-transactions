@@ -11,6 +11,7 @@ import RoleSelection from "./pages/RoleSelection";
 import Dashboard from "./pages/Dashboard";
 import BuyerTransactions from "./pages/BuyerTransactions";
 import BuyerNotifications from "./pages/BuyerNotifications";
+import BuyerDisputes from "./pages/BuyerDisputes";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
