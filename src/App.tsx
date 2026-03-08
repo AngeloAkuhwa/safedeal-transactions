@@ -33,7 +33,7 @@ const App = () => (
             </Route>
 
             {/* Protected: requires session + role */}
-            <Route element={<ProtectedRoute requireRole />}>
+            <Route element={<ProtectedRoute requireRole="buyer" />}>
               <Route path="/dashboard" element={<Dashboard />} />
             </Route>
 
