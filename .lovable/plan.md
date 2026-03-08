@@ -1,80 +1,100 @@
 
 
-# Seed Additional Data for Buyer Dashboard Visibility
+# Buyer Transaction Verification Screen — Implementation Plan
 
-## Current State
+Build the escrow-critical verification screen at `/dashboard/transactions/:transactionId/verify` with a production-grade edge function enforcing all escrow protections from the backend contract, and a UI faithfully adapted from the uploaded HTML mockup.
 
-The database already has solid seed data:
-- 3 users (buyer Tunde, seller Chioma, admin)
-- 6 transactions across all lifecycle stages
-- 6 transaction items + 6 pricing records
-- 5 payments, 5 escrow states, 5 agreement snapshots
-- 3 delivery tracking records, 3 delivery confirmations
-- 1 open dispute (damaged headphones)
-- 9 notifications (5 for buyer, 4 for seller)
-- 37 transaction status history entries
-- 3 user sessions (but no devices)
+## Files to Create
 
-## What's Missing
+| File | Purpose |
+|------|---------|
+| `supabase/functions/transaction-verify/index.ts` | Edge function: 3 actions (get data, confirm, dispute) |
+| `src/services/verification.service.ts` | Service layer wrapping edge function calls |
+| `src/pages/BuyerTransactionVerify.tsx` | Main page component |
+| `src/components/verification/VerificationCountdown.tsx` | Live countdown timer card |
+| `src/components/verification/VerificationChecklist.tsx` | 5-item checklist from agreement |
+| `src/components/verification/VerificationActions.tsx` | Confirm + Dispute CTA buttons |
+| `src/components/verification/ConfirmReceiptDialog.tsx` | Confirmation modal (AlertDialog) |
+| `src/components/verification/DisputeForm.tsx` | Expandable dispute form |
+| `src/components/verification/VerificationSidebar.tsx` | Right column: agreement, seller, timeline |
+| `src/components/verification/WhatHappensCard.tsx` | Auto-release explanation card |
 
-The following gaps prevent a rich experience across the buyer screens:
+## Files to Edit
 
-### 1. Devices — 0 rows
-The Login Sessions feature in Security Settings joins `user_sessions` with `devices`. No device data means empty session list. Need devices for the buyer and real user.
+| File | Change |
+|------|--------|
+| `src/App.tsx` | Add route `/dashboard/transactions/:transactionId/verify` |
+| `src/components/transactions/TransactionTable.tsx` | Route `verify_item` rows to verify page |
 
-### 2. More Buyer Notifications — only 5
-The notification page has filters (payments, delivery, disputes, system alerts, verification) but only 5 notifications exist for the buyer with no system_alert or verification types. Need ~8-10 more covering all notification types.
+## Edge Function: `transaction-verify`
 
-### 3. Dispute Response — 0 rows
-The dispute detail page shows a seller response section, but no response exists for the open dispute. Add one seller response to make the detail page richer.
+Single POST endpoint with `{ action, transactionId, ... }`. Uses service role client. Auth via `getUser(token)` + `has_role` check.
 
-### 4. Second Dispute (resolved)
-Only 1 dispute exists. Adding a resolved dispute for the completed transaction (TX-005) gives the disputes list a richer view with both open and resolved states.
+### `get_verification_data`
+- Guards: `buyer_id = userId`, `status = delivered_awaiting_verification`
+- Reads: transactions, transaction_items, transaction_pricing, transaction_agreement_snapshots, delivery_tracking_details, escrow_states, profiles (seller), transaction_status_history
+- Returns flat response with all verification screen data
 
-### 5. Escrow State for TX-001
-Transaction 001 (awaiting_payment) has no escrow state. Add one with `awaiting_payment` state.
+### `confirm_receipt` — Full Contract Implementation
+Validation order:
+1. Ownership (`buyer_id = userId`) → 403
+2. Idempotency (if `status = completed`) → 200 `{ already_confirmed: true }`
+3. State guard (`status = delivered_awaiting_verification`) → 409
+4. Dispute check (`dispute_status = none`) → 409
+5. Money state (`money_status = funds_held_in_escrow`) → 409
+6. Escrow lock (`escrow_states.state = held`) → 409
+7. Deadline (`NOW() < verification_deadline_at`) → 410
 
-## Data to Insert
+Atomic writes (service role):
+1. `transactions` — status→completed, money_status→funds_released, completed_at (conditional WHERE for idempotency)
+2. `escrow_states` — state→released, released_amount=held_amount, held_amount=0 (WHERE state='held')
+3. Insert `transaction_status_history`
+4. Insert `money_status_history`
+5. Insert `transaction_events` (buyer_confirmed)
+6. Insert `escrow_ledger_entries` (payout_debit)
+7. Insert `payouts` (seller_id, amount=seller_net_amount, status=pending)
+8. Insert `notifications` for seller
 
-### Devices (3 rows)
-- Buyer's Chrome on Windows device
-- Buyer's Safari on iPhone device  
-- Real user's Chrome device
+### `raise_dispute`
+Accepts: `reason` (dispute_reason_type enum), `description` (min 20 chars).
 
-### Link devices to existing sessions
-Update the 3 existing user_sessions to reference their device_id.
+Validations: ownership, status=delivered_awaiting_verification, money=funds_held_in_escrow, escrow=held, deadline not expired, no existing dispute.
 
-### Additional Notifications for Buyer (8 rows)
-Cover all UI filter types:
-- 2x `verification_update` — verify email reminder, identity verification reminder
-- 2x `security_alert` — new login detected, password changed
-- 1x `system_message` — welcome message
-- 1x `delivery_update` — delivery dispatched for TX-002
-- 1x `transaction_update` — TX-001 created
-- 1x `dispute_update` — dispute response from seller
+Writes:
+1. Insert `disputes` (status=open, seller_response_due_at=NOW()+48h)
+2. `transactions` — status→disputed, dispute_status→open, money_status→funds_frozen
+3. `escrow_states` — state→frozen, frozen_amount=held_amount, held_amount=0
+4. Insert dispute_status_history, transaction_status_history, money_status_history, transaction_events
+5. Insert notifications for seller + buyer
 
-Mix of read/unread, spread across last 10 days.
+Config: `[functions.transaction-verify] verify_jwt = false`
 
-### Dispute Response (1 row)
-Seller's response to the open dispute on TX-004.
+## Frontend Components
 
-### Second Dispute — resolved (1 row + 2 status history + 1 outcome)
-A resolved dispute on TX-005 (completed transaction) — reason: `wrong_item_received`, resolved as `release_to_seller` since buyer eventually confirmed satisfaction.
+**Page layout** (from mockup): BuyerNav → amber trust banner → transaction header (code + status badges + amount + money status) → action-required alert → 2-column grid (`lg:grid-cols-3`). Left col-span-2: countdown, checklist, actions. Right col-span-1 sticky: sidebar.
 
-### Escrow State for TX-001 (1 row)
-State: `awaiting_payment`, all amounts 0.
+**VerificationCountdown**: Gradient amber card with stopwatch icon, live 1s-interval countdown from `verification_deadline_at`, delivered date, HH:MM:SS with labels.
 
-## Execution
+**VerificationChecklist**: 5 items from agreement snapshot — description match (shows item title/desc), quantity (badge), condition (badge), no damage, functionality. Green check icons.
 
-All inserts will be done via the data insert tool (not migrations, since this is data seeding). The inserts will be executed in dependency order:
-1. Devices
-2. Update user_sessions with device_ids  
-3. Notifications
-4. Dispute + dispute status history + dispute outcome
-5. Dispute response for existing dispute
-6. Escrow state for TX-001
+**VerificationActions**: Two gradient CTA cards — green "Confirm Item Received" (opens dialog), red "Raise a Dispute" (expands form). Info panels below each. Protection reminder.
 
-## Files Modified
+**ConfirmReceiptDialog**: AlertDialog with checklist (item matches, quantity correct, no defects, authorize release of $X), danger warnings, "Yes, Confirm Receipt" button with loading state via `useMutation`.
 
-None — this is purely database data insertion.
+**DisputeForm**: Expandable section with reason select (6 enum values), description textarea (min 20 chars), warning banner, Submit/Cancel. `useMutation` → navigate to dispute detail.
+
+**VerificationSidebar**: Agreement Snapshot card, Item Details card, Seller Info card, Quick Timeline (4 steps), WhatHappensCard (auto-release explanation).
+
+## Data Seeding
+
+Update TX-003 to set `verification_deadline_at = NOW() + interval '72 hours'` so the countdown timer works during testing.
+
+## Key Anti-Fraud Invariants Enforced
+
+- Seller delivery proof is evidence only — never triggers fund release
+- Only buyer confirm, timeout, or admin resolution releases funds
+- Confirm is idempotent via conditional WHERE clause
+- Disputes blocked when escrow not in `held` state
+- Completed transactions cannot accept disputes
+- All state transitions create history/event/notification audit trail
 
