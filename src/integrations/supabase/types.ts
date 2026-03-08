@@ -101,6 +101,13 @@ export type Database = {
             foreignKeyName: "admin_actions_dispute_id_fkey"
             columns: ["dispute_id"]
             isOneToOne: false
+            referencedRelation: "admin_dispute_summary_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_actions_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
             referencedRelation: "disputes"
             referencedColumns: ["id"]
           },
@@ -109,6 +116,20 @@ export type Database = {
             columns: ["target_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_actions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_actions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
             referencedColumns: ["id"]
           },
           {
@@ -167,6 +188,20 @@ export type Database = {
             columns: ["target_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
             referencedColumns: ["id"]
           },
           {
@@ -241,6 +276,13 @@ export type Database = {
             foreignKeyName: "case_reviews_dispute_id_fkey"
             columns: ["dispute_id"]
             isOneToOne: false
+            referencedRelation: "admin_dispute_summary_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_reviews_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
             referencedRelation: "disputes"
             referencedColumns: ["id"]
           },
@@ -286,6 +328,20 @@ export type Database = {
             foreignKeyName: "delivery_confirmations_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: true
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_confirmations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_confirmations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -322,6 +378,20 @@ export type Database = {
             columns: ["file_id"]
             isOneToOne: false
             referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_proof_files_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_proof_files_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
             referencedColumns: ["id"]
           },
           {
@@ -385,6 +455,20 @@ export type Database = {
             foreignKeyName: "delivery_tracking_details_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: true
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_tracking_details_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_tracking_details_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -416,6 +500,20 @@ export type Database = {
           updated_by_user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "delivery_updates_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_updates_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "delivery_updates_transaction_id_fkey"
             columns: ["transaction_id"]
@@ -518,6 +616,13 @@ export type Database = {
             foreignKeyName: "dispute_evidence_dispute_id_fkey"
             columns: ["dispute_id"]
             isOneToOne: false
+            referencedRelation: "admin_dispute_summary_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispute_evidence_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
             referencedRelation: "disputes"
             referencedColumns: ["id"]
           },
@@ -579,6 +684,13 @@ export type Database = {
             foreignKeyName: "dispute_outcomes_dispute_id_fkey"
             columns: ["dispute_id"]
             isOneToOne: true
+            referencedRelation: "admin_dispute_summary_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispute_outcomes_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: true
             referencedRelation: "disputes"
             referencedColumns: ["id"]
           },
@@ -620,6 +732,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "dispute_responses_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: true
+            referencedRelation: "admin_dispute_summary_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "dispute_responses_dispute_id_fkey"
             columns: ["dispute_id"]
@@ -673,6 +792,13 @@ export type Database = {
             columns: ["changed_by_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispute_status_history_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "admin_dispute_summary_view"
             referencedColumns: ["id"]
           },
           {
@@ -736,6 +862,20 @@ export type Database = {
             foreignKeyName: "disputes_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: true
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -793,6 +933,20 @@ export type Database = {
             foreignKeyName: "escrow_ledger_entries_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escrow_ledger_entries_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escrow_ledger_entries_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -836,6 +990,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "escrow_states_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escrow_states_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "escrow_states_transaction_id_fkey"
             columns: ["transaction_id"]
@@ -959,6 +1127,20 @@ export type Database = {
             columns: ["changed_by_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "money_status_history_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "money_status_history_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
             referencedColumns: ["id"]
           },
           {
@@ -1106,6 +1288,20 @@ export type Database = {
             foreignKeyName: "notifications_related_transaction_id_fkey"
             columns: ["related_transaction_id"]
             isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_related_transaction_id_fkey"
+            columns: ["related_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_related_transaction_id_fkey"
+            columns: ["related_transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -1214,6 +1410,20 @@ export type Database = {
             foreignKeyName: "payments_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -1278,6 +1488,20 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
             referencedColumns: ["id"]
           },
           {
@@ -1416,6 +1640,20 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
             referencedColumns: ["id"]
           },
           {
@@ -1578,6 +1816,20 @@ export type Database = {
             foreignKeyName: "transaction_agreement_snapshots_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: true
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_agreement_snapshots_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_agreement_snapshots_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -1630,6 +1882,20 @@ export type Database = {
           verification_window_hours?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "transaction_delivery_terms_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_delivery_terms_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transaction_delivery_terms_transaction_id_fkey"
             columns: ["transaction_id"]
@@ -1688,6 +1954,20 @@ export type Database = {
             foreignKeyName: "transaction_events_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_events_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_events_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -1734,6 +2014,20 @@ export type Database = {
           warranty_info?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transaction_items_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_items_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transaction_items_transaction_id_fkey"
             columns: ["transaction_id"]
@@ -1788,6 +2082,20 @@ export type Database = {
             foreignKeyName: "transaction_links_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: true
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_links_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_links_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -1830,6 +2138,20 @@ export type Database = {
             foreignKeyName: "transaction_media_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_media_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_media_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -1858,6 +2180,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transaction_notes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_notes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transaction_notes_transaction_id_fkey"
             columns: ["transaction_id"]
@@ -1899,6 +2235,20 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transaction_participants_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_participants_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transaction_participants_transaction_id_fkey"
             columns: ["transaction_id"]
@@ -1957,6 +2307,20 @@ export type Database = {
             foreignKeyName: "transaction_pricing_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: true
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_pricing_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_pricing_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -1999,6 +2363,20 @@ export type Database = {
             columns: ["changed_by_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_status_history_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_status_history_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
             referencedColumns: ["id"]
           },
           {
@@ -2255,9 +2633,84 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_dispute_summary_view: {
+        Row: {
+          id: string | null
+          opened_at: string | null
+          opened_by_name: string | null
+          opened_by_user_id: string | null
+          reason: Database["public"]["Enums"]["dispute_reason_type"] | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["dispute_case_status"] | null
+          transaction_code: string | null
+          transaction_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_opened_by_user_id_fkey"
+            columns: ["opened_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buyer_transactions_view: {
+        Row: {
+          buyer_total_amount: number | null
+          completed_at: string | null
+          created_at: string | null
+          currency_code: string | null
+          delivered_at: string | null
+          dispute_status: Database["public"]["Enums"]["dispute_status"] | null
+          id: string | null
+          item_amount: number | null
+          money_status: Database["public"]["Enums"]["money_status"] | null
+          status: Database["public"]["Enums"]["transaction_status"] | null
+          transaction_code: string | null
+        }
+        Relationships: []
+      }
+      seller_transactions_view: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          currency_code: string | null
+          delivered_at: string | null
+          dispute_status: Database["public"]["Enums"]["dispute_status"] | null
+          id: string | null
+          item_amount: number | null
+          money_status: Database["public"]["Enums"]["money_status"] | null
+          seller_net_amount: number | null
+          status: Database["public"]["Enums"]["transaction_status"] | null
+          transaction_code: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      generate_transaction_code: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role_type"]
@@ -2265,6 +2718,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      invalidate_old_sessions: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
+      is_transaction_party: {
+        Args: { _transaction_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_user_region_allowed: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       admin_action_type:
