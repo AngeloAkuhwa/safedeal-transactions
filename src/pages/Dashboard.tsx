@@ -4,7 +4,7 @@ import { Shield, Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { getSession, signOut } from "@/services/auth.service";
-import { supabase } from "@/integrations/supabase/client";
+import { getProfile } from "@/services/profile.service";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -18,11 +18,7 @@ const Dashboard = () => {
         navigate("/auth?mode=login", { replace: true });
         return;
       }
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", session.user.id)
-        .single();
+      const { data: profile } = await getProfile(session.user.id);
       setUserName(profile?.full_name || "User");
       setLoading(false);
     };
