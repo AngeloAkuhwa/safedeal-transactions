@@ -184,7 +184,10 @@ async function registerFile(
     video: "video",
     raw: "raw",
   };
-  const mappedResourceType = resourceTypeMap[resource_type] || "raw";
+  let mappedResourceType = resourceTypeMap[resource_type] || "raw";
+  if (format.toLowerCase() === "pdf") {
+    mappedResourceType = "raw";
+  }
 
   // Map format to mime type
   const mimeMap: Record<string, string> = {
