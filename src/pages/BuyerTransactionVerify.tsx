@@ -93,6 +93,10 @@ const BuyerTransactionVerify = () => {
     ? Math.round((new Date(transaction.verification_deadline_at).getTime() - new Date(transaction.delivered_at).getTime()) / 3_600_000)
     : 72;
 
+  const remainingHours = transaction.verification_deadline_at
+    ? Math.max(0, Math.ceil((new Date(transaction.verification_deadline_at).getTime() - Date.now()) / 3_600_000))
+    : windowHours;
+
   return (
     <div className="min-h-screen bg-muted/30 flex flex-col">
       <BuyerNav
