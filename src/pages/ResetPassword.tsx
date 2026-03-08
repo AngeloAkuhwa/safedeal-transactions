@@ -4,7 +4,6 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Shield, Eye, EyeOff, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { updatePassword } from "@/services/auth.service";
 
 const schema = z
   .object({
@@ -44,20 +44,13 @@ const ResetPassword = () => {
   });
 
   useEffect(() => {
-    // Supabase handles the token exchange automatically via the URL hash
-    const hash = window.location.hash;
-    if (hash.includes("type=recovery") || hash.includes("access_token")) {
-      setReady(true);
-    } else {
-      // Still allow the page to render — user may have a valid session
-      setReady(true);
-    }
+    setReady(true);
   }, []);
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: values.password });
+      const { error } = await updatePassword(values.password);
       if (error) {
         toast.error(error.message);
         return;

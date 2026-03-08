@@ -1,148 +1,74 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
-  Shield, ShoppingBag, Store, ArrowLeft, Loader2, CheckCircle,
+  Shield, ShoppingBag, Store, Loader2, CheckCircle,
   ArrowLeftRight, Users, Lock, FileText, Camera, Vault, LogOut
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { Footer } from "@/components/landing/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
-
-type Role = "buyer" | "seller";
+import { getSession, signOut } from "@/services/auth.service";
+import { getUserRoles, assignRole, checkRoleExists } from "@/services/role.service";
+import type { SelectableRole } from "@/services/role.service";
 
 const buyerFeatures = [
-  {
-    icon: Shield,
-    title: "Payment Protection",
-    description: "Funds held until you verify receipt",
-  },
-  {
-    icon: CheckCircle,
-    title: "Verification Control",
-    description: "Verify item before funds are released to seller",
-  },
-  {
-    icon: FileText,
-    title: "Dispute Window",
-    description: "Raise disputes before verification window expires",
-  },
+  { icon: Shield, title: "Payment Protection", description: "Funds held until you verify receipt" },
+  { icon: CheckCircle, title: "Verification Control", description: "Verify item before funds are released to seller" },
+  { icon: FileText, title: "Dispute Window", description: "Raise disputes before verification window expires" },
 ];
 
 const sellerFeatures = [
-  {
-    icon: Lock,
-    title: "Secure Payment Guarantee",
-    description: "Get paid after buyer confirmation or timeout",
-  },
-  {
-    icon: Camera,
-    title: "Delivery Proof Required",
-    description: "Upload delivery proof to protect your payment",
-  },
-  {
-    icon: CheckCircle,
-    title: "Automatic Release",
-    description: "Funds released after buyer confirms or window expires",
-  },
+  { icon: Lock, title: "Secure Payment Guarantee", description: "Get paid after buyer confirmation or timeout" },
+  { icon: Camera, title: "Delivery Proof Required", description: "Upload delivery proof to protect your payment" },
+  { icon: CheckCircle, title: "Automatic Release", description: "Funds released after buyer confirms or window expires" },
 ];
 
 const infoCards = [
-  {
-    icon: ArrowLeftRight,
-    title: "Switch Anytime",
-    description: "Change your role from dashboard settings whenever needed",
-  },
-  {
-    icon: Users,
-    title: "Dual Roles",
-    description: "Use both buyer and seller features on the same account",
-  },
-  {
-    icon: Shield,
-    title: "Always Protected",
-    description: "SafeDeal protection applies to all your transactions",
-  },
+  { icon: ArrowLeftRight, title: "Switch Anytime", description: "Change your role from dashboard settings whenever needed" },
+  { icon: Users, title: "Dual Roles", description: "Use both buyer and seller features on the same account" },
+  { icon: Shield, title: "Always Protected", description: "SafeDeal protection applies to all your transactions" },
 ];
 
 const RoleSelection = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState<Role | null>(null);
+  const [submitting, setSubmitting] = useState<SelectableRole | null>(null);
 
   useEffect(() => {
     const check = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/auth?mode=login", { replace: true });
-        return;
-      }
-      if (!session.user.email_confirmed_at) {
-        navigate("/auth", { replace: true });
-        return;
-      }
+      const { data: { session } } = await getSession();
+      if (!session) { navigate("/auth?mode=login", { replace: true }); return; }
+      if (!session.user.email_confirmed_at) { navigate("/auth", { replace: true }); return; }
 
-      // Check if user already has a role — skip this screen
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id);
-
-      if (roles && roles.length > 0) {
-        navigate("/dashboard", { replace: true });
-        return;
-      }
+      const { data: roles } = await getUserRoles(session.user.id);
+      if (roles && roles.length > 0) { navigate("/dashboard", { replace: true }); return; }
 
       setLoading(false);
     };
     check();
   }, [navigate]);
 
-  const handleSelectRole = async (role: Role) => {
+  const handleSelectRole = async (role: SelectableRole) => {
     if (submitting) return;
     setSubmitting(role);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/auth?mode=login", { replace: true });
-        return;
-      }
+      const { data: { session } } = await getSession();
+      if (!session) { navigate("/auth?mode=login", { replace: true }); return; }
 
-      // Check if role already exists
-      const { data: existing } = await supabase
-        .from("user_roles")
-        .select("id")
-        .eq("user_id", session.user.id)
-        .eq("role", role);
-
+      const { data: existing } = await checkRoleExists(session.user.id, role);
       if (existing && existing.length > 0) {
         toast.info("This role is already assigned to your account.");
         navigate("/dashboard", { replace: true });
         return;
       }
 
-      // Insert into user_roles
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: session.user.id,
-          role,
-          is_primary: true,
-        });
-
-      if (roleError) {
+      const result = await assignRole(session.user.id, role);
+      if (!result.success) {
         toast.error("Could not assign role. Please try again.");
         return;
       }
-
-      // Update profiles.default_role
-      await supabase
-        .from("profiles")
-        .update({ default_role: role })
-        .eq("id", session.user.id);
 
       toast.success(`You're all set as a ${role === "buyer" ? "Buyer" : "Seller"}!`);
       navigate("/dashboard", { replace: true });
@@ -154,7 +80,7 @@ const RoleSelection = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     navigate("/", { replace: true });
   };
 
@@ -168,7 +94,6 @@ const RoleSelection = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -185,23 +110,18 @@ const RoleSelection = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1">
-        {/* Hero */}
         <section className="pt-10 pb-6 text-center px-4">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-4">
             <Shield className="h-3.5 w-3.5" />
             Account Setup
           </span>
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">
-            Choose your role
-          </h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">Choose your role</h1>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm sm:text-base">
             Select how you'll be using SafeDeal. You can always switch roles later from your dashboard settings.
           </p>
         </section>
 
-        {/* Role Cards */}
         <section className="max-w-5xl mx-auto px-4 pb-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Buyer Card */}
@@ -217,11 +137,9 @@ const RoleSelection = () => {
                     <p className="text-xs text-muted-foreground">Secure purchases</p>
                   </div>
                 </div>
-
                 <p className="text-sm text-muted-foreground mb-6">
                   Make secure purchases with payment protection. Your money is held safely until you confirm receipt of the item as described.
                 </p>
-
                 <div className="space-y-4 mb-6">
                   {buyerFeatures.map((f) => (
                     <div key={f.title} className="flex items-start gap-3">
@@ -235,21 +153,13 @@ const RoleSelection = () => {
                     </div>
                   ))}
                 </div>
-
-                {/* Responsibility callout */}
                 <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 mb-6">
                   <p className="text-xs font-semibold text-primary mb-1">Your Responsibility</p>
                   <p className="text-xs text-muted-foreground">
                     You must verify the received item before funds are released. If you don't act within the verification window, funds auto-release to the seller.
                   </p>
                 </div>
-
-                <Button
-                  className="w-full"
-                  size="lg"
-                  disabled={!!submitting}
-                  onClick={() => handleSelectRole("buyer")}
-                >
+                <Button className="w-full" size="lg" disabled={!!submitting} onClick={() => handleSelectRole("buyer")}>
                   {submitting === "buyer" && <Loader2 className="h-4 w-4 animate-spin" />}
                   Continue as Buyer
                 </Button>
@@ -269,11 +179,9 @@ const RoleSelection = () => {
                     <p className="text-xs text-muted-foreground">Protected transactions</p>
                   </div>
                 </div>
-
                 <p className="text-sm text-muted-foreground mb-6">
                   Create protected transactions and receive secure payments. Build trust with buyers through SafeDeal's transparent verification process.
                 </p>
-
                 <div className="space-y-4 mb-6">
                   {sellerFeatures.map((f) => (
                     <div key={f.title} className="flex items-start gap-3">
@@ -287,21 +195,13 @@ const RoleSelection = () => {
                     </div>
                   ))}
                 </div>
-
-                {/* Responsibility callout */}
                 <div className="rounded-lg bg-success/5 border border-success/20 p-4 mb-6">
                   <p className="text-xs font-semibold text-success mb-1">Your Responsibility</p>
                   <p className="text-xs text-muted-foreground">
                     Provide accurate item descriptions, fulfill orders promptly, and upload delivery proof. Funds are released after buyer confirmation or verification timeout.
                   </p>
                 </div>
-
-                <Button
-                  className="w-full bg-success hover:bg-success/90 text-success-foreground"
-                  size="lg"
-                  disabled={!!submitting}
-                  onClick={() => handleSelectRole("seller")}
-                >
+                <Button className="w-full bg-success hover:bg-success/90 text-success-foreground" size="lg" disabled={!!submitting} onClick={() => handleSelectRole("seller")}>
                   {submitting === "seller" && <Loader2 className="h-4 w-4 animate-spin" />}
                   Continue as Seller
                 </Button>
@@ -310,7 +210,6 @@ const RoleSelection = () => {
           </div>
         </section>
 
-        {/* Info Cards */}
         <section className="max-w-5xl mx-auto px-4 pb-10">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {infoCards.map((card) => (
@@ -327,7 +226,6 @@ const RoleSelection = () => {
           </div>
         </section>
 
-        {/* Trust Protection Banner */}
         <section className="max-w-5xl mx-auto px-4 pb-10">
           <div className="rounded-xl bg-primary/5 border border-primary/20 p-6 sm:p-8 text-center">
             <div className="flex items-center justify-center gap-2 mb-3">
@@ -335,7 +233,7 @@ const RoleSelection = () => {
               <h3 className="text-lg font-bold text-foreground">Both roles are protected by SafeDeal</h3>
             </div>
             <p className="text-sm text-muted-foreground max-w-2xl mx-auto mb-5">
-              Whether you're buying or selling, every transaction is secured through locked agreements, timestamped evidence records, and secure escrow holding. Your rights and responsibilities are clearly defined and enforced.
+              Whether you're buying or selling, every transaction is secured through locked agreements, timestamped evidence records, and secure escrow holding.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               {[
@@ -343,10 +241,7 @@ const RoleSelection = () => {
                 { icon: FileText, label: "Evidence Records" },
                 { icon: Vault, label: "Escrow Holding" },
               ].map((chip) => (
-                <span
-                  key={chip.label}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-background border px-3 py-1.5 text-xs font-medium text-foreground"
-                >
+                <span key={chip.label} className="inline-flex items-center gap-1.5 rounded-full bg-background border px-3 py-1.5 text-xs font-medium text-foreground">
                   <chip.icon className="h-3.5 w-3.5 text-primary" />
                   {chip.label}
                 </span>
@@ -355,7 +250,6 @@ const RoleSelection = () => {
           </div>
         </section>
 
-        {/* Security Banner */}
         <section className="max-w-5xl mx-auto px-4 pb-12">
           <div className="rounded-xl border bg-card p-6 flex flex-col sm:flex-row items-center gap-4">
             <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
