@@ -19,7 +19,7 @@ export function Header() {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const { data: { subscription } } = onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
     });
     getSession().then(({ data: { session } }) => {
