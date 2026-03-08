@@ -66,8 +66,8 @@ export function DisputeTimeline({ timeline, currentStatus }: DisputeTimelineProp
       <CardContent className="px-6 pb-6">
         <div className="space-y-0">
           {/* Actual timeline entries */}
-          {timeline.map((entry, i) => {
-            const isLast = i === timeline.length - 1 && futureSteps.length === 0;
+          {enrichedTimeline.map((entry, i) => {
+            const isLast = i === enrichedTimeline.length - 1 && futureSteps.length === 0;
             const color = STATUS_COLORS[entry.new_status] ?? "bg-muted-foreground";
 
             return (
