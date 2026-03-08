@@ -32,11 +32,24 @@ export interface BuyerProfileResponse {
   preferences: NotificationPreferences;
 }
 
+/** Extract a usable error message from edge function responses */
+function extractError(data: unknown, error: unknown, fallback: string): string {
+  if (error && typeof error === "object" && "message" in error) {
+    return (error as { message: string }).message || fallback;
+  }
+  if (data && typeof data === "object" && "error" in data) {
+    return (data as { error: string }).error || fallback;
+  }
+  return fallback;
+}
+
 export const getBuyerProfile = async (): Promise<BuyerProfileResponse> => {
   const { data, error } = await supabase.functions.invoke("buyer-profile", {
     method: "GET",
   });
-  if (error) throw new Error(error.message || "Failed to load profile");
+  if (error || data?.error) {
+    throw new Error(extractError(data, error, "Failed to load profile"));
+  }
   return data as BuyerProfileResponse;
 };
 
@@ -49,7 +62,9 @@ export const updateProfile = async (updates: {
     method: "PATCH",
     body: { action: "update_profile", ...updates },
   });
-  if (error) throw new Error(error.message || "Failed to update profile");
+  if (error || data?.error) {
+    throw new Error(extractError(data, error, "Failed to update profile"));
+  }
   return data;
 };
 
@@ -60,7 +75,9 @@ export const updateNotificationPreferences = async (
     method: "PATCH",
     body: { action: "update_preferences", ...prefs },
   });
-  if (error) throw new Error(error.message || "Failed to update preferences");
+  if (error || data?.error) {
+    throw new Error(extractError(data, error, "Failed to update preferences"));
+  }
   return data;
 };
 
@@ -69,7 +86,9 @@ export const updateAvatar = async (avatarUrl: string | null) => {
     method: "PATCH",
     body: { action: "update_avatar", avatar_url: avatarUrl },
   });
-  if (error) throw new Error(error.message || "Failed to update avatar");
+  if (error || data?.error) {
+    throw new Error(extractError(data, error, "Failed to update avatar"));
+  }
   return data;
 };
 

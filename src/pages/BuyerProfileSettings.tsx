@@ -31,41 +31,58 @@ const BuyerProfileSettings = () => {
 
   // Track pending profile edits
   const [pendingChanges, setPendingChanges] = useState<Partial<BuyerProfile>>({});
-  const hasPending = Object.keys(pendingChanges).length > 0;
+  // Track pending notification preference edits
+  const [pendingPrefs, setPendingPrefs] = useState<Partial<NotificationPreferences>>({});
+
+  const hasPendingProfile = Object.keys(pendingChanges).length > 0;
+  const hasPendingPrefs = Object.keys(pendingPrefs).length > 0;
+  const hasPending = hasPendingProfile || hasPendingPrefs;
 
   const handleProfileChange = useCallback((updates: Partial<BuyerProfile>) => {
     setPendingChanges((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  // Save profile mutation
+  const handlePrefToggle = useCallback(
+    (key: keyof NotificationPreferences, value: boolean) => {
+      setPendingPrefs((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
+
+  // Save profile + preferences in one action
   const saveMutation = useMutation({
-    mutationFn: () =>
-      updateProfile({
-        full_name: pendingChanges.full_name,
-        phone: pendingChanges.phone ?? undefined,
-        country_code: pendingChanges.country_code,
-      }),
+    mutationFn: async () => {
+      const promises: Promise<unknown>[] = [];
+
+      if (hasPendingProfile) {
+        promises.push(
+          updateProfile({
+            full_name: pendingChanges.full_name,
+            phone: pendingChanges.phone ?? undefined,
+            country_code: pendingChanges.country_code,
+          })
+        );
+      }
+
+      if (hasPendingPrefs) {
+        promises.push(updateNotificationPreferences(pendingPrefs));
+      }
+
+      await Promise.all(promises);
+    },
     onSuccess: () => {
-      toast.success("Profile updated successfully");
+      toast.success("Settings saved successfully");
       setPendingChanges({});
+      setPendingPrefs({});
       queryClient.invalidateQueries({ queryKey: ["buyer-profile"] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
 
-  // Notification toggle mutation
-  const prefsMutation = useMutation({
-    mutationFn: (prefs: Partial<NotificationPreferences>) =>
-      updateNotificationPreferences(prefs),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["buyer-profile"] });
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-
-  const handlePrefToggle = (key: keyof NotificationPreferences, value: boolean) => {
-    prefsMutation.mutate({ [key]: value });
-  };
+  // Merge server preferences with pending local changes for display
+  const displayPrefs: NotificationPreferences | undefined = data?.preferences
+    ? { ...data.preferences, ...pendingPrefs }
+    : undefined;
 
   // ── Loading state ──
   if (isLoading) {
@@ -126,10 +143,12 @@ const BuyerProfileSettings = () => {
             />
             <AccountVerificationSection verification={data.verification} />
             <SecuritySection />
-            <NotificationPreferencesSection
-              preferences={data.preferences}
-              onToggle={handlePrefToggle}
-            />
+            {displayPrefs && (
+              <NotificationPreferencesSection
+                preferences={displayPrefs}
+                onToggle={handlePrefToggle}
+              />
+            )}
             <DangerZoneSection />
 
             {/* Save / Cancel */}
@@ -147,6 +166,7 @@ const BuyerProfileSettings = () => {
                 disabled={!hasPending}
                 onClick={() => {
                   setPendingChanges({});
+                  setPendingPrefs({});
                   refetch();
                 }}
               >
