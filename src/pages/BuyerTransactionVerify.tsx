@@ -138,7 +138,7 @@ const BuyerTransactionVerify = () => {
               {pricing && (
                 <div className="text-right">
                   <div className="text-sm text-muted-foreground mb-1">Transaction Amount</div>
-                  <div className="text-2xl font-bold text-primary">
+                  <div className="text-xl font-bold text-primary">
                     {formatCurrency(Number(pricing.buyer_total_amount), pricing.currency_code)}
                   </div>
                 </div>
