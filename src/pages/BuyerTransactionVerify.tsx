@@ -89,6 +89,10 @@ const BuyerTransactionVerify = () => {
 
   const { transaction, pricing } = data;
 
+  const windowHours = transaction.delivered_at && transaction.verification_deadline_at
+    ? Math.round((new Date(transaction.verification_deadline_at).getTime() - new Date(transaction.delivered_at).getTime()) / 3_600_000)
+    : 72;
+
   return (
     <div className="min-h-screen bg-muted/30 flex flex-col">
       <BuyerNav
@@ -102,7 +106,7 @@ const BuyerTransactionVerify = () => {
           <div className="flex items-center justify-center gap-3 text-warning-foreground">
             <Clock className="h-5 w-5 animate-pulse" />
             <p className="text-sm font-semibold">
-              Verification window is now open — Please confirm or dispute within 72 hours
+              Verification window is now open — Please confirm or dispute within {windowHours} hours
             </p>
             <AlertTriangle className="h-4 w-4" />
           </div>
