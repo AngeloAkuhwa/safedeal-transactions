@@ -41,6 +41,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/transactions" element={<BuyerTransactions />} />
               <Route path="/dashboard/disputes" element={<BuyerDisputes />} />
+              <Route path="/dashboard/disputes/:disputeId" element={<BuyerDisputeDetail />} />
               <Route path="/dashboard/notifications" element={<BuyerNotifications />} />
             </Route>
 
