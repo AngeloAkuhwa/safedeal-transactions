@@ -122,6 +122,12 @@ export const uploadEvidence = async (
 ): Promise<UploadedEvidence> => {
   const headers = await getAuthHeader();
 
+  // 0. Validate real file type via magic bytes
+  const fileSig = await detectFileSignature(file);
+  if (fileSig === "unknown") {
+    throw new Error("Unsupported or suspicious file type. Allowed: JPEG, PNG, PDF, MP4");
+  }
+
   // 1. Compute SHA-256 hash
   const fileHash = await computeSha256(file);
 

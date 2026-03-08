@@ -159,6 +159,17 @@ async function registerFile(
     return jsonResponse({ error: `File format '${format}' is not allowed. Allowed: ${allowedFormats.join(", ")}` }, 400);
   }
 
+  // Cross-validate resource_type vs format
+  const validCombinations: Record<string, string[]> = {
+    image: ["jpg", "jpeg", "png"],
+    video: ["mp4"],
+    raw: ["pdf"],
+  };
+  const allowedForResource = validCombinations[resource_type];
+  if (!allowedForResource || !allowedForResource.includes(format.toLowerCase())) {
+    return jsonResponse({ error: `resource_type '${resource_type}' does not match format '${format}'` }, 400);
+  }
+
   // Validate size (10MB)
   const maxSize = 10 * 1024 * 1024;
   if (bytes > maxSize) {
