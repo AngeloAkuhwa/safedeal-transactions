@@ -71,9 +71,11 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
             </div>
           </div>
 
-          <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl shadow-lg">
-            <Eye className="h-4 w-4 mr-2" />
-            View Agreement
+          <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl shadow-lg">
+            <Link to={`/dashboard/transactions/${data.transaction.id}/agreement`}>
+              <Eye className="h-4 w-4 mr-2" />
+              View Agreement
+            </Link>
           </Button>
         </div>
       )}

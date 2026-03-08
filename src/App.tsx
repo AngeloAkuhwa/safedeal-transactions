@@ -45,6 +45,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/transactions" element={<BuyerTransactions />} />
               <Route path="/dashboard/transactions/:transactionId/verify" element={<BuyerTransactionVerify />} />
+              <Route path="/dashboard/transactions/:transactionId/agreement" element={<BuyerTransactionAgreement />} />
               <Route path="/dashboard/disputes" element={<BuyerDisputes />} />
               <Route path="/dashboard/disputes/:disputeId" element={<BuyerDisputeDetail />} />
               <Route path="/dashboard/notifications" element={<BuyerNotifications />} />
