@@ -13,17 +13,11 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-async function hmacSha1(secret: string, message: string): Promise<string> {
+async function cloudinarySignature(apiSecret: string, paramsToSign: string): Promise<string> {
   const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret),
-    { name: "HMAC", hash: "SHA-1" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
-  const bytes = new Uint8Array(sig);
+  const data = enc.encode(paramsToSign + apiSecret);
+  const digest = await crypto.subtle.digest("SHA-1", data);
+  const bytes = new Uint8Array(digest);
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
@@ -94,16 +88,24 @@ async function signUpload(
     return jsonResponse({ error: "Upload rate limit exceeded (50/hr)" }, 429);
   }
 
-  const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME")!;
-  const apiKey = Deno.env.get("CLOUDINARY_API_KEY")!;
-  const apiSecret = Deno.env.get("CLOUDINARY_API_SECRET")!;
+  const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME")!.trim();
+  const apiKey = Deno.env.get("CLOUDINARY_API_KEY")!.trim();
+  const apiSecret = Deno.env.get("CLOUDINARY_API_SECRET")!.trim();
 
   const timestamp = Math.floor(Date.now() / 1000);
   const folder = `SafeDeal/disputes/${userId}`;
 
-  // Build the string to sign (params sorted alphabetically)
-  const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
-  const signature = await hmacSha1(apiSecret, paramsToSign);
+  const params: Record<string, string> = {
+    folder,
+    timestamp: String(timestamp),
+  };
+
+  const paramsToSign = Object.keys(params)
+    .sort()
+    .map((k) => `${k}=${params[k]}`)
+    .join("&");
+
+  const signature = await cloudinarySignature(apiSecret, paramsToSign);
 
   return jsonResponse({
     timestamp,
