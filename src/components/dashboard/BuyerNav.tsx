@@ -26,6 +26,7 @@ const navLinks = [
 
 export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
