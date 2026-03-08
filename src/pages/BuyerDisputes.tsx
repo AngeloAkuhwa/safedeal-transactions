@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, RefreshCw, Shield, Check, BookOpen, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
@@ -13,11 +13,10 @@ import {
   getBuyerDisputes,
   type BuyerDisputeFilters as DisputeFiltersType,
 } from "@/services/disputes.service";
-import type { BuyerDashboardResponse } from "@/services/dashboard.service";
+import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 
 const BuyerDisputes = () => {
-  const queryClient = useQueryClient();
-  const dashboardData = queryClient.getQueryData<BuyerDashboardResponse>(["buyer-dashboard"]);
+  const { buyerName, avatarUrl } = useBuyerIdentity();
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
