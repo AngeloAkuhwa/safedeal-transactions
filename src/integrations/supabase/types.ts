@@ -381,6 +381,265 @@ export type Database = {
           },
         ]
       }
+      dispute_evidence: {
+        Row: {
+          created_at: string
+          dispute_id: string
+          evidence_type: Database["public"]["Enums"]["dispute_evidence_type"]
+          file_id: string
+          id: string
+          notes: string | null
+          submitted_by_role: Database["public"]["Enums"]["transaction_actor_role"]
+          submitted_by_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dispute_id: string
+          evidence_type: Database["public"]["Enums"]["dispute_evidence_type"]
+          file_id: string
+          id?: string
+          notes?: string | null
+          submitted_by_role: Database["public"]["Enums"]["transaction_actor_role"]
+          submitted_by_user_id: string
+        }
+        Update: {
+          created_at?: string
+          dispute_id?: string
+          evidence_type?: Database["public"]["Enums"]["dispute_evidence_type"]
+          file_id?: string
+          id?: string
+          notes?: string | null
+          submitted_by_role?: Database["public"]["Enums"]["transaction_actor_role"]
+          submitted_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispute_evidence_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispute_evidence_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispute_evidence_submitted_by_user_id_fkey"
+            columns: ["submitted_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dispute_outcomes: {
+        Row: {
+          created_at: string
+          decision_summary: string
+          dispute_id: string
+          id: string
+          outcome_type: Database["public"]["Enums"]["dispute_outcome_type"]
+          refund_amount: number
+          release_amount: number
+          resolved_at: string
+          resolved_by_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decision_summary: string
+          dispute_id: string
+          id?: string
+          outcome_type: Database["public"]["Enums"]["dispute_outcome_type"]
+          refund_amount?: number
+          release_amount?: number
+          resolved_at: string
+          resolved_by_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decision_summary?: string
+          dispute_id?: string
+          id?: string
+          outcome_type?: Database["public"]["Enums"]["dispute_outcome_type"]
+          refund_amount?: number
+          release_amount?: number
+          resolved_at?: string
+          resolved_by_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispute_outcomes_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: true
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispute_outcomes_resolved_by_user_id_fkey"
+            columns: ["resolved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dispute_responses: {
+        Row: {
+          created_at: string
+          dispute_id: string
+          id: string
+          responded_by_user_id: string
+          response_text: string
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dispute_id: string
+          id?: string
+          responded_by_user_id: string
+          response_text: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dispute_id?: string
+          id?: string
+          responded_by_user_id?: string
+          response_text?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispute_responses_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: true
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispute_responses_responded_by_user_id_fkey"
+            columns: ["responded_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dispute_status_history: {
+        Row: {
+          changed_at: string
+          changed_by_user_id: string | null
+          created_at: string
+          dispute_id: string
+          id: string
+          new_status: Database["public"]["Enums"]["dispute_case_status"]
+          old_status: Database["public"]["Enums"]["dispute_case_status"] | null
+          reason: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by_user_id?: string | null
+          created_at?: string
+          dispute_id: string
+          id?: string
+          new_status: Database["public"]["Enums"]["dispute_case_status"]
+          old_status?: Database["public"]["Enums"]["dispute_case_status"] | null
+          reason?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by_user_id?: string | null
+          created_at?: string
+          dispute_id?: string
+          id?: string
+          new_status?: Database["public"]["Enums"]["dispute_case_status"]
+          old_status?: Database["public"]["Enums"]["dispute_case_status"] | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispute_status_history_changed_by_user_id_fkey"
+            columns: ["changed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispute_status_history_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disputes: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          opened_at: string
+          opened_by_user_id: string
+          reason: Database["public"]["Enums"]["dispute_reason_type"]
+          resolved_at: string | null
+          seller_response_due_at: string | null
+          status: Database["public"]["Enums"]["dispute_case_status"]
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          opened_at?: string
+          opened_by_user_id: string
+          reason: Database["public"]["Enums"]["dispute_reason_type"]
+          resolved_at?: string | null
+          seller_response_due_at?: string | null
+          status?: Database["public"]["Enums"]["dispute_case_status"]
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          opened_at?: string
+          opened_by_user_id?: string
+          reason?: Database["public"]["Enums"]["dispute_reason_type"]
+          resolved_at?: string | null
+          seller_response_due_at?: string | null
+          status?: Database["public"]["Enums"]["dispute_case_status"]
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_opened_by_user_id_fkey"
+            columns: ["opened_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       escrow_ledger_entries: {
         Row: {
           amount: number
@@ -1878,6 +2137,31 @@ export type Database = {
         | "shipment_video"
         | "other"
       delivery_update_status: "processing" | "dispatched" | "delivered"
+      dispute_case_status:
+        | "open"
+        | "seller_response_pending"
+        | "under_review"
+        | "resolved"
+      dispute_evidence_type:
+        | "buyer_photo"
+        | "buyer_video"
+        | "seller_receipt"
+        | "seller_tracking"
+        | "seller_product_photo"
+        | "supporting_document"
+        | "other"
+      dispute_outcome_type:
+        | "refund_buyer"
+        | "release_funds_to_seller"
+        | "close_case_without_resolution"
+      dispute_reason_type:
+        | "wrong_item_received"
+        | "damaged_item_received"
+        | "incomplete_order"
+        | "item_not_as_described"
+        | "item_not_delivered"
+        | "suspected_fake_item"
+        | "other"
       dispute_status:
         | "none"
         | "open"
@@ -2147,6 +2431,35 @@ export const Constants = {
         "other",
       ],
       delivery_update_status: ["processing", "dispatched", "delivered"],
+      dispute_case_status: [
+        "open",
+        "seller_response_pending",
+        "under_review",
+        "resolved",
+      ],
+      dispute_evidence_type: [
+        "buyer_photo",
+        "buyer_video",
+        "seller_receipt",
+        "seller_tracking",
+        "seller_product_photo",
+        "supporting_document",
+        "other",
+      ],
+      dispute_outcome_type: [
+        "refund_buyer",
+        "release_funds_to_seller",
+        "close_case_without_resolution",
+      ],
+      dispute_reason_type: [
+        "wrong_item_received",
+        "damaged_item_received",
+        "incomplete_order",
+        "item_not_as_described",
+        "item_not_delivered",
+        "suspected_fake_item",
+        "other",
+      ],
       dispute_status: [
         "none",
         "open",
