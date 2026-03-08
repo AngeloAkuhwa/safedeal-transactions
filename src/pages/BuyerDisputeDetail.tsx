@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, RefreshCw, ChevronRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
@@ -17,7 +17,7 @@ import { DisputeResolutionSection } from "@/components/disputes/DisputeResolutio
 import { AgreementSnapshotSection } from "@/components/disputes/AgreementSnapshotSection";
 import { DeliveryProofSection } from "@/components/disputes/DeliveryProofSection";
 import { getDisputeById } from "@/services/disputes.service";
-import type { BuyerDashboardResponse } from "@/services/dashboard.service";
+import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 
 function formatDisputeRef(id: string): string {
   return `DSP-${id.substring(0, 8).toUpperCase()}`;
@@ -25,11 +25,7 @@ function formatDisputeRef(id: string): string {
 
 const BuyerDisputeDetail = () => {
   const { disputeId } = useParams<{ disputeId: string }>();
-  const queryClient = useQueryClient();
-  const dashboardData = queryClient.getQueryData<BuyerDashboardResponse>(["buyer-dashboard"]);
-
-  const buyerName = dashboardData?.buyer?.full_name ?? "User";
-  const avatarUrl = dashboardData?.buyer?.avatar_url ?? null;
+  const { buyerName, avatarUrl } = useBuyerIdentity();
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["dispute-detail", disputeId],

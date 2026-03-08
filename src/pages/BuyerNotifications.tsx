@@ -16,13 +16,12 @@ import {
   type BuyerNotificationFilters,
   type BuyerNotificationsResponse,
 } from "@/services/notifications.service";
-import type { BuyerDashboardResponse } from "@/services/dashboard.service";
+import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { toast } from "@/components/ui/sonner";
 
 const BuyerNotifications = () => {
   const queryClient = useQueryClient();
-
-  const dashboardData = queryClient.getQueryData<BuyerDashboardResponse>(["buyer-dashboard"]);
+  const { buyerName, avatarUrl } = useBuyerIdentity();
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -147,8 +146,6 @@ const BuyerNotifications = () => {
     },
   });
 
-  const buyerName = dashboardData?.buyer?.full_name ?? "User";
-  const avatarUrl = dashboardData?.buyer?.avatar_url ?? null;
 
   const hasActiveFilters = search !== "" || type !== "all" || unreadOnly;
 

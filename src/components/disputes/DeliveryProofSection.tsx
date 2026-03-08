@@ -1,4 +1,5 @@
-import { Truck, ImageIcon, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { Truck, ImageIcon, ExternalLink, Download } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,6 @@ export function DeliveryProofSection({ deliveryProof }: DeliveryProofSectionProp
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Tracking details */}
         {tracking && (
           <div className="grid sm:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
             {tracking.courier_name && (
@@ -84,7 +84,6 @@ export function DeliveryProofSection({ deliveryProof }: DeliveryProofSectionProp
           </div>
         )}
 
-        {/* Proof files */}
         {hasFiles && (
           <div>
             <p className="text-xs text-muted-foreground mb-2">
@@ -92,29 +91,48 @@ export function DeliveryProofSection({ deliveryProof }: DeliveryProofSectionProp
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {deliveryProof.files.map((f) => (
-                <div
-                  key={f.id}
-                  className="group relative aspect-square rounded-lg border border-border bg-muted overflow-hidden"
-                >
-                  {f.file_url && f.mime_type?.startsWith("image/") ? (
-                    <img
-                      src={f.file_url}
-                      alt={f.file_name ?? "Delivery proof"}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
-                      <ImageIcon className="h-8 w-8 mb-1" />
-                      <span className="text-xs truncate max-w-[80%]">{f.file_name ?? "File"}</span>
-                    </div>
-                  )}
-                </div>
+                <ProofThumbnail key={f.id} file={f} />
               ))}
             </div>
           </div>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function ProofThumbnail({ file }: { file: DeliveryProofSectionProps["deliveryProof"]["files"][number] }) {
+  const isImage = file.mime_type?.startsWith("image/");
+  const [imgError, setImgError] = useState(false);
+
+  return (
+    <div className="group relative aspect-square rounded-lg border border-border bg-muted overflow-hidden">
+      {isImage && file.file_url && !imgError ? (
+        <img
+          src={file.file_url}
+          alt={file.file_name ?? "Delivery proof"}
+          className="w-full h-full object-cover"
+          loading="lazy"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+          <ImageIcon className="h-8 w-8 mb-1" />
+          <span className="text-xs truncate max-w-[80%]">{file.file_name ?? "File"}</span>
+        </div>
+      )}
+
+      {file.file_url && (
+        <a
+          href={file.file_url}
+          download={file.file_name ?? "proof"}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute top-1.5 right-1.5 p-1.5 rounded-md bg-background/80 text-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+        >
+          <Download className="h-3.5 w-3.5" />
+        </a>
+      )}
+    </div>
   );
 }
