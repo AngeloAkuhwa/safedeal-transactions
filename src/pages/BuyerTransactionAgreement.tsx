@@ -17,7 +17,7 @@ export default function BuyerTransactionAgreement() {
 
   const { data: profile } = useQuery({
     queryKey: ["buyer-profile"],
-    queryFn: getProfileData,
+    queryFn: getBuyerProfile,
   });
 
   const buyerName = profile?.profile.full_name || "";
