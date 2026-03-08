@@ -13,17 +13,11 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-async function hmacSha1(secret: string, message: string): Promise<string> {
+async function cloudinarySignature(apiSecret: string, paramsToSign: string): Promise<string> {
   const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret),
-    { name: "HMAC", hash: "SHA-1" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
-  const bytes = new Uint8Array(sig);
+  const data = enc.encode(paramsToSign + apiSecret);
+  const digest = await crypto.subtle.digest("SHA-1", data);
+  const bytes = new Uint8Array(digest);
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
