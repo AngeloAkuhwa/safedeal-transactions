@@ -94,12 +94,20 @@ export function Header() {
                 ))}
               </nav>
               <div className="mt-6 flex flex-col gap-2">
-                <Button variant="outline" asChild onClick={() => setOpen(false)}>
-                  <Link to="/auth?mode=login">Log In</Link>
-                </Button>
-                <Button asChild onClick={() => setOpen(false)}>
-                  <Link to="/auth">Sign Up</Link>
-                </Button>
+                {user ? (
+                  <Button asChild onClick={() => setOpen(false)}>
+                    <Link to="/role-selection">Dashboard</Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="outline" asChild onClick={() => setOpen(false)}>
+                      <Link to="/auth?mode=login">Log In</Link>
+                    </Button>
+                    <Button asChild onClick={() => setOpen(false)}>
+                      <Link to="/auth">Sign Up</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </SheetContent>
           </Sheet>

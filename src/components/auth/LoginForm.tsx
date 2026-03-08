@@ -64,10 +64,17 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
         return;
       }
 
-      if (data.user) {
+      if (data.user && data.session) {
         // Invalidate older sessions (single-device policy)
         await supabase.rpc("invalidate_old_sessions", {
           _user_id: data.user.id,
+        });
+
+        // Persist new session record
+        await supabase.from("user_sessions").insert({
+          user_id: data.user.id,
+          session_token_hash: data.session.access_token.slice(-32),
+          is_active: true,
         });
 
         toast.success("Welcome back!");
