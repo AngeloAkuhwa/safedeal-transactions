@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Search, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
