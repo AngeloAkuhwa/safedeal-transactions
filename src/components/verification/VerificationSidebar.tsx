@@ -145,8 +145,8 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
       )}
 
       {/* Timeline */}
-      <div className="bg-card rounded-2xl shadow-lg border border-border p-6">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="bg-card rounded-2xl shadow-lg border border-border p-5">
+        <div className="flex items-center gap-2 mb-3">
           <Clock className="h-5 w-5 text-primary" />
           <h3 className="text-base font-bold text-foreground">Quick Timeline</h3>
         </div>
