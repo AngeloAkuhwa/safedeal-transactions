@@ -1,1 +1,4 @@
 project_id = "cfkdasmhlqswpunugbkf"
+
+[functions.buyer-transactions]
+verify_jwt = false

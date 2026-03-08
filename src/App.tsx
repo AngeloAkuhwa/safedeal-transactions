@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import RoleSelection from "./pages/RoleSelection";
 import Dashboard from "./pages/Dashboard";
+import BuyerTransactions from "./pages/BuyerTransactions";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -35,6 +36,7 @@ const App = () => (
             {/* Protected: requires session + role */}
             <Route element={<ProtectedRoute requireRole="buyer" />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/transactions" element={<BuyerTransactions />} />
             </Route>
 
             {/* Catch-all */}
