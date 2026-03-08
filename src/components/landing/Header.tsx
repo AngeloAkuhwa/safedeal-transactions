@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Shield, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 const navLinks = [
   { label: "How It Works", href: "#how-it-works" },
@@ -14,6 +16,17 @@ const navLinks = [
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
@@ -38,12 +51,20 @@ export function Header() {
 
         <div className="hidden items-center gap-2 md:flex">
           <ThemeToggle />
-          <Button variant="ghost" asChild>
-            <Link to="/auth?mode=login">Log In</Link>
-          </Button>
-          <Button asChild>
-            <Link to="/auth">Sign Up</Link>
-          </Button>
+          {user ? (
+            <Button asChild>
+              <Link to="/role-selection">Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
+                <Link to="/auth?mode=login">Log In</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/auth">Sign Up</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile menu */}
@@ -73,12 +94,20 @@ export function Header() {
                 ))}
               </nav>
               <div className="mt-6 flex flex-col gap-2">
-                <Button variant="outline" asChild onClick={() => setOpen(false)}>
-                  <Link to="/auth?mode=login">Log In</Link>
-                </Button>
-                <Button asChild onClick={() => setOpen(false)}>
-                  <Link to="/auth">Sign Up</Link>
-                </Button>
+                {user ? (
+                  <Button asChild onClick={() => setOpen(false)}>
+                    <Link to="/role-selection">Dashboard</Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="outline" asChild onClick={() => setOpen(false)}>
+                      <Link to="/auth?mode=login">Log In</Link>
+                    </Button>
+                    <Button asChild onClick={() => setOpen(false)}>
+                      <Link to="/auth">Sign Up</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </SheetContent>
           </Sheet>
