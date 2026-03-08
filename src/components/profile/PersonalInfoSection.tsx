@@ -75,9 +75,9 @@ export function PersonalInfoSection({ profile, verification, onProfileChange }: 
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
             <div className="relative">
-              <Input id="email" value={profile.email} readOnly className="pr-10 bg-muted/50" />
+              <Input id="email" value={profile.email} readOnly className="pr-10 bg-muted/50 rounded-xl" />
               {verification.email_verified && (
-                <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-success" />
+                <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-success" />
               )}
             </div>
           </div>
