@@ -103,8 +103,8 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
         {/* Upload zone (visual placeholder) */}
         <div className="space-y-3">
           <Label className="text-sm font-semibold">Upload Evidence</Label>
-          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all">
-            <CloudUpload className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+          <div className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all">
+            <CloudUpload className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
             <p className="text-sm font-semibold text-foreground mb-1">
               Click to upload photos or videos
             </p>
