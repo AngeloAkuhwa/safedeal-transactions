@@ -58,6 +58,44 @@ export type Database = {
           },
         ]
       }
+      delivery_confirmations: {
+        Row: {
+          buyer_acknowledged_delivery_at: string | null
+          created_at: string
+          id: string
+          seller_marked_delivered_at: string | null
+          system_delivery_marked_at: string | null
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_acknowledged_delivery_at?: string | null
+          created_at?: string
+          id?: string
+          seller_marked_delivered_at?: string | null
+          system_delivery_marked_at?: string | null
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_acknowledged_delivery_at?: string | null
+          created_at?: string
+          id?: string
+          seller_marked_delivered_at?: string | null
+          system_delivery_marked_at?: string | null
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_confirmations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delivery_proof_files: {
         Row: {
           created_at: string
@@ -101,6 +139,98 @@ export type Database = {
           {
             foreignKeyName: "delivery_proof_files_uploaded_by_user_id_fkey"
             columns: ["uploaded_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_tracking_details: {
+        Row: {
+          courier_name: string | null
+          created_at: string
+          delivered_at: string | null
+          expected_delivery_at: string | null
+          id: string
+          shipped_at: string | null
+          signature_name: string | null
+          tracking_number: string | null
+          tracking_url: string | null
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          courier_name?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          expected_delivery_at?: string | null
+          id?: string
+          shipped_at?: string | null
+          signature_name?: string | null
+          tracking_number?: string | null
+          tracking_url?: string | null
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          courier_name?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          expected_delivery_at?: string | null
+          id?: string
+          shipped_at?: string | null
+          signature_name?: string | null
+          tracking_number?: string | null
+          tracking_url?: string | null
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_tracking_details_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_updates: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          status: Database["public"]["Enums"]["delivery_update_status"]
+          transaction_id: string
+          updated_by_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status: Database["public"]["Enums"]["delivery_update_status"]
+          transaction_id: string
+          updated_by_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["delivery_update_status"]
+          transaction_id?: string
+          updated_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_updates_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_updates_updated_by_user_id_fkey"
+            columns: ["updated_by_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -334,6 +464,54 @@ export type Database = {
             columns: ["uploaded_by_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      money_status_history: {
+        Row: {
+          changed_at: string
+          changed_by_user_id: string | null
+          created_at: string
+          id: string
+          new_status: Database["public"]["Enums"]["money_status"]
+          old_status: Database["public"]["Enums"]["money_status"] | null
+          reason: string | null
+          transaction_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          new_status: Database["public"]["Enums"]["money_status"]
+          old_status?: Database["public"]["Enums"]["money_status"] | null
+          reason?: string | null
+          transaction_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          new_status?: Database["public"]["Enums"]["money_status"]
+          old_status?: Database["public"]["Enums"]["money_status"] | null
+          reason?: string | null
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "money_status_history_changed_by_user_id_fkey"
+            columns: ["changed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "money_status_history_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -825,6 +1003,60 @@ export type Database = {
           },
         ]
       }
+      transaction_events: {
+        Row: {
+          actor_role:
+            | Database["public"]["Enums"]["transaction_actor_role"]
+            | null
+          actor_user_id: string | null
+          created_at: string
+          event_data: Json | null
+          event_type: Database["public"]["Enums"]["transaction_event_type"]
+          id: string
+          occurred_at: string
+          transaction_id: string
+        }
+        Insert: {
+          actor_role?:
+            | Database["public"]["Enums"]["transaction_actor_role"]
+            | null
+          actor_user_id?: string | null
+          created_at?: string
+          event_data?: Json | null
+          event_type: Database["public"]["Enums"]["transaction_event_type"]
+          id?: string
+          occurred_at?: string
+          transaction_id: string
+        }
+        Update: {
+          actor_role?:
+            | Database["public"]["Enums"]["transaction_actor_role"]
+            | null
+          actor_user_id?: string | null
+          created_at?: string
+          event_data?: Json | null
+          event_type?: Database["public"]["Enums"]["transaction_event_type"]
+          id?: string
+          occurred_at?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_events_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transaction_items: {
         Row: {
           brand: string | null
@@ -1094,6 +1326,54 @@ export type Database = {
           },
         ]
       }
+      transaction_status_history: {
+        Row: {
+          changed_at: string
+          changed_by_user_id: string | null
+          created_at: string
+          id: string
+          new_status: Database["public"]["Enums"]["transaction_status"]
+          old_status: Database["public"]["Enums"]["transaction_status"] | null
+          reason: string | null
+          transaction_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          new_status: Database["public"]["Enums"]["transaction_status"]
+          old_status?: Database["public"]["Enums"]["transaction_status"] | null
+          reason?: string | null
+          transaction_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          new_status?: Database["public"]["Enums"]["transaction_status"]
+          old_status?: Database["public"]["Enums"]["transaction_status"] | null
+          reason?: string | null
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_status_history_changed_by_user_id_fkey"
+            columns: ["changed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_status_history_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           agreement_locked_at: string | null
@@ -1358,6 +1638,7 @@ export type Database = {
         | "signature_proof"
         | "shipment_video"
         | "other"
+      delivery_update_status: "processing" | "dispatched" | "delivered"
       dispute_status:
         | "none"
         | "open"
@@ -1431,6 +1712,25 @@ export type Database = {
         | "completed"
         | "failed"
         | "cancelled"
+      transaction_actor_role: "buyer" | "seller" | "admin" | "system"
+      transaction_event_type:
+        | "transaction_created"
+        | "transaction_link_opened"
+        | "buyer_joined"
+        | "payment_received"
+        | "agreement_locked"
+        | "funds_held"
+        | "seller_preparing_delivery"
+        | "seller_dispatched"
+        | "delivered"
+        | "verification_window_opened"
+        | "buyer_confirmed"
+        | "dispute_opened"
+        | "seller_responded"
+        | "refund_issued"
+        | "payout_released"
+        | "auto_cancelled"
+        | "auto_released"
       transaction_media_type: "image" | "video"
       transaction_party_role: "buyer" | "seller"
       transaction_status:
@@ -1581,6 +1881,7 @@ export const Constants = {
         "shipment_video",
         "other",
       ],
+      delivery_update_status: ["processing", "dispatched", "delivered"],
       dispute_status: [
         "none",
         "open",
@@ -1663,6 +1964,26 @@ export const Constants = {
         "completed",
         "failed",
         "cancelled",
+      ],
+      transaction_actor_role: ["buyer", "seller", "admin", "system"],
+      transaction_event_type: [
+        "transaction_created",
+        "transaction_link_opened",
+        "buyer_joined",
+        "payment_received",
+        "agreement_locked",
+        "funds_held",
+        "seller_preparing_delivery",
+        "seller_dispatched",
+        "delivered",
+        "verification_window_opened",
+        "buyer_confirmed",
+        "dispute_opened",
+        "seller_responded",
+        "refund_issued",
+        "payout_released",
+        "auto_cancelled",
+        "auto_released",
       ],
       transaction_media_type: ["image", "video"],
       transaction_party_role: ["buyer", "seller"],
