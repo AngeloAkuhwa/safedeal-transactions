@@ -398,10 +398,14 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
                       </div>
                     )}
 
-                    {/* Loading overlay */}
+                    {/* Loading overlay with progress */}
                     {f.status === "uploading" && (
-                      <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <div className="absolute inset-0 bg-background/70 flex flex-col items-center justify-center gap-2 px-3">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        <Progress value={f.progress ?? 0} className="h-1.5 w-full" />
+                        <span className="text-xs font-semibold text-primary">
+                          {f.progress ?? 0}%
+                        </span>
                       </div>
                     )}
 
