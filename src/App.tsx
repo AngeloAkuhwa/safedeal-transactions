@@ -46,6 +46,7 @@ const App = () => (
               <Route path="/dashboard/disputes/:disputeId" element={<BuyerDisputeDetail />} />
               <Route path="/dashboard/notifications" element={<BuyerNotifications />} />
               <Route path="/dashboard/profile" element={<BuyerProfileSettings />} />
+              <Route path="/dashboard/verification" element={<BuyerVerification />} />
             </Route>
 
             {/* Catch-all */}
