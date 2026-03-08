@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.buyer-disputes]
 verify_jwt = false
+
+[functions.buyer-profile]
+verify_jwt = false
