@@ -58,6 +58,100 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_action_type"]
+          actor_user_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          target_user_id: string | null
+          transaction_id: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_action_type"]
+          actor_user_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          target_user_id?: string | null
+          transaction_id?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_action_type"]
+          actor_user_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          target_user_id?: string | null
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      background_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          job_name: string
+          job_status: string
+          metadata: Json | null
+          started_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          job_name: string
+          job_status: string
+          metadata?: Json | null
+          started_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          job_name?: string
+          job_status?: string
+          metadata?: Json | null
+          started_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       delivery_confirmations: {
         Row: {
           buyer_acknowledged_delivery_at: string | null
@@ -516,6 +610,47 @@ export type Database = {
           },
         ]
       }
+      notification_deliveries: {
+        Row: {
+          attempt_count: number
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at: string
+          delivery_status: Database["public"]["Enums"]["notification_status"]
+          id: string
+          notification_id: string
+          provider_response: string | null
+          sent_at: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string
+          delivery_status: Database["public"]["Enums"]["notification_status"]
+          id?: string
+          notification_id: string
+          provider_response?: string | null
+          sent_at?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string
+          delivery_status?: Database["public"]["Enums"]["notification_status"]
+          id?: string
+          notification_id?: string
+          provider_response?: string | null
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_deliveries_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           created_at: string
@@ -558,6 +693,66 @@ export type Database = {
             foreignKeyName: "notification_preferences_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at: string
+          id: string
+          message: string
+          metadata: Json | null
+          read_at: string | null
+          related_transaction_id: string | null
+          status: Database["public"]["Enums"]["notification_status"]
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          read_at?: string | null
+          related_transaction_id?: string | null
+          status?: Database["public"]["Enums"]["notification_status"]
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          read_at?: string | null
+          related_transaction_id?: string | null
+          status?: Database["public"]["Enums"]["notification_status"]
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_related_transaction_id_fkey"
+            columns: ["related_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -902,6 +1097,36 @@ export type Database = {
           launch_phase?: number
           state_name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      system_logs: {
+        Row: {
+          created_at: string
+          id: string
+          level: Database["public"]["Enums"]["system_log_level"]
+          message: string
+          metadata: Json | null
+          service_name: string
+          stack_trace: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level: Database["public"]["Enums"]["system_log_level"]
+          message: string
+          metadata?: Json | null
+          service_name: string
+          stack_trace?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: Database["public"]["Enums"]["system_log_level"]
+          message?: string
+          metadata?: Json | null
+          service_name?: string
+          stack_trace?: string | null
         }
         Relationships: []
       }
@@ -1631,6 +1856,20 @@ export type Database = {
       }
     }
     Enums: {
+      audit_action_type:
+        | "profile_update"
+        | "profile_suspend"
+        | "profile_activate"
+        | "transaction_created"
+        | "transaction_cancelled"
+        | "payment_received"
+        | "payment_failed"
+        | "payout_released"
+        | "refund_processed"
+        | "dispute_opened"
+        | "dispute_resolved"
+        | "verification_completed"
+        | "system_action"
       delivery_method_type: "courier" | "pickup" | "meetup" | "hand_delivery"
       delivery_proof_type:
         | "shipping_receipt"
@@ -1691,6 +1930,16 @@ export type Database = {
         | "funds_released"
         | "refund_pending"
         | "refund_issued"
+      notification_channel: "in_app" | "email" | "sms" | "push"
+      notification_status: "pending" | "sent" | "failed" | "read"
+      notification_type:
+        | "transaction_update"
+        | "payment_update"
+        | "delivery_update"
+        | "dispute_update"
+        | "verification_update"
+        | "security_alert"
+        | "system_message"
       payment_method_type: "card" | "bank_transfer" | "wallet"
       payment_provider: "paystack" | "flutterwave" | "stripe" | "manual"
       payment_status:
@@ -1712,6 +1961,7 @@ export type Database = {
         | "completed"
         | "failed"
         | "cancelled"
+      system_log_level: "info" | "warning" | "error" | "critical"
       transaction_actor_role: "buyer" | "seller" | "admin" | "system"
       transaction_event_type:
         | "transaction_created"
@@ -1873,6 +2123,21 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      audit_action_type: [
+        "profile_update",
+        "profile_suspend",
+        "profile_activate",
+        "transaction_created",
+        "transaction_cancelled",
+        "payment_received",
+        "payment_failed",
+        "payout_released",
+        "refund_processed",
+        "dispute_opened",
+        "dispute_resolved",
+        "verification_completed",
+        "system_action",
+      ],
       delivery_method_type: ["courier", "pickup", "meetup", "hand_delivery"],
       delivery_proof_type: [
         "shipping_receipt",
@@ -1941,6 +2206,17 @@ export const Constants = {
         "refund_pending",
         "refund_issued",
       ],
+      notification_channel: ["in_app", "email", "sms", "push"],
+      notification_status: ["pending", "sent", "failed", "read"],
+      notification_type: [
+        "transaction_update",
+        "payment_update",
+        "delivery_update",
+        "dispute_update",
+        "verification_update",
+        "security_alert",
+        "system_message",
+      ],
       payment_method_type: ["card", "bank_transfer", "wallet"],
       payment_provider: ["paystack", "flutterwave", "stripe", "manual"],
       payment_status: [
@@ -1965,6 +2241,7 @@ export const Constants = {
         "failed",
         "cancelled",
       ],
+      system_log_level: ["info", "warning", "error", "critical"],
       transaction_actor_role: ["buyer", "seller", "admin", "system"],
       transaction_event_type: [
         "transaction_created",
