@@ -151,7 +151,11 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
       setUploadedFiles((prev) => [...prev, placeholder]);
 
       // Upload in background
-      uploadEvidence(file)
+      uploadEvidence(file, (pct) => {
+        setUploadedFiles((prev) =>
+          prev.map((f) => (f.id === tempId ? { ...f, progress: pct } : f)),
+        );
+      })
         .then((result) => {
           setUploadedFiles((prev) =>
             prev.map((f) =>
