@@ -38,6 +38,7 @@ const App = () => (
             <Route element={<ProtectedRoute requireRole="buyer" />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/transactions" element={<BuyerTransactions />} />
+              <Route path="/dashboard/notifications" element={<BuyerNotifications />} />
             </Route>
 
             {/* Catch-all */}
