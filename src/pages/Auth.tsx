@@ -1,52 +1,102 @@
 import { useSearchParams, Link } from "react-router-dom";
 import { Shield, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AuthInfoPanel from "@/components/auth/AuthInfoPanel";
+import LoginForm from "@/components/auth/LoginForm";
+import SignupForm from "@/components/auth/SignupForm";
+import SecurityReassurance from "@/components/auth/SecurityReassurance";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const role = searchParams.get("role");
   const mode = searchParams.get("mode");
 
-  const isLogin = mode === "login";
+  const defaultTab = mode === "login" ? "login" : "signup";
+
+  const subtitleMap: Record<string, string> = {
+    buyer: "Sign up to start buying with protection",
+    seller: "Sign up to start selling with confidence",
+  };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-      <Link to="/" className="mb-8 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="h-4 w-4" />
-        Back to home
-      </Link>
-      <div className="w-full max-w-md rounded-xl border bg-card p-8 shadow-lg">
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <Shield className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold text-foreground">SafeDeal</span>
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-success/5">
+      {/* Back link - mobile */}
+      <div className="lg:hidden p-4">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to home
+        </Link>
+      </div>
+
+      <div className="flex min-h-screen items-center justify-center p-4 lg:p-8">
+        <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 rounded-2xl border bg-card shadow-xl overflow-hidden">
+          {/* Left panel */}
+          <AuthInfoPanel />
+
+          {/* Right panel */}
+          <div className="p-6 sm:p-8 lg:p-10 flex flex-col justify-center">
+            {/* Mobile logo */}
+            <div className="flex items-center justify-center gap-2 mb-6 lg:hidden">
+              <Shield className="h-7 w-7 text-primary" />
+              <span className="text-xl font-bold text-foreground">SafeDeal</span>
+            </div>
+
+            <Tabs defaultValue={defaultTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="login">Log In</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="login">
+                <div className="mb-6">
+                  <h1 className="text-2xl font-bold text-foreground">
+                    Welcome back
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Log in to manage your transactions
+                  </p>
+                </div>
+                <LoginForm />
+                <p className="mt-5 text-center text-sm text-muted-foreground">
+                  Don't have an account?{" "}
+                  <Link to="/auth" className="text-primary hover:underline font-medium">
+                    Sign up
+                  </Link>
+                </p>
+              </TabsContent>
+
+              <TabsContent value="signup">
+                <div className="mb-6">
+                  <h1 className="text-2xl font-bold text-foreground">
+                    Create your account
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {role && subtitleMap[role]
+                      ? subtitleMap[role]
+                      : "Join SafeDeal and start transacting securely"}
+                  </p>
+                </div>
+                <SignupForm defaultRole={role} />
+                <p className="mt-5 text-center text-sm text-muted-foreground">
+                  Already have an account?{" "}
+                  <Link to="/auth?mode=login" className="text-primary hover:underline font-medium">
+                    Log in
+                  </Link>
+                </p>
+              </TabsContent>
+            </Tabs>
+
+            <SecurityReassurance />
+
+            <p className="mt-6 text-center text-xs text-muted-foreground">
+              By creating an account, you agree to receive transaction updates
+              and security notifications via email and SMS.
+            </p>
+          </div>
         </div>
-        <h1 className="mb-2 text-center text-xl font-semibold text-foreground">
-          {isLogin ? "Welcome back" : "Create your account"}
-        </h1>
-        <p className="mb-6 text-center text-sm text-muted-foreground">
-          {isLogin
-            ? "Log in to manage your transactions"
-            : role === "buyer"
-              ? "Sign up to start buying with protection"
-              : role === "seller"
-                ? "Sign up to start selling with confidence"
-                : "Join SafeDeal to buy and sell securely"}
-        </p>
-        <div className="space-y-4">
-          <p className="rounded-lg bg-muted p-4 text-center text-sm text-muted-foreground">
-            Authentication screen coming soon. This is a placeholder.
-          </p>
-          <Button className="w-full" disabled>
-            {isLogin ? "Log In" : "Sign Up"}
-          </Button>
-        </div>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          {isLogin ? (
-            <>Don't have an account?{" "}<Link to="/auth" className="text-primary hover:underline">Sign up</Link></>
-          ) : (
-            <>Already have an account?{" "}<Link to="/auth?mode=login" className="text-primary hover:underline">Log in</Link></>
-          )}
-        </p>
       </div>
     </div>
   );
