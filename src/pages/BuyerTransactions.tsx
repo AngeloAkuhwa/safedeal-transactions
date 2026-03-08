@@ -92,8 +92,8 @@ const BuyerTransactions = () => {
                 <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
                   My Purchases
                 </h1>
-                <p className="text-muted-foreground text-sm mt-1">
-                  View and manage all your protected transactions.
+                <p className="text-muted-foreground text-base mt-1">
+                  Track and manage all your SafeDeal transactions
                 </p>
               </div>
               <Button
