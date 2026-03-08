@@ -163,7 +163,7 @@ async function registerFile(
 
   // Cross-validate resource_type vs format
   const validCombinations: Record<string, string[]> = {
-    image: ["jpg", "jpeg", "png"],
+    image: ["jpg", "jpeg", "png", "pdf"],
     video: ["mp4"],
     raw: ["pdf"],
   };
@@ -184,7 +184,10 @@ async function registerFile(
     video: "video",
     raw: "raw",
   };
-  const mappedResourceType = resourceTypeMap[resource_type] || "raw";
+  let mappedResourceType = resourceTypeMap[resource_type] || "raw";
+  if (format.toLowerCase() === "pdf") {
+    mappedResourceType = "raw";
+  }
 
   // Map format to mime type
   const mimeMap: Record<string, string> = {
