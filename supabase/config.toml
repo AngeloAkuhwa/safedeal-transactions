@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.upload-evidence]
 verify_jwt = false
+
+[functions.transaction-detail]
+verify_jwt = false

@@ -16,6 +16,7 @@ import BuyerDisputeDetail from "./pages/BuyerDisputeDetail";
 import BuyerProfileSettings from "./pages/BuyerProfileSettings";
 import BuyerVerification from "./pages/BuyerVerification";
 import BuyerTransactionVerify from "./pages/BuyerTransactionVerify";
+import BuyerTransactionDetail from "./pages/BuyerTransactionDetail";
 import BuyerTransactionAgreement from "./pages/BuyerTransactionAgreement";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -44,6 +45,7 @@ const App = () => (
             <Route element={<ProtectedRoute requireRole="buyer" />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/transactions" element={<BuyerTransactions />} />
+              <Route path="/dashboard/transactions/:transactionId" element={<BuyerTransactionDetail />} />
               <Route path="/dashboard/transactions/:transactionId/verify" element={<BuyerTransactionVerify />} />
               <Route path="/dashboard/transactions/:transactionId/agreement" element={<BuyerTransactionAgreement />} />
               <Route path="/dashboard/disputes" element={<BuyerDisputes />} />
