@@ -13,13 +13,106 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+// ════════════════════════════════════════════
+// SHARED TRANSITION HELPER
+// ════════════════════════════════════════════
+
+interface TransitionParams {
+  admin: ReturnType<typeof createClient>;
+  transactionId: string;
+  userId: string;
+  actorRole: string;
+  fromStatus: string;
+  toStatus: string;
+  fromMoney: string;
+  toMoney: string;
+  reason: string;
+  eventType: string;
+  eventData?: Record<string, unknown>;
+  additionalUpdates?: Record<string, unknown>;
+}
+
+async function transitionTransaction(params: TransitionParams) {
+  const {
+    admin, transactionId, userId, actorRole,
+    fromStatus, toStatus, fromMoney, toMoney,
+    reason, eventType, eventData,
+    additionalUpdates,
+  } = params;
+
+  const now = new Date().toISOString();
+
+  // Atomic update with optimistic locking on both status + money_status
+  const updatePayload: Record<string, unknown> = {
+    status: toStatus,
+    money_status: toMoney,
+    ...additionalUpdates,
+  };
+
+  const { data: updated, error: updateErr } = await admin
+    .from("transactions")
+    .update(updatePayload)
+    .eq("id", transactionId)
+    .eq("status", fromStatus)
+    .eq("money_status", fromMoney)
+    .select("id")
+    .maybeSingle();
+
+  if (updateErr) {
+    // DB trigger will raise exception for invalid transitions
+    if (updateErr.message?.includes("Invalid transaction status transition") ||
+        updateErr.message?.includes("Invalid money status transition")) {
+      return { success: false, error: updateErr.message, status: 409 };
+    }
+    return { success: false, error: updateErr.message, status: 500 };
+  }
+
+  if (!updated) {
+    // Row not matched — state already changed (idempotency / race)
+    return { success: false, alreadyProcessed: true };
+  }
+
+  // Parallel history + event writes
+  await Promise.all([
+    admin.from("transaction_status_history").insert({
+      transaction_id: transactionId,
+      old_status: fromStatus,
+      new_status: toStatus,
+      changed_by_user_id: userId,
+      changed_at: now,
+      reason,
+    }),
+    admin.from("money_status_history").insert({
+      transaction_id: transactionId,
+      old_status: fromMoney,
+      new_status: toMoney,
+      changed_by_user_id: userId,
+      changed_at: now,
+      reason,
+    }),
+    admin.from("transaction_events").insert({
+      transaction_id: transactionId,
+      event_type: eventType,
+      actor_user_id: userId,
+      actor_role: actorRole,
+      event_data: eventData || { action: eventType },
+      occurred_at: now,
+    }),
+  ]);
+
+  return { success: true, now };
+}
+
+// ════════════════════════════════════════════
+// MAIN HANDLER
+// ════════════════════════════════════════════
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // ── Auth ──
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return jsonResponse({ error: "Unauthorized" }, 401);
@@ -29,7 +122,6 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // User client for auth verification
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -40,7 +132,6 @@ Deno.serve(async (req) => {
     }
     const userId = user.id;
 
-    // Service role client for writes (bypasses RLS)
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
     // Check buyer role
@@ -86,7 +177,6 @@ async function getVerificationData(
   userId: string,
   transactionId: string,
 ) {
-  // Fetch transaction
   const { data: tx, error: txErr } = await admin
     .from("transactions")
     .select("*")
@@ -97,12 +187,10 @@ async function getVerificationData(
     return jsonResponse({ error: "Transaction not found" }, 404);
   }
 
-  // Ownership check
   if (tx.buyer_id !== userId) {
     return jsonResponse({ error: "You do not own this transaction" }, 403);
   }
 
-  // State check
   if (tx.status !== "delivered_awaiting_verification") {
     return jsonResponse({
       error: "Transaction is not in verification state",
@@ -110,7 +198,6 @@ async function getVerificationData(
     }, 409);
   }
 
-  // Parallel reads
   const [itemRes, pricingRes, agreementRes, trackingRes, escrowRes, sellerRes, historyRes] =
     await Promise.all([
       admin
@@ -176,7 +263,7 @@ async function getVerificationData(
 }
 
 // ════════════════════════════════════════════
-// CONFIRM RECEIPT — 7 validations, atomic writes
+// CONFIRM RECEIPT — using transitionTransaction
 // ════════════════════════════════════════════
 async function confirmReceipt(
   admin: ReturnType<typeof createClient>,
@@ -194,37 +281,29 @@ async function confirmReceipt(
 
   if (!tx) return jsonResponse({ error: "Transaction not found" }, 404);
 
-  // 1. Ownership
+  // Ownership
   if (tx.buyer_id !== userId) {
     return jsonResponse({ error: "You do not own this transaction" }, 403);
   }
 
-  // 2. Idempotency
+  // Idempotency
   if (tx.status === "completed" && tx.money_status === "funds_released") {
     return jsonResponse({ already_confirmed: true, success: true });
   }
 
-  // 3. State guard
+  // State guards (kept for clear error messages before hitting DB trigger)
   if (tx.status !== "delivered_awaiting_verification") {
     return jsonResponse({ error: "Transaction not in verification state" }, 409);
   }
-
-  // 4. Dispute check
   if (tx.dispute_status !== "none") {
     return jsonResponse({ error: "Transaction has an active dispute" }, 409);
   }
-
-  // 5. Money state
   if (tx.money_status !== "funds_held_in_escrow") {
     return jsonResponse({ error: "Funds not held in escrow" }, 409);
   }
-
-  // 6. Escrow lock
   if (!escrow || escrow.state !== "held") {
     return jsonResponse({ error: "Escrow not in held state" }, 409);
   }
-
-  // 7. Deadline
   if (tx.verification_deadline_at && new Date(tx.verification_deadline_at) < new Date()) {
     return jsonResponse({ error: "Verification window has expired" }, 410);
   }
@@ -240,31 +319,38 @@ async function confirmReceipt(
     return jsonResponse({ error: "Pricing data not found" }, 500);
   }
 
-  const now = new Date().toISOString();
+  // Use centralized transition helper
+  // Note: DB trigger enforces delivered_awaiting_verification → completed
+  // and funds_held_in_escrow → funds_releasing is the valid path
+  const result = await transitionTransaction({
+    admin,
+    transactionId,
+    userId,
+    actorRole: "buyer",
+    fromStatus: "delivered_awaiting_verification",
+    toStatus: "completed",
+    fromMoney: "funds_held_in_escrow",
+    toMoney: "funds_released",
+    reason: "Buyer confirmed receipt — funds released to seller",
+    eventType: "buyer_confirmed",
+    eventData: { action: "confirm_receipt" },
+    additionalUpdates: {
+      completed_at: new Date().toISOString(),
+    },
+  });
 
-  // ── Atomic writes (service role) ──
-
-  // 1. Update transaction (conditional WHERE for idempotency)
-  const { data: updatedTx, error: txUpdateErr } = await admin
-    .from("transactions")
-    .update({
-      status: "completed",
-      money_status: "funds_released",
-      completed_at: now,
-    })
-    .eq("id", transactionId)
-    .eq("status", "delivered_awaiting_verification")
-    .select("id")
-    .maybeSingle();
-
-  if (txUpdateErr || !updatedTx) {
-    // Idempotency: another request already processed this
-    return jsonResponse({ already_confirmed: true, success: true });
+  if (!result.success) {
+    if (result.alreadyProcessed) {
+      return jsonResponse({ already_confirmed: true, success: true });
+    }
+    return jsonResponse({ error: result.error }, result.status || 500);
   }
 
-  // 2-8: Parallel writes
+  const now = result.now!;
+
+  // Parallel side-effect writes
   await Promise.all([
-    // 2. Update escrow
+    // Update escrow
     admin
       .from("escrow_states")
       .update({
@@ -276,37 +362,7 @@ async function confirmReceipt(
       .eq("transaction_id", transactionId)
       .eq("state", "held"),
 
-    // 3. Transaction status history
-    admin.from("transaction_status_history").insert({
-      transaction_id: transactionId,
-      old_status: "delivered_awaiting_verification",
-      new_status: "completed",
-      changed_by_user_id: userId,
-      changed_at: now,
-      reason: "Buyer confirmed receipt",
-    }),
-
-    // 4. Money status history
-    admin.from("money_status_history").insert({
-      transaction_id: transactionId,
-      old_status: "funds_held_in_escrow",
-      new_status: "funds_released",
-      changed_by_user_id: userId,
-      changed_at: now,
-      reason: "Buyer confirmed receipt — funds released to seller",
-    }),
-
-    // 5. Transaction event
-    admin.from("transaction_events").insert({
-      transaction_id: transactionId,
-      event_type: "buyer_confirmed",
-      actor_user_id: userId,
-      actor_role: "buyer",
-      event_data: { action: "confirm_receipt" },
-      occurred_at: now,
-    }),
-
-    // 6. Escrow ledger entry
+    // Escrow ledger entry
     admin.from("escrow_ledger_entries").insert({
       transaction_id: transactionId,
       entry_type: "payout_debit",
@@ -317,7 +373,7 @@ async function confirmReceipt(
       notes: "Buyer confirmed receipt — escrow released for payout",
     }),
 
-    // 7. Create payout record
+    // Create payout record
     admin.from("payouts").insert({
       transaction_id: transactionId,
       seller_id: tx.seller_id,
@@ -326,7 +382,7 @@ async function confirmReceipt(
       status: "pending",
     }),
 
-    // 8. Notify seller
+    // Notify seller
     admin.from("notifications").insert({
       user_id: tx.seller_id,
       type: "payment_update",
@@ -345,7 +401,7 @@ async function confirmReceipt(
 }
 
 // ════════════════════════════════════════════
-// RAISE DISPUTE — with escrow freeze
+// RAISE DISPUTE — using transitionTransaction
 // ════════════════════════════════════════════
 async function raiseDispute(
   admin: ReturnType<typeof createClient>,
@@ -363,7 +419,6 @@ async function raiseDispute(
     return jsonResponse({ error: "Description must be at least 20 characters" }, 400);
   }
 
-  // Valid reasons
   const validReasons = [
     "wrong_item_received",
     "damaged_item_received",
@@ -393,22 +448,16 @@ async function raiseDispute(
     return jsonResponse({ error: "You do not own this transaction" }, 403);
   }
 
-  // State guard
+  // State guards
   if (tx.status !== "delivered_awaiting_verification") {
     return jsonResponse({ error: "Transaction not in verification state" }, 409);
   }
-
-  // Money state
   if (tx.money_status !== "funds_held_in_escrow") {
     return jsonResponse({ error: "Funds not held in escrow" }, 409);
   }
-
-  // Escrow lock
   if (!escrow || escrow.state !== "held") {
     return jsonResponse({ error: "Escrow not in held state" }, 409);
   }
-
-  // Deadline
   if (tx.verification_deadline_at && new Date(tx.verification_deadline_at) < new Date()) {
     return jsonResponse({ error: "Verification window has expired" }, 410);
   }
@@ -424,10 +473,9 @@ async function raiseDispute(
     return jsonResponse({ error: "A dispute already exists for this transaction" }, 409);
   }
 
-  const now = new Date().toISOString();
   const responseDue = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
 
-  // 1. Create dispute
+  // 1. Create dispute first (need the ID)
   const { data: dispute, error: disputeErr } = await admin
     .from("disputes")
     .insert({
@@ -436,7 +484,7 @@ async function raiseDispute(
       reason: reason,
       description: description.trim(),
       status: "open",
-      opened_at: now,
+      opened_at: new Date().toISOString(),
       seller_response_due_at: responseDue,
     })
     .select("id")
@@ -447,20 +495,35 @@ async function raiseDispute(
     return jsonResponse({ error: "Failed to create dispute" }, 500);
   }
 
-  // 2-7: Parallel writes
-  await Promise.all([
-    // 2. Update transaction
-    admin
-      .from("transactions")
-      .update({
-        status: "disputed",
-        dispute_status: "open",
-        money_status: "funds_frozen",
-      })
-      .eq("id", transactionId)
-      .eq("status", "delivered_awaiting_verification"),
+  // 2. Use centralized transition helper
+  // DB trigger enforces delivered_awaiting_verification → disputed
+  // and funds_held_in_escrow → funds_frozen
+  const result = await transitionTransaction({
+    admin,
+    transactionId,
+    userId,
+    actorRole: "buyer",
+    fromStatus: "delivered_awaiting_verification",
+    toStatus: "disputed",
+    fromMoney: "funds_held_in_escrow",
+    toMoney: "funds_frozen",
+    reason: `Dispute opened: ${reason}`,
+    eventType: "dispute_opened",
+    eventData: { dispute_id: dispute.id, reason },
+    additionalUpdates: {
+      dispute_status: "open",
+    },
+  });
 
-    // 3. Freeze escrow
+  if (!result.success) {
+    return jsonResponse({ error: result.error || "State transition failed" }, result.status || 409);
+  }
+
+  const now = result.now!;
+
+  // 3. Parallel side-effect writes
+  await Promise.all([
+    // Freeze escrow
     admin
       .from("escrow_states")
       .update({
@@ -472,7 +535,7 @@ async function raiseDispute(
       .eq("transaction_id", transactionId)
       .eq("state", "held"),
 
-    // 4. Dispute status history
+    // Dispute status history
     admin.from("dispute_status_history").insert({
       dispute_id: dispute.id,
       new_status: "open",
@@ -481,37 +544,7 @@ async function raiseDispute(
       reason: "Buyer opened dispute",
     }),
 
-    // 5. Transaction status history
-    admin.from("transaction_status_history").insert({
-      transaction_id: transactionId,
-      old_status: "delivered_awaiting_verification",
-      new_status: "disputed",
-      changed_by_user_id: userId,
-      changed_at: now,
-      reason: `Dispute opened: ${reason}`,
-    }),
-
-    // 6. Money status history
-    admin.from("money_status_history").insert({
-      transaction_id: transactionId,
-      old_status: "funds_held_in_escrow",
-      new_status: "funds_frozen",
-      changed_by_user_id: userId,
-      changed_at: now,
-      reason: "Funds frozen pending dispute resolution",
-    }),
-
-    // 7. Transaction event
-    admin.from("transaction_events").insert({
-      transaction_id: transactionId,
-      event_type: "dispute_opened",
-      actor_user_id: userId,
-      actor_role: "buyer",
-      event_data: { dispute_id: dispute.id, reason },
-      occurred_at: now,
-    }),
-
-    // 8. Notify seller
+    // Notify seller
     admin.from("notifications").insert({
       user_id: tx.seller_id,
       type: "dispute_update",
@@ -523,7 +556,7 @@ async function raiseDispute(
       status: "pending",
     }),
 
-    // 9. Notify buyer (confirmation)
+    // Notify buyer (confirmation)
     admin.from("notifications").insert({
       user_id: userId,
       type: "dispute_update",
