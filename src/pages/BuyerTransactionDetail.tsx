@@ -261,42 +261,42 @@ const BuyerTransactionDetail = () => {
   const mBadge = moneyConfig[tx.money_status] ?? { label: tx.money_status, className: "bg-muted text-muted-foreground border-border" };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-muted/30 flex flex-col">
       <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
 
       {/* Back link bar */}
-      <div className="bg-muted/50 border-b border-border">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3">
-          <Link to="/dashboard/transactions" className="inline-flex items-center gap-1.5 text-primary hover:text-primary/80 text-sm font-medium transition-colors">
+      <div className="bg-card border-b border-border">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4">
+          <Link to="/dashboard/transactions" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors">
             <ArrowLeft className="h-4 w-4" /> Back to My Purchases
           </Link>
         </div>
       </div>
 
       {/* Content */}
-      <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 py-6">
+      <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 py-6 sm:py-8">
 
-        {/* ── Header Card (dark background) ── */}
-        <div className="rounded-xl bg-foreground text-background p-6 mb-6 sm:mb-8 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        {/* ── Header Card (light theme) ── */}
+        <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
             <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-xl sm:text-2xl font-bold">{tx.transaction_code}</h1>
-                <Badge className="bg-success/20 text-success border-success/30 text-xs font-bold">{sBadge.label}</Badge>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{tx.transaction_code}</h1>
+                <Badge className={`${sBadge.className} text-xs sm:text-sm font-bold px-3 py-1.5 rounded-full`}>{sBadge.label}</Badge>
               </div>
-              <p className="text-sm opacity-70">
+              <p className="text-muted-foreground text-sm sm:text-base">
                 Created on {format(new Date(tx.created_at), "MMMM d, yyyy 'at' h:mm a")}
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
+            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              <Button className="px-4 sm:px-6 py-2.5 sm:py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center gap-2 text-sm sm:text-base h-auto">
                 <Truck className="h-4 w-4" /> Track Order
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="inline-flex items-center gap-1.5 text-sm font-medium opacity-70 hover:opacity-100 transition-opacity">
+                  <Button className="px-4 sm:px-6 py-2.5 sm:py-3 bg-muted text-muted-foreground font-bold rounded-xl hover:bg-muted/80 transition-all flex items-center justify-center gap-2 w-full sm:w-auto text-sm sm:text-base h-auto" variant="ghost">
                     <MoreHorizontal className="h-4 w-4" /> More Actions
-                  </button>
+                  </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {agreement && (
@@ -314,12 +314,12 @@ const BuyerTransactionDetail = () => {
 
           {/* Escrow banner nested inside header card */}
           {escrow && (escrow.state === "funds_held" || tx.money_status === "funds_held_in_escrow") && (
-            <div className="mt-4 bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
+            <div className="bg-primary/5 border-2 border-primary/20 rounded-xl p-4 flex items-start gap-3">
               <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold">Escrow Protection Active</p>
-                <p className="text-sm opacity-70 mt-0.5">
-                  Your payment of <span className="font-semibold">{formatCurrency(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.
+                <p className="text-sm sm:text-base font-bold text-primary">Escrow Protection Active</p>
+                <p className="text-xs sm:text-sm text-primary/80 mt-0.5">
+                  Your payment of <span className="font-bold">{formatCurrency(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.
                 </p>
               </div>
             </div>
@@ -330,7 +330,7 @@ const BuyerTransactionDetail = () => {
         <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
 
           {/* ═══ LEFT COLUMN (2/3) ═══ */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
 
             {/* Mobile-only Next Action */}
             {next_action && (
@@ -347,51 +347,47 @@ const BuyerTransactionDetail = () => {
             )}
 
             {/* ── Item Details ── */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-2">
-                  <Package className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-lg">Item Details</CardTitle>
+            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                Item Details
+              </h2>
+              <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+                <div className="h-64 sm:h-80 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+                  <ImageIcon className="h-16 w-16 text-muted-foreground/30" />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="aspect-square rounded-xl bg-muted flex items-center justify-center">
-                    <ImageIcon className="h-16 w-16 text-muted-foreground/30" />
-                  </div>
-                  <div className="space-y-4">
-                    <h3 className="text-xl font-bold text-foreground">{item.title}</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 text-sm">
-                        <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="text-muted-foreground">Quantity:</span>
-                        <span className="font-semibold text-foreground">{item.quantity}</span>
-                      </div>
-                      {item.condition && (
-                        <div className="flex items-center gap-3 text-sm">
-                          <Star className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="text-muted-foreground">Condition:</span>
-                          <span className="font-semibold text-foreground">{item.condition}</span>
-                        </div>
-                      )}
-                      {item.category && (
-                        <div className="flex items-center gap-3 text-sm">
-                          <Tag className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="text-muted-foreground">Category:</span>
-                          <span className="font-semibold text-foreground">{item.category}</span>
-                        </div>
-                      )}
+                <div className="space-y-3 sm:space-y-4">
+                  <h3 className="text-xl sm:text-2xl font-bold text-foreground">{item.title}</h3>
+                  <div className="space-y-2 sm:space-y-3">
+                    <div className="flex items-center gap-3 text-sm sm:text-base text-muted-foreground">
+                      <Layers className="h-4 w-5 text-muted-foreground/60 shrink-0" />
+                      <span className="font-medium">Quantity:</span>
+                      <span className="font-semibold text-foreground">{item.quantity}</span>
                     </div>
-                    {item.description && (
-                      <div className="pt-2">
-                        <h4 className="text-sm font-semibold text-foreground mb-1.5">Description</h4>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
+                    {item.condition && (
+                      <div className="flex items-center gap-3 text-sm sm:text-base text-muted-foreground">
+                        <Star className="h-4 w-5 text-muted-foreground/60 shrink-0" />
+                        <span className="font-medium">Condition:</span>
+                        <span className="font-semibold text-foreground">{item.condition}</span>
+                      </div>
+                    )}
+                    {item.category && (
+                      <div className="flex items-center gap-3 text-sm sm:text-base text-muted-foreground">
+                        <Tag className="h-4 w-5 text-muted-foreground/60 shrink-0" />
+                        <span className="font-medium">Category:</span>
+                        <span className="font-semibold text-foreground">{item.category}</span>
                       </div>
                     )}
                   </div>
+                  {item.description && (
+                    <div className="bg-muted/50 rounded-xl p-4">
+                      <h4 className="font-bold text-foreground mb-2 text-sm sm:text-base">Description</h4>
+                      <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{item.description}</p>
+                    </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* ── Delivery Details ── */}
             {delivery_terms && (
