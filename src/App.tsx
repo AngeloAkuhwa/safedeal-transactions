@@ -16,6 +16,7 @@ import BuyerDisputeDetail from "./pages/BuyerDisputeDetail";
 import BuyerProfileSettings from "./pages/BuyerProfileSettings";
 import BuyerVerification from "./pages/BuyerVerification";
 import BuyerTransactionVerify from "./pages/BuyerTransactionVerify";
+import BuyerTransactionAgreement from "./pages/BuyerTransactionAgreement";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
