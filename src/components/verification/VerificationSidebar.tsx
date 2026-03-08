@@ -79,8 +79,8 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
 
       {/* Item Details */}
       {item && pricing && (
-        <div className="bg-card rounded-2xl shadow-lg border border-border p-6">
-          <h3 className="text-base font-bold text-foreground mb-4">Item Details</h3>
+        <div className="bg-card rounded-2xl shadow-lg border border-border p-5">
+          <h3 className="text-sm font-bold text-foreground mb-3">Item Details</h3>
 
           {/* Image placeholder */}
           <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-4 flex items-center justify-center">
