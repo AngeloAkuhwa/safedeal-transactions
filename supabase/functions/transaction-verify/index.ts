@@ -330,8 +330,8 @@ async function confirmReceipt(
     fromStatus: "delivered_awaiting_verification",
     toStatus: "completed",
     fromMoney: "funds_held_in_escrow",
-    toMoney: "funds_releasing",
-    reason: "Buyer confirmed receipt",
+    toMoney: "funds_released",
+    reason: "Buyer confirmed receipt — funds released to seller",
     eventType: "buyer_confirmed",
     eventData: { action: "confirm_receipt" },
     additionalUpdates: {

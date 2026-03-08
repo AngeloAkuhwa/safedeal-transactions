@@ -62,7 +62,7 @@ BEGIN
     WHEN 'payment_pending' THEN
       _new_status IN ('funds_held_in_escrow', 'not_secured')
     WHEN 'funds_held_in_escrow' THEN
-      _new_status IN ('funds_frozen', 'funds_releasing')
+      _new_status IN ('funds_frozen', 'funds_releasing', 'funds_released')
     WHEN 'funds_frozen' THEN
       _new_status IN ('funds_held_in_escrow', 'refund_pending')
     WHEN 'funds_releasing' THEN
