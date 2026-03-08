@@ -438,9 +438,9 @@ async function raiseDispute(
   admin: ReturnType<typeof createClient>,
   userId: string,
   transactionId: string,
-  body: { reason?: string; description?: string },
+  body: { reason?: string; description?: string; fileIds?: string[] },
 ) {
-  const { reason, description } = body;
+  const { reason, description, fileIds } = body;
 
   // Payload validation
   if (!reason) {
