@@ -61,11 +61,11 @@ export function VerificationChecklist({ item }: VerificationChecklistProps) {
   ];
 
   return (
-    <div className="bg-card rounded-2xl shadow-lg border border-border p-6 lg:p-8">
+    <div className="bg-card rounded-2xl shadow-lg border border-border p-5 lg:p-6">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-6 pb-4 border-b border-border">
+      <div className="flex items-center gap-2 mb-5 pb-3 border-b border-border">
         <ClipboardCheck className="h-5 w-5 text-primary" />
-        <h2 className="text-2xl font-bold text-foreground">Verification Checklist</h2>
+        <h2 className="text-lg font-bold text-foreground">Verification Checklist</h2>
       </div>
 
       {/* Responsibility banner */}
