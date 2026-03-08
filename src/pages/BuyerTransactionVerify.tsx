@@ -110,7 +110,7 @@ const BuyerTransactionVerify = () => {
           <div className="flex items-center justify-center gap-3 text-warning-foreground">
             <Clock className="h-5 w-5 animate-pulse" />
             <p className="text-sm font-semibold">
-              Verification window is now open — Please confirm or dispute within {windowHours} hours
+              Verification window is now open — Please confirm or dispute within {remainingHours} hours
             </p>
             <AlertTriangle className="h-4 w-4" />
           </div>
