@@ -1,27 +1,24 @@
 
 
-# Fix: Cloudinary Invalid Signature
+# Fix Cloudinary Signature + Add File Validation
 
-## Root Cause
+## Changes
 
-The Cloudinary "Invalid Signature" error means the `CLOUDINARY_API_SECRET` stored in your backend secrets does not match the `CLOUDINARY_API_KEY` that's also stored.
+### 1. `supabase/functions/upload-evidence/index.ts`
+- Fix `hmacSha1` to return **hex-encoded** signature instead of Base64
+- Replace `btoa(String.fromCharCode(...))` with `Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')`
 
-From your Cloudinary dashboard screenshot, you have two API key pairs:
-- **SafeDeal**: API Key `439152443579166`
-- **Root**: API Key `715591611478739`
+### 2. `src/services/verification.service.ts`
+- Add `detectFileSignature()` function that reads the first 16 bytes of a file to verify magic bytes (JPEG: `FF D8 FF`, PNG: `89 50 4E 47`, PDF: `%PDF`, MP4: `ftyp` at offset 4)
+- Call it at the start of `uploadEvidence()` before hashing or uploading — reject unknown/suspicious files early
 
-The edge function is returning API key `439152443579166` (SafeDeal), but the stored `CLOUDINARY_API_SECRET` likely belongs to the other (Root) key. The signature is generated with a mismatched secret, so Cloudinary rejects it.
+### 3. `supabase/functions/upload-evidence/index.ts` (register_file)
+- Add cross-validation: ensure Cloudinary `resource_type` matches `format` (e.g. image must be jpg/jpeg/png, video must be mp4, raw must be pdf)
+- Reject mismatches before inserting the file record
 
-## Fix
-
-No code changes needed. You need to update your backend secret so the API key and API secret are from the **same** Cloudinary key pair.
-
-1. Go to your Cloudinary dashboard > API Keys
-2. Copy the **API Secret** for the **SafeDeal** key (the one with API Key `439152443579166`)
-3. Update the `CLOUDINARY_API_SECRET` backend secret with that value
-
-Alternatively, if you want to use the Root key pair instead, update both `CLOUDINARY_API_KEY` and `CLOUDINARY_API_SECRET` to match the Root key pair.
-
-## Files Changed
-None -- this is a secrets configuration issue only.
+### Files Changed
+| File | Change |
+|------|--------|
+| `supabase/functions/upload-evidence/index.ts` | Fix hex signature, add resource_type/format cross-validation |
+| `src/services/verification.service.ts` | Add magic-byte file validation before upload |
 
