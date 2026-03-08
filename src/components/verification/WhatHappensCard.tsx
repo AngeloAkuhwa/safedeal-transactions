@@ -1,10 +1,10 @@
 import { HelpCircle, Clock, AlertTriangle, Headphones } from "lucide-react";
 
 interface WhatHappensCardProps {
-  deadlineAt: string | null;
+  windowHours: number;
 }
 
-export function WhatHappensCard({ deadlineAt }: WhatHappensCardProps) {
+export function WhatHappensCard({ windowHours }: WhatHappensCardProps) {
   return (
     <div className="bg-card rounded-2xl shadow-lg border border-border p-5 lg:p-6">
       <div className="flex items-center gap-2 mb-4">
@@ -13,7 +13,6 @@ export function WhatHappensCard({ deadlineAt }: WhatHappensCardProps) {
       </div>
 
       <div className="space-y-4">
-        {/* Auto-release info */}
         <div className="flex items-start gap-4">
           <div className="w-8 h-8 bg-warning/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
             <Clock className="h-4 w-4 text-warning" />
@@ -23,14 +22,13 @@ export function WhatHappensCard({ deadlineAt }: WhatHappensCardProps) {
               Funds will auto-release when timer expires
             </h3>
             <p className="text-sm text-muted-foreground">
-              If you take no action within the 72-hour verification window, the funds will
+              If you take no action within the {windowHours}-hour verification window, the funds will
               automatically be released to the seller. This protects both parties and ensures
               transactions are completed in a timely manner.
             </p>
           </div>
         </div>
 
-        {/* Dispute deadline warning */}
         <div className="flex items-start gap-4">
           <div className="w-8 h-8 bg-destructive/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
             <AlertTriangle className="h-4 w-4 text-destructive" />
@@ -46,7 +44,6 @@ export function WhatHappensCard({ deadlineAt }: WhatHappensCardProps) {
           </div>
         </div>
 
-        {/* Support CTA */}
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mt-4">
           <div className="flex items-start gap-3">
             <Headphones className="h-5 w-5 text-primary shrink-0 mt-0.5" />

@@ -203,11 +203,11 @@ const BuyerTransactionVerify = () => {
               amount={pricing ? Number(pricing.buyer_total_amount) : 0}
               currency={pricing?.currency_code || "NGN"}
             />
-            <WhatHappensCard deadlineAt={transaction.verification_deadline_at} />
+            <WhatHappensCard windowHours={windowHours} />
             {transaction.verification_deadline_at && (
               <AutoReleaseWarning
                 deadlineAt={transaction.verification_deadline_at}
-                deliveredAt={transaction.delivered_at}
+                windowHours={windowHours}
               />
             )}
           </div>
