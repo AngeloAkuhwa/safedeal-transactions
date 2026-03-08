@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,27 +26,21 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // User-scoped client for JWT verification
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } =
-      await userClient.auth.getClaims(token);
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    if (claimsError || !claimsData?.claims) {
+    // Verify JWT and get user via service role client
+    const { data: userData, error: userError } = await adminClient.auth.getUser(token);
+
+    if (userError || !userData?.user) {
       return jsonResponse({ error: "Invalid session" }, 401);
     }
 
-    const userId = claimsData.claims.sub as string;
+    const userId = userData.user.id;
 
-    // 2. Check buyer role using service-role client
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
-
+    // 2. Check buyer role
     const { data: hasRole, error: roleError } = await adminClient.rpc(
       "has_role",
       { _user_id: userId, _role: "buyer" }
@@ -59,28 +53,24 @@ Deno.serve(async (req) => {
     // 3. Fetch data in parallel — each query independently error-resilient
     const [profileResult, metricsResult, disputeCountResult, notificationsResult, recentTxResult] =
       await Promise.allSettled([
-        // Profile
         adminClient
           .from("profiles")
           .select("full_name, avatar_url")
           .eq("id", userId)
           .single(),
 
-        // Transaction metrics — all buyer transactions not completed/cancelled/timed_out
         adminClient
           .from("transactions")
           .select("id, status")
           .eq("buyer_id", userId)
-          .not("status", "in", '("completed","cancelled","timed_out")'),
+          .not("status", "in", '("completed","cancelled","timed_out","expired","refunded")'),
 
-        // Open disputes count
         adminClient
           .from("disputes")
           .select("id", { count: "exact", head: true })
           .eq("opened_by_user_id", userId)
           .neq("status", "resolved"),
 
-        // Recent notifications
         adminClient
           .from("notifications")
           .select("id, title, message, type, related_transaction_id, created_at")
@@ -88,7 +78,6 @@ Deno.serve(async (req) => {
           .order("created_at", { ascending: false })
           .limit(3),
 
-        // Recent 5 transactions for table
         adminClient
           .from("transactions")
           .select("id, transaction_code, status, money_status, created_at, seller_id")
@@ -112,13 +101,13 @@ Deno.serve(async (req) => {
     };
 
     if (metricsResult.status === "fulfilled" && metricsResult.value.data) {
-      const txRows = metricsResult.value.data;
+      const txRows = metricsResult.value.data as Array<{ id: string; status: string }>;
       metrics.active_purchases = txRows.length;
       metrics.awaiting_delivery = txRows.filter(
-        (t: { status: string }) => t.status === "seller_dispatched"
+        (t) => t.status === "seller_dispatched"
       ).length;
       metrics.awaiting_verification = txRows.filter(
-        (t: { status: string }) => t.status === "delivered_awaiting_verification"
+        (t) => t.status === "delivered_awaiting_verification"
       ).length;
     }
 
@@ -137,17 +126,17 @@ Deno.serve(async (req) => {
     }> = [];
 
     if (notificationsResult.status === "fulfilled" && notificationsResult.value.data) {
-      recent_notifications = notificationsResult.value.data.map((n: any) => ({
-        id: n.id,
-        title: n.title,
-        message: n.message,
-        type: n.type,
-        transaction_id: n.related_transaction_id,
-        created_at: n.created_at,
+      recent_notifications = (notificationsResult.value.data as Array<Record<string, unknown>>).map((n) => ({
+        id: n.id as string,
+        title: n.title as string,
+        message: n.message as string,
+        type: n.type as string,
+        transaction_id: (n.related_transaction_id as string | null),
+        created_at: n.created_at as string,
       }));
     }
 
-    // 7. Process recent purchases — batch fetch items, pricing, seller names
+    // 7. Process recent purchases
     let recent_purchases: Array<{
       transaction_id: string;
       transaction_code: string;
@@ -161,12 +150,12 @@ Deno.serve(async (req) => {
     }> = [];
 
     if (recentTxResult.status === "fulfilled" && recentTxResult.value.data) {
-      const txRows = recentTxResult.value.data;
-      const txIds = txRows.map((t: any) => t.id);
-      const sellerIds = [...new Set(txRows.map((t: any) => t.seller_id).filter(Boolean))] as string[];
+      const txRows = recentTxResult.value.data as Array<Record<string, unknown>>;
+      const txIds = txRows.map((t) => t.id as string);
+      const sellerIds = [...new Set(txRows.map((t) => t.seller_id as string).filter(Boolean))];
 
       if (txIds.length > 0) {
-        const [itemsResult, pricingResult, sellersResult] = await Promise.allSettled([
+        const batchQueries: Array<Promise<{ data: Array<Record<string, unknown>> | null }>> = [
           adminClient
             .from("transaction_items")
             .select("transaction_id, title")
@@ -175,49 +164,58 @@ Deno.serve(async (req) => {
             .from("transaction_pricing")
             .select("transaction_id, buyer_total_amount, currency_code")
             .in("transaction_id", txIds),
-          sellerIds.length > 0
-            ? adminClient
-                .from("profiles")
-                .select("id, full_name")
-                .in("id", sellerIds)
-            : Promise.resolve({ data: [] }),
-        ]);
+        ];
 
-        // Build lookup maps
+        if (sellerIds.length > 0) {
+          batchQueries.push(
+            adminClient
+              .from("profiles")
+              .select("id, full_name")
+              .in("id", sellerIds)
+          );
+        }
+
+        const batchResults = await Promise.allSettled(batchQueries);
+
         const itemMap = new Map<string, string>();
+        const itemsResult = batchResults[0];
         if (itemsResult.status === "fulfilled" && itemsResult.value.data) {
           for (const item of itemsResult.value.data) {
-            itemMap.set(item.transaction_id, item.title);
+            itemMap.set(item.transaction_id as string, item.title as string);
           }
         }
 
         const pricingMap = new Map<string, { amount: number; currency: string }>();
+        const pricingResult = batchResults[1];
         if (pricingResult.status === "fulfilled" && pricingResult.value.data) {
           for (const p of pricingResult.value.data) {
-            pricingMap.set(p.transaction_id, {
-              amount: p.buyer_total_amount,
-              currency: p.currency_code,
+            pricingMap.set(p.transaction_id as string, {
+              amount: p.buyer_total_amount as number,
+              currency: p.currency_code as string,
             });
           }
         }
 
         const sellerMap = new Map<string, string>();
-        if (sellersResult.status === "fulfilled" && (sellersResult.value as any).data) {
-          for (const s of (sellersResult.value as any).data) {
-            sellerMap.set(s.id, s.full_name);
+        if (batchResults.length > 2) {
+          const sellersResult = batchResults[2];
+          if (sellersResult.status === "fulfilled" && sellersResult.value.data) {
+            for (const s of sellersResult.value.data) {
+              sellerMap.set(s.id as string, s.full_name as string);
+            }
           }
         }
 
-        recent_purchases = txRows.map((tx: any) => ({
-          transaction_id: tx.id,
-          transaction_code: tx.transaction_code,
-          item_title: itemMap.get(tx.id) ?? "Untitled Item",
-          seller_name: sellerMap.get(tx.seller_id) ?? "Unknown Seller",
-          amount: pricingMap.get(tx.id)?.amount ?? 0,
-          currency_code: pricingMap.get(tx.id)?.currency ?? "NGN",
-          transaction_status: tx.status,
-          money_status: tx.money_status,
-          created_at: tx.created_at,
+        recent_purchases = txRows.map((tx) => ({
+          transaction_id: tx.id as string,
+          transaction_code: tx.transaction_code as string,
+          item_title: itemMap.get(tx.id as string) ?? "Untitled Item",
+          seller_name: sellerMap.get(tx.seller_id as string) ?? "Unknown Seller",
+          amount: pricingMap.get(tx.id as string)?.amount ?? 0,
+          currency_code: pricingMap.get(tx.id as string)?.currency ?? "NGN",
+          transaction_status: tx.status as string,
+          money_status: tx.money_status as string,
+          created_at: tx.created_at as string,
         }));
       }
     }

@@ -5,11 +5,13 @@ import { getSession, onAuthStateChange } from "@/services/auth.service";
 import { getUserRoles } from "@/services/role.service";
 
 interface ProtectedRouteProps {
-  requireRole?: boolean;
+  requireRole?: string | boolean;
 }
 
 const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
-  const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated" | "needs-role">("loading");
+  const [status, setStatus] = useState<
+    "loading" | "authenticated" | "unauthenticated" | "needs-role" | "wrong-role"
+  >("loading");
 
   useEffect(() => {
     let mounted = true;
@@ -26,9 +28,19 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
       if (requireRole) {
         const { data: roles } = await getUserRoles(session.user.id);
         if (!mounted) return;
+
         if (!roles || roles.length === 0) {
           setStatus("needs-role");
           return;
+        }
+
+        // If a specific role string is required, check for it
+        if (typeof requireRole === "string") {
+          const hasSpecificRole = roles.some((r) => r.role === requireRole);
+          if (!hasSpecificRole) {
+            setStatus("wrong-role");
+            return;
+          }
         }
       }
 
@@ -62,6 +74,10 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
   }
 
   if (status === "needs-role") {
+    return <Navigate to="/role-selection" replace />;
+  }
+
+  if (status === "wrong-role") {
     return <Navigate to="/role-selection" replace />;
   }
 
