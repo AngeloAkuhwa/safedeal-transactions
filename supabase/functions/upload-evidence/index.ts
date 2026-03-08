@@ -88,16 +88,24 @@ async function signUpload(
     return jsonResponse({ error: "Upload rate limit exceeded (50/hr)" }, 429);
   }
 
-  const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME")!;
-  const apiKey = Deno.env.get("CLOUDINARY_API_KEY")!;
-  const apiSecret = Deno.env.get("CLOUDINARY_API_SECRET")!;
+  const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME")!.trim();
+  const apiKey = Deno.env.get("CLOUDINARY_API_KEY")!.trim();
+  const apiSecret = Deno.env.get("CLOUDINARY_API_SECRET")!.trim();
 
   const timestamp = Math.floor(Date.now() / 1000);
   const folder = `SafeDeal/disputes/${userId}`;
 
-  // Build the string to sign (params sorted alphabetically)
-  const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
-  const signature = await hmacSha1(apiSecret, paramsToSign);
+  const params: Record<string, string> = {
+    folder,
+    timestamp: String(timestamp),
+  };
+
+  const paramsToSign = Object.keys(params)
+    .sort()
+    .map((k) => `${k}=${params[k]}`)
+    .join("&");
+
+  const signature = await cloudinarySignature(apiSecret, paramsToSign);
 
   return jsonResponse({
     timestamp,
