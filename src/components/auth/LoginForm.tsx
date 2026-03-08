@@ -26,7 +26,11 @@ const loginSchema = z.object({
 
 type LoginValues = z.infer<typeof loginSchema>;
 
-const LoginForm = () => {
+interface LoginFormProps {
+  onEmailNotVerified?: (email: string) => void;
+}
+
+const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -49,7 +53,11 @@ const LoginForm = () => {
         if (error.message.includes("Invalid login")) {
           toast.error("Invalid email or password");
         } else if (error.message.includes("Email not confirmed")) {
-          toast.error("Please verify your email before logging in");
+          if (onEmailNotVerified) {
+            onEmailNotVerified(values.email);
+          } else {
+            toast.error("Please verify your email before logging in");
+          }
         } else {
           toast.error(error.message);
         }
