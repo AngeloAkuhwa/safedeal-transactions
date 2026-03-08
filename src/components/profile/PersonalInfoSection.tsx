@@ -36,9 +36,9 @@ export function PersonalInfoSection({ profile, verification, onProfileChange }: 
       <CardContent className="space-y-6">
         {/* Avatar section */}
         <div className="flex items-center gap-5">
-          <Avatar className="h-20 w-20">
-            <AvatarImage src={profile.avatar_url ?? undefined} alt={profile.full_name} />
-            <AvatarFallback className="text-lg">{initials}</AvatarFallback>
+          <Avatar className="h-20 w-20 rounded-2xl">
+            <AvatarImage src={profile.avatar_url ?? undefined} alt={profile.full_name} className="rounded-2xl" />
+            <AvatarFallback className="text-lg rounded-2xl">{initials}</AvatarFallback>
           </Avatar>
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">Profile Photo</p>
