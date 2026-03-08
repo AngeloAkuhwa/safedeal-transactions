@@ -35,7 +35,7 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
       setStatus("authenticated");
     };
 
-    const { data: { subscription } } = onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = onAuthStateChange(async (_event, session) => {
       if (!session) {
         setStatus("unauthenticated");
       }
