@@ -18,11 +18,7 @@ const Dashboard = () => {
         navigate("/auth?mode=login", { replace: true });
         return;
       }
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", session.user.id)
-        .single();
+      const { data: profile } = await getProfile(session.user.id);
       setUserName(profile?.full_name || "User");
       setLoading(false);
     };
