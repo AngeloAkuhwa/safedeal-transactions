@@ -104,7 +104,10 @@ async function computeSha256(file: File): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export const uploadEvidence = async (file: File): Promise<UploadedEvidence> => {
+export const uploadEvidence = async (
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<UploadedEvidence> => {
   const headers = await getAuthHeader();
 
   // 1. Compute SHA-256 hash
@@ -121,7 +124,7 @@ export const uploadEvidence = async (file: File): Promise<UploadedEvidence> => {
 
   const { timestamp, signature, api_key, cloud_name, folder } = signData;
 
-  // 3. Upload directly to Cloudinary
+  // 3. Upload directly to Cloudinary via XHR for progress tracking
   const formData = new FormData();
   formData.append("file", file);
   formData.append("api_key", api_key);
@@ -129,17 +132,30 @@ export const uploadEvidence = async (file: File): Promise<UploadedEvidence> => {
   formData.append("signature", signature);
   formData.append("folder", folder);
 
-  const uploadRes = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`,
-    { method: "POST", body: formData },
-  );
+  const cloudinaryRes: Record<string, unknown> = await new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`);
 
-  if (!uploadRes.ok) {
-    const errBody = await uploadRes.text();
-    throw new Error(`Cloudinary upload failed: ${errBody}`);
-  }
+    if (onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+    }
 
-  const cloudinaryRes = await uploadRes.json();
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try { resolve(JSON.parse(xhr.responseText)); }
+        catch { reject(new Error("Invalid Cloudinary response")); }
+      } else {
+        reject(new Error(`Cloudinary upload failed: ${xhr.responseText}`));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.send(formData);
+  });
 
   // 4. Register file in database
   const { data: regData, error: regErr } = await supabase.functions.invoke("upload-evidence", {

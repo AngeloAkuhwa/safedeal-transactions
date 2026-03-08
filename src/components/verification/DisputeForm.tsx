@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -40,6 +41,7 @@ interface UploadedFile {
   mime: string;
   status: "uploading" | "done" | "error";
   fingerprint: string;
+  progress?: number;
   error?: string;
   localPreview?: string;
   file?: File;
@@ -149,7 +151,11 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
       setUploadedFiles((prev) => [...prev, placeholder]);
 
       // Upload in background
-      uploadEvidence(file)
+      uploadEvidence(file, (pct) => {
+        setUploadedFiles((prev) =>
+          prev.map((f) => (f.id === tempId ? { ...f, progress: pct } : f)),
+        );
+      })
         .then((result) => {
           setUploadedFiles((prev) =>
             prev.map((f) =>
@@ -197,11 +203,15 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
     }
 
     setUploadedFiles((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, status: "uploading" as const, error: undefined } : f)),
+      prev.map((f) => (f.id === id ? { ...f, status: "uploading" as const, error: undefined, progress: 0 } : f)),
     );
 
     try {
-      const result = await uploadEvidence(fileEntry.file);
+      const result = await uploadEvidence(fileEntry.file, (pct) => {
+        setUploadedFiles((prev) =>
+          prev.map((f) => (f.id === id ? { ...f, progress: pct } : f)),
+        );
+      });
       setUploadedFiles((prev) =>
         prev.map((f) =>
           f.id === id
@@ -388,10 +398,14 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
                       </div>
                     )}
 
-                    {/* Loading overlay */}
+                    {/* Loading overlay with progress */}
                     {f.status === "uploading" && (
-                      <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <div className="absolute inset-0 bg-background/70 flex flex-col items-center justify-center gap-2 px-3">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        <Progress value={f.progress ?? 0} className="h-1.5 w-full" />
+                        <span className="text-xs font-semibold text-primary">
+                          {f.progress ?? 0}%
+                        </span>
                       </div>
                     )}
 
