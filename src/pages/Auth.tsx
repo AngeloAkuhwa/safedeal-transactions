@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Shield, ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -5,6 +6,7 @@ import AuthInfoPanel from "@/components/auth/AuthInfoPanel";
 import LoginForm from "@/components/auth/LoginForm";
 import SignupForm from "@/components/auth/SignupForm";
 import SecurityReassurance from "@/components/auth/SecurityReassurance";
+import EmailVerificationPending from "@/components/auth/EmailVerificationPending";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -13,9 +15,19 @@ const Auth = () => {
 
   const defaultTab = mode === "login" ? "login" : "signup";
 
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
+
   const subtitleMap: Record<string, string> = {
     buyer: "Sign up to start buying with protection",
     seller: "Sign up to start selling with confidence",
+  };
+
+  const handleEmailNotVerified = (email: string) => {
+    setVerificationEmail(email);
+  };
+
+  const handleGoToLogin = () => {
+    setVerificationEmail(null);
   };
 
   return (
@@ -44,50 +56,57 @@ const Auth = () => {
               <span className="text-xl font-bold text-foreground">SafeDeal</span>
             </div>
 
-            <Tabs defaultValue={defaultTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login">Log In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
+            {verificationEmail ? (
+              <EmailVerificationPending
+                email={verificationEmail}
+                onGoToLogin={handleGoToLogin}
+              />
+            ) : (
+              <Tabs defaultValue={defaultTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="login">Log In</TabsTrigger>
+                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="login">
-                <div className="mb-6">
-                  <h1 className="text-2xl font-bold text-foreground">
-                    Welcome back
-                  </h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Log in to manage your transactions
+                <TabsContent value="login">
+                  <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-foreground">
+                      Welcome back
+                    </h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Log in to manage your transactions
+                    </p>
+                  </div>
+                  <LoginForm onEmailNotVerified={handleEmailNotVerified} />
+                  <p className="mt-5 text-center text-sm text-muted-foreground">
+                    Don't have an account?{" "}
+                    <Link to="/auth" className="text-primary hover:underline font-medium">
+                      Sign up
+                    </Link>
                   </p>
-                </div>
-                <LoginForm />
-                <p className="mt-5 text-center text-sm text-muted-foreground">
-                  Don't have an account?{" "}
-                  <Link to="/auth" className="text-primary hover:underline font-medium">
-                    Sign up
-                  </Link>
-                </p>
-              </TabsContent>
+                </TabsContent>
 
-              <TabsContent value="signup">
-                <div className="mb-6">
-                  <h1 className="text-2xl font-bold text-foreground">
-                    Create your account
-                  </h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {role && subtitleMap[role]
-                      ? subtitleMap[role]
-                      : "Join SafeDeal and start transacting securely"}
+                <TabsContent value="signup">
+                  <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-foreground">
+                      Create your account
+                    </h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {role && subtitleMap[role]
+                        ? subtitleMap[role]
+                        : "Join SafeDeal and start transacting securely"}
+                    </p>
+                  </div>
+                  <SignupForm defaultRole={role} onGoToLogin={handleGoToLogin} />
+                  <p className="mt-5 text-center text-sm text-muted-foreground">
+                    Already have an account?{" "}
+                    <Link to="/auth?mode=login" className="text-primary hover:underline font-medium">
+                      Log in
+                    </Link>
                   </p>
-                </div>
-                <SignupForm defaultRole={role} />
-                <p className="mt-5 text-center text-sm text-muted-foreground">
-                  Already have an account?{" "}
-                  <Link to="/auth?mode=login" className="text-primary hover:underline font-medium">
-                    Log in
-                  </Link>
-                </p>
-              </TabsContent>
-            </Tabs>
+                </TabsContent>
+              </Tabs>
+            )}
 
             <SecurityReassurance />
 
