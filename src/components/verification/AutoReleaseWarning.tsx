@@ -3,13 +3,13 @@ import { format } from "date-fns";
 
 interface AutoReleaseWarningProps {
   deadlineAt: string;
-  deliveredAt: string | null;
+  windowHours: number;
 }
 
-export function AutoReleaseWarning({ deadlineAt }: AutoReleaseWarningProps) {
+export function AutoReleaseWarning({ deadlineAt, windowHours }: AutoReleaseWarningProps) {
   const deadline = new Date(deadlineAt);
   const now = Date.now();
-  const totalMs = 72 * 3_600_000;
+  const totalMs = windowHours * 3_600_000;
   const elapsed = Math.min(totalMs, totalMs - Math.max(0, deadline.getTime() - now));
   const pct = Math.min(100, (elapsed / totalMs) * 100);
 
@@ -22,7 +22,7 @@ export function AutoReleaseWarning({ deadlineAt }: AutoReleaseWarningProps) {
         <div className="flex-1">
           <h3 className="text-base font-bold text-foreground mb-1.5">Automatic Release Notice</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            If you do not confirm receipt or raise a dispute within the 72-hour verification window,
+            If you do not confirm receipt or raise a dispute within the {windowHours}-hour verification window,
             the funds will automatically be released to the seller. This protects both parties and
             ensures transactions are completed in a timely manner.
           </p>
