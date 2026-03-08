@@ -23,13 +23,19 @@ const STATUS_COLORS: Record<string, string> = {
   resolved: "bg-success",
 };
 
-const FUTURE_STEPS = ["open", "seller_response_pending", "under_review", "resolved"];
+const ORDERED_STEPS = ["open", "seller_response_pending", "under_review", "resolved"];
 
 export function DisputeTimeline({ timeline, currentStatus }: DisputeTimelineProps) {
   const reachedStatuses = new Set(timeline.map((t) => t.new_status));
 
-  // Future placeholders for statuses not yet reached
-  const futureSteps = FUTURE_STEPS.filter((s) => !reachedStatuses.has(s));
+  // Find where the current status sits in the ordered flow
+  const currentIdx = ORDERED_STEPS.indexOf(currentStatus);
+
+  // Future steps: only those AFTER current status AND not already reached
+  const futureSteps = ORDERED_STEPS.filter((step) => {
+    const stepIdx = ORDERED_STEPS.indexOf(step);
+    return stepIdx > currentIdx && !reachedStatuses.has(step);
+  });
 
   return (
     <Card>
@@ -48,13 +54,10 @@ export function DisputeTimeline({ timeline, currentStatus }: DisputeTimelineProp
 
             return (
               <div key={i} className="relative flex gap-4">
-                {/* Line + dot */}
                 <div className="flex flex-col items-center">
                   <div className={cn("w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ring-4 ring-background", color)} />
                   {!isLast && <div className="w-0.5 flex-1 bg-border min-h-[2rem]" />}
                 </div>
-
-                {/* Content */}
                 <div className="pb-6 min-w-0">
                   <p className="text-sm font-semibold text-foreground">
                     {STATUS_LABELS[entry.new_status] ?? entry.new_status.replace(/_/g, " ")}

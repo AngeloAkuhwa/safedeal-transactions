@@ -146,8 +146,6 @@ const BuyerNotifications = () => {
     },
   });
 
-  const buyerName = dashboardData?.buyer?.full_name ?? "User";
-  const avatarUrl = dashboardData?.buyer?.avatar_url ?? null;
 
   const hasActiveFilters = search !== "" || type !== "all" || unreadOnly;
 
