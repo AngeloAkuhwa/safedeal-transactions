@@ -12,7 +12,7 @@ export function DangerZoneSection() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex items-center justify-between rounded-lg border border-destructive/20 p-4">
+        <div className="flex items-center justify-between rounded-lg border border-destructive/20 p-3">
           <div>
             <p className="text-sm font-medium text-foreground">Deactivate Account</p>
             <p className="text-xs text-muted-foreground">
@@ -24,7 +24,7 @@ export function DangerZoneSection() {
           </Button>
         </div>
 
-        <div className="flex items-center justify-between rounded-lg border border-destructive/20 p-4">
+        <div className="flex items-center justify-between rounded-lg border border-destructive/20 p-3">
           <div>
             <p className="text-sm font-medium text-destructive">Delete Account</p>
             <p className="text-xs text-muted-foreground">

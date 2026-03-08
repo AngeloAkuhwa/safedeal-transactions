@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, RefreshCw, UserCog, X } from "lucide-react";
+import { Loader2, RefreshCw, UserCog, X, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { Footer } from "@/components/landing/Footer";
@@ -100,10 +100,10 @@ const BuyerProfileSettings = () => {
       <BuyerNav buyerName={data.profile.full_name} avatarUrl={data.profile.avatar_url} />
 
       {/* Hero */}
-      <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent py-10 px-4 sm:px-6 lg:px-8">
+      <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent py-8 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <UserCog className="h-6 w-6 text-primary" />
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <UserCog className="h-5 w-5 text-primary" />
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Profile & Settings</h1>
@@ -139,10 +139,11 @@ const BuyerProfileSettings = () => {
                 disabled={!hasPending || saveMutation.isPending}
                 className="px-8"
               >
+                <Save className="h-4 w-4 mr-1" />
                 {saveMutation.isPending ? "Saving…" : "Save Changes"}
               </Button>
               <Button
-                variant="ghost"
+                variant="secondary"
                 disabled={!hasPending}
                 onClick={() => {
                   setPendingChanges({});
