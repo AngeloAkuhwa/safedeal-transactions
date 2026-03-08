@@ -51,10 +51,10 @@ const Auth = () => {
           {/* Right panel */}
           <div className="p-6 sm:p-8 lg:p-10 flex flex-col justify-center">
             {/* Mobile logo */}
-            <div className="flex items-center justify-center gap-2 mb-6 lg:hidden">
+            <Link to="/" className="flex items-center justify-center gap-2 mb-6 lg:hidden hover:opacity-80 transition-opacity">
               <Shield className="h-7 w-7 text-primary" />
               <span className="text-xl font-bold text-foreground">SafeDeal</span>
-            </div>
+            </Link>
 
             {verificationEmail ? (
               <EmailVerificationPending
