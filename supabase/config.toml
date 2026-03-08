@@ -2,3 +2,6 @@ project_id = "cfkdasmhlqswpunugbkf"
 
 [functions.buyer-transactions]
 verify_jwt = false
+
+[functions.buyer-disputes]
+verify_jwt = false
