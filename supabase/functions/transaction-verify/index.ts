@@ -263,7 +263,8 @@ async function getVerificationData(
 }
 
 // ════════════════════════════════════════════
-// CONFIRM RECEIPT — using transitionTransaction
+// CONFIRM RECEIPT — two-step money transition
+// funds_held_in_escrow → funds_releasing → funds_released
 // ════════════════════════════════════════════
 async function confirmReceipt(
   admin: ReturnType<typeof createClient>,
@@ -291,7 +292,7 @@ async function confirmReceipt(
     return jsonResponse({ already_confirmed: true, success: true });
   }
 
-  // State guards (kept for clear error messages before hitting DB trigger)
+  // State guards
   if (tx.status !== "delivered_awaiting_verification") {
     return jsonResponse({ error: "Transaction not in verification state" }, 409);
   }
@@ -319,10 +320,8 @@ async function confirmReceipt(
     return jsonResponse({ error: "Pricing data not found" }, 500);
   }
 
-  // Use centralized transition helper
-  // Note: DB trigger enforces delivered_awaiting_verification → completed
-  // and funds_held_in_escrow → funds_releasing is the valid path
-  const result = await transitionTransaction({
+  // Step 1: delivered_awaiting_verification → completed + funds_held_in_escrow → funds_releasing
+  const step1 = await transitionTransaction({
     admin,
     transactionId,
     userId,
@@ -330,8 +329,8 @@ async function confirmReceipt(
     fromStatus: "delivered_awaiting_verification",
     toStatus: "completed",
     fromMoney: "funds_held_in_escrow",
-    toMoney: "funds_released",
-    reason: "Buyer confirmed receipt — funds released to seller",
+    toMoney: "funds_releasing",
+    reason: "Buyer confirmed receipt — initiating fund release",
     eventType: "buyer_confirmed",
     eventData: { action: "confirm_receipt" },
     additionalUpdates: {
@@ -339,14 +338,46 @@ async function confirmReceipt(
     },
   });
 
-  if (!result.success) {
-    if (result.alreadyProcessed) {
+  if (!step1.success) {
+    if (step1.alreadyProcessed) {
       return jsonResponse({ already_confirmed: true, success: true });
     }
-    return jsonResponse({ error: result.error }, result.status || 500);
+    return jsonResponse({ error: step1.error }, step1.status || 500);
   }
 
-  const now = result.now!;
+  // Step 2: funds_releasing → funds_released (status stays completed)
+  const now2 = new Date().toISOString();
+  const { error: step2Err } = await admin
+    .from("transactions")
+    .update({ money_status: "funds_released" })
+    .eq("id", transactionId)
+    .eq("status", "completed")
+    .eq("money_status", "funds_releasing");
+
+  if (step2Err) {
+    console.error("Step 2 money release failed:", step2Err);
+    // Step 1 succeeded, log the second money transition anyway
+  }
+
+  // Log second money transition
+  await Promise.all([
+    admin.from("money_status_history").insert({
+      transaction_id: transactionId,
+      old_status: "funds_releasing",
+      new_status: "funds_released",
+      changed_by_user_id: userId,
+      changed_at: now2,
+      reason: "Funds released to seller",
+    }),
+    admin.from("transaction_events").insert({
+      transaction_id: transactionId,
+      event_type: "funds_released",
+      actor_user_id: userId,
+      actor_role: "buyer",
+      event_data: { action: "funds_released", amount: pricing.buyer_total_amount },
+      occurred_at: now2,
+    }),
+  ]);
 
   // Parallel side-effect writes
   await Promise.all([
@@ -357,7 +388,7 @@ async function confirmReceipt(
         state: "released",
         released_amount: escrow.held_amount,
         held_amount: 0,
-        last_changed_at: now,
+        last_changed_at: now2,
       })
       .eq("transaction_id", transactionId)
       .eq("state", "held"),
