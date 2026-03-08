@@ -1245,9 +1245,11 @@ export type Database = {
           channel: Database["public"]["Enums"]["notification_channel"]
           created_at: string
           id: string
+          is_read: boolean
           message: string
           metadata: Json | null
           read_at: string | null
+          related_dispute_id: string | null
           related_transaction_id: string | null
           status: Database["public"]["Enums"]["notification_status"]
           title: string
@@ -1259,9 +1261,11 @@ export type Database = {
           channel: Database["public"]["Enums"]["notification_channel"]
           created_at?: string
           id?: string
+          is_read?: boolean
           message: string
           metadata?: Json | null
           read_at?: string | null
+          related_dispute_id?: string | null
           related_transaction_id?: string | null
           status?: Database["public"]["Enums"]["notification_status"]
           title: string
@@ -1273,9 +1277,11 @@ export type Database = {
           channel?: Database["public"]["Enums"]["notification_channel"]
           created_at?: string
           id?: string
+          is_read?: boolean
           message?: string
           metadata?: Json | null
           read_at?: string | null
+          related_dispute_id?: string | null
           related_transaction_id?: string | null
           status?: Database["public"]["Enums"]["notification_status"]
           title?: string
@@ -1284,6 +1290,20 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notifications_related_dispute_id_fkey"
+            columns: ["related_dispute_id"]
+            isOneToOne: false
+            referencedRelation: "admin_dispute_summary_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_related_dispute_id_fkey"
+            columns: ["related_dispute_id"]
+            isOneToOne: false
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notifications_related_transaction_id_fkey"
             columns: ["related_transaction_id"]
