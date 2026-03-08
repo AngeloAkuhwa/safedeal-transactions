@@ -39,8 +39,7 @@ const RoleSelection = () => {
   useEffect(() => {
     const check = async () => {
       const { data: { session } } = await getSession();
-      if (!session) { navigate("/auth?mode=login", { replace: true }); return; }
-      if (!session.user.email_confirmed_at) { navigate("/auth", { replace: true }); return; }
+      if (!session) return; // ProtectedRoute handles redirect
 
       const { data: roles } = await getUserRoles(session.user.id);
       if (roles && roles.length > 0) { navigate("/dashboard", { replace: true }); return; }

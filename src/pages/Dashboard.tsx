@@ -12,18 +12,15 @@ const Dashboard = () => {
   const [userName, setUserName] = useState("");
 
   useEffect(() => {
-    const check = async () => {
+    const load = async () => {
       const { data: { session } } = await getSession();
-      if (!session) {
-        navigate("/auth?mode=login", { replace: true });
-        return;
-      }
+      if (!session) return; // ProtectedRoute handles redirect
       const { data: profile } = await getProfile(session.user.id);
       setUserName(profile?.full_name || "User");
       setLoading(false);
     };
-    check();
-  }, [navigate]);
+    load();
+  }, []);
 
   const handleLogout = async () => {
     await signOut();

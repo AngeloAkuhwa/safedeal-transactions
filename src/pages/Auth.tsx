@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { getSession } from "@/services/auth.service";
 import { Shield, ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AuthInfoPanel from "@/components/auth/AuthInfoPanel";
@@ -10,12 +11,21 @@ import EmailVerificationPending from "@/components/auth/EmailVerificationPending
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const role = searchParams.get("role");
   const mode = searchParams.get("mode");
 
   const defaultTab = mode === "login" ? "login" : "signup";
 
   const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/role-selection", { replace: true });
+      }
+    });
+  }, [navigate]);
 
   const subtitleMap: Record<string, string> = {
     buyer: "Sign up to start buying with protection",

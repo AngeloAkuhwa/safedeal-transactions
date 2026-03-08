@@ -10,6 +10,7 @@ import ResetPassword from "./pages/ResetPassword";
 import RoleSelection from "./pages/RoleSelection";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -21,12 +22,22 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/role-selection" element={<RoleSelection />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+            {/* Protected: requires session */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/role-selection" element={<RoleSelection />} />
+            </Route>
+
+            {/* Protected: requires session + role */}
+            <Route element={<ProtectedRoute requireRole />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+            </Route>
+
+            {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
