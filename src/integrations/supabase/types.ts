@@ -58,6 +58,68 @@ export type Database = {
           },
         ]
       }
+      admin_actions: {
+        Row: {
+          action_notes: string | null
+          action_type: Database["public"]["Enums"]["admin_action_type"]
+          admin_user_id: string
+          created_at: string
+          dispute_id: string | null
+          id: string
+          target_user_id: string | null
+          transaction_id: string | null
+        }
+        Insert: {
+          action_notes?: string | null
+          action_type: Database["public"]["Enums"]["admin_action_type"]
+          admin_user_id: string
+          created_at?: string
+          dispute_id?: string | null
+          id?: string
+          target_user_id?: string | null
+          transaction_id?: string | null
+        }
+        Update: {
+          action_notes?: string | null
+          action_type?: Database["public"]["Enums"]["admin_action_type"]
+          admin_user_id?: string
+          created_at?: string
+          dispute_id?: string | null
+          id?: string
+          target_user_id?: string | null
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_actions_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_actions_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_actions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: Database["public"]["Enums"]["audit_action_type"]
@@ -151,6 +213,45 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      case_reviews: {
+        Row: {
+          created_at: string
+          dispute_id: string
+          id: string
+          review_notes: string
+          reviewed_by_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dispute_id: string
+          id?: string
+          review_notes: string
+          reviewed_by_user_id: string
+        }
+        Update: {
+          created_at?: string
+          dispute_id?: string
+          id?: string
+          review_notes?: string
+          reviewed_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_reviews_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_reviews_reviewed_by_user_id_fkey"
+            columns: ["reviewed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       delivery_confirmations: {
         Row: {
@@ -1389,6 +1490,57 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          created_at: string
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      timeout_rules: {
+        Row: {
+          created_at: string
+          hours_until_trigger: number
+          id: string
+          is_active: boolean
+          rule_type: Database["public"]["Enums"]["timeout_rule_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hours_until_trigger: number
+          id?: string
+          is_active?: boolean
+          rule_type: Database["public"]["Enums"]["timeout_rule_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hours_until_trigger?: number
+          id?: string
+          is_active?: boolean
+          rule_type?: Database["public"]["Enums"]["timeout_rule_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transaction_agreement_snapshots: {
         Row: {
           created_at: string
@@ -2115,6 +2267,17 @@ export type Database = {
       }
     }
     Enums: {
+      admin_action_type:
+        | "freeze_transaction"
+        | "request_evidence"
+        | "extend_deadline"
+        | "escalate_case"
+        | "refund_buyer"
+        | "release_funds"
+        | "close_case"
+        | "flag_user"
+        | "unflag_user"
+        | "update_setting"
       audit_action_type:
         | "profile_update"
         | "profile_suspend"
@@ -2246,6 +2409,9 @@ export type Database = {
         | "failed"
         | "cancelled"
       system_log_level: "info" | "warning" | "error" | "critical"
+      timeout_rule_type:
+        | "seller_fulfillment_timeout"
+        | "buyer_verification_timeout"
       transaction_actor_role: "buyer" | "seller" | "admin" | "system"
       transaction_event_type:
         | "transaction_created"
@@ -2407,6 +2573,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_action_type: [
+        "freeze_transaction",
+        "request_evidence",
+        "extend_deadline",
+        "escalate_case",
+        "refund_buyer",
+        "release_funds",
+        "close_case",
+        "flag_user",
+        "unflag_user",
+        "update_setting",
+      ],
       audit_action_type: [
         "profile_update",
         "profile_suspend",
@@ -2555,6 +2733,10 @@ export const Constants = {
         "cancelled",
       ],
       system_log_level: ["info", "warning", "error", "critical"],
+      timeout_rule_type: [
+        "seller_fulfillment_timeout",
+        "buyer_verification_timeout",
+      ],
       transaction_actor_role: ["buyer", "seller", "admin", "system"],
       transaction_event_type: [
         "transaction_created",
