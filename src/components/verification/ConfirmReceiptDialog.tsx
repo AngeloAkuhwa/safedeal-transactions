@@ -54,13 +54,13 @@ export function ConfirmReceiptDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-lg rounded-3xl p-8">
+      <AlertDialogContent className="max-w-lg rounded-3xl p-6">
         {/* Large success icon */}
-        <div className="text-center mb-6">
-          <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="h-10 w-10 text-success" />
+        <div className="text-center mb-5">
+          <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-3">
+            <CheckCircle className="h-8 w-8 text-success" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Confirm Item Receipt?</h2>
+          <h2 className="text-xl font-bold text-foreground mb-1.5">Confirm Item Receipt?</h2>
           <p className="text-sm text-muted-foreground">This action cannot be undone</p>
         </div>
 

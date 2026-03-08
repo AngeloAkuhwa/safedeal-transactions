@@ -91,7 +91,7 @@ export function VerificationActions({
       </div>
 
       {/* Protection reminder */}
-      <div className="bg-muted/50 border border-border rounded-xl p-5">
+      <div className="bg-muted/50 border border-border rounded-xl p-4">
         <div className="flex items-start gap-3">
           <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>

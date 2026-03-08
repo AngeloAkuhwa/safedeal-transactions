@@ -48,10 +48,10 @@ export function VerificationCountdown({ deadlineAt, deliveredAt }: VerificationC
           </div>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/30">
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/30">
           <div className="text-center">
-            <div className="text-5xl font-bold mb-2 tabular-nums">{timerStr}</div>
-            <div className="flex justify-center gap-8 text-sm opacity-80">
+            <div className="text-3xl font-bold mb-1 tabular-nums">{timerStr}</div>
+            <div className="flex justify-center gap-6 text-xs opacity-80">
               <span>Hours</span>
               <span>Minutes</span>
               <span>Seconds</span>

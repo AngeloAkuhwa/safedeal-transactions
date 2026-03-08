@@ -119,7 +119,7 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
         </div>
 
         {/* Review warning */}
-        <div className="bg-warning/5 border border-warning/20 rounded-xl p-5">
+        <div className="bg-warning/5 border border-warning/20 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
             <div>

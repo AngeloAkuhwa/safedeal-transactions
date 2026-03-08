@@ -14,13 +14,13 @@ export function AutoReleaseWarning({ deadlineAt }: AutoReleaseWarningProps) {
   const pct = Math.min(100, (elapsed / totalMs) * 100);
 
   return (
-    <div className="bg-warning/5 border-2 border-warning/30 rounded-2xl shadow-lg p-6 lg:p-8">
-      <div className="flex items-start gap-4">
-        <div className="w-14 h-14 bg-warning/10 rounded-xl flex items-center justify-center shrink-0">
-          <Clock className="h-7 w-7 text-warning" />
+    <div className="bg-warning/5 border-2 border-warning/30 rounded-2xl shadow-lg p-5 lg:p-6">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 bg-warning/10 rounded-xl flex items-center justify-center shrink-0">
+          <Clock className="h-5 w-5 text-warning" />
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-bold text-foreground mb-2">Automatic Release Notice</h3>
+          <h3 className="text-base font-bold text-foreground mb-1.5">Automatic Release Notice</h3>
           <p className="text-sm text-muted-foreground mb-4">
             If you do not confirm receipt or raise a dispute within the 72-hour verification window,
             the funds will automatically be released to the seller. This protects both parties and
