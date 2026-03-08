@@ -49,12 +49,12 @@ export function DisputeForm({ transactionId, onCancel }: DisputeFormProps) {
   const canSubmit = reason && description.trim().length >= 20 && !mutation.isPending;
 
   return (
-    <div className="bg-card rounded-2xl shadow-lg border-2 border-destructive/30 p-6 lg:p-8">
+    <div className="bg-card rounded-2xl shadow-lg border-2 border-destructive/30 p-5 lg:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
+      <div className="flex items-center justify-between mb-5 pb-3 border-b border-border">
         <div className="flex items-center gap-2">
           <Flag className="h-5 w-5 text-destructive" />
-          <h2 className="text-2xl font-bold text-foreground">Submit a Dispute</h2>
+          <h2 className="text-lg font-bold text-foreground">Submit a Dispute</h2>
         </div>
         <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
           <X className="h-6 w-6" />
