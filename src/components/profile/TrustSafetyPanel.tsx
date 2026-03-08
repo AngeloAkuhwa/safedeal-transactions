@@ -3,10 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 const items = [
-  { icon: CheckCircle, text: "Verified buyer information" },
-  { icon: Lock, text: "Secure escrow transactions" },
-  { icon: Eye, text: "Protected dispute evidence" },
-  { icon: FileText, text: "Transparent activity timeline" },
+  { icon: CheckCircle, title: "Verified Information", description: "Verified information helps protect both buyers and sellers in all transactions." },
+  { icon: Lock, title: "Secure Transactions", description: "Disputes and payouts may require completed verification to ensure security." },
+  { icon: Eye, title: "Protected Evidence", description: "SafeDeal uses locked agreements and evidence history during dispute handling." },
+  { icon: FileText, title: "Transparent Timeline", description: "Every action is timestamped and recorded for complete transparency." },
 ];
 
 export function TrustSafetyPanel() {
@@ -20,9 +20,14 @@ export function TrustSafetyPanel() {
       </CardHeader>
       <CardContent className="space-y-4">
         {items.map((item) => (
-          <div key={item.text} className="flex items-start gap-3">
-            <item.icon className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <p className="text-sm text-muted-foreground">{item.text}</p>
+          <div key={item.title} className="flex items-start gap-3">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <item.icon className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">{item.title}</p>
+              <p className="text-xs text-muted-foreground">{item.description}</p>
+            </div>
           </div>
         ))}
         <Button variant="outline" className="w-full mt-2 text-primary border-primary/30" disabled>

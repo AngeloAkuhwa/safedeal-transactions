@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ export function SecuritySection() {
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
   const [loading, setLoading] = useState(false);
+  const [securityAlerts, setSecurityAlerts] = useState(true);
 
   const handleChangePassword = async () => {
     if (newPwd.length < 6) {
@@ -51,26 +53,26 @@ export function SecuritySection() {
       label: "Change Password",
       description: "Last changed 3 months ago",
       action: () => setPwdOpen(true),
-      actionType: "chevron" as const,
+      trailing: "chevron" as const,
     },
     {
       icon: Smartphone,
       label: "Two-Factor Authentication",
       description: "Add an extra layer of security",
       badge: "Disabled",
-      actionType: "chevron" as const,
+      trailing: "chevron" as const,
     },
     {
       icon: Monitor,
       label: "Login Sessions",
       description: "Manage active devices and sessions",
-      actionType: "chevron" as const,
+      trailing: "chevron" as const,
     },
     {
       icon: Bell,
       label: "Security Alerts",
       description: "Get notified of suspicious activity",
-      actionType: "none" as const,
+      trailing: "toggle" as const,
     },
   ];
 
@@ -89,10 +91,10 @@ export function SecuritySection() {
               key={item.label}
               onClick={item.action}
               disabled={!item.action}
-              className="w-full flex items-center justify-between rounded-lg border p-4 text-left hover:bg-muted/50 transition-colors disabled:cursor-default disabled:hover:bg-transparent"
+              className="w-full flex items-center justify-between rounded-lg border p-3 text-left hover:bg-muted/50 transition-colors disabled:cursor-default disabled:hover:bg-transparent"
             >
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center">
                   <item.icon className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div>
@@ -106,8 +108,17 @@ export function SecuritySection() {
                     {item.badge}
                   </Badge>
                 )}
-                {item.actionType === "chevron" && (
+                {item.trailing === "chevron" && (
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                )}
+                {item.trailing === "toggle" && (
+                  <Switch
+                    checked={securityAlerts}
+                    onCheckedChange={(checked) => {
+                      setSecurityAlerts(checked);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
                 )}
               </div>
             </button>

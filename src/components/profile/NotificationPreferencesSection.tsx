@@ -41,10 +41,10 @@ export function NotificationPreferencesSection({ preferences, onToggle }: Props)
         {prefItems.map((item) => (
           <div
             key={item.key}
-            className="flex items-center justify-between rounded-lg border p-4"
+            className="flex items-center justify-between rounded-lg border p-3"
           >
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+              <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center">
                 <item.icon className="h-5 w-5 text-muted-foreground" />
               </div>
               <div>

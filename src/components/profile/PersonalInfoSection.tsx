@@ -93,10 +93,10 @@ export function PersonalInfoSection({ profile, verification, onProfileChange }: 
                 setPhone(e.target.value);
                 onProfileChange({ phone: e.target.value });
               }}
-              className="pr-10"
+              className="pr-10 rounded-xl"
             />
             {verification.phone_verified && (
-              <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-success" />
+              <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-success" />
             )}
           </div>
         </div>

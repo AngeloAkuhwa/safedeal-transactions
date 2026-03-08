@@ -139,10 +139,11 @@ const BuyerProfileSettings = () => {
                 disabled={!hasPending || saveMutation.isPending}
                 className="px-8"
               >
+                <Save className="h-4 w-4 mr-1" />
                 {saveMutation.isPending ? "Saving…" : "Save Changes"}
               </Button>
               <Button
-                variant="ghost"
+                variant="secondary"
                 disabled={!hasPending}
                 onClick={() => {
                   setPendingChanges({});
