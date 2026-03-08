@@ -141,7 +141,7 @@ const BuyerProfileSettings = () => {
               verification={data.verification}
               onProfileChange={handleProfileChange}
             />
-            <AccountVerificationSection verification={data.verification} />
+            <AccountVerificationSection verification={data.verification} isLoading={isLoading} />
             <SecuritySection />
             {displayPrefs && (
               <NotificationPreferencesSection

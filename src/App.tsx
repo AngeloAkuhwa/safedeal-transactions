@@ -14,6 +14,7 @@ import BuyerNotifications from "./pages/BuyerNotifications";
 import BuyerDisputes from "./pages/BuyerDisputes";
 import BuyerDisputeDetail from "./pages/BuyerDisputeDetail";
 import BuyerProfileSettings from "./pages/BuyerProfileSettings";
+import BuyerVerification from "./pages/BuyerVerification";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="/dashboard/disputes/:disputeId" element={<BuyerDisputeDetail />} />
               <Route path="/dashboard/notifications" element={<BuyerNotifications />} />
               <Route path="/dashboard/profile" element={<BuyerProfileSettings />} />
+              <Route path="/dashboard/verification" element={<BuyerVerification />} />
             </Route>
 
             {/* Catch-all */}
