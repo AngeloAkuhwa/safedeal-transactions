@@ -100,10 +100,10 @@ const BuyerProfileSettings = () => {
       <BuyerNav buyerName={data.profile.full_name} avatarUrl={data.profile.avatar_url} />
 
       {/* Hero */}
-      <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent py-10 px-4 sm:px-6 lg:px-8">
+      <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent py-8 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <UserCog className="h-6 w-6 text-primary" />
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <UserCog className="h-5 w-5 text-primary" />
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Profile & Settings</h1>
