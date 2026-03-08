@@ -26,7 +26,25 @@ const STATUS_COLORS: Record<string, string> = {
 const ORDERED_STEPS = ["open", "seller_response_pending", "under_review", "resolved"];
 
 export function DisputeTimeline({ timeline, currentStatus }: DisputeTimelineProps) {
-  const reachedStatuses = new Set(timeline.map((t) => t.new_status));
+  // Synthesize "Seller Notified" if open exists but seller_response_pending doesn't
+  const hasOpen = timeline.some((t) => t.new_status === "open");
+  const hasSellerPending = timeline.some((t) => t.new_status === "seller_response_pending");
+
+  let enrichedTimeline = [...timeline];
+  if (hasOpen && !hasSellerPending) {
+    const openEntry = timeline.find((t) => t.new_status === "open");
+    if (openEntry) {
+      const openIdx = enrichedTimeline.findIndex((t) => t.new_status === "open");
+      enrichedTimeline.splice(openIdx + 1, 0, {
+        old_status: "open",
+        new_status: "seller_response_pending",
+        reason: "Seller automatically notified",
+        changed_at: openEntry.changed_at,
+      });
+    }
+  }
+
+  const reachedStatuses = new Set(enrichedTimeline.map((t) => t.new_status));
 
   // Find where the current status sits in the ordered flow
   const currentIdx = ORDERED_STEPS.indexOf(currentStatus);
