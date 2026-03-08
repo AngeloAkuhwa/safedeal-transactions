@@ -13,6 +13,15 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+const PREF_KEYS = [
+  "payment_updates",
+  "delivery_updates",
+  "dispute_updates",
+  "verification_reminders",
+  "system_alerts",
+  "marketing_messages",
+] as const;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -86,41 +95,98 @@ Deno.serve(async (req) => {
 
     // ── PATCH: Update profile data ──
     if (req.method === "PATCH") {
-      const body = await req.json();
-      const { action } = body;
+      // Parse body safely
+      let body: Record<string, unknown>;
+      try {
+        body = await req.json();
+      } catch {
+        return jsonResponse({ error: "Invalid JSON body" }, 400);
+      }
 
+      const action = body?.action;
+      if (typeof action !== "string" || !action) {
+        return jsonResponse({ error: "Missing or invalid 'action' field" }, 400);
+      }
+
+      // ── update_profile ──
       if (action === "update_profile") {
         const updates: Record<string, unknown> = {};
-        if (body.full_name !== undefined) updates.full_name = body.full_name;
-        if (body.phone !== undefined) updates.phone = body.phone;
-        if (body.country_code !== undefined) updates.country_code = body.country_code;
 
-        const { error } = await adminClient
-          .from("profiles")
-          .update(updates)
-          .eq("id", userId);
-
-        if (error) return jsonResponse({ error: error.message }, 400);
-        return jsonResponse({ success: true });
-      }
-
-      if (action === "update_preferences") {
-        const allowed = ["payment_updates", "delivery_updates", "dispute_updates", "verification_reminders", "system_alerts", "marketing_messages"];
-        const updates: Record<string, boolean> = {};
-        for (const key of allowed) {
-          if (body[key] !== undefined) updates[key] = Boolean(body[key]);
+        if (body.full_name !== undefined) {
+          if (typeof body.full_name !== "string" || body.full_name.trim().length === 0) {
+            return jsonResponse({ error: "full_name must be a non-empty string" }, 400);
+          }
+          if (body.full_name.length > 100) {
+            return jsonResponse({ error: "full_name must be 100 characters or less" }, 400);
+          }
+          updates.full_name = body.full_name.trim();
         }
 
-        const { error } = await adminClient
-          .from("notification_preferences")
+        if (body.phone !== undefined) {
+          if (body.phone !== null && (typeof body.phone !== "string" || body.phone.length > 20)) {
+            return jsonResponse({ error: "phone must be a string of 20 characters or less" }, 400);
+          }
+          updates.phone = body.phone;
+        }
+
+        if (body.country_code !== undefined) {
+          if (typeof body.country_code !== "string" || body.country_code.length !== 2) {
+            return jsonResponse({ error: "country_code must be a 2-character string" }, 400);
+          }
+          updates.country_code = body.country_code.toUpperCase();
+        }
+
+        if (Object.keys(updates).length === 0) {
+          return jsonResponse({ error: "No valid profile fields provided" }, 400);
+        }
+
+        const { data: updatedProfile, error } = await adminClient
+          .from("profiles")
           .update(updates)
-          .eq("user_id", userId);
+          .eq("id", userId)
+          .select("id, full_name, email, phone, avatar_url, country_code, created_at")
+          .single();
 
         if (error) return jsonResponse({ error: error.message }, 400);
-        return jsonResponse({ success: true });
+        return jsonResponse({ success: true, profile: updatedProfile });
       }
 
+      // ── update_preferences ──
+      if (action === "update_preferences") {
+        const updates: Record<string, boolean> = {};
+        for (const key of PREF_KEYS) {
+          if (body[key] !== undefined) {
+            if (typeof body[key] !== "boolean") {
+              return jsonResponse({ error: `${key} must be a boolean` }, 400);
+            }
+            updates[key] = body[key] as boolean;
+          }
+        }
+
+        if (Object.keys(updates).length === 0) {
+          return jsonResponse({ error: "No valid preference fields provided" }, 400);
+        }
+
+        // Upsert: works whether or not a row exists
+        const { data: savedPrefs, error } = await adminClient
+          .from("notification_preferences")
+          .upsert(
+            { user_id: userId, ...updates },
+            { onConflict: "user_id" }
+          )
+          .select("payment_updates, delivery_updates, dispute_updates, verification_reminders, system_alerts, marketing_messages")
+          .single();
+
+        if (error) return jsonResponse({ error: error.message }, 400);
+        return jsonResponse({ success: true, preferences: savedPrefs });
+      }
+
+      // ── update_avatar ──
       if (action === "update_avatar") {
+        if (body.avatar_url !== undefined && body.avatar_url !== null && typeof body.avatar_url !== "string") {
+          return jsonResponse({ error: "avatar_url must be a string or null" }, 400);
+        }
+
         const { error } = await adminClient
           .from("profiles")
           .update({ avatar_url: body.avatar_url ?? null })
@@ -130,7 +196,7 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: true });
       }
 
-      return jsonResponse({ error: "Unknown action" }, 400);
+      return jsonResponse({ error: `Unknown action: ${action}` }, 400);
     }
 
     return jsonResponse({ error: "Method not allowed" }, 405);

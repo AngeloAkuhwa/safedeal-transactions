@@ -25,6 +25,7 @@ const prefItems: {
   { key: "delivery_updates", label: "Delivery Updates", description: "Tracking and delivery notifications", icon: Truck },
   { key: "dispute_updates", label: "Dispute Updates", description: "Dispute status and resolution alerts", icon: Scale },
   { key: "verification_reminders", label: "Verification Reminders", description: "Reminders to verify received items", icon: Clock },
+  { key: "system_alerts", label: "System Alerts", description: "Important system and security alerts", icon: Bell },
   { key: "marketing_messages", label: "Marketing Messages", description: "Tips, updates and special offers", icon: Mail },
 ];
 
