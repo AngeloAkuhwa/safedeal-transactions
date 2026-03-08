@@ -3,7 +3,6 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import EmailVerificationPending from "./EmailVerificationPending";
+import { signUp } from "@/services/auth.service";
 
 const signupSchema = z
   .object({
@@ -80,16 +80,10 @@ const SignupForm = ({ defaultRole, onGoToLogin }: SignupFormProps) => {
   const onSubmit = async (values: SignupValues) => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-        options: {
-          data: {
-            full_name: values.full_name,
-            phone: values.phone,
-            ...(defaultRole ? { default_role: defaultRole } : {}),
-          },
-        },
+      const { error } = await signUp(values.email, values.password, {
+        full_name: values.full_name,
+        phone: values.phone,
+        ...(defaultRole ? { default_role: defaultRole } : {}),
       });
 
       if (error) {

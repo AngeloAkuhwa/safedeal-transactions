@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Shield, Menu, X } from "lucide-react";
+import { Shield, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { supabase } from "@/integrations/supabase/client";
+import { onAuthStateChange, getSession } from "@/services/auth.service";
 import type { User } from "@supabase/supabase-js";
 
 const navLinks = [
@@ -19,10 +19,10 @@ export function Header() {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
     });
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
     return () => subscription.unsubscribe();

@@ -3,7 +3,6 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Mail } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +21,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { resetPasswordForEmail } from "@/services/auth.service";
 
 const schema = z.object({
   email: z.string().trim().email("Please enter a valid email address").max(255),
@@ -44,9 +44,10 @@ const ForgotPasswordModal = ({ open, onOpenChange }: ForgotPasswordModalProps) =
   const onSubmit = async (values: z.infer<typeof schema>) => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
+      const { error } = await resetPasswordForEmail(
+        values.email,
+        `${window.location.origin}/reset-password`
+      );
       if (error) {
         toast.error(error.message);
         return;

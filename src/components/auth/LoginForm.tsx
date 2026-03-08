@@ -4,7 +4,6 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +17,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import ForgotPasswordModal from "./ForgotPasswordModal";
+import { signIn } from "@/services/auth.service";
+import { invalidateOldSessions, createSession } from "@/services/session.service";
+import { getUserRoles } from "@/services/role.service";
 
 const loginSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address").max(255),
@@ -44,10 +46,7 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
   const onSubmit = async (values: LoginValues) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
-      });
+      const { data, error } = await signIn(values.email, values.password);
 
       if (error) {
         if (error.message.includes("Invalid login")) {
@@ -65,23 +64,10 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
       }
 
       if (data.user && data.session) {
-        // Invalidate older sessions (single-device policy)
-        await supabase.rpc("invalidate_old_sessions", {
-          _user_id: data.user.id,
-        });
+        await invalidateOldSessions(data.user.id);
+        await createSession(data.user.id, data.session.access_token);
 
-        // Persist new session record
-        await supabase.from("user_sessions").insert({
-          user_id: data.user.id,
-          session_token_hash: data.session.access_token.slice(-32),
-          is_active: true,
-        });
-
-        // Check if user already has a role assigned
-        const { data: roles } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", data.user.id);
+        const { data: roles } = await getUserRoles(data.user.id);
 
         toast.success("Welcome back!");
 

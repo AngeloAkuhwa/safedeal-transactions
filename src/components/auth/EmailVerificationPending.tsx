@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, ArrowLeft, Loader2, RefreshCw, CheckCircle2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
+import { resendVerificationEmail, getSession } from "@/services/auth.service";
 
 interface EmailVerificationPendingProps {
   email: string;
@@ -18,7 +18,7 @@ const EmailVerificationPending = ({ email, onGoToLogin }: EmailVerificationPendi
   const handleResend = async () => {
     setResending(true);
     try {
-      const { error } = await supabase.auth.resend({ type: "signup", email });
+      const { error } = await resendVerificationEmail(email);
       if (error) {
         if (error.message.includes("already confirmed")) {
           toast.success("Your email is already verified! You can log in.");
@@ -38,7 +38,7 @@ const EmailVerificationPending = ({ email, onGoToLogin }: EmailVerificationPendi
   const handleCheckVerified = async () => {
     setChecking(true);
     try {
-      const { data, error } = await supabase.auth.getSession();
+      const { data, error } = await getSession();
       if (error || !data.session) {
         toast.info("Please check your email and click the verification link, then try again.");
       } else if (data.session.user.email_confirmed_at) {
