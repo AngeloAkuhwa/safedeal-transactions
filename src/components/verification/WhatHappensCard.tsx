@@ -6,10 +6,10 @@ interface WhatHappensCardProps {
 
 export function WhatHappensCard({ deadlineAt }: WhatHappensCardProps) {
   return (
-    <div className="bg-card rounded-2xl shadow-lg border border-border p-6 lg:p-8">
-      <div className="flex items-center gap-2 mb-5">
+    <div className="bg-card rounded-2xl shadow-lg border border-border p-5 lg:p-6">
+      <div className="flex items-center gap-2 mb-4">
         <HelpCircle className="h-5 w-5 text-primary" />
-        <h2 className="text-xl font-bold text-foreground">What happens if I do nothing?</h2>
+        <h2 className="text-lg font-bold text-foreground">What happens if I do nothing?</h2>
       </div>
 
       <div className="space-y-4">
