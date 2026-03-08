@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Receipt, ArrowRight, Package, Truck, Scale, Clock, CheckCircle, Lock, Snowflake, Unlock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,6 +63,13 @@ function getActionButton(status: string) {
   }
 }
 
+function resolveRoute(purchase: DashboardPurchase): string {
+  if (purchase.transaction_status === "delivered_awaiting_verification") {
+    return `/dashboard/transactions/${purchase.transaction_id}/verify`;
+  }
+  return `/dashboard/transactions/${purchase.transaction_id}`;
+}
+
 function formatAmount(amount: number, currency: string) {
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
@@ -72,6 +79,8 @@ function formatAmount(amount: number, currency: string) {
 }
 
 export function RecentPurchases({ purchases }: RecentPurchasesProps) {
+  const navigate = useNavigate();
+
   return (
     <Card className="shadow-md overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between border-b">
@@ -119,9 +128,10 @@ export function RecentPurchases({ purchases }: RecentPurchasesProps) {
                   const action = getActionButton(purchase.transaction_status);
                   const StatusIcon = statusBadge.icon;
                   const MoneyIcon = moneyBadge.icon;
+                  const route = resolveRoute(purchase);
 
                   return (
-                    <TableRow key={purchase.transaction_id}>
+                    <TableRow key={purchase.transaction_id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(route)}>
                       <TableCell>
                         <div className="text-sm font-bold text-foreground">
                           #{purchase.transaction_code}
@@ -164,7 +174,14 @@ export function RecentPurchases({ purchases }: RecentPurchasesProps) {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button size="sm" className={action.className}>
+                        <Button
+                          size="sm"
+                          className={action.className}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(route);
+                          }}
+                        >
                           {action.label}
                         </Button>
                       </TableCell>

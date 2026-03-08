@@ -23,12 +23,15 @@ export function DashboardHero({ buyerName }: DashboardHeroProps) {
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
+              asChild
               variant="secondary"
               size="lg"
               className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-bold"
             >
-              <Search className="h-4 w-4" />
-              Track Purchase
+              <Link to="/dashboard/transactions">
+                <Search className="h-4 w-4" />
+                Track Purchase
+              </Link>
             </Button>
             <Button
               size="lg"

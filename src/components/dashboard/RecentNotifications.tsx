@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Bell, Package, Truck, Scale } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +19,7 @@ function getNotificationStyle(type: string) {
         iconColor: "text-success",
         icon: Package,
         buttonClass: "bg-success text-success-foreground hover:bg-success/90",
-        actionLabel: "Verify Item",
+        actionLabel: "View Delivery",
       };
     case "transaction_update":
       return {
@@ -27,7 +28,7 @@ function getNotificationStyle(type: string) {
         iconColor: "text-primary",
         icon: Truck,
         buttonClass: "bg-primary text-primary-foreground hover:bg-primary/90",
-        actionLabel: "Track Shipment",
+        actionLabel: "View Transaction",
       };
     case "dispute_update":
       return {
@@ -50,7 +51,29 @@ function getNotificationStyle(type: string) {
   }
 }
 
+function resolveNotificationRoute(notif: DashboardNotification): string | null {
+  switch (notif.type) {
+    case "dispute_update":
+      return "/dashboard/disputes";
+    case "delivery_update":
+    case "transaction_update":
+      return notif.transaction_id
+        ? `/dashboard/transactions/${notif.transaction_id}`
+        : "/dashboard/transactions";
+    case "security_alert":
+    case "account_update":
+      return "/dashboard/profile";
+    default:
+      if (notif.transaction_id) {
+        return `/dashboard/transactions/${notif.transaction_id}`;
+      }
+      return null;
+  }
+}
+
 export function RecentNotifications({ notifications }: RecentNotificationsProps) {
+  const navigate = useNavigate();
+
   return (
     <Card className="shadow-md">
       <CardHeader className="flex flex-row items-center justify-between pb-4">
@@ -76,6 +99,7 @@ export function RecentNotifications({ notifications }: RecentNotificationsProps)
           notifications.map((notif) => {
             const style = getNotificationStyle(notif.type);
             const Icon = style.icon;
+            const route = resolveNotificationRoute(notif);
             return (
               <div
                 key={notif.id}
@@ -94,9 +118,19 @@ export function RecentNotifications({ notifications }: RecentNotificationsProps)
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">{notif.message}</p>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Button size="sm" className={style.buttonClass}>
-                        {style.actionLabel}
-                      </Button>
+                      {route ? (
+                        <Button
+                          size="sm"
+                          className={style.buttonClass}
+                          onClick={() => navigate(route)}
+                        >
+                          {style.actionLabel}
+                        </Button>
+                      ) : (
+                        <Button size="sm" className={style.buttonClass} disabled>
+                          {style.actionLabel}
+                        </Button>
+                      )}
                       {notif.transaction_id && (
                         <span className="text-xs font-semibold text-muted-foreground">
                           Transaction linked
