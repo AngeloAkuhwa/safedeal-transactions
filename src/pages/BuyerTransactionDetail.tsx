@@ -137,6 +137,9 @@ const BuyerTransactionDetail = () => {
     staleTime: 30_000,
   });
 
+  // Must call hooks unconditionally (before any early returns)
+  const countdown = useCountdown(data?.transaction.verification_deadline_at ?? null);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -171,7 +174,6 @@ const BuyerTransactionDetail = () => {
   const currentStatusIndex = getStatusIndex(tx.status);
   const sBadge = statusConfig[tx.status] ?? { label: tx.status, className: "bg-muted text-muted-foreground border-border" };
   const mBadge = moneyConfig[tx.money_status] ?? { label: tx.money_status, className: "bg-muted text-muted-foreground border-border" };
-  const countdown = useCountdown(tx.verification_deadline_at);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
