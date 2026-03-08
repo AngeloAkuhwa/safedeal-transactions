@@ -77,8 +77,19 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
           is_active: true,
         });
 
+        // Check if user already has a role assigned
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id);
+
         toast.success("Welcome back!");
-        navigate("/role-selection");
+
+        if (roles && roles.length > 0) {
+          navigate("/dashboard", { replace: true });
+        } else {
+          navigate("/role-selection", { replace: true });
+        }
       }
     } catch {
       toast.error("Something went wrong. Please try again.");
