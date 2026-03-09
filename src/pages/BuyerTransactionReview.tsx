@@ -93,7 +93,7 @@ export default function BuyerTransactionReview() {
   if (isLoading || !data) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <ReviewHeader />
+        <Header />
         <div className="max-w-7xl mx-auto px-4 py-8 w-full space-y-6">
           <Skeleton className="h-12 w-full rounded-xl" />
           <Skeleton className="h-12 w-full rounded-xl" />
