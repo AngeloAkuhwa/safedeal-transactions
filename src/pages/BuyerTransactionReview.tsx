@@ -7,7 +7,7 @@ import {
   Package, Truck, Clock, ClipboardCheck, CheckCircle, XCircle,
   Store, Star, Handshake, IdCard, Phone, Building2, CalendarDays,
   TrendingUp, HelpCircle, Info, Scale, HandCoins,
-  FileText, LockOpen, Hourglass, CircleDot, Award, X, User
+  FileText, LockOpen, Hourglass, CircleDot, Award, X, User, Ban
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Footer } from "@/components/landing/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/components/ui/sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { getTransactionReview, type ReviewData } from "@/services/review.service";
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
