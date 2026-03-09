@@ -349,7 +349,7 @@ const BuyerTransactionDetail = () => {
         <div className="grid lg:grid-cols-3 gap-5 sm:gap-6">
 
           {/* ═══ LEFT COLUMN (2/3) ═══ */}
-          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
+          <div className="lg:col-span-2 space-y-5 sm:space-y-6">
 
             {/* Mobile-only Next Action */}
             {next_action && (
