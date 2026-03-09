@@ -650,7 +650,7 @@ function FraudWarningCard() {
         {[
           { icon: X, title: "NEVER pay the seller directly", desc: "Do not use bank transfer, PayPal, cash apps, wire transfer, or cryptocurrency" },
           { icon: ShieldAlert, title: "Off-platform payment removes ALL protection", desc: "You lose escrow protection, dispute rights, and refund eligibility" },
-          { icon: UserShield, title: "SafeDeal holds your payment securely", desc: "Only pay through SafeDeal's secure payment system on this page" },
+          { icon: User, title: "SafeDeal holds your payment securely", desc: "Only pay through SafeDeal's secure payment system on this page" },
         ].map((item) => (
           <div key={item.title} className="bg-destructive-foreground/10 backdrop-blur-sm rounded-lg p-4 border-2 border-destructive-foreground/30">
             <div className="flex items-start gap-3">
