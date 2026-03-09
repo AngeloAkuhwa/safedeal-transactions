@@ -765,7 +765,7 @@ const BuyerTransactionDetail = () => {
                       <p className="text-xs text-primary/70">{mBadge.label}</p>
                     </div>
                   </div>
-                  <Button variant="outline" className="w-full font-semibold rounded-xl py-2.5 h-auto text-sm">
+                  <Button variant="outline" className="w-full font-semibold rounded-xl py-2.5 h-auto text-sm" onClick={handlePrint}>
                     <Download className="h-4 w-4" /> Download Receipt
                   </Button>
                 </div>
