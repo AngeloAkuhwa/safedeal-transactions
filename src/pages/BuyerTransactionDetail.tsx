@@ -132,6 +132,7 @@ function NextActionCard({
   countdown,
   dispute,
   navigate,
+  shareToken,
 }: {
   nextAction: TransactionDetailResponse["next_action"];
   txStatus: string;
@@ -139,6 +140,7 @@ function NextActionCard({
   countdown: string;
   dispute: TransactionDetailResponse["dispute"];
   navigate: ReturnType<typeof useNavigate>;
+  shareToken: string | null;
 }) {
   return (
     <div className="rounded-2xl bg-gradient-to-br from-warning to-warning/90 p-6 text-warning-foreground shadow-lg">
@@ -165,7 +167,7 @@ function NextActionCard({
         {txStatus === "awaiting_payment" && (
           <Button
             className="w-full bg-white hover:bg-white/90 text-warning font-bold py-4 h-auto"
-            onClick={() => navigate(`/dashboard/transactions/${txId}/agreement`)}
+            onClick={() => navigate(shareToken ? `/t/${shareToken}` : `/dashboard/transactions/${txId}/agreement`)}
           >
             <FileText className="h-4 w-4" /> Review Agreement & Pay
           </Button>
@@ -377,6 +379,7 @@ const BuyerTransactionDetail = () => {
                   countdown={countdown}
                   dispute={dispute}
                   navigate={navigate}
+                  shareToken={tx.share_token}
                 />
               </div>
             )}
@@ -590,6 +593,7 @@ const BuyerTransactionDetail = () => {
                   countdown={countdown}
                   dispute={dispute}
                   navigate={navigate}
+                  shareToken={tx.share_token}
                 />
               </div>
             )}

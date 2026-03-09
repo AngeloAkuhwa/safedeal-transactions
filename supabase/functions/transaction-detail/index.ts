@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
     // Fetch transaction and validate buyer ownership
     const { data: tx, error: txError } = await adminClient
       .from("transactions")
-      .select("id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, created_at, updated_at")
+      .select("id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, created_at, updated_at, share_token")
       .eq("id", transactionId)
       .single();
 
@@ -158,6 +158,7 @@ Deno.serve(async (req) => {
         dispute_status: tx.dispute_status,
         created_at: tx.created_at,
         verification_deadline_at: verificationDeadlineAt,
+        share_token: tx.share_token ?? null,
       },
       item: item ?? { title: "Untitled Item", description: null, quantity: 1, condition: null, brand: null, model: null, category: null },
       pricing: pricing ?? { item_amount: 0, platform_fee_amount: 0, processing_fee_amount: 0, buyer_total_amount: 0, currency_code: "NGN" },

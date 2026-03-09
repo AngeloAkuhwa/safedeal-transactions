@@ -92,6 +92,7 @@ export interface TransactionDetailResponse {
     dispute_status: string | null;
     created_at: string;
     verification_deadline_at: string | null;
+    share_token: string | null;
   };
   item: TransactionDetailItem;
   pricing: TransactionDetailPricing;
