@@ -144,7 +144,7 @@ function NextActionCard({
         <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
           <AlertTriangle className="h-5 w-5" />
         </div>
-        <h2 className="text-xl font-bold">{nextAction.label}</h2>
+        <h2 className="text-lg font-bold">{nextAction.label}</h2>
       </div>
 
       <Separator className="bg-white/20 mb-4" />
