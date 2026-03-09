@@ -310,13 +310,18 @@ const BuyerTransactionDetail = () => {
           </div>
 
           {/* Escrow banner nested inside header card */}
-          {escrow && (escrow.state === "funds_held" || tx.money_status === "funds_held_in_escrow") && (
-            <div className="bg-primary/5 border-2 border-primary/20 rounded-xl p-4 flex items-start gap-3">
-              <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          {escrow && !["cancelled", "refunded"].includes(tx.status) && (
+            <div className={`border-2 rounded-xl p-4 flex items-start gap-3 ${tx.status === "completed" ? "bg-success/5 border-success/20" : "bg-primary/5 border-primary/20"}`}>
+              <Shield className={`h-5 w-5 shrink-0 mt-0.5 ${tx.status === "completed" ? "text-success" : "text-primary"}`} />
               <div>
-                <p className="text-sm sm:text-base font-bold text-primary">Escrow Protection Active</p>
-                <p className="text-xs sm:text-sm text-primary/80 mt-0.5">
-                  Your payment of <span className="font-bold">{formatCurrency(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.
+                <p className={`text-sm sm:text-base font-bold ${tx.status === "completed" ? "text-success" : "text-primary"}`}>
+                  {tx.status === "completed" ? "Transaction Completed — Funds Released" : "Escrow Protection Active"}
+                </p>
+                <p className={`text-xs sm:text-sm mt-0.5 ${tx.status === "completed" ? "text-success/80" : "text-primary/80"}`}>
+                  {tx.status === "completed"
+                    ? <>Your payment of <span className="font-bold">{formatCurrency(escrow.held_amount || escrow.released_amount, pricing.currency_code)}</span> has been successfully released to the seller. This transaction is now complete.</>
+                    : <>Your payment of <span className="font-bold">{formatCurrency(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.</>
+                  }
                 </p>
               </div>
             </div>
