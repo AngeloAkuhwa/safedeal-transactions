@@ -138,16 +138,15 @@ export const TransactionReceipt = React.forwardRef<HTMLDivElement, TransactionRe
                     <td style={{ color: "#64748b", paddingBottom: "6px" }}>Item Price</td>
                     <td style={{ textAlign: "right", paddingBottom: "6px" }}>{formatCurrency(pricing.item_amount, pricing.currency_code)}</td>
                   </tr>
-                  {pricing.platform_fee_amount > 0 && (
+                  {((pricing as any).service_fee_amount ?? ((pricing.platform_fee_amount || 0) + (pricing.processing_fee_amount || 0))) > 0 && (
                     <tr>
-                      <td style={{ color: "#64748b", paddingBottom: "6px" }}>Platform Fee</td>
-                      <td style={{ textAlign: "right", paddingBottom: "6px" }}>{formatCurrency(pricing.platform_fee_amount, pricing.currency_code)}</td>
+                      <td style={{ color: "#64748b", paddingBottom: "2px" }}>Service Fee ({(((pricing as any).service_fee_rate ?? 0) * 100).toFixed(1)}%)</td>
+                      <td style={{ textAlign: "right", paddingBottom: "2px" }}>{formatCurrency((pricing as any).service_fee_amount ?? ((pricing.platform_fee_amount || 0) + (pricing.processing_fee_amount || 0)), pricing.currency_code)}</td>
                     </tr>
                   )}
-                  {pricing.processing_fee_amount > 0 && (
+                  {((pricing as any).service_fee_amount ?? ((pricing.platform_fee_amount || 0) + (pricing.processing_fee_amount || 0))) > 0 && (
                     <tr>
-                      <td style={{ color: "#64748b", paddingBottom: "6px", borderBottom: "1px solid #e2e8f0" }}>Processing Fee</td>
-                      <td style={{ textAlign: "right", paddingBottom: "6px", borderBottom: "1px solid #e2e8f0" }}>{formatCurrency(pricing.processing_fee_amount, pricing.currency_code)}</td>
+                      <td colSpan={2} style={{ color: "#94a3b8", fontSize: "10px", paddingBottom: "6px", borderBottom: "1px solid #e2e8f0" }}>Includes payment processing</td>
                     </tr>
                   )}
                   <tr>

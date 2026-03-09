@@ -261,7 +261,7 @@ export default function BuyerTransactionReview() {
                 onDecline={handleDecline}
                 authState={authState}
               />
-              <PaymentSummaryCard data={data} currencySymbol={currencySymbol} itemAmount={itemAmount} feeAmount={feeAmount} totalAmount={totalAmount} />
+              <PaymentSummaryCard data={data} currencySymbol={currencySymbol} itemAmount={itemAmount} feeAmount={feeAmount} feeRate={feeRate} totalAmount={totalAmount} />
               <ProtectionFeaturesCard data={data} />
               <TrustIndicatorsCard />
             </div>

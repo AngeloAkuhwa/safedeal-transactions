@@ -534,16 +534,13 @@ const BuyerTransactionTracking = () => {
                   <span>Item Price</span>
                   <span className="font-semibold text-foreground">{formatCurrency(pricing.item_amount, pricing.currency_code)}</span>
                 </div>
-                {pricing.platform_fee_amount > 0 && (
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Platform Fee</span>
-                    <span className="font-semibold text-foreground">{formatCurrency(pricing.platform_fee_amount, pricing.currency_code)}</span>
-                  </div>
-                )}
-                {pricing.processing_fee_amount > 0 && (
+                {(pricing.service_fee_amount ?? ((pricing.platform_fee_amount || 0) + (pricing.processing_fee_amount || 0))) > 0 && (
                   <div className="flex justify-between text-xs text-muted-foreground border-b border-border pb-2">
-                    <span>Processing Fee</span>
-                    <span className="font-semibold text-foreground">{formatCurrency(pricing.processing_fee_amount, pricing.currency_code)}</span>
+                    <div>
+                      <span>Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Includes payment processing</p>
+                    </div>
+                    <span className="font-semibold text-foreground">{formatCurrency(pricing.service_fee_amount ?? ((pricing.platform_fee_amount || 0) + (pricing.processing_fee_amount || 0)), pricing.currency_code)}</span>
                   </div>
                 )}
                 <div className="flex justify-between pt-1">
