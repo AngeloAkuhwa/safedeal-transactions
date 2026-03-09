@@ -281,7 +281,7 @@ const BuyerTransactionDetail = () => {
                 <h1 className="text-xl sm:text-2xl font-bold text-foreground">{tx.transaction_code}</h1>
                 <Badge className={`${sBadge.className} text-xs sm:text-sm font-bold px-3 py-1.5 rounded-full`}>{sBadge.label}</Badge>
               </div>
-              <p className="text-muted-foreground text-sm sm:text-base">
+              <p className="text-muted-foreground text-sm">
                 Created on {format(new Date(tx.created_at), "MMMM d, yyyy 'at' h:mm a")}
               </p>
             </div>
