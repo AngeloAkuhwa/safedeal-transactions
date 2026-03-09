@@ -23,8 +23,9 @@ export const TransactionReceipt = React.forwardRef<HTMLDivElement, TransactionRe
         {/* Inject print-only styles */}
         <style>{`
           @media print {
-            body > *:not(#safedeal-receipt-root) { display: none !important; }
-            #safedeal-receipt-root { display: block !important; }
+            body > *:not(#safedeal-receipt-root),
+            #root > *:not(#safedeal-receipt-root) { display: none !important; visibility: hidden !important; }
+            #safedeal-receipt-root { display: block !important; visibility: visible !important; position: absolute !important; left: 0; top: 0; }
             @page { margin: 20mm; size: A4; }
           }
         `}</style>
