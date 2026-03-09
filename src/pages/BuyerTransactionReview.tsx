@@ -18,6 +18,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/components/ui/sonner";
 import { getTransactionReview, type ReviewData } from "@/services/review.service";
 import { supabase } from "@/integrations/supabase/client";
+import { BuyerNav } from "@/components/dashboard/BuyerNav";
+import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 
 type AuthState = "loading" | "anonymous" | "needs-role" | "ready";
 
