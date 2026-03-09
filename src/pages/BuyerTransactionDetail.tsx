@@ -274,7 +274,7 @@ const BuyerTransactionDetail = () => {
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 py-6 sm:py-8">
 
         {/* ── Header Card (light theme) ── */}
-        <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
+        <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 mb-6 sm:mb-8">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
             <div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
