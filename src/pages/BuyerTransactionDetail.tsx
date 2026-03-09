@@ -346,7 +346,7 @@ const BuyerTransactionDetail = () => {
         </div>
 
         {/* ── 3-Column Grid ── */}
-        <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
+        <div className="grid lg:grid-cols-3 gap-5 sm:gap-6">
 
           {/* ═══ LEFT COLUMN (2/3) ═══ */}
           <div className="lg:col-span-2 space-y-6 sm:space-y-8">
