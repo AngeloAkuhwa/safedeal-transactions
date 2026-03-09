@@ -630,31 +630,31 @@ const BuyerTransactionDetail = () => {
             )}
 
             {/* ── Payment Summary (desktop, scrolls normally) ── */}
-            <div className="hidden lg:block bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
-              <h3 className="text-lg sm:text-xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+            <div className="hidden lg:block bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-bold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
                 Payment Summary
               </h3>
               <div className="space-y-3 sm:space-y-4">
-                <div className="flex items-center justify-between text-sm sm:text-base">
+                <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Item Price</span>
                   <span className="font-semibold text-foreground">{formatCurrency(pricing.item_amount, pricing.currency_code)}</span>
                 </div>
                 {pricing.platform_fee_amount > 0 && (
-                  <div className="flex items-center justify-between text-sm sm:text-base">
+                  <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Platform Fee</span>
                     <span className="font-semibold text-foreground">{formatCurrency(pricing.platform_fee_amount, pricing.currency_code)}</span>
                   </div>
                 )}
                 {pricing.processing_fee_amount > 0 && (
-                  <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-border text-sm sm:text-base">
+                  <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-border text-sm">
                     <span className="text-muted-foreground">Processing Fee</span>
                     <span className="font-semibold text-foreground">{formatCurrency(pricing.processing_fee_amount, pricing.currency_code)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between pt-2">
-                  <span className="text-base sm:text-lg font-bold text-foreground">Total Paid</span>
-                  <span className="text-xl sm:text-2xl font-bold text-primary">{formatCurrency(pricing.buyer_total_amount, pricing.currency_code)}</span>
+                  <span className="text-sm sm:text-base font-bold text-foreground">Total Paid</span>
+                  <span className="text-lg sm:text-xl font-bold text-primary">{formatCurrency(pricing.buyer_total_amount, pricing.currency_code)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Currency</span>
