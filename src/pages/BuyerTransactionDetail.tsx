@@ -466,9 +466,9 @@ const BuyerTransactionDetail = () => {
             )}
 
             {/* ── Transaction Timeline ── */}
-            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
                 Transaction Timeline
               </h2>
               <TransactionTimeline
