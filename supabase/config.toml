@@ -17,3 +17,12 @@ verify_jwt = false
 
 [functions.decline-transaction]
 verify_jwt = false
+
+[functions.initiate-paystack-payment]
+verify_jwt = false
+
+[functions.verify-paystack-payment]
+verify_jwt = false
+
+[functions.paystack-webhook]
+verify_jwt = false

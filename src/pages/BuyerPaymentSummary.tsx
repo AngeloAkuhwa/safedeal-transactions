@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Shield, Lock, ShieldCheck, CreditCard, AlertTriangle,
   CheckCircle, Clock, Package, Truck, ClipboardCheck,
@@ -18,6 +18,19 @@ import { getTransactionReview, type ReviewData } from "@/services/review.service
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
+
+declare global {
+  interface Window {
+    PaystackPop: {
+      setup: (options: {
+        key: string;
+        access_code: string;
+        onClose: () => void;
+        callback: (response: { reference: string; [key: string]: unknown }) => void;
+      }) => { openIframe: () => void };
+    };
+  }
+}
 
 type AuthState = "loading" | "anonymous" | "needs-role" | "ready";
 
@@ -48,6 +61,23 @@ export default function BuyerPaymentSummary() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showFailed, setShowFailed] = useState(false);
+  const [failureReason, setFailureReason] = useState<string>("");
+  const [paystackLoaded, setPaystackLoaded] = useState(false);
+
+  // Load Paystack Inline JS
+  useEffect(() => {
+    if (document.getElementById("paystack-inline-js")) {
+      setPaystackLoaded(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.id = "paystack-inline-js";
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.async = true;
+    script.onload = () => setPaystackLoaded(true);
+    script.onerror = () => console.error("Failed to load Paystack inline.js");
+    document.head.appendChild(script);
+  }, []);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -81,6 +111,83 @@ export default function BuyerPaymentSummary() {
   const Header = authState === "ready"
     ? () => <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
     : PaymentHeader;
+
+  const handlePay = useCallback(async () => {
+    if (!agreedToTerms) {
+      toast.error("Please agree to the escrow payment terms before proceeding.");
+      return;
+    }
+
+    if (!paystackLoaded || !window.PaystackPop) {
+      toast.error("Payment system is still loading. Please wait a moment and try again.");
+      return;
+    }
+
+    setIsProcessing(true);
+    setFailureReason("");
+
+    try {
+      // 1. Call initiate-paystack-payment
+      const { data: initData, error: initError } = await supabase.functions.invoke(
+        "initiate-paystack-payment",
+        {
+          body: { shareToken, paymentMethod: selectedMethod },
+        }
+      );
+
+      if (initError || initData?.error) {
+        const errMsg = initData?.error || initError?.message || "Failed to initialize payment";
+        setFailureReason(errMsg);
+        setIsProcessing(false);
+        setShowFailed(true);
+        return;
+      }
+
+      // 2. Open Paystack popup
+      const handler = window.PaystackPop.setup({
+        key: initData.public_key,
+        access_code: initData.access_code,
+        callback: async (response) => {
+          try {
+            // 3. Verify payment on backend
+            const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
+              "verify-paystack-payment",
+              {
+                body: { reference: response.reference },
+              }
+            );
+
+            if (verifyError || verifyData?.error) {
+              const errMsg = verifyData?.error || verifyError?.message || "Payment verification failed";
+              setFailureReason(errMsg);
+              setIsProcessing(false);
+              setShowFailed(true);
+              return;
+            }
+
+            setIsProcessing(false);
+            setShowSuccess(true);
+          } catch (verifyErr) {
+            console.error("Verification error:", verifyErr);
+            setFailureReason("Payment verification failed. If you were charged, your payment is safe — please contact support.");
+            setIsProcessing(false);
+            setShowFailed(true);
+          }
+        },
+        onClose: () => {
+          setIsProcessing(false);
+          toast.info("Payment window was closed. You can try again when ready.");
+        },
+      });
+
+      handler.openIframe();
+    } catch (err) {
+      console.error("Payment error:", err);
+      setFailureReason((err as Error).message || "An unexpected error occurred");
+      setIsProcessing(false);
+      setShowFailed(true);
+    }
+  }, [agreedToTerms, paystackLoaded, shareToken, selectedMethod]);
 
   if (authState === "loading" || authState === "anonymous" || authState === "needs-role") {
     return (
@@ -137,18 +244,6 @@ export default function BuyerPaymentSummary() {
   const feeRate = data.pricing?.service_fee_rate ?? 0;
   const paystackFee = data.pricing?.paystack_fee_amount ?? 0;
   const verificationHours = data.delivery?.verification_window_hours ?? 72;
-
-  const handlePay = () => {
-    if (!agreedToTerms) {
-      toast.error("Please agree to the escrow payment terms before proceeding.");
-      return;
-    }
-    setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      setShowSuccess(true);
-    }, 3000);
-  };
 
   const firstMediaUrl = data.media?.[0]?.files?.secure_url || data.media?.[0]?.files?.file_url;
 
@@ -443,12 +538,11 @@ export default function BuyerPaymentSummary() {
                       </div>
                       <div>
                         <h3 className="text-base font-bold text-foreground mb-1">Credit / Debit Card</h3>
-                        <p className="text-sm text-muted-foreground mb-3">Pay securely with your card</p>
+                        <p className="text-sm text-muted-foreground mb-3">Pay securely with your card via Paystack</p>
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <span className="text-xs font-bold border rounded px-1.5 py-0.5">VISA</span>
                           <span className="text-xs font-bold border rounded px-1.5 py-0.5">MC</span>
-                          <span className="text-xs font-bold border rounded px-1.5 py-0.5">AMEX</span>
-                          <span className="text-xs font-bold border rounded px-1.5 py-0.5">DISC</span>
+                          <span className="text-xs font-bold border rounded px-1.5 py-0.5">VERVE</span>
                         </div>
                       </div>
                     </div>
@@ -458,29 +552,13 @@ export default function BuyerPaymentSummary() {
                     </div>
                   </div>
 
-                  {/* Card form inside selected card */}
                   {selectedMethod === "card" && (
-                    <div className="mt-6 space-y-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-foreground mb-2">Card Number</label>
-                        <div className="relative">
-                          <input type="text" placeholder="1234 5678 9012 3456" className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" disabled />
-                          <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-semibold text-foreground mb-2">Expiry Date</label>
-                          <input type="text" placeholder="MM / YY" className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" disabled />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-foreground mb-2">CVV</label>
-                          <input type="text" placeholder="123" className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" disabled />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-foreground mb-2">Cardholder Name</label>
-                        <input type="text" placeholder="Sarah Johnson" className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" disabled />
+                    <div className="mt-4 bg-muted rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <Lock className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                        <p className="text-sm text-muted-foreground">
+                          Card details are entered securely in the Paystack payment popup. SafeDeal never sees or stores your card information.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -502,7 +580,7 @@ export default function BuyerPaymentSummary() {
                       </div>
                       <div>
                         <h3 className="text-base font-bold text-foreground mb-1">Bank Transfer</h3>
-                        <p className="text-sm text-muted-foreground">Direct bank account transfer</p>
+                        <p className="text-sm text-muted-foreground">Pay via bank transfer through Paystack</p>
                       </div>
                     </div>
                     <div className={`w-6 h-6 border-2 rounded-full flex items-center justify-center shrink-0 ${selectedMethod === "bank" ? "border-primary" : "border-muted-foreground/30"}`}>
@@ -511,50 +589,15 @@ export default function BuyerPaymentSummary() {
                   </div>
 
                   {selectedMethod === "bank" && (
-                    <div className="mt-6 bg-muted rounded-lg p-4 text-center">
-                      <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">Bank transfer option will be available through Paystack — coming soon.</p>
+                    <div className="mt-4 bg-muted rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <Building2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                        <p className="text-sm text-muted-foreground">
+                          You'll receive bank transfer instructions in the Paystack payment popup. Complete the transfer to proceed.
+                        </p>
+                      </div>
                     </div>
                   )}
-                </div>
-              </div>
-            </div>
-
-            {/* Billing Address */}
-            <div className="bg-card rounded-2xl shadow-lg border p-6">
-              <div className="flex items-center gap-2 mb-6 pb-4 border-b">
-                <MapPin className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-bold text-foreground">Billing Address</h2>
-              </div>
-
-              <div className="space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">First Name</label>
-                    <input type="text" placeholder="Sarah" className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" disabled />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">Last Name</label>
-                    <input type="text" placeholder="Johnson" className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" disabled />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">Street Address</label>
-                  <input type="text" placeholder="123 Main Street" className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" disabled />
-                </div>
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">City</label>
-                    <input type="text" placeholder="New York" className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" disabled />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">State</label>
-                    <input type="text" placeholder="NY" className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" disabled />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">ZIP Code</label>
-                    <input type="text" placeholder="10001" className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" disabled />
-                  </div>
                 </div>
               </div>
             </div>
@@ -564,17 +607,18 @@ export default function BuyerPaymentSummary() {
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-6 w-6 text-destructive mt-0.5 shrink-0" />
                 <div className="flex-1">
-                  <h3 className="text-base font-bold text-destructive mb-2">Critical: Do Not Close or Refresh This Screen</h3>
+                  <h3 className="text-base font-bold text-destructive mb-2">Critical: Do Not Close the Payment Popup</h3>
                   <p className="text-sm text-foreground/80 mb-3">
-                    While your payment is being processed, <strong>do not refresh, close, or navigate away from this browser window</strong>. Doing so will interrupt the escrow creation process and may cause payment failures or delays.
+                    While your payment is being processed in the Paystack popup, <strong>do not close the popup window</strong>. Doing so will interrupt the payment process.
                   </p>
                   <div className="bg-card rounded-lg p-3 border border-destructive/20">
                     <p className="text-xs font-semibold text-foreground mb-2">What to expect during processing:</p>
                     <ul className="text-xs text-foreground/70 space-y-1">
                       {[
-                        "Payment authorization (5-10 seconds)",
+                        "Paystack secure payment popup opens",
+                        "Enter your card details or complete bank transfer",
+                        "Payment authorization (5-30 seconds)",
                         "Escrow account creation (automatic)",
-                        "Agreement locking (instant)",
                         "Confirmation message displayed",
                       ].map((item) => (
                         <li key={item} className="flex items-start gap-2">
@@ -639,16 +683,26 @@ export default function BuyerPaymentSummary() {
 
                 <button
                   onClick={handlePay}
-                  disabled={!agreedToTerms}
+                  disabled={!agreedToTerms || isProcessing}
                   className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold py-4 rounded-xl hover:opacity-90 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Lock className="h-5 w-5" />
-                  <span>Pay {currencySymbol}{totalAmount.toLocaleString()}</span>
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-5 w-5" />
+                      <span>Pay {currencySymbol}{totalAmount.toLocaleString()}</span>
+                    </>
+                  )}
                 </button>
 
                 <button
                   onClick={() => navigate(`/t/${shareToken}`)}
-                  className="w-full bg-transparent border-2 border-border text-foreground font-semibold py-3 rounded-xl hover:bg-muted transition-all flex items-center justify-center gap-2"
+                  disabled={isProcessing}
+                  className="w-full bg-transparent border-2 border-border text-foreground font-semibold py-3 rounded-xl hover:bg-muted transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   <span>Back to Review</span>
@@ -665,7 +719,7 @@ export default function BuyerPaymentSummary() {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Star className="h-3.5 w-3.5 text-warning" />
-                    <span>PCI DSS Compliant</span>
+                    <span>PCI DSS Compliant (via Paystack)</span>
                   </div>
                 </div>
               </div>
@@ -727,7 +781,7 @@ export default function BuyerPaymentSummary() {
           <div className="bg-card rounded-3xl shadow-2xl p-12 max-w-md w-full text-center animate-in slide-in-from-bottom-4">
             <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-6" />
             <h2 className="text-2xl font-bold text-foreground mb-3">Processing Payment</h2>
-            <p className="text-muted-foreground mb-6">Please wait while we securely process your payment. Do not close this window.</p>
+            <p className="text-muted-foreground mb-6">Please complete the payment in the Paystack popup. Do not close this window.</p>
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
               <div className="flex items-center justify-center gap-2 text-sm text-primary">
                 <ShieldCheck className="h-4 w-4" />
@@ -810,7 +864,9 @@ export default function BuyerPaymentSummary() {
                 <XCircle className="h-10 w-10 text-destructive" />
               </div>
               <h2 className="text-3xl font-bold text-foreground mb-3">Payment Failed</h2>
-              <p className="text-muted-foreground mb-6">We were unable to process your payment. Please check your payment details and try again.</p>
+              <p className="text-muted-foreground mb-6">
+                {failureReason || "We were unable to process your payment. Please check your payment details and try again."}
+              </p>
 
               <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 mb-6 text-left">
                 <div className="flex items-start gap-3">
