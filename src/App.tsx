@@ -36,6 +36,7 @@ const App = () => (
             {/* Public routes */}
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/t/:shareToken" element={<BuyerTransactionReview />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Protected: requires session */}

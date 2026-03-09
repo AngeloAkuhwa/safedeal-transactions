@@ -79,7 +79,13 @@ const RoleSelection = () => {
       }
 
       toast.success(`You're all set as a ${role === "buyer" ? "Buyer" : "Seller"}!`);
-      navigate("/dashboard", { replace: true });
+      const storedRedirect = sessionStorage.getItem("safedeal_redirect");
+      if (storedRedirect) {
+        sessionStorage.removeItem("safedeal_redirect");
+        navigate(storedRedirect, { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
