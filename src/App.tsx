@@ -19,6 +19,7 @@ import BuyerTransactionVerify from "./pages/BuyerTransactionVerify";
 import BuyerTransactionDetail from "./pages/BuyerTransactionDetail";
 import BuyerTransactionAgreement from "./pages/BuyerTransactionAgreement";
 import BuyerTransactionTracking from "./pages/BuyerTransactionTracking";
+import BuyerTransactionReview from "./pages/BuyerTransactionReview";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
