@@ -1,108 +1,73 @@
 
+## What exists vs. what needs to be built
 
-# Plan: Contact Seller Modal, Receipt Print/Download & Order Tracking Page
+**Current state:**
+- `BuyerTransactionDetail.tsx` — fully implemented, 880 lines. Has "Track Order" button (line 289-291, no navigation wired), "Send Message to Seller" button (line 528-530, no modal), and "Download Receipt" buttons (lines 304, 673, 761, no action wired)
+- `ContactSellerModal.tsx` — does NOT exist yet
+- `TransactionReceipt.tsx` — does NOT exist yet  
+- `BuyerTransactionTracking.tsx` — does NOT exist yet
+- `App.tsx` — no tracking route added yet
 
-## Overview
+## Files to create
 
-Add three features to the transaction details page:
-1. **Send Message Modal** — opens when clicking "Send Message to Seller" with text + file upload capability
-2. **Print/Download Receipt** — add receipt generation with print/download controls for item details
-3. **Order Tracking Page** — new dedicated page based on the uploaded reference, linked from "Track Order" button
+### 1. `src/components/transactions/ContactSellerModal.tsx`
+A Dialog modal triggered when "Send Message to Seller" is clicked:
+- Seller name in header
+- Textarea for message body (required, min 10 chars)
+- File upload zone: click-to-browse or drag-drop, accepts images + PDFs up to 10MB, shows file chips with remove buttons
+- Send button with loading state → shows sonner toast on success/error
+- For now, message sending is mocked (toast success) — no edge function needed
 
----
+Props: `open`, `onOpenChange`, `sellerName`, `transactionId`
 
-## 1. Contact Seller Modal
+### 2. `src/components/transactions/TransactionReceipt.tsx`
+A visually hidden, print-optimized component:
+- Takes the full `TransactionDetailResponse` data as props
+- Receipt header: SafeDeal logo text, "Official Receipt", transaction code, date
+- Item section: title, qty, condition, category, description
+- Pricing breakdown: item price, platform fee, processing fee, total
+- Seller info: name, member since
+- Delivery address if available
+- Footer: "Protected by SafeDeal Escrow"
+- Styled with `@media print` via inline styles so it's invisible on screen but renders on print
 
-### New Component: `src/components/transactions/ContactSellerModal.tsx`
+Export a `printReceipt(ref)` helper that calls `window.print()`.
 
-A dialog modal containing:
-- **Textarea** for message body
-- **File upload area** supporting images/documents (drag-drop + click-to-upload)
-- **Submit button** to send the message
-- State management for selected files, loading, success/error feedback
-- Integration with an edge function (or mock for now) to send the message
+### 3. `src/pages/BuyerTransactionTracking.tsx`
+New full page with route `/dashboard/transactions/:transactionId/tracking`:
+- Reuses `getTransactionDetail()` (same data, no new edge function needed)
+- **Nav + breadcrumb**: BuyerNav → "Back to Transaction Details" link
+- **Trust banner**: Shield icon + escrow status message
+- **Transaction header**: item title, status badge, money badge, tx code + date
+- **Horizontal 8-step progress timeline**: Draft → Awaiting Payment → Payment Secured → Preparing → Dispatched → Delivered → Verification → Completed. Uses icons in circles connected by lines, colored by current status.
+- **Next Action card** (reuse logic from detail page)
+- **Delivery Tracking card**: courier name, tracking number, shipped/expected dates, external "Track Package" button if `tracking_url` exists
+- **Delivery Evidence grid**: photo thumbnails from `delivery_proof_files`, click to enlarge (simple lightbox)
+- **Full Transaction Timeline**: vertical step-by-step log using `status_history`, showing timestamps + labels
+- **Right sidebar**: Item details summary, Seller info card, Payment summary, Help card ("Need help? Contact Support")
+- Mobile-first responsive layout (stack on mobile, 2/3 + 1/3 grid on desktop)
 
-The modal will receive `sellerId`, `transactionId`, and `sellerName` as props.
+## Files to modify
 
-### Wiring
-- Update `BuyerTransactionDetail.tsx` line ~528: wrap "Send Message to Seller" button to open the modal via `useState` controlled `<Dialog>`.
-
----
-
-## 2. Print/Download Receipt
-
-### New Component: `src/components/transactions/TransactionReceipt.tsx`
-
-A printable receipt component containing:
-- Transaction code, date created
-- Item details (title, description, quantity, condition)
-- Pricing breakdown (item amount, fees, total)
-- Seller info
-- Delivery address
-
-### Controls
-Add to the **header dropdown** ("More Actions"):
-- "Download Receipt" → generates PDF or triggers `window.print()` on a hidden print-ready receipt
-- "Print Receipt" → same flow but opens browser print dialog
-
-### Implementation
-- Add a hidden `<div>` with the receipt markup (or use a print-specific component)
-- On click: use `window.print()` or a library like `react-to-print` (already common pattern, no new deps needed)
-
----
-
-## 3. Order Tracking Page
-
-### New Page: `src/pages/BuyerTransactionTracking.tsx`
-
-Based on the uploaded `tracking-2.txt` reference, this page includes:
-- **Trust banner** — escrow protection status
-- **Transaction header** — item name, status badges
-- **Horizontal progress timeline** — 8-step visual (Created → Completed)
-- **Next Action Card** — what buyer needs to do / wait for
-- **Delivery Tracking Card** — courier info, tracking number, "Track Package" external link
-- **Delivery Evidence Grid** — seller-uploaded proof photos
-- **Full Transaction Timeline** — vertical timeline with all events
-- **Audit Log** — detailed event history
-- **Right sidebar** — Agreement snapshot, Item details, Seller info, Help card
-
-### Route
-Add to `App.tsx`:
+### `src/App.tsx`
+Add tracking route inside the `requireRole="buyer"` block:
 ```
-/dashboard/transactions/:transactionId/tracking
+<Route path="/dashboard/transactions/:transactionId/tracking" element={<BuyerTransactionTracking />} />
 ```
 
-### Service
-Extend `transaction-detail.service.ts` or create `tracking.service.ts` to fetch tracking-specific data (reuse existing endpoint or add to edge function).
+### `src/pages/BuyerTransactionDetail.tsx`
+Four targeted changes:
+1. **Imports**: Add `useRef`, import `ContactSellerModal`, `TransactionReceipt`, `useNavigate` already imported
+2. **State**: Add `const [contactOpen, setContactOpen] = useState(false)` and `const receiptRef = useRef<HTMLDivElement>(null)`
+3. **Track Order button** (line 289-291): Add `onClick={() => navigate(\`/dashboard/transactions/${tx.id}/tracking\`)}`
+4. **Download Receipt** dropdown item (line 304): Add `onClick={() => { window.print(); }}` and render `<TransactionReceipt ref={receiptRef} data={data} />`
+5. **Send Message button** (line 528-530): Add `onClick={() => setContactOpen(true)}`; render `<ContactSellerModal open={contactOpen} onOpenChange={setContactOpen} sellerName={seller?.full_name ?? "Seller"} transactionId={tx.id} />` after the closing `</div>` of the Contact Seller card
+6. **All "Download Receipt" buttons** (lines 673, 761): Add `onClick` handlers
+7. **Print receipt** dropdown item: Add "Print Receipt" menu item
 
-### Wiring
-- Update `BuyerTransactionDetail.tsx` header "Track Order" button (line ~289) to navigate to `/dashboard/transactions/${tx.id}/tracking`
-- Add "Track Order" link in other relevant places (e.g., transaction table row actions, verification page)
-
----
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/transactions/ContactSellerModal.tsx` | Modal for messaging seller |
-| `src/components/transactions/TransactionReceipt.tsx` | Printable receipt component |
-| `src/pages/BuyerTransactionTracking.tsx` | Dedicated order tracking page |
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/App.tsx` | Add tracking route |
-| `src/pages/BuyerTransactionDetail.tsx` | Wire modal open, receipt print, tracking link |
-
----
-
-## Technical Notes
-
-- **No new dependencies required** — uses existing Dialog, Button, Textarea, file input
-- **File upload** — reuse existing Cloudinary integration pattern from `src/lib/cloudinary.ts`
-- **Message sending** — create edge function `send-seller-message` or implement later; for now, show toast success
-- **Receipt** — use CSS `@media print` for clean print output
-- **Tracking page** — fully responsive design matching reference, using existing UI components
-
+## Implementation order
+1. Create `ContactSellerModal.tsx`
+2. Create `TransactionReceipt.tsx`
+3. Create `BuyerTransactionTracking.tsx`
+4. Update `App.tsx` (add route + import)
+5. Update `BuyerTransactionDetail.tsx` (wire all three features)
