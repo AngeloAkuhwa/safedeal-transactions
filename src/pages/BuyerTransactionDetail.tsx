@@ -291,7 +291,7 @@ const BuyerTransactionDetail = () => {
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button className="px-4 sm:px-6 py-2.5 sm:py-3 bg-muted text-muted-foreground font-bold rounded-xl hover:bg-muted/80 transition-all flex items-center justify-center gap-2 w-full sm:w-auto text-sm sm:text-base h-auto" variant="ghost">
+                  <Button className="px-4 sm:px-6 py-2.5 sm:py-3 bg-muted text-muted-foreground font-bold rounded-xl hover:bg-muted/80 transition-all flex items-center justify-center gap-2 w-full sm:w-auto text-sm h-auto" variant="ghost">
                     <MoreHorizontal className="h-4 w-4" /> More Actions
                   </Button>
                 </DropdownMenuTrigger>
