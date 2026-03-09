@@ -410,25 +410,25 @@ const BuyerTransactionDetail = () => {
 
             {/* ── Delivery Details ── */}
             {delivery_terms && (
-              <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
-                <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                  <Truck className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+              <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
+                  <Truck className="h-5 w-5 text-primary" />
                   Delivery Details
                 </h2>
-                <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+                <div className="grid md:grid-cols-2 gap-4 sm:gap-5">
                   <div className="space-y-4">
                     <div>
                       <p className="text-xs sm:text-sm font-semibold text-muted-foreground mb-1">Delivery Method</p>
-                      <p className="text-base sm:text-lg font-bold text-foreground capitalize">{delivery_terms.delivery_method.replace(/_/g, " ")}</p>
+                      <p className="text-sm sm:text-base font-bold text-foreground capitalize">{delivery_terms.delivery_method.replace(/_/g, " ")}</p>
                     </div>
                     <div>
                       <p className="text-xs sm:text-sm font-semibold text-muted-foreground mb-1">Expected Delivery</p>
-                      <p className="text-base sm:text-lg font-bold text-foreground">{format(new Date(delivery_terms.expected_delivery_date), "MMMM d, yyyy")}</p>
+                      <p className="text-sm sm:text-base font-bold text-foreground">{format(new Date(delivery_terms.expected_delivery_date), "MMMM d, yyyy")}</p>
                     </div>
                     {delivery_terms.delivery_address_line1 && (
                       <div>
                         <p className="text-xs sm:text-sm font-semibold text-muted-foreground mb-1">Destination</p>
-                        <p className="text-base sm:text-lg font-bold text-foreground">
+                        <p className="text-sm sm:text-base font-bold text-foreground">
                           {delivery_terms.delivery_address_line1}
                           {delivery_terms.delivery_address_line2 && `, ${delivery_terms.delivery_address_line2}`}
                         </p>
