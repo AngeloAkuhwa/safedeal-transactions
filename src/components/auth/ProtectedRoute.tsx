@@ -9,6 +9,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
+  const location = useLocation();
   const [status, setStatus] = useState<
     "loading" | "authenticated" | "unauthenticated" | "needs-role" | "wrong-role"
   >("loading");
