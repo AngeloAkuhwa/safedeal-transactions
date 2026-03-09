@@ -278,7 +278,7 @@ const BuyerTransactionDetail = () => {
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
             <div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{tx.transaction_code}</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">{tx.transaction_code}</h1>
                 <Badge className={`${sBadge.className} text-xs sm:text-sm font-bold px-3 py-1.5 rounded-full`}>{sBadge.label}</Badge>
               </div>
               <p className="text-muted-foreground text-sm sm:text-base">
