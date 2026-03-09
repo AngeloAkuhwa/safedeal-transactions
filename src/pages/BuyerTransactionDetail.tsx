@@ -749,18 +749,18 @@ const BuyerTransactionDetail = () => {
                     <span className="text-muted-foreground">Item Price</span>
                     <span className="font-semibold text-foreground">{formatCurrency(pricing.item_amount, pricing.currency_code)}</span>
                   </div>
-                  {(pricing.service_fee_amount ?? ((pricing.platform_fee_amount || 0) + (pricing.processing_fee_amount || 0))) > 0 && (
+                  {(pricing.service_fee_amount || 0) > 0 && (
                     <div className="flex justify-between pb-3 border-b border-border text-sm">
                       <div>
                         <span className="text-muted-foreground">Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
                         <p className="text-xs text-muted-foreground mt-0.5">Includes payment processing</p>
                       </div>
-                      <span className="font-semibold text-foreground">{formatCurrency(pricing.service_fee_amount ?? ((pricing.platform_fee_amount || 0) + (pricing.processing_fee_amount || 0)), pricing.currency_code)}</span>
+                      <span className="font-semibold text-foreground">{formatCurrency(pricing.service_fee_amount, pricing.currency_code)}</span>
                     </div>
                   )}
                   <div className="flex justify-between pt-2">
                     <span className="text-base font-bold text-foreground">Total Paid</span>
-                    <span className="text-xl font-bold text-primary">{formatCurrency(pricing.buyer_total_amount, pricing.currency_code)}</span>
+                    <span className="text-xl font-bold text-primary">{formatCurrency(pricing.total_amount, pricing.currency_code)}</span>
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-border">
