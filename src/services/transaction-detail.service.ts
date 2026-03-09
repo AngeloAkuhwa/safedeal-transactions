@@ -16,6 +16,8 @@ export interface TransactionDetailPricing {
   processing_fee_amount: number;
   buyer_total_amount: number;
   currency_code: string;
+  service_fee_amount: number;
+  service_fee_rate: number;
 }
 
 export interface TransactionDetailDeliveryTerms {

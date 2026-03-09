@@ -100,6 +100,15 @@ Deno.serve(async (req) => {
           .maybeSingle(),
       ]);
 
+    const pricingRaw = pricingRes.data;
+    const computedPricing = pricingRaw ? {
+      ...pricingRaw,
+      service_fee_amount: (Number(pricingRaw.platform_fee_amount) || 0) + (Number(pricingRaw.processing_fee_amount) || 0),
+      service_fee_rate: (Number(pricingRaw.item_amount) || 0) > 0
+        ? ((Number(pricingRaw.platform_fee_amount) || 0) + (Number(pricingRaw.processing_fee_amount) || 0)) / Number(pricingRaw.item_amount)
+        : 0,
+    } : null;
+
     return jsonResponse({
       transaction: {
         id: tx.id,
@@ -110,7 +119,7 @@ Deno.serve(async (req) => {
       },
       snapshot: snapshotRes.data,
       item: itemRes.data,
-      pricing: pricingRes.data,
+      pricing: computedPricing,
       delivery: deliveryRes.data,
       seller: sellerRes.data,
       escrow: escrowRes.data,

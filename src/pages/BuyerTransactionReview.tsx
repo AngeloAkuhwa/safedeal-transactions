@@ -718,8 +718,8 @@ function NextActionCard({ payLabel, onPay, onDecline, authState }: {
   );
 }
 
-function PaymentSummaryCard({ data, currencySymbol, itemAmount, feeAmount, totalAmount }: {
-  data: ReviewData; currencySymbol: string; itemAmount: number; feeAmount: number; totalAmount: number;
+function PaymentSummaryCard({ data, currencySymbol, itemAmount, feeAmount, feeRate, totalAmount }: {
+  data: ReviewData; currencySymbol: string; itemAmount: number; feeAmount: number; feeRate: number; totalAmount: number;
 }) {
   return (
     <Card className="rounded-2xl shadow-lg">
@@ -734,9 +734,10 @@ function PaymentSummaryCard({ data, currencySymbol, itemAmount, feeAmount, total
             <span className="font-semibold text-foreground">{currencySymbol}{itemAmount.toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Service Fee</span>
+            <span className="text-muted-foreground">Service Fee ({(feeRate * 100).toFixed(1)}%)</span>
             <span className="font-semibold text-foreground">{currencySymbol}{feeAmount.toLocaleString()}</span>
           </div>
+          <p className="text-xs text-muted-foreground -mt-1">Includes payment processing</p>
           <div className="border-t pt-3" />
           <div className="flex justify-between items-center">
             <span className="text-base font-bold text-foreground">Total Amount</span>
