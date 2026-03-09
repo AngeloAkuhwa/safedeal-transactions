@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { getSession, onAuthStateChange } from "@/services/auth.service";
 import { getUserRoles } from "@/services/role.service";
