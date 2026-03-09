@@ -132,6 +132,7 @@ function NextActionCard({
   countdown,
   dispute,
   navigate,
+  shareToken,
 }: {
   nextAction: TransactionDetailResponse["next_action"];
   txStatus: string;
@@ -139,6 +140,7 @@ function NextActionCard({
   countdown: string;
   dispute: TransactionDetailResponse["dispute"];
   navigate: ReturnType<typeof useNavigate>;
+  shareToken: string | null;
 }) {
   return (
     <div className="rounded-2xl bg-gradient-to-br from-warning to-warning/90 p-6 text-warning-foreground shadow-lg">
