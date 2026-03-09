@@ -20,6 +20,7 @@ import BuyerTransactionDetail from "./pages/BuyerTransactionDetail";
 import BuyerTransactionAgreement from "./pages/BuyerTransactionAgreement";
 import BuyerTransactionTracking from "./pages/BuyerTransactionTracking";
 import BuyerTransactionReview from "./pages/BuyerTransactionReview";
+import BuyerPaymentSummary from "./pages/BuyerPaymentSummary";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/t/:shareToken" element={<BuyerTransactionReview />} />
+            <Route path="/t/:shareToken/pay" element={<BuyerPaymentSummary />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Protected: requires session */}
