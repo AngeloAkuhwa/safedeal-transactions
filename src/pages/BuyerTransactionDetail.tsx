@@ -481,24 +481,24 @@ const BuyerTransactionDetail = () => {
             </div>
 
             {/* ── Buyer Protection ── */}
-            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
                 Buyer Protection
               </h2>
               <div className="space-y-4">
                 <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
                   <Lock className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm sm:text-base font-bold text-primary mb-1">Your Money is Protected</p>
-                    <p className="text-xs sm:text-sm text-primary/80 leading-relaxed">
+                    <p className="text-sm font-bold text-primary mb-1">Your Money is Protected</p>
+                    <p className="text-xs text-primary/80 leading-relaxed">
                       SafeDeal holds your payment in secure escrow until you confirm the item matches what was agreed. If there's an issue, you can raise a dispute.
                     </p>
                   </div>
                 </div>
                 <div className="bg-muted/50 rounded-xl p-4">
-                  <h4 className="font-bold text-foreground mb-3 text-sm sm:text-base">What happens next?</h4>
-                  <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
+                  <h4 className="font-bold text-foreground mb-3 text-sm">What happens next?</h4>
+                  <ul className="space-y-2 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-success shrink-0 mt-0.5" />
                       <span>Inspect the item carefully to ensure it matches the description</span>
