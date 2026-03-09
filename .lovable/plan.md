@@ -1,73 +1,90 @@
 
-## What exists vs. what needs to be built
+## Current State
 
-**Current state:**
-- `BuyerTransactionDetail.tsx` — fully implemented, 880 lines. Has "Track Order" button (line 289-291, no navigation wired), "Send Message to Seller" button (line 528-530, no modal), and "Download Receipt" buttons (lines 304, 673, 761, no action wired)
-- `ContactSellerModal.tsx` — does NOT exist yet
-- `TransactionReceipt.tsx` — does NOT exist yet  
-- `BuyerTransactionTracking.tsx` — does NOT exist yet
-- `App.tsx` — no tracking route added yet
+- `BuyerTransactionDetail.tsx` (880 lines): fully implemented. Key wiring points:
+  - Line 289: "Track Order" button — no `onClick`
+  - Line 304: "Download Receipt" dropdown item — no `onClick`
+  - Line 528: "Send Message to Seller" button — no `onClick`
+  - Lines 672–674 and 760–762: two more "Download Receipt" buttons in payment summary cards
+- `App.tsx`: no tracking route, no import for tracking page
+- None of the three new files exist: `ContactSellerModal.tsx`, `TransactionReceipt.tsx`, `BuyerTransactionTracking.tsx`
 
-## Files to create
+## Implementation Plan
 
-### 1. `src/components/transactions/ContactSellerModal.tsx`
-A Dialog modal triggered when "Send Message to Seller" is clicked:
-- Seller name in header
-- Textarea for message body (required, min 10 chars)
-- File upload zone: click-to-browse or drag-drop, accepts images + PDFs up to 10MB, shows file chips with remove buttons
-- Send button with loading state → shows sonner toast on success/error
-- For now, message sending is mocked (toast success) — no edge function needed
+### Step 1 — Create `src/components/transactions/ContactSellerModal.tsx`
 
-Props: `open`, `onOpenChange`, `sellerName`, `transactionId`
+Dialog with:
+- Header showing seller name
+- Controlled textarea (min 10 chars, validated before submit)
+- Drag-and-drop / click file upload zone: accepts `image/*,.pdf`, max 10MB per file, shows file chip list with ✕ remove buttons
+- Send button with `isLoading` spinner → `toast.success("Message sent!")` on mock submit
+- Props: `open`, `onOpenChange`, `sellerName`, `transactionId`
 
-### 2. `src/components/transactions/TransactionReceipt.tsx`
-A visually hidden, print-optimized component:
-- Takes the full `TransactionDetailResponse` data as props
-- Receipt header: SafeDeal logo text, "Official Receipt", transaction code, date
-- Item section: title, qty, condition, category, description
-- Pricing breakdown: item price, platform fee, processing fee, total
-- Seller info: name, member since
-- Delivery address if available
-- Footer: "Protected by SafeDeal Escrow"
-- Styled with `@media print` via inline styles so it's invisible on screen but renders on print
+### Step 2 — Create `src/components/transactions/TransactionReceipt.tsx`
 
-Export a `printReceipt(ref)` helper that calls `window.print()`.
+Screen-hidden, print-visible component:
+- CSS class `hidden print:block` wrapping a `forwardRef` `<div>`
+- Receipt layout: SafeDeal header, tx code + date, item details table, pricing breakdown, seller info, delivery address, footer
+- `@media print` injection via `<style>` tag inside the component OR via Tailwind `print:` variants
 
-### 3. `src/pages/BuyerTransactionTracking.tsx`
-New full page with route `/dashboard/transactions/:transactionId/tracking`:
-- Reuses `getTransactionDetail()` (same data, no new edge function needed)
-- **Nav + breadcrumb**: BuyerNav → "Back to Transaction Details" link
-- **Trust banner**: Shield icon + escrow status message
-- **Transaction header**: item title, status badge, money badge, tx code + date
-- **Horizontal 8-step progress timeline**: Draft → Awaiting Payment → Payment Secured → Preparing → Dispatched → Delivered → Verification → Completed. Uses icons in circles connected by lines, colored by current status.
-- **Next Action card** (reuse logic from detail page)
-- **Delivery Tracking card**: courier name, tracking number, shipped/expected dates, external "Track Package" button if `tracking_url` exists
-- **Delivery Evidence grid**: photo thumbnails from `delivery_proof_files`, click to enlarge (simple lightbox)
-- **Full Transaction Timeline**: vertical step-by-step log using `status_history`, showing timestamps + labels
-- **Right sidebar**: Item details summary, Seller info card, Payment summary, Help card ("Need help? Contact Support")
-- Mobile-first responsive layout (stack on mobile, 2/3 + 1/3 grid on desktop)
+### Step 3 — Create `src/pages/BuyerTransactionTracking.tsx`
 
-## Files to modify
+New full page reusing `getTransactionDetail()`:
+- BuyerNav + breadcrumb back to transaction detail
+- Shield trust banner (escrow status)
+- Transaction header: item title, status + money badges, tx code + date
+- 8-step horizontal progress tracker: `Draft → Awaiting Payment → Payment Secured → Preparing → Dispatched → Delivered → Verification → Completed` — icon circles connected by lines, steps colored green/primary/muted by position vs current status
+- Next Action card (same logic as detail page)
+- Delivery Tracking card: courier, tracking number, shipped/expected dates, external "Track Package" link
+- Delivery Evidence grid: image thumbnails from `delivery_proof_files`, click → simple overlay lightbox
+- Vertical audit log: `status_history` entries with timestamps
+- Right sidebar (desktop): Item summary, Seller card, Payment summary, Help card
+- Full responsive: stacked on mobile, 2/3+1/3 grid on desktop
 
-### `src/App.tsx`
-Add tracking route inside the `requireRole="buyer"` block:
-```
+### Step 4 — Update `src/App.tsx`
+
+Add inside the `requireRole="buyer"` block (after line 50):
+```tsx
+import BuyerTransactionTracking from "./pages/BuyerTransactionTracking";
+// ...
 <Route path="/dashboard/transactions/:transactionId/tracking" element={<BuyerTransactionTracking />} />
 ```
 
-### `src/pages/BuyerTransactionDetail.tsx`
-Four targeted changes:
-1. **Imports**: Add `useRef`, import `ContactSellerModal`, `TransactionReceipt`, `useNavigate` already imported
-2. **State**: Add `const [contactOpen, setContactOpen] = useState(false)` and `const receiptRef = useRef<HTMLDivElement>(null)`
-3. **Track Order button** (line 289-291): Add `onClick={() => navigate(\`/dashboard/transactions/${tx.id}/tracking\`)}`
-4. **Download Receipt** dropdown item (line 304): Add `onClick={() => { window.print(); }}` and render `<TransactionReceipt ref={receiptRef} data={data} />`
-5. **Send Message button** (line 528-530): Add `onClick={() => setContactOpen(true)}`; render `<ContactSellerModal open={contactOpen} onOpenChange={setContactOpen} sellerName={seller?.full_name ?? "Seller"} transactionId={tx.id} />` after the closing `</div>` of the Contact Seller card
-6. **All "Download Receipt" buttons** (lines 673, 761): Add `onClick` handlers
-7. **Print receipt** dropdown item: Add "Print Receipt" menu item
+### Step 5 — Update `src/pages/BuyerTransactionDetail.tsx`
 
-## Implementation order
-1. Create `ContactSellerModal.tsx`
-2. Create `TransactionReceipt.tsx`
-3. Create `BuyerTransactionTracking.tsx`
-4. Update `App.tsx` (add route + import)
-5. Update `BuyerTransactionDetail.tsx` (wire all three features)
+**Imports** (top of file): add `useRef` to the react import, add `ContactSellerModal` and `TransactionReceipt` imports
+
+**State** (inside component, after line 223): 
+```tsx
+const [contactOpen, setContactOpen] = useState(false);
+const receiptRef = useRef<HTMLDivElement>(null);
+const handlePrint = () => window.print();
+```
+
+**5 targeted wiring changes:**
+1. Line 289 — Track Order button: add `onClick={() => navigate(\`/dashboard/transactions/${tx.id}/tracking\`)}`
+2. Line 304 — Download Receipt dropdown item: add `onClick={handlePrint}`; add new "Print Receipt" item after it
+3. Line 528 — Send Message button: add `onClick={() => setContactOpen(true)}`
+4. Lines 672–674 — Desktop payment card Download Receipt button: add `onClick={handlePrint}`
+5. Lines 760–762 — Mobile payment card Download Receipt button: add `onClick={handlePrint}`
+
+**Render additions** (before closing `</div>` at line 771):
+```tsx
+<ContactSellerModal
+  open={contactOpen}
+  onOpenChange={setContactOpen}
+  sellerName={seller?.full_name ?? "Seller"}
+  transactionId={tx.id}
+/>
+<TransactionReceipt ref={receiptRef} data={data} />
+```
+
+## File Change Summary
+
+| Action | File |
+|--------|------|
+| Create | `src/components/transactions/ContactSellerModal.tsx` |
+| Create | `src/components/transactions/TransactionReceipt.tsx` |
+| Create | `src/pages/BuyerTransactionTracking.tsx` |
+| Modify | `src/App.tsx` — add import + route |
+| Modify | `src/pages/BuyerTransactionDetail.tsx` — 5 wiring changes + 2 render additions |
