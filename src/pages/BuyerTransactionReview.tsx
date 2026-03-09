@@ -18,6 +18,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/components/ui/sonner";
 import { getTransactionReview, type ReviewData } from "@/services/review.service";
 import { supabase } from "@/integrations/supabase/client";
+import { BuyerNav } from "@/components/dashboard/BuyerNav";
+import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 
 type AuthState = "loading" | "anonymous" | "needs-role" | "ready";
 
@@ -25,7 +27,11 @@ export default function BuyerTransactionReview() {
   const { shareToken } = useParams<{ shareToken: string }>();
   const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>("loading");
+  const { buyerName, avatarUrl } = useBuyerIdentity();
 
+  const Header = authState === "ready"
+    ? () => <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
+    : ReviewHeader;
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -70,7 +76,7 @@ export default function BuyerTransactionReview() {
   if (error) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <ReviewHeader />
+        <Header />
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-md">
             <ShieldAlert className="h-16 w-16 text-destructive mx-auto mb-4" />
@@ -87,7 +93,7 @@ export default function BuyerTransactionReview() {
   if (isLoading || !data) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <ReviewHeader />
+        <Header />
         <div className="max-w-7xl mx-auto px-4 py-8 w-full space-y-6">
           <Skeleton className="h-12 w-full rounded-xl" />
           <Skeleton className="h-12 w-full rounded-xl" />
@@ -116,7 +122,7 @@ export default function BuyerTransactionReview() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <ReviewHeader />
+      <Header />
 
       {/* Trust banner */}
       <section className="bg-success py-3">
