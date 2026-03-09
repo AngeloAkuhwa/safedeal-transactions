@@ -66,6 +66,18 @@ const BuyerTransactionVerify = () => {
     },
   });
 
+  // Auto-redirect if the transaction isn't in verification state
+  useEffect(() => {
+    if (error && (error as any)?.redirect) {
+      const redirectPath = (error as any).redirect;
+      if (transactionId && redirectPath === "/dashboard/transactions") {
+        navigate(`/dashboard/transactions/${transactionId}`, { replace: true });
+      } else {
+        navigate(redirectPath, { replace: true });
+      }
+    }
+  }, [error, navigate, transactionId]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -74,19 +86,6 @@ const BuyerTransactionVerify = () => {
     );
   }
 
-  // Auto-redirect if the transaction isn't in verification state
-  useEffect(() => {
-    if (error && (error as any)?.redirect) {
-      const redirectPath = (error as any).redirect;
-      // If it's a relative path like /dashboard/transactions, use it; 
-      // otherwise redirect to the transaction detail page
-      if (transactionId && redirectPath === "/dashboard/transactions") {
-        navigate(`/dashboard/transactions/${transactionId}`, { replace: true });
-      } else {
-        navigate(redirectPath, { replace: true });
-      }
-    }
-  }, [error, navigate, transactionId]);
 
   if (error || !data) {
     // If we're about to redirect, show a loading state instead of error
