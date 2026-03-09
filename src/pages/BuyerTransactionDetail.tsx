@@ -811,9 +811,9 @@ function TransactionTimeline({
           return (
             <div key={step.status} className="relative flex items-start gap-4 pb-6 last:pb-0">
               {/* Circle */}
-              <div className={`relative z-10 h-10 w-10 rounded-full flex items-center justify-center shrink-0 border-4 border-background shadow-lg ${
+              <div className={`relative z-10 h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center shrink-0 border-4 border-background shadow-lg ${
                 isReached
-                  ? "bg-success/20"
+                  ? "bg-success/10"
                   : isCurrent
                     ? "bg-warning animate-pulse"
                     : "bg-muted"
@@ -832,14 +832,14 @@ function TransactionTimeline({
                 isCurrent
                   ? "bg-warning/5 border-2 border-warning/30"
                   : isReached
-                    ? "bg-success/5"
-                    : "bg-muted/50"
+                    ? "bg-success/5 border border-success/20"
+                    : "bg-muted/50 border border-border"
               }`}>
-                <p className={`text-sm font-semibold ${isReached || isCurrent ? "text-foreground" : "text-muted-foreground"}`}>
+                <p className={`text-sm font-semibold ${isReached ? "text-success" : isCurrent ? "text-foreground" : "text-muted-foreground"}`}>
                   {step.label}
                 </p>
                 {subtitle && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+                  <p className={`text-xs mt-0.5 ${isReached ? "text-success/80" : "text-muted-foreground"}`}>{subtitle}</p>
                 )}
                 {extraInfo && (
                   <p className={`text-xs mt-0.5 ${isCurrent ? "text-warning font-semibold" : "text-muted-foreground"}`}>
