@@ -186,7 +186,7 @@ function NextActionCard({
         )}
       </div>
 
-      {txStatus === "delivered_awaiting_verification" && (
+      {(txStatus === "delivered_awaiting_verification" || txStatus === "completed") && (
         <div className="mt-6 pt-6 border-t border-white/20">
           <p className="text-xs font-semibold opacity-80 mb-3">Other Actions</p>
           <div className="space-y-1.5">
