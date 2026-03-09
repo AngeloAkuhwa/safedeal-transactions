@@ -6,7 +6,7 @@ import {
   Shield, Lock, AlertTriangle, ShieldAlert, ShieldCheck, CreditCard,
   Package, Truck, Clock, ClipboardCheck, CheckCircle, XCircle,
   Store, Star, Handshake, IdCard, Phone, Building2, CalendarDays,
-  TrendingUp, HelpCircle, Info, Scale, HandCoins, UserShield,
+  TrendingUp, HelpCircle, Info, Scale, HandCoins,
   FileText, LockOpen, Hourglass, CircleDot, Award, X, User
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
