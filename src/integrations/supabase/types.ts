@@ -2183,6 +2183,69 @@ export type Database = {
           },
         ]
       }
+      transaction_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message_text: string
+          recipient_user_id: string
+          sender_user_id: string
+          transaction_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_text: string
+          recipient_user_id: string
+          sender_user_id: string
+          transaction_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_text?: string
+          recipient_user_id?: string
+          sender_user_id?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_messages_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_messages_sender_user_id_fkey"
+            columns: ["sender_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_messages_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_messages_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_messages_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transaction_notes: {
         Row: {
           created_at: string

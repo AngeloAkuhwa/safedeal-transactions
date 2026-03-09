@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { X, Paperclip, Send, Loader2, FileText, Image as ImageIcon } from "lucide-react";
+import { X, Paperclip, Send, Loader2, FileText } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AttachedFile {
   id: string;
@@ -97,20 +98,47 @@ export function ContactSellerModal({
     }
 
     setIsSending(true);
-    // Mock send — replace with edge function call when ready
-    await new Promise((r) => setTimeout(r, 1200));
-    setIsSending(false);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Not authenticated",
+          description: "Please log in to send messages.",
+          variant: "destructive",
+        });
+        setIsSending(false);
+        return;
+      }
 
-    toast({
-      title: "Message sent!",
-      description: `Your message has been securely delivered to ${sellerName}.`,
-    });
+      const { data, error } = await supabase.functions.invoke("send-seller-message", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { transaction_id: transactionId, message: trimmed },
+      });
 
-    // Reset
-    setMessage("");
-    files.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
-    setFiles([]);
-    onOpenChange(false);
+      if (error || data?.error) {
+        throw new Error(data?.error || error?.message || "Failed to send message");
+      }
+
+      toast({
+        title: "Message sent!",
+        description: `Your message has been securely delivered to ${sellerName}.`,
+      });
+
+      // Reset
+      setMessage("");
+      files.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
+      setFiles([]);
+      onOpenChange(false);
+    } catch (err: any) {
+      toast({
+        title: "Failed to send",
+        description: err.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleClose = () => {
