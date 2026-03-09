@@ -139,14 +139,12 @@ function NextActionCard({
   navigate: ReturnType<typeof useNavigate>;
 }) {
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-warning to-warning/80 p-6 text-warning-foreground shadow-lg">
-      <div className="flex items-start gap-3 mb-4">
-        <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
+    <div className="rounded-2xl bg-gradient-to-br from-warning to-warning/90 p-6 text-warning-foreground shadow-lg">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
           <AlertTriangle className="h-5 w-5" />
         </div>
-        <div>
-          <h2 className="text-lg font-bold">{nextAction.label}</h2>
-        </div>
+        <h2 className="text-xl font-bold">{nextAction.label}</h2>
       </div>
 
       <Separator className="bg-white/20 mb-4" />
@@ -155,8 +153,8 @@ function NextActionCard({
 
       {txStatus === "delivered_awaiting_verification" && countdown && (
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 mb-5 text-center">
-          <p className="text-xs opacity-80 mb-1">Verification Countdown</p>
-          <p className="text-4xl font-bold tabular-nums">{countdown}</p>
+          <p className="text-sm font-semibold mb-2">Verification Countdown</p>
+          <p className="text-3xl font-bold tabular-nums">{countdown}</p>
           <p className="text-xs opacity-80 mt-1">Funds auto-release if no action taken</p>
         </div>
       )}
@@ -165,13 +163,13 @@ function NextActionCard({
         {txStatus === "delivered_awaiting_verification" && (
           <>
             <Button
-              className="w-full bg-white hover:bg-white/90 text-warning font-bold h-11"
+              className="w-full bg-white hover:bg-white/90 text-warning font-bold py-4 h-auto"
               onClick={() => navigate(`/dashboard/transactions/${txId}/verify`)}
             >
               <CheckCircle className="h-4 w-4" /> Verify Item Received
             </Button>
             <Button
-              className="w-full bg-white/10 hover:bg-white/20 text-warning-foreground border border-white/20 font-semibold h-11"
+              className="w-full bg-white/10 hover:bg-white/20 text-warning-foreground font-semibold h-11"
               onClick={() => navigate(`/dashboard/transactions/${txId}/verify`)}
             >
               <Scale className="h-4 w-4" /> Raise Dispute
@@ -189,16 +187,16 @@ function NextActionCard({
       </div>
 
       {txStatus === "delivered_awaiting_verification" && (
-        <div className="mt-5 pt-4 border-t border-white/20">
+        <div className="mt-6 pt-6 border-t border-white/20">
           <p className="text-xs font-semibold opacity-80 mb-3">Other Actions</p>
           <div className="space-y-1.5">
-            <button className="w-full flex items-center gap-2.5 text-sm bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2 transition-colors">
+            <button className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left">
               <Download className="h-4 w-4" /> Download Receipt
             </button>
-            <button className="w-full flex items-center gap-2.5 text-sm bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2 transition-colors">
+            <button className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left">
               <HelpCircle className="h-4 w-4" /> Contact Support
             </button>
-            <button className="w-full flex items-center gap-2.5 text-sm bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2 transition-colors">
+            <button className="w-full flex items-center gap-2.5 text-sm font-semibold bg-white/10 hover:bg-white/20 rounded-lg px-4 py-2 transition-colors backdrop-blur-sm text-left">
               <Flag className="h-4 w-4" /> Report Issue
             </button>
           </div>
