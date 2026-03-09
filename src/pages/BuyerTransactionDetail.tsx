@@ -154,7 +154,7 @@ function NextActionCard({
       {txStatus === "delivered_awaiting_verification" && countdown && (
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 mb-6 text-center">
           <p className="text-sm font-semibold mb-2">Verification Countdown</p>
-          <p className="text-3xl font-bold tabular-nums">{countdown}</p>
+          <p className="text-2xl sm:text-3xl font-bold tabular-nums">{countdown}</p>
           <p className="text-xs opacity-80 mt-1">Funds auto-release if no action taken</p>
         </div>
       )}
