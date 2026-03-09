@@ -33,8 +33,7 @@ export const TransactionReceipt = React.forwardRef<HTMLDivElement, TransactionRe
         <div
           id="safedeal-receipt-root"
           ref={ref}
-          style={{ display: "none" }}
-          className="print:block"
+          className="hidden print:!block"
         >
           <div
             style={{
