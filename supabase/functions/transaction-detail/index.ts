@@ -158,6 +158,7 @@ Deno.serve(async (req) => {
         dispute_status: tx.dispute_status,
         created_at: tx.created_at,
         verification_deadline_at: verificationDeadlineAt,
+        share_token: tx.share_token ?? null,
       },
       item: item ?? { title: "Untitled Item", description: null, quantity: 1, condition: null, brand: null, model: null, category: null },
       pricing: pricing ?? { item_amount: 0, platform_fee_amount: 0, processing_fee_amount: 0, buyer_total_amount: 0, currency_code: "NGN" },
