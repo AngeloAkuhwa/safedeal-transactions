@@ -144,7 +144,7 @@ function NextActionCard({
         <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
           <AlertTriangle className="h-5 w-5" />
         </div>
-        <h2 className="text-xl font-bold">{nextAction.label}</h2>
+        <h2 className="text-lg font-bold">{nextAction.label}</h2>
       </div>
 
       <Separator className="bg-white/20 mb-4" />
@@ -154,7 +154,7 @@ function NextActionCard({
       {txStatus === "delivered_awaiting_verification" && countdown && (
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 mb-6 text-center">
           <p className="text-sm font-semibold mb-2">Verification Countdown</p>
-          <p className="text-3xl font-bold tabular-nums">{countdown}</p>
+          <p className="text-2xl sm:text-3xl font-bold tabular-nums">{countdown}</p>
           <p className="text-xs opacity-80 mt-1">Funds auto-release if no action taken</p>
         </div>
       )}
@@ -274,24 +274,24 @@ const BuyerTransactionDetail = () => {
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 py-6 sm:py-8">
 
         {/* ── Header Card (light theme) ── */}
-        <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
+        <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 mb-6 sm:mb-8">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
             <div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{tx.transaction_code}</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">{tx.transaction_code}</h1>
                 <Badge className={`${sBadge.className} text-xs sm:text-sm font-bold px-3 py-1.5 rounded-full`}>{sBadge.label}</Badge>
               </div>
-              <p className="text-muted-foreground text-sm sm:text-base">
+              <p className="text-muted-foreground text-sm">
                 Created on {format(new Date(tx.created_at), "MMMM d, yyyy 'at' h:mm a")}
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-              <Button className="px-4 sm:px-6 py-2.5 sm:py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center gap-2 text-sm sm:text-base h-auto">
+              <Button className="px-4 sm:px-6 py-2.5 sm:py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center gap-2 text-sm h-auto">
                 <Truck className="h-4 w-4" /> Track Order
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button className="px-4 sm:px-6 py-2.5 sm:py-3 bg-muted text-muted-foreground font-bold rounded-xl hover:bg-muted/80 transition-all flex items-center justify-center gap-2 w-full sm:w-auto text-sm sm:text-base h-auto" variant="ghost">
+                  <Button className="px-4 sm:px-6 py-2.5 sm:py-3 bg-muted text-muted-foreground font-bold rounded-xl hover:bg-muted/80 transition-all flex items-center justify-center gap-2 w-full sm:w-auto text-sm h-auto" variant="ghost">
                     <MoreHorizontal className="h-4 w-4" /> More Actions
                   </Button>
                 </DropdownMenuTrigger>
@@ -310,18 +310,35 @@ const BuyerTransactionDetail = () => {
           </div>
 
           {/* Escrow banner nested inside header card */}
-          {escrow && !["cancelled", "refunded"].includes(tx.status) && (
-            <div className={`border-2 rounded-xl p-4 flex items-start gap-3 ${tx.status === "completed" ? "bg-success/5 border-success/20" : "bg-primary/5 border-primary/20"}`}>
-              <Shield className={`h-5 w-5 shrink-0 mt-0.5 ${tx.status === "completed" ? "text-success" : "text-primary"}`} />
+          {escrow && escrow.state === "held" && (
+            <div className="border-2 rounded-xl p-4 flex items-start gap-3 bg-primary/5 border-primary/20">
+              <Shield className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
               <div>
-                <p className={`text-sm sm:text-base font-bold ${tx.status === "completed" ? "text-success" : "text-primary"}`}>
-                  {tx.status === "completed" ? "Transaction Completed — Funds Released" : "Escrow Protection Active"}
+                <p className="text-sm font-bold text-primary">Escrow Protection Active</p>
+                <p className="text-xs mt-0.5 text-primary/80">
+                  Your payment of <span className="font-bold">{formatCurrency(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.
                 </p>
-                <p className={`text-xs sm:text-sm mt-0.5 ${tx.status === "completed" ? "text-success/80" : "text-primary/80"}`}>
-                  {tx.status === "completed"
-                    ? <>Your payment of <span className="font-bold">{formatCurrency(escrow.held_amount || escrow.released_amount, pricing.currency_code)}</span> has been successfully released to the seller. This transaction is now complete.</>
-                    : <>Your payment of <span className="font-bold">{formatCurrency(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.</>
-                  }
+              </div>
+            </div>
+          )}
+          {escrow && escrow.state === "frozen" && (
+            <div className="border-2 rounded-xl p-4 flex items-start gap-3 bg-destructive/5 border-destructive/20">
+              <Shield className="h-5 w-5 shrink-0 mt-0.5 text-destructive" />
+              <div>
+                <p className="text-sm font-bold text-destructive">Funds Frozen — Dispute In Progress</p>
+                <p className="text-xs mt-0.5 text-destructive/80">
+                  Your funds of <span className="font-bold">{formatCurrency(escrow.frozen_amount, pricing.currency_code)}</span> are currently frozen while the dispute is under review. No money will move until the dispute is resolved.
+                </p>
+              </div>
+            </div>
+          )}
+          {escrow && escrow.state === "released" && (
+            <div className="border-2 rounded-xl p-4 flex items-start gap-3 bg-success/5 border-success/20">
+              <Shield className="h-5 w-5 shrink-0 mt-0.5 text-success" />
+              <div>
+                <p className="text-sm font-bold text-success">Transaction Completed — Funds Released</p>
+                <p className="text-xs mt-0.5 text-success/80">
+                  Your payment of <span className="font-bold">{formatCurrency(escrow.released_amount, pricing.currency_code)}</span> has been successfully released to the seller. This transaction is now complete.
                 </p>
               </div>
             </div>
@@ -329,10 +346,10 @@ const BuyerTransactionDetail = () => {
         </div>
 
         {/* ── 3-Column Grid ── */}
-        <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
+        <div className="grid lg:grid-cols-3 gap-5 sm:gap-6">
 
           {/* ═══ LEFT COLUMN (2/3) ═══ */}
-          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
+          <div className="lg:col-span-2 space-y-5 sm:space-y-6">
 
             {/* Mobile-only Next Action */}
             {next_action && (
@@ -349,32 +366,32 @@ const BuyerTransactionDetail = () => {
             )}
 
             {/* ── Item Details ── */}
-            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
+                <Package className="h-5 w-5 text-primary" />
                 Item Details
               </h2>
-              <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
-                <div className="h-64 sm:h-80 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+              <div className="grid md:grid-cols-2 gap-4 sm:gap-5">
+                <div className="h-52 sm:h-64 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
                   <ImageIcon className="h-16 w-16 text-muted-foreground/30" />
                 </div>
                 <div className="space-y-3 sm:space-y-4">
-                  <h3 className="text-xl sm:text-2xl font-bold text-foreground">{item.title}</h3>
+                  <h3 className="text-lg sm:text-xl font-bold text-foreground">{item.title}</h3>
                   <div className="space-y-2 sm:space-y-3">
-                    <div className="flex items-center gap-3 text-sm sm:text-base text-muted-foreground">
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <Layers className="h-4 w-5 text-muted-foreground/60 shrink-0" />
                       <span className="font-medium">Quantity:</span>
                       <span className="font-semibold text-foreground">{item.quantity}</span>
                     </div>
                     {item.condition && (
-                      <div className="flex items-center gap-3 text-sm sm:text-base text-muted-foreground">
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <Star className="h-4 w-5 text-muted-foreground/60 shrink-0" />
                         <span className="font-medium">Condition:</span>
                         <span className="font-semibold text-foreground">{item.condition}</span>
                       </div>
                     )}
                     {item.category && (
-                      <div className="flex items-center gap-3 text-sm sm:text-base text-muted-foreground">
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <Tag className="h-4 w-5 text-muted-foreground/60 shrink-0" />
                         <span className="font-medium">Category:</span>
                         <span className="font-semibold text-foreground">{item.category}</span>
@@ -393,25 +410,25 @@ const BuyerTransactionDetail = () => {
 
             {/* ── Delivery Details ── */}
             {delivery_terms && (
-              <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
-                <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                  <Truck className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+              <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
+                  <Truck className="h-5 w-5 text-primary" />
                   Delivery Details
                 </h2>
-                <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+                <div className="grid md:grid-cols-2 gap-4 sm:gap-5">
                   <div className="space-y-4">
                     <div>
                       <p className="text-xs sm:text-sm font-semibold text-muted-foreground mb-1">Delivery Method</p>
-                      <p className="text-base sm:text-lg font-bold text-foreground capitalize">{delivery_terms.delivery_method.replace(/_/g, " ")}</p>
+                      <p className="text-sm sm:text-base font-bold text-foreground capitalize">{delivery_terms.delivery_method.replace(/_/g, " ")}</p>
                     </div>
                     <div>
                       <p className="text-xs sm:text-sm font-semibold text-muted-foreground mb-1">Expected Delivery</p>
-                      <p className="text-base sm:text-lg font-bold text-foreground">{format(new Date(delivery_terms.expected_delivery_date), "MMMM d, yyyy")}</p>
+                      <p className="text-sm sm:text-base font-bold text-foreground">{format(new Date(delivery_terms.expected_delivery_date), "MMMM d, yyyy")}</p>
                     </div>
                     {delivery_terms.delivery_address_line1 && (
                       <div>
                         <p className="text-xs sm:text-sm font-semibold text-muted-foreground mb-1">Destination</p>
-                        <p className="text-base sm:text-lg font-bold text-foreground">
+                        <p className="text-sm sm:text-base font-bold text-foreground">
                           {delivery_terms.delivery_address_line1}
                           {delivery_terms.delivery_address_line2 && `, ${delivery_terms.delivery_address_line2}`}
                         </p>
@@ -449,9 +466,9 @@ const BuyerTransactionDetail = () => {
             )}
 
             {/* ── Transaction Timeline ── */}
-            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
                 Transaction Timeline
               </h2>
               <TransactionTimeline
@@ -464,24 +481,24 @@ const BuyerTransactionDetail = () => {
             </div>
 
             {/* ── Buyer Protection ── */}
-            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
                 Buyer Protection
               </h2>
               <div className="space-y-4">
                 <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
                   <Lock className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm sm:text-base font-bold text-primary mb-1">Your Money is Protected</p>
-                    <p className="text-xs sm:text-sm text-primary/80 leading-relaxed">
+                    <p className="text-sm font-bold text-primary mb-1">Your Money is Protected</p>
+                    <p className="text-xs text-primary/80 leading-relaxed">
                       SafeDeal holds your payment in secure escrow until you confirm the item matches what was agreed. If there's an issue, you can raise a dispute.
                     </p>
                   </div>
                 </div>
                 <div className="bg-muted/50 rounded-xl p-4">
-                  <h4 className="font-bold text-foreground mb-3 text-sm sm:text-base">What happens next?</h4>
-                  <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
+                  <h4 className="font-bold text-foreground mb-3 text-sm">What happens next?</h4>
+                  <ul className="space-y-2 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-success shrink-0 mt-0.5" />
                       <span>Inspect the item carefully to ensure it matches the description</span>
@@ -500,24 +517,24 @@ const BuyerTransactionDetail = () => {
             </div>
 
             {/* ── Contact Seller ── */}
-            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 flex items-center gap-2 sm:gap-3">
-                <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-primary" />
                 Contact Seller
               </h2>
-              <p className="text-sm sm:text-base text-muted-foreground mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Have questions about your order? Contact the seller directly through SafeDeal's secure messaging.
               </p>
-              <Button className="w-full font-bold rounded-xl py-3 h-auto text-sm sm:text-base">
+              <Button className="w-full font-bold rounded-xl py-3 h-auto text-sm">
                 <MessageSquare className="h-4 w-4" /> Send Message to Seller
               </Button>
             </div>
 
             {/* ── Dispute Card ── */}
             {dispute && (
-              <div className="bg-card rounded-2xl shadow-lg border-2 border-destructive/20 p-4 sm:p-6 lg:p-8">
-                <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                  <Scale className="h-5 w-5 sm:h-6 sm:w-6 text-destructive" />
+              <div className="bg-card rounded-2xl shadow-lg border-2 border-destructive/20 p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
+                  <Scale className="h-5 w-5 text-destructive" />
                   Dispute
                 </h2>
                 <div className="text-sm space-y-3 mb-4">
@@ -545,7 +562,7 @@ const BuyerTransactionDetail = () => {
           </div>
 
           {/* ═══ RIGHT SIDEBAR (1/3) ═══ */}
-          <div className="space-y-6 sm:space-y-8">
+          <div className="space-y-5 sm:space-y-6">
 
             {/* Desktop-only Next Action (sticky — only this card sticks) */}
             {next_action && (
@@ -563,13 +580,13 @@ const BuyerTransactionDetail = () => {
 
             {/* ── Seller Information (desktop, scrolls normally) ── */}
             {seller && (
-              <div className="hidden lg:block bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
-                <h3 className="text-lg sm:text-xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+              <div className="hidden lg:block bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-bold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                   <BadgeCheck className="h-5 w-5 text-primary" />
                   Seller Information
                 </h3>
-                <div className="flex items-center gap-4 mb-4 sm:mb-6">
-                  <div className="h-14 sm:h-16 w-14 sm:w-16 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="flex items-center gap-4 mb-3 sm:mb-4">
+                  <div className="h-12 sm:h-14 w-12 sm:w-14 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                     {seller.avatar_url ? (
                       <img src={seller.avatar_url} alt={seller.full_name} className="h-full w-full object-cover" />
                     ) : (
@@ -578,12 +595,12 @@ const BuyerTransactionDetail = () => {
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="text-base sm:text-lg font-bold text-foreground">{seller.full_name}</p>
-                      <div className="w-5 sm:w-6 h-5 sm:h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                        <BadgeCheck className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-primary" />
+                      <p className="text-sm sm:text-base font-bold text-foreground">{seller.full_name}</p>
+                      <div className="w-5 h-5 bg-primary/10 rounded-full flex items-center justify-center">
+                        <BadgeCheck className="h-3 w-3 text-primary" />
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Star className="h-3.5 w-3.5 text-warning fill-warning" />
                         4.9
@@ -613,31 +630,31 @@ const BuyerTransactionDetail = () => {
             )}
 
             {/* ── Payment Summary (desktop, scrolls normally) ── */}
-            <div className="hidden lg:block bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
-              <h3 className="text-lg sm:text-xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+            <div className="hidden lg:block bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-bold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
                 Payment Summary
               </h3>
               <div className="space-y-3 sm:space-y-4">
-                <div className="flex items-center justify-between text-sm sm:text-base">
+                <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Item Price</span>
                   <span className="font-semibold text-foreground">{formatCurrency(pricing.item_amount, pricing.currency_code)}</span>
                 </div>
                 {pricing.platform_fee_amount > 0 && (
-                  <div className="flex items-center justify-between text-sm sm:text-base">
+                  <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Platform Fee</span>
                     <span className="font-semibold text-foreground">{formatCurrency(pricing.platform_fee_amount, pricing.currency_code)}</span>
                   </div>
                 )}
                 {pricing.processing_fee_amount > 0 && (
-                  <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-border text-sm sm:text-base">
+                  <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-border text-sm">
                     <span className="text-muted-foreground">Processing Fee</span>
                     <span className="font-semibold text-foreground">{formatCurrency(pricing.processing_fee_amount, pricing.currency_code)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between pt-2">
-                  <span className="text-base sm:text-lg font-bold text-foreground">Total Paid</span>
-                  <span className="text-xl sm:text-2xl font-bold text-primary">{formatCurrency(pricing.buyer_total_amount, pricing.currency_code)}</span>
+                  <span className="text-sm sm:text-base font-bold text-foreground">Total Paid</span>
+                  <span className="text-lg sm:text-xl font-bold text-primary">{formatCurrency(pricing.buyer_total_amount, pricing.currency_code)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Currency</span>
