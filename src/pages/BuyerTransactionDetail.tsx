@@ -776,6 +776,14 @@ const BuyerTransactionDetail = () => {
       </main>
 
       <Footer />
+
+      <ContactSellerModal
+        open={contactOpen}
+        onOpenChange={setContactOpen}
+        sellerName={seller?.full_name ?? "Seller"}
+        transactionId={tx.id}
+      />
+      <TransactionReceipt ref={receiptRef} data={data} />
     </div>
   );
 };
