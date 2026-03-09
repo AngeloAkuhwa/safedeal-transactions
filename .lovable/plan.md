@@ -1,77 +1,108 @@
 
-# Fix Escrow Banner Logic + Responsive Typography/Dimensions
+# Fix: Escrow Banner State Logic + Typography/Dimension Refinements
 
-## Problem 1: Escrow Banner — Revert to State-Based Logic
+## Problem 1: Escrow Banner — Wrong Condition (line 313)
 
-The correct original condition was:
+Current broken condition:
 ```
-escrow && (escrow.state === "funds_held" || tx.money_status === "funds_held_in_escrow")
+{escrow && !["cancelled", "refunded"].includes(tx.status) && (
 ```
 
-The change to `!["cancelled", "refunded"].includes(tx.status)` is wrong because:
-- It shows the banner for `draft`, `awaiting_payment` states where no escrow exists yet
-- `escrow` object may be non-null but in `pending` state before funds are actually held
+This is wrong. The correct logic is to drive the banner entirely from `escrow.state`:
 
-**Correct logic** should be based on escrow.state values that represent "escrow is meaningfully active":
-- `funds_held` → "Escrow Protection Active" (primary/blue banner)  
-- `funds_released` → "Transaction Completed — Funds Released" (success/green banner)
-- `funds_frozen` → "Funds Frozen — Dispute In Progress" (destructive/red banner)
-- Hide for `funds_releasing`, `pending`, `refund_pending`, `refund_issued`
-
-This matches the state machine (escrow and transaction status are independent, as documented).
-
-## Problem 2: Font Sizes + Card Dimensions — Precise Screen Matching
-
-### Current issues (from code analysis):
-| Element | Current | Fix |
+| `escrow.state` | Banner variant | Title |
 |---|---|---|
-| Card section `h2` headings | `text-xl sm:text-2xl` | `text-base sm:text-lg` |
-| Header `h1` | `text-2xl sm:text-3xl` | `text-xl sm:text-2xl lg:text-3xl` |
-| Item title inside card | `text-xl sm:text-2xl` | `text-lg sm:text-xl` |
-| Payment "Total Paid" label | `text-base sm:text-lg` | `text-sm sm:text-base` |
-| Payment "Total Paid" amount | `text-xl sm:text-2xl` | `text-lg sm:text-xl` |
-| Card padding | `p-4 sm:p-6 lg:p-8` | `p-4 sm:p-6` (remove lg:p-8) |
-| NextActionCard heading | `text-xl font-bold` | `text-lg font-bold` |
-| Icon sizes in headings | `h-5 sm:h-6` | `h-5` (consistent) |
-| Body text in delivery/contact | `text-sm sm:text-base` | `text-sm` |
-| Metadata text | `text-xs sm:text-sm` | `text-xs sm:text-sm` ✓ |
-| Countdown number | `text-3xl` | `text-2xl sm:text-3xl` |
+| `funds_held` | Blue/primary | "Escrow Protection Active" |
+| `funds_frozen` | Red/destructive | "Funds Frozen — Dispute In Progress" |
+| `funds_released` | Green/success | "Transaction Completed — Funds Released" |
+| anything else | Hidden | — |
 
-### Gaps/spacing:
-- Section gap: `gap-6 sm:gap-8` → `gap-5 sm:gap-6`
-- Space-y in left column: `space-y-6 sm:space-y-8` → `space-y-5 sm:space-y-6`
-- Timeline card content padding: `p-3 sm:p-4` ✓ (keep)
-- Item image: `h-64 sm:h-80` → `h-56 sm:h-64 lg:h-72` (less tall)
+The banner text also updates:
+- **funds_held**: "Your payment of X is securely held by SafeDeal. Funds will be released to the seller once you verify..."
+- **funds_frozen**: "Your funds are currently frozen while the dispute is under review. No money will move until the dispute is resolved."
+- **funds_released**: "Your payment of X has been successfully released to the seller. This transaction is now complete."
 
-## Files to Edit
+Amount shown:
+- `funds_held` → `escrow.held_amount`
+- `funds_frozen` → `escrow.frozen_amount`
+- `funds_released` → `escrow.released_amount`
 
+## Problem 2: Typography + Dimensions — Precise Fixes
+
+Based on reading all 863 lines, here are all the font/spacing issues vs. the reference:
+
+### Header Card (lines 277–329)
+- Line 277: `p-4 sm:p-6 lg:p-8` → `p-4 sm:p-6` (remove lg:p-8)
+- Line 281: `text-2xl sm:text-3xl` → `text-xl sm:text-2xl` (transaction code h1)
+- Line 284: `text-sm sm:text-base` → `text-sm` (created-on subtitle)
+- Line 289: `text-sm sm:text-base` → `text-sm` (button text)
+- Line 294: `text-sm sm:text-base` → `text-sm` (More Actions button)
+
+### 3-col Grid (line 332–335)
+- Line 332: `gap-6 sm:gap-8` → `gap-5 sm:gap-6`
+- Line 335: `space-y-6 sm:space-y-8` → `space-y-5 sm:space-y-6`
+
+### Item Details card (lines 352–392)
+- Line 352: `p-4 sm:p-6 lg:p-8` → `p-4 sm:p-6`
+- Line 353: `text-xl sm:text-2xl` → `text-base sm:text-lg` (heading)
+- Line 354: `h-5 w-5 sm:h-6 sm:w-6` → `h-5 w-5` (icon)
+- Line 358: `h-64 sm:h-80` → `h-52 sm:h-64` (image box)
+- Line 362: `text-xl sm:text-2xl` → `text-lg sm:text-xl` (item title h3)
+- Lines 364, 370, 377: `text-sm sm:text-base` → `text-sm` (item row labels)
+
+### Delivery Details card (lines 396–448)
+- Line 396: `p-4 sm:p-6 lg:p-8` → `p-4 sm:p-6`
+- Line 397: `text-xl sm:text-2xl` → `text-base sm:text-lg` (heading)
+- Line 398: `h-5 w-5 sm:h-6 sm:w-6` → `h-5 w-5`
+- Lines 405, 409, 414: `text-base sm:text-lg` → `text-sm sm:text-base` (delivery values)
+- Line 402 gap: `gap-4 sm:gap-6` → `gap-4 sm:gap-5`
+
+### Timeline card (lines 452–464)
+- Line 452: `p-4 sm:p-6 lg:p-8` → `p-4 sm:p-6`
+- Line 453: `text-xl sm:text-2xl` → `text-base sm:text-lg`
+- Line 454: `h-5 w-5 sm:h-6 sm:w-6` → `h-5 w-5`
+
+### Buyer Protection card (lines 467–500)
+- Line 467: `p-4 sm:p-6 lg:p-8` → `p-4 sm:p-6`
+- Line 468: `text-xl sm:text-2xl` → `text-base sm:text-lg`
+- Line 469: `h-5 w-5 sm:h-6 sm:w-6` → `h-5 w-5`
+- Line 476: `text-sm sm:text-base` → `text-sm`
+- Line 477: `text-xs sm:text-sm` → `text-xs`
+- Line 484: `text-sm sm:text-base` → `text-sm`
+
+### Contact Seller card (lines 503–514)
+- Line 503: `p-4 sm:p-6 lg:p-8` → `p-4 sm:p-6`
+- Line 504: `text-xl sm:text-2xl` → `text-base sm:text-lg`
+- Line 505: `h-5 w-5 sm:h-6 sm:w-6` → `h-5 w-5`
+- Line 508: `text-sm sm:text-base` → `text-sm`
+- Line 511: `text-sm sm:text-base` → `text-sm`
+
+### Dispute card (line 518)
+- Line 518: `p-4 sm:p-6 lg:p-8` → `p-4 sm:p-6`
+- Line 519: `text-xl sm:text-2xl` → `text-base sm:text-lg`
+- Line 520: `h-5 w-5 sm:h-6 sm:w-6` → `h-5 w-5`
+
+### Right sidebar — desktop (lines 566–659)
+- Lines 566, 616: `p-4 sm:p-6 lg:p-8` → `p-4 sm:p-6`
+- Line 567: `text-lg sm:text-xl` → `text-base sm:text-lg`
+- Line 568: `mb-4 sm:mb-6` → `mb-3 sm:mb-4`
+- Line 571: `mb-4 sm:mb-6` → `mb-3 sm:mb-4`
+- Line 572: `h-14 sm:h-16 w-14 sm:w-16` → `h-12 sm:h-14 w-12 sm:w-14`
+- Line 581: `text-base sm:text-lg` → `text-sm sm:text-base`
+- Lines 586: `text-xs sm:text-sm` → `text-xs`
+- Lines 617: `text-lg sm:text-xl` → `text-base sm:text-lg`
+- Line 622: `text-sm sm:text-base` → `text-sm`
+- Line 627: `text-sm sm:text-base` → `text-sm`
+- Line 633: `text-sm sm:text-base` → `text-sm`
+- Line 638: `text-base sm:text-lg` → `text-sm sm:text-base` (Total Paid label)
+- Line 640: `text-xl sm:text-2xl` → `text-lg sm:text-xl` (Total Paid amount)
+- Line 548: `space-y-6 sm:space-y-8` → `space-y-5 sm:space-y-6`
+
+### NextActionCard (lines 141–207)
+- Line 147: `text-xl font-bold` → `text-lg font-bold`
+- Line 157: `text-3xl font-bold` → `text-2xl sm:text-3xl font-bold`
+
+## File to Edit
 Single file: `src/pages/BuyerTransactionDetail.tsx`
 
-### Specific changes:
-
-**Escrow banner (lines 313–328):**
-- Restore state-based condition: `escrow && ["funds_held", "funds_frozen", "funds_released"].includes(escrow.state)`
-- Three variants: primary (held), destructive (frozen), success (released)
-- Remove the `tx.status === "completed"` check, use `escrow.state` instead
-
-**Header h1 (line 281):** `text-2xl sm:text-3xl` → `text-xl sm:text-2xl lg:text-3xl`
-
-**Card headings h2 (lines 353, 397, 453, 468, 504, 519):** `text-xl sm:text-2xl` → `text-base sm:text-lg font-bold`
-
-**Card padding (lines 277, 352, 396, 452, 467, 503, 518, 566, 616):** Remove `lg:p-8` where present, cap at `sm:p-6`
-
-**Item title h3 (line 362):** `text-xl sm:text-2xl` → `text-lg sm:text-xl`
-
-**Payment total (lines 639–640):** `text-base sm:text-lg` → `text-sm sm:text-base`; `text-xl sm:text-2xl` → `text-lg sm:text-xl`
-
-**NextActionCard heading (line 147):** `text-xl` → `text-lg`
-
-**Countdown (line 157):** `text-3xl` → `text-2xl sm:text-3xl`
-
-**Section gaps (line 332):** `gap-6 sm:gap-8` → `gap-5 sm:gap-6`
-
-**Left column spacing (line 335):** `space-y-6 sm:space-y-8` → `space-y-5 sm:space-y-6`
-
-**Item image (line 358):** `h-64 sm:h-80` → `h-52 sm:h-64`
-
-**Heading icon sizes (multiple lines):** `h-5 w-5 sm:h-6 sm:w-6` → `h-5 w-5` consistently
+All changes are targeted line replacements. No new dependencies. No structural changes.
