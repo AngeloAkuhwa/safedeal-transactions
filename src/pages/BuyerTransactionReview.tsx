@@ -65,7 +65,7 @@ export default function BuyerTransactionReview() {
       navigate(`/role-selection?redirect=/t/${shareToken}`);
       return;
     }
-    toast.info("Payment processing will be implemented soon.");
+    navigate(`/t/${shareToken}/pay`);
   };
 
   const handleDecline = () => {
