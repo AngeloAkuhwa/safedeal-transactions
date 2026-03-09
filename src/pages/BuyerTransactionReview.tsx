@@ -81,8 +81,27 @@ export default function BuyerTransactionReview() {
   };
 
   const handleDecline = () => {
-    toast.info("Transaction declined.");
-    navigate("/");
+    setShowDeclineDialog(true);
+  };
+
+  const confirmDecline = async () => {
+    setIsDeclineLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("decline-transaction", {
+        body: { shareToken },
+      });
+      if (error || data?.error) {
+        toast.error(data?.error || error?.message || "Failed to decline transaction");
+        return;
+      }
+      toast.success("Transaction declined successfully");
+      navigate(`/t/${shareToken}/cancelled`);
+    } catch (err) {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsDeclineLoading(false);
+      setShowDeclineDialog(false);
+    }
   };
 
   if (error) {
