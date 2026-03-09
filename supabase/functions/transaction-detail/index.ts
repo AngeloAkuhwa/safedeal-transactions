@@ -161,7 +161,12 @@ Deno.serve(async (req) => {
         share_token: tx.share_token ?? null,
       },
       item: item ?? { title: "Untitled Item", description: null, quantity: 1, condition: null, brand: null, model: null, category: null },
-      pricing: pricing ?? { item_amount: 0, platform_fee_amount: 0, processing_fee_amount: 0, buyer_total_amount: 0, currency_code: "NGN" },
+      pricing: (() => {
+        const p = pricing ?? { item_amount: 0, platform_fee_amount: 0, processing_fee_amount: 0, buyer_total_amount: 0, currency_code: "NGN" };
+        const sfa = (Number(p.platform_fee_amount) || 0) + (Number(p.processing_fee_amount) || 0);
+        const sfr = (Number(p.item_amount) || 0) > 0 ? sfa / Number(p.item_amount) : 0;
+        return { ...p, service_fee_amount: sfa, service_fee_rate: sfr };
+      })(),
       delivery_terms: deliveryTerms,
       delivery_tracking: tracking,
       delivery_proof_files: proofFiles.map((pf: Record<string, unknown>) => ({

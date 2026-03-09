@@ -25,6 +25,8 @@ export interface ReviewData {
     processing_fee_amount: number;
     seller_net_amount: number;
     buyer_total_amount: number;
+    service_fee_amount: number;
+    service_fee_rate: number;
   } | null;
   delivery: {
     delivery_method: string;

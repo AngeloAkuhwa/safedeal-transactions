@@ -103,6 +103,15 @@ Deno.serve(async (req) => {
         .maybeSingle(),
     ]);
 
+    const pricingRaw = pricingRes.data || null;
+    const computedPricing = pricingRaw ? {
+      ...pricingRaw,
+      service_fee_amount: (Number(pricingRaw.platform_fee_amount) || 0) + (Number(pricingRaw.processing_fee_amount) || 0),
+      service_fee_rate: (Number(pricingRaw.item_amount) || 0) > 0
+        ? ((Number(pricingRaw.platform_fee_amount) || 0) + (Number(pricingRaw.processing_fee_amount) || 0)) / Number(pricingRaw.item_amount)
+        : 0,
+    } : null;
+
     const response = {
       transaction: {
         id: tx.id,
@@ -113,7 +122,7 @@ Deno.serve(async (req) => {
         agreement_locked_at: tx.agreement_locked_at,
       },
       item: itemRes.data || null,
-      pricing: pricingRes.data || null,
+      pricing: computedPricing,
       delivery: deliveryRes.data || null,
       escrow: escrowRes.data || null,
       media: mediaRes.data || [],

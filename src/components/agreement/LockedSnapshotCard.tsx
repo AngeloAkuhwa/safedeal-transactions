@@ -126,9 +126,12 @@ export function LockedSnapshotCard({ data }: LockedSnapshotCardProps) {
                     </span>
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b border-border">
-                    <span className="text-sm text-muted-foreground">Platform Fee</span>
+                    <div>
+                      <span className="text-sm text-muted-foreground">Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">Includes payment processing</p>
+                    </div>
                     <span className="text-base font-semibold text-muted-foreground">
-                      {pricing.currency_code} {Number(pricing.platform_fee_amount).toLocaleString()}
+                      {pricing.currency_code} {Number(pricing.service_fee_amount ?? ((Number(pricing.platform_fee_amount) || 0) + (Number(pricing.processing_fee_amount) || 0))).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">

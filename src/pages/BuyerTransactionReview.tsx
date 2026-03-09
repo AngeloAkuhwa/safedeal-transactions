@@ -117,7 +117,8 @@ export default function BuyerTransactionReview() {
   const currencySymbol = data.pricing?.currency_code === "NGN" ? "₦" : "$";
   const totalAmount = data.pricing?.buyer_total_amount ?? 0;
   const itemAmount = data.pricing?.item_amount ?? 0;
-  const feeAmount = (data.pricing?.platform_fee_amount ?? 0) + (data.pricing?.processing_fee_amount ?? 0);
+  const feeAmount = data.pricing?.service_fee_amount ?? 0;
+  const feeRate = data.pricing?.service_fee_rate ?? 0;
   const payButtonLabel = authState === "anonymous" ? "Sign Up to Pay" : `Pay ${currencySymbol}${totalAmount.toLocaleString()}`;
 
   return (
@@ -260,7 +261,7 @@ export default function BuyerTransactionReview() {
                 onDecline={handleDecline}
                 authState={authState}
               />
-              <PaymentSummaryCard data={data} currencySymbol={currencySymbol} itemAmount={itemAmount} feeAmount={feeAmount} totalAmount={totalAmount} />
+              <PaymentSummaryCard data={data} currencySymbol={currencySymbol} itemAmount={itemAmount} feeAmount={feeAmount} feeRate={feeRate} totalAmount={totalAmount} />
               <ProtectionFeaturesCard data={data} />
               <TrustIndicatorsCard />
             </div>
@@ -717,8 +718,8 @@ function NextActionCard({ payLabel, onPay, onDecline, authState }: {
   );
 }
 
-function PaymentSummaryCard({ data, currencySymbol, itemAmount, feeAmount, totalAmount }: {
-  data: ReviewData; currencySymbol: string; itemAmount: number; feeAmount: number; totalAmount: number;
+function PaymentSummaryCard({ data, currencySymbol, itemAmount, feeAmount, feeRate, totalAmount }: {
+  data: ReviewData; currencySymbol: string; itemAmount: number; feeAmount: number; feeRate: number; totalAmount: number;
 }) {
   return (
     <Card className="rounded-2xl shadow-lg">
@@ -733,9 +734,10 @@ function PaymentSummaryCard({ data, currencySymbol, itemAmount, feeAmount, total
             <span className="font-semibold text-foreground">{currencySymbol}{itemAmount.toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Service Fee</span>
+            <span className="text-muted-foreground">Service Fee ({(feeRate * 100).toFixed(1)}%)</span>
             <span className="font-semibold text-foreground">{currencySymbol}{feeAmount.toLocaleString()}</span>
           </div>
+          <p className="text-xs text-muted-foreground -mt-1">Includes payment processing</p>
           <div className="border-t pt-3" />
           <div className="flex justify-between items-center">
             <span className="text-base font-bold text-foreground">Total Amount</span>
