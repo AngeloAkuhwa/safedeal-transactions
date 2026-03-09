@@ -40,6 +40,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/t/:shareToken" element={<BuyerTransactionReview />} />
             <Route path="/t/:shareToken/pay" element={<BuyerPaymentSummary />} />
+            <Route path="/t/:shareToken/cancelled" element={<TransactionCancelled />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Protected: requires session */}

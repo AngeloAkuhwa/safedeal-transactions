@@ -357,6 +357,34 @@ export default function BuyerTransactionReview() {
       </section>
 
       <Footer />
+
+      {/* Decline Confirmation Dialog */}
+      <AlertDialog open={showDeclineDialog} onOpenChange={setShowDeclineDialog}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-xl">
+              <Ban className="h-6 w-6 text-destructive" />
+              Cancel this transaction?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base leading-relaxed pt-2">
+              Are you sure you want to cancel this transaction? This action <span className="font-semibold text-foreground">cannot be undone</span>. 
+              The transaction will be permanently terminated and the seller will be notified.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="pt-4">
+            <AlertDialogCancel disabled={isDeclineLoading} className="rounded-xl">
+              No, keep it
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDecline}
+              disabled={isDeclineLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl"
+            >
+              {isDeclineLoading ? "Cancelling..." : "Yes, cancel transaction"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

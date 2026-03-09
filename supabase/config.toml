@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.transaction-detail]
 verify_jwt = false
+
+[functions.decline-transaction]
+verify_jwt = false
