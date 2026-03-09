@@ -19,7 +19,7 @@ function deriveNextAction(status: string, disputeId: string | null) {
     case "awaiting_buyer":
       return { label: "Awaiting Setup", description: "This transaction is being set up.", action: null };
     case "awaiting_payment":
-      return { label: "Payment Required", description: "Complete your payment to proceed.", action: null };
+      return { label: "Payment Required", description: "Review and confirm the agreement, then complete your payment to proceed.", action: "review_agreement" };
     case "payment_secured":
     case "seller_preparing_delivery":
       return { label: "Awaiting Shipment", description: "The seller is preparing your item for delivery.", action: null };
