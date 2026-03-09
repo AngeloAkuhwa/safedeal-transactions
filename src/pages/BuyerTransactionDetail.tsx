@@ -376,22 +376,22 @@ const BuyerTransactionDetail = () => {
                   <ImageIcon className="h-16 w-16 text-muted-foreground/30" />
                 </div>
                 <div className="space-y-3 sm:space-y-4">
-                  <h3 className="text-xl sm:text-2xl font-bold text-foreground">{item.title}</h3>
+                  <h3 className="text-lg sm:text-xl font-bold text-foreground">{item.title}</h3>
                   <div className="space-y-2 sm:space-y-3">
-                    <div className="flex items-center gap-3 text-sm sm:text-base text-muted-foreground">
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <Layers className="h-4 w-5 text-muted-foreground/60 shrink-0" />
                       <span className="font-medium">Quantity:</span>
                       <span className="font-semibold text-foreground">{item.quantity}</span>
                     </div>
                     {item.condition && (
-                      <div className="flex items-center gap-3 text-sm sm:text-base text-muted-foreground">
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <Star className="h-4 w-5 text-muted-foreground/60 shrink-0" />
                         <span className="font-medium">Condition:</span>
                         <span className="font-semibold text-foreground">{item.condition}</span>
                       </div>
                     )}
                     {item.category && (
-                      <div className="flex items-center gap-3 text-sm sm:text-base text-muted-foreground">
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <Tag className="h-4 w-5 text-muted-foreground/60 shrink-0" />
                         <span className="font-medium">Category:</span>
                         <span className="font-semibold text-foreground">{item.category}</span>
