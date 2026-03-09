@@ -14,15 +14,28 @@ const Auth = () => {
   const navigate = useNavigate();
   const role = searchParams.get("role");
   const mode = searchParams.get("mode");
+  const redirectParam = searchParams.get("redirect");
 
   const defaultTab = mode === "login" ? "login" : "signup";
 
   const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
 
+  // Persist redirect URL so it survives auth + role selection
+  useEffect(() => {
+    if (redirectParam) {
+      sessionStorage.setItem("safedeal_redirect", redirectParam);
+    }
+  }, [redirectParam]);
+
   useEffect(() => {
     getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/role-selection", { replace: true });
+        const storedRedirect = sessionStorage.getItem("safedeal_redirect");
+        if (storedRedirect) {
+          navigate(storedRedirect, { replace: true });
+        } else {
+          navigate("/role-selection", { replace: true });
+        }
       }
     });
   }, [navigate]);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { getSession, onAuthStateChange } from "@/services/auth.service";
 import { getUserRoles } from "@/services/role.service";
@@ -9,6 +9,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
+  const location = useLocation();
   const [status, setStatus] = useState<
     "loading" | "authenticated" | "unauthenticated" | "needs-role" | "wrong-role"
   >("loading");
@@ -69,16 +70,18 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
     );
   }
 
+  const currentPath = encodeURIComponent(location.pathname + location.search);
+
   if (status === "unauthenticated") {
-    return <Navigate to="/auth?mode=login" replace />;
+    return <Navigate to={`/auth?mode=login&redirect=${currentPath}`} replace />;
   }
 
   if (status === "needs-role") {
-    return <Navigate to="/role-selection" replace />;
+    return <Navigate to={`/role-selection?redirect=${currentPath}`} replace />;
   }
 
   if (status === "wrong-role") {
-    return <Navigate to="/role-selection" replace />;
+    return <Navigate to={`/role-selection?redirect=${currentPath}`} replace />;
   }
 
   return <Outlet />;

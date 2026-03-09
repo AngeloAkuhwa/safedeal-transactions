@@ -42,7 +42,16 @@ const RoleSelection = () => {
       if (!session) return; // ProtectedRoute handles redirect
 
       const { data: roles } = await getUserRoles(session.user.id);
-      if (roles && roles.length > 0) { navigate("/dashboard", { replace: true }); return; }
+      if (roles && roles.length > 0) {
+        const storedRedirect = sessionStorage.getItem("safedeal_redirect");
+        if (storedRedirect) {
+          sessionStorage.removeItem("safedeal_redirect");
+          navigate(storedRedirect, { replace: true });
+        } else {
+          navigate("/dashboard", { replace: true });
+        }
+        return;
+      }
 
       setLoading(false);
     };
@@ -70,7 +79,13 @@ const RoleSelection = () => {
       }
 
       toast.success(`You're all set as a ${role === "buyer" ? "Buyer" : "Seller"}!`);
-      navigate("/dashboard", { replace: true });
+      const storedRedirect = sessionStorage.getItem("safedeal_redirect");
+      if (storedRedirect) {
+        sessionStorage.removeItem("safedeal_redirect");
+        navigate(storedRedirect, { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
