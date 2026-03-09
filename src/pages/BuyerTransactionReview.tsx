@@ -605,7 +605,7 @@ function TimelineCard() {
 }
 
 function EscrowProtectionCard({ data, currencySymbol }: { data: ReviewData; currencySymbol: string }) {
-  const totalAmount = data.pricing?.buyer_total_amount ?? 0;
+  const totalAmount = data.pricing?.total_amount ?? 0;
   return (
     <div className="bg-success rounded-2xl shadow-2xl p-6 text-success-foreground border-2 border-success/40">
       <div className="flex items-center gap-2 mb-4">

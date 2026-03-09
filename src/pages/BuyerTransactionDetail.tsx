@@ -838,7 +838,7 @@ function TransactionTimeline({
 
           let extraInfo = "";
           if (step.status === "payment_secured" && isReached) {
-            extraInfo = `${formatCurrency(pricing.buyer_total_amount, pricing.currency_code)} held securely in escrow`;
+            extraInfo = `${formatCurrency(pricing.total_amount, pricing.currency_code)} held securely in escrow`;
           }
           if (step.status === "seller_dispatched" && deliveryTracking?.tracking_number) {
             extraInfo = `Tracking: ${deliveryTracking.tracking_number}`;

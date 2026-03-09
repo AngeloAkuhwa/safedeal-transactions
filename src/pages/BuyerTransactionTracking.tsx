@@ -534,18 +534,18 @@ const BuyerTransactionTracking = () => {
                   <span>Item Price</span>
                   <span className="font-semibold text-foreground">{formatCurrency(pricing.item_amount, pricing.currency_code)}</span>
                 </div>
-                {(pricing.service_fee_amount ?? ((pricing.platform_fee_amount || 0) + (pricing.processing_fee_amount || 0))) > 0 && (
+                {(pricing.service_fee_amount || 0) > 0 && (
                   <div className="flex justify-between text-xs text-muted-foreground border-b border-border pb-2">
                     <div>
                       <span>Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
                       <p className="text-[10px] text-muted-foreground mt-0.5">Includes payment processing</p>
                     </div>
-                    <span className="font-semibold text-foreground">{formatCurrency(pricing.service_fee_amount ?? ((pricing.platform_fee_amount || 0) + (pricing.processing_fee_amount || 0)), pricing.currency_code)}</span>
+                    <span className="font-semibold text-foreground">{formatCurrency(pricing.service_fee_amount, pricing.currency_code)}</span>
                   </div>
                 )}
                 <div className="flex justify-between pt-1">
                   <span className="text-sm font-bold text-foreground">Total</span>
-                  <span className="text-sm font-bold text-primary">{formatCurrency(pricing.buyer_total_amount, pricing.currency_code)}</span>
+                  <span className="text-sm font-bold text-primary">{formatCurrency(pricing.total_amount, pricing.currency_code)}</span>
                 </div>
               </div>
               <div className={`mt-3 text-xs font-semibold px-3 py-2 rounded-lg text-center ${mBadge.className}`}>
