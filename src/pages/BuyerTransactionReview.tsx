@@ -115,7 +115,7 @@ export default function BuyerTransactionReview() {
   }
 
   const currencySymbol = data.pricing?.currency_code === "NGN" ? "₦" : "$";
-  const totalAmount = data.pricing?.buyer_total_amount ?? 0;
+  const totalAmount = data.pricing?.total_amount ?? 0;
   const itemAmount = data.pricing?.item_amount ?? 0;
   const feeAmount = data.pricing?.service_fee_amount ?? 0;
   const feeRate = data.pricing?.service_fee_rate ?? 0;
