@@ -223,6 +223,9 @@ const BuyerTransactionDetail = () => {
   });
 
   const countdown = useCountdown(data?.transaction.verification_deadline_at ?? null);
+  const [contactOpen, setContactOpen] = useState(false);
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const handlePrint = () => window.print();
 
   if (isLoading) {
     return (
