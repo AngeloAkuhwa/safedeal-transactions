@@ -37,6 +37,8 @@ export default function BuyerTransactionReview() {
   const { shareToken } = useParams<{ shareToken: string }>();
   const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>("loading");
+  const [showDeclineDialog, setShowDeclineDialog] = useState(false);
+  const [isDeclineLoading, setIsDeclineLoading] = useState(false);
   const { buyerName, avatarUrl } = useBuyerIdentity();
 
   const Header = authState === "ready"
