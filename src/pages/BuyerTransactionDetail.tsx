@@ -44,7 +44,9 @@ import type {
   TransactionStatusEntry,
 } from "@/services/transaction-detail.service";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { ContactSellerModal } from "@/components/transactions/ContactSellerModal";
+import { TransactionReceipt } from "@/components/transactions/TransactionReceipt";
 
 /* ───── Status badge config ───── */
 const statusConfig: Record<string, { label: string; className: string }> = {
