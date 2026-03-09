@@ -309,7 +309,7 @@ const BuyerTransactionDetail = () => {
                       <FileText className="h-4 w-4 mr-2" /> View Locked Agreement
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem><Download className="h-4 w-4 mr-2" /> Download Receipt</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handlePrint}><Download className="h-4 w-4 mr-2" /> Download Receipt</DropdownMenuItem>
                   <DropdownMenuItem><HelpCircle className="h-4 w-4 mr-2" /> Contact Support</DropdownMenuItem>
                   <DropdownMenuItem><Flag className="h-4 w-4 mr-2" /> Report Issue</DropdownMenuItem>
                 </DropdownMenuContent>
