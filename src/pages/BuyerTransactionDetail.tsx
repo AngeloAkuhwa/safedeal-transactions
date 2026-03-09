@@ -562,7 +562,7 @@ const BuyerTransactionDetail = () => {
           </div>
 
           {/* ═══ RIGHT SIDEBAR (1/3) ═══ */}
-          <div className="space-y-6 sm:space-y-8">
+          <div className="space-y-5 sm:space-y-6">
 
             {/* Desktop-only Next Action (sticky — only this card sticks) */}
             {next_action && (
