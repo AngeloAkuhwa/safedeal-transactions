@@ -44,7 +44,9 @@ import type {
   TransactionStatusEntry,
 } from "@/services/transaction-detail.service";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { ContactSellerModal } from "@/components/transactions/ContactSellerModal";
+import { TransactionReceipt } from "@/components/transactions/TransactionReceipt";
 
 /* ───── Status badge config ───── */
 const statusConfig: Record<string, { label: string; className: string }> = {
@@ -221,6 +223,9 @@ const BuyerTransactionDetail = () => {
   });
 
   const countdown = useCountdown(data?.transaction.verification_deadline_at ?? null);
+  const [contactOpen, setContactOpen] = useState(false);
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const handlePrint = () => window.print();
 
   if (isLoading) {
     return (
@@ -286,7 +291,10 @@ const BuyerTransactionDetail = () => {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-              <Button className="px-4 sm:px-6 py-2.5 sm:py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center gap-2 text-sm h-auto">
+              <Button
+                className="px-4 sm:px-6 py-2.5 sm:py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center gap-2 text-sm h-auto"
+                onClick={() => navigate(`/dashboard/transactions/${tx.id}/tracking`)}
+              >
                 <Truck className="h-4 w-4" /> Track Order
               </Button>
               <DropdownMenu>
@@ -301,7 +309,7 @@ const BuyerTransactionDetail = () => {
                       <FileText className="h-4 w-4 mr-2" /> View Locked Agreement
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem><Download className="h-4 w-4 mr-2" /> Download Receipt</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handlePrint}><Download className="h-4 w-4 mr-2" /> Download Receipt</DropdownMenuItem>
                   <DropdownMenuItem><HelpCircle className="h-4 w-4 mr-2" /> Contact Support</DropdownMenuItem>
                   <DropdownMenuItem><Flag className="h-4 w-4 mr-2" /> Report Issue</DropdownMenuItem>
                 </DropdownMenuContent>
@@ -525,7 +533,7 @@ const BuyerTransactionDetail = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Have questions about your order? Contact the seller directly through SafeDeal's secure messaging.
               </p>
-              <Button className="w-full font-bold rounded-xl py-3 h-auto text-sm">
+              <Button className="w-full font-bold rounded-xl py-3 h-auto text-sm" onClick={() => setContactOpen(true)}>
                 <MessageSquare className="h-4 w-4" /> Send Message to Seller
               </Button>
             </div>
@@ -669,7 +677,7 @@ const BuyerTransactionDetail = () => {
                     <p className="text-xs text-primary/70">{mBadge.label}</p>
                   </div>
                 </div>
-                <Button variant="outline" className="w-full font-semibold rounded-xl py-2.5 h-auto text-sm">
+                <Button variant="outline" className="w-full font-semibold rounded-xl py-2.5 h-auto text-sm" onClick={handlePrint}>
                   <Download className="h-4 w-4" /> Download Receipt
                 </Button>
               </div>
@@ -757,7 +765,7 @@ const BuyerTransactionDetail = () => {
                       <p className="text-xs text-primary/70">{mBadge.label}</p>
                     </div>
                   </div>
-                  <Button variant="outline" className="w-full font-semibold rounded-xl py-2.5 h-auto text-sm">
+                  <Button variant="outline" className="w-full font-semibold rounded-xl py-2.5 h-auto text-sm" onClick={handlePrint}>
                     <Download className="h-4 w-4" /> Download Receipt
                   </Button>
                 </div>
@@ -768,6 +776,14 @@ const BuyerTransactionDetail = () => {
       </main>
 
       <Footer />
+
+      <ContactSellerModal
+        open={contactOpen}
+        onOpenChange={setContactOpen}
+        sellerName={seller?.full_name ?? "Seller"}
+        transactionId={tx.id}
+      />
+      <TransactionReceipt ref={receiptRef} data={data} />
     </div>
   );
 };

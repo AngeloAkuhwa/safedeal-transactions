@@ -18,6 +18,7 @@ import BuyerVerification from "./pages/BuyerVerification";
 import BuyerTransactionVerify from "./pages/BuyerTransactionVerify";
 import BuyerTransactionDetail from "./pages/BuyerTransactionDetail";
 import BuyerTransactionAgreement from "./pages/BuyerTransactionAgreement";
+import BuyerTransactionTracking from "./pages/BuyerTransactionTracking";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/dashboard/transactions/:transactionId" element={<BuyerTransactionDetail />} />
               <Route path="/dashboard/transactions/:transactionId/verify" element={<BuyerTransactionVerify />} />
               <Route path="/dashboard/transactions/:transactionId/agreement" element={<BuyerTransactionAgreement />} />
+              <Route path="/dashboard/transactions/:transactionId/tracking" element={<BuyerTransactionTracking />} />
               <Route path="/dashboard/disputes" element={<BuyerDisputes />} />
               <Route path="/dashboard/disputes/:disputeId" element={<BuyerDisputeDetail />} />
               <Route path="/dashboard/notifications" element={<BuyerNotifications />} />
