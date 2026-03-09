@@ -580,13 +580,13 @@ const BuyerTransactionDetail = () => {
 
             {/* ── Seller Information (desktop, scrolls normally) ── */}
             {seller && (
-              <div className="hidden lg:block bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
-                <h3 className="text-lg sm:text-xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+              <div className="hidden lg:block bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-bold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                   <BadgeCheck className="h-5 w-5 text-primary" />
                   Seller Information
                 </h3>
-                <div className="flex items-center gap-4 mb-4 sm:mb-6">
-                  <div className="h-14 sm:h-16 w-14 sm:w-16 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="flex items-center gap-4 mb-3 sm:mb-4">
+                  <div className="h-12 sm:h-14 w-12 sm:w-14 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                     {seller.avatar_url ? (
                       <img src={seller.avatar_url} alt={seller.full_name} className="h-full w-full object-cover" />
                     ) : (
@@ -595,12 +595,12 @@ const BuyerTransactionDetail = () => {
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="text-base sm:text-lg font-bold text-foreground">{seller.full_name}</p>
-                      <div className="w-5 sm:w-6 h-5 sm:h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                        <BadgeCheck className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-primary" />
+                      <p className="text-sm sm:text-base font-bold text-foreground">{seller.full_name}</p>
+                      <div className="w-5 h-5 bg-primary/10 rounded-full flex items-center justify-center">
+                        <BadgeCheck className="h-3 w-3 text-primary" />
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Star className="h-3.5 w-3.5 text-warning fill-warning" />
                         4.9
