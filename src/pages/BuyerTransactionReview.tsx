@@ -7,7 +7,7 @@ import {
   Package, Truck, Clock, ClipboardCheck, CheckCircle, XCircle,
   Store, Star, Handshake, IdCard, Phone, Building2, CalendarDays,
   TrendingUp, HelpCircle, Info, Scale, HandCoins, UserShield,
-  FileText, LockOpen, Hourglass, CircleDot, Award, X
+  FileText, LockOpen, Hourglass, CircleDot, Award, X, User
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
