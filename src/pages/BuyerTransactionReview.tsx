@@ -76,7 +76,7 @@ export default function BuyerTransactionReview() {
   if (error) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <ReviewHeader />
+        <Header />
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-md">
             <ShieldAlert className="h-16 w-16 text-destructive mx-auto mb-4" />
