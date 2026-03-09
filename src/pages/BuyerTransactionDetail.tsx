@@ -310,18 +310,35 @@ const BuyerTransactionDetail = () => {
           </div>
 
           {/* Escrow banner nested inside header card */}
-          {escrow && !["cancelled", "refunded"].includes(tx.status) && (
-            <div className={`border-2 rounded-xl p-4 flex items-start gap-3 ${tx.status === "completed" ? "bg-success/5 border-success/20" : "bg-primary/5 border-primary/20"}`}>
-              <Shield className={`h-5 w-5 shrink-0 mt-0.5 ${tx.status === "completed" ? "text-success" : "text-primary"}`} />
+          {escrow && escrow.state === "held" && (
+            <div className="border-2 rounded-xl p-4 flex items-start gap-3 bg-primary/5 border-primary/20">
+              <Shield className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
               <div>
-                <p className={`text-sm sm:text-base font-bold ${tx.status === "completed" ? "text-success" : "text-primary"}`}>
-                  {tx.status === "completed" ? "Transaction Completed — Funds Released" : "Escrow Protection Active"}
+                <p className="text-sm font-bold text-primary">Escrow Protection Active</p>
+                <p className="text-xs mt-0.5 text-primary/80">
+                  Your payment of <span className="font-bold">{formatCurrency(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.
                 </p>
-                <p className={`text-xs sm:text-sm mt-0.5 ${tx.status === "completed" ? "text-success/80" : "text-primary/80"}`}>
-                  {tx.status === "completed"
-                    ? <>Your payment of <span className="font-bold">{formatCurrency(escrow.held_amount || escrow.released_amount, pricing.currency_code)}</span> has been successfully released to the seller. This transaction is now complete.</>
-                    : <>Your payment of <span className="font-bold">{formatCurrency(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.</>
-                  }
+              </div>
+            </div>
+          )}
+          {escrow && escrow.state === "frozen" && (
+            <div className="border-2 rounded-xl p-4 flex items-start gap-3 bg-destructive/5 border-destructive/20">
+              <Shield className="h-5 w-5 shrink-0 mt-0.5 text-destructive" />
+              <div>
+                <p className="text-sm font-bold text-destructive">Funds Frozen — Dispute In Progress</p>
+                <p className="text-xs mt-0.5 text-destructive/80">
+                  Your funds of <span className="font-bold">{formatCurrency(escrow.frozen_amount, pricing.currency_code)}</span> are currently frozen while the dispute is under review. No money will move until the dispute is resolved.
+                </p>
+              </div>
+            </div>
+          )}
+          {escrow && escrow.state === "released" && (
+            <div className="border-2 rounded-xl p-4 flex items-start gap-3 bg-success/5 border-success/20">
+              <Shield className="h-5 w-5 shrink-0 mt-0.5 text-success" />
+              <div>
+                <p className="text-sm font-bold text-success">Transaction Completed — Funds Released</p>
+                <p className="text-xs mt-0.5 text-success/80">
+                  Your payment of <span className="font-bold">{formatCurrency(escrow.released_amount, pricing.currency_code)}</span> has been successfully released to the seller. This transaction is now complete.
                 </p>
               </div>
             </div>
