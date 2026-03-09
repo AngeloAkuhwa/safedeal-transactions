@@ -165,7 +165,7 @@ function NextActionCard({
         {txStatus === "awaiting_payment" && (
           <Button
             className="w-full bg-white hover:bg-white/90 text-warning font-bold py-4 h-auto"
-            onClick={() => navigate(`/dashboard/transactions/${txId}/agreement`)}
+            onClick={() => navigate(shareToken ? `/t/${shareToken}` : `/dashboard/transactions/${txId}/agreement`)}
           >
             <FileText className="h-4 w-4" /> Review Agreement & Pay
           </Button>
