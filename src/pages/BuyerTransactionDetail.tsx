@@ -366,13 +366,13 @@ const BuyerTransactionDetail = () => {
             )}
 
             {/* ── Item Details ── */}
-            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
+                <Package className="h-5 w-5 text-primary" />
                 Item Details
               </h2>
-              <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
-                <div className="h-64 sm:h-80 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+              <div className="grid md:grid-cols-2 gap-4 sm:gap-5">
+                <div className="h-52 sm:h-64 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
                   <ImageIcon className="h-16 w-16 text-muted-foreground/30" />
                 </div>
                 <div className="space-y-3 sm:space-y-4">
