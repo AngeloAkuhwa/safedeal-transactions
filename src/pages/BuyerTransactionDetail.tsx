@@ -660,16 +660,13 @@ const BuyerTransactionDetail = () => {
                   <span className="text-muted-foreground">Item Price</span>
                   <span className="font-semibold text-foreground">{formatCurrency(pricing.item_amount, pricing.currency_code)}</span>
                 </div>
-                {pricing.platform_fee_amount > 0 && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Platform Fee</span>
-                    <span className="font-semibold text-foreground">{formatCurrency(pricing.platform_fee_amount, pricing.currency_code)}</span>
-                  </div>
-                )}
-                {pricing.processing_fee_amount > 0 && (
+                {(pricing.service_fee_amount ?? ((pricing.platform_fee_amount || 0) + (pricing.processing_fee_amount || 0))) > 0 && (
                   <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-border text-sm">
-                    <span className="text-muted-foreground">Processing Fee</span>
-                    <span className="font-semibold text-foreground">{formatCurrency(pricing.processing_fee_amount, pricing.currency_code)}</span>
+                    <div>
+                      <span className="text-muted-foreground">Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">Includes payment processing</p>
+                    </div>
+                    <span className="font-semibold text-foreground">{formatCurrency(pricing.service_fee_amount ?? ((pricing.platform_fee_amount || 0) + (pricing.processing_fee_amount || 0)), pricing.currency_code)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between pt-2">
