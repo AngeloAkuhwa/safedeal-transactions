@@ -122,7 +122,7 @@ export default function BuyerTransactionReview() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <ReviewHeader />
+      <Header />
 
       {/* Trust banner */}
       <section className="bg-success py-3">
