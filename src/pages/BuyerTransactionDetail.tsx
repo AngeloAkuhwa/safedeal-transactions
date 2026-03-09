@@ -517,15 +517,15 @@ const BuyerTransactionDetail = () => {
             </div>
 
             {/* ── Contact Seller ── */}
-            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6 lg:p-8">
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 flex items-center gap-2 sm:gap-3">
-                <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-primary" />
                 Contact Seller
               </h2>
-              <p className="text-sm sm:text-base text-muted-foreground mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Have questions about your order? Contact the seller directly through SafeDeal's secure messaging.
               </p>
-              <Button className="w-full font-bold rounded-xl py-3 h-auto text-sm sm:text-base">
+              <Button className="w-full font-bold rounded-xl py-3 h-auto text-sm">
                 <MessageSquare className="h-4 w-4" /> Send Message to Seller
               </Button>
             </div>
