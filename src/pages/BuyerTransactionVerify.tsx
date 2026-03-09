@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -59,8 +59,24 @@ const BuyerTransactionVerify = () => {
     queryKey: ["verification", transactionId],
     queryFn: () => getVerificationData(transactionId!),
     enabled: !!transactionId,
-    retry: 1,
+    retry: (failureCount, err) => {
+      // Don't retry if the transaction isn't in verification state (redirect error)
+      if ((err as any)?.redirect) return false;
+      return failureCount < 1;
+    },
   });
+
+  // Auto-redirect if the transaction isn't in verification state
+  useEffect(() => {
+    if (error && (error as any)?.redirect) {
+      const redirectPath = (error as any).redirect;
+      if (transactionId && redirectPath === "/dashboard/transactions") {
+        navigate(`/dashboard/transactions/${transactionId}`, { replace: true });
+      } else {
+        navigate(redirectPath, { replace: true });
+      }
+    }
+  }, [error, navigate, transactionId]);
 
   if (isLoading) {
     return (
@@ -70,7 +86,16 @@ const BuyerTransactionVerify = () => {
     );
   }
 
+
   if (error || !data) {
+    // If we're about to redirect, show a loading state instead of error
+    if ((error as any)?.redirect) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
         <ShieldAlert className="h-12 w-12 text-destructive" />
