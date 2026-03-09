@@ -7,7 +7,7 @@ import {
   Package, Truck, Clock, ClipboardCheck, CheckCircle, XCircle,
   Store, Star, Handshake, IdCard, Phone, Building2, CalendarDays,
   TrendingUp, HelpCircle, Info, Scale, HandCoins,
-  FileText, LockOpen, Hourglass, CircleDot, Award, X, User
+  FileText, LockOpen, Hourglass, CircleDot, Award, X, User, Ban
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Footer } from "@/components/landing/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/components/ui/sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { getTransactionReview, type ReviewData } from "@/services/review.service";
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
@@ -27,6 +37,8 @@ export default function BuyerTransactionReview() {
   const { shareToken } = useParams<{ shareToken: string }>();
   const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>("loading");
+  const [showDeclineDialog, setShowDeclineDialog] = useState(false);
+  const [isDeclineLoading, setIsDeclineLoading] = useState(false);
   const { buyerName, avatarUrl } = useBuyerIdentity();
 
   const Header = authState === "ready"
@@ -69,8 +81,27 @@ export default function BuyerTransactionReview() {
   };
 
   const handleDecline = () => {
-    toast.info("Transaction declined.");
-    navigate("/");
+    setShowDeclineDialog(true);
+  };
+
+  const confirmDecline = async () => {
+    setIsDeclineLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("decline-transaction", {
+        body: { shareToken },
+      });
+      if (error || data?.error) {
+        toast.error(data?.error || error?.message || "Failed to decline transaction");
+        return;
+      }
+      toast.success("Transaction declined successfully");
+      navigate(`/t/${shareToken}/cancelled`);
+    } catch (err) {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsDeclineLoading(false);
+      setShowDeclineDialog(false);
+    }
   };
 
   if (error) {
@@ -326,6 +357,34 @@ export default function BuyerTransactionReview() {
       </section>
 
       <Footer />
+
+      {/* Decline Confirmation Dialog */}
+      <AlertDialog open={showDeclineDialog} onOpenChange={setShowDeclineDialog}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-xl">
+              <Ban className="h-6 w-6 text-destructive" />
+              Cancel this transaction?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base leading-relaxed pt-2">
+              Are you sure you want to cancel this transaction? This action <span className="font-semibold text-foreground">cannot be undone</span>. 
+              The transaction will be permanently terminated and the seller will be notified.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="pt-4">
+            <AlertDialogCancel disabled={isDeclineLoading} className="rounded-xl">
+              No, keep it
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDecline}
+              disabled={isDeclineLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl"
+            >
+              {isDeclineLoading ? "Cancelling..." : "Yes, cancel transaction"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
