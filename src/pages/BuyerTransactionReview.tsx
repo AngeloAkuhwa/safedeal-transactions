@@ -27,7 +27,11 @@ export default function BuyerTransactionReview() {
   const { shareToken } = useParams<{ shareToken: string }>();
   const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>("loading");
+  const { buyerName, avatarUrl } = useBuyerIdentity();
 
+  const Header = authState === "ready"
+    ? () => <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
+    : ReviewHeader;
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
