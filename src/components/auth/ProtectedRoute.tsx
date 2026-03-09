@@ -70,16 +70,18 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
     );
   }
 
+  const currentPath = encodeURIComponent(location.pathname + location.search);
+
   if (status === "unauthenticated") {
-    return <Navigate to="/auth?mode=login" replace />;
+    return <Navigate to={`/auth?mode=login&redirect=${currentPath}`} replace />;
   }
 
   if (status === "needs-role") {
-    return <Navigate to="/role-selection" replace />;
+    return <Navigate to={`/role-selection?redirect=${currentPath}`} replace />;
   }
 
   if (status === "wrong-role") {
-    return <Navigate to="/role-selection" replace />;
+    return <Navigate to={`/role-selection?redirect=${currentPath}`} replace />;
   }
 
   return <Outlet />;

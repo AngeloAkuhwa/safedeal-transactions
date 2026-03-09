@@ -62,10 +62,12 @@ export default function BuyerTransactionAgreement() {
     );
   }
 
+  const isLocked = data.transaction.money_status !== "not_secured" && data.transaction.money_status !== "payment_pending";
+
   return (
     <div className="min-h-screen bg-background">
       <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
-      <AgreementHero />
+      <AgreementHero isLocked={isLocked} />
       <LockedSnapshotCard data={data} />
       <ImmutabilityExplanation />
       <AgreementNextSteps transactionId={transactionId!} />
