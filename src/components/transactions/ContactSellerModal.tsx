@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { X, Paperclip, Send, Loader2, FileText, Image as ImageIcon } from "lucide-react";
+import { X, Paperclip, Send, Loader2, FileText } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AttachedFile {
   id: string;
