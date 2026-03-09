@@ -80,8 +80,30 @@ export const getVerificationData = async (transactionId: string): Promise<Verifi
     body: { action: "get_verification_data", transactionId },
   });
 
-  if (error) throw new Error(error.message || "Failed to load verification data");
-  if (data?.error) throw new Error(data.error);
+  // Edge functions returning non-2xx set error on the client; data may contain redirect info
+  if (error) {
+    // Try to parse the context from the error (supabase-js wraps non-2xx as FunctionsFetchError with context)
+    const context = (error as any)?.context;
+    if (context && typeof context.json === "function") {
+      try {
+        const body = await context.json();
+        if (body?.redirect) {
+          const redirectError = new Error(body.error || "Transaction is not ready for verification") as any;
+          redirectError.redirect = body.redirect;
+          throw redirectError;
+        }
+        if (body?.error) throw new Error(body.error);
+      } catch (e) {
+        if ((e as any).redirect) throw e;
+      }
+    }
+    throw new Error(error.message || "Failed to load verification data");
+  }
+  if (data?.error) {
+    const err = new Error(data.error) as any;
+    if (data.redirect) err.redirect = data.redirect;
+    throw err;
+  }
   return data as VerificationData;
 };
 

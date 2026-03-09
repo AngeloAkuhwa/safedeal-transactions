@@ -59,7 +59,11 @@ const BuyerTransactionVerify = () => {
     queryKey: ["verification", transactionId],
     queryFn: () => getVerificationData(transactionId!),
     enabled: !!transactionId,
-    retry: 1,
+    retry: (failureCount, err) => {
+      // Don't retry if the transaction isn't in verification state (redirect error)
+      if ((err as any)?.redirect) return false;
+      return failureCount < 1;
+    },
   });
 
   if (isLoading) {
