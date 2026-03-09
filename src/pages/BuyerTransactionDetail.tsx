@@ -152,7 +152,7 @@ function NextActionCard({
       <p className="text-sm opacity-90 mb-4">{nextAction.description}</p>
 
       {txStatus === "delivered_awaiting_verification" && countdown && (
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 mb-5 text-center">
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 mb-6 text-center">
           <p className="text-sm font-semibold mb-2">Verification Countdown</p>
           <p className="text-3xl font-bold tabular-nums">{countdown}</p>
           <p className="text-xs opacity-80 mt-1">Funds auto-release if no action taken</p>
@@ -186,7 +186,7 @@ function NextActionCard({
         )}
       </div>
 
-      {txStatus === "delivered_awaiting_verification" && (
+      {(txStatus === "delivered_awaiting_verification" || txStatus === "completed") && (
         <div className="mt-6 pt-6 border-t border-white/20">
           <p className="text-xs font-semibold opacity-80 mb-3">Other Actions</p>
           <div className="space-y-1.5">
@@ -310,13 +310,18 @@ const BuyerTransactionDetail = () => {
           </div>
 
           {/* Escrow banner nested inside header card */}
-          {escrow && (escrow.state === "funds_held" || tx.money_status === "funds_held_in_escrow") && (
-            <div className="bg-primary/5 border-2 border-primary/20 rounded-xl p-4 flex items-start gap-3">
-              <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          {escrow && !["cancelled", "refunded"].includes(tx.status) && (
+            <div className={`border-2 rounded-xl p-4 flex items-start gap-3 ${tx.status === "completed" ? "bg-success/5 border-success/20" : "bg-primary/5 border-primary/20"}`}>
+              <Shield className={`h-5 w-5 shrink-0 mt-0.5 ${tx.status === "completed" ? "text-success" : "text-primary"}`} />
               <div>
-                <p className="text-sm sm:text-base font-bold text-primary">Escrow Protection Active</p>
-                <p className="text-xs sm:text-sm text-primary/80 mt-0.5">
-                  Your payment of <span className="font-bold">{formatCurrency(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.
+                <p className={`text-sm sm:text-base font-bold ${tx.status === "completed" ? "text-success" : "text-primary"}`}>
+                  {tx.status === "completed" ? "Transaction Completed — Funds Released" : "Escrow Protection Active"}
+                </p>
+                <p className={`text-xs sm:text-sm mt-0.5 ${tx.status === "completed" ? "text-success/80" : "text-primary/80"}`}>
+                  {tx.status === "completed"
+                    ? <>Your payment of <span className="font-bold">{formatCurrency(escrow.held_amount || escrow.released_amount, pricing.currency_code)}</span> has been successfully released to the seller. This transaction is now complete.</>
+                    : <>Your payment of <span className="font-bold">{formatCurrency(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.</>
+                  }
                 </p>
               </div>
             </div>
