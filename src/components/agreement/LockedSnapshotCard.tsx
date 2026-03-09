@@ -131,13 +131,13 @@ export function LockedSnapshotCard({ data }: LockedSnapshotCardProps) {
                       <p className="text-xs text-muted-foreground mt-0.5">Includes payment processing</p>
                     </div>
                     <span className="text-base font-semibold text-muted-foreground">
-                      {pricing.currency_code} {Number(pricing.service_fee_amount ?? ((Number(pricing.platform_fee_amount) || 0) + (Number(pricing.processing_fee_amount) || 0))).toLocaleString()}
+                      {pricing.currency_code} {Number(pricing.service_fee_amount).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-base font-bold text-foreground">Total Paid</span>
                     <span className="text-2xl font-bold text-primary">
-                      {pricing.currency_code} {Number(pricing.buyer_total_amount).toLocaleString()}
+                      {pricing.currency_code} {Number(pricing.total_amount).toLocaleString()}
                     </span>
                   </div>
                   <div className="mt-4 pt-4 border-t border-border flex items-center gap-2 text-sm">

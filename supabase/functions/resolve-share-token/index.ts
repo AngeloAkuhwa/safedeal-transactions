@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { computePricing } from "../_shared/pricing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
           .maybeSingle(),
         supabase
           .from("transaction_pricing")
-          .select("currency_code, item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount")
+          .select("currency_code, item_amount")
           .eq("transaction_id", txId)
           .maybeSingle(),
         supabase
@@ -103,14 +104,11 @@ Deno.serve(async (req) => {
         .maybeSingle(),
     ]);
 
-    const pricingRaw = pricingRes.data || null;
-    const computedPricing = pricingRaw ? {
-      ...pricingRaw,
-      service_fee_amount: (Number(pricingRaw.platform_fee_amount) || 0) + (Number(pricingRaw.processing_fee_amount) || 0),
-      service_fee_rate: (Number(pricingRaw.item_amount) || 0) > 0
-        ? ((Number(pricingRaw.platform_fee_amount) || 0) + (Number(pricingRaw.processing_fee_amount) || 0)) / Number(pricingRaw.item_amount)
-        : 0,
-    } : null;
+    // 4. Compute pricing dynamically using SafeDeal tiered policy
+    const pricingRaw = pricingRes.data;
+    const computedPricing = pricingRaw
+      ? computePricing(Number(pricingRaw.item_amount) || 0, pricingRaw.currency_code || "NGN")
+      : null;
 
     const response = {
       transaction: {

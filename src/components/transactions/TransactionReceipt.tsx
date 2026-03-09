@@ -138,20 +138,20 @@ export const TransactionReceipt = React.forwardRef<HTMLDivElement, TransactionRe
                     <td style={{ color: "#64748b", paddingBottom: "6px" }}>Item Price</td>
                     <td style={{ textAlign: "right", paddingBottom: "6px" }}>{formatCurrency(pricing.item_amount, pricing.currency_code)}</td>
                   </tr>
-                  {((pricing as any).service_fee_amount ?? ((pricing.platform_fee_amount || 0) + (pricing.processing_fee_amount || 0))) > 0 && (
+                  {(pricing.service_fee_amount || 0) > 0 && (
                     <tr>
-                      <td style={{ color: "#64748b", paddingBottom: "2px" }}>Service Fee ({(((pricing as any).service_fee_rate ?? 0) * 100).toFixed(1)}%)</td>
-                      <td style={{ textAlign: "right", paddingBottom: "2px" }}>{formatCurrency((pricing as any).service_fee_amount ?? ((pricing.platform_fee_amount || 0) + (pricing.processing_fee_amount || 0)), pricing.currency_code)}</td>
+                      <td style={{ color: "#64748b", paddingBottom: "2px" }}>Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</td>
+                      <td style={{ textAlign: "right", paddingBottom: "2px" }}>{formatCurrency(pricing.service_fee_amount, pricing.currency_code)}</td>
                     </tr>
                   )}
-                  {((pricing as any).service_fee_amount ?? ((pricing.platform_fee_amount || 0) + (pricing.processing_fee_amount || 0))) > 0 && (
+                  {(pricing.service_fee_amount || 0) > 0 && (
                     <tr>
                       <td colSpan={2} style={{ color: "#94a3b8", fontSize: "10px", paddingBottom: "6px", borderBottom: "1px solid #e2e8f0" }}>Includes payment processing</td>
                     </tr>
                   )}
                   <tr>
                     <td style={{ fontWeight: "800", paddingTop: "8px", fontSize: "14px" }}>Total Paid</td>
-                    <td style={{ textAlign: "right", fontWeight: "800", paddingTop: "8px", fontSize: "14px", color: "#2563eb" }}>{formatCurrency(pricing.buyer_total_amount, pricing.currency_code)}</td>
+                    <td style={{ textAlign: "right", fontWeight: "800", paddingTop: "8px", fontSize: "14px", color: "#2563eb" }}>{formatCurrency(pricing.total_amount, pricing.currency_code)}</td>
                   </tr>
                   <tr>
                     <td style={{ color: "#94a3b8", fontSize: "11px" }}>Currency</td>

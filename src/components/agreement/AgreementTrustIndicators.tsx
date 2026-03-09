@@ -7,7 +7,7 @@ interface AgreementTrustIndicatorsProps {
 
 export function AgreementTrustIndicators({ pricing }: AgreementTrustIndicatorsProps) {
   const totalAmount = pricing
-    ? `${pricing.currency_code} ${Number(pricing.buyer_total_amount).toLocaleString()}`
+    ? `${pricing.currency_code} ${Number(pricing.total_amount).toLocaleString()}`
     : "Your funds";
 
   const indicators = [
