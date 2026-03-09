@@ -286,7 +286,7 @@ const BuyerTransactionDetail = () => {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-              <Button className="px-4 sm:px-6 py-2.5 sm:py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center gap-2 text-sm sm:text-base h-auto">
+              <Button className="px-4 sm:px-6 py-2.5 sm:py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center gap-2 text-sm h-auto">
                 <Truck className="h-4 w-4" /> Track Order
               </Button>
               <DropdownMenu>
