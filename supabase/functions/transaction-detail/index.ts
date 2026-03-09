@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { computePricing } from "../_shared/pricing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -111,7 +112,7 @@ Deno.serve(async (req) => {
       deliveryConfResult,
     ] = await Promise.allSettled([
       adminClient.from("transaction_items").select("title, description, quantity, condition, brand, model, category").eq("transaction_id", transactionId).single(),
-      adminClient.from("transaction_pricing").select("item_amount, platform_fee_amount, processing_fee_amount, buyer_total_amount, currency_code").eq("transaction_id", transactionId).single(),
+      adminClient.from("transaction_pricing").select("item_amount, currency_code").eq("transaction_id", transactionId).single(),
       adminClient.from("transaction_delivery_terms").select("delivery_method, expected_delivery_date, verification_window_hours, delivery_address_line1, delivery_address_line2, delivery_city, delivery_state, delivery_postal_code, delivery_country_code").eq("transaction_id", transactionId).single(),
       adminClient.from("delivery_tracking_details").select("courier_name, tracking_number, tracking_url, shipped_at, delivered_at, expected_delivery_at").eq("transaction_id", transactionId).single(),
       adminClient.from("delivery_proof_files").select("id, proof_type, created_at, file_id, files(file_url, original_file_name, mime_type)").eq("transaction_id", transactionId),
@@ -125,7 +126,7 @@ Deno.serve(async (req) => {
     ]);
 
     const item = itemResult.status === "fulfilled" ? itemResult.value.data : null;
-    const pricing = pricingResult.status === "fulfilled" ? pricingResult.value.data : null;
+    const pricingRaw = pricingResult.status === "fulfilled" ? pricingResult.value.data : null;
     const deliveryTerms = deliveryTermsResult.status === "fulfilled" ? deliveryTermsResult.value.data : null;
     const tracking = trackingResult.status === "fulfilled" ? trackingResult.value.data : null;
     const proofFiles = proofFilesResult.status === "fulfilled" ? (proofFilesResult.value.data ?? []) : [];
@@ -136,6 +137,11 @@ Deno.serve(async (req) => {
     const dispute = disputeResult.status === "fulfilled" ? disputeResult.value.data : null;
     const agreement = agreementResult.status === "fulfilled" ? agreementResult.value.data : null;
     const deliveryConf = deliveryConfResult.status === "fulfilled" ? deliveryConfResult.value.data : null;
+
+    // Compute pricing dynamically using SafeDeal tiered policy
+    const computedPricing = pricingRaw
+      ? computePricing(Number(pricingRaw.item_amount) || 0, pricingRaw.currency_code || "NGN")
+      : computePricing(0);
 
     // Compute verification deadline
     let verificationDeadlineAt: string | null = null;
@@ -161,12 +167,7 @@ Deno.serve(async (req) => {
         share_token: tx.share_token ?? null,
       },
       item: item ?? { title: "Untitled Item", description: null, quantity: 1, condition: null, brand: null, model: null, category: null },
-      pricing: (() => {
-        const p = pricing ?? { item_amount: 0, platform_fee_amount: 0, processing_fee_amount: 0, buyer_total_amount: 0, currency_code: "NGN" };
-        const sfa = (Number(p.platform_fee_amount) || 0) + (Number(p.processing_fee_amount) || 0);
-        const sfr = (Number(p.item_amount) || 0) > 0 ? sfa / Number(p.item_amount) : 0;
-        return { ...p, service_fee_amount: sfa, service_fee_rate: sfr };
-      })(),
+      pricing: computedPricing,
       delivery_terms: deliveryTerms,
       delivery_tracking: tracking,
       delivery_proof_files: proofFiles.map((pf: Record<string, unknown>) => ({

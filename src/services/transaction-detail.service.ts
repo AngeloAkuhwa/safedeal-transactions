@@ -11,13 +11,13 @@ export interface TransactionDetailItem {
 }
 
 export interface TransactionDetailPricing {
-  item_amount: number;
-  platform_fee_amount: number;
-  processing_fee_amount: number;
-  buyer_total_amount: number;
   currency_code: string;
+  item_amount: number;
+  paystack_fee_amount: number;
+  platform_fee_amount: number;
   service_fee_amount: number;
   service_fee_rate: number;
+  total_amount: number;
 }
 
 export interface TransactionDetailDeliveryTerms {
