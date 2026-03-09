@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     // 1. Resolve share token → transaction_id
     const { data: link, error: linkErr } = await supabase
       .from("transaction_links")
-      .select("transaction_id, link_type, expires_at, is_active")
+      .select("transaction_id, expires_at, is_active")
       .eq("share_token", shareToken)
       .eq("is_active", true)
       .maybeSingle();
