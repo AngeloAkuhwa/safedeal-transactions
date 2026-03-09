@@ -42,7 +42,16 @@ const RoleSelection = () => {
       if (!session) return; // ProtectedRoute handles redirect
 
       const { data: roles } = await getUserRoles(session.user.id);
-      if (roles && roles.length > 0) { navigate("/dashboard", { replace: true }); return; }
+      if (roles && roles.length > 0) {
+        const storedRedirect = sessionStorage.getItem("safedeal_redirect");
+        if (storedRedirect) {
+          sessionStorage.removeItem("safedeal_redirect");
+          navigate(storedRedirect, { replace: true });
+        } else {
+          navigate("/dashboard", { replace: true });
+        }
+        return;
+      }
 
       setLoading(false);
     };
