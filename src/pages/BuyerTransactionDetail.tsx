@@ -533,7 +533,7 @@ const BuyerTransactionDetail = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Have questions about your order? Contact the seller directly through SafeDeal's secure messaging.
               </p>
-              <Button className="w-full font-bold rounded-xl py-3 h-auto text-sm">
+              <Button className="w-full font-bold rounded-xl py-3 h-auto text-sm" onClick={() => setContactOpen(true)}>
                 <MessageSquare className="h-4 w-4" /> Send Message to Seller
               </Button>
             </div>
