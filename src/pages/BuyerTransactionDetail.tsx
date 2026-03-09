@@ -593,6 +593,7 @@ const BuyerTransactionDetail = () => {
                   countdown={countdown}
                   dispute={dispute}
                   navigate={navigate}
+                  shareToken={tx.share_token}
                 />
               </div>
             )}
