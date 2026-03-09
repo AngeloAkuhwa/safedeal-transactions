@@ -532,9 +532,9 @@ const BuyerTransactionDetail = () => {
 
             {/* ── Dispute Card ── */}
             {dispute && (
-              <div className="bg-card rounded-2xl shadow-lg border-2 border-destructive/20 p-4 sm:p-6 lg:p-8">
-                <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                  <Scale className="h-5 w-5 sm:h-6 sm:w-6 text-destructive" />
+              <div className="bg-card rounded-2xl shadow-lg border-2 border-destructive/20 p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2">
+                  <Scale className="h-5 w-5 text-destructive" />
                   Dispute
                 </h2>
                 <div className="text-sm space-y-3 mb-4">
