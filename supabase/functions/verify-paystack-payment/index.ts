@@ -242,7 +242,7 @@ export async function processPaystackVerification(
     delivery: deliveryRes.data || null,
     media: mediaRes.data || [],
     locked_at: now,
-    payment_reference: reference,
+    payment_reference: paystackReference,
   };
 
   await supabase.from("transaction_agreement_snapshots").insert({
