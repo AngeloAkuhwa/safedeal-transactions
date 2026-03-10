@@ -147,32 +147,25 @@ export default function BuyerPaymentSummary() {
       const handler = window.PaystackPop.setup({
         key: initData.public_key,
         access_code: initData.access_code,
-        callback: async (response) => {
-          try {
-            // 3. Verify payment on backend
-            const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
-              "verify-paystack-payment",
-              {
-                body: { reference: response.reference },
-              }
-            );
-
+        callback: function(response: { reference: string }) {
+          // 3. Verify payment on backend (non-async — Paystack rejects async callbacks)
+          supabase.functions.invoke("verify-paystack-payment", {
+            body: { reference: response.reference },
+          }).then(({ data: verifyData, error: verifyError }) => {
             if (verifyError || verifyData?.error) {
-              const errMsg = verifyData?.error || verifyError?.message || "Payment verification failed";
-              setFailureReason(errMsg);
+              setFailureReason(verifyData?.error || verifyError?.message || "Payment verification failed");
               setIsProcessing(false);
               setShowFailed(true);
               return;
             }
-
             setIsProcessing(false);
             setShowSuccess(true);
-          } catch (verifyErr) {
+          }).catch((verifyErr) => {
             console.error("Verification error:", verifyErr);
             setFailureReason("Payment verification failed. If you were charged, your payment is safe — please contact support.");
             setIsProcessing(false);
             setShowFailed(true);
-          }
+          });
         },
         onClose: () => {
           setIsProcessing(false);
