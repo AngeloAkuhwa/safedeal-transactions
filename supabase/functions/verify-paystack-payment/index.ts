@@ -307,7 +307,7 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub as string;
 
     // 2. Parse request
-    const { reference } = await req.json();
+    const { reference, provider_reference } = await req.json();
     if (!reference) {
       return new Response(JSON.stringify({ error: "reference is required" }), {
         status: 400,
@@ -320,8 +320,8 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 3. Process verification
-    const result = await processPaystackVerification(reference, supabase, userId);
+    // 3. Process verification — reference is Paystack's, provider_reference is ours (for DB lookup)
+    const result = await processPaystackVerification(reference, supabase, userId, provider_reference);
 
     if (!result.success) {
       return new Response(
