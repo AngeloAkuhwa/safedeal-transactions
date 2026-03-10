@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     // Fallback for invalid test TLDs that Paystack rejects
     const invalidTLDs = ['.test', '.example', '.invalid', '.localhost'];
     if (invalidTLDs.some(tld => userEmail.endsWith(tld))) {
-      userEmail = `customer-${userId.slice(0, 8)}@safedeal.ng`;
+      userEmail = 'angeloakuhwa@gmail.com';
     }
 
     // 3. Resolve share token → transaction
