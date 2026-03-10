@@ -246,6 +246,7 @@ Deno.serve(async (req) => {
         authorization_url: paystackData.data.authorization_url,
         reference: paystackData.data.reference,
         public_key: publicKey,
+        email: userEmail,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
