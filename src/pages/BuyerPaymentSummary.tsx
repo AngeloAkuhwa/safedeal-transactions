@@ -855,56 +855,121 @@ export default function BuyerPaymentSummary() {
         </div>
       )}
 
-      {/* Failed Modal */}
+      {/* Failed Full-Page Screen */}
       {showFailed && (
-        <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card rounded-3xl shadow-2xl p-8 sm:p-12 max-w-lg w-full animate-in slide-in-from-bottom-4">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <XCircle className="h-10 w-10 text-destructive" />
-              </div>
-              <h2 className="text-3xl font-bold text-foreground mb-3">Payment Failed</h2>
-              <p className="text-muted-foreground mb-6">
-                {failureReason || "We were unable to process your payment. Please check your payment details and try again."}
-              </p>
+        <div className="fixed inset-0 z-[9999] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-sm mx-auto my-8">
+            {/* Card */}
+            <div className="bg-card rounded-2xl shadow-xl border overflow-hidden animate-in slide-in-from-bottom-4">
+              {/* Red gradient top bar */}
+              <div className="h-1.5 bg-gradient-to-r from-destructive via-destructive/80 to-destructive/60" />
 
-              <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 mb-6 text-left">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground mb-2">Common reasons for failure:</p>
-                    <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                      <li>Insufficient funds in your account</li>
-                      <li>Incorrect card details or CVV</li>
-                      <li>Card expired or blocked</li>
-                      <li>Bank declined the transaction</li>
-                    </ul>
+              <div className="p-5 sm:p-6">
+                {/* Error icon */}
+                <div className="flex justify-center mb-4">
+                  <div className="relative">
+                    <div className="w-14 h-14 bg-destructive/10 rounded-full flex items-center justify-center animate-pulse">
+                      <XCircle className="h-7 w-7 text-destructive" />
+                    </div>
+                    <div className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-destructive rounded-full flex items-center justify-center">
+                      <span className="text-destructive-foreground text-[10px] font-bold">!</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-3">
-                <button
-                  onClick={() => setShowFailed(false)}
-                  className="w-full bg-primary text-primary-foreground font-bold py-4 rounded-xl hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  <span>Retry Payment</span>
-                </button>
-                <button
-                  onClick={() => { setShowFailed(false); navigate(`/t/${shareToken}`); }}
-                  className="w-full bg-transparent border-2 border-border text-foreground font-semibold py-3 rounded-xl hover:bg-muted transition-all"
-                >
-                  Cancel
-                </button>
-              </div>
+                {/* Title */}
+                <div className="text-center mb-4">
+                  <h2 className="text-lg font-bold text-foreground mb-1">Payment Failed</h2>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {failureReason || "We were unable to process your payment. No funds were deducted from your account."}
+                  </p>
+                </div>
 
-              <div className="mt-6 pt-6 border-t">
-                <p className="text-xs text-muted-foreground mb-2">Need help?</p>
-                <button className="text-sm text-primary font-semibold hover:text-primary/80 flex items-center justify-center gap-1 mx-auto">
-                  <Headphones className="h-4 w-4" />
-                  <span>Contact Support</span>
-                </button>
+                {/* Money Status Summary */}
+                <div className="bg-muted/60 rounded-xl p-3 mb-4">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Money Status Summary</p>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-warning/15 text-warning border border-warning/30">
+                      <Clock className="h-2.5 w-2.5" />
+                      Awaiting Payment
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-destructive/15 text-destructive border border-destructive/30">
+                      <XCircle className="h-2.5 w-2.5" />
+                      Payment Failed
+                    </span>
+                  </div>
+                </div>
+
+                {/* Transaction Info */}
+                <div className="bg-muted/60 rounded-xl p-3 mb-4">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Transaction Info</p>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-xs text-muted-foreground">Amount</span>
+                    <span className="text-sm font-bold text-foreground">{currencySymbol}{totalAmount.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Transaction</span>
+                    <span className="text-xs font-semibold text-foreground">#{data.transaction.transaction_code}</span>
+                  </div>
+                </div>
+
+                {/* What you can do next */}
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-foreground mb-2.5">What you can do next</p>
+                  <div className="space-y-2">
+                    <button
+                      onClick={handleRetryPay}
+                      disabled={isProcessing}
+                      className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          Retry Payment
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => { setShowFailed(false); navigate(`/t/${shareToken}`); }}
+                      className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      Return to Review
+                    </button>
+                    <button
+                      className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
+                    >
+                      <Headphones className="h-3.5 w-3.5" />
+                      Contact Support
+                    </button>
+                  </div>
+                </div>
+
+                {/* Security reassurance */}
+                <div className="bg-success/5 border border-success/20 rounded-lg p-3 mb-3">
+                  <div className="flex items-start gap-2">
+                    <ShieldCheck className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[10px] font-semibold text-foreground mb-0.5">No funds were deducted</p>
+                      <p className="text-[10px] text-muted-foreground leading-relaxed">Your account has not been charged. You can safely retry the payment or choose a different payment method.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Help footer */}
+                <div className="text-center pt-2 border-t">
+                  <p className="text-[10px] text-muted-foreground">
+                    Need help?{" "}
+                    <button className="text-primary font-semibold hover:text-primary/80">
+                      Visit our Help Center
+                    </button>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
