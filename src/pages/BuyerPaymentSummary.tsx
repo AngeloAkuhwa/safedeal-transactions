@@ -893,30 +893,42 @@ export default function BuyerPaymentSummary() {
                 </div>
 
                 {/* Money Status Summary */}
-                <div className="bg-muted/60 rounded-xl p-3 mb-4">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Money Status Summary</p>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-warning/15 text-warning border border-warning/30">
-                      <Clock className="h-2.5 w-2.5" />
-                      Awaiting Payment
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-destructive/15 text-destructive border border-destructive/30">
-                      <XCircle className="h-2.5 w-2.5" />
-                      Payment Failed
-                    </span>
+                <div className="rounded-xl overflow-hidden border border-amber-200 dark:border-amber-800 mb-4">
+                  <div className="bg-amber-50/80 dark:bg-amber-950/20 px-3 py-2">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Money Status Summary</p>
+                  </div>
+                  <div className="grid grid-cols-2 divide-x divide-amber-200 dark:divide-amber-800 bg-amber-50/40 dark:bg-amber-950/10">
+                    <div className="flex flex-col items-center gap-1.5 py-3 px-2">
+                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Transaction Status</span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-warning/15 text-warning border border-warning/30">
+                        <Clock className="h-2.5 w-2.5" />
+                        Awaiting Payment
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1.5 py-3 px-2">
+                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Money Status</span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-destructive/15 text-destructive border border-destructive/30">
+                        <XCircle className="h-2.5 w-2.5" />
+                        Payment Failed
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Transaction Info */}
-                <div className="bg-muted/60 rounded-xl p-3 mb-4">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Transaction Info</p>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-xs text-muted-foreground">Amount</span>
-                    <span className="text-sm font-bold text-foreground">{currencySymbol}{totalAmount.toLocaleString()}</span>
+                <div className="rounded-xl overflow-hidden border border-border mb-4">
+                  <div className="bg-muted/50 px-3 py-2">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Transaction Info</p>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">Transaction</span>
-                    <span className="text-xs font-semibold text-foreground">#{data.transaction.transaction_code}</span>
+                  <div className="grid grid-cols-2 divide-x divide-border bg-muted/30">
+                    <div className="flex flex-col items-center gap-1 py-3 px-2">
+                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Amount</span>
+                      <span className="text-sm font-bold text-foreground">{currencySymbol}{totalAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1 py-3 px-2">
+                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Code</span>
+                      <span className="text-[11px] font-mono font-semibold text-foreground bg-muted px-2 py-0.5 rounded">#{data.transaction.transaction_code}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -952,7 +964,7 @@ export default function BuyerPaymentSummary() {
                       className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
                     >
                       <Headphones className="h-3.5 w-3.5" />
-                      Contact Support
+                      Contact support if card appears charged
                     </button>
                   </div>
                 </div>
