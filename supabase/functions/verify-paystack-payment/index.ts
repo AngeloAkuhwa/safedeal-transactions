@@ -258,7 +258,7 @@ export async function processPaystackVerification(
     event_type: "payment_received",
     actor_user_id: tx.buyer_id,
     description: `Payment of ${pricing.currency_code} ${pricing.total_amount} received and held in escrow`,
-    metadata: { reference, amount: pricing.total_amount, currency: pricing.currency_code },
+    metadata: { reference: paystackReference, amount: pricing.total_amount, currency: pricing.currency_code },
   });
 
   // 6i. Notify seller
