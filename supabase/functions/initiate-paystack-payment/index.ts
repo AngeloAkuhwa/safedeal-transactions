@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       });
     }
     const userId = claimsData.claims.sub as string;
-    const userEmail = claimsData.claims.email as string;
+    let userEmail = claimsData.claims.email as string;
 
     // 2. Parse request
     const { shareToken, paymentMethod } = await req.json();
