@@ -26,6 +26,7 @@ declare global {
         key: string;
         access_code: string;
         email?: string;
+        amount?: number;
         onClose: () => void;
         callback: (response: { reference: string; [key: string]: unknown }) => void;
       }) => { openIframe: () => void };
@@ -149,6 +150,7 @@ export default function BuyerPaymentSummary() {
         key: initData.public_key,
         access_code: initData.access_code,
         email: initData.email,
+        amount: initData.amount,
         callback: function(response: { reference: string }) {
           // 3. Verify payment on backend (non-async — Paystack rejects async callbacks)
           supabase.functions.invoke("verify-paystack-payment", {
