@@ -12,15 +12,16 @@ const corsHeaders = {
  * Idempotent — safe to call multiple times for the same reference.
  */
 export async function processPaystackVerification(
-  reference: string,
+  paystackReference: string,
   supabase: ReturnType<typeof createClient>,
-  callerUserId?: string
+  callerUserId?: string,
+  ourReference?: string
 ): Promise<{ success: boolean; alreadyProcessed?: boolean; error?: string }> {
-  // 1. Verify with Paystack
+  // 1. Verify with Paystack using Paystack's own reference
   const paystackSecretKey = Deno.env.get("PAYSTACK_SECRET_KEY");
   if (!paystackSecretKey) throw new Error("PAYSTACK_SECRET_KEY not configured");
 
-  const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+  const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(paystackReference)}`, {
     headers: { Authorization: `Bearer ${paystackSecretKey}` },
   });
   const verifyData = await verifyRes.json();
@@ -31,11 +32,12 @@ export async function processPaystackVerification(
 
   const psData = verifyData.data;
 
-  // 2. Find our payment record
+  // 2. Find our payment record using our stored reference (or fall back to Paystack's)
+  const lookupRef = ourReference || paystackReference;
   const { data: payment, error: payErr } = await supabase
     .from("payments")
     .select("id, transaction_id, status, user_id, amount, currency_code")
-    .eq("provider_reference", reference)
+    .eq("provider_reference", lookupRef)
     .maybeSingle();
 
   if (payErr) throw payErr;
