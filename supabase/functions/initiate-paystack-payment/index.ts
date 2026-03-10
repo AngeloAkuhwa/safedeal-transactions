@@ -93,9 +93,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (tx.status !== "awaiting_payment" || tx.money_status !== "not_secured") {
+    if (tx.status !== "awaiting_payment") {
       return new Response(
-        JSON.stringify({ error: `Invalid state: status=${tx.status}, money_status=${tx.money_status}` }),
+        JSON.stringify({ error: `Invalid state: status=${tx.status}` }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const isRetry = tx.money_status === "payment_pending";
+    if (tx.money_status !== "not_secured" && !isRetry) {
+      return new Response(
+        JSON.stringify({ error: `Invalid money state: ${tx.money_status}` }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
