@@ -25,6 +25,7 @@ declare global {
       setup: (options: {
         key: string;
         access_code: string;
+        email?: string;
         onClose: () => void;
         callback: (response: { reference: string; [key: string]: unknown }) => void;
       }) => { openIframe: () => void };
