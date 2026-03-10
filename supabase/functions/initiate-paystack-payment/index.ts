@@ -247,6 +247,7 @@ Deno.serve(async (req) => {
         reference: paystackData.data.reference,
         public_key: publicKey,
         email: userEmail,
+        amount: amountInKobo,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
