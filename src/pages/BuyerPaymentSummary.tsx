@@ -964,7 +964,7 @@ export default function BuyerPaymentSummary() {
                       className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
                     >
                       <Headphones className="h-3.5 w-3.5" />
-                      Contact Support
+                      Contact support if card appears charged
                     </button>
                   </div>
                 </div>
