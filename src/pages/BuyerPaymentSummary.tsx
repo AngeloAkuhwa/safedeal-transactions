@@ -131,6 +131,13 @@ export default function BuyerPaymentSummary() {
 
       if (initError || initData?.error) {
         const errMsg = initData?.error || initError?.message || "Failed to initialize payment";
+        // If transaction is already paid, show success instead of failed
+        if (errMsg.includes("payment_secured") || errMsg.includes("funds_held_in_escrow")) {
+          setIsProcessing(false);
+          setShowFailed(false);
+          setShowSuccess(true);
+          return;
+        }
         setFailureReason(errMsg);
         setIsProcessing(false);
         setShowFailed(true);

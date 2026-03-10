@@ -242,7 +242,7 @@ export async function processPaystackVerification(
     delivery: deliveryRes.data || null,
     media: mediaRes.data || [],
     locked_at: now,
-    payment_reference: reference,
+    payment_reference: paystackReference,
   };
 
   await supabase.from("transaction_agreement_snapshots").insert({
@@ -258,7 +258,7 @@ export async function processPaystackVerification(
     event_type: "payment_received",
     actor_user_id: tx.buyer_id,
     description: `Payment of ${pricing.currency_code} ${pricing.total_amount} received and held in escrow`,
-    metadata: { reference, amount: pricing.total_amount, currency: pricing.currency_code },
+    metadata: { reference: paystackReference, amount: pricing.total_amount, currency: pricing.currency_code },
   });
 
   // 6i. Notify seller
