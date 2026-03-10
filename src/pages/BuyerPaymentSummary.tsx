@@ -151,11 +151,10 @@ export default function BuyerPaymentSummary() {
         access_code: initData.access_code,
         email: initData.email,
         amount: initData.amount,
-        callback: function(_response: { reference: string }) {
-          // 3. Verify payment using OUR reference (Paystack callback may return its own)
-          const ourReference = initData.reference;
+        callback: function(response: { reference: string }) {
+          // 3. Verify payment — send both Paystack's reference (for API verify) and ours (for DB lookup)
           supabase.functions.invoke("verify-paystack-payment", {
-            body: { reference: ourReference },
+            body: { reference: response.reference, provider_reference: initData.reference },
           }).then(({ data: verifyData, error: verifyError }) => {
             if (verifyError || verifyData?.error) {
               setFailureReason(verifyData?.error || verifyError?.message || "Payment verification failed");
