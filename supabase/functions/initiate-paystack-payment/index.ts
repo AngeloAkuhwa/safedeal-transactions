@@ -53,22 +53,8 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch profile email (may be more valid than JWT email for Paystack)
-    const { data: profileRow } = await supabase
-      .from("profiles")
-      .select("email")
-      .eq("id", userId)
-      .maybeSingle();
-
-    if (profileRow?.email) {
-      userEmail = profileRow.email;
-    }
-
-    // Fallback for invalid test TLDs that Paystack rejects
-    const invalidTLDs = ['.test', '.example', '.invalid', '.localhost'];
-    if (invalidTLDs.some(tld => userEmail.endsWith(tld))) {
-      userEmail = 'angeloakuhwa@gmail.com';
-    }
+    // Hardcoded test email for Paystack during development
+    userEmail = 'angeloakuhwa@gmail.com';
 
     // 3. Resolve share token → transaction
     const { data: link, error: linkErr } = await supabase
