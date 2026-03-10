@@ -93,9 +93,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (tx.status !== "awaiting_payment" || tx.money_status !== "not_secured") {
+    if (tx.status !== "awaiting_payment") {
       return new Response(
-        JSON.stringify({ error: `Invalid state: status=${tx.status}, money_status=${tx.money_status}` }),
+        JSON.stringify({ error: `Invalid state: status=${tx.status}` }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const isRetry = tx.money_status === "payment_pending";
+    if (tx.money_status !== "not_secured" && !isRetry) {
+      return new Response(
+        JSON.stringify({ error: `Invalid money state: ${tx.money_status}` }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -122,15 +130,26 @@ Deno.serve(async (req) => {
     // 6. Generate unique reference
     const reference = `SD-${tx.transaction_code}-${Date.now()}`;
 
-    // 7. Transition money_status: not_secured → payment_pending
-    const { error: txUpdateErr } = await supabase
-      .from("transactions")
-      .update({ money_status: "payment_pending" })
-      .eq("id", txId);
+    // 7. Transition money_status (skip if already payment_pending)
+    if (!isRetry) {
+      const { error: txUpdateErr } = await supabase
+        .from("transactions")
+        .update({ money_status: "payment_pending" })
+        .eq("id", txId);
 
-    if (txUpdateErr) throw txUpdateErr;
+      if (txUpdateErr) throw txUpdateErr;
+    }
 
-    // 8. Insert payments record
+    // 8. Cancel any existing pending payments for this transaction
+    if (isRetry) {
+      await supabase
+        .from("payments")
+        .update({ status: "failed", failed_at: new Date().toISOString(), failure_reason: "Superseded by retry" })
+        .eq("transaction_id", txId)
+        .eq("status", "pending");
+    }
+
+    // 9. Insert payments record
     const method = paymentMethod === "bank" ? "bank_transfer" : "card";
     const { error: payErr } = await supabase.from("payments").insert({
       transaction_id: txId,
@@ -145,13 +164,13 @@ Deno.serve(async (req) => {
 
     if (payErr) throw payErr;
 
-    // 9. Insert money_status_history
+    // 10. Insert money_status_history
     await supabase.from("money_status_history").insert({
       transaction_id: txId,
-      old_status: "not_secured",
+      old_status: isRetry ? "payment_pending" : "not_secured",
       new_status: "payment_pending",
       changed_by_user_id: userId,
-      reason: "Buyer initiated Paystack payment",
+      reason: isRetry ? "Buyer retried Paystack payment" : "Buyer initiated Paystack payment",
     });
 
     // 10. Call Paystack POST /transaction/initialize
