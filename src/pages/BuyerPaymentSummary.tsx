@@ -114,12 +114,7 @@ export default function BuyerPaymentSummary() {
     ? () => <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
     : PaymentHeader;
 
-  const handlePay = useCallback(async () => {
-    if (!agreedToTerms) {
-      toast.error("Please agree to the escrow payment terms before proceeding.");
-      return;
-    }
-
+  const openPaystackPayment = useCallback(async () => {
     if (!paystackLoaded || !window.PaystackPop) {
       toast.error("Payment system is still loading. Please wait a moment and try again.");
       return;
@@ -129,12 +124,9 @@ export default function BuyerPaymentSummary() {
     setFailureReason("");
 
     try {
-      // 1. Call initiate-paystack-payment
       const { data: initData, error: initError } = await supabase.functions.invoke(
         "initiate-paystack-payment",
-        {
-          body: { shareToken, paymentMethod: selectedMethod },
-        }
+        { body: { shareToken, paymentMethod: selectedMethod } }
       );
 
       if (initError || initData?.error) {
@@ -145,14 +137,12 @@ export default function BuyerPaymentSummary() {
         return;
       }
 
-      // 2. Open Paystack popup
       const handler = window.PaystackPop.setup({
         key: initData.public_key,
         access_code: initData.access_code,
         email: initData.email,
         amount: initData.amount,
         callback: function(response: { reference: string }) {
-          // 3. Verify payment — send both Paystack's reference (for API verify) and ours (for DB lookup)
           supabase.functions.invoke("verify-paystack-payment", {
             body: { reference: response.reference, provider_reference: initData.reference },
           }).then(({ data: verifyData, error: verifyError }) => {
@@ -184,7 +174,20 @@ export default function BuyerPaymentSummary() {
       setIsProcessing(false);
       setShowFailed(true);
     }
-  }, [agreedToTerms, paystackLoaded, shareToken, selectedMethod]);
+  }, [paystackLoaded, shareToken, selectedMethod]);
+
+  const handlePay = useCallback(async () => {
+    if (!agreedToTerms) {
+      toast.error("Please agree to the escrow payment terms before proceeding.");
+      return;
+    }
+    openPaystackPayment();
+  }, [agreedToTerms, openPaystackPayment]);
+
+  const handleRetryPay = useCallback(() => {
+    setShowFailed(false);
+    openPaystackPayment();
+  }, [openPaystackPayment]);
 
   if (authState === "loading" || authState === "anonymous" || authState === "needs-role") {
     return (
