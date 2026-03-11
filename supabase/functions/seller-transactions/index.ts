@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
             currency: p.currency_code ?? "NGN",
             sellerNet: p.seller_net_amount ?? 0,
             platformFee: p.platform_fee_amount ?? 0,
-            processingFee: p.payment_processing_fee_amount ?? 0,
+            processingFee: p.processing_fee_amount ?? 0,
           });
         }
       }
