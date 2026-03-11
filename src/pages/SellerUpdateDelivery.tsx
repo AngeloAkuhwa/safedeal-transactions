@@ -72,7 +72,7 @@ export default function SellerUpdateDelivery() {
   if (error || !data) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <SellerNav sellerName={dashData?.seller?.name ?? "Seller"} avatarUrl={dashData?.seller?.avatar_url ?? null} />
+        <SellerNav sellerName={dashData?.seller?.full_name ?? "Seller"} avatarUrl={dashData?.seller?.avatar_url ?? null} />
         <div className="flex-1 flex items-center justify-center">
           <Card className="p-8 text-center max-w-md">
             <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-4" />
