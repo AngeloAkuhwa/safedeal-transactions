@@ -35,7 +35,7 @@ import {
 } from "@/services/create-transaction.service";
 import { useToast } from "@/hooks/use-toast";
 import { computePricing } from "@/lib/pricing";
-import { getCloudinaryThumbnail } from "@/lib/cloudinary";
+
 
 const STEP_LABELS = ["Buyer Info", "Item Details", "Payment", "Delivery", "Notes"];
 const STEP_ICONS = [User, Package, CreditCard, Truck, StickyNote];
@@ -106,9 +106,9 @@ const SellerCreateTransaction = () => {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
 
-  // Upload state
-  const [photos, setPhotos] = useState<UploadedFile[]>([]);
-  const [video, setVideo] = useState<UploadedFile | null>(null);
+  // Upload state — with local preview URLs
+  const [photos, setPhotos] = useState<(UploadedFile & { preview_url: string })[]>([]);
+  const [video, setVideo] = useState<(UploadedFile & { preview_url: string }) | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [photoProgress, setPhotoProgress] = useState(0);
@@ -215,8 +215,9 @@ const SellerCreateTransaction = () => {
       try {
         setUploadingPhoto(true);
         setPhotoProgress(0);
+        const previewUrl = URL.createObjectURL(file);
         const uploaded = await uploadProductFile(file, (pct) => setPhotoProgress(pct));
-        setPhotos((prev) => [...prev, uploaded]);
+        setPhotos((prev) => [...prev, { ...uploaded, preview_url: previewUrl }]);
         toast({ title: "Photo uploaded", description: file.name });
       } catch (err: any) {
         toast({ title: "Upload failed", description: err.message, variant: "destructive" });
@@ -249,8 +250,9 @@ const SellerCreateTransaction = () => {
     try {
       setUploadingVideo(true);
       setVideoProgress(0);
+      const previewUrl = URL.createObjectURL(file);
       const uploaded = await uploadProductFile(file, (pct) => setVideoProgress(pct));
-      setVideo(uploaded);
+      setVideo({ ...uploaded, preview_url: previewUrl });
       toast({ title: "Video uploaded", description: file.name });
     } catch (err: any) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
@@ -260,8 +262,17 @@ const SellerCreateTransaction = () => {
     }
   };
 
-  const removePhoto = (idx: number) => setPhotos((prev) => prev.filter((_, i) => i !== idx));
-  const removeVideo = () => setVideo(null);
+  const removePhoto = (idx: number) => {
+    setPhotos((prev) => {
+      const removed = prev[idx];
+      if (removed?.preview_url) URL.revokeObjectURL(removed.preview_url);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+  const removeVideo = () => {
+    if (video?.preview_url) URL.revokeObjectURL(video.preview_url);
+    setVideo(null);
+  };
 
   const validateStep = (step: number): boolean => {
     switch (step) {
@@ -548,7 +559,7 @@ const SellerCreateTransaction = () => {
                         {photos.map((p, i) => (
                           <div key={p.file_id} className="relative group w-24 h-24 rounded-xl overflow-hidden border border-border">
                             <img
-                              src={getCloudinaryThumbnail(p.secure_url, 200, 200)}
+                              src={p.preview_url}
                               alt={p.original_name}
                               className="w-full h-full object-cover"
                             />
