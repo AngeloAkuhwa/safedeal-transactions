@@ -7,6 +7,7 @@ interface SellerDashboardHeroProps {
 }
 
 export function SellerDashboardHero({ sellerName }: SellerDashboardHeroProps) {
+  const navigate = useNavigate();
   const firstName = sellerName.split(" ")[0] || "Seller";
 
   return (
