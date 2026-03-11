@@ -103,6 +103,11 @@ Deno.serve(async (req) => {
         .eq("transaction_id", transactionId)
         .maybeSingle(),
       adminClient
+        .from("transaction_pricing")
+        .select("item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount, currency_code, service_fee_rate")
+        .eq("transaction_id", transactionId)
+        .maybeSingle(),
+      adminClient
         .from("transaction_agreement_snapshots")
         .select("locked_at, snapshot_json")
         .eq("transaction_id", transactionId)
