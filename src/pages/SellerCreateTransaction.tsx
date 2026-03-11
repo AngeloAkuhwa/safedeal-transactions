@@ -345,30 +345,20 @@ const SellerCreateTransaction = () => {
   const progressPct = (currentStep / 5) * 100;
 
   if (publishedUrl) {
-    const fullUrl = `${window.location.origin}${publishedUrl}`;
+    const conditionLabel = CONDITION_OPTIONS.find((c) => c.value === form.item_condition)?.label ?? form.item_condition;
+    const deliveryLabel = DELIVERY_OPTIONS.find((d) => d.value === form.delivery_method)?.label ?? form.delivery_method;
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <SellerNav sellerName={navData?.seller.full_name ?? "Seller"} avatarUrl={navData?.seller.avatar_url ?? null} />
-        <div className="flex-1 flex items-center justify-center px-4 py-16">
-          <Card className="max-w-lg w-full rounded-2xl shadow-xl">
-            <CardContent className="p-8 text-center space-y-6">
-              <div className="mx-auto w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
-                <CheckCircle className="h-8 w-8 text-success" />
-              </div>
-              <h2 className="text-2xl font-bold text-foreground">Transaction Created!</h2>
-              <p className="text-muted-foreground">Share this secure link with your buyer so they can review and pay.</p>
-              <div className="bg-muted rounded-lg p-4 font-mono text-sm break-all text-foreground">{fullUrl}</div>
-              <div className="flex gap-3 justify-center">
-                <Button onClick={() => { navigator.clipboard.writeText(fullUrl); toast({ title: "Link copied!" }); }}>
-                  Copy Link
-                </Button>
-                <Button variant="outline" onClick={() => navigate("/seller/transactions")}>
-                  Back to Transactions
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <TransactionSuccess
+          publishedUrl={publishedUrl}
+          form={form}
+          pricing={pricing}
+          currSymbol={currSymbol}
+          transactionCode={publishedCode}
+          deliveryLabel={deliveryLabel}
+          conditionLabel={conditionLabel}
+        />
         <Footer />
       </div>
     );
