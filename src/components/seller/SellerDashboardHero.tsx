@@ -1,4 +1,5 @@
 import { PlusCircle, Store } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 interface SellerDashboardHeroProps {
@@ -6,6 +7,7 @@ interface SellerDashboardHeroProps {
 }
 
 export function SellerDashboardHero({ sellerName }: SellerDashboardHeroProps) {
+  const navigate = useNavigate();
   const firstName = sellerName.split(" ")[0] || "Seller";
 
   return (
@@ -28,7 +30,7 @@ export function SellerDashboardHero({ sellerName }: SellerDashboardHeroProps) {
               Manage your protected transactions and monitor payments
             </p>
           </div>
-          <Button size="lg" className="bg-success hover:bg-success/90 text-success-foreground px-6 py-3 rounded-xl shadow-lg">
+          <Button size="lg" className="bg-success hover:bg-success/90 text-success-foreground px-6 py-3 rounded-xl shadow-lg" onClick={() => navigate("/seller/transactions/new")}>
             <PlusCircle className="h-5 w-5" />
             Create Protected Transaction
           </Button>

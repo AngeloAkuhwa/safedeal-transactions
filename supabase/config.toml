@@ -32,3 +32,9 @@ verify_jwt = false
 
 [functions.seller-transactions]
 verify_jwt = false
+
+[functions.create-transaction]
+verify_jwt = false
+
+[functions.seller-drafts]
+verify_jwt = false
