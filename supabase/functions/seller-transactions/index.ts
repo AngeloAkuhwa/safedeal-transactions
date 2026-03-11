@@ -152,9 +152,11 @@ Deno.serve(async (req) => {
       if (pricingRes.data) {
         for (const p of pricingRes.data) {
           pricingMap.set(p.transaction_id, {
-            amount: p.buyer_total_amount ?? 0,
+            amount: p.item_amount ?? 0,
             currency: p.currency_code ?? "NGN",
             sellerNet: p.seller_net_amount ?? 0,
+            platformFee: p.platform_fee_amount ?? 0,
+            processingFee: p.payment_processing_fee_amount ?? 0,
           });
         }
       }
