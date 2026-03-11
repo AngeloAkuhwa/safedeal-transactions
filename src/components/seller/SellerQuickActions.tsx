@@ -51,6 +51,7 @@ export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
           <Card
             key={action.title}
             className="rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer group"
+            onClick={() => navigate(action.href)}
           >
             <CardContent className="p-5">
               <div className={`h-11 w-11 rounded-xl ${action.iconBg} flex items-center justify-center mb-3 transition-colors`}>

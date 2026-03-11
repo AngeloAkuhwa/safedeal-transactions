@@ -54,6 +54,8 @@ const alertConfig: Record<string, {
 };
 
 export function SellerAlertBanners({ alerts }: SellerAlertBannersProps) {
+  const navigate = useNavigate();
+
   if (alerts.length === 0) return null;
 
   return (
@@ -71,7 +73,10 @@ export function SellerAlertBanners({ alerts }: SellerAlertBannersProps) {
               <p className={`text-sm font-semibold ${config.titleClass}`}>{alert.title}</p>
               <p className={`text-sm ${config.bodyClass}`}>{alert.message}</p>
             </div>
-            <button className={`inline-flex items-center gap-1 text-sm font-semibold shrink-0 ${config.linkClass} transition-colors`}>
+            <button
+              onClick={() => navigate(alert.action_url)}
+              className={`inline-flex items-center gap-1 text-sm font-semibold shrink-0 ${config.linkClass} transition-colors`}
+            >
               {alert.action_label}
               <ArrowRight className="h-4 w-4" />
             </button>
