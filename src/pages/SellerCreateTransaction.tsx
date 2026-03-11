@@ -106,9 +106,11 @@ const SellerCreateTransaction = () => {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
 
-  // Upload state
-  const [photos, setPhotos] = useState<UploadedFile[]>([]);
-  const [video, setVideo] = useState<UploadedFile | null>(null);
+  // Upload state — extended with local preview URLs
+  type PhotoEntry = UploadedFile & { preview_url: string };
+  type VideoEntry = UploadedFile & { preview_url: string };
+  const [photos, setPhotos] = useState<PhotoEntry[]>([]);
+  const [video, setVideo] = useState<VideoEntry | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [photoProgress, setPhotoProgress] = useState(0);
