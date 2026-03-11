@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
     const buyerIds = [...new Set(filteredRows.map((t) => t.buyer_id).filter(Boolean))];
 
     let itemMap = new Map<string, { title: string; category: string; quantity: number }>();
-    let pricingMap = new Map<string, { amount: number; currency: string; sellerNet: number }>();
+    let pricingMap = new Map<string, { amount: number; currency: string; sellerNet: number; platformFee: number; processingFee: number }>();
     let buyerMap = new Map<string, { name: string; email: string; avatar: string | null }>();
 
     // Find transactions with null buyer_id to fetch from participants
