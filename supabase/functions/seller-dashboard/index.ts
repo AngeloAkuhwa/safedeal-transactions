@@ -48,7 +48,6 @@ Deno.serve(async (req) => {
     const [
       profileResult,
       allTxResult,
-      disputeCountResult,
       recentTxResult,
       payoutsResult,
     ] = await Promise.allSettled([
@@ -62,14 +61,6 @@ Deno.serve(async (req) => {
         .from("transactions")
         .select("id, status, money_status")
         .eq("seller_id", userId),
-
-      adminClient
-        .from("disputes")
-        .select("id", { count: "exact", head: true })
-        .in("transaction_id",
-          // subquery: get transaction ids for this seller
-          // We'll handle this differently - just count disputes for seller's transactions
-        ),
 
       adminClient
         .from("transactions")
