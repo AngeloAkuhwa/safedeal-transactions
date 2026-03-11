@@ -25,6 +25,8 @@ import TransactionCancelled from "./pages/TransactionCancelled";
 import SellerDashboard from "./pages/SellerDashboard";
 import SellerTransactions from "./pages/SellerTransactions";
 import SellerCreateTransaction from "./pages/SellerCreateTransaction";
+import SellerTransactionDetail from "./pages/SellerTransactionDetail";
+import SellerTransactionShare from "./pages/SellerTransactionShare";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
