@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Clock, TrendingUp, ArrowRight, Package } from "lucide-react";
 import type { SellerAlert } from "@/services/seller-dashboard.service";
 
