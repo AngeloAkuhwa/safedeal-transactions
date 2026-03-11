@@ -35,7 +35,7 @@ import {
 } from "@/services/create-transaction.service";
 import { useToast } from "@/hooks/use-toast";
 import { computePricing } from "@/lib/pricing";
-import { getCloudinaryThumbnail } from "@/lib/cloudinary";
+
 
 const STEP_LABELS = ["Buyer Info", "Item Details", "Payment", "Delivery", "Notes"];
 const STEP_ICONS = [User, Package, CreditCard, Truck, StickyNote];
