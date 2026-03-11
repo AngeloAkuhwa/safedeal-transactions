@@ -114,7 +114,7 @@ export default function SellerUpdateDelivery() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <SellerNav sellerName={dashData?.seller?.name ?? "Seller"} avatarUrl={dashData?.seller?.avatar_url ?? null} />
+      <SellerNav sellerName={dashData?.seller?.full_name ?? "Seller"} avatarUrl={dashData?.seller?.avatar_url ?? null} />
 
       <main className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Breadcrumb */}
