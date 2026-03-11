@@ -1,4 +1,4 @@
-import { AlertTriangle, Clock, TrendingUp, ArrowRight } from "lucide-react";
+import { AlertTriangle, Clock, TrendingUp, ArrowRight, Package } from "lucide-react";
 import type { SellerAlert } from "@/services/seller-dashboard.service";
 
 interface SellerAlertBannersProps {

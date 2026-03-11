@@ -86,7 +86,8 @@ Deno.serve(async (req) => {
     let awaitingPaymentTxIds: string[] = [];
     let fundsHeldTxIds: string[] = [];
     let fundsReleasingTxIds: string[] = [];
-    let deliveryProofNeededTxIds: string[] = [];
+    let fulfillmentNeededTxIds: string[] = [];
+    let dispatchedTxIds: string[] = [];
     let buyerVerificationTxIds: string[] = [];
 
     if (allTxResult.status === "fulfilled" && allTxResult.value.data) {
@@ -103,13 +104,32 @@ Deno.serve(async (req) => {
         if (tx.money_status === "funds_releasing") {
           fundsReleasingTxIds.push(tx.id);
         }
+        // Fulfillment action needed: seller needs to prepare/dispatch
         if (["payment_secured", "seller_preparing_delivery"].includes(tx.status)) {
-          deliveryProofNeededTxIds.push(tx.id);
+          fulfillmentNeededTxIds.push(tx.id);
+        }
+        // Dispatched: may need delivery proof
+        if (tx.status === "seller_dispatched") {
+          dispatchedTxIds.push(tx.id);
         }
         if (tx.status === "delivered_awaiting_verification") {
           buyerVerificationTxIds.push(tx.id);
         }
       }
+    }
+
+    // Check which dispatched transactions are missing delivery proof
+    let deliveryProofMissingTxIds: string[] = [];
+    if (dispatchedTxIds.length > 0) {
+      const { data: proofData } = await adminClient
+        .from("delivery_proof_files")
+        .select("transaction_id")
+        .in("transaction_id", dispatchedTxIds);
+
+      const txIdsWithProof = new Set(
+        (proofData ?? []).map((p: Record<string, unknown>) => p.transaction_id as string)
+      );
+      deliveryProofMissingTxIds = dispatchedTxIds.filter((id) => !txIdsWithProof.has(id));
     }
 
     // Get amounts for metrics
@@ -172,13 +192,24 @@ Deno.serve(async (req) => {
       action_url: string;
     }> = [];
 
-    if (deliveryProofNeededTxIds.length > 0) {
+    if (fulfillmentNeededTxIds.length > 0) {
+      alerts.push({
+        type: "fulfillment_action_needed",
+        count: fulfillmentNeededTxIds.length,
+        title: `${fulfillmentNeededTxIds.length} order${fulfillmentNeededTxIds.length > 1 ? "s" : ""} need fulfillment`,
+        message: "Payment secured — prepare and dispatch the item to proceed",
+        action_label: "View Orders",
+        action_url: "/seller/transactions?filter=fulfillment-needed",
+      });
+    }
+
+    if (deliveryProofMissingTxIds.length > 0) {
       alerts.push({
         type: "delivery_proof_needed",
-        count: deliveryProofNeededTxIds.length,
-        title: `${deliveryProofNeededTxIds.length} transaction${deliveryProofNeededTxIds.length > 1 ? "s" : ""} awaiting delivery proof`,
+        count: deliveryProofMissingTxIds.length,
+        title: `${deliveryProofMissingTxIds.length} dispatched order${deliveryProofMissingTxIds.length > 1 ? "s" : ""} missing delivery proof`,
         message: "Upload delivery confirmation to proceed with fund release",
-        action_label: "View",
+        action_label: "Upload Proof",
         action_url: "/seller/transactions?filter=delivery-proof-needed",
       });
     }
