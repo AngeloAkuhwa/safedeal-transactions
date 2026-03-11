@@ -72,9 +72,19 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
     <Card className="rounded-2xl shadow-md overflow-hidden">
       <CardHeader className="pb-0 pt-5 px-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-bold text-foreground">Recent Activity</h2>
-            <p className="text-sm text-muted-foreground">Your latest transactions and updates</p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Recent Activity</h2>
+              <p className="text-sm text-muted-foreground">Your latest transactions and updates</p>
+            </div>
+            <Button
+              variant="link"
+              size="sm"
+              className="text-primary text-xs"
+              onClick={() => navigate("/seller/transactions")}
+            >
+              View All →
+            </Button>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
