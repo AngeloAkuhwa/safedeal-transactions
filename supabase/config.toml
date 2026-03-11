@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.seller-transaction-detail]
 verify_jwt = false
+
+[functions.update-delivery-status]
+verify_jwt = false
