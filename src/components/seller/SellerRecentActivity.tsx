@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -42,6 +43,7 @@ function formatCurrency(amount: number, currency: string) {
 
 export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
   if (activity.length === 0) {
     return (
@@ -70,16 +72,26 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
     <Card className="rounded-2xl shadow-md overflow-hidden">
       <CardHeader className="pb-0 pt-5 px-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-bold text-foreground">Recent Activity</h2>
-            <p className="text-sm text-muted-foreground">Your latest transactions and updates</p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Recent Activity</h2>
+              <p className="text-sm text-muted-foreground">Your latest transactions and updates</p>
+            </div>
+            <Button
+              variant="link"
+              size="sm"
+              className="text-primary text-xs"
+              onClick={() => navigate("/seller/transactions")}
+            >
+              View All →
+            </Button>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search transactions..."
+                placeholder="Search by code, buyer, or item..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 pr-4 py-2 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 w-52"
@@ -137,6 +149,7 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                         variant={actionInfo.variant === "default" ? "default" : "outline"}
                         size="sm"
                         className="text-xs"
+                        onClick={() => navigate(`/seller/transactions/${row.transaction_id}`)}
                       >
                         {actionInfo.label}
                       </Button>
