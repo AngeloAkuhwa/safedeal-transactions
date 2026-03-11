@@ -83,7 +83,7 @@ export function Header() {
           {user ? (
             <>
               <Button asChild>
-                <Link to="/role-selection">Dashboard</Link>
+                <Link to={dashboardPath}>Dashboard</Link>
               </Button>
               <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground">
                 <LogOut className="h-4 w-4" />
