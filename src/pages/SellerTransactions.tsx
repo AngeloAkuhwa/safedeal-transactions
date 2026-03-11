@@ -195,7 +195,7 @@ const SellerTransactions = () => {
               <SelectItem value="this-quarter">This Quarter</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" className="gap-1.5">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setExportOpen(true)}>
             <Download className="h-4 w-4" />
             Export
           </Button>
