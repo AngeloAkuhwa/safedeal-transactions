@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Plus, FileText, BarChart3, Settings } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
