@@ -264,8 +264,17 @@ const SellerCreateTransaction = () => {
     }
   };
 
-  const removePhoto = (idx: number) => setPhotos((prev) => prev.filter((_, i) => i !== idx));
-  const removeVideo = () => setVideo(null);
+  const removePhoto = (idx: number) => {
+    setPhotos((prev) => {
+      const removed = prev[idx];
+      if (removed?.preview_url) URL.revokeObjectURL(removed.preview_url);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+  const removeVideo = () => {
+    if (video?.preview_url) URL.revokeObjectURL(video.preview_url);
+    setVideo(null);
+  };
 
   const validateStep = (step: number): boolean => {
     switch (step) {
