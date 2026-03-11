@@ -167,6 +167,18 @@ Deno.serve(async (req) => {
           });
         }
       }
+      // Fallback: use transaction_participants for transactions without a registered buyer
+      if (participantsRes.data) {
+        for (const p of participantsRes.data as Array<Record<string, unknown>>) {
+          const txId = p.transaction_id as string;
+          // Store in buyerMap keyed by transaction_id prefixed to avoid collision
+          buyerMap.set(`participant:${txId}`, {
+            name: (p.display_name as string) ?? "Unknown",
+            email: (p.email as string) ?? (p.phone as string) ?? "",
+            avatar: null,
+          });
+        }
+      }
     }
 
     // Apply search filter across enriched data
