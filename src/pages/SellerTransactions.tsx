@@ -20,6 +20,7 @@ import { SellerNav } from "@/components/seller/SellerNav";
 import { SellerTrustBanner } from "@/components/seller/SellerTrustBanner";
 import { Footer } from "@/components/landing/Footer";
 import { MoneyStatusBadge } from "@/components/transactions/MoneyStatusBadge";
+import { ExportPreviewDialog } from "@/components/seller/ExportPreviewDialog";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import {
   getSellerTransactions,
@@ -71,6 +72,7 @@ const SellerTransactions = () => {
   const [statusFilter, setStatusFilter] = useState(searchParams.get("filter") ?? "all");
   const [dateFilter, setDateFilter] = useState(searchParams.get("date") ?? "all");
   const [page, setPage] = useState(1);
+  const [exportOpen, setExportOpen] = useState(false);
 
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState(search);
@@ -193,7 +195,7 @@ const SellerTransactions = () => {
               <SelectItem value="this-quarter">This Quarter</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" className="gap-1.5">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setExportOpen(true)}>
             <Download className="h-4 w-4" />
             Export
           </Button>
@@ -370,6 +372,13 @@ const SellerTransactions = () => {
       </div>
 
       <Footer />
+
+      <ExportPreviewDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        initialStatusFilter={statusFilter}
+        initialDateFilter={dateFilter}
+      />
     </div>
   );
 };
