@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case "sign_upload":
-        return await signUpload(admin, userId);
+        return await signUpload(admin, userId, body);
       case "register_file":
         return await registerFile(admin, userId, body);
       default:
