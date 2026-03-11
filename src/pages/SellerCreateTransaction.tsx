@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Loader2, ArrowLeft, Save, ArrowRight, Send, Shield, Lock,
   Upload, CheckCircle, AlertTriangle, Clock, FileText, User, Package,
-  CreditCard, Truck, StickyNote, X, ImageIcon, Video,
+  CreditCard, Truck, StickyNote, X, ImageIcon, Video, Link,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -469,41 +469,43 @@ const SellerCreateTransaction = () => {
 
         {/* Step 1: Buyer Info */}
         {currentStep === 1 && (
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card className="rounded-2xl shadow-md">
-                <CardContent className="p-6 space-y-5">
-                  <div>
-                    <h2 className="text-xl font-bold text-foreground">Buyer Information</h2>
-                    <p className="text-sm text-muted-foreground mt-1">Enter the buyer's contact details</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="buyer-name">Buyer Full Name <span className="text-destructive">*</span></Label>
-                    <Input id="buyer-name" placeholder="Enter buyer's full name" value={form.buyer_name} onChange={(e) => updateField("buyer_name", e.target.value)} />
-                    <p className="text-xs text-muted-foreground">This will appear on the transaction agreement</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="buyer-contact">Buyer Email or Phone <span className="text-destructive">*</span></Label>
-                    <Input id="buyer-contact" placeholder="email@example.com or +1234567890" value={form.buyer_contact} onChange={(e) => updateField("buyer_contact", e.target.value)} />
-                    <p className="text-xs text-muted-foreground">The secure transaction link will be sent to this contact</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            <div>
-              <Card className="rounded-2xl shadow-md border-primary/20 bg-primary/5">
-                <CardContent className="p-5 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold text-foreground text-sm">Secure Transaction Link</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
+          <Card className="rounded-2xl shadow-md">
+            <CardContent className="p-6 space-y-6">
+              {/* Step header */}
+              <div className="flex items-center gap-4 pb-4 mb-2 border-b border-border">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10">
+                  <User className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">Buyer Information</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">Enter the buyer's contact details to get started</p>
+                </div>
+              </div>
+
+              {/* Form fields */}
+              <div className="space-y-2">
+                <Label htmlFor="buyer-name" className="text-sm font-semibold">Buyer Full Name <span className="text-destructive">*</span></Label>
+                <Input id="buyer-name" className="px-4 py-3 rounded-xl" placeholder="Enter buyer's full name" value={form.buyer_name} onChange={(e) => updateField("buyer_name", e.target.value)} />
+                <p className="text-xs text-muted-foreground mt-1.5">This will appear on the transaction agreement</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="buyer-contact" className="text-sm font-semibold">Buyer Email or Phone <span className="text-destructive">*</span></Label>
+                <Input id="buyer-contact" className="px-4 py-3 rounded-xl" placeholder="email@example.com or +1234567890" value={form.buyer_contact} onChange={(e) => updateField("buyer_contact", e.target.value)} />
+                <p className="text-xs text-muted-foreground mt-1.5">The secure transaction link will be sent to this contact</p>
+              </div>
+
+              {/* Inline info card */}
+              <div className="flex items-start gap-3 bg-primary/5 border border-primary/20 rounded-xl p-4">
+                <Link className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <h3 className="text-sm font-medium text-foreground">Secure Transaction Link</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-1">
                     After creating this transaction, you'll receive a secure link to share with the buyer. They'll use this link to review all details and complete payment safely through SafeDeal.
                   </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Step 2: Item Details */}
