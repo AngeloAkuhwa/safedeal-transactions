@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
         .maybeSingle(),
       adminClient
         .from("transaction_pricing")
-        .select("item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount, currency_code, service_fee_rate")
+        .select("item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount, currency_code")
         .eq("transaction_id", transactionId)
         .maybeSingle(),
       adminClient
@@ -162,18 +162,18 @@ Deno.serve(async (req) => {
         payment_processing_fee_amount: pricingRow.processing_fee_amount ?? 0,
         seller_net_amount: pricingRow.seller_net_amount,
         buyer_total_amount: pricingRow.buyer_total_amount,
-        service_fee_rate: pricingRow.service_fee_rate ?? 0,
+        service_fee_rate: 0,
         currency_code: pricingRow.currency_code ?? "NGN",
       };
     } else if (escrow && escrow.held_amount > 0) {
       const pricingResult = computePricing(escrow.held_amount, "NGN");
       computedPricing = {
-        item_amount: pricingResult.itemAmount,
-        platform_fee_amount: pricingResult.serviceFee,
-        payment_processing_fee_amount: pricingResult.paymentProcessingFee,
-        seller_net_amount: pricingResult.sellerNet,
-        buyer_total_amount: pricingResult.buyerTotal,
-        service_fee_rate: 0,
+        item_amount: pricingResult.item_amount,
+        platform_fee_amount: pricingResult.platform_fee_amount,
+        payment_processing_fee_amount: pricingResult.paystack_fee_amount,
+        seller_net_amount: pricingResult.item_amount - pricingResult.platform_fee_amount,
+        buyer_total_amount: pricingResult.total_amount,
+        service_fee_rate: pricingResult.service_fee_rate,
         currency_code: "NGN",
       };
     }
