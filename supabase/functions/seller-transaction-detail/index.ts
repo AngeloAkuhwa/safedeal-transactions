@@ -36,7 +36,6 @@ Deno.serve(async (req) => {
     }
     const userId = userData.user.id;
 
-    // Verify seller role
     const { data: hasRole } = await adminClient.rpc("has_role", {
       _user_id: userId,
       _role: "seller",
@@ -51,14 +50,15 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "transaction_id required" }, 400);
     }
 
-    // Fetch transaction
+    // Fetch transaction (only columns that exist on the transactions table)
     const { data: tx, error: txError } = await adminClient
       .from("transactions")
-      .select("id, transaction_code, status, money_status, share_token, created_at, buyer_id, seller_id, agreement_locked_at, delivery_method, expected_delivery_date, verification_window_hours")
+      .select("id, transaction_code, status, money_status, created_at, buyer_id, seller_id, agreement_locked_at")
       .eq("id", transactionId)
       .single();
 
     if (txError || !tx) {
+      console.error("Transaction fetch error:", txError);
       return jsonResponse({ error: "Transaction not found" }, 404);
     }
 
@@ -67,16 +67,22 @@ Deno.serve(async (req) => {
     }
 
     // Fetch related data in parallel
-    const [itemRes, pricingRes, buyerProfileRes, participantRes, escrowRes, snapshotRes, statusHistoryRes, deliveryTrackingRes] = await Promise.all([
+    const [itemRes, deliveryTermsRes, linkRes, buyerProfileRes, participantRes, escrowRes, snapshotRes, statusHistoryRes, deliveryTrackingRes] = await Promise.all([
       adminClient
         .from("transaction_items")
-        .select("title, description, category, quantity, condition, brand, model, images")
+        .select("title, description, quantity, condition_label, brand, model")
         .eq("transaction_id", transactionId)
         .maybeSingle(),
       adminClient
-        .from("transaction_pricing")
-        .select("item_amount, buyer_total_amount, seller_net_amount, platform_fee_amount, payment_processing_fee_amount, service_fee_rate, currency_code")
+        .from("transaction_delivery_terms")
+        .select("delivery_method, expected_delivery_date, verification_window_hours, delivery_address_line1, delivery_city, delivery_state, delivery_country_code")
         .eq("transaction_id", transactionId)
+        .maybeSingle(),
+      adminClient
+        .from("transaction_links")
+        .select("share_token, url")
+        .eq("transaction_id", transactionId)
+        .eq("is_active", true)
         .maybeSingle(),
       tx.buyer_id
         ? adminClient
@@ -114,7 +120,8 @@ Deno.serve(async (req) => {
     ]);
 
     const item = itemRes.data;
-    const pricing = pricingRes.data;
+    const deliveryTerms = deliveryTermsRes.data;
+    const link = linkRes.data;
     const buyerProfile = buyerProfileRes.data as Record<string, unknown> | null;
     const participant = participantRes.data as Record<string, unknown> | null;
     const escrow = escrowRes.data;
@@ -141,20 +148,25 @@ Deno.serve(async (req) => {
         }
       : { name: "Unknown Buyer", email: "", phone: "", avatar_url: null, is_verified: false };
 
-    // Compute pricing if available
-    const computedPricing = pricing
-      ? {
-          item_amount: pricing.item_amount,
-          platform_fee_amount: pricing.platform_fee_amount,
-          payment_processing_fee_amount: pricing.payment_processing_fee_amount,
-          seller_net_amount: pricing.seller_net_amount,
-          buyer_total_amount: pricing.buyer_total_amount,
-          service_fee_rate: pricing.service_fee_rate,
-          currency_code: pricing.currency_code ?? "NGN",
-        }
-      : null;
+    // Compute pricing from item if available
+    let computedPricing = null;
+    if (item) {
+      // Try to get pricing from escrow or compute from item
+      const itemAmount = escrow?.held_amount ?? 0;
+      if (itemAmount > 0) {
+        const pricingResult = computePricing(itemAmount, "NGN");
+        computedPricing = {
+          item_amount: pricingResult.itemAmount,
+          platform_fee_amount: pricingResult.serviceFee,
+          payment_processing_fee_amount: pricingResult.paymentProcessingFee,
+          seller_net_amount: pricingResult.sellerNet,
+          buyer_total_amount: pricingResult.buyerTotal,
+          currency_code: "NGN",
+        };
+      }
+    }
 
-    // Build timeline from transaction status transitions
+    // Build timeline
     const timelineSteps = [
       { key: "draft", label: "Transaction Created", description: "Secure transaction link generated and ready to share with buyer." },
       { key: "awaiting_buyer", label: "Awaiting Buyer Payment", description: "Buyer received transaction link and reviewed agreement." },
@@ -169,7 +181,6 @@ Deno.serve(async (req) => {
     const currentIndex = statusOrder.indexOf(tx.status);
 
     const timeline = timelineSteps.map((step, i) => {
-      // Find matching history entry
       const historyEntry = statusHistory.find(
         (h: Record<string, unknown>) => h.new_status === step.key || (step.key === "draft" && i === 0)
       );
@@ -220,9 +231,8 @@ Deno.serve(async (req) => {
     };
 
     const nextAction = nextActionMap[tx.status] ?? nextActionMap["awaiting_buyer"];
-
-    // Build share URL
-    const shareUrl = tx.share_token ? `/t/${tx.share_token}` : null;
+    const shareToken = link?.share_token ?? null;
+    const shareUrl = shareToken ? `/t/${shareToken}` : null;
 
     return jsonResponse({
       transaction: {
@@ -230,25 +240,23 @@ Deno.serve(async (req) => {
         transaction_code: tx.transaction_code,
         status: tx.status,
         money_status: tx.money_status,
-        share_token: tx.share_token,
+        share_token: shareToken,
         share_url: shareUrl,
         created_at: tx.created_at,
         agreement_locked_at: tx.agreement_locked_at,
-        delivery_method: tx.delivery_method,
-        expected_delivery_date: tx.expected_delivery_date,
-        verification_window_hours: tx.verification_window_hours,
+        delivery_method: deliveryTerms?.delivery_method ?? null,
+        expected_delivery_date: deliveryTerms?.expected_delivery_date ?? null,
+        verification_window_hours: deliveryTerms?.verification_window_hours ?? null,
       },
       buyer,
       item: item
         ? {
             title: item.title,
             description: item.description,
-            category: item.category,
             quantity: item.quantity,
-            condition: item.condition,
+            condition: item.condition_label,
             brand: item.brand,
             model: item.model,
-            images: item.images,
           }
         : null,
       pricing: computedPricing,
@@ -265,6 +273,12 @@ Deno.serve(async (req) => {
         ? { locked_at: snapshot.locked_at, snapshot: snapshot.snapshot_json }
         : null,
       delivery_tracking: deliveryTracking ?? null,
+      delivery_terms: deliveryTerms ? {
+        delivery_method: deliveryTerms.delivery_method,
+        expected_delivery_date: deliveryTerms.expected_delivery_date,
+        verification_window_hours: deliveryTerms.verification_window_hours,
+        address: [deliveryTerms.delivery_address_line1, deliveryTerms.delivery_city, deliveryTerms.delivery_state, deliveryTerms.delivery_country_code].filter(Boolean).join(", ") || null,
+      } : null,
       timeline,
       next_action: nextAction,
     });
