@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { onAuthStateChange, getSession, signOut } from "@/services/auth.service";
+import { getUserRoles } from "@/services/role.service";
 import { invalidateOldSessions } from "@/services/session.service";
 import { toast } from "@/components/ui/sonner";
 import type { User } from "@supabase/supabase-js";
