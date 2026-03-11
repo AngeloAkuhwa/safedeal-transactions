@@ -19,8 +19,8 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
       subtitle: "Total protected deals",
-      badge: "↑ 12%",
-      badgeBg: "bg-success/10 text-success",
+      badge: `${metrics.transactions_created_count} total`,
+      badgeBg: "bg-primary/10 text-primary",
     },
     {
       label: "Awaiting Buyer Payment",

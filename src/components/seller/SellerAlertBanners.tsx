@@ -1,4 +1,4 @@
-import { AlertTriangle, Clock, TrendingUp, ArrowRight } from "lucide-react";
+import { AlertTriangle, Clock, TrendingUp, ArrowRight, Package } from "lucide-react";
 import type { SellerAlert } from "@/services/seller-dashboard.service";
 
 interface SellerAlertBannersProps {
@@ -14,6 +14,15 @@ const alertConfig: Record<string, {
   bodyClass: string;
   linkClass: string;
 }> = {
+  fulfillment_action_needed: {
+    icon: Package,
+    bgClass: "bg-primary/5 dark:bg-primary/10",
+    borderClass: "border-l-4 border-primary",
+    iconClass: "text-primary",
+    titleClass: "text-foreground",
+    bodyClass: "text-muted-foreground",
+    linkClass: "text-primary hover:text-primary/80",
+  },
   delivery_proof_needed: {
     icon: AlertTriangle,
     bgClass: "bg-amber-50 dark:bg-amber-950/30",
