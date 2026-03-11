@@ -95,6 +95,7 @@ async function signUpload(
 
   const context = body.context === "product_evidence" ? "products" : "disputes";
   const folder = `SafeDeal/${context}/${userId}`;
+  const timestamp = Math.floor(Date.now() / 1000);
 
   const params: Record<string, string> = {
     folder,
