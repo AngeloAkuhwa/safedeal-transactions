@@ -164,8 +164,8 @@ async function registerFile(
 
   // Cross-validate resource_type vs format
   const validCombinations: Record<string, string[]> = {
-    image: ["jpg", "jpeg", "png", "pdf"],
-    video: ["mp4"],
+    image: ["jpg", "jpeg", "png", "webp", "pdf"],
+    video: ["mp4", "mov", "webm"],
     raw: ["pdf"],
   };
   const allowedForResource = validCombinations[resource_type];
