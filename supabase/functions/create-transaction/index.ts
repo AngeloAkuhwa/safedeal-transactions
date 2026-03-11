@@ -226,7 +226,7 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
   // Fetch transaction
   const { data: tx } = await adminClient
     .from("transactions")
-    .select("id, status, seller_id, share_token")
+    .select("id, status, seller_id, share_token, transaction_code")
     .eq("id", transactionId)
     .single();
 
