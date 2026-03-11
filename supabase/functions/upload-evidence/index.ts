@@ -157,7 +157,7 @@ async function registerFile(
   }
 
   // Validate format
-  const allowedFormats = ["jpg", "jpeg", "png", "mp4", "pdf"];
+  const allowedFormats = ["jpg", "jpeg", "png", "webp", "mp4", "mov", "webm", "pdf"];
   if (!allowedFormats.includes(format.toLowerCase())) {
     return jsonResponse({ error: `File format '${format}' is not allowed. Allowed: ${allowedFormats.join(", ")}` }, 400);
   }
