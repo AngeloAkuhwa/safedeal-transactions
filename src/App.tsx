@@ -22,6 +22,7 @@ import BuyerTransactionTracking from "./pages/BuyerTransactionTracking";
 import BuyerTransactionReview from "./pages/BuyerTransactionReview";
 import BuyerPaymentSummary from "./pages/BuyerPaymentSummary";
 import TransactionCancelled from "./pages/TransactionCancelled";
+import SellerDashboard from "./pages/SellerDashboard";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -48,7 +49,7 @@ const App = () => (
               <Route path="/role-selection" element={<RoleSelection />} />
             </Route>
 
-            {/* Protected: requires session + role */}
+            {/* Protected: requires session + buyer role */}
             <Route element={<ProtectedRoute requireRole="buyer" />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/transactions" element={<BuyerTransactions />} />
@@ -61,6 +62,11 @@ const App = () => (
               <Route path="/dashboard/notifications" element={<BuyerNotifications />} />
               <Route path="/dashboard/profile" element={<BuyerProfileSettings />} />
               <Route path="/dashboard/verification" element={<BuyerVerification />} />
+            </Route>
+
+            {/* Protected: requires session + seller role */}
+            <Route element={<ProtectedRoute requireRole="seller" />}>
+              <Route path="/seller" element={<SellerDashboard />} />
             </Route>
 
             {/* Catch-all */}

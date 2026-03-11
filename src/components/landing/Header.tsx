@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { onAuthStateChange, getSession, signOut } from "@/services/auth.service";
+import { getUserRoles } from "@/services/role.service";
 import { invalidateOldSessions } from "@/services/session.service";
 import { toast } from "@/components/ui/sonner";
 import type { User } from "@supabase/supabase-js";
@@ -19,14 +20,26 @@ const navLinks = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [dashboardPath, setDashboardPath] = useState("/role-selection");
   const navigate = useNavigate();
 
   useEffect(() => {
     const { data: { subscription } } = onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
     });
-    getSession().then(({ data: { session } }) => {
+    getSession().then(async ({ data: { session } }) => {
       setUser(session?.user ?? null);
+      if (session) {
+        const { data: roles } = await getUserRoles(session.user.id);
+        const roleNames = (roles ?? []).map((r) => r.role);
+        if (roleNames.includes("buyer")) {
+          setDashboardPath("/dashboard");
+        } else if (roleNames.includes("seller")) {
+          setDashboardPath("/seller");
+        } else {
+          setDashboardPath("/role-selection");
+        }
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -70,7 +83,7 @@ export function Header() {
           {user ? (
             <>
               <Button asChild>
-                <Link to="/role-selection">Dashboard</Link>
+                <Link to={dashboardPath}>Dashboard</Link>
               </Button>
               <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground">
                 <LogOut className="h-4 w-4" />
@@ -119,7 +132,7 @@ export function Header() {
                 {user ? (
                   <>
                     <Button asChild onClick={() => setOpen(false)}>
-                      <Link to="/role-selection">Dashboard</Link>
+                      <Link to={dashboardPath}>Dashboard</Link>
                     </Button>
                     <Button
                       variant="ghost"
