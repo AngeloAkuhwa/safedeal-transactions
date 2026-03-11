@@ -249,7 +249,6 @@ export default function BuyerPaymentSummary() {
   const itemAmount = data.pricing?.item_amount ?? 0;
   const feeAmount = data.pricing?.service_fee_amount ?? 0;
   const feeRate = data.pricing?.service_fee_rate ?? 0;
-  const paystackFee = data.pricing?.paystack_fee_amount ?? 0;
   const verificationHours = data.delivery?.verification_window_hours ?? 72;
 
   const firstMediaUrl = data.media?.[0]?.files?.secure_url || data.media?.[0]?.files?.file_url;
