@@ -93,8 +93,8 @@ async function signUpload(
   const apiKey = Deno.env.get("CLOUDINARY_API_KEY")!.trim();
   const apiSecret = Deno.env.get("CLOUDINARY_API_SECRET")!.trim();
 
-  const timestamp = Math.floor(Date.now() / 1000);
-  const folder = `SafeDeal/disputes/${userId}`;
+  const context = body.context === "product_evidence" ? "products" : "disputes";
+  const folder = `SafeDeal/${context}/${userId}`;
 
   const params: Record<string, string> = {
     folder,
