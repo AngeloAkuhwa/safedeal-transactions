@@ -73,7 +73,7 @@ const RoleSelection = () => {
       const { data: existing } = await checkRoleExists(session.user.id, role);
       if (existing && existing.length > 0) {
         toast.info("This role is already assigned to your account.");
-        navigate("/dashboard", { replace: true });
+        navigate(role === "seller" ? "/seller" : "/dashboard", { replace: true });
         return;
       }
 
@@ -84,12 +84,13 @@ const RoleSelection = () => {
       }
 
       toast.success(`You're all set as a ${role === "buyer" ? "Buyer" : "Seller"}!`);
+      const destination = role === "seller" ? "/seller" : "/dashboard";
       const storedRedirect = sessionStorage.getItem("safedeal_redirect");
       if (storedRedirect) {
         sessionStorage.removeItem("safedeal_redirect");
         navigate(storedRedirect, { replace: true });
       } else {
-        navigate("/dashboard", { replace: true });
+        navigate(destination, { replace: true });
       }
     } catch {
       toast.error("Something went wrong. Please try again.");

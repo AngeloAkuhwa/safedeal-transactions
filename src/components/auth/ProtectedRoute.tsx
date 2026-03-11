@@ -13,6 +13,7 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
   const [status, setStatus] = useState<
     "loading" | "authenticated" | "unauthenticated" | "needs-role" | "wrong-role"
   >("loading");
+  const [userRoles, setUserRoles] = useState<string[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -30,15 +31,16 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
         const { data: roles } = await getUserRoles(session.user.id);
         if (!mounted) return;
 
-        if (!roles || roles.length === 0) {
+        const roleNames = (roles ?? []).map((r) => r.role);
+        setUserRoles(roleNames);
+
+        if (roleNames.length === 0) {
           setStatus("needs-role");
           return;
         }
 
-        // If a specific role string is required, check for it
         if (typeof requireRole === "string") {
-          const hasSpecificRole = roles.some((r) => r.role === requireRole);
-          if (!hasSpecificRole) {
+          if (!roleNames.includes(requireRole)) {
             setStatus("wrong-role");
             return;
           }
@@ -81,7 +83,14 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
   }
 
   if (status === "wrong-role") {
-    return <Navigate to={`/role-selection?redirect=${currentPath}`} replace />;
+    // Redirect to user's available dashboard instead of role-selection
+    if (userRoles.includes("buyer")) {
+      return <Navigate to="/dashboard" replace />;
+    }
+    if (userRoles.includes("seller")) {
+      return <Navigate to="/seller" replace />;
+    }
+    return <Navigate to="/role-selection" replace />;
   }
 
   return <Outlet />;

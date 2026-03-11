@@ -132,7 +132,7 @@ export function Header() {
                 {user ? (
                   <>
                     <Button asChild onClick={() => setOpen(false)}>
-                      <Link to="/role-selection">Dashboard</Link>
+                      <Link to={dashboardPath}>Dashboard</Link>
                     </Button>
                     <Button
                       variant="ghost"
