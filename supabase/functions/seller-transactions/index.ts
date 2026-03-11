@@ -221,6 +221,8 @@ Deno.serve(async (req) => {
         item_quantity: item?.quantity ?? 1,
         amount: pricing?.amount ?? 0,
         seller_net: pricing?.sellerNet ?? 0,
+        platform_fee: pricing?.platformFee ?? 0,
+        processing_fee: pricing?.processingFee ?? 0,
         currency_code: pricing?.currency ?? "NGN",
         transaction_status: tx.status,
         money_status: tx.money_status,
