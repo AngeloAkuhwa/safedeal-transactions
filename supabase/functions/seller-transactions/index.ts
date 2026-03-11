@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
           .in("transaction_id", txIds),
         adminClient
           .from("transaction_pricing")
-          .select("transaction_id, buyer_total_amount, seller_net_amount, currency_code")
+          .select("transaction_id, item_amount, buyer_total_amount, seller_net_amount, platform_fee_amount, payment_processing_fee_amount, currency_code")
           .in("transaction_id", txIds),
         buyerIds.length > 0
           ? adminClient
