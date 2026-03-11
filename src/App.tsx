@@ -73,6 +73,8 @@ const App = () => (
               <Route path="/seller" element={<SellerDashboard />} />
               <Route path="/seller/transactions" element={<SellerTransactions />} />
               <Route path="/seller/transactions/new" element={<SellerCreateTransaction />} />
+              <Route path="/seller/transactions/:transactionId" element={<SellerTransactionDetail />} />
+              <Route path="/seller/transactions/:transactionId/share" element={<SellerTransactionShare />} />
             </Route>
 
             {/* Catch-all */}

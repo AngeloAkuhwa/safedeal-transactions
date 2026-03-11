@@ -149,7 +149,11 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                         variant={actionInfo.variant === "default" ? "default" : "outline"}
                         size="sm"
                         className="text-xs"
-                        onClick={() => navigate(`/seller/transactions/${row.transaction_id}`)}
+                        onClick={() => navigate(
+                          row.transaction_status === "awaiting_buyer"
+                            ? `/seller/transactions/${row.transaction_id}/share`
+                            : `/seller/transactions/${row.transaction_id}`
+                        )}
                       >
                         {actionInfo.label}
                       </Button>
