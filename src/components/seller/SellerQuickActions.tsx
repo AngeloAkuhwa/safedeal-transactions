@@ -10,54 +10,54 @@ export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
     {
       icon: Plus,
       title: "Create Transaction",
-      description: "Start a new protected deal",
+      description: "Start a new protected deal with a buyer",
       href: "/seller/transactions/new",
-      iconBg: "bg-success/10",
-      iconColor: "text-success",
+      iconBg: "bg-success/10 group-hover:bg-success",
+      iconColor: "text-success group-hover:text-white",
     },
     {
       icon: FileText,
       title: "View Drafts",
-      description: `${draftCount} draft${draftCount !== 1 ? "s" : ""} saved`,
+      description: `${draftCount} draft${draftCount !== 1 ? "s" : ""} saved and ready to send`,
       href: "/seller/transactions?filter=drafts",
-      iconBg: "bg-primary/10",
-      iconColor: "text-primary",
+      iconBg: "bg-primary/10 group-hover:bg-primary",
+      iconColor: "text-primary group-hover:text-white",
     },
     {
       icon: BarChart3,
       title: "Sales Analytics",
-      description: "View your performance",
+      description: "View your sales performance and trends",
       href: "/seller/analytics",
-      iconBg: "bg-warning/10",
-      iconColor: "text-warning",
+      iconBg: "bg-warning/10 group-hover:bg-warning",
+      iconColor: "text-warning group-hover:text-white",
     },
     {
       icon: Settings,
       title: "Account Settings",
-      description: "Manage your profile",
+      description: "Manage your profile and preferences",
       href: "/seller/profile",
-      iconBg: "bg-muted",
-      iconColor: "text-muted-foreground",
+      iconBg: "bg-muted group-hover:bg-foreground",
+      iconColor: "text-muted-foreground group-hover:text-white",
     },
   ];
 
   return (
     <div>
-      <h2 className="text-lg font-bold text-foreground mb-4">Quick Actions</h2>
+      <h2 className="text-xl font-bold text-foreground mb-4">Quick Actions</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {actions.map((action) => (
           <Card
             key={action.title}
-            className="hover:border-success/40 transition-all cursor-pointer group"
+            className="rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer group"
           >
             <CardContent className="p-5">
-              <div className={`h-10 w-10 rounded-xl ${action.iconBg} flex items-center justify-center mb-3`}>
-                <action.icon className={`h-5 w-5 ${action.iconColor}`} />
+              <div className={`h-11 w-11 rounded-xl ${action.iconBg} flex items-center justify-center mb-3 transition-colors`}>
+                <action.icon className={`h-5 w-5 ${action.iconColor} transition-colors`} />
               </div>
-              <h3 className="text-sm font-semibold text-foreground group-hover:text-success transition-colors">
+              <h3 className="text-base font-bold text-foreground group-hover:text-success transition-colors mb-1">
                 {action.title}
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
+              <p className="text-sm text-muted-foreground">{action.description}</p>
             </CardContent>
           </Card>
         ))}

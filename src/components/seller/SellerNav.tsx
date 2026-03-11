@@ -54,12 +54,14 @@ export function SellerNav({ sellerName, avatarUrl }: SellerNavProps) {
   return (
     <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Shield className="h-7 w-7 text-success" />
-          <span className="text-xl font-bold text-foreground">SafeDeal</span>
+        <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+          <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
+            <Shield className="h-5 w-5 text-primary-foreground" />
+          </div>
+          <span className="text-lg font-bold text-foreground">SafeDeal</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-1">
           {navLinks.map((link) => {
             const isActive = location.pathname === link.href ||
               (link.href !== "/seller" && location.pathname.startsWith(link.href));
@@ -67,9 +69,9 @@ export function SellerNav({ sellerName, avatarUrl }: SellerNavProps) {
               <Link
                 key={link.href}
                 to={link.href}
-                className={`text-sm font-medium transition-colors ${
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                   isActive
-                    ? "text-foreground"
+                    ? "text-primary font-semibold border-b-2 border-primary"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -88,13 +90,13 @@ export function SellerNav({ sellerName, avatarUrl }: SellerNavProps) {
             </Link>
           </Button>
 
-          <div className="hidden sm:flex items-center gap-3 pl-3 border-l border-border">
-            <Avatar className="h-9 w-9">
+          <div className="hidden sm:flex items-center gap-2.5 pl-3 border-l border-border">
+            <Avatar className="h-8 w-8">
               <AvatarImage src={avatarUrl ?? undefined} alt={sellerName} />
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
             <div className="hidden lg:block">
-              <p className="text-sm font-semibold text-foreground">{sellerName}</p>
+              <p className="text-sm font-semibold text-foreground leading-tight">{sellerName}</p>
               <p className="text-xs text-success">Seller Account</p>
             </div>
           </div>

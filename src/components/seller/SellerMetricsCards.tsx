@@ -19,6 +19,8 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
       subtitle: "Total protected deals",
+      badge: "↑ 12%",
+      badgeBg: "bg-success/10 text-success",
     },
     {
       label: "Awaiting Buyer Payment",
@@ -27,6 +29,8 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       iconBg: "bg-warning/10",
       iconColor: "text-warning",
       subtitle: "Pending buyer action",
+      badge: "Pending",
+      badgeBg: "bg-warning/10 text-warning",
     },
     {
       label: "Funds Held in Escrow",
@@ -35,6 +39,8 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
       subtitle: "Securely held",
+      badge: "Escrow",
+      badgeBg: "bg-primary/10 text-primary",
     },
     {
       label: "Funds Pending Release",
@@ -43,6 +49,8 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       iconBg: "bg-warning/10",
       iconColor: "text-warning",
       subtitle: "Processing release",
+      badge: "Releasing",
+      badgeBg: "bg-warning/10 text-warning",
     },
     {
       label: "Payouts Completed",
@@ -51,22 +59,29 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       iconBg: "bg-success/10",
       iconColor: "text-success",
       subtitle: "Total received",
+      badge: "Paid",
+      badgeBg: "bg-success/10 text-success",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card) => (
-        <Card key={card.label}>
+        <Card key={card.label} className="rounded-2xl shadow-md hover:shadow-lg transition-all">
           <CardContent className="p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className={`h-10 w-10 rounded-xl ${card.iconBg} flex items-center justify-center`}>
+            <div className="flex items-start justify-between mb-3">
+              <div className={`h-11 w-11 rounded-xl ${card.iconBg} flex items-center justify-center`}>
                 <card.icon className={`h-5 w-5 ${card.iconColor}`} />
               </div>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${card.badgeBg}`}>
+                {card.badge}
+              </span>
             </div>
-            <p className="text-xs text-muted-foreground font-medium">{card.label}</p>
-            <p className="text-xl font-bold text-foreground mt-1">{card.value}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{card.subtitle}</p>
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
+              <p className="text-2xl font-bold text-foreground">{card.value}</p>
+              <p className="text-xs text-muted-foreground">{card.subtitle}</p>
+            </div>
           </CardContent>
         </Card>
       ))}

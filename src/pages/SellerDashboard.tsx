@@ -56,23 +56,24 @@ const SellerDashboard = () => {
         avatarUrl={data.seller.avatar_url}
       />
 
-      <SellerDashboardHero sellerName={data.seller.full_name} />
+      {/* Unified gradient section: hero + alerts + metrics */}
+      <div className="bg-gradient-to-br from-sky-50 via-background to-green-50 dark:from-sky-950/20 dark:via-background dark:to-green-950/20">
+        <SellerDashboardHero sellerName={data.seller.full_name} />
 
-      <main className="flex-1">
-        {/* Alerts */}
         {data.alerts.length > 0 && (
-          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-6 mb-4">
+          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6">
             <SellerAlertBanners alerts={data.alerts} />
           </section>
         )}
 
-        {/* Metrics */}
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-4 mb-8">
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-8">
           <SellerMetricsCards metrics={data.metrics} />
         </section>
+      </div>
 
+      <main className="flex-1 bg-muted/30">
         {hasNoTransactions ? (
-          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-12">
+          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
             <div className="rounded-2xl border bg-card p-12 text-center">
               <Store className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
               <h2 className="text-xl font-bold text-foreground mb-2">
@@ -85,18 +86,15 @@ const SellerDashboard = () => {
           </section>
         ) : (
           <>
-            {/* Recent Activity */}
-            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-8">
+            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
               <SellerRecentActivity activity={data.recent_activity} />
             </section>
 
-            {/* Quick Actions */}
-            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-8">
+            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-8">
               <SellerQuickActions draftCount={data.quick_actions.draft_count} />
             </section>
 
-            {/* Trust Banner */}
-            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-12">
+            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12">
               <SellerTrustBanner />
             </section>
           </>
