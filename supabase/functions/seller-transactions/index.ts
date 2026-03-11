@@ -203,7 +203,9 @@ Deno.serve(async (req) => {
 
     // Build response rows
     const transactions = paginatedRows.map((tx) => {
-      const buyer = buyerMap.get(tx.buyer_id);
+      const buyer = tx.buyer_id
+        ? buyerMap.get(tx.buyer_id)
+        : buyerMap.get(`participant:${tx.id}`);
       const item = itemMap.get(tx.id);
       const pricing = pricingMap.get(tx.id);
       return {
