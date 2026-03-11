@@ -31,7 +31,7 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
         const { data: roles } = await getUserRoles(session.user.id);
         if (!mounted) return;
 
-        const roleNames = (roles ?? []).map((r) => r.role);
+        const roleNames = (roles ?? []).map((r) => r.role as string);
         setUserRoles(roleNames);
 
         if (roleNames.length === 0) {
