@@ -70,6 +70,7 @@ Deno.serve(async (req) => {
 async function signUpload(
   admin: ReturnType<typeof createClient>,
   userId: string,
+  body: { context?: string },
 ) {
   // Rate limit: max 50 uploads per hour
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
