@@ -7,6 +7,7 @@ interface SellerQuickActionsProps {
 }
 
 export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
+  const navigate = useNavigate();
   const actions = [
     {
       icon: Plus,
