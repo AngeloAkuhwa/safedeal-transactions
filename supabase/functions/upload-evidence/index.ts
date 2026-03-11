@@ -196,7 +196,10 @@ async function registerFile(
     jpg: "image/jpeg",
     jpeg: "image/jpeg",
     png: "image/png",
+    webp: "image/webp",
     mp4: "video/mp4",
+    mov: "video/quicktime",
+    webm: "video/webm",
     pdf: "application/pdf",
   };
   const mimeType = mimeMap[format.toLowerCase()] || "application/octet-stream";
