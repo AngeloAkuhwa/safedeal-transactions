@@ -46,8 +46,10 @@ export function computePricing(
   const paystackFee = computePaystackLocalFee(itemAmount);
   const tierRate = getSafeDealLocalTierRate(itemAmount);
   const targetServiceFee = Math.round(itemAmount * tierRate);
-  const platformFee = Math.min(Math.max(targetServiceFee - paystackFee, 0), 2000);
-  const serviceFeeAmount = paystackFee + platformFee;
+  const rawPlatformFee = Math.max(targetServiceFee - paystackFee, 0);
+  const rawServiceFee = paystackFee + rawPlatformFee;
+  const serviceFeeAmount = Math.min(rawServiceFee, 2000);
+  const platformFee = Math.max(serviceFeeAmount - paystackFee, 0);
   const serviceFeeRate = serviceFeeAmount / itemAmount;
 
   return {

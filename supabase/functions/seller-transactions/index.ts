@@ -210,6 +210,9 @@ Deno.serve(async (req) => {
         : buyerMap.get(`participant:${tx.id}`);
       const item = itemMap.get(tx.id);
       const pricing = pricingMap.get(tx.id);
+      const rawServiceFee = (pricing?.platformFee ?? 0) + (pricing?.processingFee ?? 0);
+      const serviceFee = Math.min(rawServiceFee, 2000);
+      const sellerNet = (pricing?.amount ?? 0) - serviceFee;
       return {
         transaction_id: tx.id,
         transaction_code: tx.transaction_code,
@@ -220,9 +223,8 @@ Deno.serve(async (req) => {
         item_category: item?.category ?? "",
         item_quantity: item?.quantity ?? 1,
         amount: pricing?.amount ?? 0,
-        seller_net: pricing?.sellerNet ?? 0,
-        platform_fee: pricing?.platformFee ?? 0,
-        processing_fee: pricing?.processingFee ?? 0,
+        seller_net: sellerNet,
+        service_fee: serviceFee,
         currency_code: pricing?.currency ?? "NGN",
         transaction_status: tx.status,
         money_status: tx.money_status,

@@ -144,19 +144,15 @@ export default function SellerUpdateDelivery() {
           {/* Fee Breakdown */}
           {pricing && pricing.seller_net_amount > 0 && pricing.seller_net_amount !== pricing.item_amount && (
             <div className="bg-muted/50 border border-border rounded-xl p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Fee Breakdown</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Payout Summary</p>
+              <div className="grid grid-cols-3 gap-4 text-sm">
                 <div>
                   <p className="text-xs text-muted-foreground">Item Amount</p>
                   <p className="font-semibold">{fmt(pricing.item_amount, currency)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Processing Fee</p>
-                  <p className="font-semibold text-destructive">−{fmt(pricing.payment_processing_fee_amount, currency)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Platform Fee</p>
-                  <p className="font-semibold text-destructive">−{fmt(pricing.platform_fee_amount, currency)}</p>
+                  <p className="text-xs text-muted-foreground">SafeDeal Service Fee</p>
+                  <p className="font-semibold text-destructive">−{fmt(pricing.service_fee_amount, currency)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Your Net Payout</p>

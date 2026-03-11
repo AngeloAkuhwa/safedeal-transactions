@@ -489,33 +489,43 @@ export default function BuyerPaymentSummary() {
                   <span className="text-base font-semibold text-foreground">{currencySymbol}{itemAmount.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">SafeDeal Protection Fee ({(feeRate * 100).toFixed(1)}%)</span>
-                    <Info className="h-3 w-3 text-muted-foreground" />
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm text-muted-foreground">SafeDeal Protection Fee</span>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-medium text-muted-foreground border-muted-foreground/30">capped</Badge>
                   </div>
                   <span className="text-base font-semibold text-success">{currencySymbol}{feeAmount.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Processing Fee</span>
-                  <span className="text-base font-semibold text-foreground">{currencySymbol}{paystackFee.toLocaleString()}</span>
-                </div>
+                <p className="text-xs text-muted-foreground -mt-1 pl-0.5">Covers secure payment holding, buyer protection, and dispute resolution.</p>
               </div>
 
               <div className="pt-4 border-t-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold text-foreground">Total Amount</span>
+                  <span className="text-lg font-bold text-foreground">Total You Pay</span>
                   <span className="text-3xl font-bold text-primary">{currencySymbol}{totalAmount.toLocaleString()}</span>
                 </div>
                 <p className="text-xs text-muted-foreground text-right mt-1">{data.pricing?.currency_code}</p>
               </div>
 
-              <div className="mt-6 bg-primary/5 border border-primary/20 rounded-xl p-4">
-                <div className="flex items-start gap-3">
+              {/* Trust block */}
+              <div className="mt-6 bg-primary/5 border border-primary/20 rounded-xl p-5">
+                <div className="flex items-start gap-3 mb-4">
                   <ShieldCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground mb-1">100% Secure Payment</p>
-                    <p className="text-xs text-muted-foreground">Your payment is protected by 256-bit SSL encryption and will be held in escrow until you confirm receipt of the item.</p>
+                    <p className="text-sm font-bold text-foreground mb-1">Your Payment is Protected</p>
+                    <p className="text-xs text-muted-foreground">SafeDeal holds your payment securely until you confirm the item has been received and matches the agreement. If something goes wrong, you can open a dispute and SafeDeal will review the case.</p>
                   </div>
+                </div>
+                <div className="space-y-2 pl-8">
+                  {[
+                    "Secure escrow payment",
+                    "Buyer verification window",
+                    "Dispute protection",
+                  ].map((item) => (
+                    <div key={item} className="flex items-center gap-2">
+                      <CheckCircle className="h-3.5 w-3.5 text-success shrink-0" />
+                      <span className="text-xs text-muted-foreground font-medium">{item}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
