@@ -43,12 +43,17 @@ const RoleSelection = () => {
 
       const { data: roles } = await getUserRoles(session.user.id);
       if (roles && roles.length > 0) {
+        const roleNames = roles.map((r) => r.role);
         const storedRedirect = sessionStorage.getItem("safedeal_redirect");
         if (storedRedirect) {
           sessionStorage.removeItem("safedeal_redirect");
           navigate(storedRedirect, { replace: true });
         } else {
-          navigate("/dashboard", { replace: true });
+          // Route to correct dashboard based on roles
+          const destination = roleNames.includes("seller") && !roleNames.includes("buyer")
+            ? "/seller"
+            : "/dashboard";
+          navigate(destination, { replace: true });
         }
         return;
       }
