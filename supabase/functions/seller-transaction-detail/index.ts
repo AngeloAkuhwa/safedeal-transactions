@@ -130,6 +130,7 @@ Deno.serve(async (req) => {
     const buyerProfile = buyerProfileRes.data as Record<string, unknown> | null;
     const participant = participantRes.data as Record<string, unknown> | null;
     const escrow = escrowRes.data;
+    const pricingRow = pricingRes.data;
     const snapshot = snapshotRes.data;
     const statusHistory = statusHistoryRes.data ?? [];
     const deliveryTracking = deliveryTrackingRes.data;
