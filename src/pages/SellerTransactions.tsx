@@ -372,6 +372,13 @@ const SellerTransactions = () => {
       </div>
 
       <Footer />
+
+      <ExportPreviewDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        initialStatusFilter={statusFilter}
+        initialDateFilter={dateFilter}
+      />
     </div>
   );
 };
