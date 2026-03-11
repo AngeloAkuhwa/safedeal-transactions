@@ -217,8 +217,9 @@ const SellerCreateTransaction = () => {
       try {
         setUploadingPhoto(true);
         setPhotoProgress(0);
+        const previewUrl = URL.createObjectURL(file);
         const uploaded = await uploadProductFile(file, (pct) => setPhotoProgress(pct));
-        setPhotos((prev) => [...prev, uploaded]);
+        setPhotos((prev) => [...prev, { ...uploaded, preview_url: previewUrl }]);
         toast({ title: "Photo uploaded", description: file.name });
       } catch (err: any) {
         toast({ title: "Upload failed", description: err.message, variant: "destructive" });
