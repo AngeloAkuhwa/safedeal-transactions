@@ -68,7 +68,7 @@ export async function saveDraft(formData: CreateTransactionData): Promise<{ tran
   return data;
 }
 
-export async function publishTransaction(transactionId: string): Promise<{ share_url: string }> {
+export async function publishTransaction(transactionId: string): Promise<{ share_url: string; transaction_code?: string }> {
   const headers = await getAuthHeader();
   const { data, error } = await supabase.functions.invoke("create-transaction", {
     headers,

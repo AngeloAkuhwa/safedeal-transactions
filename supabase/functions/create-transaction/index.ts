@@ -226,7 +226,7 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
   // Fetch transaction
   const { data: tx } = await adminClient
     .from("transactions")
-    .select("id, status, seller_id, share_token")
+    .select("id, status, seller_id, share_token, transaction_code")
     .eq("id", transactionId)
     .single();
 
@@ -280,7 +280,7 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
       { onConflict: "transaction_id" }
     );
 
-  return jsonResponse({ share_url: shareUrl, transaction_id: transactionId });
+  return jsonResponse({ share_url: shareUrl, transaction_id: transactionId, transaction_code: tx.transaction_code });
 }
 
 async function upsertByTransaction(client: any, table: string, transactionId: string, data: Record<string, any>) {
