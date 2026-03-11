@@ -151,6 +151,7 @@ const SellerCreateTransaction = () => {
     mutationFn: (txId: string) => publishTransaction(txId),
     onSuccess: (result) => {
       setPublishedUrl(result.share_url);
+      setPublishedCode(result.transaction_code ?? "");
       toast({ title: "Transaction created!", description: "Your secure link is ready to share." });
     },
     onError: (err: Error) => {
