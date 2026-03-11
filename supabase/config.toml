@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.seller-drafts]
 verify_jwt = false
+
+[functions.seller-transaction-detail]
+verify_jwt = false

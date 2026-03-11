@@ -275,7 +275,11 @@ const SellerTransactions = () => {
                             variant={action.variant === "default" ? "default" : "outline"}
                             size="sm"
                             className="text-xs"
-                            onClick={() => navigate(`/seller/transactions/${tx.transaction_id}`)}
+                            onClick={() => navigate(
+                              tx.transaction_status === "awaiting_buyer"
+                                ? `/seller/transactions/${tx.transaction_id}/share`
+                                : `/seller/transactions/${tx.transaction_id}`
+                            )}
                           >
                             {action.label}
                           </Button>
