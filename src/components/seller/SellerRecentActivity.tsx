@@ -122,43 +122,52 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                 const statusInfo = statusLabels[row.transaction_status] ?? { label: row.transaction_status, variant: "secondary" as const };
                 const actionInfo = actionLabels[row.transaction_status] ?? { label: "View Details", variant: "outline" as const };
                 return (
-                  <TableRow key={row.transaction_id} className="hover:bg-muted/30">
-                    <TableCell className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-primary shrink-0" />
-                        <span className="font-mono text-sm font-medium">{row.transaction_code}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 hidden sm:table-cell">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{row.buyer_name}</p>
-                        <p className="text-xs text-muted-foreground">{row.buyer_email}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 hidden md:table-cell">
-                      <p className="text-sm text-foreground truncate max-w-[180px]">{row.item_title}</p>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 text-sm font-bold">
-                      {formatCurrency(row.amount, row.currency_code)}
-                    </TableCell>
-                    <TableCell className="px-6 py-4">
-                      <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
-                    </TableCell>
-                    <TableCell className="px-6 py-4">
-                      <Button
-                        variant={actionInfo.variant === "default" ? "default" : "outline"}
-                        size="sm"
-                        className="text-xs"
-                        onClick={() => navigate(
-                          row.transaction_status === "awaiting_buyer"
-                            ? `/seller/transactions/${row.transaction_id}/share`
-                            : `/seller/transactions/${row.transaction_id}`
-                        )}
-                      >
-                        {actionInfo.label}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                  <TableRow
+                    key={row.transaction_id}
+                    className="hover:bg-muted/30 cursor-pointer"
+                    onClick={() => navigate(`/seller/transactions/${row.transaction_id}`)}
+                  >
+                     <TableCell className="px-6 py-4">
+                       <div className="flex items-center gap-2">
+                         <Shield className="h-4 w-4 text-primary shrink-0" />
+                         <span className="font-mono text-sm font-medium">{row.transaction_code}</span>
+                       </div>
+                     </TableCell>
+                     <TableCell className="px-6 py-4 hidden sm:table-cell">
+                       <div>
+                         <p className="text-sm font-medium text-foreground">{row.buyer_name}</p>
+                         <p className="text-xs text-muted-foreground">{row.buyer_email}</p>
+                       </div>
+                     </TableCell>
+                     <TableCell className="px-6 py-4 hidden md:table-cell">
+                       <p className="text-sm text-foreground truncate max-w-[180px]">{row.item_title}</p>
+                     </TableCell>
+                     <TableCell className="px-6 py-4 text-sm font-bold">
+                       {formatCurrency(row.amount, row.currency_code)}
+                     </TableCell>
+                     <TableCell className="px-6 py-4">
+                       <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                     </TableCell>
+                     <TableCell className="px-6 py-4">
+                       <Button
+                         variant={actionInfo.variant === "default" ? "default" : "outline"}
+                         size="sm"
+                         className="text-xs"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           if (row.transaction_status === "awaiting_buyer") {
+                             navigate(`/seller/transactions/${row.transaction_id}/share`);
+                           } else if (row.transaction_status === "seller_preparing_delivery") {
+                             navigate(`/seller/transactions/${row.transaction_id}/delivery`);
+                           } else {
+                             navigate(`/seller/transactions/${row.transaction_id}`);
+                           }
+                         }}
+                       >
+                         {actionInfo.label}
+                       </Button>
+                     </TableCell>
+                   </TableRow>
                 );
               })}
             </TableBody>
