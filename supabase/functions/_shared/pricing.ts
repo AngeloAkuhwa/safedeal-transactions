@@ -100,12 +100,16 @@ export function computePricing(
   const targetServiceFee = Math.round(itemAmount * tierRate);
 
   // Step 4: Split — platform gets remainder after Paystack
-  const platformFee = Math.min(Math.max(targetServiceFee - paystackFee, 0), 2000);
+  const rawPlatformFee = Math.max(targetServiceFee - paystackFee, 0);
 
-  // Step 5: Final service fee = Paystack + platform
-  const serviceFeeAmount = paystackFee + platformFee;
+  // Step 5: Cap total service fee at ₦2,000
+  const rawServiceFee = paystackFee + rawPlatformFee;
+  const serviceFeeAmount = Math.min(rawServiceFee, 2000);
 
-  // Step 6: Effective rate
+  // Step 6: Recalculate platform fee after cap
+  const platformFee = Math.max(serviceFeeAmount - paystackFee, 0);
+
+  // Step 7: Effective rate
   const serviceFeeRate = serviceFeeAmount / itemAmount;
 
   return {

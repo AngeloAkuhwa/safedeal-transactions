@@ -156,24 +156,23 @@ Deno.serve(async (req) => {
 
     let computedPricing = null;
     if (pricingRow) {
+      const rawServiceFee = (pricingRow.platform_fee_amount ?? 0) + (pricingRow.processing_fee_amount ?? 0);
+      const serviceFee = Math.min(rawServiceFee, 2000);
+      const sellerNet = pricingRow.item_amount - serviceFee;
       computedPricing = {
         item_amount: pricingRow.item_amount,
-        platform_fee_amount: pricingRow.platform_fee_amount,
-        payment_processing_fee_amount: pricingRow.processing_fee_amount ?? 0,
-        seller_net_amount: pricingRow.seller_net_amount,
-        buyer_total_amount: pricingRow.buyer_total_amount,
-        service_fee_rate: 0,
+        service_fee_amount: serviceFee,
+        seller_net_amount: sellerNet,
+        buyer_total_amount: pricingRow.item_amount + serviceFee,
         currency_code: pricingRow.currency_code ?? "NGN",
       };
     } else if (escrow && escrow.held_amount > 0) {
       const pricingResult = computePricing(escrow.held_amount, "NGN");
       computedPricing = {
         item_amount: pricingResult.item_amount,
-        platform_fee_amount: pricingResult.platform_fee_amount,
-        payment_processing_fee_amount: pricingResult.paystack_fee_amount,
-        seller_net_amount: pricingResult.item_amount - pricingResult.platform_fee_amount,
+        service_fee_amount: pricingResult.service_fee_amount,
+        seller_net_amount: pricingResult.item_amount - pricingResult.service_fee_amount,
         buyer_total_amount: pricingResult.total_amount,
-        service_fee_rate: pricingResult.service_fee_rate,
         currency_code: "NGN",
       };
     }

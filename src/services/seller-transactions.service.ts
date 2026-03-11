@@ -11,8 +11,7 @@ export interface SellerTransaction {
   item_quantity: number;
   amount: number;
   seller_net: number;
-  platform_fee: number;
-  processing_fee: number;
+  service_fee: number;
   currency_code: string;
   transaction_status: string;
   money_status: string;
