@@ -20,6 +20,7 @@ import { SellerNav } from "@/components/seller/SellerNav";
 import { SellerTrustBanner } from "@/components/seller/SellerTrustBanner";
 import { Footer } from "@/components/landing/Footer";
 import { MoneyStatusBadge } from "@/components/transactions/MoneyStatusBadge";
+import { ExportPreviewDialog } from "@/components/seller/ExportPreviewDialog";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import {
   getSellerTransactions,
