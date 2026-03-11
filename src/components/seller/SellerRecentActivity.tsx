@@ -43,6 +43,7 @@ function formatCurrency(amount: number, currency: string) {
 
 export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
   if (activity.length === 0) {
     return (
