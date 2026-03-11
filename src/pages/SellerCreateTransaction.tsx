@@ -105,6 +105,7 @@ const SellerCreateTransaction = () => {
   const [showDraftBanner, setShowDraftBanner] = useState(true);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+  const [publishedCode, setPublishedCode] = useState<string>("");
 
   // Upload state — with local preview URLs
   const [photos, setPhotos] = useState<(UploadedFile & { preview_url: string })[]>([]);
