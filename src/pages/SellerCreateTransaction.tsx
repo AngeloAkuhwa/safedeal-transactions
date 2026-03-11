@@ -561,7 +561,7 @@ const SellerCreateTransaction = () => {
                         {photos.map((p, i) => (
                           <div key={p.file_id} className="relative group w-24 h-24 rounded-xl overflow-hidden border border-border">
                             <img
-                              src={getCloudinaryThumbnail(p.secure_url, 200, 200)}
+                              src={p.preview_url}
                               alt={p.original_name}
                               className="w-full h-full object-cover"
                             />
