@@ -20,14 +20,26 @@ const navLinks = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [dashboardPath, setDashboardPath] = useState("/role-selection");
   const navigate = useNavigate();
 
   useEffect(() => {
     const { data: { subscription } } = onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
     });
-    getSession().then(({ data: { session } }) => {
+    getSession().then(async ({ data: { session } }) => {
       setUser(session?.user ?? null);
+      if (session) {
+        const { data: roles } = await getUserRoles(session.user.id);
+        const roleNames = (roles ?? []).map((r) => r.role);
+        if (roleNames.includes("buyer")) {
+          setDashboardPath("/dashboard");
+        } else if (roleNames.includes("seller")) {
+          setDashboardPath("/seller");
+        } else {
+          setDashboardPath("/role-selection");
+        }
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
