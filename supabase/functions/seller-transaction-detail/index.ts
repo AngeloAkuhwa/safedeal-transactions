@@ -154,22 +154,28 @@ Deno.serve(async (req) => {
         }
       : { name: "Unknown Buyer", email: "", phone: "", avatar_url: null, is_verified: false };
 
-    // Compute pricing from item if available
     let computedPricing = null;
-    if (item) {
-      // Try to get pricing from escrow or compute from item
-      const itemAmount = escrow?.held_amount ?? 0;
-      if (itemAmount > 0) {
-        const pricingResult = computePricing(itemAmount, "NGN");
-        computedPricing = {
-          item_amount: pricingResult.itemAmount,
-          platform_fee_amount: pricingResult.serviceFee,
-          payment_processing_fee_amount: pricingResult.paymentProcessingFee,
-          seller_net_amount: pricingResult.sellerNet,
-          buyer_total_amount: pricingResult.buyerTotal,
-          currency_code: "NGN",
-        };
-      }
+    if (pricingRow) {
+      computedPricing = {
+        item_amount: pricingRow.item_amount,
+        platform_fee_amount: pricingRow.platform_fee_amount,
+        payment_processing_fee_amount: pricingRow.processing_fee_amount ?? 0,
+        seller_net_amount: pricingRow.seller_net_amount,
+        buyer_total_amount: pricingRow.buyer_total_amount,
+        service_fee_rate: pricingRow.service_fee_rate ?? 0,
+        currency_code: pricingRow.currency_code ?? "NGN",
+      };
+    } else if (escrow && escrow.held_amount > 0) {
+      const pricingResult = computePricing(escrow.held_amount, "NGN");
+      computedPricing = {
+        item_amount: pricingResult.itemAmount,
+        platform_fee_amount: pricingResult.serviceFee,
+        payment_processing_fee_amount: pricingResult.paymentProcessingFee,
+        seller_net_amount: pricingResult.sellerNet,
+        buyer_total_amount: pricingResult.buyerTotal,
+        service_fee_rate: 0,
+        currency_code: "NGN",
+      };
     }
 
     // Build timeline
