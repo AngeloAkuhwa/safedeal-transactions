@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.seller-dashboard]
 verify_jwt = false
+
+[functions.seller-transactions]
+verify_jwt = false
