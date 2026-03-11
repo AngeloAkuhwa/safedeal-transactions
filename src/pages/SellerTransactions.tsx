@@ -234,7 +234,11 @@ const SellerTransactions = () => {
                     const initials = tx.buyer_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
                     return (
-                      <TableRow key={tx.transaction_id} className="hover:bg-muted/30">
+                      <TableRow
+                        key={tx.transaction_id}
+                        className="hover:bg-muted/30 cursor-pointer"
+                        onClick={() => navigate(`/seller/transactions/${tx.transaction_id}`)}
+                      >
                         <TableCell className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <Shield className="h-4 w-4 text-primary shrink-0" />
@@ -275,11 +279,16 @@ const SellerTransactions = () => {
                             variant={action.variant === "default" ? "default" : "outline"}
                             size="sm"
                             className="text-xs"
-                            onClick={() => navigate(
-                              tx.transaction_status === "awaiting_buyer"
-                                ? `/seller/transactions/${tx.transaction_id}/share`
-                                : `/seller/transactions/${tx.transaction_id}`
-                            )}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (tx.transaction_status === "awaiting_buyer") {
+                                navigate(`/seller/transactions/${tx.transaction_id}/share`);
+                              } else if (tx.transaction_status === "seller_preparing_delivery") {
+                                navigate(`/seller/transactions/${tx.transaction_id}/delivery`);
+                              } else {
+                                navigate(`/seller/transactions/${tx.transaction_id}`);
+                              }
+                            }}
                           >
                             {action.label}
                           </Button>
