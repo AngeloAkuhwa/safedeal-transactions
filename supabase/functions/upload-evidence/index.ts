@@ -173,10 +173,11 @@ async function registerFile(
     return jsonResponse({ error: `resource_type '${resource_type}' does not match format '${format}'` }, 400);
   }
 
-  // Validate size (10MB)
-  const maxSize = 10 * 1024 * 1024;
+  // Validate size (50MB for video, 10MB for others)
+  const isVideo = resource_type === "video";
+  const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
   if (bytes > maxSize) {
-    return jsonResponse({ error: "File exceeds 10MB limit" }, 400);
+    return jsonResponse({ error: `File exceeds ${isVideo ? "50MB" : "10MB"} limit` }, 400);
   }
 
   // Map Cloudinary resource_type to our enum
