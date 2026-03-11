@@ -56,9 +56,10 @@ const deliveryLabels: Record<string, string> = {
   courier: "Courier",
 };
 
-function fmt(amount: number, currency: string) {
+function fmt(amount: number | undefined | null, currency: string) {
+  const val = amount ?? 0;
   const sym = currency === "NGN" ? "₦" : currency === "USD" ? "$" : `${currency} `;
-  return `${sym}${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${sym}${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 const SellerTransactionDetail = () => {
