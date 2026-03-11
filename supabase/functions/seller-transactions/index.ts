@@ -112,8 +112,11 @@ Deno.serve(async (req) => {
     let pricingMap = new Map<string, { amount: number; currency: string; sellerNet: number }>();
     let buyerMap = new Map<string, { name: string; email: string; avatar: string | null }>();
 
+    // Find transactions with null buyer_id to fetch from participants
+    const nullBuyerTxIds = filteredRows.filter((t) => !t.buyer_id).map((t) => t.id);
+
     if (txIds.length > 0) {
-      const [itemsRes, pricingRes, buyersRes] = await Promise.all([
+      const [itemsRes, pricingRes, buyersRes, participantsRes] = await Promise.all([
         adminClient
           .from("transaction_items")
           .select("transaction_id, title, category, quantity")
@@ -127,6 +130,13 @@ Deno.serve(async (req) => {
               .from("profiles")
               .select("id, full_name, email, avatar_url")
               .in("id", buyerIds)
+          : Promise.resolve({ data: [] }),
+        nullBuyerTxIds.length > 0
+          ? adminClient
+              .from("transaction_participants")
+              .select("transaction_id, display_name, email, phone")
+              .in("transaction_id", nullBuyerTxIds)
+              .eq("role", "buyer")
           : Promise.resolve({ data: [] }),
       ]);
 
