@@ -252,8 +252,9 @@ const SellerCreateTransaction = () => {
     try {
       setUploadingVideo(true);
       setVideoProgress(0);
+      const previewUrl = URL.createObjectURL(file);
       const uploaded = await uploadProductFile(file, (pct) => setVideoProgress(pct));
-      setVideo(uploaded);
+      setVideo({ ...uploaded, preview_url: previewUrl });
       toast({ title: "Video uploaded", description: file.name });
     } catch (err: any) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
