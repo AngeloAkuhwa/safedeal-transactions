@@ -6,6 +6,7 @@ import {
   Upload, CheckCircle, AlertTriangle, Clock, FileText, User, Package,
   CreditCard, Truck, StickyNote, X, ImageIcon, Video, Link,
 } from "lucide-react";
+import { TransactionSuccess } from "@/components/seller/TransactionSuccess";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
