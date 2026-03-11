@@ -2917,6 +2917,7 @@ export type Database = {
         | "dispute_evidence"
         | "response_evidence"
         | "system_attachment"
+        | "product_evidence"
       file_provider: "cloudinary" | "manual"
       file_resource_type: "image" | "video" | "raw" | "document"
       file_retention_category:
@@ -2926,6 +2927,7 @@ export type Database = {
         | "dispute_evidence"
         | "response_evidence"
         | "system_attachment"
+        | "product_evidence"
       item_condition:
         | "brand_new"
         | "like_new"
@@ -3235,6 +3237,7 @@ export const Constants = {
         "dispute_evidence",
         "response_evidence",
         "system_attachment",
+        "product_evidence",
       ],
       file_provider: ["cloudinary", "manual"],
       file_resource_type: ["image", "video", "raw", "document"],
@@ -3245,6 +3248,7 @@ export const Constants = {
         "dispute_evidence",
         "response_evidence",
         "system_attachment",
+        "product_evidence",
       ],
       item_condition: [
         "brand_new",

@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case "sign_upload":
-        return await signUpload(admin, userId);
+        return await signUpload(admin, userId, body);
       case "register_file":
         return await registerFile(admin, userId, body);
       default:
@@ -70,6 +70,7 @@ Deno.serve(async (req) => {
 async function signUpload(
   admin: ReturnType<typeof createClient>,
   userId: string,
+  body: { context?: string },
 ) {
   // Rate limit: max 50 uploads per hour
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -92,8 +93,8 @@ async function signUpload(
   const apiKey = Deno.env.get("CLOUDINARY_API_KEY")!.trim();
   const apiSecret = Deno.env.get("CLOUDINARY_API_SECRET")!.trim();
 
-  const timestamp = Math.floor(Date.now() / 1000);
-  const folder = `SafeDeal/disputes/${userId}`;
+  const context = body.context === "product_evidence" ? "products" : "disputes";
+  const folder = `SafeDeal/${context}/${userId}`;
 
   const params: Record<string, string> = {
     folder,
@@ -156,15 +157,15 @@ async function registerFile(
   }
 
   // Validate format
-  const allowedFormats = ["jpg", "jpeg", "png", "mp4", "pdf"];
+  const allowedFormats = ["jpg", "jpeg", "png", "webp", "mp4", "mov", "webm", "pdf"];
   if (!allowedFormats.includes(format.toLowerCase())) {
     return jsonResponse({ error: `File format '${format}' is not allowed. Allowed: ${allowedFormats.join(", ")}` }, 400);
   }
 
   // Cross-validate resource_type vs format
   const validCombinations: Record<string, string[]> = {
-    image: ["jpg", "jpeg", "png", "pdf"],
-    video: ["mp4"],
+    image: ["jpg", "jpeg", "png", "webp", "pdf"],
+    video: ["mp4", "mov", "webm"],
     raw: ["pdf"],
   };
   const allowedForResource = validCombinations[resource_type];
@@ -172,10 +173,11 @@ async function registerFile(
     return jsonResponse({ error: `resource_type '${resource_type}' does not match format '${format}'` }, 400);
   }
 
-  // Validate size (10MB)
-  const maxSize = 10 * 1024 * 1024;
+  // Validate size (50MB for video, 10MB for others)
+  const isVideo = resource_type === "video";
+  const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
   if (bytes > maxSize) {
-    return jsonResponse({ error: "File exceeds 10MB limit" }, 400);
+    return jsonResponse({ error: `File exceeds ${isVideo ? "50MB" : "10MB"} limit` }, 400);
   }
 
   // Map Cloudinary resource_type to our enum
@@ -194,7 +196,10 @@ async function registerFile(
     jpg: "image/jpeg",
     jpeg: "image/jpeg",
     png: "image/png",
+    webp: "image/webp",
     mp4: "video/mp4",
+    mov: "video/quicktime",
+    webm: "video/webm",
     pdf: "application/pdf",
   };
   const mimeType = mimeMap[format.toLowerCase()] || "application/octet-stream";
@@ -216,9 +221,9 @@ async function registerFile(
       mime_type: mimeType,
       file_size_bytes: bytes,
       uploaded_by_user_id: userId,
-      context_type: "dispute_evidence",
+      context_type: body.context_type === "product_evidence" ? "product_evidence" : "dispute_evidence",
       is_temporary: true,
-      retention_category: "dispute_evidence",
+      retention_category: body.context_type === "product_evidence" ? "product_evidence" : "dispute_evidence",
       file_hash: file_hash,
       hash_algorithm: hash_algorithm,
       metadata_json: { public_id },

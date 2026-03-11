@@ -112,8 +112,11 @@ Deno.serve(async (req) => {
     let pricingMap = new Map<string, { amount: number; currency: string; sellerNet: number }>();
     let buyerMap = new Map<string, { name: string; email: string; avatar: string | null }>();
 
+    // Find transactions with null buyer_id to fetch from participants
+    const nullBuyerTxIds = filteredRows.filter((t) => !t.buyer_id).map((t) => t.id);
+
     if (txIds.length > 0) {
-      const [itemsRes, pricingRes, buyersRes] = await Promise.all([
+      const [itemsRes, pricingRes, buyersRes, participantsRes] = await Promise.all([
         adminClient
           .from("transaction_items")
           .select("transaction_id, title, category, quantity")
@@ -127,6 +130,13 @@ Deno.serve(async (req) => {
               .from("profiles")
               .select("id, full_name, email, avatar_url")
               .in("id", buyerIds)
+          : Promise.resolve({ data: [] }),
+        nullBuyerTxIds.length > 0
+          ? adminClient
+              .from("transaction_participants")
+              .select("transaction_id, display_name, email, phone")
+              .in("transaction_id", nullBuyerTxIds)
+              .eq("role", "buyer")
           : Promise.resolve({ data: [] }),
       ]);
 
@@ -157,6 +167,18 @@ Deno.serve(async (req) => {
           });
         }
       }
+      // Fallback: use transaction_participants for transactions without a registered buyer
+      if (participantsRes.data) {
+        for (const p of participantsRes.data as Array<Record<string, unknown>>) {
+          const txId = p.transaction_id as string;
+          // Store in buyerMap keyed by transaction_id prefixed to avoid collision
+          buyerMap.set(`participant:${txId}`, {
+            name: (p.display_name as string) ?? "Unknown",
+            email: (p.email as string) ?? (p.phone as string) ?? "",
+            avatar: null,
+          });
+        }
+      }
     }
 
     // Apply search filter across enriched data
@@ -181,7 +203,9 @@ Deno.serve(async (req) => {
 
     // Build response rows
     const transactions = paginatedRows.map((tx) => {
-      const buyer = buyerMap.get(tx.buyer_id);
+      const buyer = tx.buyer_id
+        ? buyerMap.get(tx.buyer_id)
+        : buyerMap.get(`participant:${tx.id}`);
       const item = itemMap.get(tx.id);
       const pricing = pricingMap.get(tx.id);
       return {

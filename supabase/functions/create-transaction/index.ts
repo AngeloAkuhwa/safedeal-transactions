@@ -142,6 +142,7 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
 
   // Upsert related tables in parallel
   const pricing = computePricing(price, currencyCode);
+  const fileIds = (body.file_ids as string[]) ?? [];
 
   await Promise.all([
     // Buyer participant
@@ -202,6 +203,15 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
     upsertByTransaction(adminClient, "transaction_notes", transactionId, {
       seller_notes: sellerNotes,
     }),
+
+    // Link uploaded files to this transaction
+    ...(fileIds.length > 0
+      ? [adminClient
+          .from("files")
+          .update({ is_temporary: false })
+          .in("id", fileIds)
+          .eq("uploaded_by_user_id", userId)]
+      : []),
   ]);
 
   return jsonResponse({ transaction_id: transactionId });

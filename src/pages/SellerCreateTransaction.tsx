@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
-  Loader2, ArrowLeft, Save, ArrowRight, Send, Shield, Lock, Info,
+  Loader2, ArrowLeft, Save, ArrowRight, Send, Shield, Lock,
   Upload, CheckCircle, AlertTriangle, Clock, FileText, User, Package,
-  CreditCard, Truck, StickyNote, X,
+  CreditCard, Truck, StickyNote, X, ImageIcon, Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,11 +27,15 @@ import {
   getSellerDrafts,
   saveDraft,
   publishTransaction,
+  uploadProductFile,
+  checkImageResolution,
   type CreateTransactionData,
   type DraftTransaction,
+  type UploadedFile,
 } from "@/services/create-transaction.service";
 import { useToast } from "@/hooks/use-toast";
-import { computePricing, type PricingResult } from "@/lib/pricing";
+import { computePricing } from "@/lib/pricing";
+import { getCloudinaryThumbnail } from "@/lib/cloudinary";
 
 const STEP_LABELS = ["Buyer Info", "Item Details", "Payment", "Delivery", "Notes"];
 const STEP_ICONS = [User, Package, CreditCard, Truck, StickyNote];
@@ -67,6 +71,12 @@ const CURRENCY_OPTIONS = [
   { value: "GBP", label: "GBP (£)", symbol: "£" },
 ];
 
+const MAX_PHOTOS = 3;
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+const ACCEPTED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const ACCEPTED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
+
 const defaultForm: CreateTransactionData = {
   buyer_name: "",
   buyer_contact: "",
@@ -85,6 +95,8 @@ const defaultForm: CreateTransactionData = {
 const SellerCreateTransaction = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [form, setForm] = useState<CreateTransactionData>({ ...defaultForm });
@@ -93,7 +105,16 @@ const SellerCreateTransaction = () => {
   const [showDraftBanner, setShowDraftBanner] = useState(true);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
-  const isDirty = JSON.stringify(form) !== JSON.stringify(defaultForm);
+
+  // Upload state
+  const [photos, setPhotos] = useState<UploadedFile[]>([]);
+  const [video, setVideo] = useState<UploadedFile | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [photoProgress, setPhotoProgress] = useState(0);
+  const [videoProgress, setVideoProgress] = useState(0);
+
+  const isDirty = JSON.stringify(form) !== JSON.stringify(defaultForm) || photos.length > 0 || video !== null;
 
   const { data: navData } = useQuery({
     queryKey: ["seller-dashboard"],
@@ -101,7 +122,7 @@ const SellerCreateTransaction = () => {
     staleTime: 60_000,
   });
 
-  const { data: draftsData, isLoading: draftsLoading } = useQuery({
+  const { data: draftsData } = useQuery({
     queryKey: ["seller-drafts"],
     queryFn: getSellerDrafts,
     staleTime: 30_000,
@@ -111,7 +132,11 @@ const SellerCreateTransaction = () => {
 
   const saveDraftMutation = useMutation({
     mutationFn: (data: CreateTransactionData) =>
-      saveDraft({ ...data, transaction_id: transactionId ?? undefined }),
+      saveDraft({
+        ...data,
+        transaction_id: transactionId ?? undefined,
+        file_ids: [...photos.map((p) => p.file_id), ...(video ? [video.file_id] : [])],
+      }),
     onSuccess: (result) => {
       setTransactionId(result.transaction_id);
       toast({ title: "Draft saved", description: "Your transaction draft has been saved." });
@@ -157,6 +182,87 @@ const SellerCreateTransaction = () => {
     setCurrentStep(1);
   };
 
+  // ── Photo upload handler ──
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (photoInputRef.current) photoInputRef.current.value = "";
+    if (!files.length) return;
+
+    const remaining = MAX_PHOTOS - photos.length;
+    if (remaining <= 0) {
+      toast({ title: "Limit reached", description: `Maximum ${MAX_PHOTOS} photos allowed.`, variant: "destructive" });
+      return;
+    }
+
+    const toUpload = files.slice(0, remaining);
+
+    for (const file of toUpload) {
+      if (!ACCEPTED_PHOTO_TYPES.includes(file.type)) {
+        toast({ title: "Invalid format", description: `${file.name} is not a valid image (JPEG, PNG, WEBP only).`, variant: "destructive" });
+        continue;
+      }
+      if (file.size > MAX_PHOTO_SIZE) {
+        toast({ title: "File too large", description: `${file.name} exceeds 5MB limit.`, variant: "destructive" });
+        continue;
+      }
+      // Resolution check
+      const goodRes = await checkImageResolution(file);
+      if (!goodRes) {
+        toast({ title: "Low quality", description: `${file.name} must be at least 400×400 pixels.`, variant: "destructive" });
+        continue;
+      }
+
+      try {
+        setUploadingPhoto(true);
+        setPhotoProgress(0);
+        const uploaded = await uploadProductFile(file, (pct) => setPhotoProgress(pct));
+        setPhotos((prev) => [...prev, uploaded]);
+        toast({ title: "Photo uploaded", description: file.name });
+      } catch (err: any) {
+        toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+      } finally {
+        setUploadingPhoto(false);
+        setPhotoProgress(0);
+      }
+    }
+  };
+
+  // ── Video upload handler ──
+  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (videoInputRef.current) videoInputRef.current.value = "";
+    if (!file) return;
+
+    if (video) {
+      toast({ title: "Limit reached", description: "Only 1 video allowed. Remove existing video first.", variant: "destructive" });
+      return;
+    }
+    if (!ACCEPTED_VIDEO_TYPES.includes(file.type)) {
+      toast({ title: "Invalid format", description: "Only MP4, MOV, or WEBM videos are accepted.", variant: "destructive" });
+      return;
+    }
+    if (file.size > MAX_VIDEO_SIZE) {
+      toast({ title: "File too large", description: "Video must be under 50MB.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      setUploadingVideo(true);
+      setVideoProgress(0);
+      const uploaded = await uploadProductFile(file, (pct) => setVideoProgress(pct));
+      setVideo(uploaded);
+      toast({ title: "Video uploaded", description: file.name });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingVideo(false);
+      setVideoProgress(0);
+    }
+  };
+
+  const removePhoto = (idx: number) => setPhotos((prev) => prev.filter((_, i) => i !== idx));
+  const removeVideo = () => setVideo(null);
+
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
@@ -166,6 +272,10 @@ const SellerCreateTransaction = () => {
       case 2:
         if (!form.item_title.trim()) { setValidationError("Item title is required."); return false; }
         if (!form.item_description.trim()) { setValidationError("Item description is required."); return false; }
+        if (photos.length === 0 && !video) {
+          setValidationError("Please upload at least one product photo or video as evidence.");
+          return false;
+        }
         return true;
       case 3:
         if (!form.price || form.price <= 0) { setValidationError("Please enter a valid price."); return false; }
@@ -199,21 +309,25 @@ const SellerCreateTransaction = () => {
   };
 
   const handlePublish = async () => {
-    // First save, then publish
     if (!transactionId) {
-      const result = await saveDraft({ ...form });
+      const result = await saveDraft({
+        ...form,
+        file_ids: [...photos.map((p) => p.file_id), ...(video ? [video.file_id] : [])],
+      });
       setTransactionId(result.transaction_id);
       publishMutation.mutate(result.transaction_id);
     } else {
-      await saveDraft({ ...form, transaction_id: transactionId });
+      await saveDraft({
+        ...form,
+        transaction_id: transactionId,
+        file_ids: [...photos.map((p) => p.file_id), ...(video ? [video.file_id] : [])],
+      });
       publishMutation.mutate(transactionId);
     }
   };
 
-  // Pricing calculation
   const pricing = form.price > 0 ? computePricing(form.price, form.currency_code) : null;
   const currSymbol = CURRENCY_OPTIONS.find((c) => c.value === form.currency_code)?.symbol ?? "₦";
-
   const progressPct = (currentStep / 5) * 100;
 
   if (publishedUrl) {
@@ -360,7 +474,7 @@ const SellerCreateTransaction = () => {
                   <div className="space-y-1.5">
                     <Label htmlFor="buyer-contact">Buyer Email or Phone <span className="text-destructive">*</span></Label>
                     <Input id="buyer-contact" placeholder="email@example.com or +1234567890" value={form.buyer_contact} onChange={(e) => updateField("buyer_contact", e.target.value)} />
-                    <p className="text-xs text-muted-foreground">The secure transaction link will be sent to this contact so they can review and pay safely</p>
+                    <p className="text-xs text-muted-foreground">The secure transaction link will be sent to this contact</p>
                   </div>
                 </CardContent>
               </Card>
@@ -416,21 +530,107 @@ const SellerCreateTransaction = () => {
                       </Select>
                     </div>
                   </div>
-                  {/* Photo upload placeholder */}
-                  <div className="space-y-1.5">
-                    <Label>Product Photos <span className="text-destructive">*</span></Label>
-                    <div className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/40 transition-colors">
-                      <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm font-medium text-muted-foreground">Click to upload or drag and drop</p>
-                      <p className="text-xs text-muted-foreground mt-1">PNG, JPG or WEBP (max. 5MB each)</p>
-                    </div>
+
+                  {/* Photo upload */}
+                  <div className="space-y-2">
+                    <Label>Product Photos <span className="text-destructive">*</span> <span className="text-muted-foreground font-normal">({photos.length}/{MAX_PHOTOS})</span></Label>
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      className="hidden"
+                      onChange={handlePhotoSelect}
+                    />
+                    {/* Uploaded previews */}
+                    {photos.length > 0 && (
+                      <div className="flex gap-3 flex-wrap">
+                        {photos.map((p, i) => (
+                          <div key={p.file_id} className="relative group w-24 h-24 rounded-xl overflow-hidden border border-border">
+                            <img
+                              src={getCloudinaryThumbnail(p.secure_url, 200, 200)}
+                              alt={p.original_name}
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              onClick={() => removePhoto(i)}
+                              className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] px-1 py-0.5 truncate">
+                              {p.original_name}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Upload progress */}
+                    {uploadingPhoto && (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Uploading photo… {photoProgress}%
+                        </div>
+                        <Progress value={photoProgress} className="h-1.5" />
+                      </div>
+                    )}
+                    {/* Upload zone */}
+                    {photos.length < MAX_PHOTOS && !uploadingPhoto && (
+                      <button
+                        type="button"
+                        onClick={() => photoInputRef.current?.click()}
+                        className="w-full border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/40 transition-colors"
+                      >
+                        <ImageIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm font-medium text-muted-foreground">Click to upload photos</p>
+                        <p className="text-xs text-muted-foreground mt-1">JPEG, PNG or WEBP • Max 5MB each • Min 400×400px</p>
+                      </button>
+                    )}
                   </div>
-                  <div className="space-y-1.5">
-                    <Label>Product Video (Optional)</Label>
-                    <div className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/40 transition-colors">
-                      <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
-                      <p className="text-xs text-muted-foreground">Click to upload product video — MP4, MOV or WEBM (max. 50MB)</p>
-                    </div>
+
+                  {/* Video upload */}
+                  <div className="space-y-2">
+                    <Label>Product Video <span className="text-destructive">*</span> <span className="text-muted-foreground font-normal">(1 max)</span></Label>
+                    <input
+                      ref={videoInputRef}
+                      type="file"
+                      accept="video/mp4,video/quicktime,video/webm"
+                      className="hidden"
+                      onChange={handleVideoSelect}
+                    />
+                    {video && (
+                      <div className="flex items-center gap-3 bg-muted rounded-xl p-3 border border-border">
+                        <Video className="h-8 w-8 text-primary shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{video.original_name}</p>
+                          <p className="text-xs text-muted-foreground">{video.fingerprint}</p>
+                        </div>
+                        <button onClick={removeVideo} className="p-1 hover:bg-destructive/10 rounded-full">
+                          <X className="h-4 w-4 text-destructive" />
+                        </button>
+                      </div>
+                    )}
+                    {uploadingVideo && (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Uploading video… {videoProgress}%
+                        </div>
+                        <Progress value={videoProgress} className="h-1.5" />
+                      </div>
+                    )}
+                    {!video && !uploadingVideo && (
+                      <button
+                        type="button"
+                        onClick={() => videoInputRef.current?.click()}
+                        className="w-full border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/40 transition-colors"
+                      >
+                        <Video className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
+                        <p className="text-xs text-muted-foreground">Click to upload product video — MP4, MOV or WEBM (max 50MB)</p>
+                      </button>
+                    )}
+                    <p className="text-xs text-muted-foreground">Upload at least one photo or video to proceed.</p>
                   </div>
                 </CardContent>
               </Card>
@@ -481,8 +681,6 @@ const SellerCreateTransaction = () => {
                       </Select>
                     </div>
                   </div>
-
-                  {/* Fee breakdown */}
                   {pricing && (
                     <div className="bg-muted/50 rounded-xl p-4 space-y-2 border">
                       <div className="flex justify-between text-sm">
@@ -502,8 +700,6 @@ const SellerCreateTransaction = () => {
                   )}
                 </CardContent>
               </Card>
-
-              {/* Escrow info */}
               <Card className="rounded-2xl shadow-md border-primary/20 bg-primary/5">
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-center gap-2">
@@ -587,7 +783,7 @@ const SellerCreateTransaction = () => {
                     <h3 className="font-semibold text-foreground text-sm">Auto-Release Protection</h3>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    If the buyer doesn't respond within the verification window after delivery, funds will be automatically released to you. This protects you from indefinite holds.
+                    If the buyer doesn't respond within the verification window after delivery, funds will be automatically released to you.
                   </p>
                 </CardContent>
               </Card>
@@ -632,6 +828,7 @@ const SellerCreateTransaction = () => {
                     <div className="flex justify-between"><span className="text-muted-foreground">Buyer:</span><span className="font-medium text-foreground truncate ml-2">{form.buyer_name || "—"}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Item:</span><span className="font-medium text-foreground truncate ml-2">{form.item_title || "—"}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Amount:</span><span className="font-medium text-foreground">{form.price > 0 ? `${currSymbol}${form.price.toLocaleString()}` : "—"}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Media:</span><span className="font-medium text-foreground">{photos.length} photo{photos.length !== 1 ? "s" : ""}{video ? ", 1 video" : ""}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Delivery:</span><span className="font-medium text-foreground">{DELIVERY_OPTIONS.find((d) => d.value === form.delivery_method)?.label ?? "—"}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">You'll Receive:</span><span className="font-bold text-success">{pricing ? `${currSymbol}${(pricing.item_amount - pricing.platform_fee_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "—"}</span></div>
                   </div>
@@ -659,19 +856,19 @@ const SellerCreateTransaction = () => {
             {currentStep === 1 ? "Cancel" : "Back"}
           </Button>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={handleSaveDraft} disabled={saveDraftMutation.isPending} className="gap-2">
+            <Button variant="outline" onClick={handleSaveDraft} disabled={saveDraftMutation.isPending || uploadingPhoto || uploadingVideo} className="gap-2">
               {saveDraftMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Save Draft
             </Button>
             {currentStep < 5 ? (
-              <Button onClick={handleNext} className="gap-2">
+              <Button onClick={handleNext} disabled={uploadingPhoto || uploadingVideo} className="gap-2">
                 Next Step
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
               <Button
                 onClick={handlePublish}
-                disabled={publishMutation.isPending || saveDraftMutation.isPending}
+                disabled={publishMutation.isPending || saveDraftMutation.isPending || uploadingPhoto || uploadingVideo}
                 className="gap-2 bg-success hover:bg-success/90 text-success-foreground"
               >
                 {publishMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
