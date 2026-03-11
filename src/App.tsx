@@ -23,6 +23,7 @@ import BuyerTransactionReview from "./pages/BuyerTransactionReview";
 import BuyerPaymentSummary from "./pages/BuyerPaymentSummary";
 import TransactionCancelled from "./pages/TransactionCancelled";
 import SellerDashboard from "./pages/SellerDashboard";
+import SellerTransactions from "./pages/SellerTransactions";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
