@@ -146,7 +146,7 @@ const SellerTransactions = () => {
                 Monitor and manage all your protected transactions
               </p>
             </div>
-            <Button className="gap-2">
+            <Button className="gap-2" onClick={() => navigate("/seller/transactions/new")}>
               <Plus className="h-4 w-4" />
               Create New Transaction
             </Button>
