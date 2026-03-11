@@ -72,6 +72,7 @@ const SellerTransactions = () => {
   const [statusFilter, setStatusFilter] = useState(searchParams.get("filter") ?? "all");
   const [dateFilter, setDateFilter] = useState(searchParams.get("date") ?? "all");
   const [page, setPage] = useState(1);
+  const [exportOpen, setExportOpen] = useState(false);
 
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState(search);
