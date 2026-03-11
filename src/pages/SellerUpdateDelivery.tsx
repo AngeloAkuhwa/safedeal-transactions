@@ -139,6 +139,31 @@ export default function SellerUpdateDelivery() {
             </div>
           </div>
 
+          {/* Fee Breakdown — shown when seller net differs from item amount */}
+          {pricing && pricing.seller_net_amount > 0 && pricing.seller_net_amount !== pricing.item_amount && (
+            <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fee Breakdown</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">Item Amount</p>
+                  <p className="font-semibold">{fmt(pricing.item_amount, currency)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Processing Fee</p>
+                  <p className="font-semibold text-destructive">−{fmt(pricing.payment_processing_fee_amount, currency)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Platform Fee</p>
+                  <p className="font-semibold text-destructive">−{fmt(pricing.platform_fee_amount, currency)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Your Net Payout</p>
+                  <p className="font-bold text-primary">{fmt(pricing.seller_net_amount, currency)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Money Status Banner */}
           <div className="bg-accent/50 border border-border rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">

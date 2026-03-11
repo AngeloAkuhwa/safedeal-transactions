@@ -100,7 +100,7 @@ export function computePricing(
   const targetServiceFee = Math.round(itemAmount * tierRate);
 
   // Step 4: Split — platform gets remainder after Paystack
-  const platformFee = Math.max(targetServiceFee - paystackFee, 0);
+  const platformFee = Math.min(Math.max(targetServiceFee - paystackFee, 0), 2000);
 
   // Step 5: Final service fee = Paystack + platform
   const serviceFeeAmount = paystackFee + platformFee;

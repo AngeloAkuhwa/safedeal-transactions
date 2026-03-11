@@ -265,8 +265,15 @@ const SellerTransactions = () => {
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell className="px-6 py-4 text-sm font-bold">
-                          {formatCurrency(tx.amount, tx.currency_code)}
+                        <TableCell className="px-6 py-4">
+                          <div>
+                            <p className="text-sm font-bold">{formatCurrency(tx.amount, tx.currency_code)}</p>
+                            {tx.seller_net > 0 && tx.seller_net !== tx.amount && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Net: {formatCurrency(tx.seller_net, tx.currency_code)}
+                              </p>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="px-6 py-4">
                           <MoneyStatusBadge status={tx.money_status} />

@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
     const buyerIds = [...new Set(filteredRows.map((t) => t.buyer_id).filter(Boolean))];
 
     let itemMap = new Map<string, { title: string; category: string; quantity: number }>();
-    let pricingMap = new Map<string, { amount: number; currency: string; sellerNet: number }>();
+    let pricingMap = new Map<string, { amount: number; currency: string; sellerNet: number; platformFee: number; processingFee: number }>();
     let buyerMap = new Map<string, { name: string; email: string; avatar: string | null }>();
 
     // Find transactions with null buyer_id to fetch from participants
@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
           .in("transaction_id", txIds),
         adminClient
           .from("transaction_pricing")
-          .select("transaction_id, buyer_total_amount, seller_net_amount, currency_code")
+          .select("transaction_id, item_amount, buyer_total_amount, seller_net_amount, platform_fee_amount, payment_processing_fee_amount, currency_code")
           .in("transaction_id", txIds),
         buyerIds.length > 0
           ? adminClient
@@ -152,9 +152,11 @@ Deno.serve(async (req) => {
       if (pricingRes.data) {
         for (const p of pricingRes.data) {
           pricingMap.set(p.transaction_id, {
-            amount: p.buyer_total_amount ?? 0,
+            amount: p.item_amount ?? 0,
             currency: p.currency_code ?? "NGN",
             sellerNet: p.seller_net_amount ?? 0,
+            platformFee: p.platform_fee_amount ?? 0,
+            processingFee: p.payment_processing_fee_amount ?? 0,
           });
         }
       }
@@ -219,6 +221,8 @@ Deno.serve(async (req) => {
         item_quantity: item?.quantity ?? 1,
         amount: pricing?.amount ?? 0,
         seller_net: pricing?.sellerNet ?? 0,
+        platform_fee: pricing?.platformFee ?? 0,
+        processing_fee: pricing?.processingFee ?? 0,
         currency_code: pricing?.currency ?? "NGN",
         transaction_status: tx.status,
         money_status: tx.money_status,
