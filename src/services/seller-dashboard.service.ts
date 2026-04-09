@@ -63,6 +63,11 @@ export const getSellerDashboard = async (): Promise<SellerDashboardResponse> => 
   }
 
   if (!data || data.error) {
+    if (data?.error === "Invalid session") {
+      await supabase.auth.signOut();
+      window.location.href = "/auth";
+      throw new Error("Session expired. Please sign in again.");
+    }
     throw new Error(data?.error || "Failed to load seller dashboard");
   }
 
