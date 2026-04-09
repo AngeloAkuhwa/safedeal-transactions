@@ -27,12 +27,11 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const token = authHeader.replace("Bearer ", "");
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify JWT via anon client with user's token (avoids session lookup issues)
+    // Verify JWT via anon client with user's token
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? serviceRoleKey;
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
