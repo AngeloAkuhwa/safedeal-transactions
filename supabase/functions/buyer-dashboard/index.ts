@@ -30,19 +30,20 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const token = authHeader.replace("Bearer ", "");
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify JWT via getClaims (local validation, not session-dependent)
-    const anonClient = createClient(supabaseUrl, anonKey, {
+    // Verify JWT via anon client with user's token (avoids session lookup issues)
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? serviceRoleKey;
+    const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+    const { data: userData, error: userError } = await userClient.auth.getUser();
 
-    if (claimsError || !claimsData?.claims?.sub) {
+    if (userError || !userData?.user) {
       return jsonResponse({ error: "Invalid session" }, 401);
     }
 
-    const userId = claimsData.claims.sub as string;
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const userId = userData.user.id;
 
     // 2. Check buyer role
     const { data: hasRole, error: roleError } = await adminClient.rpc(
