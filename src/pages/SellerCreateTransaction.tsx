@@ -353,7 +353,7 @@ const SellerCreateTransaction = () => {
         <TransactionSuccess
           publishedUrl={publishedUrl}
           form={form}
-          pricing={pricing}
+          pricing={pricing ? { service_fee_amount: pricing.service_fee_amount, seller_net_amount: pricing.item_amount - pricing.service_fee_amount, total_amount: pricing.total_amount } : null}
           currSymbol={currSymbol}
           transactionCode={publishedCode}
           deliveryLabel={deliveryLabel}

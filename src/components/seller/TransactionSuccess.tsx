@@ -28,8 +28,8 @@ interface TransactionSuccessProps {
     verification_window_hours: number;
   };
   pricing: {
-    platform_fee_amount: number;
-    paystack_fee_amount: number;
+    service_fee_amount: number;
+    seller_net_amount: number;
     total_amount: number;
   } | null;
   currSymbol: string;
@@ -51,9 +51,9 @@ export function TransactionSuccess({
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const fullUrl = `${window.location.origin}${publishedUrl}`;
-  const sellerNet = pricing ? form.price - pricing.platform_fee_amount : form.price;
+  const sellerNet = pricing ? pricing.seller_net_amount : form.price;
   const feePercent = pricing && form.price > 0
-    ? ((pricing.platform_fee_amount / form.price) * 100).toFixed(1)
+    ? ((pricing.service_fee_amount / form.price) * 100).toFixed(1)
     : "0";
 
   const formattedDate = form.expected_delivery_date
@@ -173,8 +173,13 @@ export function TransactionSuccess({
                 <span className="text-base font-semibold text-foreground">{fmt(form.price)}</span>
               </div>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-muted-foreground">SafeDeal Fee ({feePercent}%)</span>
-                <span className="text-base font-semibold text-foreground">{fmt(pricing?.platform_fee_amount ?? 0)}</span>
+                <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                  SafeDeal Service Fee ({feePercent}%)
+                  {pricing && pricing.service_fee_amount >= 2000 && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">capped</Badge>
+                  )}
+                </span>
+                <span className="text-base font-semibold text-foreground">{fmt(pricing?.service_fee_amount ?? 0)}</span>
               </div>
               <div className="border-t border-border pt-2 mt-2">
                 <div className="flex justify-between items-center">
