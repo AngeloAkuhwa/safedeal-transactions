@@ -84,8 +84,8 @@ const SellerTransactionShare = () => {
 
   const pricingProps = pricing
     ? {
-        platform_fee_amount: pricing.platform_fee_amount,
-        paystack_fee_amount: pricing.payment_processing_fee_amount,
+        service_fee_amount: pricing.service_fee_amount,
+        seller_net_amount: pricing.seller_net_amount,
         total_amount: pricing.buyer_total_amount,
       }
     : null;
