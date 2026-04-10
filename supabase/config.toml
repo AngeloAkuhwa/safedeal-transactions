@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.seller-payouts]
 verify_jwt = false
+
+[functions.update-payout-account]
+verify_jwt = false

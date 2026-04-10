@@ -54,6 +54,7 @@ export interface PayoutAccount {
   bank_name: string | null;
   account_name: string;
   masked_account_number: string | null;
+  verification_status: string;
   typical_processing_time: string;
 }
 
@@ -103,4 +104,32 @@ export const getSellerPayouts = async (
   }
 
   return res.json();
+};
+
+export const updatePayoutAccount = async (data: {
+  bank_code: string;
+  bank_name: string;
+  account_number: string;
+  account_name: string;
+}): Promise<void> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
+
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const url = `https://${projectId}.supabase.co/functions/v1/update-payout-account`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      "Content-Type": "application/json",
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.error || "Failed to update payout account");
+  }
 };
