@@ -1,85 +1,78 @@
 
 
-# Seller Disputes Screen — Implementation Plan
+# Seller Dispute Detail Page — Implementation Plan
 
-## Summary
-Build a full Seller Disputes page at `/seller/disputes` with a new edge function (`seller-disputes`) for data, a service layer, and a component-rich page following the exact SafeDeal design patterns from SellerTransactions, SellerPayouts, and BuyerDisputes.
+## Problem
+All CTAs on the Seller Disputes list page ("View Case", "Respond Now", "View Resolution") route to `/seller/disputes/:disputeId`, which doesn't exist — resulting in a 404.
+
+## Solution
+Build a canonical **Seller Dispute Detail** page at `/seller/disputes/:disputeId` that serves as the single destination for all dispute actions. The page contains tabbed/sectioned content for Overview, Respond, Evidence, Resolution, and Payout Impact — matching the document's recommendation of "one connected case page."
 
 ## Technical Details
 
-### 1. Edge Function: `supabase/functions/seller-disputes/index.ts`
-Mirror the `buyer-disputes` edge function but scoped to seller:
-- Auth + role check for `seller`
-- Scope disputes via `transactions.seller_id = userId`
-- Summary: `open_count`, `awaiting_response_count`, `under_review_count`, `resolved_count`, `blocked_payout_amount`
-- Filters: search, status, reason, date range, action-needed toggle
-- Enrichment: buyer profiles, transaction items, pricing, dispute responses (to determine seller response state), seller_response_due_at from disputes table
-- Blocked payouts: query transactions in disputed state with money_status = `funds_frozen` and join pricing for amounts
-- Return: `summary`, `items[]`, `action_needed[]`, `blocked_payouts[]`, `pagination`
+### 1. Edge Function: `seller-dispute-detail`
+Mirror the existing `dispute-detail` function but scoped to sellers:
+- Auth + seller role check
+- Fetch dispute by ID, verify linked transaction's `seller_id = userId`
+- Return: dispute core, transaction summary, buyer profile, item, pricing, buyer claim (description), seller response (from `dispute_responses`), seller evidence + buyer evidence (from `dispute_evidence` + `files`), agreement snapshot, delivery proof, timeline (from `dispute_status_history`), outcome (from `dispute_outcomes`), payout impact (from `payouts` + `escrow_states`)
 
-### 2. Service: `src/services/seller-disputes.service.ts`
-- Types for `SellerDisputeItem`, `SellerDisputeSummary`, `SellerDisputeBlockedPayout`, `SellerDisputeActionItem`, filter types, response type
-- `getSellerDisputes(filters)` function invoking the edge function
+### 2. Service: `seller-dispute-detail.service.ts`
+- Types for the detail response
+- `getSellerDisputeDetail(disputeId)` function
+- `submitSellerResponse(disputeId, responseText)` function (calls a new `submit-seller-response` edge function or reuses existing patterns)
 
-### 3. Page: `src/pages/SellerDisputes.tsx`
-Layout follows SellerPayouts pattern (nav, header, metrics, info banner, two-column with table + sidebar):
+### 3. Edge Function: `submit-seller-response`
+- Auth + seller role check
+- Verify dispute exists and transaction belongs to seller
+- Insert into `dispute_responses` table
+- Return success
+
+### 4. Page: `SellerDisputeDetail.tsx`
+Layout mirrors `BuyerDisputeDetail` with seller-specific additions:
 
 - **SellerNav** with Disputes active
-- **Hero header** — gradient background matching SellerTransactions style, title "Disputes", subtitle with trust line
-- **Summary Cards** (4-5) — same card pattern as SellerPayouts `SummaryCard`: Open Disputes, Awaiting Your Response (urgent), Under Review, Resolved, Payouts Blocked (amount)
-- **Trust Banner** — same card style as Payouts "How Payouts Work" (`Card` with `border-primary/10 bg-primary/[0.02]`), 3 trust bullets with check icons
-- **Two-column layout** (`lg:grid-cols-3`):
-  - **Left (col-span-2)**: Filter row + Disputes table in a Card
-  - **Right sidebar**: Action Needed panel + Blocked Payouts panel
+- **Breadcrumb**: Seller > Disputes > DSP-XXXXXXXX
+- **Header**: Dispute ref, reason, status badge, money impact badge
+- **Info Banner**: Context-aware messaging based on dispute status
+- **Two-column layout**:
+  - Left: Case summary, Buyer claim, Seller response section (with respond form if not yet responded), Agreement snapshot, Delivery proof, Evidence sections
+  - Right: Timeline, Payout impact card, Support card
+- **Resolution section**: Shown when dispute is resolved (outcome, amounts, decision)
+- **Respond form**: Inline textarea + evidence upload when seller hasn't responded yet (not a separate route)
 
-### 4. Components (all in `src/components/seller-disputes/`)
+### 5. Components (in `src/components/seller-disputes/`)
 
 | Component | Purpose |
 |---|---|
-| `SellerDisputeSummaryCards.tsx` | 5 metric cards |
-| `SellerDisputeTrustBanner.tsx` | "How SafeDeal Handles Disputes" info card |
-| `SellerDisputeFilters.tsx` | Search, status, reason, date, action-needed filters |
-| `SellerDisputeTable.tsx` | Main table with columns: Dispute ID, Txn Code, Buyer, Item, Reason, Status, Money Impact, Response Deadline, Date, Action |
-| `SellerDisputeActionPanel.tsx` | Right sidebar "Action Needed" card |
-| `SellerDisputeBlockedPanel.tsx` | Right sidebar "Blocked by Dispute" card |
-| `SellerDisputeEmptyState.tsx` | Empty state with trust messaging |
+| `SellerDisputeHeader.tsx` | Dispute ref, reason, badges, back link |
+| `SellerDisputeCaseSummary.tsx` | Transaction, item, buyer, pricing summary |
+| `SellerResponseForm.tsx` | Response textarea + submit (shown when not yet responded) |
+| `SellerPayoutImpactCard.tsx` | Shows payout/escrow impact for this dispute |
 
-### 5. Badges & Status
-- Reuse existing `DisputeStatusBadge` and `DisputeMoneyStatusBadge` components
-- Add extended status values for seller-specific statuses (awaiting_seller_response mapped to existing `seller_response_pending`)
-- Money impact badges: Funds Held, Payout Blocked, Refund Pending, No Impact
+Reuse existing shared components: `DisputeStatusBadge`, `DisputeMoneyStatusBadge`, `DisputeInfoBanner`, `DisputeTimeline`, `AgreementSnapshotSection`, `DeliveryProofSection`, `BuyerClaimSection`, `DisputeResolutionSection`, `DisputeSupportCard`
 
-### 6. Contextual Row Actions
-- `Respond Now` (primary) — if seller hasn't responded yet
-- `View Resolution` — if resolved
-- `View Case` — default
-- `View Transaction` — always available via txn code link
-
-### 7. Routing
-Add to `App.tsx` under seller protected routes:
+### 6. Routing
+Add to `App.tsx`:
 ```
-<Route path="/seller/disputes" element={<SellerDisputes />} />
+<Route path="/seller/disputes/:disputeId" element={<SellerDisputeDetail />} />
 ```
 
-### 8. Empty State
-Shield icon, "You have no disputes right now" message, trust-reinforcing support text, CTA to View Transactions.
+### 7. Export Fix
+The Export button on the disputes list page should trigger a CSV download or open a small export modal — not navigate. Will add inline CSV export logic to `SellerDisputeFilters` or create an `ExportDisputesDialog`.
 
 ## Files Created
 | File | Description |
 |---|---|
-| `supabase/functions/seller-disputes/index.ts` | Edge function |
-| `src/services/seller-disputes.service.ts` | Service layer |
-| `src/pages/SellerDisputes.tsx` | Main page |
-| `src/components/seller-disputes/SellerDisputeSummaryCards.tsx` | Summary metrics |
-| `src/components/seller-disputes/SellerDisputeTrustBanner.tsx` | Trust info banner |
-| `src/components/seller-disputes/SellerDisputeFilters.tsx` | Filter controls |
-| `src/components/seller-disputes/SellerDisputeTable.tsx` | Main disputes table |
-| `src/components/seller-disputes/SellerDisputeActionPanel.tsx` | Action needed sidebar |
-| `src/components/seller-disputes/SellerDisputeBlockedPanel.tsx` | Blocked payouts sidebar |
-| `src/components/seller-disputes/SellerDisputeEmptyState.tsx` | Empty state |
+| `supabase/functions/seller-dispute-detail/index.ts` | Edge function for seller dispute detail |
+| `supabase/functions/submit-seller-response/index.ts` | Edge function for submitting seller response |
+| `src/services/seller-dispute-detail.service.ts` | Service layer |
+| `src/pages/SellerDisputeDetail.tsx` | Main detail page |
+| `src/components/seller-disputes/SellerResponseForm.tsx` | Response form component |
+| `src/components/seller-disputes/SellerPayoutImpactCard.tsx` | Payout impact sidebar card |
 
 ## Files Modified
 | File | Change |
 |---|---|
-| `src/App.tsx` | Add `/seller/disputes` route |
+| `src/App.tsx` | Add `/seller/disputes/:disputeId` route |
+| `supabase/config.toml` | Add `seller-dispute-detail` and `submit-seller-response` function configs |
 
