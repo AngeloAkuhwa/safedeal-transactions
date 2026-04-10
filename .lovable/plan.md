@@ -1,36 +1,34 @@
 
 
-# Fix Avatar Photo Display — Doubled Cloudinary Path
+# Fix Avatar Upload: Proper Remove + Cache-Busting
 
 ## Problem
 
-In `supabase/functions/upload-avatar/index.ts`, the `sign_upload` action sets:
-- `folder = SafeDeal/avatars/{userId}`
-- `public_id = SafeDeal/avatars/{userId}/avatar`
+1. **"Remove" only clears the database** — the photo remains on Cloudinary, wasting storage
+2. **Same URL after re-upload** — since the public_id is always `avatar`, the URL never changes. The browser/CDN caches the old image, so after uploading a new photo you still see the old one (or fallback initials if it was previously removed from DB but not Cloudinary)
 
-When both are sent to Cloudinary, the file gets uploaded to `SafeDeal/avatars/{userId}/SafeDeal/avatars/{userId}/avatar` (doubled). But the `save_avatar` action builds the display URL using the non-doubled path, which is a 404.
+## Solution
 
-## Fix
+### 1. Edge function: `upload-avatar/index.ts`
 
-**File:** `supabase/functions/upload-avatar/index.ts`
+**`remove_avatar` action** — add Cloudinary destroy API call before clearing DB:
+- Call `https://api.cloudinary.com/v1_1/{cloud_name}/image/destroy` with signed params to delete the asset from Cloudinary
+- Then set `avatar_url = null` in profiles table
 
-In the `sign_upload` action, set `public_id` to just `avatar` (without the folder prefix), since the `folder` parameter already handles the path. The signing params should be:
+**`save_avatar` action** — append a cache-busting version timestamp to the saved URL:
+- Store URL as `.../{public_id}?v={timestamp}` so the browser treats each upload as a new image and never serves a stale cached version
 
-```
-folder: "SafeDeal/avatars/{userId}"
-public_id: "avatar"           // NOT "SafeDeal/avatars/{userId}/avatar"
-```
+**`sign_upload` action** — add `invalidate: "true"` to the signing params so Cloudinary CDN also purges its cache for the old asset
 
-And update the response to return `public_id` as the full path (`folder/avatar`) so the `save_avatar` action can still build the correct optimized URL.
+### 2. Client component: `PersonalInfoSection.tsx`
 
-**File:** `src/components/profile/PersonalInfoSection.tsx`
-
-Remove the `formData.append("public_id", public_id)` line from the XHR upload, since when `folder` is provided to Cloudinary, the `public_id` should be relative (just `avatar`). Alternatively, send only `public_id` without `folder` in the FormData — we just need to avoid the double-nesting.
+- Add `formData.append("invalidate", "true")` in the XHR upload to match the signing params
+- No other changes needed — the cache-busting `?v=` in the URL from the edge function handles browser caching automatically
 
 ## Files Changed
 
-| File | Action |
+| File | Change |
 |---|---|
-| `supabase/functions/upload-avatar/index.ts` | Fix public_id to not include folder prefix |
-| `src/components/profile/PersonalInfoSection.tsx` | Align FormData fields with corrected signing params |
+| `supabase/functions/upload-avatar/index.ts` | Add Cloudinary destroy in `remove_avatar`; add `invalidate` to signing; add `?v=` cache-buster to saved URL |
+| `src/components/profile/PersonalInfoSection.tsx` | Add `invalidate` field to XHR FormData |
 
