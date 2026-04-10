@@ -4,7 +4,33 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
 };
+
+// ── Seller tiered limits (mirrors buyer) ──
+const LIMIT_BY_LEVEL: Record<string, number> = {
+  unverified: 0,
+  basic_verified: 100_000,
+  trusted_buyer: 500_000,
+  high_trust_buyer: 1_000_000,
+};
+
+const CONCURRENT_BY_LEVEL: Record<string, number> = {
+  unverified: 0,
+  basic_verified: 2,
+  trusted_buyer: 5,
+  high_trust_buyer: 10,
+};
+
+const ACTIVE_TX_STATUSES = [
+  "awaiting_buyer",
+  "awaiting_payment",
+  "payment_secured",
+  "seller_preparing_delivery",
+  "seller_dispatched",
+  "delivered_awaiting_verification",
+  "disputed",
+];
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -132,7 +158,31 @@ Deno.serve(async (req) => {
         role: "seller",
       };
 
-      return jsonResponse({ profile, verification, preferences, payout_account: payoutAccount, account_meta });
+      // ── Compute seller permissions ──
+      const level = (verificationData.verification_level as string) || "unverified";
+      let activeTransactionCount = 0;
+      try {
+        const { count } = await adminClient
+          .from("transactions")
+          .select("id", { count: "exact", head: true })
+          .eq("seller_id", userId)
+          .in("status", ACTIVE_TX_STATUSES);
+        activeTransactionCount = count ?? 0;
+      } catch {
+        // default 0
+      }
+
+      const permissions = {
+        verificationLevel: level,
+        transactionLimitNaira: LIMIT_BY_LEVEL[level] ?? 0,
+        maxConcurrentActiveTransactions: CONCURRENT_BY_LEVEL[level] ?? 0,
+        activeTransactionCount,
+        canPublishTransaction: level !== "unverified",
+        canCreateAnotherActiveTransaction: level !== "unverified" && activeTransactionCount < (CONCURRENT_BY_LEVEL[level] ?? 0),
+        requiresIdentityVerification: level !== "trusted_buyer" && level !== "high_trust_buyer",
+      };
+
+      return jsonResponse({ profile, verification, preferences, payout_account: payoutAccount, account_meta, permissions });
     }
 
     // ── PATCH: Update profile data ──
