@@ -9,14 +9,17 @@ import { Separator } from "@/components/ui/separator";
 import type { BuyerProfile, VerificationStatus } from "@/services/profile.service";
 
 interface Props {
-  profile: BuyerProfile;
+  profile: BuyerProfile & { state_name?: string | null; city_name?: string | null };
   verification: VerificationStatus;
-  onProfileChange: (updates: Partial<BuyerProfile>) => void;
+  onProfileChange: (updates: Record<string, unknown>) => void;
+  showLocation?: boolean;
 }
 
-export function PersonalInfoSection({ profile, verification, onProfileChange }: Props) {
+export function PersonalInfoSection({ profile, verification, onProfileChange, showLocation }: Props) {
   const [fullName, setFullName] = useState(profile.full_name);
   const [phone, setPhone] = useState(profile.phone ?? "");
+  const [stateName, setStateName] = useState(profile.state_name ?? "");
+  const [cityName, setCityName] = useState(profile.city_name ?? "");
 
   const initials = profile.full_name
     .split(" ")
@@ -100,6 +103,37 @@ export function PersonalInfoSection({ profile, verification, onProfileChange }: 
             )}
           </div>
         </div>
+
+        {showLocation && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="stateName">State</Label>
+              <Input
+                id="stateName"
+                value={stateName}
+                onChange={(e) => {
+                  setStateName(e.target.value);
+                  onProfileChange({ state_name: e.target.value || null });
+                }}
+                placeholder="e.g. Lagos"
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cityName">City</Label>
+              <Input
+                id="cityName"
+                value={cityName}
+                onChange={(e) => {
+                  setCityName(e.target.value);
+                  onProfileChange({ city_name: e.target.value || null });
+                }}
+                placeholder="e.g. Ikeja"
+                className="rounded-xl"
+              />
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

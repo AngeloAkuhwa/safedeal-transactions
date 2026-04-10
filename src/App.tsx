@@ -29,6 +29,7 @@ import SellerTransactionDetail from "./pages/SellerTransactionDetail";
 import SellerTransactionShare from "./pages/SellerTransactionShare";
 import SellerUpdateDelivery from "./pages/SellerUpdateDelivery";
 import SellerPayouts from "./pages/SellerPayouts";
+import SellerProfileSettings from "./pages/SellerProfileSettings";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -79,6 +80,7 @@ const App = () => (
               <Route path="/seller/transactions/:transactionId/share" element={<SellerTransactionShare />} />
               <Route path="/seller/transactions/:transactionId/delivery" element={<SellerUpdateDelivery />} />
               <Route path="/seller/payouts" element={<SellerPayouts />} />
+              <Route path="/seller/profile" element={<SellerProfileSettings />} />
             </Route>
 
             {/* Catch-all */}
