@@ -118,7 +118,19 @@ export default function BuyerPaymentSummary() {
     enabled: authState === "ready",
   });
 
-  const canPay = profileData?.permissions?.canStartProtectedPayment ?? true;
+  const permissions = profileData?.permissions;
+  const canPay = permissions?.canStartProtectedPayment ?? true;
+
+  // Determine specific lock reason for context-aware messaging
+  const lockReason = !canPay && permissions ? (
+    !permissions.isRegionEligible && permissions.verificationLevel !== "unverified"
+      ? "region"
+      : permissions.requiresPhoneVerification || permissions.requiresLocation
+        ? "verification"
+        : !permissions.canCreateAnotherActiveTransaction
+          ? "concurrency"
+          : "verification"
+  ) : null;
 
   const Header = authState === "ready"
     ? () => <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
@@ -267,7 +279,7 @@ export default function BuyerPaymentSummary() {
     <div className="min-h-screen bg-muted flex flex-col">
       <Header />
 
-      {/* Verification Lock Banner */}
+      {/* Context-aware Lock Banner */}
       {!canPay && (
         <section className="bg-destructive/10 border-b border-destructive/20 py-4">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -275,8 +287,22 @@ export default function BuyerPaymentSummary() {
               <div className="flex items-center gap-3">
                 <Lock className="h-5 w-5 text-destructive shrink-0" />
                 <div>
-                  <p className="text-sm font-bold text-foreground">Phone verification required to proceed with payment</p>
-                  <p className="text-xs text-muted-foreground">Complete verification in your profile to unlock protected payments</p>
+                  {lockReason === "region" ? (
+                    <>
+                      <p className="text-sm font-bold text-foreground">Protected transactions are only available in Lagos during launch</p>
+                      <p className="text-xs text-muted-foreground">Update your location to a Lagos LGA in Profile Settings</p>
+                    </>
+                  ) : lockReason === "concurrency" ? (
+                    <>
+                      <p className="text-sm font-bold text-foreground">You've reached your active purchase limit ({permissions?.maxConcurrentActiveTransactions})</p>
+                      <p className="text-xs text-muted-foreground">Complete or resolve existing transactions before starting a new one</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-bold text-foreground">Account verification required to proceed with payment</p>
+                      <p className="text-xs text-muted-foreground">Complete phone verification and location in your profile to unlock protected payments</p>
+                    </>
+                  )}
                 </div>
               </div>
               <Button
