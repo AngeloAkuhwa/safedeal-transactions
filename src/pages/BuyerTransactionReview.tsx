@@ -764,8 +764,8 @@ function FraudWarningCard() {
   );
 }
 
-function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, onGoToProfile }: {
-  payLabel: string; onPay: () => void; onDecline: () => void; authState: AuthState; canPay: boolean; onGoToProfile: () => void;
+function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockReason, onGoToProfile }: {
+  payLabel: string; onPay: () => void; onDecline: () => void; authState: AuthState; canPay: boolean; lockReason: string | null; onGoToProfile: () => void;
 }) {
   return (
     <div className="bg-primary rounded-2xl shadow-2xl p-6 text-primary-foreground">
