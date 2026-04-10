@@ -206,10 +206,12 @@ const SellerTransactionDetail = () => {
                 <p className="text-sm text-foreground">{buyer.phone || "—"}</p>
               </div>
               <BuyerTrustBadges
-                emailVerified={!!buyer.email_verified}
-                phoneVerified={!!buyer.phone_verified}
-                verificationLevel={(buyer.verification_level as any) || "unverified"}
-                size="sm"
+                signals={{
+                  emailVerified: buyer.email_verified,
+                  phoneVerified: buyer.phone_verified,
+                  verificationLevel: buyer.verification_level,
+                }}
+                compact
               />
             </div>
           </Card>
