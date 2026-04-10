@@ -22,39 +22,77 @@ const PREF_KEYS = [
   "marketing_messages",
 ] as const;
 
-function computePermissions(verification: Record<string, unknown>, profile: Record<string, unknown>) {
+// ── Tiered permission engine ──
+// Only `unverified` and `basic_verified` are reachable in Batch 2.
+// `trusted_buyer` and `high_trust_buyer` are scaffolded for future identity-based upgrades.
+const LIMIT_BY_LEVEL: Record<string, number> = {
+  unverified: 0,
+  basic_verified: 50_000,
+  trusted_buyer: 200_000,
+  high_trust_buyer: 500_000,
+};
+
+const CONCURRENT_BY_LEVEL: Record<string, number> = {
+  unverified: 0,
+  basic_verified: 1,
+  trusted_buyer: 3,
+  high_trust_buyer: 5,
+};
+
+const ACTIVE_TX_STATUSES = [
+  "payment_secured",
+  "seller_preparing_delivery",
+  "seller_dispatched",
+  "delivered_awaiting_verification",
+  "disputed",
+];
+
+async function computePermissions(
+  verification: Record<string, unknown>,
+  profile: Record<string, unknown>,
+  adminClient: ReturnType<typeof createClient>,
+  userId: string,
+) {
   const level = (verification.verification_level as string) || "unverified";
   const phoneVerified = !!verification.phone_verified;
   const hasLocation = !!(profile.state_name && profile.city_name);
+  const isRegionEligible = !!profile.is_region_eligible;
 
-  // TODO Batch 3: unlock higher limits after identity verification is implemented
-  const limitByLevel: Record<string, number> = {
-    unverified: 0,
-    basic_verified: 50000,
-    trusted_buyer: 50000,      // same as basic until Batch 3
-    high_trust_buyer: 50000,   // same as basic until Batch 3
-  };
+  // Count active transactions
+  let activeTransactionCount = 0;
+  try {
+    const { count } = await adminClient
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("buyer_id", userId)
+      .in("status", ACTIVE_TX_STATUSES);
+    activeTransactionCount = count ?? 0;
+  } catch {
+    // default 0
+  }
 
-  // TODO Batch 3: unlock higher concurrency after identity verification is implemented
-  const concurrentByLevel: Record<string, number> = {
-    unverified: 0,
-    basic_verified: 1,
-    trusted_buyer: 1,          // same as basic until Batch 3
-    high_trust_buyer: 1,       // same as basic until Batch 3
-  };
+  const maxConcurrent = CONCURRENT_BY_LEVEL[level] ?? 0;
+  const transactionLimit = LIMIT_BY_LEVEL[level] ?? 0;
 
   // Explicit triple-check: phone + location + level must all pass
   const canAct = phoneVerified && hasLocation && level !== "unverified";
 
   return {
-    canStartProtectedPayment: canAct,
+    canStartProtectedPayment: canAct && isRegionEligible,
     canOpenDispute: canAct,
     canHoldActiveTransaction: canAct,
     requiresPhoneVerification: !phoneVerified,
     requiresLocation: !hasLocation,
-    transactionLimitNaira: limitByLevel[level] ?? 0,
-    maxConcurrentActiveTransactions: concurrentByLevel[level] ?? 0,
+    transactionLimitNaira: transactionLimit,
+    maxConcurrentActiveTransactions: maxConcurrent,
     verificationLevel: level,
+    // New Batch 2 flags
+    canCreateAnotherActiveTransaction: canAct && activeTransactionCount < maxConcurrent,
+    canAccessHighValueTransaction: level === "trusted_buyer" || level === "high_trust_buyer",
+    canReceiveHighTierRefund: level === "high_trust_buyer",
+    requiresIdentityVerification: level !== "trusted_buyer" && level !== "high_trust_buyer",
+    activeTransactionCount,
+    isRegionEligible,
   };
 }
 
@@ -96,7 +134,7 @@ Deno.serve(async (req) => {
       const [profileResult, prefsResult, verificationResult] = await Promise.allSettled([
         adminClient
           .from("profiles")
-          .select("id, full_name, email, phone, avatar_url, country_code, state_name, city_name, created_at")
+          .select("id, full_name, email, phone, avatar_url, country_code, state_name, city_name, is_region_eligible, created_at")
           .eq("id", userId)
           .single(),
         adminClient
@@ -114,7 +152,7 @@ Deno.serve(async (req) => {
       const profile =
         profileResult.status === "fulfilled" && profileResult.value.data
           ? profileResult.value.data
-          : { id: userId, full_name: "", email: "", phone: null, avatar_url: null, country_code: "NG", state_name: null, city_name: null, created_at: "" };
+          : { id: userId, full_name: "", email: "", phone: null, avatar_url: null, country_code: "NG", state_name: null, city_name: null, is_region_eligible: false, created_at: "" };
 
       const preferences =
         prefsResult.status === "fulfilled" && prefsResult.value.data
@@ -127,7 +165,7 @@ Deno.serve(async (req) => {
           ? { ...verificationResult.value.data, email_verified: emailVerified }
           : { email_verified: emailVerified, phone_verified: false, identity_verified: false, payout_verified: false, verification_level: "unverified" };
 
-      const permissions = computePermissions(verification, profile);
+      const permissions = await computePermissions(verification, profile, adminClient, userId);
 
       return jsonResponse({ profile, preferences, verification, permissions });
     }
@@ -174,18 +212,81 @@ Deno.serve(async (req) => {
           updates.country_code = body.country_code.toUpperCase();
         }
 
-        if (body.state_name !== undefined) {
-          if (body.state_name !== null && (typeof body.state_name !== "string" || body.state_name.length > 100)) {
+        // ── Location validation against serviceable_regions ──
+        const hasLocationUpdate = body.state_name !== undefined || body.city_name !== undefined;
+        if (hasLocationUpdate) {
+          const stateName = body.state_name !== undefined
+            ? (body.state_name ? String(body.state_name).trim() : null)
+            : undefined;
+          const cityName = body.city_name !== undefined
+            ? (body.city_name ? String(body.city_name).trim() : null)
+            : undefined;
+
+          // Validate lengths
+          if (stateName !== undefined && stateName !== null && stateName.length > 100) {
             return jsonResponse({ error: "state_name must be 100 characters or less" }, 400);
           }
-          updates.state_name = body.state_name ? body.state_name.trim() : null;
-        }
-
-        if (body.city_name !== undefined) {
-          if (body.city_name !== null && (typeof body.city_name !== "string" || body.city_name.length > 100)) {
+          if (cityName !== undefined && cityName !== null && cityName.length > 100) {
             return jsonResponse({ error: "city_name must be 100 characters or less" }, 400);
           }
-          updates.city_name = body.city_name ? body.city_name.trim() : null;
+
+          // Determine effective state/city for validation
+          let effectiveState = stateName;
+          let effectiveCity = cityName;
+
+          // If only one is provided, fetch the other from current profile
+          if (effectiveState === undefined || effectiveCity === undefined) {
+            const { data: currentProfile } = await adminClient
+              .from("profiles")
+              .select("state_name, city_name")
+              .eq("id", userId)
+              .single();
+            if (effectiveState === undefined) effectiveState = currentProfile?.state_name ?? null;
+            if (effectiveCity === undefined) effectiveCity = currentProfile?.city_name ?? null;
+          }
+
+          let isRegionEligible = false;
+
+          if (effectiveState) {
+            // Validate state exists in serviceable_regions
+            const { data: stateRows } = await adminClient
+              .from("serviceable_regions")
+              .select("id, city_name, is_active")
+              .eq("country_code", "NG")
+              .eq("state_name", effectiveState);
+
+            if (!stateRows || stateRows.length === 0) {
+              return jsonResponse({ error: `Invalid state: "${effectiveState}" is not a recognized Nigerian state` }, 400);
+            }
+
+            // Check if state has LGA rows (like Lagos)
+            const lgaRows = stateRows.filter((r: Record<string, unknown>) => r.city_name !== null);
+
+            if (lgaRows.length > 0 && effectiveCity) {
+              // State has LGAs — validate the city/LGA exists
+              const matchedLga = lgaRows.find(
+                (r: Record<string, unknown>) =>
+                  (r.city_name as string).toLowerCase() === effectiveCity!.toLowerCase()
+              );
+              if (!matchedLga) {
+                return jsonResponse({
+                  error: `Invalid LGA: "${effectiveCity}" is not a valid Local Government Area in ${effectiveState}`,
+                }, 400);
+              }
+              isRegionEligible = !!matchedLga.is_active;
+            } else if (lgaRows.length > 0 && !effectiveCity) {
+              // State has LGAs but no city provided — need LGA
+              // Don't block, just mark ineligible
+              isRegionEligible = false;
+            } else {
+              // State-level only row (non-Lagos) — check is_active
+              isRegionEligible = !!stateRows[0].is_active;
+            }
+          }
+
+          if (stateName !== undefined) updates.state_name = stateName;
+          if (cityName !== undefined) updates.city_name = cityName;
+          updates.is_region_eligible = isRegionEligible;
         }
 
         if (Object.keys(updates).length === 0) {
@@ -196,13 +297,13 @@ Deno.serve(async (req) => {
           .from("profiles")
           .update(updates)
           .eq("id", userId)
-          .select("id, full_name, email, phone, avatar_url, country_code, state_name, city_name, created_at")
+          .select("id, full_name, email, phone, avatar_url, country_code, state_name, city_name, is_region_eligible, created_at")
           .single();
 
         if (error) return jsonResponse({ error: error.message }, 400);
 
         // Recompute verification level if location changed
-        if (updates.state_name !== undefined || updates.city_name !== undefined) {
+        if (hasLocationUpdate) {
           const { data: levelData } = await adminClient.rpc("compute_verification_level", {
             _user_id: userId,
           });

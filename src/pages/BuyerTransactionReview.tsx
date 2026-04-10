@@ -74,7 +74,19 @@ export default function BuyerTransactionReview() {
     enabled: authState === "ready",
   });
 
-  const canPay = profileData?.permissions?.canStartProtectedPayment ?? true;
+  const permissions = profileData?.permissions;
+  const canPay = permissions?.canStartProtectedPayment ?? true;
+
+  // Determine specific lock reason
+  const lockReason = !canPay && permissions ? (
+    !permissions.isRegionEligible && permissions.verificationLevel !== "unverified"
+      ? "region"
+      : permissions.requiresPhoneVerification || permissions.requiresLocation
+        ? "verification"
+        : !permissions.canCreateAnotherActiveTransaction
+          ? "concurrency"
+          : "verification"
+  ) : null;
 
   const handlePayClick = () => {
     if (authState === "anonymous") {
@@ -302,6 +314,7 @@ export default function BuyerTransactionReview() {
                 onDecline={handleDecline}
                 authState={authState}
                 canPay={canPay}
+                lockReason={lockReason}
                 onGoToProfile={() => navigate("/dashboard/profile")}
               />
               <PaymentSummaryCard data={data} currencySymbol={currencySymbol} itemAmount={itemAmount} feeAmount={feeAmount} feeRate={feeRate} totalAmount={totalAmount} />
@@ -751,8 +764,8 @@ function FraudWarningCard() {
   );
 }
 
-function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, onGoToProfile }: {
-  payLabel: string; onPay: () => void; onDecline: () => void; authState: AuthState; canPay: boolean; onGoToProfile: () => void;
+function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockReason, onGoToProfile }: {
+  payLabel: string; onPay: () => void; onDecline: () => void; authState: AuthState; canPay: boolean; lockReason: string | null; onGoToProfile: () => void;
 }) {
   return (
     <div className="bg-primary rounded-2xl shadow-2xl p-6 text-primary-foreground">
@@ -766,8 +779,22 @@ function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, onGoToP
           <div className="flex items-start gap-2">
             <Lock className="h-5 w-5 mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-bold">Phone verification required</p>
-              <p className="text-xs opacity-80 mt-1">Complete verification in your profile to unlock payments.</p>
+              {lockReason === "region" ? (
+                <>
+                  <p className="text-sm font-bold">Lagos-only during launch</p>
+                  <p className="text-xs opacity-80 mt-1">Protected transactions are only available in Lagos. Update your location.</p>
+                </>
+              ) : lockReason === "concurrency" ? (
+                <>
+                  <p className="text-sm font-bold">Active purchase limit reached</p>
+                  <p className="text-xs opacity-80 mt-1">Complete or resolve existing transactions first.</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-bold">Verification required</p>
+                  <p className="text-xs opacity-80 mt-1">Complete phone verification and location to unlock payments.</p>
+                </>
+              )}
               <Button
                 size="sm"
                 variant="secondary"

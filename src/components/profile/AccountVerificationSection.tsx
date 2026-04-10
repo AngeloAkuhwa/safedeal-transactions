@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import {
   ShieldCheck, Mail, Phone, MapPin, CreditCard,
   CheckCircle2, Lock, ArrowRight, AlertTriangle,
@@ -37,7 +36,6 @@ export function AccountVerificationSection({
   isLoading,
   onPhoneVerifyClick,
 }: Props) {
-  const navigate = useNavigate();
   const level = verification.verification_level || "unverified";
   const config = LEVEL_CONFIG[level];
 
@@ -109,7 +107,7 @@ export function AccountVerificationSection({
       label: "Location Complete",
       icon: MapPin,
       verified: !!hasLocation,
-      description: hasLocation ? "State and city saved" : "Add your state and city above",
+      description: hasLocation ? "State and LGA saved" : "Select your state and LGA above",
       actionLabel: undefined,
       onAction: undefined,
     },
@@ -169,8 +167,20 @@ export function AccountVerificationSection({
             </div>
             <div className="bg-muted rounded-xl p-3 text-center">
               <p className="text-xs text-muted-foreground">Active Transactions</p>
-              <p className="text-sm font-bold text-foreground">Max {permissions.maxConcurrentActiveTransactions}</p>
+              <p className="text-sm font-bold text-foreground">
+                {permissions.activeTransactionCount ?? 0} / {permissions.maxConcurrentActiveTransactions}
+              </p>
             </div>
+          </div>
+        )}
+
+        {/* Region eligibility */}
+        {permissions && level !== "unverified" && (
+          <div className={`rounded-xl p-3 text-center ${permissions.isRegionEligible ? "bg-success/10 border border-success/20" : "bg-warning/10 border border-warning/20"}`}>
+            <p className="text-xs text-muted-foreground">Region Status</p>
+            <p className={`text-sm font-bold ${permissions.isRegionEligible ? "text-success" : "text-warning"}`}>
+              {permissions.isRegionEligible ? "Eligible (Lagos)" : "Not in active region"}
+            </p>
           </div>
         )}
 
@@ -225,9 +235,22 @@ export function AccountVerificationSection({
         )}
 
         {level === "basic_verified" && (
-          <div className="pt-2 flex items-center justify-center gap-2 text-success text-sm font-medium">
-            <CheckCircle2 className="h-4 w-4" />
-            Account verified — you can transact up to ₦50,000
+          <div className="space-y-3">
+            <div className="pt-2 flex items-center justify-center gap-2 text-success text-sm font-medium">
+              <CheckCircle2 className="h-4 w-4" />
+              Account verified — you can transact up to ₦50,000
+            </div>
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Next level: Trusted Buyer</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Identity verification (coming soon) will unlock transactions up to ₦200,000 and 3 concurrent purchases.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </CardContent>

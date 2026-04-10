@@ -1806,7 +1806,7 @@ export type Database = {
       }
       serviceable_regions: {
         Row: {
-          city_name: string
+          city_name: string | null
           country_code: string
           created_at: string
           id: string
@@ -1816,7 +1816,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          city_name: string
+          city_name?: string | null
           country_code: string
           created_at?: string
           id?: string
@@ -1826,7 +1826,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          city_name?: string
+          city_name?: string | null
           country_code?: string
           created_at?: string
           id?: string
