@@ -82,6 +82,7 @@ const App = () => (
               <Route path="/seller/transactions/:transactionId" element={<SellerTransactionDetail />} />
               <Route path="/seller/transactions/:transactionId/share" element={<SellerTransactionShare />} />
               <Route path="/seller/transactions/:transactionId/delivery" element={<SellerUpdateDelivery />} />
+              <Route path="/seller/transactions/:transactionId/agreement" element={<SellerTransactionAgreement />} />
               <Route path="/seller/payouts" element={<SellerPayouts />} />
               <Route path="/seller/disputes" element={<SellerDisputes />} />
               <Route path="/seller/disputes/:disputeId" element={<SellerDisputeDetail />} />
