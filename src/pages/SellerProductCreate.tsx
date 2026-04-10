@@ -1,19 +1,20 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Save, Upload, Loader2, ImagePlus, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, Upload, Loader2, ImagePlus, X, AlertCircle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { SellerNav } from "@/components/seller/SellerNav";
 import { Footer } from "@/components/landing/Footer";
 import { toast } from "@/components/ui/sonner";
 import { createProduct, getProductCategories } from "@/services/seller-storefront.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadProductFile } from "@/services/create-transaction.service";
 
 const STEPS = ["Product Details", "Media", "Pricing & Stock", "Delivery & Settings"];
 
@@ -22,6 +23,10 @@ interface FileEntry {
   media_type: string;
   preview_url: string;
   name: string;
+  status: "uploading" | "done" | "error";
+  progress: number;
+  localPreview?: string;
+  originalFile?: File;
 }
 
 const SellerProductCreate = () => {
@@ -79,7 +84,7 @@ const SellerProductCreate = () => {
           : undefined,
         seller_notes: sellerNotes || undefined,
         visibility_type: visibilityType,
-        file_ids: files.map((f) => ({ file_id: f.file_id, media_type: f.media_type })),
+        file_ids: files.filter((f) => f.status === "done").map((f) => ({ file_id: f.file_id, media_type: f.media_type })),
         status,
       }),
     onSuccess: () => {
@@ -95,45 +100,98 @@ const SellerProductCreate = () => {
     const selectedFiles = e.target.files;
     if (!selectedFiles?.length) return;
 
+    const fileArray = Array.from(selectedFiles);
+    e.target.value = "";
+
+    // Create placeholder entries with local previews
+    const newEntries: FileEntry[] = fileArray.map((file) => ({
+      file_id: `temp-${Date.now()}-${Math.random()}`,
+      media_type: file.type.startsWith("video/") ? "video" : "image",
+      preview_url: URL.createObjectURL(file),
+      localPreview: URL.createObjectURL(file),
+      name: file.name,
+      status: "uploading" as const,
+      progress: 0,
+      originalFile: file,
+    }));
+
+    setFiles((prev) => [...prev, ...newEntries]);
     setUploading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
 
-      for (const file of Array.from(selectedFiles)) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("context_type", "product_media");
+    let activeUploads = fileArray.length;
 
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-evidence`,
-          {
-            method: "POST",
-            headers: { Authorization: `Bearer ${session.access_token}` },
-            body: formData,
-          }
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      const tempId = newEntries[i].file_id;
+
+      uploadProductFile(file, (pct) => {
+        setFiles((prev) =>
+          prev.map((f) => (f.file_id === tempId ? { ...f, progress: pct } : f))
         );
+      })
+        .then((result) => {
+          setFiles((prev) =>
+            prev.map((f) =>
+              f.file_id === tempId
+                ? {
+                    ...f,
+                    file_id: result.file_id,
+                    preview_url: result.secure_url,
+                    status: "done" as const,
+                    progress: 100,
+                    originalFile: undefined,
+                  }
+                : f
+            )
+          );
+        })
+        .catch((err) => {
+          setFiles((prev) =>
+            prev.map((f) =>
+              f.file_id === tempId ? { ...f, status: "error" as const, progress: 0 } : f
+            )
+          );
+          toast.error(`Failed to upload ${file.name}: ${err.message}`);
+        })
+        .finally(() => {
+          activeUploads--;
+          if (activeUploads <= 0) setUploading(false);
+        });
+    }
+  };
 
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Upload failed");
+  const retryUpload = async (idx: number) => {
+    const entry = files[idx];
+    if (!entry.originalFile) return;
 
-        const mediaType = file.type.startsWith("video/") ? "video" : "image";
-        setFiles((prev) => [
-          ...prev,
-          {
-            file_id: json.file_id,
-            media_type: mediaType,
-            preview_url: json.file_url || json.secure_url || URL.createObjectURL(file),
-            name: file.name,
-          },
-        ]);
-      }
-      toast.success("Files uploaded successfully");
+    const file = entry.originalFile;
+    const tempId = entry.file_id;
+
+    setFiles((prev) =>
+      prev.map((f, i) => (i === idx ? { ...f, status: "uploading" as const, progress: 0 } : f))
+    );
+    setUploading(true);
+
+    try {
+      const result = await uploadProductFile(file, (pct) => {
+        setFiles((prev) =>
+          prev.map((f) => (f.file_id === tempId ? { ...f, progress: pct } : f))
+        );
+      });
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.file_id === tempId
+            ? { ...f, file_id: result.file_id, preview_url: result.secure_url, status: "done" as const, progress: 100, originalFile: undefined }
+            : f
+        )
+      );
     } catch (err: any) {
-      toast.error(err.message || "Upload failed");
+      setFiles((prev) =>
+        prev.map((f) => (f.file_id === tempId ? { ...f, status: "error" as const, progress: 0 } : f))
+      );
+      toast.error(`Retry failed: ${err.message}`);
     } finally {
       setUploading(false);
-      e.target.value = "";
     }
   };
 
@@ -256,9 +314,30 @@ const SellerProductCreate = () => {
                     {files.map((f, idx) => (
                       <div key={idx} className="relative aspect-square rounded-lg border overflow-hidden group">
                         {f.media_type === "video" ? (
-                          <video src={f.preview_url} className="w-full h-full object-cover" />
+                          <video src={f.localPreview || f.preview_url} className="w-full h-full object-cover" />
                         ) : (
-                          <img src={f.preview_url} alt={f.name} className="w-full h-full object-cover" />
+                          <img src={f.localPreview || f.preview_url} alt={f.name} className="w-full h-full object-cover" />
+                        )}
+                        {/* Upload progress overlay */}
+                        {f.status === "uploading" && (
+                          <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-2">
+                            <Loader2 className="h-5 w-5 animate-spin text-white" />
+                            <Progress value={f.progress} className="w-3/4 h-1.5" />
+                            <span className="text-white text-xs font-medium">{f.progress}%</span>
+                          </div>
+                        )}
+                        {/* Error overlay */}
+                        {f.status === "error" && (
+                          <div className="absolute inset-0 bg-destructive/60 flex flex-col items-center justify-center gap-2">
+                            <AlertCircle className="h-5 w-5 text-white" />
+                            <span className="text-white text-xs">Failed</span>
+                            <button
+                              onClick={() => retryUpload(idx)}
+                              className="flex items-center gap-1 bg-white/20 text-white text-xs px-2 py-1 rounded hover:bg-white/30"
+                            >
+                              <RotateCcw className="h-3 w-3" /> Retry
+                            </button>
+                          </div>
                         )}
                         <button
                           onClick={() => removeFile(idx)}
@@ -266,7 +345,7 @@ const SellerProductCreate = () => {
                         >
                           <X className="h-3 w-3" />
                         </button>
-                        {idx === 0 && (
+                        {idx === 0 && f.status === "done" && (
                           <span className="absolute bottom-1 left-1 bg-success text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
                             Primary
                           </span>
@@ -274,14 +353,8 @@ const SellerProductCreate = () => {
                       </div>
                     ))}
                     <label className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors">
-                      {uploading ? (
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      ) : (
-                        <>
-                          <ImagePlus className="h-6 w-6 text-muted-foreground mb-1" />
-                          <span className="text-xs text-muted-foreground">Add Media</span>
-                        </>
-                      )}
+                      <ImagePlus className="h-6 w-6 text-muted-foreground mb-1" />
+                      <span className="text-xs text-muted-foreground">Add Media</span>
                       <input
                         type="file"
                         className="hidden"
