@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { getTransactionReview, type ReviewData } from "@/services/review.service";
+import { getBuyerProfile } from "@/services/profile.service";
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
@@ -65,6 +66,15 @@ export default function BuyerTransactionReview() {
     queryFn: () => getTransactionReview(shareToken!),
     enabled: !!shareToken,
   });
+
+  // Fetch buyer verification for payment gating
+  const { data: profileData } = useQuery({
+    queryKey: ["buyer-profile"],
+    queryFn: getBuyerProfile,
+    enabled: authState === "ready",
+  });
+
+  const canPay = profileData?.permissions?.canStartProtectedPayment ?? true;
 
   const handlePayClick = () => {
     if (authState === "anonymous") {
