@@ -587,7 +587,10 @@ export type Database = {
           evidence_type: Database["public"]["Enums"]["dispute_evidence_type"]
           file_id: string
           id: string
+          is_active: boolean
           notes: string | null
+          replaced_at: string | null
+          replaced_by_file_id: string | null
           submitted_by_role: Database["public"]["Enums"]["transaction_actor_role"]
           submitted_by_user_id: string
         }
@@ -597,7 +600,10 @@ export type Database = {
           evidence_type: Database["public"]["Enums"]["dispute_evidence_type"]
           file_id: string
           id?: string
+          is_active?: boolean
           notes?: string | null
+          replaced_at?: string | null
+          replaced_by_file_id?: string | null
           submitted_by_role: Database["public"]["Enums"]["transaction_actor_role"]
           submitted_by_user_id: string
         }
@@ -607,7 +613,10 @@ export type Database = {
           evidence_type?: Database["public"]["Enums"]["dispute_evidence_type"]
           file_id?: string
           id?: string
+          is_active?: boolean
           notes?: string | null
+          replaced_at?: string | null
+          replaced_by_file_id?: string | null
           submitted_by_role?: Database["public"]["Enums"]["transaction_actor_role"]
           submitted_by_user_id?: string
         }
@@ -707,7 +716,10 @@ export type Database = {
         Row: {
           created_at: string
           dispute_id: string
+          edited_at: string | null
+          edited_by_user_id: string | null
           id: string
+          previous_response_text: string | null
           responded_by_user_id: string
           response_number: number
           response_text: string
@@ -717,7 +729,10 @@ export type Database = {
         Insert: {
           created_at?: string
           dispute_id: string
+          edited_at?: string | null
+          edited_by_user_id?: string | null
           id?: string
+          previous_response_text?: string | null
           responded_by_user_id: string
           response_number?: number
           response_text: string
@@ -727,7 +742,10 @@ export type Database = {
         Update: {
           created_at?: string
           dispute_id?: string
+          edited_at?: string | null
+          edited_by_user_id?: string | null
           id?: string
+          previous_response_text?: string | null
           responded_by_user_id?: string
           response_number?: number
           response_text?: string
@@ -738,14 +756,14 @@ export type Database = {
           {
             foreignKeyName: "dispute_responses_dispute_id_fkey"
             columns: ["dispute_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "admin_dispute_summary_view"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "dispute_responses_dispute_id_fkey"
             columns: ["dispute_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "disputes"
             referencedColumns: ["id"]
           },
@@ -2902,6 +2920,8 @@ export type Database = {
         | "dispute_resolved"
         | "verification_completed"
         | "system_action"
+        | "dispute_response_edited"
+        | "dispute_evidence_replaced"
       delivery_method_type: "courier" | "pickup" | "meetup" | "hand_delivery"
       delivery_proof_type:
         | "shipping_receipt"
@@ -2923,6 +2943,7 @@ export type Database = {
         | "seller_product_photo"
         | "supporting_document"
         | "other"
+        | "seller_additional_dispute_evidence"
       dispute_outcome_type:
         | "refund_buyer"
         | "release_funds_to_seller"
@@ -3213,6 +3234,8 @@ export const Constants = {
         "dispute_resolved",
         "verification_completed",
         "system_action",
+        "dispute_response_edited",
+        "dispute_evidence_replaced",
       ],
       delivery_method_type: ["courier", "pickup", "meetup", "hand_delivery"],
       delivery_proof_type: [
@@ -3237,6 +3260,7 @@ export const Constants = {
         "seller_product_photo",
         "supporting_document",
         "other",
+        "seller_additional_dispute_evidence",
       ],
       dispute_outcome_type: [
         "refund_buyer",
