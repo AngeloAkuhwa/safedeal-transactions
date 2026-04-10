@@ -1,108 +1,65 @@
 
 
-# Integrate Twilio Connector for Real SMS OTP
+# Batch 1 — Buyer Verification Completeness Audit
 
-## Overview
+## Status: Nearly Complete
 
-Replace the dev-mode OTP (code displayed on screen) with real SMS delivery via the Twilio connector, which is built into Lovable. The implementation uses a provider-agnostic pattern so switching to Termii or another provider later requires changing only the SMS sending function.
+All major pieces are built. Here is the item-by-item breakdown:
 
-## Setup
+---
 
-1. **Connect Twilio** — use the `standard_connectors--connect` tool to link Twilio to this project, which provides `TWILIO_API_KEY` and `LOVABLE_API_KEY` as environment variables automatically.
+## Tracking Checklist
 
-2. **Store the Twilio "From" phone number** — add a secret `TWILIO_FROM_NUMBER` with the Twilio phone number to send SMS from (e.g. `+1234567890`).
+| # | Item | Status | Notes |
+|---|---|---|---|
+| 1 | Phone OTP send works | DONE | `verify-phone` edge function, `send_otp` action with 6-digit code, SHA-256 hashing, stored in `phone_otp_codes` |
+| 2 | Phone OTP verify works | DONE | `verify_otp` action, hash comparison, marks `verified_at`, updates `account_verifications.phone_verified`, recomputes level |
+| 3 | Resend cooldown works | DONE | 60-second cooldown enforced server-side (lines 89-99 of verify-phone) |
+| 4 | Invalid attempt limits work | DONE | Max 5 attempts per code, max 3 sends per phone per hour, previous codes invalidated via `invalidated_at` |
+| 5 | State/City visible and saved | DONE | `PersonalInfoSection` shows location fields, `buyer-profile` PATCH handles `state_name`/`city_name`, recomputes verification level on save |
+| 6 | Verification level displays correctly | DONE | `AccountVerificationSection` shows trust level badge, progress bar ("X of 3 activation steps"), limits display, unlock messaging |
+| 7 | Protected payment locked until phone verification | DONE | `initiate-paystack-payment` checks `phoneVerified && locationComplete && levelPermits`, returns 403 with specific missing items |
+| 8 | Seller sees buyer trust badge | DONE | `BuyerTrustBadges` imported and rendered in `SellerTransactionDetail.tsx` (line 208) |
 
-## Code Change
+---
 
-**File:** `supabase/functions/verify-phone/index.ts`
+## Additional Batch 1 Requirements Check
 
-Replace lines 147-157 (the dev-mode OTP block) with a provider-abstracted SMS sender:
+| Requirement | Status | Notes |
+|---|---|---|
+| Verification levels enum (4 tiers) | DONE | `verification_level_type` enum with all 4 values in DB |
+| `compute_verification_level` function | DONE | DB function correctly computes unverified / basic_verified / trusted_buyer |
+| trusted/high-trust capped to basic limits | DONE | `buyer-profile` limits both to 50,000 / 1 concurrent with TODO comment for Batch 3 |
+| Feature lock flags (canStartProtectedPayment, canOpenDispute, canHoldActiveTransaction) | DONE | All three require `phoneVerified && hasLocation && level !== "unverified"` |
+| `requiresPhoneVerification` / `requiresLocation` flags | DONE | Returned in permissions object |
+| Phone Verification Modal (send, verify, success) | DONE | Full 3-step modal with dev OTP banner, cooldown timer, resend, change number |
+| Profile page shows verification progress | DONE | Progress bar, verification items list, feature lock banner, limits display |
+| OTP hashed storage | DONE | SHA-256 hashed before insert |
+| `invalidated_at` column for audit | DONE | Migration 017, used in verify-phone for old code invalidation |
+| Email verified from auth source of truth | DONE | `buyer-profile` reads `email_confirmed_at` from auth.users, not DB flag |
+| Phone data semantics documented | DONE | JSDoc in `profile.service.ts` |
+| Identity row shows "Coming Soon" | DONE | "Identity Verification — Coming Soon" with muted style in AccountVerificationSection |
+| Progress label says "activation steps" | DONE | "X of 3 activation steps completed" |
 
-```typescript
-// ── SMS Provider Abstraction ──
-// Currently: Twilio via Lovable connector gateway
-// To switch providers: replace sendSms() body only
+---
 
-async function sendSms(to: string, message: string): Promise<{ success: boolean; error?: string }> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY");
-  const TWILIO_FROM = Deno.env.get("TWILIO_FROM_NUMBER");
+## Gaps Found: 2 Minor Items
 
-  if (!LOVABLE_API_KEY || !TWILIO_API_KEY || !TWILIO_FROM) {
-    // No SMS provider configured — fall back to dev mode
-    return { success: false, error: "no_provider" };
-  }
+### 1. Dispute opening is not backend-gated (low priority)
+The `canOpenDispute` flag is returned to the frontend, but the `buyer-disputes` edge function does not explicitly check phone/location/level before allowing dispute creation. The RLS policy `buyers_insert_disputes` only checks transaction ownership. If a frontend bypass occurs, an unverified buyer could insert a dispute.
 
-  const GATEWAY_URL = "https://connector-gateway.lovable.dev/twilio";
+**Fix**: Add the same phone+location+level check to the disputes edge function.
 
-  const res = await fetch(`${GATEWAY_URL}/Messages.json`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-      "X-Connection-Api-Key": TWILIO_API_KEY,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      To: to,
-      From: TWILIO_FROM,
-      Body: message,
-    }),
-  });
+### 2. SMS delivery is dev-mode only
+OTP codes are returned in the response (`dev_otp` field) rather than sent via SMS. This is intentional and acknowledged — you plan to circle back for Twilio/Termii integration later.
 
-  if (!res.ok) {
-    const errBody = await res.text();
-    console.error("Twilio SMS error:", res.status, errBody);
-    return { success: false, error: `SMS delivery failed [${res.status}]` };
-  }
+**Not a blocker** — dev mode is functional for testing.
 
-  return { success: true };
-}
-```
+---
 
-Then in the `send_otp` block, replace the dev OTP return with:
+## Verdict
 
-```typescript
-const smsMessage = `Your SafeDeal code is ${code}. Expires in 10 minutes. Do not share.`;
-const smsResult = await sendSms(normalizedPhone, smsMessage);
+Batch 1 is **complete** with one minor backend hardening item (dispute gating). Everything else — data model, OTP flow, abuse protection, profile/location, verification display, payment gating, seller trust badges — is built and wired end-to-end.
 
-if (smsResult.error === "no_provider") {
-  // Dev fallback — no SMS provider configured
-  console.log(`[DEV] OTP for ${normalizedPhone}: ${code}`);
-  return jsonResponse({
-    success: true,
-    expires_in: 600,
-    message: "OTP sent (dev mode)",
-    dev_otp: code,
-  });
-}
-
-if (!smsResult.success) {
-  return jsonResponse({ error: "Failed to send SMS. Please try again." }, 500);
-}
-
-return jsonResponse({
-  success: true,
-  expires_in: 600,
-  message: "OTP sent to your phone",
-});
-```
-
-## Why This Design
-
-- **Provider-agnostic**: Only `sendSms()` knows about Twilio. To switch to Termii later, replace that one function.
-- **Graceful dev fallback**: If Twilio keys are not set, falls back to showing the OTP on screen — local development still works.
-- **No frontend changes needed**: The `PhoneVerificationModal` already handles both cases (shows dev OTP banner only when `dev_otp` is in the response).
-
-## Files Summary
-
-| File | Change |
-|---|---|
-| `supabase/functions/verify-phone/index.ts` | Add `sendSms()` abstraction with Twilio gateway call + dev fallback |
-
-## Steps to Execute
-
-1. Connect Twilio connector via `standard_connectors--connect`
-2. Add `TWILIO_FROM_NUMBER` secret
-3. Update edge function code
-4. Deploy and test
+Want me to fix the dispute backend gate now, or move on to the next batch?
 
