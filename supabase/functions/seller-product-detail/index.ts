@@ -130,9 +130,16 @@ async function handleGet(adminClient: any, userId: string, productId: string) {
     .eq("id", userId)
     .single();
 
+  // Parse delivery_methods from JSON string
+  let delivery_methods: string[] = [];
+  if (product.delivery_method) {
+    try { delivery_methods = JSON.parse(product.delivery_method); } catch { delivery_methods = [product.delivery_method]; }
+  }
+
   return jsonResponse({
     product: {
       ...product,
+      delivery_methods,
       media: enrichedMedia,
       category,
       store_slug: profileData?.store_slug || null,
@@ -161,8 +168,13 @@ async function handlePatch(adminClient: any, userId: string, productId: string, 
   const textFields = [
     "title", "short_description", "description", "condition_label",
     "sku", "brand", "model", "seller_notes", "agreement_terms",
-    "delivery_method", "currency_code",
+    "currency_code",
   ];
+
+  // Handle delivery_methods array
+  if (Array.isArray(body.delivery_methods)) {
+    updateData.delivery_method = body.delivery_methods.length > 0 ? JSON.stringify(body.delivery_methods) : null;
+  }
 
   for (const field of textFields) {
     if (body[field] !== undefined) {

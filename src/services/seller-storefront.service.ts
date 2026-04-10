@@ -17,7 +17,7 @@ interface CreateProductPayload {
   visibility_type?: string;
   seller_notes?: string;
   agreement_terms?: string;
-  delivery_method?: string;
+  delivery_methods?: string[];
   verification_window_hours?: number;
   file_ids?: Array<{ file_id: string; media_type: string }>;
   status?: string;
