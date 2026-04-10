@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
         for (const item of itemsRes.data) {
           itemMap.set(item.transaction_id, {
             title: item.title ?? "Untitled",
-            category: item.category ?? "",
+            category: item.condition_label ?? "",
             quantity: item.quantity ?? 1,
           });
         }
