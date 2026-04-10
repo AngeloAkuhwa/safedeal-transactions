@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Send, Loader2, Upload, X, Image, FileVideo } from "lucide-react";
+import { Send, Loader2, Upload, X, FileVideo } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,8 @@ import { getCloudinaryThumbnail } from "@/lib/cloudinary";
 interface SellerResponseFormProps {
   disputeId: string;
   onSuccess: () => void;
+  responseNumber?: number;
+  isFollowUp?: boolean;
 }
 
 interface UploadedFile {
@@ -32,7 +34,12 @@ async function computeFileHash(file: File): Promise<string> {
     .join("");
 }
 
-export function SellerResponseForm({ disputeId, onSuccess }: SellerResponseFormProps) {
+export function SellerResponseForm({
+  disputeId,
+  onSuccess,
+  responseNumber = 1,
+  isFollowUp = false,
+}: SellerResponseFormProps) {
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [files, setFiles] = useState<UploadedFile[]>([]);
@@ -62,7 +69,6 @@ export function SellerResponseForm({ disputeId, onSuccess }: SellerResponseFormP
       await uploadFile(file);
     }
 
-    // Reset input
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -70,7 +76,6 @@ export function SellerResponseForm({ disputeId, onSuccess }: SellerResponseFormP
     setUploading(true);
     const tempId = `temp-${Date.now()}-${Math.random()}`;
 
-    // Add placeholder
     setFiles((prev) => [
       ...prev,
       { fileId: tempId, previewUrl: "", fileName: file.name, mimeType: file.type, uploading: true },
@@ -80,15 +85,12 @@ export function SellerResponseForm({ disputeId, onSuccess }: SellerResponseFormP
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      // Sign upload
       const { data: signData, error: signErr } = await supabase.functions.invoke("upload-evidence", {
         headers: { Authorization: `Bearer ${session.access_token}` },
         body: { action: "sign_upload", context: "dispute_evidence" },
       });
-
       if (signErr || !signData) throw new Error("Failed to get upload signature");
 
-      // Upload to Cloudinary
       const formData = new FormData();
       formData.append("file", file);
       formData.append("api_key", signData.api_key);
@@ -104,12 +106,9 @@ export function SellerResponseForm({ disputeId, onSuccess }: SellerResponseFormP
       if (!uploadRes.ok) throw new Error("Cloudinary upload failed");
 
       const cloudinaryData = await uploadRes.json();
-
-      // Compute hash
       const fileHash = await computeFileHash(file);
-
-      // Register file
       const format = cloudinaryData.format || file.name.split(".").pop()?.toLowerCase() || "jpg";
+
       const { data: regData, error: regErr } = await supabase.functions.invoke("upload-evidence", {
         headers: { Authorization: `Bearer ${session.access_token}` },
         body: {
@@ -129,7 +128,6 @@ export function SellerResponseForm({ disputeId, onSuccess }: SellerResponseFormP
 
       if (regErr || !regData?.file_id) throw new Error("Failed to register file");
 
-      // Update placeholder with real data
       setFiles((prev) =>
         prev.map((f) =>
           f.fileId === tempId
@@ -146,7 +144,6 @@ export function SellerResponseForm({ disputeId, onSuccess }: SellerResponseFormP
     } catch (err) {
       console.error("Upload error:", err);
       toast.error(`Failed to upload ${file.name}`);
-      // Remove placeholder
       setFiles((prev) => prev.filter((f) => f.fileId !== tempId));
     } finally {
       setUploading(false);
@@ -176,7 +173,11 @@ export function SellerResponseForm({ disputeId, onSuccess }: SellerResponseFormP
         .map((f) => f.fileId);
 
       await submitSellerResponse(disputeId, text.trim(), evidenceIds);
-      toast.success("Response submitted successfully.");
+      toast.success(
+        isFollowUp
+          ? "Follow-up response submitted successfully."
+          : "Response submitted successfully."
+      );
       onSuccess();
     } catch (err) {
       toast.error((err as Error).message || "Failed to submit response.");
@@ -186,23 +187,31 @@ export function SellerResponseForm({ disputeId, onSuccess }: SellerResponseFormP
   };
 
   return (
-    <Card className="border-primary/20" id="respond">
+    <Card className="border-primary/20" id={isFollowUp ? "respond-followup" : "respond"}>
       <CardHeader className="bg-primary/5 border-b border-border pb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
             <Send className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-foreground">Submit Your Response</h3>
+            <h3 className="text-lg font-bold text-foreground">
+              {isFollowUp ? "Submit Follow-up Response" : "Submit Your Response"}
+            </h3>
             <p className="text-sm text-muted-foreground">
-              Explain your side clearly. Attach up to {MAX_FILES} evidence files.
+              {isFollowUp
+                ? `Response ${responseNumber} of 2. Add additional details to strengthen your case.`
+                : "Explain your side clearly. Attach up to 3 evidence files."}
             </p>
           </div>
         </div>
       </CardHeader>
       <CardContent className="p-6 space-y-4">
         <Textarea
-          placeholder="Describe your response to the buyer's claim. Include any relevant details about the item, delivery, or communication..."
+          placeholder={
+            isFollowUp
+              ? "Add additional details or clarifications to your case..."
+              : "Describe your response to the buyer's claim. Include any relevant details about the item, delivery, or communication..."
+          }
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={6}
@@ -210,7 +219,6 @@ export function SellerResponseForm({ disputeId, onSuccess }: SellerResponseFormP
           className="resize-none"
         />
 
-        {/* File previews */}
         {files.length > 0 && (
           <div className="flex flex-wrap gap-3">
             {files.map((file) => (
@@ -286,7 +294,7 @@ export function SellerResponseForm({ disputeId, onSuccess }: SellerResponseFormP
             ) : (
               <Send className="h-4 w-4" />
             )}
-            Submit Response
+            {isFollowUp ? "Submit Follow-up" : "Submit Response"}
           </Button>
         </div>
       </CardContent>

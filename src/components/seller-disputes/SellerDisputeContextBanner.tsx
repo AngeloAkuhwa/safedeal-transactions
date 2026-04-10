@@ -1,12 +1,14 @@
-import { AlertTriangle, Info, CheckCircle2, Lock } from "lucide-react";
+import { AlertTriangle, Info, CheckCircle2, Lock, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { SellerDisputeDetailResponse } from "@/services/seller-dispute-detail.service";
 
 interface SellerDisputeContextBannerProps {
   status: string;
   responseDueAt: string | null;
   isPayoutBlocked: boolean;
   hasResponse: boolean;
+  responseCount: number;
+  maxResponses: number;
+  additionalEvidenceSubmitted: boolean;
 }
 
 interface BannerConfig {
@@ -33,6 +35,9 @@ export function SellerDisputeContextBanner({
   responseDueAt,
   isPayoutBlocked,
   hasResponse,
+  responseCount,
+  maxResponses,
+  additionalEvidenceSubmitted,
 }: SellerDisputeContextBannerProps) {
   const banners: BannerConfig[] = [];
 
@@ -50,13 +55,29 @@ export function SellerDisputeContextBanner({
     });
   }
 
+  // Can still act banner (when open and has responded)
+  if ((status === "open" || status === "seller_response_pending") && hasResponse) {
+    const actions: string[] = [];
+    if (responseCount < maxResponses) actions.push("submit a follow-up response");
+    if (!additionalEvidenceSubmitted) actions.push("upload additional evidence");
+
+    if (actions.length > 0) {
+      banners.push({
+        icon: <MessageSquare className="h-5 w-5 flex-shrink-0" />,
+        title: "You can still respond to this case",
+        message: `You may ${actions.join(" and ")} to strengthen your position.`,
+        className: "border-primary/30 bg-primary/5 text-primary",
+      });
+    }
+  }
+
   // Under review banner
   if (status === "under_review") {
     banners.push({
       icon: <Info className="h-5 w-5 flex-shrink-0" />,
       title: "Case Under Review",
       message:
-        "This case is under review. Both your evidence and the buyer's claim are being evaluated by our team.",
+        "This case is under review. Both your evidence and the buyer's claim are being evaluated. New responses are disabled.",
       className: "border-primary/30 bg-primary/5 text-primary",
     });
   }
@@ -67,7 +88,7 @@ export function SellerDisputeContextBanner({
       icon: <CheckCircle2 className="h-5 w-5 flex-shrink-0" />,
       title: "Dispute Resolved",
       message:
-        "This dispute has been resolved. Review the final decision and payout impact below.",
+        "This dispute has been resolved. Review the final decision and payout impact below. Responses and evidence uploads are now locked.",
       className: "border-success/30 bg-success/5 text-success",
     });
   }

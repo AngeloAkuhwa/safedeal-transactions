@@ -1,7 +1,7 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, RefreshCw, ChevronRight, ArrowLeft, Clock } from "lucide-react";
+import { Loader2, RefreshCw, ChevronRight, ArrowLeft, Clock, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SellerNav } from "@/components/seller/SellerNav";
@@ -10,13 +10,13 @@ import { DisputeStatusBadge } from "@/components/disputes/DisputeStatusBadge";
 import { DisputeMoneyStatusBadge } from "@/components/disputes/DisputeMoneyStatusBadge";
 import { AgreementSnapshotSection } from "@/components/disputes/AgreementSnapshotSection";
 import { DeliveryProofSection } from "@/components/disputes/DeliveryProofSection";
-import { BuyerClaimSection } from "@/components/disputes/BuyerClaimSection";
-import { SellerResponseSection } from "@/components/disputes/SellerResponseSection";
 import { DisputeSupportCard } from "@/components/disputes/DisputeSupportCard";
-import { SellerResponseForm } from "@/components/seller-disputes/SellerResponseForm";
 import { SellerPayoutImpactCard } from "@/components/seller-disputes/SellerPayoutImpactCard";
 import { SellerDisputeContextBanner } from "@/components/seller-disputes/SellerDisputeContextBanner";
 import { SellerDisputeTimeline } from "@/components/seller-disputes/SellerDisputeTimeline";
+import { SellerViewBuyerClaim } from "@/components/seller-disputes/SellerViewBuyerClaim";
+import { SellerDisputeResponseSection } from "@/components/seller-disputes/SellerDisputeResponseSection";
+import { SellerEvidenceSection } from "@/components/seller-disputes/SellerEvidenceSection";
 import { getSellerDisputeDetail } from "@/services/seller-dispute-detail.service";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -70,7 +70,6 @@ const SellerDisputeDetail = () => {
     staleTime: 30_000,
   });
 
-  // Auto-scroll to section from query param
   useEffect(() => {
     if (data && section && !scrolledRef.current) {
       scrolledRef.current = true;
@@ -83,9 +82,8 @@ const SellerDisputeDetail = () => {
     }
   }, [data, section]);
 
-  const showResponseForm =
+  const isRespondable =
     data &&
-    !data.seller_response.has_response &&
     (data.dispute.status === "open" || data.dispute.status === "seller_response_pending");
 
   const deadlineText = data?.dispute.seller_response_due_at
@@ -148,7 +146,7 @@ const SellerDisputeDetail = () => {
           {/* Content */}
           {data && !isLoading && !isError && (
             <>
-              {/* ═══ OVERVIEW SECTION ═══ */}
+              {/* ═══ OVERVIEW ═══ */}
               <div id="overview" className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
@@ -161,8 +159,7 @@ const SellerDisputeDetail = () => {
                 <div className="flex items-center gap-2 flex-wrap">
                   <DisputeStatusBadge status={data.dispute.status} />
                   <DisputeMoneyStatusBadge status={data.transaction.money_status} />
-                  {/* Response deadline badge */}
-                  {deadlineText && showResponseForm && (
+                  {deadlineText && isRespondable && !data.seller_response.has_response && (
                     <Badge
                       variant="outline"
                       className={cn(
@@ -185,6 +182,9 @@ const SellerDisputeDetail = () => {
                 responseDueAt={data.dispute.seller_response_due_at}
                 isPayoutBlocked={data.payout_impact.is_blocked}
                 hasResponse={data.seller_response.has_response}
+                responseCount={data.seller_response.response_count}
+                maxResponses={data.seller_response.max_responses}
+                additionalEvidenceSubmitted={data.seller_response.additional_evidence_submitted}
               />
 
               {/* ═══ 2-COLUMN LAYOUT ═══ */}
@@ -262,96 +262,53 @@ const SellerDisputeDetail = () => {
                   </div>
 
                   {/* ═══ BUYER CLAIM ═══ */}
-                  <div id="claim">
-                    <BuyerClaimSection
-                      reasonLabel={data.dispute.reason_label}
-                      claim={data.buyer_claim}
-                    />
-                  </div>
+                  <SellerViewBuyerClaim
+                    reasonLabel={data.dispute.reason_label}
+                    description={data.buyer_claim.description}
+                    evidence={data.buyer_claim.evidence}
+                    buyerName={data.buyer?.name ?? null}
+                  />
 
-                  {/* ═══ SELLER RESPONSE / FORM ═══ */}
-                  {showResponseForm ? (
-                    <SellerResponseForm
-                      disputeId={data.dispute.id}
-                      onSuccess={() => refetch()}
-                    />
-                  ) : (
-                    <div id="respond">
-                      <SellerResponseSection
-                        sellerResponse={data.seller_response}
-                        responseDueAt={data.dispute.seller_response_due_at}
-                      />
-                    </div>
-                  )}
+                  {/* ═══ SELLER RESPONSE ═══ */}
+                  <SellerDisputeResponseSection
+                    disputeId={data.dispute.id}
+                    disputeStatus={data.dispute.status}
+                    responses={data.seller_response.responses}
+                    responseCount={data.seller_response.response_count}
+                    maxResponses={data.seller_response.max_responses}
+                    onRefetch={() => refetch()}
+                  />
+
+                  {/* ═══ SELLER EVIDENCE ═══ */}
+                  <SellerEvidenceSection
+                    disputeId={data.dispute.id}
+                    disputeStatus={data.dispute.status}
+                    sellerEvidence={data.seller_response.evidence}
+                    deliveryProofFiles={data.delivery_proof.files}
+                    additionalEvidenceSubmitted={data.seller_response.additional_evidence_submitted}
+                    disputeOpenedAt={data.dispute.opened_at}
+                    onRefetch={() => refetch()}
+                  />
 
                   {/* ═══ AGREEMENT SNAPSHOT ═══ */}
                   <div id="agreement">
                     <AgreementSnapshotSection snapshot={data.agreement_snapshot} />
+                    {data.agreement_snapshot && (
+                      <div className="mt-3">
+                        <Button variant="outline" asChild className="gap-2">
+                          <Link to={`/seller/transactions/${data.transaction.id}/agreement`}>
+                            <FileText className="h-4 w-4" />
+                            View Full Agreement
+                          </Link>
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* ═══ DELIVERY PROOF ═══ */}
                   <div id="delivery">
                     <DeliveryProofSection deliveryProof={data.delivery_proof} />
                   </div>
-
-                  {/* ═══ EVIDENCE GALLERY ═══ */}
-                  {(data.buyer_claim.evidence.length > 0 || data.seller_response.evidence.length > 0) && (
-                    <div id="evidence" className="rounded-2xl border bg-card overflow-hidden">
-                      <div className="bg-muted/50 border-b border-border p-4 sm:p-6">
-                        <h3 className="text-lg font-bold text-foreground">Evidence Gallery</h3>
-                      </div>
-                      <div className="p-4 sm:p-6">
-                        <div className="grid md:grid-cols-2 gap-6">
-                          {/* Buyer evidence */}
-                          <div>
-                            <p className="text-sm font-semibold text-foreground mb-3">
-                              Buyer Evidence ({data.buyer_claim.evidence.length})
-                            </p>
-                            {data.buyer_claim.evidence.length === 0 ? (
-                              <p className="text-xs text-muted-foreground">No evidence submitted</p>
-                            ) : (
-                              <div className="grid grid-cols-2 gap-2">
-                                {data.buyer_claim.evidence.map((e) => (
-                                  <div key={e.id} className="rounded-lg border overflow-hidden">
-                                    {e.file_url && e.mime_type?.startsWith("image/") ? (
-                                      <img src={e.file_url} alt={e.file_name ?? ""} className="w-full h-24 object-cover" />
-                                    ) : (
-                                      <div className="w-full h-24 bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                                        {e.file_name ?? "File"}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          {/* Seller evidence */}
-                          <div>
-                            <p className="text-sm font-semibold text-foreground mb-3">
-                              Seller Evidence ({data.seller_response.evidence.length})
-                            </p>
-                            {data.seller_response.evidence.length === 0 ? (
-                              <p className="text-xs text-muted-foreground">No evidence submitted</p>
-                            ) : (
-                              <div className="grid grid-cols-2 gap-2">
-                                {data.seller_response.evidence.map((e) => (
-                                  <div key={e.id} className="rounded-lg border overflow-hidden">
-                                    {e.file_url && e.mime_type?.startsWith("image/") ? (
-                                      <img src={e.file_url} alt={e.file_name ?? ""} className="w-full h-24 object-cover" />
-                                    ) : (
-                                      <div className="w-full h-24 bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                                        {e.file_name ?? "File"}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   {/* ═══ RESOLUTION ═══ */}
                   {data.outcome && (
@@ -391,7 +348,6 @@ const SellerDisputeDetail = () => {
                             </p>
                           </div>
                         </div>
-                        {/* Payout effect */}
                         <div className="bg-muted/50 rounded-lg p-3">
                           <p className="text-xs text-foreground">
                             {data.outcome.release_amount > 0 && data.outcome.refund_amount > 0
