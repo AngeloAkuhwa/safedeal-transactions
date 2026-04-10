@@ -314,6 +314,7 @@ export default function BuyerTransactionReview() {
                 onDecline={handleDecline}
                 authState={authState}
                 canPay={canPay}
+                lockReason={lockReason}
                 onGoToProfile={() => navigate("/dashboard/profile")}
               />
               <PaymentSummaryCard data={data} currencySymbol={currencySymbol} itemAmount={itemAmount} feeAmount={feeAmount} feeRate={feeRate} totalAmount={totalAmount} />
