@@ -115,10 +115,10 @@ export function AccountVerificationSection({
     },
     {
       key: "identity",
-      label: "Identity Verification",
+      label: "Identity Verification — Coming Soon",
       icon: CreditCard,
       verified: verification.identity_verified,
-      description: verification.identity_verified ? "Identity verified" : "Coming in a future update",
+      description: verification.identity_verified ? "Identity verified" : "Will unlock higher limits in a future update",
       actionLabel: undefined,
       onAction: undefined,
     },
@@ -141,7 +141,7 @@ export function AccountVerificationSection({
         {/* Progress bar */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">{completedSteps} of 3 steps completed</span>
+            <span className="text-muted-foreground">{completedSteps} of 3 activation steps completed</span>
             <span className="font-medium text-foreground">{progressPercent}%</span>
           </div>
           <Progress value={progressPercent} className="h-2" />

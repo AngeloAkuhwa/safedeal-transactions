@@ -51,10 +51,24 @@ Deno.serve(async (req) => {
       .eq("user_id", userId)
       .single();
 
-    if (!verif?.phone_verified || verif?.verification_level === "unverified") {
+    const { data: prof } = await supabaseAdmin
+      .from("profiles")
+      .select("state_name, city_name")
+      .eq("id", userId)
+      .single();
+
+    const phoneVerified = !!verif?.phone_verified;
+    const locationComplete = !!(prof?.state_name && prof?.city_name);
+    const levelPermits = verif?.verification_level !== "unverified";
+
+    if (!phoneVerified || !locationComplete || !levelPermits) {
+      const missing: string[] = [];
+      if (!phoneVerified) missing.push("phone verification");
+      if (!locationComplete) missing.push("location (state and city)");
+      if (!levelPermits) missing.push("account activation");
       return new Response(
         JSON.stringify({
-          error: "Phone verification required before making payments. Please verify your phone number in Profile Settings.",
+          error: `Complete the following before making payments: ${missing.join(", ")}. Go to Profile Settings to continue.`,
         }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

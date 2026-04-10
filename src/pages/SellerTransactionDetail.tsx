@@ -204,12 +204,12 @@ const SellerTransactionDetail = () => {
                 <p className="text-xs font-semibold text-muted-foreground uppercase">Phone</p>
                 <p className="text-sm text-foreground">{buyer.phone || "—"}</p>
               </div>
-              {buyer.is_verified && (
-                <div className="inline-flex items-center gap-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full px-3 py-1 text-xs font-semibold">
-                  <CheckCircle className="h-3 w-3" />
-                  Verified Buyer
-                </div>
-              )}
+              <BuyerTrustBadges
+                emailVerified={!!buyer.email_verified}
+                phoneVerified={!!buyer.phone_verified}
+                verificationLevel={(buyer.verification_level as any) || "unverified"}
+                size="sm"
+              />
             </div>
           </Card>
 

@@ -2,6 +2,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type VerificationLevel = 'unverified' | 'basic_verified' | 'trusted_buyer' | 'high_trust_buyer';
 
+/**
+ * Buyer profile data from the profiles table.
+ * NOTE: `phone` stores the submitted phone number — it is NOT proof of verification.
+ * The actual trust signal is `account_verifications.phone_verified`.
+ */
 export interface BuyerProfile {
   id: string;
   full_name: string;

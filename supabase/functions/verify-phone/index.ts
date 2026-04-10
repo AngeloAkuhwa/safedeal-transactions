@@ -113,9 +113,10 @@ Deno.serve(async (req) => {
       // Invalidate all previous unverified codes for this user
       await supabase
         .from("phone_otp_codes")
-        .update({ expires_at: new Date().toISOString() })
+        .update({ invalidated_at: new Date().toISOString() })
         .eq("user_id", userId)
-        .is("verified_at", null);
+        .is("verified_at", null)
+        .is("invalidated_at", null);
 
       // Generate 6-digit code
       const code = String(Math.floor(100000 + Math.random() * 900000));
@@ -163,12 +164,13 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: "Code must be exactly 6 digits" }, 400);
       }
 
-      // Find latest unexpired, unverified code for this user
+      // Find latest unexpired, non-invalidated, unverified code for this user
       const { data: otpRecord, error: otpErr } = await supabase
         .from("phone_otp_codes")
         .select("*")
         .eq("user_id", userId)
         .is("verified_at", null)
+        .is("invalidated_at", null)
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false })
         .limit(1)
