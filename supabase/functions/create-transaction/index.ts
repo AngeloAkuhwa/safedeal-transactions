@@ -220,16 +220,16 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
 // ── Seller tiered limits ──
 const SELLER_LIMIT_BY_LEVEL: Record<string, number> = {
   unverified: 0,
-  basic_verified: 100_000,
-  trusted_buyer: 500_000,
-  high_trust_buyer: 1_000_000,
+  basic_verified: 50_000,
+  trusted_buyer: 200_000,
+  high_trust_buyer: 500_000,
 };
 
 const SELLER_CONCURRENT_BY_LEVEL: Record<string, number> = {
   unverified: 0,
-  basic_verified: 2,
-  trusted_buyer: 5,
-  high_trust_buyer: 10,
+  basic_verified: 1,
+  trusted_buyer: 3,
+  high_trust_buyer: 5,
 };
 
 const SELLER_ACTIVE_STATUSES = [

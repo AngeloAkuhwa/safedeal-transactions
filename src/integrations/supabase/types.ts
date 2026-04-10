@@ -1123,12 +1123,14 @@ export type Database = {
       identity_submissions: {
         Row: {
           consent_accepted_at: string
+          consent_text_version: string
           created_at: string
           date_of_birth: string | null
           document_file_id: string | null
           id: string
           legal_name: string
           masked_identifier: string | null
+          previous_submission_id: string | null
           provider_reference: string | null
           rejected_at: string | null
           rejection_reason: string | null
@@ -1143,12 +1145,14 @@ export type Database = {
         }
         Insert: {
           consent_accepted_at: string
+          consent_text_version?: string
           created_at?: string
           date_of_birth?: string | null
           document_file_id?: string | null
           id?: string
           legal_name: string
           masked_identifier?: string | null
+          previous_submission_id?: string | null
           provider_reference?: string | null
           rejected_at?: string | null
           rejection_reason?: string | null
@@ -1163,12 +1167,14 @@ export type Database = {
         }
         Update: {
           consent_accepted_at?: string
+          consent_text_version?: string
           created_at?: string
           date_of_birth?: string | null
           document_file_id?: string | null
           id?: string
           legal_name?: string
           masked_identifier?: string | null
+          previous_submission_id?: string | null
           provider_reference?: string | null
           rejected_at?: string | null
           rejection_reason?: string | null
@@ -1187,6 +1193,13 @@ export type Database = {
             columns: ["document_file_id"]
             isOneToOne: false
             referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "identity_submissions_previous_submission_id_fkey"
+            columns: ["previous_submission_id"]
+            isOneToOne: false
+            referencedRelation: "identity_submissions"
             referencedColumns: ["id"]
           },
           {

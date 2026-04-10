@@ -4,7 +4,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  "Access-Control-Allow-Methods": "PATCH, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, PATCH, OPTIONS",
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (req.method !== "PATCH") {
+  if (req.method !== "PATCH" && req.method !== "GET") {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
@@ -49,6 +49,66 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Admin role required" }, 403);
     }
 
+    // ── GET: Review queue ──
+    if (req.method === "GET") {
+      const url = new URL(req.url);
+      const statusFilter = url.searchParams.get("status") || "pending_review";
+      const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+      const perPage = Math.min(50, Math.max(1, parseInt(url.searchParams.get("per_page") || "20", 10)));
+      const offset = (page - 1) * perPage;
+
+      const validStatuses = ["pending_review", "verified", "rejected", "more_info_needed"];
+      if (!validStatuses.includes(statusFilter)) {
+        return jsonResponse({ error: "Invalid status filter" }, 400);
+      }
+
+      // Count total
+      const { count } = await adminClient
+        .from("identity_submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("status", statusFilter);
+
+      // Fetch submissions with submitter info
+      const { data: submissions, error: fetchError } = await adminClient
+        .from("identity_submissions")
+        .select("id, user_id, status, verification_method, legal_name, date_of_birth, masked_identifier, consent_accepted_at, consent_text_version, submitted_at, reviewed_at, reviewed_by, review_notes, rejected_at, rejection_reason, previous_submission_id, created_at")
+        .eq("status", statusFilter)
+        .order("submitted_at", { ascending: true })
+        .range(offset, offset + perPage - 1);
+
+      if (fetchError) {
+        return jsonResponse({ error: fetchError.message }, 500);
+      }
+
+      // Enrich with submitter profile data
+      const userIds = [...new Set((submissions || []).map((s: any) => s.user_id))];
+      let profileMap: Record<string, any> = {};
+      let verifMap: Record<string, any> = {};
+
+      if (userIds.length > 0) {
+        const [profileRes, verifRes] = await Promise.all([
+          adminClient.from("profiles").select("id, full_name, email, phone").in("id", userIds),
+          adminClient.from("account_verifications").select("user_id, verification_level").in("user_id", userIds),
+        ]);
+        for (const p of profileRes.data || []) profileMap[p.id] = p;
+        for (const v of verifRes.data || []) verifMap[v.user_id] = v;
+      }
+
+      const enriched = (submissions || []).map((s: any) => ({
+        ...s,
+        submitter: profileMap[s.user_id] || null,
+        verification_level: verifMap[s.user_id]?.verification_level || "unverified",
+      }));
+
+      return jsonResponse({
+        submissions: enriched,
+        total: count ?? 0,
+        page,
+        per_page: perPage,
+      });
+    }
+
+    // ── PATCH: Approve / Reject / More Info ──
     let body: Record<string, unknown>;
     try {
       body = await req.json();
@@ -85,7 +145,6 @@ Deno.serve(async (req) => {
     const reviewNotes = typeof body.review_notes === "string" ? body.review_notes : null;
 
     if (decision === "approve") {
-      // Update submission
       await adminClient
         .from("identity_submissions")
         .update({
@@ -96,13 +155,11 @@ Deno.serve(async (req) => {
         })
         .eq("id", submissionId);
 
-      // Set identity_verified = true
       await adminClient
         .from("account_verifications")
         .update({ identity_verified: true })
         .eq("user_id", submission.user_id);
 
-      // Recompute verification level
       const { data: newLevel } = await adminClient.rpc("compute_verification_level", {
         _user_id: submission.user_id,
       });
@@ -113,7 +170,6 @@ Deno.serve(async (req) => {
           .eq("user_id", submission.user_id);
       }
 
-      // Audit log
       await adminClient.from("audit_logs").insert({
         action: "identity_verified",
         actor_user_id: adminUserId,
