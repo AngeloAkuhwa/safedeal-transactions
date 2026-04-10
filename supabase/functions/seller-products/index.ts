@@ -1,0 +1,319 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .substring(0, 80);
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return jsonResponse({ error: "Not authenticated" }, 401);
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const token = authHeader.replace("Bearer ", "");
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    const { data: userData, error: userError } = await adminClient.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return jsonResponse({ error: "Invalid session" }, 401);
+    }
+    const userId = userData.user.id;
+
+    const { data: hasRole } = await adminClient.rpc("has_role", {
+      _user_id: userId,
+      _role: "seller",
+    });
+    if (!hasRole) {
+      return jsonResponse({ error: "Seller role required" }, 403);
+    }
+
+    if (req.method === "POST") {
+      return await handleCreate(adminClient, userId, req);
+    }
+
+    if (req.method === "GET") {
+      return await handleList(adminClient, userId, req);
+    }
+
+    return jsonResponse({ error: "Method not allowed" }, 405);
+  } catch (err) {
+    console.error("seller-products error:", err);
+    return jsonResponse({ error: "Internal server error" }, 500);
+  }
+});
+
+async function handleCreate(adminClient: any, userId: string, req: Request) {
+  const body = await req.json().catch(() => null);
+  if (!body) return jsonResponse({ error: "Invalid request body" }, 400);
+
+  const {
+    title, category_id, short_description, description, condition_label,
+    sku, brand, model, currency_code, unit_price, stock_quantity,
+    visibility_type, seller_notes, agreement_terms, delivery_method,
+    verification_window_hours, file_ids, status: requestedStatus,
+  } = body;
+
+  if (!title || typeof title !== "string" || title.trim().length < 2) {
+    return jsonResponse({ error: "Title is required (min 2 characters)" }, 400);
+  }
+  if (!description || typeof description !== "string" || description.trim().length < 10) {
+    return jsonResponse({ error: "Description is required (min 10 characters)" }, 400);
+  }
+  if (unit_price == null || isNaN(Number(unit_price)) || Number(unit_price) <= 0) {
+    return jsonResponse({ error: "Valid unit price is required" }, 400);
+  }
+
+  // Generate slug with collision handling
+  let baseSlug = slugify(title.trim());
+  if (!baseSlug) baseSlug = "product";
+  let slug = baseSlug;
+  let attempt = 0;
+
+  while (true) {
+    const { data: existing } = await adminClient
+      .from("products")
+      .select("id")
+      .eq("seller_id", userId)
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (!existing) break;
+    attempt++;
+    slug = `${baseSlug}-${attempt + 1}`;
+    if (attempt > 20) {
+      slug = `${baseSlug}-${Date.now()}`;
+      break;
+    }
+  }
+
+  // Auto-generate store_slug if missing
+  const { data: profile } = await adminClient
+    .from("profiles")
+    .select("store_slug, full_name")
+    .eq("id", userId)
+    .single();
+
+  if (!profile?.store_slug) {
+    let storeSlug = slugify(profile?.full_name || "store");
+    if (!storeSlug) storeSlug = "store";
+    let storeAttempt = 0;
+
+    while (true) {
+      const { data: existing } = await adminClient
+        .from("profiles")
+        .select("id")
+        .eq("store_slug", storeSlug)
+        .maybeSingle();
+
+      if (!existing) break;
+      storeAttempt++;
+      storeSlug = `${slugify(profile?.full_name || "store")}-${storeAttempt + 1}`;
+      if (storeAttempt > 20) {
+        storeSlug = `store-${Date.now()}`;
+        break;
+      }
+    }
+
+    await adminClient
+      .from("profiles")
+      .update({ store_slug: storeSlug })
+      .eq("id", userId);
+  }
+
+  const finalStatus = requestedStatus === "published" ? "published" : "draft";
+
+  const productData: Record<string, unknown> = {
+    seller_id: userId,
+    title: title.trim(),
+    slug,
+    description: description.trim(),
+    currency_code: currency_code || "NGN",
+    unit_price: Number(unit_price),
+    stock_quantity: Math.max(0, parseInt(stock_quantity) || 0),
+    visibility_type: visibility_type || "public",
+    status: finalStatus,
+    is_active: true,
+  };
+
+  if (category_id) productData.category_id = category_id;
+  if (short_description) productData.short_description = short_description.trim();
+  if (condition_label) productData.condition_label = condition_label.trim();
+  if (sku) productData.sku = sku.trim();
+  if (brand) productData.brand = brand.trim();
+  if (model) productData.model = model.trim();
+  if (seller_notes) productData.seller_notes = seller_notes.trim();
+  if (agreement_terms) productData.agreement_terms = agreement_terms.trim();
+  if (delivery_method) productData.delivery_method = delivery_method;
+  if (verification_window_hours != null) productData.verification_window_hours = parseInt(verification_window_hours);
+  if (finalStatus === "published") productData.published_at = new Date().toISOString();
+
+  const { data: product, error: insertError } = await adminClient
+    .from("products")
+    .insert(productData)
+    .select("id, slug")
+    .single();
+
+  if (insertError) {
+    console.error("Product insert error:", insertError);
+    return jsonResponse({ error: "Failed to create product" }, 500);
+  }
+
+  // Link media files
+  if (Array.isArray(file_ids) && file_ids.length > 0) {
+    const mediaRows = file_ids.map((fid: { file_id: string; media_type?: string }, idx: number) => ({
+      product_id: product.id,
+      file_id: typeof fid === "string" ? fid : fid.file_id,
+      media_type: (typeof fid === "object" && fid.media_type) || "image",
+      sort_order: idx,
+      is_primary: idx === 0,
+    }));
+
+    await adminClient.from("product_media").insert(mediaRows);
+
+    // Mark files as non-temporary
+    const ids = mediaRows.map((r: any) => r.file_id);
+    await adminClient
+      .from("files")
+      .update({ is_temporary: false })
+      .in("id", ids);
+  }
+
+  return jsonResponse({ product_id: product.id, slug: product.slug }, 201);
+}
+
+async function handleList(adminClient: any, userId: string, req: Request) {
+  const url = new URL(req.url);
+  const statusFilter = url.searchParams.get("status") || "all";
+  const visibilityFilter = url.searchParams.get("visibility") || "all";
+  const categoryFilter = url.searchParams.get("category") || "all";
+  const search = (url.searchParams.get("search") || "").trim().toLowerCase();
+  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
+  const pageSize = 20;
+  const offset = (page - 1) * pageSize;
+
+  let query = adminClient
+    .from("products")
+    .select(`
+      id, title, slug, short_description, unit_price, currency_code,
+      stock_quantity, reserved_quantity, status, visibility_type, is_active,
+      category_id, published_at, created_at, updated_at,
+      product_media!inner(id, file_id, media_type, sort_order, is_primary)
+    `, { count: "exact" })
+    .eq("seller_id", userId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + pageSize - 1);
+
+  // Re-do without inner join to include products with no media
+  query = adminClient
+    .from("products")
+    .select(`
+      id, title, slug, short_description, unit_price, currency_code,
+      stock_quantity, reserved_quantity, status, visibility_type, is_active,
+      category_id, published_at, created_at, updated_at
+    `, { count: "exact" })
+    .eq("seller_id", userId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + pageSize - 1);
+
+  if (statusFilter !== "all") {
+    query = query.eq("status", statusFilter);
+  }
+  if (visibilityFilter !== "all") {
+    query = query.eq("visibility_type", visibilityFilter);
+  }
+  if (categoryFilter !== "all") {
+    query = query.eq("category_id", categoryFilter);
+  }
+  if (search) {
+    query = query.or(`title.ilike.%${search}%,short_description.ilike.%${search}%`);
+  }
+
+  const { data: products, error, count } = await query;
+  if (error) {
+    console.error("Products list error:", error);
+    return jsonResponse({ error: "Failed to load products" }, 500);
+  }
+
+  // Fetch primary media for each product
+  const productIds = (products || []).map((p: any) => p.id);
+  let mediaMap: Record<string, any> = {};
+
+  if (productIds.length > 0) {
+    const { data: mediaRows } = await adminClient
+      .from("product_media")
+      .select("product_id, file_id, media_type, is_primary, sort_order")
+      .in("product_id", productIds)
+      .eq("is_primary", true);
+
+    if (mediaRows) {
+      for (const m of mediaRows) {
+        mediaMap[m.product_id] = m;
+      }
+    }
+
+    // Fetch file URLs for primary media
+    const fileIds = Object.values(mediaMap).map((m: any) => m.file_id);
+    if (fileIds.length > 0) {
+      const { data: files } = await adminClient
+        .from("files")
+        .select("id, file_url, secure_url")
+        .in("id", fileIds);
+
+      if (files) {
+        const fileUrlMap: Record<string, string> = {};
+        for (const f of files) {
+          fileUrlMap[f.id] = f.secure_url || f.file_url;
+        }
+        for (const pid of Object.keys(mediaMap)) {
+          mediaMap[pid].file_url = fileUrlMap[mediaMap[pid].file_id] || null;
+        }
+      }
+    }
+  }
+
+  // Get store slug
+  const { data: profileData } = await adminClient
+    .from("profiles")
+    .select("store_slug")
+    .eq("id", products?.[0]?.seller_id || "00000000-0000-0000-0000-000000000000")
+    .maybeSingle();
+
+  const enriched = (products || []).map((p: any) => ({
+    ...p,
+    primary_image_url: mediaMap[p.id]?.file_url || null,
+  }));
+
+  return jsonResponse({
+    products: enriched,
+    total: count || 0,
+    page,
+    page_size: pageSize,
+    store_slug: profileData?.store_slug || null,
+  });
+}
