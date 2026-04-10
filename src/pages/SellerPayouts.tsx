@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
   Loader2, RefreshCw, Wallet, TrendingUp, Shield, AlertTriangle,
-  Search, Filter, Download, Clock, ArrowRight, CheckCircle2,
-  CreditCard, Banknote, Send, ExternalLink, RotateCcw, HeadphonesIcon,
+  Search, Filter, Download, Clock, CheckCircle2,
+  CreditCard, Banknote, Send, RotateCcw,
   Eye, FileText, AlertCircle, ChevronLeft, ChevronRight, Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,10 +17,11 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
 import { SellerNav } from "@/components/seller/SellerNav";
 import { Footer } from "@/components/landing/Footer";
-import { getSellerPayouts } from "@/services/seller-payouts.service";
+import { EditPayoutDetailsModal } from "@/components/seller/EditPayoutDetailsModal";
+import { getSellerPayouts, updatePayoutAccount } from "@/services/seller-payouts.service";
+import { toast } from "@/hooks/use-toast";
 import type { PayoutHistoryItem, UpcomingRelease, BlockedFund } from "@/services/seller-payouts.service";
 
 function formatCurrency(amount: number) {
@@ -43,11 +44,46 @@ function PayoutStatusBadge({ status }: { status: string }) {
   return <Badge variant="outline" className={cfg.className}>{cfg.label}</Badge>;
 }
 
+function RowAction({ row, onFixPayout }: { row: PayoutHistoryItem; onFixPayout: () => void }) {
+  if (row.status === "completed") {
+    return (
+      <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+        <Link to={`/seller/transactions/${row.transaction_id}`}>
+          <Eye className="h-3 w-3 mr-1" /> View Payout
+        </Link>
+      </Button>
+    );
+  }
+  if (row.status === "failed") {
+    return (
+      <Button
+        variant="ghost" size="sm"
+        className="h-7 text-xs text-destructive"
+        onClick={() => toast({ title: "Retry queued", description: "Payout retry has been queued. Please check back shortly." })}
+      >
+        <RotateCcw className="h-3 w-3 mr-1" /> Retry
+      </Button>
+    );
+  }
+  if (row.status === "pending" || row.status === "processing") {
+    return (
+      <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+        <Link to={`/seller/transactions/${row.transaction_id}`}>
+          <Eye className="h-3 w-3 mr-1" /> View Transaction
+        </Link>
+      </Button>
+    );
+  }
+  return null;
+}
+
 const SellerPayouts = () => {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["seller-payouts", page, statusFilter, search],
@@ -59,6 +95,17 @@ const SellerPayouts = () => {
   const handleSearch = () => {
     setSearch(searchInput);
     setPage(1);
+  };
+
+  const handleSavePayoutAccount = async (accountData: {
+    bank_code: string;
+    bank_name: string;
+    account_number: string;
+    account_name: string;
+  }) => {
+    await updatePayoutAccount(accountData);
+    toast({ title: "Payout account updated", description: "Your bank details have been saved successfully." });
+    queryClient.invalidateQueries({ queryKey: ["seller-payouts"] });
   };
 
   if (isLoading) {
@@ -243,7 +290,14 @@ const SellerPayouts = () => {
                           {payout_history.map((row: PayoutHistoryItem) => (
                             <TableRow key={row.payout_id_full}>
                               <TableCell className="font-mono text-xs">{row.payout_id}</TableCell>
-                              <TableCell className="font-medium text-xs">{row.transaction_code}</TableCell>
+                              <TableCell className="font-medium text-xs">
+                                <Link
+                                  to={`/seller/transactions/${row.transaction_id}`}
+                                  className="text-primary hover:underline"
+                                >
+                                  {row.transaction_code}
+                                </Link>
+                              </TableCell>
                               <TableCell className="hidden md:table-cell text-sm">{row.buyer_name}</TableCell>
                               <TableCell className="hidden lg:table-cell text-sm max-w-[120px] truncate">{row.item_title}</TableCell>
                               <TableCell className="text-right hidden sm:table-cell text-sm">{formatCurrency(row.gross_amount)}</TableCell>
@@ -252,25 +306,7 @@ const SellerPayouts = () => {
                               <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(row.release_date)}</TableCell>
                               <TableCell><PayoutStatusBadge status={row.status} /></TableCell>
                               <TableCell className="text-right">
-                                {row.status === "completed" && (
-                                  <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
-                                    <Link to={`/seller/transactions/${row.transaction_id}`}>
-                                      <Eye className="h-3 w-3 mr-1" /> View
-                                    </Link>
-                                  </Button>
-                                )}
-                                {row.status === "failed" && (
-                                  <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive">
-                                    <RotateCcw className="h-3 w-3 mr-1" /> Retry
-                                  </Button>
-                                )}
-                                {(row.status === "pending" || row.status === "processing") && (
-                                  <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
-                                    <Link to={`/seller/transactions/${row.transaction_id}`}>
-                                      <Eye className="h-3 w-3 mr-1" /> Details
-                                    </Link>
-                                  </Button>
-                                )}
+                                <RowAction row={row} onFixPayout={() => setEditModalOpen(true)} />
                               </TableCell>
                             </TableRow>
                           ))}
@@ -321,7 +357,9 @@ const SellerPayouts = () => {
                   upcoming_releases.map((r: UpcomingRelease) => (
                     <div key={r.transaction_id} className="border rounded-xl p-3.5 space-y-2 hover:bg-muted/30 transition-colors">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono text-muted-foreground">{r.transaction_code}</span>
+                        <Link to={`/seller/transactions/${r.transaction_id}`} className="text-xs font-mono text-primary hover:underline">
+                          {r.transaction_code}
+                        </Link>
                         <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs">{r.release_trigger}</Badge>
                       </div>
                       <p className="text-sm font-medium text-foreground truncate">{r.item_title}</p>
@@ -348,7 +386,9 @@ const SellerPayouts = () => {
                   {blocked_funds.map((b: BlockedFund) => (
                     <div key={b.transaction_id} className="border border-warning/20 bg-warning/[0.03] rounded-xl p-3.5 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono text-muted-foreground">{b.transaction_code}</span>
+                        <Link to={`/seller/transactions/${b.transaction_id}`} className="text-xs font-mono text-primary hover:underline">
+                          {b.transaction_code}
+                        </Link>
                         <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">On Hold</Badge>
                       </div>
                       <p className="text-sm font-medium text-foreground truncate">{b.item_title}</p>
@@ -360,6 +400,17 @@ const SellerPayouts = () => {
                         <span className="text-xs text-muted-foreground">{b.buyer_name}</span>
                         <span className="text-sm font-bold text-foreground">{formatCurrency(b.amount)}</span>
                       </div>
+                      {/* Context-aware action for blocked funds */}
+                      {b.blocker_reason.includes("Dispute") && (
+                        <Button variant="outline" size="sm" className="w-full h-7 text-xs mt-1" asChild>
+                          <Link to={`/seller/transactions/${b.transaction_id}`}>View Dispute</Link>
+                        </Button>
+                      )}
+                      {b.blocker_reason.includes("verification") && (
+                        <Button variant="outline" size="sm" className="w-full h-7 text-xs mt-1" onClick={() => setEditModalOpen(true)}>
+                          Fix Payout Details
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </CardContent>
@@ -381,8 +432,8 @@ const SellerPayouts = () => {
                     <div>
                       <p className="text-sm font-medium text-warning">Verification Incomplete</p>
                       <p className="text-xs text-muted-foreground mt-0.5">Complete payout verification to receive funds.</p>
-                      <Button size="sm" className="mt-2 h-7 text-xs" asChild>
-                        <Link to="/seller/profile">Complete Verification</Link>
+                      <Button size="sm" className="mt-2 h-7 text-xs" onClick={() => setEditModalOpen(true)}>
+                        Complete Verification
                       </Button>
                     </div>
                   </div>
@@ -405,10 +456,8 @@ const SellerPayouts = () => {
                   <Row label="Processing Time" value={payout_account.typical_processing_time} />
                 </div>
 
-                <Button variant="outline" size="sm" className="w-full mt-2" asChild>
-                  <Link to="/seller/profile">
-                    <FileText className="h-3.5 w-3.5 mr-1.5" /> Edit Payout Details
-                  </Link>
+                <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => setEditModalOpen(true)}>
+                  <FileText className="h-3.5 w-3.5 mr-1.5" /> Edit Payout Details
                 </Button>
               </CardContent>
             </Card>
@@ -417,6 +466,16 @@ const SellerPayouts = () => {
       </main>
 
       <Footer />
+
+      <EditPayoutDetailsModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        onSave={handleSavePayoutAccount}
+        existingAccount={payout_account.bank_name ? {
+          bank_name: payout_account.bank_name,
+          masked_account_number: payout_account.masked_account_number,
+        } : null}
+      />
     </div>
   );
 };
