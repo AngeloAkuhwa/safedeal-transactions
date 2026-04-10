@@ -158,11 +158,11 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, submission }, 201);
     }
 
-    // ── PATCH: Resubmit when rejected or more_info_needed ──
+    // ── PATCH: Resubmit — creates a new row, preserving history ──
     if (req.method === "PATCH") {
       const { data: latest } = await adminClient
         .from("identity_submissions")
-        .select("id, status")
+        .select("id, status, verification_method, legal_name, date_of_birth, masked_identifier, document_file_id, consent_accepted_at, consent_text_version")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
       }
 
       if (latest.status !== "rejected" && latest.status !== "more_info_needed") {
-        return jsonResponse({ error: "Submission can only be updated when rejected or more info needed" }, 400);
+        return jsonResponse({ error: "Submission can only be resubmitted when rejected or more info needed" }, 400);
       }
 
       let body: Record<string, unknown>;
@@ -183,40 +183,38 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: "Invalid JSON body" }, 400);
       }
 
-      const updates: Record<string, unknown> = {
+      // Build new row, carrying forward unchanged fields from the old submission
+      const newRow: Record<string, unknown> = {
+        user_id: userId,
         status: "pending_review",
+        verification_method: latest.verification_method,
+        legal_name: typeof body.legal_name === "string" && body.legal_name.trim().length > 0
+          ? body.legal_name.trim()
+          : latest.legal_name,
+        date_of_birth: typeof body.date_of_birth === "string" ? body.date_of_birth : latest.date_of_birth,
+        masked_identifier: typeof body.masked_identifier === "string"
+          ? body.masked_identifier.trim()
+          : latest.masked_identifier,
+        document_file_id: typeof body.document_file_id === "string"
+          ? body.document_file_id.trim()
+          : latest.document_file_id,
+        consent_accepted_at: latest.consent_accepted_at,
+        consent_text_version: latest.consent_text_version || "v1.0",
+        previous_submission_id: latest.id,
         submitted_at: new Date().toISOString(),
-        reviewed_at: null,
-        rejected_at: null,
-        rejection_reason: null,
       };
 
-      if (typeof body.legal_name === "string" && body.legal_name.trim().length > 0) {
-        updates.legal_name = body.legal_name.trim();
-      }
-      if (typeof body.masked_identifier === "string") {
-        updates.masked_identifier = body.masked_identifier.trim();
-      }
-      if (typeof body.document_file_id === "string") {
-        updates.document_file_id = body.document_file_id.trim();
-      }
-      if (typeof body.date_of_birth === "string") {
-        updates.date_of_birth = body.date_of_birth;
-      }
-
-      const { data: updated, error: updateError } = await adminClient
+      const { data: newSubmission, error: insertError } = await adminClient
         .from("identity_submissions")
-        .update(updates)
-        .eq("id", latest.id)
-        .eq("user_id", userId)
+        .insert(newRow)
         .select("id, status, submitted_at")
         .single();
 
-      if (updateError) {
-        return jsonResponse({ error: updateError.message }, 400);
+      if (insertError) {
+        return jsonResponse({ error: insertError.message }, 400);
       }
 
-      return jsonResponse({ success: true, submission: updated });
+      return jsonResponse({ success: true, submission: newSubmission });
     }
 
     return jsonResponse({ error: "Method not allowed" }, 405);
