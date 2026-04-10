@@ -1,11 +1,14 @@
-import { useState } from "react";
-import { User, CheckCircle, Upload, Trash2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { User, CheckCircle, Upload, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "@/components/ui/sonner";
+import { supabase } from "@/integrations/supabase/client";
 import type { BuyerProfile, VerificationStatus } from "@/services/profile.service";
 
 interface Props {
@@ -13,13 +16,25 @@ interface Props {
   verification: VerificationStatus;
   onProfileChange: (updates: Record<string, unknown>) => void;
   showLocation?: boolean;
+  onAvatarUploaded?: (url: string | null) => void;
 }
 
-export function PersonalInfoSection({ profile, verification, onProfileChange, showLocation }: Props) {
+const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+
+export function PersonalInfoSection({ profile, verification, onProfileChange, showLocation, onAvatarUploaded }: Props) {
   const [fullName, setFullName] = useState(profile.full_name);
   const [phone, setPhone] = useState(profile.phone ?? "");
   const [stateName, setStateName] = useState(profile.state_name ?? "");
   const [cityName, setCityName] = useState(profile.city_name ?? "");
+
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const displayAvatarUrl = previewUrl ?? profile.avatar_url ?? undefined;
 
   const initials = profile.full_name
     .split(" ")
@@ -27,6 +42,119 @@ export function PersonalInfoSection({ profile, verification, onProfileChange, sh
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset input so the same file can be re-selected
+    e.target.value = "";
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error("Please select a JPG, PNG, GIF, or WebP image.");
+      return;
+    }
+    if (file.size > MAX_SIZE) {
+      toast.error("Image must be under 2MB.");
+      return;
+    }
+
+    // Instant local preview
+    const localUrl = URL.createObjectURL(file);
+    setPreviewUrl(localUrl);
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      // 1. Get Cloudinary signature
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      if (!token) throw new Error("Not authenticated");
+
+      const signRes = await supabase.functions.invoke("upload-avatar", {
+        body: { action: "sign_upload" },
+      });
+      if (signRes.error || !signRes.data) throw new Error("Failed to get upload signature");
+
+      const { timestamp, signature, api_key, cloud_name, public_id } = signRes.data;
+
+      // 2. Upload to Cloudinary with progress via XHR
+      const avatarUrl = await new Promise<string>((resolve, reject) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("api_key", api_key);
+        formData.append("timestamp", String(timestamp));
+        formData.append("signature", signature);
+        formData.append("public_id", public_id);
+        formData.append("overwrite", "true");
+        formData.append("folder", signRes.data.folder);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`);
+
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) {
+            setUploadProgress(Math.round((ev.loaded / ev.total) * 100));
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const res = JSON.parse(xhr.responseText);
+            resolve(res.secure_url);
+          } else {
+            reject(new Error("Cloudinary upload failed"));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+        xhr.send(formData);
+      });
+
+      // 3. Save avatar URL to profile via edge function
+      const saveRes = await supabase.functions.invoke("upload-avatar", {
+        body: {
+          action: "save_avatar",
+          secure_url: avatarUrl,
+          public_id,
+        },
+      });
+
+      if (saveRes.error) throw new Error("Failed to save avatar");
+
+      const finalUrl = saveRes.data.avatar_url;
+      setPreviewUrl(finalUrl);
+      toast.success("Profile photo updated!");
+      onAvatarUploaded?.(finalUrl);
+    } catch (err) {
+      console.error("Avatar upload error:", err);
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+      // Revert preview on failure
+      setPreviewUrl(null);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(null);
+      URL.revokeObjectURL(localUrl);
+    }
+  };
+
+  const handleRemove = async () => {
+    setIsRemoving(true);
+    try {
+      const removeRes = await supabase.functions.invoke("upload-avatar", {
+        body: { action: "remove_avatar" },
+      });
+      if (removeRes.error) throw new Error("Failed to remove avatar");
+
+      setPreviewUrl(null);
+      toast.success("Profile photo removed");
+      onAvatarUploaded?.(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove photo");
+    } finally {
+      setIsRemoving(false);
+    }
+  };
 
   return (
     <Card>
@@ -39,23 +167,54 @@ export function PersonalInfoSection({ profile, verification, onProfileChange, sh
       <CardContent className="space-y-6">
         {/* Avatar section */}
         <div className="flex items-center gap-5">
-          <Avatar className="h-20 w-20 rounded-2xl">
-            <AvatarImage src={profile.avatar_url ?? undefined} alt={profile.full_name} className="rounded-2xl" />
-            <AvatarFallback className="text-lg rounded-2xl">{initials}</AvatarFallback>
-          </Avatar>
-          <div className="space-y-1">
+          <div className="relative">
+            <Avatar className="h-20 w-20 rounded-2xl">
+              <AvatarImage src={displayAvatarUrl} alt={profile.full_name} className="rounded-2xl object-cover" />
+              <AvatarFallback className="text-lg rounded-2xl">{initials}</AvatarFallback>
+            </Avatar>
+            {isUploading && (
+              <div className="absolute inset-0 bg-background/60 rounded-2xl flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
+          <div className="space-y-1 flex-1">
             <p className="text-sm font-medium text-foreground">Profile Photo</p>
-            <p className="text-xs text-muted-foreground">JPG, PNG or GIF. Max size 2MB.</p>
+            <p className="text-xs text-muted-foreground">JPG, PNG, GIF or WebP. Max size 2MB.</p>
+            {uploadProgress !== null && (
+              <Progress value={uploadProgress} className="h-2 w-full max-w-[200px]" />
+            )}
             <div className="flex gap-2 pt-1">
-              <Button variant="outline" size="sm" disabled>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isUploading}
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <Upload className="h-3.5 w-3.5 mr-1" />
-                Upload New Photo
+                {isUploading ? "Uploading…" : "Upload New Photo"}
               </Button>
-              <Button variant="ghost" size="sm" disabled>
-                <Trash2 className="h-3.5 w-3.5 mr-1" />
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={isUploading || isRemoving || (!profile.avatar_url && !previewUrl)}
+                onClick={handleRemove}
+              >
+                {isRemoving ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                )}
                 Remove
               </Button>
             </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
           </div>
         </div>
 
