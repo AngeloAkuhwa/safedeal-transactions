@@ -84,7 +84,7 @@ const SellerProductCreate = () => {
           : undefined,
         seller_notes: sellerNotes || undefined,
         visibility_type: visibilityType,
-        file_ids: files.map((f) => ({ file_id: f.file_id, media_type: f.media_type })),
+        file_ids: files.filter((f) => f.status === "done").map((f) => ({ file_id: f.file_id, media_type: f.media_type })),
         status,
       }),
     onSuccess: () => {
