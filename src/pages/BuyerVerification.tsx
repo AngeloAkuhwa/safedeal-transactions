@@ -128,8 +128,8 @@ const BuyerVerification = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             {[
-              { icon: Upload, title: "Submit Your Identity", desc: "Choose NIN or government-issued ID and provide your details." },
-              { icon: Clock, title: "Manual Review", desc: "Our team reviews your submission within 24–48 hours." },
+              { icon: Upload, title: "Submit Your Identity", desc: "Choose NIN-based identity submission (manual review) or government-issued ID. Your full NIN is never transmitted or stored — only the last 4 digits are retained." },
+              { icon: Clock, title: "Manual Review", desc: "Our team reviews your submission within 24–48 hours. This is not automated verification." },
               { icon: UserCheck, title: "Get Verified", desc: "Once approved, you unlock higher limits and trusted buyer status." },
             ].map((step, idx) => (
               <div key={idx} className="flex items-start gap-4 rounded-lg border p-4">
