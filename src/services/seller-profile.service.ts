@@ -18,6 +18,17 @@ export interface SellerVerification {
   identity_verified: boolean;
   payout_verified: boolean;
   is_region_eligible: boolean;
+  verification_level?: string;
+}
+
+export interface SellerPermissions {
+  verificationLevel: string;
+  transactionLimitNaira: number;
+  maxConcurrentActiveTransactions: number;
+  activeTransactionCount: number;
+  canPublishTransaction: boolean;
+  canCreateAnotherActiveTransaction: boolean;
+  requiresIdentityVerification: boolean;
 }
 
 export interface PayoutAccountSummary {
@@ -50,6 +61,7 @@ export interface SellerProfileResponse {
   preferences: NotificationPreferences;
   payout_account: PayoutAccountSummary | null;
   account_meta: AccountMeta;
+  permissions: SellerPermissions;
 }
 
 function extractError(data: unknown, error: unknown, fallback: string): string {
