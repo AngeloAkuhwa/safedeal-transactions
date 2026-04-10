@@ -1,125 +1,186 @@
 
 
-# Seller Payouts Upgrades — Edit Modal, Payout Accounts Table, Context-Aware Actions
+# Seller Profile & Settings Page — Full Implementation Plan
 
 ## Summary
 
-Three upgrades to transform the existing Seller Payouts page from a display-only dashboard into an operational finance center: (1) a `payout_accounts` database table for secure bank detail storage, (2) an "Edit Payout Details" modal with inline verification, and (3) context-aware row actions that route sellers to the right page based on payout/transaction state.
+Build a dedicated **Seller Profile & Settings** page at `/seller/profile` that serves as a secure account control center. It reuses existing buyer profile components where possible, adds seller-specific sections (Payout Destination, Account Status), and connects to a new `seller-profile` edge function that fetches all profile data in one call including payout account details.
 
-## Technical Details
+## Architecture Overview
 
-### 1. Database Migration: `payout_accounts` table
-
-```sql
-CREATE TABLE public.payout_accounts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  bank_code TEXT NOT NULL,
-  bank_name TEXT NOT NULL,
-  account_name TEXT NOT NULL,
-  masked_account_number TEXT NOT NULL,
-  provider_recipient_code TEXT,
-  verification_status TEXT NOT NULL DEFAULT 'pending',
-  last_verified_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id)
-);
-ALTER TABLE public.payout_accounts ENABLE ROW LEVEL SECURITY;
--- Users can read and manage their own payout account
-CREATE POLICY "Users read own payout account"
-  ON public.payout_accounts FOR SELECT TO authenticated
-  USING (user_id = auth.uid());
-CREATE POLICY "Users manage own payout account"
-  ON public.payout_accounts FOR ALL TO authenticated
-  USING (user_id = auth.uid());
--- updated_at trigger
-CREATE TRIGGER update_payout_accounts_updated_at
-  BEFORE UPDATE ON public.payout_accounts
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+```text
+┌─────────────────────────────────────────────────────┐
+│  SellerProfileSettings (page)                       │
+│  ├── SellerNav (existing, "Profile" active)         │
+│  ├── Hero header                                    │
+│  ├── 2-col layout: main (2/3) + sidebar (1/3)      │
+│  │   ├── PersonalInfoSection (reuse, adapt)         │
+│  │   ├── SellerVerificationSection (new)            │
+│  │   ├── SecuritySection (reuse as-is)              │
+│  │   ├── NotificationPreferencesSection (reuse)     │
+│  │   ├── PayoutDestinationSection (new)             │
+│  │   ├── DangerZoneSection (reuse as-is)            │
+│  │   ├── Save / Cancel buttons                      │
+│  │   └── SIDEBAR:                                   │
+│  │       ├── TrustSafetyPanel (reuse as-is)         │
+│  │       └── AccountStatusCard (new)                │
+│  └── Footer                                         │
+└─────────────────────────────────────────────────────┘
 ```
 
-Only masked account numbers are stored. Full account numbers are never persisted — they are sent to the payment provider (Paystack) to create a recipient, and only the last 4 digits are saved for display.
+## Data Flow
 
-### 2. New Edge Function: `update-payout-account`
+The page calls a single edge function `seller-profile` (GET) that returns:
+- `profile`: from `profiles` table (full_name, email, phone, avatar_url, country_code, state_name, city_name, created_at)
+- `verification`: from `account_verifications` (email, phone, identity, payout verified + region eligibility from profiles)
+- `preferences`: from `notification_preferences`
+- `payout_account`: from `payout_accounts` (bank_name, account_name, masked_account_number, verification_status, last_verified_at, updated_at)
+- `account_meta`: member_since, account_status, seller role confirmed
 
-**File:** `supabase/functions/update-payout-account/index.ts`
+Updates use PATCH actions on the same function (mirroring buyer-profile pattern).
 
-- Accepts: `bank_code`, `bank_name`, `account_number`, `account_name`
-- Validates input with Zod
-- Masks account number (keeps last 4 digits only: `**** **** 4892`)
-- Upserts into `payout_accounts` table
-- Returns saved record (masked)
-- Future: call Paystack "resolve account" API to verify account name before saving
+---
 
-### 3. Update Edge Function: `seller-payouts`
+## Detailed Build Plan
 
-**File:** `supabase/functions/seller-payouts/index.ts`
+### 1. New Edge Function: `seller-profile`
 
-Replace the placeholder payout account data with a real query to `payout_accounts`:
-- Read `bank_name`, `account_name`, `masked_account_number`, `verification_status`, `last_verified_at` from `payout_accounts` where `user_id = sellerId`
-- Fall back to current placeholder values if no record exists
+**File:** `supabase/functions/seller-profile/index.ts`
 
-### 4. New Component: `EditPayoutDetailsModal`
+Mirrors `buyer-profile` but checks for seller role and additionally fetches:
+- `payout_accounts` row for the user
+- `profiles.state_name`, `profiles.city_name`, `profiles.is_region_eligible`
 
-**File:** `src/components/seller/EditPayoutDetailsModal.tsx`
+**GET** returns `{ profile, verification, preferences, payout_account, account_meta }`
 
-A polished dialog matching SafeDeal's design system:
+**PATCH** supports actions:
+- `update_profile` — full_name, phone, country_code, state_name, city_name
+- `update_preferences` — notification toggles
+- `update_avatar` — avatar_url
 
-- **Header**: "Edit Payout Details" / "Update the bank account where released funds will be sent"
-- **Fields**: Bank selector (Nigerian banks dropdown), Account Number input, Account Name (auto-filled or manual)
-- **Inline verification states**: Verifying... → Verified ✓ → Could not verify ✗
-- **Trust notes**: "Only masked account details are shown after saving" and "Changes may require reverification"
-- **Save disabled** until account name is provided and valid
-- **UX rule**: When editing existing account, the modal does NOT prefill the old full account number — seller must enter a new one
+Payout account changes are NOT handled here — they stay on the existing `update-payout-account` function (separation of concerns).
 
-### 5. Update Page: `SellerPayouts.tsx`
+### 2. New Service: `seller-profile.service.ts`
 
-Two changes:
+**File:** `src/services/seller-profile.service.ts`
 
-**A. Payout Account card — modal integration**
-- "Edit Payout Details" button opens the modal instead of linking to `/seller/profile`
-- "Complete Verification" CTA also opens the modal when no account exists
-- After successful save, refetch payout data to reflect updated bank details
+```typescript
+interface SellerProfile {
+  id: string; full_name: string; email: string; phone: string | null;
+  avatar_url: string | null; country_code: string;
+  state_name: string | null; city_name: string | null; created_at: string;
+}
 
-**B. Context-aware row actions in Payout History table**
+interface SellerVerification {
+  email_verified: boolean; phone_verified: boolean;
+  identity_verified: boolean; payout_verified: boolean;
+  is_region_eligible: boolean;
+}
 
-Replace the current generic actions with state-driven routing:
+interface PayoutAccountSummary {
+  bank_name: string | null; account_name: string | null;
+  masked_account_number: string | null;
+  verification_status: string; // pending | verified | failed
+  last_verified_at: string | null; updated_at: string | null;
+}
 
-| Payout Status | Action Label | Destination |
-|---|---|---|
-| `completed` | View Payout | `/seller/transactions/{id}` |
-| `processing` / `pending` | View Transaction | `/seller/transactions/{id}` |
-| `failed` | Retry | Toast notification (future: actual retry) |
+interface AccountMeta {
+  member_since: string; account_status: string; role: string;
+}
 
-For blocked/delayed fund cards in the sidebar:
+// Functions: getSellerProfile, updateSellerProfile, updateSellerPreferences, updateSellerAvatar
+```
 
-| Blocker | Action | Destination |
-|---|---|---|
-| Dispute in review | View Dispute | `/seller/transactions/{id}` (dispute section) |
-| Payout verification needed | Fix Payout Details | Opens Edit Modal |
+### 3. New Page: `SellerProfileSettings.tsx`
 
-Transaction codes in each row become clickable links to `/seller/transactions/{id}`.
+**File:** `src/pages/SellerProfileSettings.tsx`
 
-### 6. Service Update: `seller-payouts.service.ts`
+Follows the exact same pattern as `BuyerProfileSettings.tsx`:
+- Uses `useQuery` to fetch from `seller-profile`
+- Tracks `pendingChanges` and `pendingPrefs` in local state
+- Single Save/Cancel bar at the bottom
+- `SellerNav` with Profile active
+- Hero: "Profile & Settings" / "Manage your account, verification status, security, notifications, and payout destination settings."
 
-Add:
-- `PayoutAccount` interface updated with `verification_status` field
-- `updatePayoutAccount(bankCode, bankName, accountNumber, accountName)` function calling the new edge function
+### 4. New Component: `SellerVerificationSection`
 
-### 7. Config: `supabase/config.toml`
+**File:** `src/components/profile/SellerVerificationSection.tsx`
 
-Add `[functions.update-payout-account]` with `verify_jwt = false`.
+Extends the buyer version with two additional rows:
+- **Payout Verification** — reads from `verification.payout_verified`
+- **Region Eligibility** — reads from `verification.is_region_eligible`
+
+States per row: Verified (green badge), Pending (yellow), Action Required (red), Not Started (gray)
+
+Support note at bottom: "Verification helps protect payouts, dispute handling, and buyer trust."
+
+### 5. New Component: `PayoutDestinationSection`
+
+**File:** `src/components/profile/PayoutDestinationSection.tsx`
+
+A read-only financial summary card:
+- Title: "Payout Destination" with Wallet icon
+- Shows: Bank Name, Account Name, Masked Account Number, Currency (NGN), Verification Status badge, Last Updated date
+- If no account exists: empty state with "Set Up Payout Account" CTA
+- If account exists: "Edit Payout Details" button
+- Both buttons open the **existing** `EditPayoutDetailsModal`
+- Trust note: "For security, only masked payout account details are shown. Changes to payout details may require reverification before future releases."
+- Status alerts: "Verification Required", "Reverification Needed", "Payouts On Hold"
+
+This component does NOT duplicate the modal — it imports `EditPayoutDetailsModal` from `src/components/seller/EditPayoutDetailsModal.tsx` and passes `onSave` that calls `updatePayoutAccount` from `seller-payouts.service.ts`.
+
+### 6. New Component: `AccountStatusCard`
+
+**File:** `src/components/profile/AccountStatusCard.tsx`
+
+Sidebar card showing:
+- Account Status (active/suspended badge)
+- Role: Seller
+- Member Since date
+- Contextual alerts: payout verification pending, incomplete setup, region eligibility issue
+- Help center link (disabled placeholder)
+
+### 7. Route Registration
+
+**File:** `src/App.tsx`
+
+Add within the seller protected routes:
+```
+<Route path="/seller/profile" element={<SellerProfileSettings />} />
+```
+
+### 8. Config
+
+**File:** `supabase/config.toml` — add `[functions.seller-profile]` entry.
+
+---
+
+## Component Reuse Map
+
+| Component | Buyer Page | Seller Page | Changes |
+|---|---|---|---|
+| `PersonalInfoSection` | Used | Reused | Add state_name/city_name fields |
+| `AccountVerificationSection` | Used | NOT used | Replaced by `SellerVerificationSection` |
+| `SecuritySection` | Used | Reused as-is | None |
+| `NotificationPreferencesSection` | Used | Reused as-is | None |
+| `DangerZoneSection` | Used | Reused as-is | None |
+| `TrustSafetyPanel` | Used (sidebar) | Reused as-is | None |
+| `EditPayoutDetailsModal` | N/A | Imported | Already exists |
+| `PayoutDestinationSection` | N/A | New | Seller-only |
+| `SellerVerificationSection` | N/A | New | Seller-only |
+| `AccountStatusCard` | N/A | New (sidebar) | Seller-only |
 
 ## Files Summary
 
 | File | Action |
 |---|---|
-| DB migration | New `payout_accounts` table |
-| `supabase/functions/update-payout-account/index.ts` | New |
-| `supabase/functions/seller-payouts/index.ts` | Edit — read from `payout_accounts` |
-| `supabase/config.toml` | Add function config |
-| `src/components/seller/EditPayoutDetailsModal.tsx` | New |
-| `src/pages/SellerPayouts.tsx` | Edit — modal + context actions |
-| `src/services/seller-payouts.service.ts` | Edit — add update function |
+| `supabase/functions/seller-profile/index.ts` | New edge function |
+| `src/services/seller-profile.service.ts` | New service |
+| `src/pages/SellerProfileSettings.tsx` | New page |
+| `src/components/profile/SellerVerificationSection.tsx` | New |
+| `src/components/profile/PayoutDestinationSection.tsx` | New |
+| `src/components/profile/AccountStatusCard.tsx` | New |
+| `src/components/profile/PersonalInfoSection.tsx` | Edit — add optional state/city fields |
+| `src/App.tsx` | Edit — add `/seller/profile` route |
+| `supabase/config.toml` | Edit — add function config |
 
