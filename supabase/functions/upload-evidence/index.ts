@@ -95,6 +95,7 @@ async function signUpload(
 
   const contextMap: Record<string, string> = {
     product_evidence: "products",
+    product_media: "products",
     delivery_proof: "delivery",
   };
   const context = contextMap[body.context] ?? "disputes";
@@ -226,9 +227,9 @@ async function registerFile(
       mime_type: mimeType,
       file_size_bytes: bytes,
       uploaded_by_user_id: userId,
-      context_type: body.context_type === "product_evidence" ? "product_evidence" : body.context_type === "delivery_proof" ? "delivery_proof" : "dispute_evidence",
+      context_type: (body.context_type === "product_evidence" || body.context_type === "product_media") ? "transaction_media" : body.context_type === "delivery_proof" ? "delivery_proof" : "dispute_evidence",
       is_temporary: true,
-      retention_category: body.context_type === "product_evidence" ? "product_evidence" : body.context_type === "delivery_proof" ? "delivery_proof" : "dispute_evidence",
+      retention_category: (body.context_type === "product_evidence" || body.context_type === "product_media") ? "transaction_media" : body.context_type === "delivery_proof" ? "delivery_proof" : "dispute_evidence",
       file_hash: file_hash,
       hash_algorithm: hash_algorithm,
       metadata_json: { public_id },
