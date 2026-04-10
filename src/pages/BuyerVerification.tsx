@@ -144,6 +144,24 @@ const BuyerVerification = () => {
             ))}
           </CardContent>
         </Card>
+
+        {/* Privacy notice */}
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <Lock className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Your Privacy is Protected</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Your identity data is stored securely, accessible only to you and our review team.
+                  Sellers only see your trust level, never your identity documents or NIN.
+                  Only minimal data is retained — masked identifiers are preferred, and uploaded documents
+                  are tightly access-controlled.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </main>
 
       <Footer />
