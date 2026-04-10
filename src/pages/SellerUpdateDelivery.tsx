@@ -364,9 +364,15 @@ export default function SellerUpdateDelivery() {
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="processing">Processing</SelectItem>
-                    <SelectItem value="dispatched">Dispatched</SelectItem>
-                    <SelectItem value="delivered">Delivered</SelectItem>
+                    {(tx.status === "payment_secured" || tx.status === "seller_preparing_delivery") && (
+                      <SelectItem value="processing">Processing</SelectItem>
+                    )}
+                    {(tx.status === "payment_secured" || tx.status === "seller_preparing_delivery") && (
+                      <SelectItem value="dispatched">Dispatched</SelectItem>
+                    )}
+                    {(tx.status === "seller_dispatched" || tx.status === "seller_preparing_delivery") && (
+                      <SelectItem value="delivered">Delivered</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
