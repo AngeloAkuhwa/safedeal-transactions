@@ -16,6 +16,7 @@ export interface BuyerProfile {
   country_code: string;
   state_name: string | null;
   city_name: string | null;
+  is_region_eligible?: boolean;
   created_at: string;
 }
 
@@ -36,6 +37,13 @@ export interface BuyerPermissions {
   transactionLimitNaira: number;
   maxConcurrentActiveTransactions: number;
   verificationLevel: VerificationLevel;
+  // Batch 2 additions
+  canCreateAnotherActiveTransaction: boolean;
+  canAccessHighValueTransaction: boolean;
+  canReceiveHighTierRefund: boolean;
+  requiresIdentityVerification: boolean;
+  activeTransactionCount: number;
+  isRegionEligible: boolean;
 }
 
 export interface NotificationPreferences {
@@ -52,6 +60,14 @@ export interface BuyerProfileResponse {
   verification: VerificationStatus;
   preferences: NotificationPreferences;
   permissions: BuyerPermissions;
+}
+
+export interface ServiceableRegion {
+  id: string;
+  country_code: string;
+  state_name: string;
+  city_name: string | null;
+  is_active: boolean;
 }
 
 /** Extract a usable error message from edge function responses */
@@ -73,6 +89,16 @@ export const getBuyerProfile = async (): Promise<BuyerProfileResponse> => {
     throw new Error(extractError(data, error, "Failed to load profile"));
   }
   return data as BuyerProfileResponse;
+};
+
+export const getServiceableRegions = async (): Promise<ServiceableRegion[]> => {
+  const { data, error } = await supabase
+    .from("serviceable_regions")
+    .select("id, country_code, state_name, city_name, is_active")
+    .eq("country_code", "NG")
+    .order("state_name");
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ServiceableRegion[];
 };
 
 export const updateProfile = async (updates: {

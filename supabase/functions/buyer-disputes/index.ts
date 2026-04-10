@@ -23,6 +23,21 @@ const REASON_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+// ── Tiered dispute limits (must match buyer-profile) ──
+const LIMIT_BY_LEVEL: Record<string, number> = {
+  unverified: 0,
+  basic_verified: 50_000,
+  trusted_buyer: 200_000,
+  high_trust_buyer: 500_000,
+};
+
+const MAX_OPEN_DISPUTES_BY_LEVEL: Record<string, number> = {
+  unverified: 0,
+  basic_verified: 1,
+  trusted_buyer: 3,
+  high_trust_buyer: 5,
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -72,7 +87,8 @@ Deno.serve(async (req) => {
 
     const phoneVerified = !!verifResult.data?.phone_verified;
     const locationComplete = !!(profileResult.data?.state_name && profileResult.data?.city_name);
-    const levelPermits = verifResult.data?.verification_level !== "unverified";
+    const level = (verifResult.data?.verification_level as string) || "unverified";
+    const levelPermits = level !== "unverified";
 
     if (!phoneVerified || !locationComplete || !levelPermits) {
       const missing: string[] = [];
@@ -391,6 +407,14 @@ Deno.serve(async (req) => {
         page_size: pageSize,
         total_count: total,
         total_pages: Math.ceil(total / pageSize) || 0,
+      },
+      // Tiered dispute policy info for frontend
+      dispute_policy: {
+        verification_level: level,
+        amount_limit: LIMIT_BY_LEVEL[level] ?? 0,
+        max_open_disputes: MAX_OPEN_DISPUTES_BY_LEVEL[level] ?? 0,
+        current_open_disputes: summary.open_count,
+        can_open_new_dispute: summary.open_count < (MAX_OPEN_DISPUTES_BY_LEVEL[level] ?? 0),
       },
     });
   } catch (err) {

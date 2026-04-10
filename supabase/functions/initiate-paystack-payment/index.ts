@@ -7,6 +7,36 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function jsonErr(msg: string, status: number) {
+  return new Response(JSON.stringify({ error: msg }), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+// ── Tiered limits (must match buyer-profile) ──
+const LIMIT_BY_LEVEL: Record<string, number> = {
+  unverified: 0,
+  basic_verified: 50_000,
+  trusted_buyer: 200_000,
+  high_trust_buyer: 500_000,
+};
+
+const CONCURRENT_BY_LEVEL: Record<string, number> = {
+  unverified: 0,
+  basic_verified: 1,
+  trusted_buyer: 3,
+  high_trust_buyer: 5,
+};
+
+const ACTIVE_TX_STATUSES = [
+  "payment_secured",
+  "seller_preparing_delivery",
+  "seller_dispatched",
+  "delivered_awaiting_verification",
+  "disputed",
+];
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -16,10 +46,7 @@ Deno.serve(async (req) => {
     // 1. Authenticate buyer
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonErr("Unauthorized", 401);
     }
 
     const anonClient = createClient(
@@ -31,56 +58,62 @@ Deno.serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsErr } = await anonClient.auth.getClaims(token);
     if (claimsErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonErr("Unauthorized", 401);
     }
     const userId = claimsData.claims.sub as string;
     let userEmail = claimsData.claims.email as string;
 
-    // 2b. Check buyer verification level — phone must be verified
+    // 2. Verification + tiered limit gates
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: verif } = await supabaseAdmin
-      .from("account_verifications")
-      .select("phone_verified, verification_level")
-      .eq("user_id", userId)
-      .single();
+    const [verifRes, profRes] = await Promise.all([
+      supabaseAdmin
+        .from("account_verifications")
+        .select("phone_verified, verification_level")
+        .eq("user_id", userId)
+        .single(),
+      supabaseAdmin
+        .from("profiles")
+        .select("state_name, city_name, is_region_eligible")
+        .eq("id", userId)
+        .single(),
+    ]);
 
-    const { data: prof } = await supabaseAdmin
-      .from("profiles")
-      .select("state_name, city_name")
-      .eq("id", userId)
-      .single();
+    const verif = verifRes.data;
+    const prof = profRes.data;
 
     const phoneVerified = !!verif?.phone_verified;
     const locationComplete = !!(prof?.state_name && prof?.city_name);
-    const levelPermits = verif?.verification_level !== "unverified";
+    const level = (verif?.verification_level as string) || "unverified";
+    const levelPermits = level !== "unverified";
 
+    // Gate 1: Base verification
     if (!phoneVerified || !locationComplete || !levelPermits) {
       const missing: string[] = [];
       if (!phoneVerified) missing.push("phone verification");
-      if (!locationComplete) missing.push("location (state and city)");
+      if (!locationComplete) missing.push("location (state and LGA)");
       if (!levelPermits) missing.push("account activation");
-      return new Response(
-        JSON.stringify({
-          error: `Complete the following before making payments: ${missing.join(", ")}. Go to Profile Settings to continue.`,
-        }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      return jsonErr(
+        `Complete the following before making payments: ${missing.join(", ")}. Go to Profile Settings to continue.`,
+        403,
       );
     }
 
-    // 2. Parse request
+    // Gate 2: Region eligibility
+    if (!prof?.is_region_eligible) {
+      return jsonErr(
+        "SafeDeal protected transactions are currently available only in Lagos. Update your location in Profile Settings.",
+        403,
+      );
+    }
+
+    // 3. Parse request
     const { shareToken, paymentMethod } = await req.json();
     if (!shareToken) {
-      return new Response(JSON.stringify({ error: "shareToken is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonErr("shareToken is required", 400);
     }
 
     const supabase = createClient(
@@ -91,7 +124,7 @@ Deno.serve(async (req) => {
     // Hardcoded test email for Paystack during development
     userEmail = 'angeloakuhwa@gmail.com';
 
-    // 3. Resolve share token → transaction
+    // 4. Resolve share token → transaction
     const { data: link, error: linkErr } = await supabase
       .from("transaction_links")
       .select("transaction_id, is_active, expires_at")
@@ -101,21 +134,15 @@ Deno.serve(async (req) => {
 
     if (linkErr) throw linkErr;
     if (!link) {
-      return new Response(JSON.stringify({ error: "Invalid or expired link" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonErr("Invalid or expired link", 404);
     }
     if (link.expires_at && new Date(link.expires_at) < new Date()) {
-      return new Response(JSON.stringify({ error: "Link has expired" }), {
-        status: 410,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonErr("Link has expired", 410);
     }
 
     const txId = link.transaction_id;
 
-    // 4. Fetch transaction and verify state
+    // 5. Fetch transaction and verify state
     const { data: tx, error: txErr } = await supabase
       .from("transactions")
       .select("id, transaction_code, status, money_status, buyer_id, seller_id")
@@ -125,28 +152,19 @@ Deno.serve(async (req) => {
     if (txErr) throw txErr;
 
     if (tx.buyer_id !== userId) {
-      return new Response(JSON.stringify({ error: "Only the buyer can initiate payment" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonErr("Only the buyer can initiate payment", 403);
     }
 
     if (tx.status !== "awaiting_payment") {
-      return new Response(
-        JSON.stringify({ error: `Invalid state: status=${tx.status}` }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonErr(`Invalid state: status=${tx.status}`, 409);
     }
 
     const isRetry = tx.money_status === "payment_pending";
     if (tx.money_status !== "not_secured" && !isRetry) {
-      return new Response(
-        JSON.stringify({ error: `Invalid money state: ${tx.money_status}` }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonErr(`Invalid money state: ${tx.money_status}`, 409);
     }
 
-    // 5. Fetch pricing data and compute
+    // 6. Fetch pricing data and compute
     const { data: pricingRow } = await supabase
       .from("transaction_pricing")
       .select("currency_code, item_amount")
@@ -154,21 +172,40 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!pricingRow || !pricingRow.item_amount) {
-      return new Response(JSON.stringify({ error: "Transaction pricing not found" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonErr("Transaction pricing not found", 400);
     }
 
-    const pricing = computePricing(
-      Number(pricingRow.item_amount),
-      pricingRow.currency_code || "NGN"
-    );
+    const itemAmount = Number(pricingRow.item_amount);
+    const pricing = computePricing(itemAmount, pricingRow.currency_code || "NGN");
 
-    // 6. Generate unique reference
+    // Gate 3: Amount limit by verification level
+    const amountLimit = LIMIT_BY_LEVEL[level] ?? 0;
+    if (itemAmount > amountLimit) {
+      return jsonErr(
+        `This transaction (₦${itemAmount.toLocaleString()}) exceeds your ₦${amountLimit.toLocaleString()} limit. Complete identity verification to unlock higher limits.`,
+        403,
+      );
+    }
+
+    // Gate 4: Concurrent active transaction cap
+    const maxConcurrent = CONCURRENT_BY_LEVEL[level] ?? 0;
+    const { count: activeCount } = await supabase
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("buyer_id", userId)
+      .in("status", ACTIVE_TX_STATUSES);
+
+    if ((activeCount ?? 0) >= maxConcurrent) {
+      return jsonErr(
+        `You've reached your active purchase limit (${maxConcurrent}). Complete or resolve existing transactions first.`,
+        403,
+      );
+    }
+
+    // 7. Generate unique reference
     const reference = `SD-${tx.transaction_code}-${Date.now()}`;
 
-    // 7. Transition money_status (skip if already payment_pending)
+    // 8. Transition money_status (skip if already payment_pending)
     if (!isRetry) {
       const { error: txUpdateErr } = await supabase
         .from("transactions")
@@ -178,7 +215,7 @@ Deno.serve(async (req) => {
       if (txUpdateErr) throw txUpdateErr;
     }
 
-    // 8. Cancel any existing pending payments for this transaction
+    // 9. Cancel any existing pending payments for this transaction
     if (isRetry) {
       await supabase
         .from("payments")
@@ -187,7 +224,7 @@ Deno.serve(async (req) => {
         .eq("status", "pending");
     }
 
-    // 9. Insert payments record
+    // 10. Insert payments record
     const method = paymentMethod === "bank" ? "bank_transfer" : "card";
     const { error: payErr } = await supabase.from("payments").insert({
       transaction_id: txId,
@@ -202,7 +239,7 @@ Deno.serve(async (req) => {
 
     if (payErr) throw payErr;
 
-    // 10. Insert money_status_history
+    // 11. Insert money_status_history
     await supabase.from("money_status_history").insert({
       transaction_id: txId,
       old_status: isRetry ? "payment_pending" : "not_secured",
@@ -211,7 +248,7 @@ Deno.serve(async (req) => {
       reason: isRetry ? "Buyer retried Paystack payment" : "Buyer initiated Paystack payment",
     });
 
-    // 10. Call Paystack POST /transaction/initialize
+    // 12. Call Paystack POST /transaction/initialize
     const paystackSecretKey = Deno.env.get("PAYSTACK_SECRET_KEY");
     if (!paystackSecretKey) {
       throw new Error("PAYSTACK_SECRET_KEY not configured");
@@ -266,13 +303,10 @@ Deno.serve(async (req) => {
         reason: `Paystack init failed: ${paystackData.message}`,
       });
 
-      return new Response(
-        JSON.stringify({ error: paystackData.message || "Paystack initialization failed" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonErr(paystackData.message || "Paystack initialization failed", 502);
     }
 
-    // 11. Return access_code + reference + public_key
+    // 13. Return access_code + reference + public_key
     const publicKey = Deno.env.get("PAYSTACK_PUBLIC_KEY");
 
     return new Response(

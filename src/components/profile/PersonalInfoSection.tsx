@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { User, CheckCircle, Upload, Trash2, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { User, CheckCircle, Upload, Trash2, Loader2, MapPin, Navigation } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,16 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
-import type { BuyerProfile } from "@/services/profile.service";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import type { BuyerProfile, ServiceableRegion } from "@/services/profile.service";
+import { getServiceableRegions } from "@/services/profile.service";
 
 interface MinimalVerification {
   email_verified: boolean;
@@ -33,6 +42,10 @@ export function PersonalInfoSection({ profile, verification, onProfileChange, sh
   const [stateName, setStateName] = useState(profile.state_name ?? "");
   const [cityName, setCityName] = useState(profile.city_name ?? "");
 
+  const [regions, setRegions] = useState<ServiceableRegion[]>([]);
+  const [regionsLoading, setRegionsLoading] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -47,6 +60,80 @@ export function PersonalInfoSection({ profile, verification, onProfileChange, sh
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  // Fetch regions on mount
+  useEffect(() => {
+    if (!showLocation) return;
+    setRegionsLoading(true);
+    getServiceableRegions()
+      .then(setRegions)
+      .catch(() => toast.error("Failed to load regions"))
+      .finally(() => setRegionsLoading(false));
+  }, [showLocation]);
+
+  // Derived data
+  const states = [...new Set(regions.map((r) => r.state_name))].sort();
+  const lgasForState = regions.filter(
+    (r) => r.state_name === stateName && r.city_name !== null
+  );
+  const isLagos = stateName === "Lagos";
+  const isNonLagosState = stateName && !isLagos;
+
+  const handleStateChange = useCallback(
+    (value: string) => {
+      setStateName(value);
+      setCityName("");
+      onProfileChange({ state_name: value || null, city_name: null });
+    },
+    [onProfileChange]
+  );
+
+  const handleLgaChange = useCallback(
+    (value: string) => {
+      setCityName(value);
+      onProfileChange({ city_name: value || null });
+    },
+    [onProfileChange]
+  );
+
+  // Geolocation detect (convenience helper only — never determines eligibility)
+  const detectLocation = useCallback(async () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+    setDetectingLocation(true);
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
+      );
+      const { latitude, longitude } = pos.coords;
+
+      // Reverse geocode via Nominatim (free, no API key)
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
+        { headers: { "Accept-Language": "en" } }
+      );
+      const geo = await res.json();
+      const detectedState = geo?.address?.state || "";
+
+      // Try to match to a known state
+      const matchedState = states.find(
+        (s) => s.toLowerCase() === detectedState.toLowerCase()
+      );
+
+      if (matchedState) {
+        handleStateChange(matchedState);
+        toast.info(`Detected: ${matchedState}. Please confirm and select your LGA.`);
+      } else {
+        toast.info("Could not match your location to a known state. Please select manually.");
+      }
+    } catch {
+      toast.error("Unable to detect your location. Please select manually.");
+    } finally {
+      setDetectingLocation(false);
+    }
+  }, [states, handleStateChange]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -270,34 +357,100 @@ export function PersonalInfoSection({ profile, verification, onProfileChange, sh
         </div>
 
         {showLocation && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="stateName">State</Label>
-              <Input
-                id="stateName"
-                value={stateName}
-                onChange={(e) => {
-                  setStateName(e.target.value);
-                  onProfileChange({ state_name: e.target.value || null });
-                }}
-                placeholder="e.g. Lagos"
-                className="rounded-xl"
-              />
+          <>
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <Label className="text-base font-semibold">Location</Label>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={detectLocation}
+                  disabled={detectingLocation || regionsLoading}
+                  className="text-xs text-primary"
+                >
+                  {detectingLocation ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                  ) : (
+                    <Navigation className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  Detect my location
+                </Button>
+              </div>
+
+              <p className="text-xs text-muted-foreground -mt-2">
+                Location detection only prefills values — you must confirm before saving.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="stateName">State</Label>
+                  <Select
+                    value={stateName}
+                    onValueChange={handleStateChange}
+                    disabled={regionsLoading}
+                  >
+                    <SelectTrigger className="rounded-xl">
+                      <SelectValue placeholder={regionsLoading ? "Loading states…" : "Select state"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {states.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {isLagos && (
+                  <div className="space-y-2">
+                    <Label htmlFor="lgaName">Local Government Area (LGA)</Label>
+                    <Select
+                      value={cityName}
+                      onValueChange={handleLgaChange}
+                    >
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Select LGA" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {lgasForState.map((r) => (
+                          <SelectItem key={r.id} value={r.city_name!}>
+                            {r.city_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              {isNonLagosState && (
+                <div className="bg-warning/10 border border-warning/30 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 text-warning mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Lagos-only launch</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        SafeDeal protected transactions are currently available only in Lagos during this launch phase.
+                        You can complete your profile, and we'll notify you when your area becomes active.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isLagos && cityName && (
+                <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Lagos — Eligible for protected transactions
+                </Badge>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="cityName">City</Label>
-              <Input
-                id="cityName"
-                value={cityName}
-                onChange={(e) => {
-                  setCityName(e.target.value);
-                  onProfileChange({ city_name: e.target.value || null });
-                }}
-                placeholder="e.g. Ikeja"
-                className="rounded-xl"
-              />
-            </div>
-          </div>
+          </>
         )}
       </CardContent>
     </Card>
