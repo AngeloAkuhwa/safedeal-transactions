@@ -68,3 +68,18 @@ verify_jwt = false
 
 [functions.admin-review-identity]
 verify_jwt = false
+
+[functions.seller-products]
+verify_jwt = false
+
+[functions.seller-product-detail]
+verify_jwt = false
+
+[functions.product-categories]
+verify_jwt = false
+
+[functions.public-storefront]
+verify_jwt = false
+
+[functions.public-product-detail]
+verify_jwt = false
