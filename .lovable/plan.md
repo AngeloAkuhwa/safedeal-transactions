@@ -1,164 +1,108 @@
 
 
-# Batch 1 Corrections — 8 Precision Fixes
+# Integrate Twilio Connector for Real SMS OTP
 
-## Summary
+## Overview
 
-The core Batch 1 implementation is already built. These are targeted corrections to tighten logic, wording, and auditability based on your feedback.
+Replace the dev-mode OTP (code displayed on screen) with real SMS delivery via the Twilio connector, which is built into Lovable. The implementation uses a provider-agnostic pattern so switching to Termii or another provider later requires changing only the SMS sending function.
 
----
+## Setup
 
-## 1. Make payment gate explicit (backend)
+1. **Connect Twilio** — use the `standard_connectors--connect` tool to link Twilio to this project, which provides `TWILIO_API_KEY` and `LOVABLE_API_KEY` as environment variables automatically.
 
-**File:** `supabase/functions/initiate-paystack-payment/index.ts` (line 54)
+2. **Store the Twilio "From" phone number** — add a secret `TWILIO_FROM_NUMBER` with the Twilio phone number to send SMS from (e.g. `+1234567890`).
 
-Current check:
+## Code Change
+
+**File:** `supabase/functions/verify-phone/index.ts`
+
+Replace lines 147-157 (the dev-mode OTP block) with a provider-abstracted SMS sender:
+
 ```typescript
-if (!verif?.phone_verified || verif?.verification_level === "unverified")
-```
+// ── SMS Provider Abstraction ──
+// Currently: Twilio via Lovable connector gateway
+// To switch providers: replace sendSms() body only
 
-Change to also check location:
-```typescript
-// Also fetch profile location
-const { data: prof } = await supabaseAdmin
-  .from("profiles")
-  .select("state_name, city_name")
-  .eq("id", userId)
-  .single();
+async function sendSms(to: string, message: string): Promise<{ success: boolean; error?: string }> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY");
+  const TWILIO_FROM = Deno.env.get("TWILIO_FROM_NUMBER");
 
-const phoneVerified = !!verif?.phone_verified;
-const locationComplete = !!(prof?.state_name && prof?.city_name);
-const levelPermits = verif?.verification_level !== "unverified";
+  if (!LOVABLE_API_KEY || !TWILIO_API_KEY || !TWILIO_FROM) {
+    // No SMS provider configured — fall back to dev mode
+    return { success: false, error: "no_provider" };
+  }
 
-if (!phoneVerified || !locationComplete || !levelPermits) {
-  // Return 403 with specific message about what's missing
+  const GATEWAY_URL = "https://connector-gateway.lovable.dev/twilio";
+
+  const res = await fetch(`${GATEWAY_URL}/Messages.json`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      "X-Connection-Api-Key": TWILIO_API_KEY,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      To: to,
+      From: TWILIO_FROM,
+      Body: message,
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text();
+    console.error("Twilio SMS error:", res.status, errBody);
+    return { success: false, error: `SMS delivery failed [${res.status}]` };
+  }
+
+  return { success: true };
 }
 ```
 
-**File:** `supabase/functions/buyer-profile/index.ts` (line 45)
+Then in the `send_otp` block, replace the dev OTP return with:
 
-Change `canStartProtectedPayment` from `level !== "unverified"` to explicitly require all three:
 ```typescript
-canStartProtectedPayment: phoneVerified && hasLocation && level !== "unverified",
+const smsMessage = `Your SafeDeal code is ${code}. Expires in 10 minutes. Do not share.`;
+const smsResult = await sendSms(normalizedPhone, smsMessage);
+
+if (smsResult.error === "no_provider") {
+  // Dev fallback — no SMS provider configured
+  console.log(`[DEV] OTP for ${normalizedPhone}: ${code}`);
+  return jsonResponse({
+    success: true,
+    expires_in: 600,
+    message: "OTP sent (dev mode)",
+    dev_otp: code,
+  });
+}
+
+if (!smsResult.success) {
+  return jsonResponse({ error: "Failed to send SMS. Please try again." }, 500);
+}
+
+return jsonResponse({
+  success: true,
+  expires_in: 600,
+  message: "OTP sent to your phone",
+});
 ```
 
-Same for `canOpenDispute` and `canHoldActiveTransaction`.
+## Why This Design
 
----
-
-## 2. Cap `trusted_buyer` behavior in Batch 1
-
-**File:** `supabase/functions/buyer-profile/index.ts` (lines 30-42)
-
-Change the limits so `trusted_buyer` and `high_trust_buyer` return the same caps as `basic_verified` for now:
-```typescript
-const limitByLevel = {
-  unverified: 0,
-  basic_verified: 50000,
-  trusted_buyer: 50000,      // same as basic until Batch 3
-  high_trust_buyer: 50000,   // same as basic until Batch 3
-};
-const concurrentByLevel = {
-  unverified: 0,
-  basic_verified: 1,
-  trusted_buyer: 1,          // same as basic until Batch 3
-  high_trust_buyer: 1,       // same as basic until Batch 3
-};
-```
-
-Add a comment: `// TODO Batch 3: unlock higher limits after identity verification is implemented`
-
----
-
-## 3. Tighten dispute permission flags
-
-**File:** `supabase/functions/buyer-profile/index.ts`
-
-Change:
-```typescript
-canOpenDispute: phoneVerified && hasLocation && level !== "unverified",
-```
-
-This ensures disputes require phone + location + level, not just "not unverified." The actual transaction ownership check already exists in the disputes RLS policy (`buyers_insert_disputes`).
-
----
-
-## 4. Document phone data semantics
-
-**File:** `src/services/profile.service.ts`
-
-Add JSDoc comments:
-```typescript
-/** profiles.phone — stores the submitted phone number. NOT proof of verification. */
-/** account_verifications.phone_verified — the actual trust signal for phone ownership. */
-```
-
-No backend change needed — the code already treats these correctly. This is documentation only.
-
----
-
-## 5. Integrate trust badges into seller transaction detail
-
-**File:** `src/pages/SellerTransactionDetail.tsx`
-
-The `BuyerTrustBadges` component exists but isn't rendered anywhere. Add it to the buyer info section on the seller transaction detail page. The seller transaction detail edge function already returns buyer profile data — just wire the verification signals into the badge component.
-
-This turns a "component created" checkbox into a "badges visible to seller" checkbox.
-
----
-
-## 6. Remove separate `update_location` — use `update_profile` only
-
-The current `buyer-profile` PATCH handler already accepts `state_name` and `city_name` in the `update_profile` action (lines 172-184) and recomputes verification level after location changes (lines 199-210). There is no separate `update_location` action.
-
-**Decision:** Keep it as-is. One action (`update_profile`) handles all profile fields including location. No code change needed — just documenting that the plan's mention of a separate `update_location` action is not implemented and not needed.
-
----
-
-## 7. Add `invalidated_at` column for OTP auditability
-
-**Migration:** Add column to `phone_otp_codes`:
-```sql
-ALTER TABLE public.phone_otp_codes ADD COLUMN invalidated_at timestamptz;
-```
-
-**File:** `supabase/functions/verify-phone/index.ts` (line 114-118)
-
-Change invalidation from setting `expires_at = now()` to setting `invalidated_at = now()`:
-```typescript
-await supabase
-  .from("phone_otp_codes")
-  .update({ invalidated_at: new Date().toISOString() })
-  .eq("user_id", userId)
-  .is("verified_at", null)
-  .is("invalidated_at", null);
-```
-
-Update the verify_otp lookup to also filter `is("invalidated_at", null)` so invalidated codes are excluded.
-
-This cleanly distinguishes: expired (time passed), invalidated (new code issued), verified (successfully used).
-
----
-
-## 8. Fix progress bar wording
-
-**File:** `src/components/profile/AccountVerificationSection.tsx`
-
-Current progress says "X of 3 steps completed" which is correct (email, phone, location). The identity row already shows "Coming in a future update" and is not counted in the progress bar (line 45 only counts email, phone, location).
-
-Minor text fix: change the progress label from "X of 3 steps completed" to "X of 3 activation steps completed" to make it clearer this is activation, not the full trust ladder. And ensure the identity row label says "Identity Verification — Coming Soon" with a muted style so it's visually distinct from the actionable steps.
-
----
+- **Provider-agnostic**: Only `sendSms()` knows about Twilio. To switch to Termii later, replace that one function.
+- **Graceful dev fallback**: If Twilio keys are not set, falls back to showing the OTP on screen — local development still works.
+- **No frontend changes needed**: The `PhoneVerificationModal` already handles both cases (shows dev OTP banner only when `dev_otp` is in the response).
 
 ## Files Summary
 
 | File | Change |
 |---|---|
-| `supabase/functions/initiate-paystack-payment/index.ts` | Add location check to payment gate |
-| `supabase/functions/buyer-profile/index.ts` | Explicit permission flags; cap trusted/high-trust to basic limits |
-| `supabase/functions/verify-phone/index.ts` | Use `invalidated_at` instead of expiry manipulation |
-| `src/services/profile.service.ts` | Add JSDoc on phone semantics |
-| `src/components/profile/AccountVerificationSection.tsx` | Progress label wording tweak |
-| `src/pages/SellerTransactionDetail.tsx` | Integrate BuyerTrustBadges |
-| Migration | Add `invalidated_at` column to `phone_otp_codes` |
+| `supabase/functions/verify-phone/index.ts` | Add `sendSms()` abstraction with Twilio gateway call + dev fallback |
+
+## Steps to Execute
+
+1. Connect Twilio connector via `standard_connectors--connect`
+2. Add `TWILIO_FROM_NUMBER` secret
+3. Update edge function code
+4. Deploy and test
 
