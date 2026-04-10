@@ -1,35 +1,50 @@
 
 
-# Fix: Evidence Preview, Update Delivery Navigation, and Item Titles
+# Fix: Evidence Previews, Upload Proof Navigation, and Image Fallbacks
 
-## Issues Found
+## Issues Identified
 
-### 1. Evidence preview on dispute page
-The evidence data is returned correctly from the backend with valid Cloudinary URLs. The `SellerViewBuyerClaim` and `SellerEvidenceSection` components both render evidence thumbnails using `getCloudinaryThumbnail`. The buyer claim section shows evidence for buyer-uploaded files. However, the **Seller Evidence section** only receives `data.seller_response.evidence` — if the seller has not submitted any evidence, this section will be empty, and the `SellerViewBuyerClaim` only shows buyer-side evidence. This is working as designed. The likely issue is that the seed/test evidence images use a fake Cloudinary cloud name (`safedeal`) that doesn't resolve, causing broken image tags. Real uploaded images (with cloud `dgmcdk4lq`) render fine. No code fix needed for this — the components work correctly with real uploads.
+### 1. "Upload Proof" button doesn't navigate to delivery page
+In `SellerTransactions.tsx`, the action button onClick only handles `awaiting_buyer` and `seller_preparing_delivery` statuses. When status is `seller_dispatched` (which shows "Upload Proof"), it falls through to the generic detail page. Same issue for `payment_secured` ("Start Fulfillment").
 
-### 2. "Update Delivery" button on transaction detail page does NOT navigate
-**Root cause**: In `SellerTransactionDetail.tsx` line 175-178, the "Update Delivery" button has **no `onClick` handler** — it's just a static `<Button>` with no navigation:
-```tsx
-<Button size="sm" className="gap-2">
-  <Truck className="h-4 w-4" />
-  Update Delivery
-</Button>
-```
-**Fix**: Add `onClick={() => navigate(`/seller/transactions/${transactionId}/delivery`)}` to the button.
+**Fix**: Add routing for `seller_dispatched` and `payment_secured` to navigate to the delivery update page.
 
-### 3. Transaction item titles showing "Untitled Item" in Transactions list
-**Root cause**: In `seller-transactions` edge function (line 122), the query selects a `category` column that **does not exist** in the `transaction_items` table:
-```ts
-.select("transaction_id, title, category, quantity")
-```
-PostgREST returns an error for invalid columns, causing the entire items query to fail silently. The `itemMap` stays empty, so all transactions fall back to "Untitled Item". The dashboard endpoint works correctly because it only selects `"transaction_id, title"`.
+### 2. Evidence images not rendering
+The images from real uploads have valid `secure_url` values and the edge functions correctly prefer `secure_url` over `file_url`. The `getCloudinaryThumbnail` function should produce working URLs. However, there are two issues:
+- Seed data files use a non-existent Cloudinary cloud (`safedeal`), so those will always show broken images
+- The image components have no error fallback — when an image fails to load, it shows a broken image icon with alt text instead of a graceful fallback
 
-**Fix**: Remove `category` from the select clause (it doesn't exist in the schema). Use `condition_label` or nothing instead.
+**Fix**: Add `onError` handlers to `<img>` tags in evidence components to fall back to a filename display when images fail to load. This handles both seed data and any transient CDN issues.
 
-## Files Modified
+### 3. Delivery proof image on seller dispute page also broken
+Same root cause — the `EvidenceFileCard` in `SellerEvidenceSection` and `SellerViewBuyerClaim` both use `<img>` without error fallback.
+
+## Changes
 
 | File | Change |
 |---|---|
-| `src/pages/SellerTransactionDetail.tsx` | Add `onClick` with `navigate` to "Update Delivery" button |
-| `supabase/functions/seller-transactions/index.ts` | Remove non-existent `category` from `transaction_items` select query |
+| `src/pages/SellerTransactions.tsx` | Add `seller_dispatched` and `payment_secured` routes to delivery page in action button onClick |
+| `src/components/seller-disputes/SellerViewBuyerClaim.tsx` | Add `onError` fallback on `<img>` to show filename when image fails |
+| `src/components/seller-disputes/SellerEvidenceSection.tsx` | Add `onError` fallback on `<img>` in `EvidenceFileCard` |
+| `src/components/disputes/BuyerClaimSection.tsx` | Add same `onError` fallback for buyer-side dispute evidence images |
+| `src/components/disputes/DeliveryProofSection.tsx` | Add same `onError` fallback for delivery proof images |
+
+## Technical Detail
+
+For image error fallback, each `<img>` tag gets:
+```tsx
+onError={(e) => {
+  const target = e.currentTarget;
+  target.style.display = 'none';
+  target.parentElement?.classList.add('fallback-active');
+}}
+```
+With a sibling fallback div that shows filename + icon when the image fails.
+
+For the navigation fix:
+```tsx
+if (["seller_dispatched", "payment_secured", "seller_preparing_delivery"].includes(tx.transaction_status)) {
+  navigate(`/seller/transactions/${tx.transaction_id}/delivery`);
+}
+```
 
