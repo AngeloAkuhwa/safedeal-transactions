@@ -79,7 +79,7 @@ export function AccountVerificationSection({
   if (!verification.email_verified) {
     unlockMessage = "Verify your email to begin activation";
   } else if (!verification.phone_verified) {
-    unlockMessage = "Verify your phone to unlock transactions up to ₦100,000";
+    unlockMessage = "Verify your phone to unlock protected transactions";
   } else if (!hasLocation) {
     unlockMessage = "Complete your location to activate your account";
   } else if (!verification.identity_verified) {
@@ -286,7 +286,7 @@ export function AccountVerificationSection({
           <div className="space-y-3">
             <div className="pt-2 flex items-center justify-center gap-2 text-success text-sm font-medium">
               <CheckCircle2 className="h-4 w-4" />
-              Account verified — you can transact up to ₦100,000
+              Account verified — you can transact up to {formatNaira(permissions?.transactionLimitNaira ?? 50000)}
             </div>
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
               <div className="flex items-start gap-3">
@@ -294,7 +294,7 @@ export function AccountVerificationSection({
                 <div>
                   <p className="text-sm font-semibold text-foreground">Next level: Trusted Buyer</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Complete identity verification to unlock transactions up to ₦500,000 and 5 concurrent purchases.
+                    Complete identity verification to unlock transactions up to ₦200,000 and 3 concurrent purchases.
                   </p>
                   {!identityVerified && identityStatus !== "pending_review" && (
                     <Link to="/dashboard/verification">
