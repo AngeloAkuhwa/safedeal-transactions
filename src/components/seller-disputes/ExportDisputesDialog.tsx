@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Download, FileText, Loader2 } from "lucide-react";
+import { AlertCircle, Download, FileText, Loader2, RefreshCw } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -19,7 +19,6 @@ interface ExportDisputesDialogProps {
   currentStatusFilter: string;
   currentReasonFilter: string;
   currentSearch: string;
-  currentItems: SellerDisputeItem[];
 }
 
 const statusLabel: Record<string, string> = {
@@ -27,6 +26,14 @@ const statusLabel: Record<string, string> = {
   seller_response_pending: "Awaiting Response",
   under_review: "Under Review",
   resolved: "Resolved",
+};
+
+const moneyImpactLabel: Record<string, string> = {
+  payout_blocked: "Payout Blocked",
+  payout_on_hold: "Payout On Hold",
+  no_impact: "No Impact",
+  refunded: "Refunded",
+  released: "Released",
 };
 
 function esc(v: string | null | undefined) {
@@ -47,8 +54,8 @@ function buildCsv(rows: SellerDisputeItem[]): string {
     esc(d.buyer?.name),
     esc(d.item_title),
     esc(d.reason_label),
-    esc(d.status.replace(/_/g, " ")),
-    esc(d.money_impact.replace(/_/g, " ")),
+    esc(statusLabel[d.status] ?? d.status),
+    esc(moneyImpactLabel[d.money_impact] ?? d.money_impact),
     d.seller_response_due_at ? format(new Date(d.seller_response_due_at), "yyyy-MM-dd") : "",
     format(new Date(d.opened_at), "yyyy-MM-dd"),
     "",
@@ -67,8 +74,10 @@ function downloadBlob(content: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+const PREVIEW_LIMIT = 20;
+
 export function ExportDisputesDialog({
-  open, onOpenChange, currentStatusFilter, currentReasonFilter, currentSearch, currentItems,
+  open, onOpenChange, currentStatusFilter, currentReasonFilter, currentSearch,
 }: ExportDisputesDialogProps) {
   const [scope, setScope] = useState("filtered");
   const [dateFilter, setDateFilter] = useState("all");
@@ -85,7 +94,8 @@ export function ExportDisputesDialog({
   const resolvedReason = scope === "filtered" && currentReasonFilter !== "all" ? currentReasonFilter : undefined;
   const resolvedSearch = scope === "filtered" ? currentSearch || undefined : undefined;
 
-  const { data, isLoading } = useQuery({
+  // TODO: dateFilter is visual-only for now — wire to API when backend supports date range filtering
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["seller-disputes-export", scope, dateFilter, resolvedStatus, resolvedReason, resolvedSearch],
     queryFn: () => getSellerDisputes({
       status: resolvedStatus,
@@ -94,11 +104,11 @@ export function ExportDisputesDialog({
       page: 1,
       page_size: 500,
     }),
-    enabled: open && scope !== "filtered",
+    enabled: open,
   });
 
-  // Use current items for "filtered" scope, fetched data for other scopes
-  const rows = scope === "filtered" ? currentItems : (data?.items ?? []);
+  const rows = data?.items ?? [];
+  const previewRows = rows.slice(0, PREVIEW_LIMIT);
   const openCount = rows.filter((d) => d.status === "open" || d.status === "seller_response_pending").length;
   const resolvedCount = rows.filter((d) => d.status === "resolved").length;
 
@@ -124,32 +134,35 @@ export function ExportDisputesDialog({
 
         {/* Controls + Summary */}
         <div className="px-6 py-4 border-b bg-muted/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Select value={scope} onValueChange={setScope}>
-              <SelectTrigger className="w-52 bg-background">
-                <SelectValue placeholder="Export Scope" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="filtered">Current filtered view</SelectItem>
-                <SelectItem value="all">All disputes</SelectItem>
-                <SelectItem value="open">Open only</SelectItem>
-                <SelectItem value="seller_response_pending">Awaiting response</SelectItem>
-                <SelectItem value="under_review">Under review</SelectItem>
-                <SelectItem value="resolved">Resolved only</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-40 bg-background">
-                <SelectValue placeholder="Time Range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Time</SelectItem>
-                <SelectItem value="this-week">This Week</SelectItem>
-                <SelectItem value="this-month">This Month</SelectItem>
-                <SelectItem value="this-quarter">This Quarter</SelectItem>
-              </SelectContent>
-            </Select>
-            {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <Select value={scope} onValueChange={setScope}>
+                <SelectTrigger className="w-52 bg-background">
+                  <SelectValue placeholder="Export Scope" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="filtered">Current filtered view</SelectItem>
+                  <SelectItem value="all">All disputes</SelectItem>
+                  <SelectItem value="open">Open only</SelectItem>
+                  <SelectItem value="seller_response_pending">Awaiting response</SelectItem>
+                  <SelectItem value="under_review">Under review</SelectItem>
+                  <SelectItem value="resolved">Resolved only</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={dateFilter} onValueChange={setDateFilter}>
+                <SelectTrigger className="w-40 bg-background">
+                  <SelectValue placeholder="Time Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="this-week">This Week</SelectItem>
+                  <SelectItem value="this-month">This Month</SelectItem>
+                  <SelectItem value="this-quarter">This Quarter</SelectItem>
+                </SelectContent>
+              </Select>
+              {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            </div>
+            <p className="text-[11px] text-muted-foreground/70">Filters by date opened</p>
           </div>
           <div className="flex items-center gap-5 text-sm">
             <div>
@@ -169,47 +182,65 @@ export function ExportDisputesDialog({
 
         {/* Preview Table */}
         <div className="flex-1 overflow-auto px-6 py-4">
-          {rows.length === 0 && !isLoading ? (
+          {isError ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <AlertCircle className="h-10 w-10 text-destructive/50 mb-3" />
+              <p className="text-sm font-medium text-foreground">Failed to load dispute data</p>
+              <p className="text-xs text-muted-foreground mt-1">Check your connection and try again</p>
+              <Button variant="outline" size="sm" className="mt-3 gap-1.5" onClick={() => refetch()}>
+                <RefreshCw className="h-3.5 w-3.5" /> Retry
+              </Button>
+            </div>
+          ) : rows.length === 0 && !isLoading ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <FileText className="h-10 w-10 text-muted-foreground/30 mb-3" />
               <p className="text-sm font-medium text-foreground">No disputes in this range</p>
               <p className="text-xs text-muted-foreground mt-1">Try a different scope or time range</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-xs uppercase tracking-wider text-muted-foreground">
-                  <th className="text-left py-2 pr-3 font-semibold">ID</th>
-                  <th className="text-left py-2 pr-3 font-semibold">Code</th>
-                  <th className="text-left py-2 pr-3 font-semibold hidden md:table-cell">Buyer</th>
-                  <th className="text-left py-2 pr-3 font-semibold hidden lg:table-cell">Item</th>
-                  <th className="text-left py-2 pr-3 font-semibold">Reason</th>
-                  <th className="text-left py-2 pr-3 font-semibold">Status</th>
-                  <th className="text-left py-2 pr-3 font-semibold hidden sm:table-cell">Impact</th>
-                  <th className="text-left py-2 font-semibold hidden sm:table-cell">Opened</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((d, i) => (
-                  <tr key={d.id} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-                    <td className="py-2.5 pr-3 font-mono text-xs">{d.id.substring(0, 8).toUpperCase()}</td>
-                    <td className="py-2.5 pr-3 font-mono text-xs">{d.transaction_code}</td>
-                    <td className="py-2.5 pr-3 hidden md:table-cell text-xs">{d.buyer?.name ?? "—"}</td>
-                    <td className="py-2.5 pr-3 hidden lg:table-cell text-xs truncate max-w-[140px]">{d.item_title}</td>
-                    <td className="py-2.5 pr-3 text-xs">{d.reason_label}</td>
-                    <td className="py-2.5 pr-3">
-                      <Badge variant="outline" className="text-[10px]">
-                        {statusLabel[d.status] ?? d.status.replace(/_/g, " ")}
-                      </Badge>
-                    </td>
-                    <td className="py-2.5 pr-3 hidden sm:table-cell text-xs">{d.money_impact.replace(/_/g, " ")}</td>
-                    <td className="py-2.5 hidden sm:table-cell text-xs text-muted-foreground">
-                      {format(new Date(d.opened_at), "MMM d, yyyy")}
-                    </td>
+            <>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-xs uppercase tracking-wider text-muted-foreground">
+                    <th className="text-left py-2 pr-3 font-semibold">ID</th>
+                    <th className="text-left py-2 pr-3 font-semibold">Code</th>
+                    <th className="text-left py-2 pr-3 font-semibold hidden md:table-cell">Buyer</th>
+                    <th className="text-left py-2 pr-3 font-semibold hidden lg:table-cell">Item</th>
+                    <th className="text-left py-2 pr-3 font-semibold">Reason</th>
+                    <th className="text-left py-2 pr-3 font-semibold">Status</th>
+                    <th className="text-left py-2 pr-3 font-semibold hidden sm:table-cell">Impact</th>
+                    <th className="text-left py-2 font-semibold hidden sm:table-cell">Opened</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {previewRows.map((d, i) => (
+                    <tr key={d.id} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                      <td className="py-2.5 pr-3 font-mono text-xs">{d.id.substring(0, 8).toUpperCase()}</td>
+                      <td className="py-2.5 pr-3 font-mono text-xs">{d.transaction_code}</td>
+                      <td className="py-2.5 pr-3 hidden md:table-cell text-xs">{d.buyer?.name ?? "—"}</td>
+                      <td className="py-2.5 pr-3 hidden lg:table-cell text-xs truncate max-w-[140px]">{d.item_title}</td>
+                      <td className="py-2.5 pr-3 text-xs">{d.reason_label}</td>
+                      <td className="py-2.5 pr-3">
+                        <Badge variant="outline" className="text-[10px]">
+                          {statusLabel[d.status] ?? d.status}
+                        </Badge>
+                      </td>
+                      <td className="py-2.5 pr-3 hidden sm:table-cell text-xs">
+                        {moneyImpactLabel[d.money_impact] ?? d.money_impact}
+                      </td>
+                      <td className="py-2.5 hidden sm:table-cell text-xs text-muted-foreground">
+                        {format(new Date(d.opened_at), "MMM d, yyyy")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {rows.length > PREVIEW_LIMIT && (
+                <p className="text-xs text-muted-foreground mt-3 text-center">
+                  Showing first {PREVIEW_LIMIT} of {rows.length} records
+                </p>
+              )}
+            </>
           )}
         </div>
 
@@ -222,7 +253,7 @@ export function ExportDisputesDialog({
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button size="sm" className="gap-1.5" disabled={rows.length === 0} onClick={handleDownload}>
+            <Button size="sm" className="gap-1.5" disabled={rows.length === 0 || isLoading} onClick={handleDownload}>
               <Download className="h-4 w-4" />
               Download CSV
             </Button>
