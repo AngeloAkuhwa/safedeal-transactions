@@ -1,66 +1,54 @@
 
 
-# Export Modal for Seller Payouts and Seller Disputes
+# Refine Export Dialogs: 8 Precision Fixes
 
-## Approach
+Based on the review feedback, here are the specific corrections needed for both export dialogs.
 
-Replicate the `ExportPreviewDialog` pattern from the Transactions page into two new components, each with page-specific data, scope options, and CSV fields.
+## Changes
 
-## New Files
+### 1. `ExportDisputesDialog.tsx` — Stop using `currentItems`, always fetch
 
-### 1. `src/components/seller/ExportPayoutsDialog.tsx`
+**Problem**: "Current filtered view" uses `currentItems` which is only the current page slice, not the full filtered dataset.
 
-- Same Dialog structure as `ExportPreviewDialog`
-- Props: `open`, `onOpenChange`, `currentStatusFilter`, `currentSearch`
-- **Scope select**: Current filtered view / All payouts / Released only / Pending only / Failed only
-- **Date range select**: All Time / This Week / This Month / This Quarter
-- Fetches data via `getSellerPayouts()` with appropriate filters when dialog opens
-- Preview table columns: Payout ID, Transaction Code, Buyer, Item, Gross, Fees, Net, Status, Release Date
-- Summary bar: record count, total net amount, released count
-- CSV fields: Payout ID, Transaction Code, Buyer, Item, Gross Amount, Fees, Net Payout, Currency, Status, Release Date, Failure Reason, Bank Name, Masked Account
-- Filename: `safedeal-payouts-YYYY-MM-DD.csv` (or `safedeal-payouts-filtered-...`)
-- Footer: Cancel + Download CSV buttons
+**Fix**: Remove `currentItems` prop. For "filtered" scope, fetch with the same filters passed as props (status, reason, search) with `page_size: 500`. Enable the query for all scopes including "filtered".
 
-### 2. `src/components/seller-disputes/ExportDisputesDialog.tsx`
+### 2. Both dialogs — Re-fetch on scope/date change (already works)
 
-- Same Dialog structure
-- Props: `open`, `onOpenChange`, `currentStatusFilter`, `currentReasonFilter`, `currentSearch`, `items` (for filtered view)
-- **Scope select**: Current filtered view / All disputes / Open only / Awaiting response / Under review / Resolved only
-- **Date range select**: All Time / This Week / This Month / This Quarter
-- Fetches data via `getSellerDisputes()` with scope-driven filters when dialog opens
-- Preview table columns: Dispute ID, Transaction Code, Buyer, Item, Reason, Status, Money Impact, Opened Date
-- Summary bar: record count, open count, resolved count
-- CSV fields: Dispute ID, Transaction Code, Buyer, Item, Reason, Status, Money Impact, Response Deadline, Date Opened, Last Updated, Resolution Date, Resolution Summary, Refund Amount, Release Amount
-- Filename: `safedeal-disputes-YYYY-MM-DD.csv` (or `safedeal-disputes-filtered-...`)
-- Footer: Cancel + Download CSV buttons
+The `useQuery` key already includes `scope`, `dateFilter`, and resolved filters, so React Query re-fetches automatically when these change. No code change needed — this is already correct.
 
-## Modified Files
+### 3. `ExportPayoutsDialog.tsx` — Add "On Hold" scope, align with page states
 
-### 3. `src/pages/SellerPayouts.tsx`
+Add scope options: `on_hold` and `processing` to match actual payout states from the UI.
 
-- Add `exportOpen` state
-- Import and render `ExportPayoutsDialog`
-- Wire existing Export button's `onClick` to `setExportOpen(true)` instead of doing nothing
+### 4. Both dialogs — Add date range label clarification
 
-### 4. `src/components/seller-disputes/SellerDisputeFilters.tsx`
+Add a small helper text below the date range selector:
+- Payouts: "Filters by release date"
+- Disputes: "Filters by date opened"
 
-- Remove inline `exportDisputesCsv` function
-- Accept new prop `onExportClick` callback
-- Wire Export button to call `onExportClick()` instead of direct CSV download
+Note: The date range select is currently visual-only (not wired to the API). For now, keep it as-is since the backend doesn't support date filtering yet — but add a TODO comment.
 
-### 5. `src/pages/SellerDisputes.tsx`
+### 5. Both dialogs — Cap preview table, show full stats
 
-- Add `exportOpen` state
-- Import and render `ExportDisputesDialog`
-- Pass `onExportClick={() => setExportOpen(true)}` to `SellerDisputeFilters`
+Show only first 20 rows in preview table with a note like "Showing first 20 of 145 records". Summary stats and CSV export use the full dataset.
 
-## UX Consistency
+### 6. Both dialogs — Add error state
 
-Both new dialogs will share identical layout with the existing `ExportPreviewDialog`:
-- Same `max-w-4xl max-h-[85vh]` sizing
-- Same header with title + subtitle
-- Same controls bar with filters + summary stats
-- Same preview table with alternating row colors
-- Same footer with Cancel + Download CSV
-- Toast on successful download
+Show an error message in the preview area when the query fails, with a retry button.
+
+### 7. Disputes CSV — Use raw `money_impact` and `status` values from backend
+
+Already using `d.money_impact` and `d.status` from the API response (not UI badge text). Just clean up the `.replace(/_/g, " ")` to use the label maps instead for consistency.
+
+### 8. Both dialogs — Explicit modal-selection-driven export
+
+Already correct — `handleDownload` uses `rows` which is derived from the current query. No change needed.
+
+## Files Modified
+
+| File | Changes |
+|---|---|
+| `ExportDisputesDialog.tsx` | Remove `currentItems` prop; always fetch for all scopes; cap preview to 20 rows; add error state; add date label hint |
+| `ExportPayoutsDialog.tsx` | Add `on_hold`/`processing` scopes; cap preview to 20 rows; add error state; add date label hint |
+| `SellerDisputes.tsx` | Remove `currentItems` prop from `ExportDisputesDialog` usage |
 
