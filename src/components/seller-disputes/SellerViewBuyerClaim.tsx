@@ -12,6 +12,47 @@ interface SellerViewBuyerClaimProps {
   buyerName: string | null;
 }
 
+function BuyerEvidenceThumb({ e }: { e: SellerDisputeEvidence }) {
+  const [imgError, setImgError] = useState(false);
+  const isImage = e.file_url && e.mime_type?.startsWith("image/") && !imgError;
+
+  return (
+    <div className="rounded-lg border border-border overflow-hidden bg-muted group relative">
+      {isImage ? (
+        <img
+          src={getCloudinaryThumbnail(e.file_url!, 300, 200)}
+          alt={e.file_name ?? "Evidence"}
+          className="w-full h-28 object-cover"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div className="w-full h-28 flex flex-col items-center justify-center text-xs text-muted-foreground p-2">
+          <ImageIcon className="h-6 w-6 mb-1" />
+          <span className="truncate max-w-full">{e.file_name ?? "File"}</span>
+        </div>
+      )}
+      {e.file_url && (
+        <a
+          href={e.file_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute top-1 right-1 w-6 h-6 bg-background/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <ExternalLink className="h-3 w-3 text-foreground" />
+        </a>
+      )}
+      <div className="px-2 py-1.5 border-t border-border">
+        <p className="text-[10px] text-muted-foreground truncate">
+          {new Date(e.created_at).toLocaleDateString("en-NG", {
+            month: "short",
+            day: "numeric",
+          })}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function SellerViewBuyerClaim({
   reasonLabel,
   description,
@@ -40,7 +81,6 @@ export function SellerViewBuyerClaim({
         </div>
       </CardHeader>
       <CardContent className="p-4 sm:p-6 space-y-4">
-        {/* Reason */}
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-1">Dispute Reason</p>
           <Badge variant="secondary" className="text-xs">
@@ -48,7 +88,6 @@ export function SellerViewBuyerClaim({
           </Badge>
         </div>
 
-        {/* Description */}
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-1">Buyer's Statement</p>
           <div className="rounded-lg bg-muted/50 border border-border p-3">
@@ -56,7 +95,6 @@ export function SellerViewBuyerClaim({
           </div>
         </div>
 
-        {/* Evidence */}
         {evidence.length > 0 && (
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-2">
@@ -65,25 +103,6 @@ export function SellerViewBuyerClaim({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {evidence.map((e) => (
                 <BuyerEvidenceThumb key={e.id} e={e} />
-                  {e.file_url && (
-                    <a
-                      href={e.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="absolute top-1 right-1 w-6 h-6 bg-background/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <ExternalLink className="h-3 w-3 text-foreground" />
-                    </a>
-                  )}
-                  <div className="px-2 py-1.5 border-t border-border">
-                    <p className="text-[10px] text-muted-foreground truncate">
-                      {new Date(e.created_at).toLocaleDateString("en-NG", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
-                </div>
               ))}
             </div>
           </div>
