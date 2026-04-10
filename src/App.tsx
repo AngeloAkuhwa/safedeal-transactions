@@ -31,6 +31,7 @@ import SellerUpdateDelivery from "./pages/SellerUpdateDelivery";
 import SellerPayouts from "./pages/SellerPayouts";
 import SellerProfileSettings from "./pages/SellerProfileSettings";
 import SellerDisputes from "./pages/SellerDisputes";
+import SellerDisputeDetail from "./pages/SellerDisputeDetail";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -82,6 +83,7 @@ const App = () => (
               <Route path="/seller/transactions/:transactionId/delivery" element={<SellerUpdateDelivery />} />
               <Route path="/seller/payouts" element={<SellerPayouts />} />
               <Route path="/seller/disputes" element={<SellerDisputes />} />
+              <Route path="/seller/disputes/:disputeId" element={<SellerDisputeDetail />} />
               <Route path="/seller/profile" element={<SellerProfileSettings />} />
             </Route>
 

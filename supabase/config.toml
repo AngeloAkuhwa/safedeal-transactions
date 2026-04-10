@@ -56,3 +56,9 @@ verify_jwt = false
 
 [functions.seller-disputes]
 verify_jwt = false
+
+[functions.seller-dispute-detail]
+verify_jwt = false
+
+[functions.submit-seller-response]
+verify_jwt = false
