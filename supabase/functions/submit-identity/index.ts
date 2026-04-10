@@ -141,6 +141,7 @@ Deno.serve(async (req) => {
         masked_identifier: method === "nin" ? (body.masked_identifier as string).trim() : null,
         document_file_id: method === "government_id" ? (body.document_file_id as string).trim() : null,
         consent_accepted_at: new Date().toISOString(),
+        consent_text_version: "v1.0",
       };
 
       const { data: submission, error: insertError } = await adminClient
