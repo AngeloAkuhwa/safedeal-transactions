@@ -97,10 +97,11 @@ Deno.serve(async (req) => {
               verification_reminders: true, system_alerts: true, marketing_messages: false,
             };
 
+      const emailVerified = !!userData.user.email_confirmed_at;
       const verificationData =
         verificationResult.status === "fulfilled" && verificationResult.value.data
-          ? verificationResult.value.data
-          : { email_verified: false, phone_verified: false, identity_verified: false, payout_verified: false };
+          ? { ...verificationResult.value.data, email_verified: emailVerified }
+          : { email_verified: emailVerified, phone_verified: false, identity_verified: false, payout_verified: false };
 
       const payoutAccount =
         payoutAccountResult.status === "fulfilled" && payoutAccountResult.value.data
