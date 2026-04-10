@@ -709,6 +709,7 @@ export type Database = {
           dispute_id: string
           id: string
           responded_by_user_id: string
+          response_number: number
           response_text: string
           submitted_at: string
           updated_at: string
@@ -718,6 +719,7 @@ export type Database = {
           dispute_id: string
           id?: string
           responded_by_user_id: string
+          response_number?: number
           response_text: string
           submitted_at?: string
           updated_at?: string
@@ -727,6 +729,7 @@ export type Database = {
           dispute_id?: string
           id?: string
           responded_by_user_id?: string
+          response_number?: number
           response_text?: string
           submitted_at?: string
           updated_at?: string

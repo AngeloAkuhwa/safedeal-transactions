@@ -1,0 +1,1 @@
+ALTER TABLE public.dispute_responses ADD COLUMN response_number INTEGER NOT NULL DEFAULT 1;
