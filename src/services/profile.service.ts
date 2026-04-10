@@ -2,11 +2,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type VerificationLevel = 'unverified' | 'basic_verified' | 'trusted_buyer' | 'high_trust_buyer';
 
-/**
- * Buyer profile data from the profiles table.
- * NOTE: `phone` stores the submitted phone number — it is NOT proof of verification.
- * The actual trust signal is `account_verifications.phone_verified`.
- */
 export interface BuyerProfile {
   id: string;
   full_name: string;
@@ -37,7 +32,6 @@ export interface BuyerPermissions {
   transactionLimitNaira: number;
   maxConcurrentActiveTransactions: number;
   verificationLevel: VerificationLevel;
-  // Batch 2 additions
   canCreateAnotherActiveTransaction: boolean;
   canAccessHighValueTransaction: boolean;
   canReceiveHighTierRefund: boolean;
@@ -70,25 +64,39 @@ export interface ServiceableRegion {
   is_active: boolean;
 }
 
-/** Extract a usable error message from edge function responses */
-function extractError(data: unknown, error: unknown, fallback: string): string {
-  if (error && typeof error === "object" && "message" in error) {
-    return (error as { message: string }).message || fallback;
-  }
-  if (data && typeof data === "object" && "error" in data) {
-    return (data as { error: string }).error || fallback;
-  }
-  return fallback;
+// ── Helpers ──
+
+const PROFILE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/buyer-profile`;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+async function getAccessToken(): Promise<string> {
+  const { data } = await supabase.auth.getSession();
+  const token = data?.session?.access_token;
+  if (!token) throw new Error("No active session. Please sign in again.");
+  return token;
 }
 
+async function profileFetch(method: string, body?: unknown) {
+  const token = await getAccessToken();
+  const options: RequestInit = {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      apikey: ANON_KEY,
+    },
+  };
+  if (body) options.body = JSON.stringify(body);
+  const res = await fetch(PROFILE_URL, options);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error || `Request failed: ${res.status}`);
+  return json;
+}
+
+// ── Public API ──
+
 export const getBuyerProfile = async (): Promise<BuyerProfileResponse> => {
-  const { data, error } = await supabase.functions.invoke("buyer-profile", {
-    method: "GET",
-  });
-  if (error || data?.error) {
-    throw new Error(extractError(data, error, "Failed to load profile"));
-  }
-  return data as BuyerProfileResponse;
+  return profileFetch("GET") as Promise<BuyerProfileResponse>;
 };
 
 export const getServiceableRegions = async (): Promise<ServiceableRegion[]> => {
@@ -108,38 +116,17 @@ export const updateProfile = async (updates: {
   state_name?: string | null;
   city_name?: string | null;
 }) => {
-  const { data, error } = await supabase.functions.invoke("buyer-profile", {
-    method: "PATCH",
-    body: { action: "update_profile", ...updates },
-  });
-  if (error || data?.error) {
-    throw new Error(extractError(data, error, "Failed to update profile"));
-  }
-  return data;
+  return profileFetch("PATCH", { action: "update_profile", ...updates });
 };
 
 export const updateNotificationPreferences = async (
   prefs: Partial<NotificationPreferences>
 ) => {
-  const { data, error } = await supabase.functions.invoke("buyer-profile", {
-    method: "PATCH",
-    body: { action: "update_preferences", ...prefs },
-  });
-  if (error || data?.error) {
-    throw new Error(extractError(data, error, "Failed to update preferences"));
-  }
-  return data;
+  return profileFetch("PATCH", { action: "update_preferences", ...prefs });
 };
 
 export const updateAvatar = async (avatarUrl: string | null) => {
-  const { data, error } = await supabase.functions.invoke("buyer-profile", {
-    method: "PATCH",
-    body: { action: "update_avatar", avatar_url: avatarUrl },
-  });
-  if (error || data?.error) {
-    throw new Error(extractError(data, error, "Failed to update avatar"));
-  }
-  return data;
+  return profileFetch("PATCH", { action: "update_avatar", avatar_url: avatarUrl });
 };
 
 export const changePassword = async (newPassword: string) => {
@@ -154,7 +141,8 @@ export const sendPhoneOtp = async (phone: string) => {
     body: { action: "send_otp", phone },
   });
   if (error || data?.error) {
-    throw new Error(extractError(data, error, "Failed to send OTP"));
+    const msg = data?.error || (error as any)?.message || "Failed to send OTP";
+    throw new Error(msg);
   }
   return data as { success: boolean; expires_in: number; message: string; dev_otp?: string };
 };
@@ -164,7 +152,8 @@ export const verifyPhoneOtp = async (code: string) => {
     body: { action: "verify_otp", code },
   });
   if (error || data?.error) {
-    throw new Error(extractError(data, error, "Failed to verify OTP"));
+    const msg = data?.error || (error as any)?.message || "Failed to verify OTP";
+    throw new Error(msg);
   }
   return data as { success: boolean; phone_verified: boolean; verification_level: VerificationLevel };
 };
