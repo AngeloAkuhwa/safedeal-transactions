@@ -15,6 +15,7 @@ import { Footer } from "@/components/landing/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { getSellerTransactionDetail } from "@/services/seller-transaction-detail.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
+import { BuyerTrustBadges } from "@/components/trust/BuyerTrustBadges";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   draft: { label: "Draft", variant: "secondary" },
@@ -204,12 +205,14 @@ const SellerTransactionDetail = () => {
                 <p className="text-xs font-semibold text-muted-foreground uppercase">Phone</p>
                 <p className="text-sm text-foreground">{buyer.phone || "—"}</p>
               </div>
-              {buyer.is_verified && (
-                <div className="inline-flex items-center gap-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full px-3 py-1 text-xs font-semibold">
-                  <CheckCircle className="h-3 w-3" />
-                  Verified Buyer
-                </div>
-              )}
+              <BuyerTrustBadges
+                signals={{
+                  emailVerified: buyer.email_verified,
+                  phoneVerified: buyer.phone_verified,
+                  verificationLevel: buyer.verification_level,
+                }}
+                compact
+              />
             </div>
           </Card>
 

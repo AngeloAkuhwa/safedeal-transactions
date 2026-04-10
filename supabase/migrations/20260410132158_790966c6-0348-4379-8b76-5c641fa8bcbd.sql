@@ -1,0 +1,1 @@
+ALTER TABLE public.phone_otp_codes ADD COLUMN invalidated_at timestamptz;

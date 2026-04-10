@@ -1612,6 +1612,7 @@ export type Database = {
           created_at: string
           expires_at: string
           id: string
+          invalidated_at: string | null
           max_attempts: number
           phone: string
           user_id: string
@@ -1623,6 +1624,7 @@ export type Database = {
           created_at?: string
           expires_at: string
           id?: string
+          invalidated_at?: string | null
           max_attempts?: number
           phone: string
           user_id: string
@@ -1634,6 +1636,7 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
+          invalidated_at?: string | null
           max_attempts?: number
           phone?: string
           user_id?: string

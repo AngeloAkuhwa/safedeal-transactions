@@ -6,6 +6,9 @@ export interface SellerTransactionDetailBuyer {
   phone: string;
   avatar_url: string | null;
   is_verified: boolean;
+  email_verified: boolean;
+  phone_verified: boolean;
+  verification_level: string;
 }
 
 export interface SellerTransactionDetailItem {

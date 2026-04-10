@@ -27,24 +27,29 @@ function computePermissions(verification: Record<string, unknown>, profile: Reco
   const phoneVerified = !!verification.phone_verified;
   const hasLocation = !!(profile.state_name && profile.city_name);
 
+  // TODO Batch 3: unlock higher limits after identity verification is implemented
   const limitByLevel: Record<string, number> = {
     unverified: 0,
     basic_verified: 50000,
-    trusted_buyer: 500000,
-    high_trust_buyer: 999999999,
+    trusted_buyer: 50000,      // same as basic until Batch 3
+    high_trust_buyer: 50000,   // same as basic until Batch 3
   };
 
+  // TODO Batch 3: unlock higher concurrency after identity verification is implemented
   const concurrentByLevel: Record<string, number> = {
     unverified: 0,
     basic_verified: 1,
-    trusted_buyer: 3,
-    high_trust_buyer: 5,
+    trusted_buyer: 1,          // same as basic until Batch 3
+    high_trust_buyer: 1,       // same as basic until Batch 3
   };
 
+  // Explicit triple-check: phone + location + level must all pass
+  const canAct = phoneVerified && hasLocation && level !== "unverified";
+
   return {
-    canStartProtectedPayment: level !== "unverified",
-    canOpenDispute: level !== "unverified",
-    canHoldActiveTransaction: level !== "unverified",
+    canStartProtectedPayment: canAct,
+    canOpenDispute: canAct,
+    canHoldActiveTransaction: canAct,
     requiresPhoneVerification: !phoneVerified,
     requiresLocation: !hasLocation,
     transactionLimitNaira: limitByLevel[level] ?? 0,
