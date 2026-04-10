@@ -139,6 +139,7 @@ const SellerProfileSettings = () => {
               verification={data.verification}
               onProfileChange={handleProfileChange}
               showLocation
+              onAvatarUploaded={() => queryClient.invalidateQueries({ queryKey: ["seller-profile"] })}
             />
             <SellerVerificationSection verification={data.verification} isLoading={isLoading} />
             <SecuritySection />
