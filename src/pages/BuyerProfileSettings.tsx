@@ -10,6 +10,7 @@ import { SecuritySection } from "@/components/profile/SecuritySection";
 import { NotificationPreferencesSection } from "@/components/profile/NotificationPreferencesSection";
 import { DangerZoneSection } from "@/components/profile/DangerZoneSection";
 import { TrustSafetyPanel } from "@/components/profile/TrustSafetyPanel";
+import { PhoneVerificationModal } from "@/components/profile/PhoneVerificationModal";
 import {
   getBuyerProfile,
   updateProfile,
@@ -33,6 +34,8 @@ const BuyerProfileSettings = () => {
   const [pendingChanges, setPendingChanges] = useState<Partial<BuyerProfile>>({});
   // Track pending notification preference edits
   const [pendingPrefs, setPendingPrefs] = useState<Partial<NotificationPreferences>>({});
+  // Phone verification modal
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
 
   const hasPendingProfile = Object.keys(pendingChanges).length > 0;
   const hasPendingPrefs = Object.keys(pendingPrefs).length > 0;
@@ -60,6 +63,8 @@ const BuyerProfileSettings = () => {
             full_name: pendingChanges.full_name,
             phone: pendingChanges.phone ?? undefined,
             country_code: pendingChanges.country_code,
+            state_name: (pendingChanges as Record<string, unknown>).state_name as string | undefined,
+            city_name: (pendingChanges as Record<string, unknown>).city_name as string | undefined,
           })
         );
       }
@@ -112,6 +117,8 @@ const BuyerProfileSettings = () => {
     );
   }
 
+  const hasLocation = !!(data.profile.state_name && data.profile.city_name);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <BuyerNav buyerName={data.profile.full_name} avatarUrl={data.profile.avatar_url} />
@@ -140,8 +147,15 @@ const BuyerProfileSettings = () => {
               profile={data.profile}
               verification={data.verification}
               onProfileChange={handleProfileChange}
+              showLocation
             />
-            <AccountVerificationSection verification={data.verification} isLoading={isLoading} />
+            <AccountVerificationSection
+              verification={data.verification}
+              permissions={data.permissions}
+              hasLocation={hasLocation}
+              isLoading={isLoading}
+              onPhoneVerifyClick={() => setShowPhoneModal(true)}
+            />
             <SecuritySection />
             {displayPrefs && (
               <NotificationPreferencesSection
@@ -186,6 +200,13 @@ const BuyerProfileSettings = () => {
       </main>
 
       <Footer />
+
+      {/* Phone Verification Modal */}
+      <PhoneVerificationModal
+        open={showPhoneModal}
+        onOpenChange={setShowPhoneModal}
+        currentPhone={data.profile.phone}
+      />
     </div>
   );
 };

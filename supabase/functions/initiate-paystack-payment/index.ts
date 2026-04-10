@@ -39,6 +39,27 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub as string;
     let userEmail = claimsData.claims.email as string;
 
+    // 2b. Check buyer verification level — phone must be verified
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: verif } = await supabaseAdmin
+      .from("account_verifications")
+      .select("phone_verified, verification_level")
+      .eq("user_id", userId)
+      .single();
+
+    if (!verif?.phone_verified || verif?.verification_level === "unverified") {
+      return new Response(
+        JSON.stringify({
+          error: "Phone verification required before making payments. Please verify your phone number in Profile Settings.",
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // 2. Parse request
     const { shareToken, paymentMethod } = await req.json();
     if (!shareToken) {
