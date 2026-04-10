@@ -1,69 +1,125 @@
 
 
-# Seller Payouts Page — Full Implementation
+# Seller Payouts Upgrades — Edit Modal, Payout Accounts Table, Context-Aware Actions
 
-## Overview
+## Summary
 
-Create the Seller Payouts page from scratch, matching the detailed design spec. The page has no existing implementation — the SellerNav already links to `/seller/payouts` but the route, page, service, and edge function all need to be created.
+Three upgrades to transform the existing Seller Payouts page from a display-only dashboard into an operational finance center: (1) a `payout_accounts` database table for secure bank detail storage, (2) an "Edit Payout Details" modal with inline verification, and (3) context-aware row actions that route sellers to the right page based on payout/transaction state.
 
-## Architecture
+## Technical Details
 
-```text
-SellerPayouts.tsx
-  ├── SellerNav (existing)
-  ├── 4 Summary Cards (Released, Pending, Held, On Hold/Failed)
-  ├── How Payouts Work (4-step lifecycle)
-  └── Two-column layout
-       ├── Left: Payout History table (search, filters, pagination)
-       └── Right sidebar
-            ├── Upcoming Releases card
-            ├── Blocked / Delayed Funds card
-            └── Payout Account card
+### 1. Database Migration: `payout_accounts` table
+
+```sql
+CREATE TABLE public.payout_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  bank_code TEXT NOT NULL,
+  bank_name TEXT NOT NULL,
+  account_name TEXT NOT NULL,
+  masked_account_number TEXT NOT NULL,
+  provider_recipient_code TEXT,
+  verification_status TEXT NOT NULL DEFAULT 'pending',
+  last_verified_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id)
+);
+ALTER TABLE public.payout_accounts ENABLE ROW LEVEL SECURITY;
+-- Users can read and manage their own payout account
+CREATE POLICY "Users read own payout account"
+  ON public.payout_accounts FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
+CREATE POLICY "Users manage own payout account"
+  ON public.payout_accounts FOR ALL TO authenticated
+  USING (user_id = auth.uid());
+-- updated_at trigger
+CREATE TRIGGER update_payout_accounts_updated_at
+  BEFORE UPDATE ON public.payout_accounts
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ```
 
-## Files to Create/Edit
+Only masked account numbers are stored. Full account numbers are never persisted — they are sent to the payment provider (Paystack) to create a recipient, and only the last 4 digits are saved for display.
 
-### 1. Edge Function: `supabase/functions/seller-payouts/index.ts`
+### 2. New Edge Function: `update-payout-account`
 
-Queries with service role client after JWT verification + seller role check:
+**File:** `supabase/functions/update-payout-account/index.ts`
 
-- **Summary**: Aggregate `payouts` by status (completed, pending/processing, failed) + `escrow_states` held amounts for current seller
-- **Payout History**: Join `payouts` → `transactions` → `transaction_items` + `transaction_pricing` + buyer `profiles`. Supports pagination (page/limit), status filter, search query. Returns: payout_id, transaction_code, buyer_name, item_title, gross_amount, fees, net_payout, release_date, status
-- **Upcoming Releases**: Transactions where `money_status = funds_held_in_escrow` AND status in (`delivered_awaiting_verification`, `seller_dispatched`) — join with `transaction_items`, `transaction_pricing`, buyer `profiles`, include `verification_deadline_at` for countdown
-- **Blocked/Delayed**: Transactions where status is `disputed` or payouts with `failed` status — include blocker reason
-- **Payout Account**: Seller profile bank info placeholder + `account_verifications.payout_verified` status
-- **Seller profile**: name + avatar for nav
+- Accepts: `bank_code`, `bank_name`, `account_number`, `account_name`
+- Validates input with Zod
+- Masks account number (keeps last 4 digits only: `**** **** 4892`)
+- Upserts into `payout_accounts` table
+- Returns saved record (masked)
+- Future: call Paystack "resolve account" API to verify account name before saving
 
-### 2. Service: `src/services/seller-payouts.service.ts`
+### 3. Update Edge Function: `seller-payouts`
 
-Typed interfaces + `getSellerPayouts(page, limit, statusFilter, search)` function invoking the edge function.
+**File:** `supabase/functions/seller-payouts/index.ts`
 
-### 3. Page: `src/pages/SellerPayouts.tsx`
+Replace the placeholder payout account data with a real query to `payout_accounts`:
+- Read `bank_name`, `account_name`, `masked_account_number`, `verification_status`, `last_verified_at` from `payout_accounts` where `user_id = sellerId`
+- Fall back to current placeholder values if no record exists
 
-Full page with:
-- **4 summary cards**: Total Released (green, with 30-day trend note), Pending Release (orange), Held in Escrow (blue), On Hold/Failed (red/warning)
-- **How Payouts Work** section: 4-step horizontal lifecycle with icons (Payment Held → Buyer Confirms/Auto-Release → Payout Processing → Funds Sent)
-- **Payout History table** (left 2/3): Search input, filter by status, export button. Columns: Payout ID, Transaction Code, Buyer, Item, Gross, Fees, Net Payout, Release Date, Status, Action. Status badges: Released (green), Processing (blue), Scheduled (orange), On Hold (yellow), Failed (red). Actions: View Details, Download Receipt, Retry, Contact Support. Pagination at bottom
-- **Right sidebar** (1/3):
-  - **Upcoming Releases**: Cards with transaction code, item, buyer, amount, release trigger (auto-release countdown, buyer confirmation pending), status badge
-  - **Blocked/Delayed Funds**: Warning-toned cards with blocker reason (dispute, verification needed, manual review)
-  - **Payout Account**: Bank name, account name, masked number, verification status, last payout date, typical processing time, Edit button. Warning state if verification incomplete
-- **Empty states**: No payouts yet, no upcoming releases, no blocked funds
-- Currency: NGN formatted as ₦
+### 4. New Component: `EditPayoutDetailsModal`
 
-### 4. Route: `src/App.tsx`
+**File:** `src/components/seller/EditPayoutDetailsModal.tsx`
 
-Add `<Route path="/seller/payouts" element={<SellerPayouts />} />` inside the seller protected routes.
+A polished dialog matching SafeDeal's design system:
 
-### 5. Config: `supabase/config.toml`
+- **Header**: "Edit Payout Details" / "Update the bank account where released funds will be sent"
+- **Fields**: Bank selector (Nigerian banks dropdown), Account Number input, Account Name (auto-filled or manual)
+- **Inline verification states**: Verifying... → Verified ✓ → Could not verify ✗
+- **Trust notes**: "Only masked account details are shown after saving" and "Changes may require reverification"
+- **Save disabled** until account name is provided and valid
+- **UX rule**: When editing existing account, the modal does NOT prefill the old full account number — seller must enter a new one
 
-Add `[functions.seller-payouts]` with `verify_jwt = false`.
+### 5. Update Page: `SellerPayouts.tsx`
 
-## Technical Notes
+Two changes:
 
-- Edge function uses `adminClient` (service role) for all queries to bypass RLS, after verifying JWT + seller role in code
-- Payout history pagination defaults to 10 per page
-- The `payouts` table has: id, seller_id, transaction_id, amount, currency_code, status (pending/processing/completed/failed/cancelled), provider_reference, initiated_at, completed_at, failed_at, failure_reason
-- Upcoming releases are derived from transaction state (not payouts table) since payouts are only created when funds are actually being released
-- Money status distinctions (transaction status vs escrow status vs payout status) are clearly reflected in badges and labels throughout
+**A. Payout Account card — modal integration**
+- "Edit Payout Details" button opens the modal instead of linking to `/seller/profile`
+- "Complete Verification" CTA also opens the modal when no account exists
+- After successful save, refetch payout data to reflect updated bank details
+
+**B. Context-aware row actions in Payout History table**
+
+Replace the current generic actions with state-driven routing:
+
+| Payout Status | Action Label | Destination |
+|---|---|---|
+| `completed` | View Payout | `/seller/transactions/{id}` |
+| `processing` / `pending` | View Transaction | `/seller/transactions/{id}` |
+| `failed` | Retry | Toast notification (future: actual retry) |
+
+For blocked/delayed fund cards in the sidebar:
+
+| Blocker | Action | Destination |
+|---|---|---|
+| Dispute in review | View Dispute | `/seller/transactions/{id}` (dispute section) |
+| Payout verification needed | Fix Payout Details | Opens Edit Modal |
+
+Transaction codes in each row become clickable links to `/seller/transactions/{id}`.
+
+### 6. Service Update: `seller-payouts.service.ts`
+
+Add:
+- `PayoutAccount` interface updated with `verification_status` field
+- `updatePayoutAccount(bankCode, bankName, accountNumber, accountName)` function calling the new edge function
+
+### 7. Config: `supabase/config.toml`
+
+Add `[functions.update-payout-account]` with `verify_jwt = false`.
+
+## Files Summary
+
+| File | Action |
+|---|---|
+| DB migration | New `payout_accounts` table |
+| `supabase/functions/update-payout-account/index.ts` | New |
+| `supabase/functions/seller-payouts/index.ts` | Edit — read from `payout_accounts` |
+| `supabase/config.toml` | Add function config |
+| `src/components/seller/EditPayoutDetailsModal.tsx` | New |
+| `src/pages/SellerPayouts.tsx` | Edit — modal + context actions |
+| `src/services/seller-payouts.service.ts` | Edit — add update function |
 
