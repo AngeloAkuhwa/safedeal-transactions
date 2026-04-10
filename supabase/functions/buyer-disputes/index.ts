@@ -56,6 +56,36 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Buyer role required" }, 403);
     }
 
+    // 2b. Verification gate — unverified buyers cannot access disputes
+    const [verifResult, profileResult] = await Promise.all([
+      adminClient
+        .from("account_verifications")
+        .select("phone_verified, verification_level")
+        .eq("user_id", userId)
+        .single(),
+      adminClient
+        .from("profiles")
+        .select("state_name, city_name")
+        .eq("id", userId)
+        .single(),
+    ]);
+
+    const phoneVerified = !!verifResult.data?.phone_verified;
+    const locationComplete = !!(profileResult.data?.state_name && profileResult.data?.city_name);
+    const levelPermits = verifResult.data?.verification_level !== "unverified";
+
+    if (!phoneVerified || !locationComplete || !levelPermits) {
+      const missing: string[] = [];
+      if (!phoneVerified) missing.push("phone_verification");
+      if (!locationComplete) missing.push("location");
+      if (!levelPermits) missing.push("verification_level");
+      return jsonResponse({
+        error: "Account verification incomplete",
+        missing,
+        message: "Complete your verification to access disputes.",
+      }, 403);
+    }
+
     // 3. Parse filters
     let filters: Record<string, unknown> = {};
     try {
