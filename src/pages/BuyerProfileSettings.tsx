@@ -155,6 +155,7 @@ const BuyerProfileSettings = () => {
               hasLocation={hasLocation}
               isLoading={isLoading}
               onPhoneVerifyClick={() => setShowPhoneModal(true)}
+              identitySubmissionStatus={data.identity_submission?.status ?? null}
             />
             <SecuritySection />
             {displayPrefs && (
