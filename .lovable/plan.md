@@ -1,29 +1,19 @@
 
 
-# Replace Delivery Method with Multi-Select Supported Methods
+# Update SellerProductDetail: Multi-Select Delivery Methods
 
-## What changes
-
-Replace the single delivery method dropdown on Step 4 with a checkbox list of delivery methods the seller's business supports. This means a product can support multiple delivery methods (e.g. both Pickup and Shipping), and the buyer picks their preferred one at purchase time.
+## Problem
+The product edit page (`SellerProductDetail.tsx`) still uses a single `<Select>` dropdown for delivery method, while the create page was updated to use a multi-select checkbox grid.
 
 ## Changes
 
-### `src/pages/SellerProductCreate.tsx`
-- Change `deliveryMethod` state from `string` to `string[]` (array)
-- Replace `<Select>` with a checkbox group using `<Checkbox>` components for: Pickup, Delivery, Courier/Shipping, Digital/Instant, Hand Delivery, Meetup
-- Update `createMutation` payload to send `delivery_methods: deliveryMethods` (array) instead of `delivery_method`
-- Rename step label from "Delivery & Settings" to "Settings"
+### `src/pages/SellerProductDetail.tsx`
+1. Change `deliveryMethod` state from `string` to `string[]`
+2. Import `Checkbox` from `@/components/ui/checkbox`
+3. Replace the delivery method `<Select>` (lines 254-264) with the same checkbox grid used in `SellerProductCreate` — 6 options: Pickup, Delivery, Courier/Shipping, Digital/Instant, Hand Delivery, Meetup
+4. Update `useEffect` initializer (line 69) to parse the JSON array from the API: `setDeliveryMethods(JSON.parse(p.delivery_method || '[]'))` with a fallback for legacy single strings
+5. Update `handleSave` payload to send `delivery_methods: deliveryMethods` instead of `delivery_method: deliveryMethod`
+6. Rename card title from "Delivery & Settings" to "Settings"
 
-### `supabase/functions/seller-products/index.ts`
-- Accept `delivery_methods` (string array) instead of `delivery_method` (string)
-- Store as JSON array in the existing `delivery_method` column (text field, store as JSON string)
-
-### `supabase/functions/seller-product-detail/index.ts`
-- Accept `delivery_methods` in PATCH, store as JSON string
-- Return parsed array in GET response
-
-### `src/services/seller-storefront.service.ts`
-- Update `CreateProductPayload` interface: `delivery_methods?: string[]` instead of `delivery_method?: string`
-
-No database migration needed -- the existing `delivery_method` text column can store a JSON array string.
+No backend or migration changes needed — the edge function already handles `delivery_methods` as a JSON array from the create flow update.
 
