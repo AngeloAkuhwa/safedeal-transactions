@@ -1,54 +1,56 @@
 
 
-# Refine Export Dialogs: 8 Precision Fixes
+# Fix: Email Verification Status Not Syncing to Profile Page
 
-Based on the review feedback, here are the specific corrections needed for both export dialogs.
+## Root Cause
 
-## Changes
+The user confirmed their email (auth.users.email_confirmed_at = 2026-04-10 12:14:38), but `account_verifications.email_verified` is still `false`. There is **no mechanism** to sync auth confirmation status to the `account_verifications` table. The `handle_new_user` trigger inserts all verifications as `false`, and nothing ever updates them.
 
-### 1. `ExportDisputesDialog.tsx` — Stop using `currentItems`, always fetch
+## Solution
 
-**Problem**: "Current filtered view" uses `currentItems` which is only the current page slice, not the full filtered dataset.
+Two-pronged fix: derive `email_verified` from the source of truth (`auth.users`) at read time, and keep `account_verifications` for non-auth verification statuses only.
 
-**Fix**: Remove `currentItems` prop. For "filtered" scope, fetch with the same filters passed as props (status, reason, search) with `page_size: 500`. Enable the query for all scopes including "filtered".
+### 1. Update `buyer-profile` edge function — derive email_verified from auth
 
-### 2. Both dialogs — Re-fetch on scope/date change (already works)
+Instead of reading `email_verified` from `account_verifications`, check `auth.users.email_confirmed_at` (which the admin client can access). This is the authoritative source.
 
-The `useQuery` key already includes `scope`, `dateFilter`, and resolved filters, so React Query re-fetches automatically when these change. No code change needed — this is already correct.
+**File**: `supabase/functions/buyer-profile/index.ts`
 
-### 3. `ExportPayoutsDialog.tsx` — Add "On Hold" scope, align with page states
+In the GET handler, after authenticating the user, use `userData.user.email_confirmed_at` to set `email_verified`:
 
-Add scope options: `on_hold` and `processing` to match actual payout states from the UI.
+```typescript
+const verification = verificationResult.status === "fulfilled" && verificationResult.value.data
+  ? {
+      ...verificationResult.value.data,
+      email_verified: !!userData.user.email_confirmed_at, // override from auth
+    }
+  : { email_verified: !!userData.user.email_confirmed_at, phone_verified: false, identity_verified: false, payout_verified: false };
+```
 
-### 4. Both dialogs — Add date range label clarification
+### 2. Same fix for `seller-profile` edge function
 
-Add a small helper text below the date range selector:
-- Payouts: "Filters by release date"
-- Disputes: "Filters by date opened"
+**File**: `supabase/functions/seller-profile/index.ts`
 
-Note: The date range select is currently visual-only (not wired to the API). For now, keep it as-is since the backend doesn't support date filtering yet — but add a TODO comment.
+Apply identical logic — override `email_verified` from `userData.user.email_confirmed_at`.
 
-### 5. Both dialogs — Cap preview table, show full stats
+### 3. (Optional) Migration: sync existing data
 
-Show only first 20 rows in preview table with a note like "Showing first 20 of 145 records". Summary stats and CSV export use the full dataset.
+Run a one-time migration to update `account_verifications.email_verified = true` for all users who already confirmed their email. This keeps the table consistent even though the edge functions no longer read it for email status.
 
-### 6. Both dialogs — Add error state
-
-Show an error message in the preview area when the query fails, with a retry button.
-
-### 7. Disputes CSV — Use raw `money_impact` and `status` values from backend
-
-Already using `d.money_impact` and `d.status` from the API response (not UI badge text). Just clean up the `.replace(/_/g, " ")` to use the label maps instead for consistency.
-
-### 8. Both dialogs — Explicit modal-selection-driven export
-
-Already correct — `handleDownload` uses `rows` which is derived from the current query. No change needed.
+```sql
+UPDATE public.account_verifications av
+SET email_verified = true
+FROM auth.users au
+WHERE av.user_id = au.id AND au.email_confirmed_at IS NOT NULL AND av.email_verified = false;
+```
 
 ## Files Modified
 
-| File | Changes |
+| File | Change |
 |---|---|
-| `ExportDisputesDialog.tsx` | Remove `currentItems` prop; always fetch for all scopes; cap preview to 20 rows; add error state; add date label hint |
-| `ExportPayoutsDialog.tsx` | Add `on_hold`/`processing` scopes; cap preview to 20 rows; add error state; add date label hint |
-| `SellerDisputes.tsx` | Remove `currentItems` prop from `ExportDisputesDialog` usage |
+| `supabase/functions/buyer-profile/index.ts` | Override `email_verified` from `auth.users.email_confirmed_at` |
+| `supabase/functions/seller-profile/index.ts` | Same override |
+| Migration | Sync existing confirmed users' `email_verified` flag |
+
+No frontend changes needed — the UI already displays whatever the API returns.
 
