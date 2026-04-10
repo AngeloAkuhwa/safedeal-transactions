@@ -51,6 +51,9 @@ const EVENT_LABELS: Record<string, string> = {
   seller_response_edited: "Seller Response Edited",
 };
 
+const RESPONDABLE_STATUSES = ["open", "seller_response_pending"];
+const MAX_RESPONSES = 2;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -138,16 +141,16 @@ Deno.serve(async (req) => {
       buyerId
         ? adminClient.from("profiles").select("id, full_name, avatar_url").eq("id", buyerId).single()
         : Promise.resolve({ data: null }),
-      // [3] All dispute responses (multiple)
+      // [3] All dispute responses (multiple) with edit tracking
       adminClient
         .from("dispute_responses")
-        .select("id, response_text, submitted_at, response_number")
+        .select("id, response_text, submitted_at, response_number, edited_at, edited_by_user_id, previous_response_text")
         .eq("dispute_id", disputeId)
         .order("response_number", { ascending: true }),
-      // [4] All dispute evidence
+      // [4] All dispute evidence (including is_active)
       adminClient
         .from("dispute_evidence")
-        .select("id, submitted_by_role, submitted_by_user_id, evidence_type, file_id, notes, created_at")
+        .select("id, submitted_by_role, submitted_by_user_id, evidence_type, file_id, notes, created_at, is_active, replaced_at, replaced_by_file_id")
         .eq("dispute_id", disputeId)
         .order("created_at", { ascending: true }),
       // [5] Status history
@@ -248,7 +251,7 @@ Deno.serve(async (req) => {
 
     function mapEvidence(rows: Array<Record<string, unknown>>, role: string) {
       return rows
-        .filter((e) => e.submitted_by_role === role)
+        .filter((e) => e.submitted_by_role === role && e.is_active !== false)
         .map((e) => {
           const file = fileMap.get(e.file_id as string);
           return {
@@ -266,21 +269,21 @@ Deno.serve(async (req) => {
     const buyerEvidence = mapEvidence(evidenceRows, "buyer");
     const sellerEvidence = mapEvidence(evidenceRows, "seller");
 
-    // Check if seller has additional evidence submitted during dispute
+    // Check additional evidence using dedicated type + is_active
     const additionalEvidenceSubmitted = evidenceRows.some(
       (e) =>
         e.submitted_by_role === "seller" &&
-        e.evidence_type === "supporting_document" &&
-        new Date(e.created_at as string) >= new Date(dispute.opened_at as string)
+        e.evidence_type === "seller_additional_dispute_evidence" &&
+        e.is_active === true
     );
 
-    // Multi-response support
+    // Multi-response support with edit tracking
     const responseCount = responsesData.length;
     const hasResponse = responseCount > 0;
     let responseState: "pending" | "responded" | "not_responded" = "not_responded";
     if (hasResponse) {
       responseState = "responded";
-    } else if (dispute.status === "seller_response_pending" || dispute.status === "open") {
+    } else if (RESPONDABLE_STATUSES.includes(dispute.status as string)) {
       responseState = "pending";
     }
 
@@ -289,7 +292,22 @@ Deno.serve(async (req) => {
       response_text: r.response_text as string,
       submitted_at: r.submitted_at as string,
       response_number: (r.response_number as number) ?? 1,
+      edited_at: (r.edited_at as string) ?? null,
+      edited_by_user_id: (r.edited_by_user_id as string) ?? null,
+      previous_response_text: (r.previous_response_text as string) ?? null,
     }));
+
+    // ── Permission flags (explicit, non-overlapping) ──
+    const isRespondable = RESPONDABLE_STATUSES.includes(dispute.status as string);
+    const permissions = {
+      canSubmitInitialResponse: responseCount === 0 && isRespondable,
+      canAddFollowUpResponse: responseCount === 1 && isRespondable,
+      canEditLatestResponse: responseCount > 0 && isRespondable,
+      canUploadAdditionalEvidence: !additionalEvidenceSubmitted && isRespondable,
+      canReplaceAdditionalEvidence: additionalEvidenceSubmitted && isRespondable,
+      respondableStatuses: RESPONDABLE_STATUSES,
+      isRespondable,
+    };
 
     const proofFiles = proofFileRows.map((p) => {
       const file = fileMap.get(p.file_id as string);
@@ -426,7 +444,7 @@ Deno.serve(async (req) => {
         has_response: hasResponse,
         response_state: responseState,
         response_count: responseCount,
-        max_responses: 2,
+        max_responses: MAX_RESPONSES,
         responses,
         additional_evidence_submitted: additionalEvidenceSubmitted,
         // Backward compat
@@ -434,6 +452,7 @@ Deno.serve(async (req) => {
         submitted_at: responses[0]?.submitted_at ?? null,
         evidence: sellerEvidence,
       },
+      permissions,
       agreement_snapshot: snapshotData
         ? { locked_at: snapshotData.locked_at, snapshot_json: snapshotData.snapshot_json }
         : null,

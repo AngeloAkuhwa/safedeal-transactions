@@ -1,14 +1,13 @@
 import { AlertTriangle, Info, CheckCircle2, Lock, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { SellerDisputePermissions } from "@/services/seller-dispute-detail.service";
 
 interface SellerDisputeContextBannerProps {
   status: string;
   responseDueAt: string | null;
   isPayoutBlocked: boolean;
   hasResponse: boolean;
-  responseCount: number;
-  maxResponses: number;
-  additionalEvidenceSubmitted: boolean;
+  permissions: SellerDisputePermissions;
 }
 
 interface BannerConfig {
@@ -35,14 +34,12 @@ export function SellerDisputeContextBanner({
   responseDueAt,
   isPayoutBlocked,
   hasResponse,
-  responseCount,
-  maxResponses,
-  additionalEvidenceSubmitted,
+  permissions,
 }: SellerDisputeContextBannerProps) {
   const banners: BannerConfig[] = [];
 
   // Response needed banner
-  if ((status === "open" || status === "seller_response_pending") && !hasResponse) {
+  if (permissions.canSubmitInitialResponse) {
     const deadline = formatDeadline(responseDueAt);
     const isOverdue = deadline === "Overdue";
     banners.push({
@@ -55,11 +52,13 @@ export function SellerDisputeContextBanner({
     });
   }
 
-  // Can still act banner (when open and has responded)
-  if ((status === "open" || status === "seller_response_pending") && hasResponse) {
+  // Can still act banner (when respondable and has responded)
+  if (permissions.isRespondable && hasResponse) {
     const actions: string[] = [];
-    if (responseCount < maxResponses) actions.push("submit a follow-up response");
-    if (!additionalEvidenceSubmitted) actions.push("upload additional evidence");
+    if (permissions.canAddFollowUpResponse) actions.push("submit a follow-up response");
+    if (permissions.canEditLatestResponse) actions.push("edit your latest response");
+    if (permissions.canUploadAdditionalEvidence) actions.push("upload additional evidence");
+    if (permissions.canReplaceAdditionalEvidence) actions.push("replace your additional evidence");
 
     if (actions.length > 0) {
       banners.push({

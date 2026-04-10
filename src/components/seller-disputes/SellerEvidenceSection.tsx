@@ -10,6 +10,7 @@ import {
   Package,
   Shield,
   Plus,
+  RefreshCw,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import { getCloudinaryThumbnail } from "@/lib/cloudinary";
 import { supabase } from "@/integrations/supabase/client";
-import { submitAdditionalEvidence } from "@/services/seller-dispute-detail.service";
-import type { SellerDisputeEvidence, SellerDisputeProofFile } from "@/services/seller-dispute-detail.service";
+import { submitAdditionalEvidence, replaceAdditionalEvidence } from "@/services/seller-dispute-detail.service";
+import type { SellerDisputeEvidence, SellerDisputeProofFile, SellerDisputePermissions } from "@/services/seller-dispute-detail.service";
 
 interface SellerEvidenceSectionProps {
   disputeId: string;
@@ -27,6 +28,7 @@ interface SellerEvidenceSectionProps {
   deliveryProofFiles: SellerDisputeProofFile[];
   additionalEvidenceSubmitted: boolean;
   disputeOpenedAt: string;
+  permissions: SellerDisputePermissions;
   onRefetch: () => void;
 }
 
@@ -53,6 +55,8 @@ function EvidenceFileCard({
   createdAt,
   tag,
   tagColor,
+  onReplace,
+  replacing,
 }: {
   fileUrl: string | null;
   mimeType: string | null;
@@ -60,6 +64,8 @@ function EvidenceFileCard({
   createdAt: string;
   tag: string;
   tagColor: string;
+  onReplace?: () => void;
+  replacing?: boolean;
 }) {
   return (
     <div className="rounded-lg border border-border overflow-hidden bg-card group relative">
@@ -89,9 +95,23 @@ function EvidenceFileCard({
         <Badge variant="outline" className={`text-[10px] ${tagColor}`}>
           {tag}
         </Badge>
-        <p className="text-[10px] text-muted-foreground">
-          {new Date(createdAt).toLocaleDateString("en-NG", { month: "short", day: "numeric" })}
-        </p>
+        <div className="flex items-center gap-1">
+          {onReplace && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-5 px-1.5 text-[10px] text-primary hover:text-primary"
+              onClick={onReplace}
+              disabled={replacing}
+            >
+              {replacing ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              Replace
+            </Button>
+          )}
+          <p className="text-[10px] text-muted-foreground">
+            {new Date(createdAt).toLocaleDateString("en-NG", { month: "short", day: "numeric" })}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -104,26 +124,28 @@ export function SellerEvidenceSection({
   deliveryProofFiles,
   additionalEvidenceSubmitted,
   disputeOpenedAt,
+  permissions,
   onRefetch,
 }: SellerEvidenceSectionProps) {
   const [uploading, setUploading] = useState(false);
+  const [replacing, setReplacing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [replacingEvidenceId, setReplacingEvidenceId] = useState<string | null>(null);
 
-  const isActive = disputeStatus === "open" || disputeStatus === "seller_response_pending";
-  const canUploadAdditional = isActive && !additionalEvidenceSubmitted;
-
-  // Separate prior evidence from additional evidence
+  // Separate prior evidence from additional evidence using dedicated type
   const priorEvidence = sellerEvidence.filter(
-    (e) => new Date(e.created_at) < new Date(disputeOpenedAt)
+    (e) => e.type !== "seller_additional_dispute_evidence"
   );
   const additionalEvidence = sellerEvidence.filter(
-    (e) => new Date(e.created_at) >= new Date(disputeOpenedAt)
+    (e) => e.type === "seller_additional_dispute_evidence"
   );
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const uploadFile = async (
+    file: File,
+    mode: "upload" | "replace",
+    oldEvidenceId?: string
+  ) => {
     if (!ALLOWED_TYPES.includes(file.type)) {
       toast.error("Unsupported format. Use JPEG, PNG, WEBP, MP4, MOV, or WEBM.");
       return;
@@ -136,7 +158,9 @@ export function SellerEvidenceSection({
       return;
     }
 
-    setUploading(true);
+    if (mode === "upload") setUploading(true);
+    else setReplacing(true);
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
@@ -181,15 +205,40 @@ export function SellerEvidenceSection({
       });
       if (regErr || !regData?.file_id) throw new Error("Failed to register file");
 
-      await submitAdditionalEvidence(disputeId, regData.file_id);
-      toast.success("Additional evidence uploaded successfully.");
+      if (mode === "replace" && oldEvidenceId) {
+        await replaceAdditionalEvidence(disputeId, oldEvidenceId, regData.file_id);
+        toast.success("Evidence replaced successfully.");
+      } else {
+        await submitAdditionalEvidence(disputeId, regData.file_id);
+        toast.success("Additional evidence uploaded successfully.");
+      }
       onRefetch();
     } catch (err) {
       toast.error((err as Error).message || "Failed to upload evidence");
     } finally {
       setUploading(false);
+      setReplacing(false);
+      setReplacingEvidenceId(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
+      if (replaceInputRef.current) replaceInputRef.current.value = "";
     }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await uploadFile(file, "upload");
+  };
+
+  const handleReplaceSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !replacingEvidenceId) return;
+    await uploadFile(file, "replace", replacingEvidenceId);
+  };
+
+  const startReplace = (evidenceId: string) => {
+    setReplacingEvidenceId(evidenceId);
+    setTimeout(() => replaceInputRef.current?.click(), 50);
   };
 
   const totalFiles = deliveryProofFiles.length + priorEvidence.length + additionalEvidence.length;
@@ -210,6 +259,15 @@ export function SellerEvidenceSection({
         </div>
       </CardHeader>
       <CardContent className="p-4 sm:p-6 space-y-6">
+        {/* Hidden replace file input */}
+        <input
+          ref={replaceInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm"
+          onChange={handleReplaceSelect}
+          className="hidden"
+        />
+
         {/* Delivery Proof */}
         {deliveryProofFiles.length > 0 && (
           <div>
@@ -279,6 +337,8 @@ export function SellerEvidenceSection({
                   createdAt={e.created_at}
                   tag="Additional Evidence"
                   tagColor="bg-warning/10 text-warning border-warning/20"
+                  onReplace={permissions.canReplaceAdditionalEvidence ? () => startReplace(e.id) : undefined}
+                  replacing={replacing && replacingEvidenceId === e.id}
                 />
               ))}
             </div>
@@ -290,7 +350,7 @@ export function SellerEvidenceSection({
         )}
 
         {/* Upload Additional Evidence CTA */}
-        {canUploadAdditional && (
+        {permissions.canUploadAdditionalEvidence && (
           <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Upload className="h-5 w-5 text-primary" />
@@ -322,7 +382,7 @@ export function SellerEvidenceSection({
           </div>
         )}
 
-        {additionalEvidenceSubmitted && (
+        {additionalEvidenceSubmitted && !permissions.canReplaceAdditionalEvidence && (
           <div className="rounded-xl border border-border bg-muted/50 p-4 flex items-center gap-3">
             <Info className="h-5 w-5 text-muted-foreground flex-shrink-0" />
             <p className="text-xs text-muted-foreground">

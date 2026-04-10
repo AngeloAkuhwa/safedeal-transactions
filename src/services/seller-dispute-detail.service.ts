@@ -34,6 +34,19 @@ export interface SellerDisputeResponseEntry {
   response_text: string;
   submitted_at: string;
   response_number: number;
+  edited_at: string | null;
+  edited_by_user_id: string | null;
+  previous_response_text: string | null;
+}
+
+export interface SellerDisputePermissions {
+  canSubmitInitialResponse: boolean;
+  canAddFollowUpResponse: boolean;
+  canEditLatestResponse: boolean;
+  canUploadAdditionalEvidence: boolean;
+  canReplaceAdditionalEvidence: boolean;
+  respondableStatuses: string[];
+  isRespondable: boolean;
 }
 
 export interface SellerDisputePayoutImpact {
@@ -108,6 +121,7 @@ export interface SellerDisputeDetailResponse {
     submitted_at: string | null;
     evidence: SellerDisputeEvidence[];
   };
+  permissions: SellerDisputePermissions;
   agreement_snapshot: {
     locked_at: string;
     snapshot_json: Record<string, unknown>;
@@ -134,31 +148,28 @@ export interface SellerDisputeDetailResponse {
   payout_impact: SellerDisputePayoutImpact;
 }
 
+// ── Helper ──
+
+async function getAuthToken(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
+  return session.access_token;
+}
+
 // ── Fetch Detail ──
 
 export const getSellerDisputeDetail = async (
   disputeId: string
 ): Promise<SellerDisputeDetailResponse> => {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    throw new Error("Not authenticated");
-  }
+  const token = await getAuthToken();
 
   const { data, error } = await supabase.functions.invoke("seller-dispute-detail", {
-    headers: { Authorization: `Bearer ${session.access_token}` },
+    headers: { Authorization: `Bearer ${token}` },
     body: { dispute_id: disputeId },
   });
 
-  if (error) {
-    throw new Error(error.message || "Failed to load dispute details");
-  }
-
-  if (!data || data.error) {
-    throw new Error(data?.error || "Failed to load dispute details");
-  }
+  if (error) throw new Error(error.message || "Failed to load dispute details");
+  if (!data || data.error) throw new Error(data?.error || "Failed to load dispute details");
 
   return data as SellerDisputeDetailResponse;
 };
@@ -170,16 +181,10 @@ export const submitSellerResponse = async (
   responseText: string,
   evidenceFileIds: string[] = []
 ): Promise<{ response_number?: number }> => {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    throw new Error("Not authenticated");
-  }
+  const token = await getAuthToken();
 
   const { data, error } = await supabase.functions.invoke("submit-seller-response", {
-    headers: { Authorization: `Bearer ${session.access_token}` },
+    headers: { Authorization: `Bearer ${token}` },
     body: {
       dispute_id: disputeId,
       response_text: responseText,
@@ -187,15 +192,32 @@ export const submitSellerResponse = async (
     },
   });
 
-  if (error) {
-    throw new Error(error.message || "Failed to submit response");
-  }
-
-  if (!data || data.error) {
-    throw new Error(data?.error || "Failed to submit response");
-  }
-
+  if (error) throw new Error(error.message || "Failed to submit response");
+  if (!data || data.error) throw new Error(data?.error || "Failed to submit response");
   return data;
+};
+
+// ── Edit Response ──
+
+export const editSellerResponse = async (
+  disputeId: string,
+  responseId: string,
+  newText: string
+): Promise<void> => {
+  const token = await getAuthToken();
+
+  const { data, error } = await supabase.functions.invoke("submit-seller-response", {
+    headers: { Authorization: `Bearer ${token}` },
+    body: {
+      dispute_id: disputeId,
+      action: "edit_response",
+      response_id: responseId,
+      new_response_text: newText,
+    },
+  });
+
+  if (error) throw new Error(error.message || "Failed to edit response");
+  if (!data || data.error) throw new Error(data?.error || "Failed to edit response");
 };
 
 // ── Submit Additional Evidence ──
@@ -204,16 +226,10 @@ export const submitAdditionalEvidence = async (
   disputeId: string,
   fileId: string
 ): Promise<void> => {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    throw new Error("Not authenticated");
-  }
+  const token = await getAuthToken();
 
   const { data, error } = await supabase.functions.invoke("submit-seller-response", {
-    headers: { Authorization: `Bearer ${session.access_token}` },
+    headers: { Authorization: `Bearer ${token}` },
     body: {
       dispute_id: disputeId,
       is_additional_evidence_only: true,
@@ -221,11 +237,29 @@ export const submitAdditionalEvidence = async (
     },
   });
 
-  if (error) {
-    throw new Error(error.message || "Failed to upload additional evidence");
-  }
+  if (error) throw new Error(error.message || "Failed to upload additional evidence");
+  if (!data || data.error) throw new Error(data?.error || "Failed to upload additional evidence");
+};
 
-  if (!data || data.error) {
-    throw new Error(data?.error || "Failed to upload additional evidence");
-  }
+// ── Replace Additional Evidence ──
+
+export const replaceAdditionalEvidence = async (
+  disputeId: string,
+  oldEvidenceId: string,
+  newFileId: string
+): Promise<void> => {
+  const token = await getAuthToken();
+
+  const { data, error } = await supabase.functions.invoke("submit-seller-response", {
+    headers: { Authorization: `Bearer ${token}` },
+    body: {
+      dispute_id: disputeId,
+      action: "replace_additional_evidence",
+      old_evidence_id: oldEvidenceId,
+      new_file_id: newFileId,
+    },
+  });
+
+  if (error) throw new Error(error.message || "Failed to replace additional evidence");
+  if (!data || data.error) throw new Error(data?.error || "Failed to replace additional evidence");
 };
