@@ -1462,6 +1462,48 @@ export type Database = {
           },
         ]
       }
+      payout_accounts: {
+        Row: {
+          account_name: string
+          bank_code: string
+          bank_name: string
+          created_at: string
+          id: string
+          last_verified_at: string | null
+          masked_account_number: string
+          provider_recipient_code: string | null
+          updated_at: string
+          user_id: string
+          verification_status: string
+        }
+        Insert: {
+          account_name: string
+          bank_code: string
+          bank_name: string
+          created_at?: string
+          id?: string
+          last_verified_at?: string | null
+          masked_account_number: string
+          provider_recipient_code?: string | null
+          updated_at?: string
+          user_id: string
+          verification_status?: string
+        }
+        Update: {
+          account_name?: string
+          bank_code?: string
+          bank_name?: string
+          created_at?: string
+          id?: string
+          last_verified_at?: string | null
+          masked_account_number?: string
+          provider_recipient_code?: string | null
+          updated_at?: string
+          user_id?: string
+          verification_status?: string
+        }
+        Relationships: []
+      }
       payouts: {
         Row: {
           amount: number

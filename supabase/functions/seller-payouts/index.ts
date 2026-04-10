@@ -56,11 +56,13 @@ Deno.serve(async (req) => {
       allPayoutsResult,
       allTxResult,
       verificationResult,
+      payoutAccountResult,
     ] = await Promise.allSettled([
       adminClient.from("profiles").select("full_name, avatar_url").eq("id", userId).single(),
       adminClient.from("payouts").select("id, amount, status, currency_code, completed_at, failed_at, failure_reason, transaction_id, initiated_at, created_at").eq("seller_id", userId),
       adminClient.from("transactions").select("id, transaction_code, status, money_status, buyer_id, verification_deadline_at, created_at").eq("seller_id", userId),
       adminClient.from("account_verifications").select("payout_verified").eq("user_id", userId).single(),
+      adminClient.from("payout_accounts").select("bank_name, account_name, masked_account_number, verification_status, last_verified_at").eq("user_id", userId).single(),
     ]);
 
     // Profile
@@ -381,14 +383,20 @@ Deno.serve(async (req) => {
       },
       upcoming_releases: upcomingReleases,
       blocked_funds: blockedFunds,
-      payout_account: {
-        verified: payoutVerified,
-        last_payout_date: lastPayoutDate,
-        bank_name: null,
-        account_name: seller.full_name,
-        masked_account_number: null,
-        typical_processing_time: "1-3 business days",
-      },
+      payout_account: (() => {
+        const pa = (payoutAccountResult.status === "fulfilled" && payoutAccountResult.value.data)
+          ? payoutAccountResult.value.data as Record<string, unknown>
+          : null;
+        return {
+          verified: payoutVerified,
+          last_payout_date: lastPayoutDate,
+          bank_name: pa?.bank_name as string | null ?? null,
+          account_name: pa?.account_name as string ?? seller.full_name,
+          masked_account_number: pa?.masked_account_number as string | null ?? null,
+          verification_status: pa?.verification_status as string ?? "pending",
+          typical_processing_time: "1-3 business days",
+        };
+      })(),
     });
   } catch (err) {
     console.error("seller-payouts error:", err);
