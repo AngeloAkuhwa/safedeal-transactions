@@ -159,7 +159,58 @@ Deno.serve(async (req) => {
     const newStatus = ACTION_TO_STATUS[action];
     const now = new Date().toISOString();
 
-    // 1. Update transaction status (DO NOT change money_status)
+    // 1. Handle intermediate transitions required by the state machine
+    // The DB trigger enforces: payment_secured → seller_preparing_delivery → seller_dispatched
+    // So if we're jumping from payment_secured to dispatched/delivered, we must step through
+    const needsIntermediateStep =
+      tx.status === "payment_secured" && (action === "dispatched" || action === "delivered");
+
+    if (needsIntermediateStep) {
+      const { error: intermediateErr } = await admin
+        .from("transactions")
+        .update({ status: "seller_preparing_delivery" })
+        .eq("id", transaction_id);
+
+      if (intermediateErr) {
+        console.error("Intermediate transition error:", intermediateErr);
+        return jsonResponse({ error: `Failed intermediate transition: ${intermediateErr.message}` }, 500);
+      }
+
+      // Log the intermediate step
+      await admin.from("transaction_status_history").insert({
+        transaction_id,
+        old_status: tx.status,
+        new_status: "seller_preparing_delivery",
+        changed_by_user_id: userId,
+        reason: "Auto-transition for delivery update",
+      });
+    }
+
+    // For delivered action going through dispatched intermediate
+    const needsDispatchStep =
+      (tx.status === "payment_secured" || tx.status === "seller_preparing_delivery") && action === "delivered";
+
+    if (needsDispatchStep) {
+      const { error: dispatchErr } = await admin
+        .from("transactions")
+        .update({ status: "seller_dispatched" })
+        .eq("id", transaction_id);
+
+      if (dispatchErr) {
+        console.error("Dispatch intermediate error:", dispatchErr);
+        return jsonResponse({ error: `Failed dispatch transition: ${dispatchErr.message}` }, 500);
+      }
+
+      await admin.from("transaction_status_history").insert({
+        transaction_id,
+        old_status: "seller_preparing_delivery",
+        new_status: "seller_dispatched",
+        changed_by_user_id: userId,
+        reason: "Auto-transition for delivery update",
+      });
+    }
+
+    // 2. Update transaction status to final target
     const updatePayload: Record<string, unknown> = { status: newStatus };
     if (action === "delivered") {
       updatePayload.delivered_at = now;
