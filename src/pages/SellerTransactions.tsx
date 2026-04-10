@@ -290,7 +290,7 @@ const SellerTransactions = () => {
                               e.stopPropagation();
                               if (tx.transaction_status === "awaiting_buyer") {
                                 navigate(`/seller/transactions/${tx.transaction_id}/share`);
-                              } else if (tx.transaction_status === "seller_preparing_delivery") {
+                              } else if (["payment_secured", "seller_preparing_delivery", "seller_dispatched"].includes(tx.transaction_status)) {
                                 navigate(`/seller/transactions/${tx.transaction_id}/delivery`);
                               } else {
                                 navigate(`/seller/transactions/${tx.transaction_id}`);

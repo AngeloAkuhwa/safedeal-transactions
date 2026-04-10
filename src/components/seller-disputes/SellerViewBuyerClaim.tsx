@@ -1,4 +1,5 @@
-import { AlertTriangle, User, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, User, ExternalLink, ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { SellerDisputeEvidence } from "@/services/seller-dispute-detail.service";
@@ -63,18 +64,7 @@ export function SellerViewBuyerClaim({
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {evidence.map((e) => (
-                <div key={e.id} className="rounded-lg border border-border overflow-hidden bg-muted group relative">
-                  {e.file_url && e.mime_type?.startsWith("image/") ? (
-                    <img
-                      src={getCloudinaryThumbnail(e.file_url, 300, 200)}
-                      alt={e.file_name ?? "Evidence"}
-                      className="w-full h-28 object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-28 flex flex-col items-center justify-center text-xs text-muted-foreground p-2">
-                      <span className="truncate max-w-full">{e.file_name ?? "File"}</span>
-                    </div>
-                  )}
+                <BuyerEvidenceThumb key={e.id} e={e} />
                   {e.file_url && (
                     <a
                       href={e.file_url}
