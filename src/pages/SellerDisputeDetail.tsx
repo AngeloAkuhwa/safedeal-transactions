@@ -274,6 +274,7 @@ const SellerDisputeDetail = () => {
                     responses={data.seller_response.responses}
                     responseCount={data.seller_response.response_count}
                     maxResponses={data.seller_response.max_responses}
+                    permissions={data.permissions}
                     onRefetch={() => refetch()}
                   />
 
@@ -285,6 +286,7 @@ const SellerDisputeDetail = () => {
                     deliveryProofFiles={data.delivery_proof.files}
                     additionalEvidenceSubmitted={data.seller_response.additional_evidence_submitted}
                     disputeOpenedAt={data.dispute.opened_at}
+                    permissions={data.permissions}
                     onRefetch={() => refetch()}
                   />
 
