@@ -80,7 +80,7 @@ export function SellerDisputeTable({ items }: Props) {
                 <TableRow
                   key={d.id}
                   className="hover:bg-muted/30 cursor-pointer"
-                  onClick={() => navigate(d.primary_action.route)}
+                  onClick={() => navigate(`/seller/disputes/${d.id}?section=overview`)}
                 >
                   <TableCell className="px-4 py-3">
                     <Link
@@ -133,7 +133,13 @@ export function SellerDisputeTable({ items }: Props) {
                       className="text-xs h-7"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(d.primary_action.route);
+                        const sectionMap: Record<string, string> = {
+                          "Respond Now": "respond",
+                          "View Case": "overview",
+                          "View Resolution": "resolution",
+                        };
+                        const sec = sectionMap[d.primary_action.label] ?? "overview";
+                        navigate(`/seller/disputes/${d.id}?section=${sec}`);
                       }}
                     >
                       {d.primary_action.label}

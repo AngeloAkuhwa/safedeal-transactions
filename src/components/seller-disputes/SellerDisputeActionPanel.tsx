@@ -68,7 +68,7 @@ export function SellerDisputeActionPanel({ items }: Props) {
                 )}
                 <p className="text-xs text-muted-foreground">{item.action_required}</p>
                 <Button variant="default" size="sm" className="w-full h-7 text-xs mt-1" asChild>
-                  <Link to={`/seller/disputes/${item.dispute_id}`}>Respond</Link>
+                  <Link to={`/seller/disputes/${item.dispute_id}?section=respond`}>Respond</Link>
                 </Button>
               </div>
             );
