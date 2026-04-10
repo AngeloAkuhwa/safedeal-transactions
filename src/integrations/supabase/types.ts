@@ -24,6 +24,7 @@ export type Database = {
           phone_verified: boolean
           updated_at: string
           user_id: string
+          verification_level: Database["public"]["Enums"]["verification_level_type"]
           verification_notes: string | null
         }
         Insert: {
@@ -35,6 +36,7 @@ export type Database = {
           phone_verified?: boolean
           updated_at?: string
           user_id: string
+          verification_level?: Database["public"]["Enums"]["verification_level_type"]
           verification_notes?: string | null
         }
         Update: {
@@ -46,6 +48,7 @@ export type Database = {
           phone_verified?: boolean
           updated_at?: string
           user_id?: string
+          verification_level?: Database["public"]["Enums"]["verification_level_type"]
           verification_notes?: string | null
         }
         Relationships: [
@@ -1602,6 +1605,50 @@ export type Database = {
           },
         ]
       }
+      phone_otp_codes: {
+        Row: {
+          attempts: number
+          code_hash: string
+          created_at: string
+          expires_at: string
+          id: string
+          max_attempts: number
+          phone: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          max_attempts?: number
+          phone: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number
+          phone?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "phone_otp_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -2862,6 +2909,10 @@ export type Database = {
       }
     }
     Functions: {
+      compute_verification_level: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["verification_level_type"]
+      }
       generate_transaction_code: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -3081,6 +3132,11 @@ export type Database = {
         | "resolved"
         | "refunded"
       user_role_type: "buyer" | "seller" | "admin"
+      verification_level_type:
+        | "unverified"
+        | "basic_verified"
+        | "trusted_buyer"
+        | "high_trust_buyer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3415,6 +3471,12 @@ export const Constants = {
         "refunded",
       ],
       user_role_type: ["buyer", "seller", "admin"],
+      verification_level_type: [
+        "unverified",
+        "basic_verified",
+        "trusted_buyer",
+        "high_trust_buyer",
+      ],
     },
   },
 } as const
