@@ -196,7 +196,6 @@ const SellerDisputes = () => {
         currentStatusFilter={status}
         currentReasonFilter={reason}
         currentSearch={debouncedSearch}
-        currentItems={data?.items ?? []}
       />
     </div>
   );
