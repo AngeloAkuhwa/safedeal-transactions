@@ -9,14 +9,17 @@ import { Separator } from "@/components/ui/separator";
 import type { BuyerProfile, VerificationStatus } from "@/services/profile.service";
 
 interface Props {
-  profile: BuyerProfile;
+  profile: BuyerProfile & { state_name?: string | null; city_name?: string | null };
   verification: VerificationStatus;
-  onProfileChange: (updates: Partial<BuyerProfile>) => void;
+  onProfileChange: (updates: Record<string, unknown>) => void;
+  showLocation?: boolean;
 }
 
-export function PersonalInfoSection({ profile, verification, onProfileChange }: Props) {
+export function PersonalInfoSection({ profile, verification, onProfileChange, showLocation }: Props) {
   const [fullName, setFullName] = useState(profile.full_name);
   const [phone, setPhone] = useState(profile.phone ?? "");
+  const [stateName, setStateName] = useState(profile.state_name ?? "");
+  const [cityName, setCityName] = useState(profile.city_name ?? "");
 
   const initials = profile.full_name
     .split(" ")
