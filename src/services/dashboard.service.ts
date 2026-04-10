@@ -53,22 +53,38 @@ export const getBuyerDashboard = async (): Promise<BuyerDashboardResponse> => {
     },
   });
 
-  // Check for invalid session in either error or data response
-  if (data?.error === "Invalid session" || (error && data?.error === "Invalid session")) {
-    await supabase.auth.signOut();
-    window.location.href = "/auth";
-    throw new Error("Session expired. Please sign in again.");
-  }
-
   if (error) {
-    // For 401s, the data may contain the actual error body
-    if (data?.error) {
-      throw new Error(data.error);
+    // When invoke gets a non-2xx, the JSON body may be in error.context.body or we parse it
+    let errorBody: string | undefined;
+    try {
+      // FunctionsHttpError stores the response; try to extract the JSON message
+      const ctx = (error as any).context;
+      if (ctx && typeof ctx.json === "function") {
+        const parsed = await ctx.json();
+        errorBody = parsed?.error;
+      }
+    } catch {
+      // ignore parse failures
     }
-    throw new Error(error.message || "Failed to load dashboard");
+
+    // Also check data in case the SDK populated it
+    const msg = errorBody || data?.error;
+
+    if (msg === "Invalid session") {
+      await supabase.auth.signOut();
+      window.location.href = "/auth";
+      throw new Error("Session expired. Please sign in again.");
+    }
+
+    throw new Error(msg || error.message || "Failed to load dashboard");
   }
 
   if (!data || data.error) {
+    if (data?.error === "Invalid session") {
+      await supabase.auth.signOut();
+      window.location.href = "/auth";
+      throw new Error("Session expired. Please sign in again.");
+    }
     throw new Error(data?.error || "Failed to load dashboard");
   }
 
