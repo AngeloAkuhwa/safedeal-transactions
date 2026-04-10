@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch related data in parallel
-    const [itemRes, deliveryTermsRes, linkRes, buyerProfileRes, participantRes, escrowRes, pricingRes, snapshotRes, statusHistoryRes, deliveryTrackingRes] = await Promise.all([
+    const [itemRes, deliveryTermsRes, linkRes, buyerProfileRes, buyerVerifRes, participantRes, escrowRes, pricingRes, snapshotRes, statusHistoryRes, deliveryTrackingRes] = await Promise.all([
       adminClient
         .from("transaction_items")
         .select("title, description, quantity, condition_label, brand, model")
@@ -142,6 +142,8 @@ Deno.serve(async (req) => {
     const statusHistory = statusHistoryRes.data ?? [];
     const deliveryTracking = deliveryTrackingRes.data;
 
+    const buyerVerif = buyerVerifRes.data as Record<string, unknown> | null;
+
     // Buyer info: prefer registered profile, fallback to participant
     const buyer = buyerProfile
       ? {
@@ -150,6 +152,9 @@ Deno.serve(async (req) => {
           phone: (buyerProfile.phone as string) ?? "",
           avatar_url: (buyerProfile.avatar_url as string) ?? null,
           is_verified: !!tx.buyer_id,
+          email_verified: !!buyerVerif?.email_verified,
+          phone_verified: !!buyerVerif?.phone_verified,
+          verification_level: (buyerVerif?.verification_level as string) ?? "unverified",
         }
       : participant
       ? {
@@ -158,6 +163,9 @@ Deno.serve(async (req) => {
           phone: (participant.phone as string) ?? "",
           avatar_url: null,
           is_verified: false,
+          email_verified: false,
+          phone_verified: false,
+          verification_level: "unverified",
         }
       : { name: "Unknown Buyer", email: "", phone: "", avatar_url: null, is_verified: false };
 

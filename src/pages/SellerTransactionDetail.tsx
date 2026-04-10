@@ -15,6 +15,7 @@ import { Footer } from "@/components/landing/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { getSellerTransactionDetail } from "@/services/seller-transaction-detail.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
+import { BuyerTrustBadges } from "@/components/trust/BuyerTrustBadges";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   draft: { label: "Draft", variant: "secondary" },
