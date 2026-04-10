@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Plus, FileText, BarChart3, Settings } from "lucide-react";
+import { Plus, FileText, BarChart3, Settings, Store } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface SellerQuickActionsProps {
@@ -16,6 +16,14 @@ export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
       href: "/seller/transactions/new",
       iconBg: "bg-success/10 group-hover:bg-success",
       iconColor: "text-success group-hover:text-white",
+    },
+    {
+      icon: Store,
+      title: "Add Product",
+      description: "Create a new product listing for your storefront",
+      href: "/seller/storefront/new",
+      iconBg: "bg-primary/10 group-hover:bg-primary",
+      iconColor: "text-primary group-hover:text-white",
     },
     {
       icon: FileText,

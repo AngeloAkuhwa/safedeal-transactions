@@ -33,6 +33,11 @@ import SellerProfileSettings from "./pages/SellerProfileSettings";
 import SellerDisputes from "./pages/SellerDisputes";
 import SellerDisputeDetail from "./pages/SellerDisputeDetail";
 import SellerTransactionAgreement from "./pages/SellerTransactionAgreement";
+import SellerStorefront from "./pages/SellerStorefront";
+import SellerProductCreate from "./pages/SellerProductCreate";
+import SellerProductDetail from "./pages/SellerProductDetail";
+import PublicStorefront from "./pages/PublicStorefront";
+import PublicProductDetail from "./pages/PublicProductDetail";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
