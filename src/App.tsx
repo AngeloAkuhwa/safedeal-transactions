@@ -58,6 +58,8 @@ const App = () => (
             <Route path="/t/:shareToken/pay" element={<BuyerPaymentSummary />} />
             <Route path="/t/:shareToken/cancelled" element={<TransactionCancelled />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/store/:sellerSlug" element={<PublicStorefront />} />
+            <Route path="/store/:sellerSlug/:productSlug" element={<PublicProductDetail />} />
 
             {/* Protected: requires session */}
             <Route element={<ProtectedRoute />}>
@@ -92,6 +94,9 @@ const App = () => (
               <Route path="/seller/disputes" element={<SellerDisputes />} />
               <Route path="/seller/disputes/:disputeId" element={<SellerDisputeDetail />} />
               <Route path="/seller/profile" element={<SellerProfileSettings />} />
+              <Route path="/seller/storefront" element={<SellerStorefront />} />
+              <Route path="/seller/storefront/new" element={<SellerProductCreate />} />
+              <Route path="/seller/storefront/:productId" element={<SellerProductDetail />} />
             </Route>
 
             {/* Catch-all */}
