@@ -172,7 +172,7 @@ const SellerTransactionDetail = () => {
                 </Button>
               )}
               {["payment_secured", "seller_preparing_delivery"].includes(tx.status) && (
-                <Button size="sm" className="gap-2">
+                <Button size="sm" className="gap-2" onClick={() => navigate(`/seller/transactions/${transactionId}/delivery`)}>
                   <Truck className="h-4 w-4" />
                   Update Delivery
                 </Button>

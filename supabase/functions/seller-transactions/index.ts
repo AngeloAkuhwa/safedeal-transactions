@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
       const [itemsRes, pricingRes, buyersRes, participantsRes] = await Promise.all([
         adminClient
           .from("transaction_items")
-          .select("transaction_id, title, category, quantity")
+          .select("transaction_id, title, quantity, condition_label")
           .in("transaction_id", txIds),
         adminClient
           .from("transaction_pricing")
