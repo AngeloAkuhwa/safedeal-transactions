@@ -1,6 +1,7 @@
+import { Link } from "react-router-dom";
 import {
   ShieldCheck, Mail, Phone, MapPin, CreditCard,
-  CheckCircle2, Lock, ArrowRight, AlertTriangle,
+  CheckCircle2, Lock, ArrowRight, AlertTriangle, Clock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,7 @@ interface Props {
   hasLocation?: boolean;
   isLoading?: boolean;
   onPhoneVerifyClick?: () => void;
+  identitySubmissionStatus?: string | null;
 }
 
 const LEVEL_CONFIG: Record<VerificationLevel, { label: string; color: string; bg: string }> = {
@@ -35,6 +37,7 @@ export function AccountVerificationSection({
   hasLocation,
   isLoading,
   onPhoneVerifyClick,
+  identitySubmissionStatus,
 }: Props) {
   const level = verification.verification_level || "unverified";
   const config = LEVEL_CONFIG[level];
@@ -76,11 +79,53 @@ export function AccountVerificationSection({
   if (!verification.email_verified) {
     unlockMessage = "Verify your email to begin activation";
   } else if (!verification.phone_verified) {
-    unlockMessage = "Verify your phone to unlock transactions up to ₦50,000";
+    unlockMessage = "Verify your phone to unlock transactions up to ₦100,000";
   } else if (!hasLocation) {
     unlockMessage = "Complete your location to activate your account";
   } else if (!verification.identity_verified) {
-    unlockMessage = "Complete identity verification to unlock higher limits (coming soon)";
+    unlockMessage = "Complete identity verification to unlock higher limits";
+  }
+
+  // Identity status helpers
+  const identityStatus = identitySubmissionStatus || null;
+  const identityVerified = verification.identity_verified;
+
+  let identityLabel = "Not Started";
+  let identityDesc = "Submit identity to unlock higher limits";
+  let identityAction: React.ReactNode = (
+    <Link to="/dashboard/verification">
+      <Button variant="outline" size="sm" className="text-primary border-primary/30">
+        Start <ArrowRight className="h-3.5 w-3.5 ml-1" />
+      </Button>
+    </Link>
+  );
+
+  if (identityVerified) {
+    identityLabel = "Verified";
+    identityDesc = "Identity verified — trusted buyer";
+    identityAction = (
+      <Badge className="bg-success/10 text-success border-success/20 hover:bg-success/10">
+        <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Verified
+      </Badge>
+    );
+  } else if (identityStatus === "pending_review") {
+    identityLabel = "Under Review";
+    identityDesc = "Your submission is being reviewed (24-48 hours)";
+    identityAction = (
+      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
+        <Clock className="h-3.5 w-3.5 mr-1" /> Under Review
+      </Badge>
+    );
+  } else if (identityStatus === "rejected" || identityStatus === "more_info_needed") {
+    identityLabel = identityStatus === "rejected" ? "Rejected" : "More Info Needed";
+    identityDesc = "Please update and resubmit your identity verification";
+    identityAction = (
+      <Link to="/dashboard/verification">
+        <Button variant="outline" size="sm" className="text-destructive border-destructive/30">
+          Resubmit <ArrowRight className="h-3.5 w-3.5 ml-1" />
+        </Button>
+      </Link>
+    );
   }
 
   const items = [
@@ -113,12 +158,13 @@ export function AccountVerificationSection({
     },
     {
       key: "identity",
-      label: "Identity Verification — Coming Soon",
+      label: "Identity Verification",
       icon: CreditCard,
-      verified: verification.identity_verified,
-      description: verification.identity_verified ? "Identity verified" : "Will unlock higher limits in a future update",
+      verified: identityVerified,
+      description: identityDesc,
       actionLabel: undefined,
       onAction: undefined,
+      customAction: identityAction,
     },
   ];
 
@@ -205,6 +251,8 @@ export function AccountVerificationSection({
                   <ShieldCheck className="h-3.5 w-3.5 mr-1" />
                   Verified
                 </Badge>
+              ) : (item as any).customAction ? (
+                (item as any).customAction
               ) : item.actionLabel && item.onAction ? (
                 <Button variant="outline" size="sm" onClick={item.onAction} className="text-primary border-primary/30">
                   {item.actionLabel}
@@ -238,7 +286,7 @@ export function AccountVerificationSection({
           <div className="space-y-3">
             <div className="pt-2 flex items-center justify-center gap-2 text-success text-sm font-medium">
               <CheckCircle2 className="h-4 w-4" />
-              Account verified — you can transact up to ₦50,000
+              Account verified — you can transact up to ₦100,000
             </div>
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
               <div className="flex items-start gap-3">
@@ -246,8 +294,15 @@ export function AccountVerificationSection({
                 <div>
                   <p className="text-sm font-semibold text-foreground">Next level: Trusted Buyer</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Identity verification (coming soon) will unlock transactions up to ₦200,000 and 3 concurrent purchases.
+                    Complete identity verification to unlock transactions up to ₦500,000 and 5 concurrent purchases.
                   </p>
+                  {!identityVerified && identityStatus !== "pending_review" && (
+                    <Link to="/dashboard/verification">
+                      <Button variant="outline" size="sm" className="mt-2 text-primary border-primary/30">
+                        Start Verification <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
