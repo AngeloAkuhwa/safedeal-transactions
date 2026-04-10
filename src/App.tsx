@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import RoleSelection from "./pages/RoleSelection";
 import Dashboard from "./pages/Dashboard";
+import BuyerMarketplace from "./pages/BuyerMarketplace";
 import BuyerTransactions from "./pages/BuyerTransactions";
 import BuyerNotifications from "./pages/BuyerNotifications";
 import BuyerDisputes from "./pages/BuyerDisputes";
@@ -69,6 +70,7 @@ const App = () => (
             {/* Protected: requires session + buyer role */}
             <Route element={<ProtectedRoute requireRole="buyer" />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/marketplace" element={<BuyerMarketplace />} />
               <Route path="/dashboard/transactions" element={<BuyerTransactions />} />
               <Route path="/dashboard/transactions/:transactionId" element={<BuyerTransactionDetail />} />
               <Route path="/dashboard/transactions/:transactionId/verify" element={<BuyerTransactionVerify />} />
