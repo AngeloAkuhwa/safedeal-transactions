@@ -103,6 +103,37 @@ export function PersonalInfoSection({ profile, verification, onProfileChange, sh
             )}
           </div>
         </div>
+
+        {showLocation && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="stateName">State</Label>
+              <Input
+                id="stateName"
+                value={stateName}
+                onChange={(e) => {
+                  setStateName(e.target.value);
+                  onProfileChange({ state_name: e.target.value || null });
+                }}
+                placeholder="e.g. Lagos"
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cityName">City</Label>
+              <Input
+                id="cityName"
+                value={cityName}
+                onChange={(e) => {
+                  setCityName(e.target.value);
+                  onProfileChange({ city_name: e.target.value || null });
+                }}
+                placeholder="e.g. Ikeja"
+                className="rounded-xl"
+              />
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

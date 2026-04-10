@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.update-payout-account]
 verify_jwt = false
+
+[functions.seller-profile]
+verify_jwt = false
