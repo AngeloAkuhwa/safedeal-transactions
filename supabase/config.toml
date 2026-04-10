@@ -62,3 +62,9 @@ verify_jwt = false
 
 [functions.submit-seller-response]
 verify_jwt = false
+
+[functions.submit-identity]
+verify_jwt = false
+
+[functions.admin-review-identity]
+verify_jwt = false
