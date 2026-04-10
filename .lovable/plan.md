@@ -1,53 +1,57 @@
 
 
-# Batch 1 — Buyer Verification Completeness Audit
+# Fix: Location Update "Failed to Send Request to Edge Function"
 
-## Status: Complete
+## Root Cause
 
-All 8 checklist items done. Dispute backend gate added in Batch 2.
+`supabase.functions.invoke("buyer-profile", { method: "PATCH", body: ... })` does not reliably send a PATCH request — the Supabase JS SDK may send POST instead. The edge function only handles GET and PATCH, so POST falls through to `405 Method not allowed`, surfaced as a generic client-side error.
 
----
+## Solution
 
-# Batch 2 — Feature Locks, Limits, Trust-Based Permissions + Location Validation
+Replace `supabase.functions.invoke` with direct `fetch` calls for the PATCH operations in `profile.service.ts`. This gives full control over the HTTP method and headers.
 
-## Status: Complete
+### File: `src/services/profile.service.ts`
 
-### What was implemented
+**Changes to `updateProfile`, `updateNotificationPreferences`, and `updateAvatar`:**
 
-**A. Location Validation (Lagos-Only Launch)**
-- Migration: `serviceable_regions` seeded with 37 Nigerian states. Lagos has 20 LGA rows (`is_active = true`). Non-Lagos states are state-level visibility rows (`city_name = NULL`, `is_active = false`).
-- `PersonalInfoSection.tsx`: Free-text state/city replaced with `<Select>` dropdowns. Lagos shows LGA picker labeled "Local Government Area (LGA)". Non-Lagos states show "Lagos-only launch" banner. "Detect my location" button uses browser geolocation as a convenience prefill only.
-- `buyer-profile` PATCH: Validates state/LGA against `serviceable_regions`. Sets `is_region_eligible` based on `is_active` flag.
-- `initiate-paystack-payment`: Gate added — returns 403 if `is_region_eligible = false`.
+Replace each `supabase.functions.invoke("buyer-profile", { method: "PATCH", body })` call with:
 
-**B. Tiered Limits & Enforcement**
-- `computePermissions` expanded with real tiered limits:
-  - `unverified`: ₦0 / 0 concurrent (active)
-  - `basic_verified`: ₦50,000 / 1 concurrent (active)
-  - `trusted_buyer`: ₦200,000 / 3 concurrent (scaffolded, not reachable)
-  - `high_trust_buyer`: ₦500,000 / 5 concurrent (scaffolded, not reachable)
-- `initiate-paystack-payment`: Enforces amount limit and concurrent transaction cap with 403 responses.
-- `buyer-disputes`: Verification gate enforced (phone + location + level). Tiered dispute policy info returned to frontend.
-- New permission flags: `canCreateAnotherActiveTransaction`, `canAccessHighValueTransaction`, `canReceiveHighTierRefund`, `requiresIdentityVerification`, `activeTransactionCount`, `isRegionEligible`.
+```typescript
+const { data: sessionData } = await supabase.auth.getSession();
+const accessToken = sessionData?.session?.access_token;
+if (!accessToken) throw new Error("No active session. Please sign in again.");
 
-**C. UI Lock Messaging**
-- `BuyerPaymentSummary.tsx` and `BuyerTransactionReview.tsx`: Context-aware banners for region ineligibility, concurrency cap, and base verification.
-- `AccountVerificationSection.tsx`: Shows tiered limits, active tx count, region eligibility status, and "Next level: Trusted Buyer" messaging.
+const response = await fetch(
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/buyer-profile`,
+  {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+    body: JSON.stringify({ action: "update_profile", ...updates }),
+  }
+);
 
-### Tracking Checklist
+if (!response.ok) {
+  const errBody = await response.json().catch(() => ({}));
+  throw new Error(errBody?.error || `Request failed: ${response.status}`);
+}
+return response.json();
+```
 
-| # | Item | Status |
-|---|---|---|
-| 1 | Amount limit enforced in backend | DONE |
-| 2 | Active transaction cap enforced | DONE |
-| 3 | Dispute access tied to verification | DONE |
-| 4 | Permission flags returned to frontend | DONE |
-| 5 | Lock messaging shown on blocked actions | DONE |
-| 6 | Location validated against serviceable_regions | DONE |
-| 7 | Region eligibility controls payment access | DONE |
-| 8 | Select dropdowns replace free-text inputs | DONE |
-| 9 | Geolocation convenience helper added | DONE |
+Apply the same pattern to `updateNotificationPreferences` and `updateAvatar`.
 
-### Reachable tiers in Batch 2
-- `unverified` and `basic_verified` are the only active levels.
-- `trusted_buyer` and `high_trust_buyer` are scaffolded for future identity-based upgrades.
+Also apply to `getBuyerProfile` (GET method) for consistency, though it may already work.
+
+### No edge function changes needed
+
+The backend already handles PATCH correctly — the problem is purely client-side.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `src/services/profile.service.ts` | Replace `supabase.functions.invoke` PATCH calls with direct `fetch` |
+
