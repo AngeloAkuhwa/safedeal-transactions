@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
           phone_verified: false,
           verification_level: "unverified",
         }
-      : { name: "Unknown Buyer", email: "", phone: "", avatar_url: null, is_verified: false };
+      : { name: "Unknown Buyer", email: "", phone: "", avatar_url: null, is_verified: false, email_verified: false, phone_verified: false, verification_level: "unverified" };
 
     let computedPricing = null;
     if (pricingRow) {
