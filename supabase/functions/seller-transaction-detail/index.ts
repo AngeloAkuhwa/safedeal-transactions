@@ -91,6 +91,13 @@ Deno.serve(async (req) => {
             .eq("id", tx.buyer_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
+      tx.buyer_id
+        ? adminClient
+            .from("account_verifications")
+            .select("email_verified, phone_verified, verification_level")
+            .eq("user_id", tx.buyer_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
       adminClient
         .from("transaction_participants")
         .select("display_name, email, phone")
