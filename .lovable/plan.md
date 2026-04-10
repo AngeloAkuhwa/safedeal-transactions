@@ -2,64 +2,52 @@
 
 # Batch 1 — Buyer Verification Completeness Audit
 
-## Status: Nearly Complete
+## Status: Complete
 
-All major pieces are built. Here is the item-by-item breakdown:
-
----
-
-## Tracking Checklist
-
-| # | Item | Status | Notes |
-|---|---|---|---|
-| 1 | Phone OTP send works | DONE | `verify-phone` edge function, `send_otp` action with 6-digit code, SHA-256 hashing, stored in `phone_otp_codes` |
-| 2 | Phone OTP verify works | DONE | `verify_otp` action, hash comparison, marks `verified_at`, updates `account_verifications.phone_verified`, recomputes level |
-| 3 | Resend cooldown works | DONE | 60-second cooldown enforced server-side (lines 89-99 of verify-phone) |
-| 4 | Invalid attempt limits work | DONE | Max 5 attempts per code, max 3 sends per phone per hour, previous codes invalidated via `invalidated_at` |
-| 5 | State/City visible and saved | DONE | `PersonalInfoSection` shows location fields, `buyer-profile` PATCH handles `state_name`/`city_name`, recomputes verification level on save |
-| 6 | Verification level displays correctly | DONE | `AccountVerificationSection` shows trust level badge, progress bar ("X of 3 activation steps"), limits display, unlock messaging |
-| 7 | Protected payment locked until phone verification | DONE | `initiate-paystack-payment` checks `phoneVerified && locationComplete && levelPermits`, returns 403 with specific missing items |
-| 8 | Seller sees buyer trust badge | DONE | `BuyerTrustBadges` imported and rendered in `SellerTransactionDetail.tsx` (line 208) |
+All 8 checklist items done. Dispute backend gate added in Batch 2.
 
 ---
 
-## Additional Batch 1 Requirements Check
+# Batch 2 — Feature Locks, Limits, Trust-Based Permissions + Location Validation
 
-| Requirement | Status | Notes |
+## Status: Complete
+
+### What was implemented
+
+**A. Location Validation (Lagos-Only Launch)**
+- Migration: `serviceable_regions` seeded with 37 Nigerian states. Lagos has 20 LGA rows (`is_active = true`). Non-Lagos states are state-level visibility rows (`city_name = NULL`, `is_active = false`).
+- `PersonalInfoSection.tsx`: Free-text state/city replaced with `<Select>` dropdowns. Lagos shows LGA picker labeled "Local Government Area (LGA)". Non-Lagos states show "Lagos-only launch" banner. "Detect my location" button uses browser geolocation as a convenience prefill only.
+- `buyer-profile` PATCH: Validates state/LGA against `serviceable_regions`. Sets `is_region_eligible` based on `is_active` flag.
+- `initiate-paystack-payment`: Gate added — returns 403 if `is_region_eligible = false`.
+
+**B. Tiered Limits & Enforcement**
+- `computePermissions` expanded with real tiered limits:
+  - `unverified`: ₦0 / 0 concurrent (active)
+  - `basic_verified`: ₦50,000 / 1 concurrent (active)
+  - `trusted_buyer`: ₦200,000 / 3 concurrent (scaffolded, not reachable)
+  - `high_trust_buyer`: ₦500,000 / 5 concurrent (scaffolded, not reachable)
+- `initiate-paystack-payment`: Enforces amount limit and concurrent transaction cap with 403 responses.
+- `buyer-disputes`: Verification gate enforced (phone + location + level). Tiered dispute policy info returned to frontend.
+- New permission flags: `canCreateAnotherActiveTransaction`, `canAccessHighValueTransaction`, `canReceiveHighTierRefund`, `requiresIdentityVerification`, `activeTransactionCount`, `isRegionEligible`.
+
+**C. UI Lock Messaging**
+- `BuyerPaymentSummary.tsx` and `BuyerTransactionReview.tsx`: Context-aware banners for region ineligibility, concurrency cap, and base verification.
+- `AccountVerificationSection.tsx`: Shows tiered limits, active tx count, region eligibility status, and "Next level: Trusted Buyer" messaging.
+
+### Tracking Checklist
+
+| # | Item | Status |
 |---|---|---|
-| Verification levels enum (4 tiers) | DONE | `verification_level_type` enum with all 4 values in DB |
-| `compute_verification_level` function | DONE | DB function correctly computes unverified / basic_verified / trusted_buyer |
-| trusted/high-trust capped to basic limits | DONE | `buyer-profile` limits both to 50,000 / 1 concurrent with TODO comment for Batch 3 |
-| Feature lock flags (canStartProtectedPayment, canOpenDispute, canHoldActiveTransaction) | DONE | All three require `phoneVerified && hasLocation && level !== "unverified"` |
-| `requiresPhoneVerification` / `requiresLocation` flags | DONE | Returned in permissions object |
-| Phone Verification Modal (send, verify, success) | DONE | Full 3-step modal with dev OTP banner, cooldown timer, resend, change number |
-| Profile page shows verification progress | DONE | Progress bar, verification items list, feature lock banner, limits display |
-| OTP hashed storage | DONE | SHA-256 hashed before insert |
-| `invalidated_at` column for audit | DONE | Migration 017, used in verify-phone for old code invalidation |
-| Email verified from auth source of truth | DONE | `buyer-profile` reads `email_confirmed_at` from auth.users, not DB flag |
-| Phone data semantics documented | DONE | JSDoc in `profile.service.ts` |
-| Identity row shows "Coming Soon" | DONE | "Identity Verification — Coming Soon" with muted style in AccountVerificationSection |
-| Progress label says "activation steps" | DONE | "X of 3 activation steps completed" |
+| 1 | Amount limit enforced in backend | DONE |
+| 2 | Active transaction cap enforced | DONE |
+| 3 | Dispute access tied to verification | DONE |
+| 4 | Permission flags returned to frontend | DONE |
+| 5 | Lock messaging shown on blocked actions | DONE |
+| 6 | Location validated against serviceable_regions | DONE |
+| 7 | Region eligibility controls payment access | DONE |
+| 8 | Select dropdowns replace free-text inputs | DONE |
+| 9 | Geolocation convenience helper added | DONE |
 
----
-
-## Gaps Found: 2 Minor Items
-
-### 1. Dispute opening is not backend-gated (low priority)
-The `canOpenDispute` flag is returned to the frontend, but the `buyer-disputes` edge function does not explicitly check phone/location/level before allowing dispute creation. The RLS policy `buyers_insert_disputes` only checks transaction ownership. If a frontend bypass occurs, an unverified buyer could insert a dispute.
-
-**Fix**: Add the same phone+location+level check to the disputes edge function.
-
-### 2. SMS delivery is dev-mode only
-OTP codes are returned in the response (`dev_otp` field) rather than sent via SMS. This is intentional and acknowledged — you plan to circle back for Twilio/Termii integration later.
-
-**Not a blocker** — dev mode is functional for testing.
-
----
-
-## Verdict
-
-Batch 1 is **complete** with one minor backend hardening item (dispute gating). Everything else — data model, OTP flow, abuse protection, profile/location, verification display, payment gating, seller trust badges — is built and wired end-to-end.
-
-Want me to fix the dispute backend gate now, or move on to the next batch?
-
+### Reachable tiers in Batch 2
+- `unverified` and `basic_verified` are the only active levels.
+- `trusted_buyer` and `high_trust_buyer` are scaffolded for future identity-based upgrades.
