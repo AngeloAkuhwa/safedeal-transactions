@@ -14,7 +14,10 @@ const Dashboard = () => {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["buyer-dashboard"],
     queryFn: getBuyerDashboard,
-    retry: 1,
+    retry: (_failureCount, queryError) => {
+      const message = queryError instanceof Error ? queryError.message : "";
+      return !message.includes("Invalid session") && !message.includes("Not authenticated");
+    },
     staleTime: 30_000,
   });
 

@@ -44,7 +44,8 @@ export const getBuyerDashboard = async (): Promise<BuyerDashboardResponse> => {
   } = await supabase.auth.getSession();
 
   if (!session) {
-    throw new Error("Not authenticated");
+    window.location.replace("/auth?mode=login");
+    return new Promise<BuyerDashboardResponse>(() => {});
   }
 
   const { data, error } = await supabase.functions.invoke("buyer-dashboard", {
@@ -54,37 +55,35 @@ export const getBuyerDashboard = async (): Promise<BuyerDashboardResponse> => {
   });
 
   if (error) {
-    // When invoke gets a non-2xx, the JSON body may be in error.context.body or we parse it
-    let errorBody: string | undefined;
+    let errorBody: { error?: string } | null = null;
+
     try {
-      // FunctionsHttpError stores the response; try to extract the JSON message
-      const ctx = (error as any).context;
-      if (ctx && typeof ctx.json === "function") {
-        const parsed = await ctx.json();
-        errorBody = parsed?.error;
+      const context = (error as { context?: Response }).context;
+      if (context) {
+        errorBody = await context.clone().json();
       }
     } catch {
-      // ignore parse failures
+      errorBody = null;
     }
 
-    // Also check data in case the SDK populated it
-    const msg = errorBody || data?.error;
+    const errorMessage = errorBody?.error ?? data?.error ?? error.message;
 
-    if (msg === "Invalid session") {
+    if (errorMessage === "Invalid session") {
       await supabase.auth.signOut();
-      window.location.href = "/auth";
-      throw new Error("Session expired. Please sign in again.");
+      window.location.replace(`/auth?mode=login&redirect=${encodeURIComponent("/dashboard")}`);
+      return new Promise<BuyerDashboardResponse>(() => {});
     }
 
-    throw new Error(msg || error.message || "Failed to load dashboard");
+    throw new Error(errorMessage || "Failed to load dashboard");
   }
 
   if (!data || data.error) {
     if (data?.error === "Invalid session") {
       await supabase.auth.signOut();
-      window.location.href = "/auth";
-      throw new Error("Session expired. Please sign in again.");
+      window.location.replace(`/auth?mode=login&redirect=${encodeURIComponent("/dashboard")}`);
+      return new Promise<BuyerDashboardResponse>(() => {});
     }
+
     throw new Error(data?.error || "Failed to load dashboard");
   }
 
