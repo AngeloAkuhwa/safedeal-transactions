@@ -53,12 +53,11 @@ Deno.serve(async (req) => {
 
       const folder = `SafeDeal/avatars/${userId}`;
       const timestamp = Math.floor(Date.now() / 1000);
-      const publicId = `${folder}/avatar`;
 
       const params: Record<string, string> = {
         folder,
         overwrite: "true",
-        public_id: publicId,
+        public_id: "avatar",
         timestamp: String(timestamp),
       };
 
@@ -75,7 +74,7 @@ Deno.serve(async (req) => {
         api_key: apiKey,
         cloud_name: cloudName,
         folder,
-        public_id: publicId,
+        public_id: `${folder}/avatar`,
       });
     }
 
