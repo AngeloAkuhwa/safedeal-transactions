@@ -1,149 +1,111 @@
 
 
-# Revised Seller Dispute Detail + List Page — Implementation Plan
+# Seller Dispute Detail Refinement Plan
 
 ## Summary
-Overhaul the existing Seller Dispute Detail page and `submit-seller-response` edge function, plus fix the list page's Export button and action routing. The current implementation is a shallow mirror of the buyer page — this revision makes it seller-first with section navigation, evidence uploads in the response flow, comprehensive payout impact, enriched timeline, contextual banners, and a robust response submission pipeline.
+Refine the seller dispute detail page to properly separate buyer/seller roles, support multi-response workflow (max 2), additional evidence upload (max 1), and add a "View Full Agreement" CTA linking to a seller-side agreement page.
 
-## What Changes
+## Technical Details
 
-### 1. Page: `SellerDisputeDetail.tsx` — Section-Based Layout with Query Param Focus
+### 1. Database Migration — Add `response_number` column to `dispute_responses`
+- Add `response_number INTEGER NOT NULL DEFAULT 1` to `dispute_responses`
+- This supports tracking "Response 1 of 2" vs "Response 2 of 2"
+- No unique constraint needed — the edge function enforces the max-2 limit
 
-Read `?section=` from URL to auto-scroll/highlight the active section. CTAs from the list page route as:
-- `View Case` → `?section=overview`
-- `Respond Now` → `?section=respond`
-- `View Resolution` → `?section=resolution`
-- Payout CTA → `?section=payout`
+### 2. Edge Function: `submit-seller-response` — Support multiple responses
+Current logic rejects if any response exists. Change to:
+- Count existing seller responses for this dispute (max 2)
+- If count >= 2, reject with "Maximum response limit reached"
+- Set `response_number = count + 1` on insert
+- Only transition status to `under_review` on first response (don't re-transition on follow-up)
+- Accept `is_additional_evidence_only: boolean` flag for standalone evidence uploads (no response text required)
+- For additional evidence: enforce max 1 additional dispute evidence file (evidence_type = `supporting_document`, check existing count)
 
-Sections rendered top-to-bottom (not tabs — full scrollable page with anchor IDs):
+### 3. Edge Function: `seller-dispute-detail` — Return enriched response data
+Current logic fetches only a single `dispute_responses` row. Change to:
+- Fetch all responses for the dispute (`dispute_responses` plural), ordered by `submitted_at`
+- Return `seller_response.responses: Array<{id, response_text, submitted_at, response_number}>` 
+- Return `seller_response.response_count: number` and `seller_response.max_responses: 2`
+- Return `seller_response.additional_evidence_submitted: boolean` — check if any `dispute_evidence` with `submitted_by_role = 'seller'` and `evidence_type = 'supporting_document'` exists that was created after the dispute `opened_at`
+- Keep backward compat: `has_response` = responses.length > 0, `response_state` derived from count
 
-| # | Section ID | Content |
-|---|---|---|
-| 1 | `overview` | Case summary: dispute ref, reason, status + money badges, buyer info, item, pricing, transaction link, response deadline |
-| 2 | `banner` | Contextual state banner (response needed / under review / resolved / payout blocked) |
-| 3 | `claim` | Buyer claim + buyer evidence (prominent, full-width) |
-| 4 | `respond` | Seller response form with textarea + evidence upload (up to 3 files). Shows submitted response if already responded |
-| 5 | `agreement` | Locked Agreement Snapshot — first-class, not collapsed |
-| 6 | `delivery` | Delivery Proof — tracking details + proof files, first-class |
-| 7 | `evidence` | Combined evidence gallery: buyer vs seller side-by-side |
-| 8 | `resolution` | Final outcome, amounts (refund/release), payout effect, resolver — only when resolved |
-| 9 | `payout` | Payout Impact: blocked/not, amount, reason, escrow state, payout record existence, partial release possibility |
-| 10 | `timeline` | Enriched timeline with case events (not just status changes) |
-| 11 | `support` | Support card |
+### 4. Service Layer: `seller-dispute-detail.service.ts` — Update types
+- Update `SellerDisputeDetailResponse.seller_response` to include `responses[]`, `response_count`, `max_responses`, `additional_evidence_submitted`
+- Add `submitAdditionalEvidence(disputeId, fileId)` function
 
-Right sidebar (desktop): Payout Impact card, Timeline, Support card (duplicated from main flow for quick access).
+### 5. Page: `SellerDisputeDetail.tsx` — Major UI restructure
 
-Seller-specific emphasis throughout:
-- Response deadline shown prominently in header with countdown
-- "Next action" callout if response is pending
-- Delivery proof elevated above evidence gallery
-- Payout blockage warning integrated into overview
+**Buyer Claim section**: Replace `BuyerClaimSection` (which shows "Your Evidence" + "Claimant" tag — buyer-centric) with a new seller-specific `SellerViewBuyerClaim` component:
+- Header: "Buyer Claim & Evidence" with "Claimant" badge
+- Shows buyer's reason, description, and evidence
 
-### 2. Contextual Banners — New Component: `SellerDisputeContextBanner.tsx`
+**Seller Response section**: Replace the current binary show-form-or-show-response with a new `SellerDisputeResponseSection` component:
+- Shows all submitted responses with "Response 1 of 2", "Response 2 of 2" labels
+- If response_count < 2 and dispute is respondable: show "Add Follow-up Response" CTA
+- If response_count == 0 and dispute is respondable: show the response form inline
+- If response_count >= 2: show "Maximum response limit reached" info note
+- If dispute is under_review or resolved: show "Responses locked" note
 
-Replaces the generic `DisputeInfoBanner` with seller-specific messaging:
+**Seller Evidence section**: New `SellerEvidenceSection` component:
+- Groups evidence into categories: "Delivery Proof", "Seller Evidence", "Additional Evidence"
+- Each file shows: file type icon, uploaded date, evidence type tag, preview/open action
+- If `additional_evidence_submitted` is false and dispute is active: show "Upload Additional Evidence" CTA
+- If already submitted: show "Additional dispute evidence already submitted" note
 
-| State | Banner |
+**Agreement section**: Keep `AgreementSnapshotSection` but add a "View Full Agreement" button that links to `/seller/transactions/:transactionId/agreement`
+
+### 6. New Route + Page: `/seller/transactions/:transactionId/agreement`
+- Create `SellerTransactionAgreement.tsx` — mirrors `BuyerTransactionAgreement` but uses `SellerNav`
+- Reuses `getAgreementData` service (the edge function already validates transaction party access)
+- Shows full locked agreement: item details, amounts, parties, delivery terms, seller notes, media
+- Add route to `App.tsx`
+
+### 7. New Components
+
+| Component | Purpose |
 |---|---|
-| `open` / `seller_response_pending` | "Your response is required. Submit your side of the case with supporting evidence before the deadline." (warning style) |
-| `under_review` | "This case is under review. Both your evidence and the buyer's claim are being evaluated." (info style) |
-| `resolved` | "This dispute has been resolved. Review the final decision and payout impact below." (success style) |
-| Payout blocked (`escrow.frozen_amount > 0`) | "Your payout for this transaction is currently blocked while this dispute is active." (destructive style) |
+| `src/components/seller-disputes/SellerViewBuyerClaim.tsx` | Buyer claim + evidence from seller's perspective |
+| `src/components/seller-disputes/SellerDisputeResponseSection.tsx` | Multi-response viewer with form + counters |
+| `src/components/seller-disputes/SellerEvidenceSection.tsx` | Categorized evidence gallery with upload CTA |
+| `src/pages/SellerTransactionAgreement.tsx` | Full agreement page for seller |
 
-Multiple banners can show simultaneously (e.g., response needed + payout blocked).
+### 8. `SellerResponseForm.tsx` — Update
+- Accept optional `responseNumber` prop for labeling
+- Accept optional `isFollowUp` flag to adjust UI copy
+- On success, pass response number to parent for refetch
 
-### 3. Edge Function: `submit-seller-response` — Full Pipeline
+### 9. Contextual Banners — Update `SellerDisputeContextBanner.tsx`
+Add state-awareness text for response/evidence permissions:
+- Open: "You can still respond to this case"
+- Under review: "New responses are disabled"
+- Resolved: "Responses and evidence uploads are now locked"
 
-Current implementation only inserts a row + updates status. Revised to handle:
-
-1. **Auth + seller role check** (already done)
-2. **Dispute ownership validation** (already done)
-3. **Dispute respondable validation**: reject if status not in `['open', 'seller_response_pending']`, reject if already responded
-4. **Evidence attachment**: accept `evidence_file_ids: string[]` (max 3), validate each file exists in `files` table and belongs to seller, insert into `dispute_evidence` with `submitted_by_role = 'seller'`
-5. **Status transition**: update dispute to `under_review`
-6. **Dispute status history**: insert into `dispute_status_history`
-7. **Transaction event logging**: insert into `transaction_events` with `event_type = 'seller_dispute_response'`
-8. **Audit logging**: insert into `audit_logs` with action, actor, dispute_id, transaction_id
-9. **Notification trigger**: insert notification for buyer ("Seller has responded to your dispute")
-
-### 4. `SellerResponseForm.tsx` — Evidence Upload Support
-
-Add file upload UI alongside the textarea:
-- Up to 3 evidence files (images/videos)
-- Uses existing Cloudinary upload pattern (sign via `upload-evidence` edge function, XHR upload, save file record)
-- Files are uploaded first, file IDs collected, then submitted with response text via `submit-seller-response`
-- Preview thumbnails with remove capability
-- Character counter + file counter
-
-### 5. `SellerPayoutImpactCard.tsx` — Enhanced
-
-Add missing fields:
-- Whether payout is blocked (explicit boolean/label)
-- Blocked amount with currency
-- Reason for block (dispute status text)
-- Whether payout record exists vs. no payout created yet
-- Whether partial release is possible (based on escrow state + outcome_type)
-- Link to `/seller/payouts` if payout exists
-
-### 6. Edge Function: `seller-dispute-detail` — Enriched Timeline
-
-Currently returns only `dispute_status_history`. Add:
-- `transaction_events` for the same transaction (filtered to dispute-relevant events: `dispute_opened`, `seller_dispute_response`, `evidence_uploaded`, `dispute_resolved`, `payout_blocked`, `payout_released`)
-- Merge and sort chronologically
-- Return as unified `timeline[]` with `{ type: 'status_change' | 'event', ... }`
-
-### 7. `DisputeTimeline` — Support Event Entries
-
-Update to render both status changes and event entries with appropriate icons and labels.
-
-### 8. Resolution Section — Seller-Specific Enhancement
-
-When resolution exists, show:
-- Outcome type + badge
-- Decision summary
-- Refund amount (to buyer)
-- Release amount (to seller) — emphasized for seller
-- Payout effect: "Your payout will be released" / "Funds refunded to buyer" / "Partial release"
-- Resolved date + resolver
-
-### 9. List Page: Export Button Fix
-
-`SellerDisputeFilters.tsx` — wire Export button to trigger CSV download (not navigation):
-- Build CSV from current `data.items` array
-- Columns: Dispute ID, Transaction Code, Buyer, Item, Reason, Status, Money Impact, Response Deadline, Opened Date, Last Updated, Resolution Summary
-- Download as `disputes-export-{date}.csv`
-
-### 10. List Page: Action Routing with Section Params
-
-Update `SellerDisputeTable.tsx` and `SellerDisputeActionPanel.tsx` action routes:
-- `Respond Now` → `/seller/disputes/{id}?section=respond`
-- `View Case` → `/seller/disputes/{id}?section=overview`
-- `View Resolution` → `/seller/disputes/{id}?section=resolution`
-- Blocked payout cards → `/seller/disputes/{id}?section=payout`
-
-### 11. Related Routing
-
-- Transaction code in detail page → `/seller/transactions/:transactionId`
-- Payout link in impact card → `/seller/payouts` (with payout ID if route supports it)
-
-## Files Modified
-
-| File | Change |
-|---|---|
-| `src/pages/SellerDisputeDetail.tsx` | Full rewrite: section-based layout, query param focus, contextual banners, enhanced structure |
-| `supabase/functions/submit-seller-response/index.ts` | Add evidence attachment, event logging, audit logging, notification, respondable validation |
-| `supabase/functions/seller-dispute-detail/index.ts` | Add transaction_events to timeline, merge + sort |
-| `src/components/seller-disputes/SellerResponseForm.tsx` | Add evidence file upload UI (Cloudinary pattern) |
-| `src/components/seller-disputes/SellerPayoutImpactCard.tsx` | Add blocked reason, payout existence, partial release, payout link |
-| `src/components/seller-disputes/SellerDisputeFilters.tsx` | Wire Export to CSV download |
-| `src/components/seller-disputes/SellerDisputeTable.tsx` | Update action routes with `?section=` params |
-| `src/components/seller-disputes/SellerDisputeActionPanel.tsx` | Update CTA routes with `?section=` params |
-| `src/components/seller-disputes/SellerDisputeBlockedPanel.tsx` | Update CTA routes with `?section=payout` |
-| `src/services/seller-dispute-detail.service.ts` | Update types for enriched timeline, update submitSellerResponse to accept evidence_file_ids |
+### 10. Timeline — Add new event types
+The edge function already captures `seller_dispute_response` events. Add labels for:
+- `seller_response_edited` → "Seller Response Edited"
+- `additional_evidence_uploaded` → "Additional Evidence Uploaded"
 
 ## Files Created
-
 | File | Description |
 |---|---|
-| `src/components/seller-disputes/SellerDisputeContextBanner.tsx` | Contextual state banners (response needed, under review, resolved, payout blocked) |
+| `src/components/seller-disputes/SellerViewBuyerClaim.tsx` | Buyer claim from seller POV |
+| `src/components/seller-disputes/SellerDisputeResponseSection.tsx` | Multi-response section |
+| `src/components/seller-disputes/SellerEvidenceSection.tsx` | Categorized evidence gallery |
+| `src/pages/SellerTransactionAgreement.tsx` | Full agreement page for seller |
+
+## Files Modified
+| File | Change |
+|---|---|
+| `supabase/functions/submit-seller-response/index.ts` | Support max 2 responses + additional evidence |
+| `supabase/functions/seller-dispute-detail/index.ts` | Return multiple responses + evidence flags |
+| `src/services/seller-dispute-detail.service.ts` | Updated types + new function |
+| `src/pages/SellerDisputeDetail.tsx` | Restructured sections, new components |
+| `src/components/seller-disputes/SellerResponseForm.tsx` | Follow-up support |
+| `src/components/seller-disputes/SellerDisputeContextBanner.tsx` | State-aware permission text |
+| `src/App.tsx` | Add seller agreement route |
+
+## Database Migration
+```sql
+ALTER TABLE dispute_responses ADD COLUMN response_number INTEGER NOT NULL DEFAULT 1;
+```
 
