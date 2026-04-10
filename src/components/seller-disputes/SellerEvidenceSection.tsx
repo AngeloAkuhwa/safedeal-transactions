@@ -67,13 +67,17 @@ function EvidenceFileCard({
   onReplace?: () => void;
   replacing?: boolean;
 }) {
+  const [imgError, setImgError] = useState(false);
+  const isImage = fileUrl && mimeType?.startsWith("image/") && !imgError;
+
   return (
     <div className="rounded-lg border border-border overflow-hidden bg-card group relative">
-      {fileUrl && mimeType?.startsWith("image/") ? (
+      {isImage ? (
         <img
           src={getCloudinaryThumbnail(fileUrl, 300, 200)}
           alt={fileName ?? "Evidence"}
           className="w-full h-28 object-cover"
+          onError={() => setImgError(true)}
         />
       ) : (
         <div className="w-full h-28 flex flex-col items-center justify-center text-xs text-muted-foreground p-2 bg-muted">
