@@ -1,39 +1,29 @@
 
 
-# Fix Product Media Upload + Add Progress Indicator
+# Replace Delivery Method with Multi-Select Supported Methods
 
-## Problem
-The `SellerProductCreate` page sends the raw file as `FormData` directly to the `upload-evidence` edge function, which expects JSON (`req.json()`), causing a parse error and 500 response.
+## What changes
 
-## Root Cause
-The existing upload pipeline is a 3-step process:
-1. Call `upload-evidence` with `{ action: "sign_upload" }` to get Cloudinary credentials
-2. Upload file directly to Cloudinary (with XHR progress tracking)
-3. Call `upload-evidence` with `{ action: "register_file" }` to register metadata
+Replace the single delivery method dropdown on Step 4 with a checkbox list of delivery methods the seller's business supports. This means a product can support multiple delivery methods (e.g. both Pickup and Shipping), and the buyer picks their preferred one at purchase time.
 
-The `SellerProductCreate` page skips all of this and sends raw FormData, which the edge function can't parse as JSON.
+## Changes
 
-## Solution
-Reuse the existing `uploadProductFile` function from `create-transaction.service.ts` which already handles the full Cloudinary upload flow with progress tracking. Also add a `product_media` context type to the edge function so files are stored in the right Cloudinary folder.
+### `src/pages/SellerProductCreate.tsx`
+- Change `deliveryMethod` state from `string` to `string[]` (array)
+- Replace `<Select>` with a checkbox group using `<Checkbox>` components for: Pickup, Delivery, Courier/Shipping, Digital/Instant, Hand Delivery, Meetup
+- Update `createMutation` payload to send `delivery_methods: deliveryMethods` (array) instead of `delivery_method`
+- Rename step label from "Delivery & Settings" to "Settings"
 
-### Changes
+### `supabase/functions/seller-products/index.ts`
+- Accept `delivery_methods` (string array) instead of `delivery_method` (string)
+- Store as JSON array in the existing `delivery_method` column (text field, store as JSON string)
 
-**1. `src/pages/SellerProductCreate.tsx`**
-- Import `uploadProductFile` from `create-transaction.service.ts`
-- Replace the broken `handleFileUpload` with one that calls `uploadProductFile(file, onProgress)` for each file
-- Add per-file upload progress state and display a progress bar on each uploading thumbnail
-- Show a local preview (`URL.createObjectURL`) immediately while uploading, then switch to the Cloudinary URL on completion
+### `supabase/functions/seller-product-detail/index.ts`
+- Accept `delivery_methods` in PATCH, store as JSON string
+- Return parsed array in GET response
 
-**2. `supabase/functions/upload-evidence/index.ts`**
-- Add `product_media` to the `contextMap` so `sign_upload` generates the correct Cloudinary folder
-- Add `product_media` handling in `registerFile` for `context_type` and `retention_category` mapping (these are enum values -- need to map to existing valid enum values: `transaction_media`)
+### `src/services/seller-storefront.service.ts`
+- Update `CreateProductPayload` interface: `delivery_methods?: string[]` instead of `delivery_method?: string`
 
-**3. `src/services/create-transaction.service.ts`** (or new `src/services/upload.service.ts`)
-- Export `uploadProductFile` so it can be imported by the product create page (it's already exported, just needs the import path)
-
-### Upload UX
-- Each file shows immediately as a local preview in the grid
-- A progress bar overlays the thumbnail during upload (0-100%)
-- On completion, the preview switches to the Cloudinary URL
-- On failure, the thumbnail shows an error state with retry option
+No database migration needed -- the existing `delivery_method` text column can store a JSON array string.
 
