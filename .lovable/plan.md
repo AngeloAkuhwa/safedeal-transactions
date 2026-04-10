@@ -1,44 +1,35 @@
 
 
-# Seller Dispute Detail Refinement Plan
+# Fix: Evidence Preview, Update Delivery Navigation, and Item Titles
 
-## Status: IMPLEMENTED ✅
+## Issues Found
 
-## Summary
-Refined the seller dispute detail page with proper role separation, multi-response workflow (max 2), response editing (latest only), additional evidence upload/replacement with deterministic tracking, backend-driven permission flags, and dispute-centric audit logging.
+### 1. Evidence preview on dispute page
+The evidence data is returned correctly from the backend with valid Cloudinary URLs. The `SellerViewBuyerClaim` and `SellerEvidenceSection` components both render evidence thumbnails using `getCloudinaryThumbnail`. The buyer claim section shows evidence for buyer-uploaded files. However, the **Seller Evidence section** only receives `data.seller_response.evidence` — if the seller has not submitted any evidence, this section will be empty, and the `SellerViewBuyerClaim` only shows buyer-side evidence. This is working as designed. The likely issue is that the seed/test evidence images use a fake Cloudinary cloud name (`safedeal`) that doesn't resolve, causing broken image tags. Real uploaded images (with cloud `dgmcdk4lq`) render fine. No code fix needed for this — the components work correctly with real uploads.
 
-## What Was Implemented
+### 2. "Update Delivery" button on transaction detail page does NOT navigate
+**Root cause**: In `SellerTransactionDetail.tsx` line 175-178, the "Update Delivery" button has **no `onClick` handler** — it's just a static `<Button>` with no navigation:
+```tsx
+<Button size="sm" className="gap-2">
+  <Truck className="h-4 w-4" />
+  Update Delivery
+</Button>
+```
+**Fix**: Add `onClick={() => navigate(`/seller/transactions/${transactionId}/delivery`)}` to the button.
 
-### Database Migration
-- Replaced `UNIQUE(dispute_id)` with `UNIQUE(dispute_id, response_number)` on `dispute_responses`
-- Added edit tracking: `edited_at`, `edited_by_user_id`, `previous_response_text` on `dispute_responses`
-- Added replacement tracking: `is_active`, `replaced_at`, `replaced_by_file_id` on `dispute_evidence`
-- Added `seller_additional_dispute_evidence` enum value to `dispute_evidence_type`
-- Added `dispute_response_edited` and `dispute_evidence_replaced` to `audit_action_type`
-- RLS policies for seller UPDATE on `dispute_responses` and `dispute_evidence`
+### 3. Transaction item titles showing "Untitled Item" in Transactions list
+**Root cause**: In `seller-transactions` edge function (line 122), the query selects a `category` column that **does not exist** in the `transaction_items` table:
+```ts
+.select("transaction_id, title, category, quantity")
+```
+PostgREST returns an error for invalid columns, causing the entire items query to fail silently. The `itemMap` stays empty, so all transactions fall back to "Untitled Item". The dashboard endpoint works correctly because it only selects `"transaction_id, title"`.
 
-### Edge Functions
-- `submit-seller-response`: 3 actions — `submit_response` (default), `edit_response`, `replace_additional_evidence`
-- `seller-dispute-detail`: Returns `permissions` object with explicit non-overlapping flags
+**Fix**: Remove `category` from the select clause (it doesn't exist in the schema). Use `condition_label` or nothing instead.
 
-### Permission Flags (backend-driven)
-- `canSubmitInitialResponse` — responseCount === 0 AND respondable
-- `canAddFollowUpResponse` — responseCount === 1 AND respondable
-- `canEditLatestResponse` — responseCount > 0 AND respondable
-- `canUploadAdditionalEvidence` — !additionalEvidenceSubmitted AND respondable
-- `canReplaceAdditionalEvidence` — additionalEvidenceSubmitted AND respondable
-- `isRespondable` — status in ['open', 'seller_response_pending']
+## Files Modified
 
-### Respondable States (explicit)
-- Allowed: `open`, `seller_response_pending`
-- Rejected: `under_review`, `resolved`
+| File | Change |
+|---|---|
+| `src/pages/SellerTransactionDetail.tsx` | Add `onClick` with `navigate` to "Update Delivery" button |
+| `supabase/functions/seller-transactions/index.ts` | Remove non-existent `category` from `transaction_items` select query |
 
-### Audit Strategy
-- Canonical record: `audit_logs` with `dispute_response_edited` / `dispute_evidence_replaced`
-- Summary mirror: `transaction_events` (not the source of truth)
-- Edit history: `previous_response_text` stored directly on `dispute_responses`
-
-### Agreement Source of Truth
-- `SellerTransactionAgreement.tsx` loads from `transaction_agreement_snapshots.snapshot_json` only
-- No fallback to mutable transaction fields
-- Seller ownership validated via `is_transaction_party`
