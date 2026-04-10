@@ -34,7 +34,7 @@ const SellerProductDetail = () => {
   const [unitPrice, setUnitPrice] = useState("");
   const [stockQuantity, setStockQuantity] = useState("0");
   const [agreementTerms, setAgreementTerms] = useState("");
-  const [deliveryMethod, setDeliveryMethod] = useState("");
+  const [deliveryMethods, setDeliveryMethods] = useState<string[]>([]);
   const [sellerNotes, setSellerNotes] = useState("");
   const [visibilityType, setVisibilityType] = useState("public");
 
@@ -67,7 +67,15 @@ const SellerProductDetail = () => {
       setUnitPrice(String(p.unit_price || ""));
       setStockQuantity(String(p.stock_quantity || 0));
       setAgreementTerms(p.agreement_terms || "");
-      setDeliveryMethod(p.delivery_method || "");
+      // Parse delivery_method as JSON array, fallback for legacy single strings
+      let methods: string[] = [];
+      try {
+        const parsed = JSON.parse(p.delivery_method || "[]");
+        methods = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        methods = p.delivery_method ? [p.delivery_method] : [];
+      }
+      setDeliveryMethods(methods);
       setSellerNotes(p.seller_notes || "");
       setVisibilityType(p.visibility_type || "public");
     }
@@ -102,7 +110,7 @@ const SellerProductDetail = () => {
       unit_price: parseFloat(unitPrice),
       stock_quantity: parseInt(stockQuantity) || 0,
       agreement_terms: agreementTerms,
-      delivery_method: deliveryMethod,
+      delivery_methods: deliveryMethods,
       seller_notes: sellerNotes,
       visibility_type: visibilityType,
     });
@@ -250,19 +258,37 @@ const SellerProductDetail = () => {
           </Card>
 
           <Card className="rounded-xl">
-            <CardHeader><CardTitle>Delivery & Settings</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Settings</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Delivery Method</Label>
-                <Select value={deliveryMethod} onValueChange={setDeliveryMethod}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pickup">Pickup</SelectItem>
-                    <SelectItem value="delivery">Delivery</SelectItem>
-                    <SelectItem value="shipping">Shipping</SelectItem>
-                    <SelectItem value="digital">Digital / Instant</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="mb-2 block">Supported Delivery Methods</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {[
+                    { value: "pickup", label: "Pickup" },
+                    { value: "delivery", label: "Delivery" },
+                    { value: "shipping", label: "Courier / Shipping" },
+                    { value: "digital", label: "Digital / Instant" },
+                    { value: "hand_delivery", label: "Hand Delivery" },
+                    { value: "meetup", label: "Meetup" },
+                  ].map((opt) => (
+                    <label
+                      key={opt.value}
+                      className="flex items-center gap-2 rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                    >
+                      <Checkbox
+                        checked={deliveryMethods.includes(opt.value)}
+                        onCheckedChange={(checked) => {
+                          setDeliveryMethods((prev) =>
+                            checked
+                              ? [...prev, opt.value]
+                              : prev.filter((v) => v !== opt.value)
+                          );
+                        }}
+                      />
+                      <span className="text-sm">{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
               <div>
                 <Label>Seller Notes (private)</Label>
