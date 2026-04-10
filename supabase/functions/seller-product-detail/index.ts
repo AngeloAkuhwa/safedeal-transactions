@@ -1,0 +1,275 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .substring(0, 80);
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return jsonResponse({ error: "Not authenticated" }, 401);
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const token = authHeader.replace("Bearer ", "");
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    const { data: userData, error: userError } = await adminClient.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return jsonResponse({ error: "Invalid session" }, 401);
+    }
+    const userId = userData.user.id;
+
+    const { data: hasRole } = await adminClient.rpc("has_role", {
+      _user_id: userId,
+      _role: "seller",
+    });
+    if (!hasRole) {
+      return jsonResponse({ error: "Seller role required" }, 403);
+    }
+
+    const url = new URL(req.url);
+    const productId = url.searchParams.get("product_id");
+    if (!productId) {
+      return jsonResponse({ error: "product_id is required" }, 400);
+    }
+
+    if (req.method === "GET") {
+      return await handleGet(adminClient, userId, productId);
+    }
+    if (req.method === "PATCH") {
+      return await handlePatch(adminClient, userId, productId, req);
+    }
+    if (req.method === "DELETE") {
+      return await handleDelete(adminClient, userId, productId);
+    }
+
+    return jsonResponse({ error: "Method not allowed" }, 405);
+  } catch (err) {
+    console.error("seller-product-detail error:", err);
+    return jsonResponse({ error: "Internal server error" }, 500);
+  }
+});
+
+async function handleGet(adminClient: any, userId: string, productId: string) {
+  const { data: product, error } = await adminClient
+    .from("products")
+    .select("*")
+    .eq("id", productId)
+    .eq("seller_id", userId)
+    .single();
+
+  if (error || !product) {
+    return jsonResponse({ error: "Product not found" }, 404);
+  }
+
+  // Fetch media with file URLs
+  const { data: media } = await adminClient
+    .from("product_media")
+    .select("id, file_id, media_type, sort_order, is_primary")
+    .eq("product_id", productId)
+    .order("sort_order", { ascending: true });
+
+  const fileIds = (media || []).map((m: any) => m.file_id);
+  let fileMap: Record<string, any> = {};
+  if (fileIds.length > 0) {
+    const { data: files } = await adminClient
+      .from("files")
+      .select("id, file_url, secure_url, original_file_name, mime_type")
+      .in("id", fileIds);
+    if (files) {
+      for (const f of files) fileMap[f.id] = f;
+    }
+  }
+
+  const enrichedMedia = (media || []).map((m: any) => ({
+    ...m,
+    file_url: fileMap[m.file_id]?.secure_url || fileMap[m.file_id]?.file_url || null,
+    original_file_name: fileMap[m.file_id]?.original_file_name || null,
+    mime_type: fileMap[m.file_id]?.mime_type || null,
+  }));
+
+  // Fetch category
+  let category = null;
+  if (product.category_id) {
+    const { data: cat } = await adminClient
+      .from("product_categories")
+      .select("id, name, slug")
+      .eq("id", product.category_id)
+      .single();
+    category = cat;
+  }
+
+  // Get store slug
+  const { data: profileData } = await adminClient
+    .from("profiles")
+    .select("store_slug")
+    .eq("id", userId)
+    .single();
+
+  return jsonResponse({
+    product: {
+      ...product,
+      media: enrichedMedia,
+      category,
+      store_slug: profileData?.store_slug || null,
+    },
+  });
+}
+
+async function handlePatch(adminClient: any, userId: string, productId: string, req: Request) {
+  const body = await req.json().catch(() => null);
+  if (!body) return jsonResponse({ error: "Invalid request body" }, 400);
+
+  // Verify ownership
+  const { data: existing } = await adminClient
+    .from("products")
+    .select("id, slug, status, seller_id")
+    .eq("id", productId)
+    .eq("seller_id", userId)
+    .single();
+
+  if (!existing) {
+    return jsonResponse({ error: "Product not found" }, 404);
+  }
+
+  const updateData: Record<string, unknown> = {};
+
+  const textFields = [
+    "title", "short_description", "description", "condition_label",
+    "sku", "brand", "model", "seller_notes", "agreement_terms",
+    "delivery_method", "currency_code",
+  ];
+
+  for (const field of textFields) {
+    if (body[field] !== undefined) {
+      updateData[field] = body[field] ? String(body[field]).trim() : null;
+    }
+  }
+
+  if (body.category_id !== undefined) updateData.category_id = body.category_id || null;
+  if (body.unit_price !== undefined) updateData.unit_price = Number(body.unit_price);
+  if (body.stock_quantity !== undefined) updateData.stock_quantity = Math.max(0, parseInt(body.stock_quantity) || 0);
+  if (body.visibility_type !== undefined) updateData.visibility_type = body.visibility_type;
+  if (body.verification_window_hours !== undefined) updateData.verification_window_hours = body.verification_window_hours;
+
+  // Handle status transitions
+  if (body.status !== undefined && body.status !== existing.status) {
+    const validTransitions: Record<string, string[]> = {
+      draft: ["published"],
+      published: ["draft", "out_of_stock", "archived"],
+      out_of_stock: ["published", "archived"],
+      archived: ["draft"],
+    };
+
+    const allowed = validTransitions[existing.status] || [];
+    if (!allowed.includes(body.status)) {
+      return jsonResponse({ error: `Cannot transition from ${existing.status} to ${body.status}` }, 400);
+    }
+
+    updateData.status = body.status;
+    if (body.status === "published" && existing.status !== "published") {
+      updateData.published_at = new Date().toISOString();
+    }
+    if (body.status === "archived") {
+      updateData.archived_at = new Date().toISOString();
+    }
+  }
+
+  // Handle slug change if title changed
+  if (body.title && body.title.trim() !== existing.title) {
+    let baseSlug = slugify(body.title.trim());
+    if (!baseSlug) baseSlug = "product";
+    let slug = baseSlug;
+    let attempt = 0;
+
+    while (true) {
+      const { data: dup } = await adminClient
+        .from("products")
+        .select("id")
+        .eq("seller_id", userId)
+        .eq("slug", slug)
+        .neq("id", productId)
+        .maybeSingle();
+
+      if (!dup) break;
+      attempt++;
+      slug = `${baseSlug}-${attempt + 1}`;
+      if (attempt > 20) { slug = `${baseSlug}-${Date.now()}`; break; }
+    }
+    updateData.slug = slug;
+  }
+
+  // Handle media updates
+  if (Array.isArray(body.file_ids)) {
+    // Delete existing media
+    await adminClient.from("product_media").delete().eq("product_id", productId);
+
+    if (body.file_ids.length > 0) {
+      const mediaRows = body.file_ids.map((fid: any, idx: number) => ({
+        product_id: productId,
+        file_id: typeof fid === "string" ? fid : fid.file_id,
+        media_type: (typeof fid === "object" && fid.media_type) || "image",
+        sort_order: idx,
+        is_primary: idx === 0,
+      }));
+
+      await adminClient.from("product_media").insert(mediaRows);
+
+      const ids = mediaRows.map((r: any) => r.file_id);
+      await adminClient.from("files").update({ is_temporary: false }).in("id", ids);
+    }
+  }
+
+  if (Object.keys(updateData).length > 0) {
+    const { error: updateError } = await adminClient
+      .from("products")
+      .update(updateData)
+      .eq("id", productId);
+
+    if (updateError) {
+      console.error("Product update error:", updateError);
+      return jsonResponse({ error: "Failed to update product" }, 500);
+    }
+  }
+
+  return jsonResponse({ success: true, slug: updateData.slug || existing.slug });
+}
+
+async function handleDelete(adminClient: any, userId: string, productId: string) {
+  const { error } = await adminClient
+    .from("products")
+    .update({ is_active: false, status: "archived", archived_at: new Date().toISOString() })
+    .eq("id", productId)
+    .eq("seller_id", userId);
+
+  if (error) {
+    console.error("Product delete error:", error);
+    return jsonResponse({ error: "Failed to archive product" }, 500);
+  }
+
+  return jsonResponse({ success: true });
+}

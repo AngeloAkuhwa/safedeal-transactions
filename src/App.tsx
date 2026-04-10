@@ -33,6 +33,11 @@ import SellerProfileSettings from "./pages/SellerProfileSettings";
 import SellerDisputes from "./pages/SellerDisputes";
 import SellerDisputeDetail from "./pages/SellerDisputeDetail";
 import SellerTransactionAgreement from "./pages/SellerTransactionAgreement";
+import SellerStorefront from "./pages/SellerStorefront";
+import SellerProductCreate from "./pages/SellerProductCreate";
+import SellerProductDetail from "./pages/SellerProductDetail";
+import PublicStorefront from "./pages/PublicStorefront";
+import PublicProductDetail from "./pages/PublicProductDetail";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -53,6 +58,8 @@ const App = () => (
             <Route path="/t/:shareToken/pay" element={<BuyerPaymentSummary />} />
             <Route path="/t/:shareToken/cancelled" element={<TransactionCancelled />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/store/:sellerSlug" element={<PublicStorefront />} />
+            <Route path="/store/:sellerSlug/:productSlug" element={<PublicProductDetail />} />
 
             {/* Protected: requires session */}
             <Route element={<ProtectedRoute />}>
@@ -87,6 +94,9 @@ const App = () => (
               <Route path="/seller/disputes" element={<SellerDisputes />} />
               <Route path="/seller/disputes/:disputeId" element={<SellerDisputeDetail />} />
               <Route path="/seller/profile" element={<SellerProfileSettings />} />
+              <Route path="/seller/storefront" element={<SellerStorefront />} />
+              <Route path="/seller/storefront/new" element={<SellerProductCreate />} />
+              <Route path="/seller/storefront/:productId" element={<SellerProductDetail />} />
             </Route>
 
             {/* Catch-all */}
