@@ -1743,6 +1743,189 @@ export type Database = {
           },
         ]
       }
+      product_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon_name: string | null
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      product_media: {
+        Row: {
+          created_at: string
+          file_id: string
+          id: string
+          is_primary: boolean
+          media_type: string
+          product_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          file_id: string
+          id?: string
+          is_primary?: boolean
+          media_type: string
+          product_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          file_id?: string
+          id?: string
+          is_primary?: boolean
+          media_type?: string
+          product_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_media_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_media_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          agreement_terms: string | null
+          archived_at: string | null
+          brand: string | null
+          category_id: string | null
+          condition_label: string | null
+          created_at: string
+          currency_code: string
+          delivery_method: string | null
+          description: string
+          id: string
+          is_active: boolean
+          model: string | null
+          published_at: string | null
+          reserved_quantity: number
+          seller_id: string
+          seller_notes: string | null
+          short_description: string | null
+          sku: string | null
+          slug: string
+          status: Database["public"]["Enums"]["product_status"]
+          stock_quantity: number
+          title: string
+          unit_price: number
+          updated_at: string
+          verification_window_hours: number | null
+          visibility_type: Database["public"]["Enums"]["product_visibility_type"]
+        }
+        Insert: {
+          agreement_terms?: string | null
+          archived_at?: string | null
+          brand?: string | null
+          category_id?: string | null
+          condition_label?: string | null
+          created_at?: string
+          currency_code?: string
+          delivery_method?: string | null
+          description: string
+          id?: string
+          is_active?: boolean
+          model?: string | null
+          published_at?: string | null
+          reserved_quantity?: number
+          seller_id: string
+          seller_notes?: string | null
+          short_description?: string | null
+          sku?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["product_status"]
+          stock_quantity?: number
+          title: string
+          unit_price: number
+          updated_at?: string
+          verification_window_hours?: number | null
+          visibility_type?: Database["public"]["Enums"]["product_visibility_type"]
+        }
+        Update: {
+          agreement_terms?: string | null
+          archived_at?: string | null
+          brand?: string | null
+          category_id?: string | null
+          condition_label?: string | null
+          created_at?: string
+          currency_code?: string
+          delivery_method?: string | null
+          description?: string
+          id?: string
+          is_active?: boolean
+          model?: string | null
+          published_at?: string | null
+          reserved_quantity?: number
+          seller_id?: string
+          seller_notes?: string | null
+          short_description?: string | null
+          sku?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["product_status"]
+          stock_quantity?: number
+          title?: string
+          unit_price?: number
+          updated_at?: string
+          verification_window_hours?: number | null
+          visibility_type?: Database["public"]["Enums"]["product_visibility_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1759,6 +1942,7 @@ export type Database = {
           phone: string | null
           state_name: string | null
           status: Database["public"]["Enums"]["profile_status"]
+          store_slug: string | null
           updated_at: string
         }
         Insert: {
@@ -1776,6 +1960,7 @@ export type Database = {
           phone?: string | null
           state_name?: string | null
           status?: Database["public"]["Enums"]["profile_status"]
+          store_slug?: string | null
           updated_at?: string
         }
         Update: {
@@ -1793,6 +1978,7 @@ export type Database = {
           phone?: string | null
           state_name?: string | null
           status?: Database["public"]["Enums"]["profile_status"]
+          store_slug?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -3186,6 +3372,8 @@ export type Database = {
         | "completed"
         | "failed"
         | "cancelled"
+      product_status: "draft" | "published" | "out_of_stock" | "archived"
+      product_visibility_type: "public" | "buyer_specific" | "private_draft"
       profile_status: "active" | "suspended" | "blocked"
       refund_status:
         | "pending"
@@ -3529,6 +3717,8 @@ export const Constants = {
         "failed",
         "cancelled",
       ],
+      product_status: ["draft", "published", "out_of_stock", "archived"],
+      product_visibility_type: ["public", "buyer_specific", "private_draft"],
       profile_status: ["active", "suspended", "blocked"],
       refund_status: [
         "pending",
