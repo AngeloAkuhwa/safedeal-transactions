@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import type { SellerDisputeItem } from "@/services/seller-disputes.service";
 
 interface Props {
   search: string;
@@ -15,6 +16,56 @@ interface Props {
   totalCount: number;
   onClearFilters: () => void;
   hasActiveFilters: boolean;
+  items?: SellerDisputeItem[];
+}
+
+function exportDisputesCsv(items: SellerDisputeItem[]) {
+  const headers = [
+    "Dispute ID",
+    "Transaction Code",
+    "Buyer",
+    "Item",
+    "Reason",
+    "Status",
+    "Money Impact",
+    "Response Deadline",
+    "Opened Date",
+    "Last Updated",
+    "Resolution Summary",
+  ];
+
+  const escapeCsv = (val: string | null | undefined) => {
+    if (!val) return "";
+    const s = String(val);
+    if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+  };
+
+  const rows = items.map((d) => [
+    escapeCsv(d.id.substring(0, 8).toUpperCase()),
+    escapeCsv(d.transaction_code),
+    escapeCsv(d.buyer?.name),
+    escapeCsv(d.item_title),
+    escapeCsv(d.reason_label),
+    escapeCsv(d.status.replace(/_/g, " ")),
+    escapeCsv(d.money_impact.replace(/_/g, " ")),
+    escapeCsv(d.seller_response_due_at ? new Date(d.seller_response_due_at).toLocaleDateString("en-NG") : ""),
+    escapeCsv(new Date(d.opened_at).toLocaleDateString("en-NG")),
+    escapeCsv(d.resolved_at ? new Date(d.resolved_at).toLocaleDateString("en-NG") : ""),
+    "", // resolution summary not in list data
+  ]);
+
+  const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const date = new Date().toISOString().split("T")[0];
+  link.href = url;
+  link.download = `disputes-export-${date}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export function SellerDisputeFilters({
@@ -27,6 +78,7 @@ export function SellerDisputeFilters({
   totalCount,
   onClearFilters,
   hasActiveFilters,
+  items = [],
 }: Props) {
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
@@ -70,7 +122,13 @@ export function SellerDisputeFilters({
         </SelectContent>
       </Select>
 
-      <Button variant="outline" size="sm" className="h-9 gap-1.5">
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-9 gap-1.5"
+        onClick={() => items.length > 0 && exportDisputesCsv(items)}
+        disabled={items.length === 0}
+      >
         <Download className="h-3.5 w-3.5" />
         Export
       </Button>

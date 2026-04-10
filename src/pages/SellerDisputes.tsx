@@ -150,6 +150,7 @@ const SellerDisputes = () => {
               totalCount={data?.pagination.total_count ?? 0}
               onClearFilters={clearFilters}
               hasActiveFilters={hasActiveFilters}
+              items={data?.items ?? []}
             />
 
             {/* Two-column layout */}

@@ -23,6 +23,31 @@ const REASON_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+// Dispute-relevant transaction event types
+const DISPUTE_EVENT_TYPES = [
+  "dispute_opened",
+  "seller_dispute_response",
+  "evidence_uploaded",
+  "dispute_resolved",
+  "payout_blocked",
+  "payout_released",
+  "delivery_marked",
+  "buyer_confirmed_delivery",
+  "payment_captured",
+];
+
+const EVENT_LABELS: Record<string, string> = {
+  dispute_opened: "Dispute Opened",
+  seller_dispute_response: "Seller Responded",
+  evidence_uploaded: "Evidence Uploaded",
+  dispute_resolved: "Dispute Resolved",
+  payout_blocked: "Payout Blocked",
+  payout_released: "Payout Released",
+  delivery_marked: "Delivery Marked",
+  buyer_confirmed_delivery: "Buyer Confirmed Delivery",
+  payment_captured: "Payment Captured",
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -125,7 +150,7 @@ Deno.serve(async (req) => {
         .select("id, submitted_by_role, evidence_type, file_id, notes, created_at")
         .eq("dispute_id", disputeId)
         .order("created_at", { ascending: true }),
-      // [5] Timeline
+      // [5] Status history timeline
       adminClient
         .from("dispute_status_history")
         .select("old_status, new_status, reason, changed_at")
@@ -169,6 +194,13 @@ Deno.serve(async (req) => {
         .select("state, held_amount, frozen_amount, released_amount, refunded_amount")
         .eq("transaction_id", transaction.id)
         .single(),
+      // [12] Transaction events (dispute-relevant)
+      adminClient
+        .from("transaction_events")
+        .select("event_type, actor_role, event_data, occurred_at")
+        .eq("transaction_id", transaction.id)
+        .in("event_type", DISPUTE_EVENT_TYPES)
+        .order("occurred_at", { ascending: true }),
     ]);
 
     function settled<T>(result: PromiseSettledResult<{ data: T; error?: unknown }>): T | null {
@@ -183,13 +215,14 @@ Deno.serve(async (req) => {
     const buyerData = settled(enrichments[2] as PromiseSettledResult<{ data: Record<string, unknown> }>);
     const responseData = settled(enrichments[3] as PromiseSettledResult<{ data: Record<string, unknown> }>);
     const evidenceRows = settled(enrichments[4] as PromiseSettledResult<{ data: Array<Record<string, unknown>> }>) ?? [];
-    const timelineRows = settled(enrichments[5] as PromiseSettledResult<{ data: Array<Record<string, unknown>> }>) ?? [];
+    const statusHistoryRows = settled(enrichments[5] as PromiseSettledResult<{ data: Array<Record<string, unknown>> }>) ?? [];
     const outcomeData = settled(enrichments[6] as PromiseSettledResult<{ data: Record<string, unknown> }>);
     const snapshotData = settled(enrichments[7] as PromiseSettledResult<{ data: Record<string, unknown> }>);
     const trackingData = settled(enrichments[8] as PromiseSettledResult<{ data: Record<string, unknown> }>);
     const proofFileRows = settled(enrichments[9] as PromiseSettledResult<{ data: Array<Record<string, unknown>> }>) ?? [];
     const payoutData = settled(enrichments[10] as PromiseSettledResult<{ data: Record<string, unknown> }>);
     const escrowData = settled(enrichments[11] as PromiseSettledResult<{ data: Record<string, unknown> }>);
+    const eventRows = settled(enrichments[12] as PromiseSettledResult<{ data: Array<Record<string, unknown>> }>) ?? [];
 
     // Batch fetch file metadata
     const allFileIds = new Set<string>();
@@ -236,7 +269,7 @@ Deno.serve(async (req) => {
     let responseState: "pending" | "responded" | "not_responded" = "not_responded";
     if (responseData) {
       responseState = "responded";
-    } else if (dispute.status === "seller_response_pending") {
+    } else if (dispute.status === "seller_response_pending" || dispute.status === "open") {
       responseState = "pending";
     }
 
@@ -252,6 +285,54 @@ Deno.serve(async (req) => {
       };
     });
 
+    // Build enriched timeline: merge status_history + transaction_events
+    const timelineEntries: Array<{
+      type: "status_change" | "event";
+      label: string;
+      detail: string | null;
+      occurred_at: string;
+      status?: string;
+    }> = [];
+
+    for (const t of statusHistoryRows) {
+      const STATUS_LABELS: Record<string, string> = {
+        open: "Dispute Opened",
+        seller_response_pending: "Seller Notified",
+        under_review: "Review in Progress",
+        resolved: "Resolution Issued",
+      };
+      timelineEntries.push({
+        type: "status_change",
+        label: STATUS_LABELS[t.new_status as string] ?? (t.new_status as string).replace(/_/g, " "),
+        detail: t.reason as string | null,
+        occurred_at: t.changed_at as string,
+        status: t.new_status as string,
+      });
+    }
+
+    for (const e of eventRows) {
+      timelineEntries.push({
+        type: "event",
+        label: EVENT_LABELS[e.event_type as string] ?? (e.event_type as string).replace(/_/g, " "),
+        detail: (e.event_data as Record<string, unknown>)?.description as string | null ?? null,
+        occurred_at: e.occurred_at as string,
+      });
+    }
+
+    // Sort chronologically
+    timelineEntries.sort((a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime());
+
+    // Deduplicate: if a status_change and event have same timestamp, keep only status_change
+    const deduped: typeof timelineEntries = [];
+    const seenTimes = new Set<string>();
+    for (const entry of timelineEntries) {
+      const key = `${entry.type}-${entry.label}-${entry.occurred_at}`;
+      if (!seenTimes.has(key)) {
+        seenTimes.add(key);
+        deduped.push(entry);
+      }
+    }
+
     // Resolver name
     let resolverName: string | null = null;
     if (outcomeData?.resolved_by_user_id) {
@@ -266,6 +347,23 @@ Deno.serve(async (req) => {
         // stays null
       }
     }
+
+    // Determine payout blocked state
+    const isFrozen = (escrowData?.frozen_amount as number ?? 0) > 0;
+    const isPayoutBlocked = isFrozen || payoutData?.status === "failed";
+    const blockedAmount = isFrozen
+      ? (escrowData?.frozen_amount as number)
+      : (payoutData?.status === "failed" ? (payoutData?.amount as number ?? 0) : 0);
+    const blockReason = isFrozen
+      ? "Funds frozen due to active dispute"
+      : payoutData?.status === "failed"
+        ? (payoutData?.failure_reason as string ?? "Payout failed")
+        : null;
+
+    // Partial release: possible if escrow has both held and frozen amounts, or if outcome allows split
+    const partialReleasePossible = outcomeData
+      ? (outcomeData.release_amount as number ?? 0) > 0 && (outcomeData.refund_amount as number ?? 0) > 0
+      : false;
 
     const response = {
       dispute: {
@@ -332,12 +430,7 @@ Deno.serve(async (req) => {
           : null,
         files: proofFiles,
       },
-      timeline: timelineRows.map((t) => ({
-        old_status: t.old_status ?? null,
-        new_status: t.new_status,
-        reason: t.reason ?? null,
-        changed_at: t.changed_at,
-      })),
+      timeline: deduped,
       outcome: outcomeData
         ? {
             outcome_type: outcomeData.outcome_type,
@@ -349,6 +442,12 @@ Deno.serve(async (req) => {
           }
         : null,
       payout_impact: {
+        is_blocked: isPayoutBlocked,
+        blocked_amount: blockedAmount,
+        block_reason: blockReason,
+        currency_code: payoutData?.currency_code as string ?? pricingData?.currency_code as string ?? "NGN",
+        partial_release_possible: partialReleasePossible,
+        payout_exists: !!payoutData,
         payout: payoutData
           ? {
               id: payoutData.id,
