@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { SellerNav } from "@/components/seller/SellerNav";
@@ -16,7 +17,16 @@ import { createProduct, getProductCategories } from "@/services/seller-storefron
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { uploadProductFile } from "@/services/create-transaction.service";
 
-const STEPS = ["Product Details", "Media", "Pricing & Stock", "Delivery & Settings"];
+const STEPS = ["Product Details", "Media", "Pricing & Stock", "Settings"];
+
+const DELIVERY_OPTIONS = [
+  { value: "pickup", label: "Pickup" },
+  { value: "delivery", label: "Delivery" },
+  { value: "courier_shipping", label: "Courier / Shipping" },
+  { value: "digital", label: "Digital / Instant" },
+  { value: "hand_delivery", label: "Hand Delivery" },
+  { value: "meetup", label: "Meetup" },
+];
 
 interface FileEntry {
   file_id: string;
@@ -46,7 +56,7 @@ const SellerProductCreate = () => {
   const [unitPrice, setUnitPrice] = useState("");
   const [stockQuantity, setStockQuantity] = useState("1");
   const [agreementTerms, setAgreementTerms] = useState("");
-  const [deliveryMethod, setDeliveryMethod] = useState("");
+  const [deliveryMethods, setDeliveryMethods] = useState<string[]>([]);
   const [verificationWindowHours, setVerificationWindowHours] = useState("");
   const [sellerNotes, setSellerNotes] = useState("");
   const [visibilityType, setVisibilityType] = useState("public");
@@ -78,7 +88,7 @@ const SellerProductCreate = () => {
         unit_price: parseFloat(unitPrice),
         stock_quantity: parseInt(stockQuantity) || 0,
         agreement_terms: agreementTerms || undefined,
-        delivery_method: deliveryMethod || undefined,
+        delivery_methods: deliveryMethods.length > 0 ? deliveryMethods : undefined,
         verification_window_hours: verificationWindowHours
           ? parseInt(verificationWindowHours)
           : undefined,
@@ -410,16 +420,30 @@ const SellerProductCreate = () => {
               {step === 3 && (
                 <>
                   <div>
-                    <Label>Delivery Method</Label>
-                    <Select value={deliveryMethod} onValueChange={setDeliveryMethod}>
-                      <SelectTrigger><SelectValue placeholder="Select delivery method" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pickup">Pickup</SelectItem>
-                        <SelectItem value="delivery">Delivery</SelectItem>
-                        <SelectItem value="shipping">Shipping</SelectItem>
-                        <SelectItem value="digital">Digital / Instant</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>Supported Delivery Methods</Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Select all delivery methods your business supports. Buyers will choose their preferred method at purchase time.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {DELIVERY_OPTIONS.map((opt) => (
+                        <label
+                          key={opt.value}
+                          className="flex items-center gap-2 p-2 rounded-md border border-border hover:bg-accent/50 cursor-pointer transition-colors"
+                        >
+                          <Checkbox
+                            checked={deliveryMethods.includes(opt.value)}
+                            onCheckedChange={(checked) => {
+                              setDeliveryMethods((prev) =>
+                                checked
+                                  ? [...prev, opt.value]
+                                  : prev.filter((v) => v !== opt.value)
+                              );
+                            }}
+                          />
+                          <span className="text-sm">{opt.label}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                   <div>
                     <Label htmlFor="window">Verification Window (hours)</Label>
