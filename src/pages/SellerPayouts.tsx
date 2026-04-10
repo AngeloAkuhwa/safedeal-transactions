@@ -20,6 +20,7 @@ import {
 import { SellerNav } from "@/components/seller/SellerNav";
 import { Footer } from "@/components/landing/Footer";
 import { EditPayoutDetailsModal } from "@/components/seller/EditPayoutDetailsModal";
+import { ExportPayoutsDialog } from "@/components/seller/ExportPayoutsDialog";
 import { getSellerPayouts, updatePayoutAccount } from "@/services/seller-payouts.service";
 import { toast } from "@/hooks/use-toast";
 import type { PayoutHistoryItem, UpcomingRelease, BlockedFund } from "@/services/seller-payouts.service";
@@ -83,6 +84,7 @@ const SellerPayouts = () => {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -251,7 +253,7 @@ const SellerPayouts = () => {
                         <SelectItem value="failed">Failed</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" size="sm" className="h-9">
+                    <Button variant="outline" size="sm" className="h-9" onClick={() => setExportOpen(true)}>
                       <Download className="h-3.5 w-3.5 mr-1.5" /> Export
                     </Button>
                   </div>
@@ -475,6 +477,12 @@ const SellerPayouts = () => {
           bank_name: payout_account.bank_name,
           masked_account_number: payout_account.masked_account_number,
         } : null}
+      />
+      <ExportPayoutsDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        currentStatusFilter={statusFilter}
+        currentSearch={search}
       />
     </div>
   );

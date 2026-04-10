@@ -11,6 +11,7 @@ import { SellerDisputeTable } from "@/components/seller-disputes/SellerDisputeTa
 import { SellerDisputeActionPanel } from "@/components/seller-disputes/SellerDisputeActionPanel";
 import { SellerDisputeBlockedPanel } from "@/components/seller-disputes/SellerDisputeBlockedPanel";
 import { SellerDisputeEmptyState } from "@/components/seller-disputes/SellerDisputeEmptyState";
+import { ExportDisputesDialog } from "@/components/seller-disputes/ExportDisputesDialog";
 import { TransactionPagination } from "@/components/transactions/TransactionPagination";
 import { getSellerDisputes, type SellerDisputeFilters as FiltersType } from "@/services/seller-disputes.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
@@ -21,6 +22,7 @@ const SellerDisputes = () => {
   const [status, setStatus] = useState("all");
   const [reason, setReason] = useState("all");
   const [page, setPage] = useState(1);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 400);
@@ -151,6 +153,7 @@ const SellerDisputes = () => {
               onClearFilters={clearFilters}
               hasActiveFilters={hasActiveFilters}
               items={data?.items ?? []}
+              onExportClick={() => setExportOpen(true)}
             />
 
             {/* Two-column layout */}
@@ -186,6 +189,15 @@ const SellerDisputes = () => {
       </main>
 
       <Footer />
+
+      <ExportDisputesDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        currentStatusFilter={status}
+        currentReasonFilter={reason}
+        currentSearch={debouncedSearch}
+        currentItems={data?.items ?? []}
+      />
     </div>
   );
 };
