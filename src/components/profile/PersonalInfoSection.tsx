@@ -87,6 +87,7 @@ export function PersonalInfoSection({ profile, verification, onProfileChange, sh
         formData.append("signature", signature);
         formData.append("public_id", "avatar");
         formData.append("overwrite", "true");
+        formData.append("invalidate", "true");
         formData.append("folder", signRes.data.folder);
 
         const xhr = new XMLHttpRequest();

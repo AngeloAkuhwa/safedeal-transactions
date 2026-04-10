@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
 
       const params: Record<string, string> = {
         folder,
+        invalidate: "true",
         overwrite: "true",
         public_id: "avatar",
         timestamp: String(timestamp),
@@ -85,7 +86,8 @@ Deno.serve(async (req) => {
       }
 
       const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME")!.trim();
-      const avatarUrl = `https://res.cloudinary.com/${cloudName}/image/upload/w_400,h_400,c_fill,q_auto,f_auto/${public_id}`;
+      const cacheBuster = Date.now();
+      const avatarUrl = `https://res.cloudinary.com/${cloudName}/image/upload/w_400,h_400,c_fill,q_auto,f_auto/${public_id}?v=${cacheBuster}`;
 
       const { error: updateErr } = await admin
         .from("profiles")
@@ -101,6 +103,46 @@ Deno.serve(async (req) => {
     }
 
     if (action === "remove_avatar") {
+      const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME")!.trim();
+      const apiKey = Deno.env.get("CLOUDINARY_API_KEY")!.trim();
+      const apiSecret = Deno.env.get("CLOUDINARY_API_SECRET")!.trim();
+
+      // Destroy the avatar from Cloudinary
+      const publicId = `SafeDeal/avatars/${userId}/avatar`;
+      const timestamp = Math.floor(Date.now() / 1000);
+
+      const destroyParams: Record<string, string> = {
+        invalidate: "true",
+        public_id: publicId,
+        timestamp: String(timestamp),
+      };
+
+      const paramsToSign = Object.keys(destroyParams)
+        .sort()
+        .map((k) => `${k}=${destroyParams[k]}`)
+        .join("&");
+
+      const signature = await cloudinarySignature(apiSecret, paramsToSign);
+
+      try {
+        const destroyForm = new URLSearchParams();
+        destroyForm.append("public_id", publicId);
+        destroyForm.append("timestamp", String(timestamp));
+        destroyForm.append("invalidate", "true");
+        destroyForm.append("api_key", apiKey);
+        destroyForm.append("signature", signature);
+
+        const destroyRes = await fetch(
+          `https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`,
+          { method: "POST", body: destroyForm }
+        );
+        const destroyData = await destroyRes.json();
+        console.log("Cloudinary destroy result:", destroyData);
+      } catch (destroyErr) {
+        console.error("Cloudinary destroy failed (non-blocking):", destroyErr);
+      }
+
+      // Clear avatar_url in DB regardless
       const { error: updateErr } = await admin
         .from("profiles")
         .update({ avatar_url: null })
