@@ -85,7 +85,7 @@ export function PersonalInfoSection({ profile, verification, onProfileChange, sh
         formData.append("api_key", api_key);
         formData.append("timestamp", String(timestamp));
         formData.append("signature", signature);
-        formData.append("public_id", public_id);
+        formData.append("public_id", "avatar");
         formData.append("overwrite", "true");
         formData.append("folder", signRes.data.folder);
 
