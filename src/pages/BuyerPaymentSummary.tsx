@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Footer } from "@/components/landing/Footer";
 import { toast } from "@/components/ui/sonner";
 import { getTransactionReview, type ReviewData } from "@/services/review.service";
+import { getBuyerProfile } from "@/services/profile.service";
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
@@ -109,6 +110,15 @@ export default function BuyerPaymentSummary() {
     queryFn: () => getTransactionReview(shareToken!),
     enabled: !!shareToken,
   });
+
+  // Fetch buyer verification status for payment gating
+  const { data: profileData } = useQuery({
+    queryKey: ["buyer-profile"],
+    queryFn: getBuyerProfile,
+    enabled: authState === "ready",
+  });
+
+  const canPay = profileData?.permissions?.canStartProtectedPayment ?? true;
 
   const Header = authState === "ready"
     ? () => <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
@@ -256,6 +266,31 @@ export default function BuyerPaymentSummary() {
   return (
     <div className="min-h-screen bg-muted flex flex-col">
       <Header />
+
+      {/* Verification Lock Banner */}
+      {!canPay && (
+        <section className="bg-destructive/10 border-b border-destructive/20 py-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Lock className="h-5 w-5 text-destructive shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-foreground">Phone verification required to proceed with payment</p>
+                  <p className="text-xs text-muted-foreground">Complete verification in your profile to unlock protected payments</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-primary border-primary/30 shrink-0"
+                onClick={() => navigate("/dashboard/profile")}
+              >
+                Go to Profile Settings
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Trust banner */}
       <section className="bg-gradient-to-r from-success to-success/90 py-3">

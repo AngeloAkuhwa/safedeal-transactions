@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { getTransactionReview, type ReviewData } from "@/services/review.service";
+import { getBuyerProfile } from "@/services/profile.service";
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
@@ -65,6 +66,15 @@ export default function BuyerTransactionReview() {
     queryFn: () => getTransactionReview(shareToken!),
     enabled: !!shareToken,
   });
+
+  // Fetch buyer verification for payment gating
+  const { data: profileData } = useQuery({
+    queryKey: ["buyer-profile"],
+    queryFn: getBuyerProfile,
+    enabled: authState === "ready",
+  });
+
+  const canPay = profileData?.permissions?.canStartProtectedPayment ?? true;
 
   const handlePayClick = () => {
     if (authState === "anonymous") {
@@ -291,6 +301,8 @@ export default function BuyerTransactionReview() {
                 onPay={handlePayClick}
                 onDecline={handleDecline}
                 authState={authState}
+                canPay={canPay}
+                onGoToProfile={() => navigate("/dashboard/profile")}
               />
               <PaymentSummaryCard data={data} currencySymbol={currencySymbol} itemAmount={itemAmount} feeAmount={feeAmount} feeRate={feeRate} totalAmount={totalAmount} />
               <ProtectionFeaturesCard data={data} />
@@ -739,8 +751,8 @@ function FraudWarningCard() {
   );
 }
 
-function NextActionCard({ payLabel, onPay, onDecline, authState }: {
-  payLabel: string; onPay: () => void; onDecline: () => void; authState: AuthState;
+function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, onGoToProfile }: {
+  payLabel: string; onPay: () => void; onDecline: () => void; authState: AuthState; canPay: boolean; onGoToProfile: () => void;
 }) {
   return (
     <div className="bg-primary rounded-2xl shadow-2xl p-6 text-primary-foreground">
@@ -748,10 +760,32 @@ function NextActionCard({ payLabel, onPay, onDecline, authState }: {
         <span className="w-2 h-2 bg-primary-foreground rounded-full animate-pulse" />
         <span className="text-xs font-bold uppercase tracking-wider">Next Action Required</span>
       </div>
+
+      {!canPay && authState === "ready" && (
+        <div className="bg-destructive/20 border border-destructive/40 rounded-xl p-4 mb-4">
+          <div className="flex items-start gap-2">
+            <Lock className="h-5 w-5 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-bold">Phone verification required</p>
+              <p className="text-xs opacity-80 mt-1">Complete verification in your profile to unlock payments.</p>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="mt-2 text-xs"
+                onClick={onGoToProfile}
+              >
+                Go to Profile Settings
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <h3 className="text-xl font-bold mb-2">{authState === "anonymous" ? "Sign Up to Pay Securely" : "Pay Securely"}</h3>
       <p className="text-sm opacity-80 mb-6">Complete your payment to lock this agreement and begin the protected transaction process.</p>
       <Button
         onClick={onPay}
+        disabled={!canPay && authState === "ready"}
         className="w-full bg-primary-foreground text-primary font-bold py-6 rounded-xl hover:bg-primary-foreground/90 shadow-lg mb-4"
         size="lg"
       >

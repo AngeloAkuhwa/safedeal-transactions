@@ -9,11 +9,16 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
-import type { BuyerProfile, VerificationStatus } from "@/services/profile.service";
+import type { BuyerProfile } from "@/services/profile.service";
+
+interface MinimalVerification {
+  email_verified: boolean;
+  phone_verified: boolean;
+}
 
 interface Props {
   profile: BuyerProfile & { state_name?: string | null; city_name?: string | null };
-  verification: VerificationStatus;
+  verification: MinimalVerification;
   onProfileChange: (updates: Record<string, unknown>) => void;
   showLocation?: boolean;
   onAvatarUploaded?: (url: string | null) => void;

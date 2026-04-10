@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export type VerificationLevel = 'unverified' | 'basic_verified' | 'trusted_buyer' | 'high_trust_buyer';
+
 export interface BuyerProfile {
   id: string;
   full_name: string;
@@ -7,6 +9,8 @@ export interface BuyerProfile {
   phone: string | null;
   avatar_url: string | null;
   country_code: string;
+  state_name: string | null;
+  city_name: string | null;
   created_at: string;
 }
 
@@ -15,6 +19,18 @@ export interface VerificationStatus {
   phone_verified: boolean;
   identity_verified: boolean;
   payout_verified: boolean;
+  verification_level: VerificationLevel;
+}
+
+export interface BuyerPermissions {
+  canStartProtectedPayment: boolean;
+  canOpenDispute: boolean;
+  canHoldActiveTransaction: boolean;
+  requiresPhoneVerification: boolean;
+  requiresLocation: boolean;
+  transactionLimitNaira: number;
+  maxConcurrentActiveTransactions: number;
+  verificationLevel: VerificationLevel;
 }
 
 export interface NotificationPreferences {
@@ -30,6 +46,7 @@ export interface BuyerProfileResponse {
   profile: BuyerProfile;
   verification: VerificationStatus;
   preferences: NotificationPreferences;
+  permissions: BuyerPermissions;
 }
 
 /** Extract a usable error message from edge function responses */
@@ -57,6 +74,8 @@ export const updateProfile = async (updates: {
   full_name?: string;
   phone?: string;
   country_code?: string;
+  state_name?: string | null;
+  city_name?: string | null;
 }) => {
   const { data, error } = await supabase.functions.invoke("buyer-profile", {
     method: "PATCH",
@@ -95,4 +114,26 @@ export const updateAvatar = async (avatarUrl: string | null) => {
 export const changePassword = async (newPassword: string) => {
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw new Error(error.message || "Failed to change password");
+};
+
+// ── Phone OTP ──
+
+export const sendPhoneOtp = async (phone: string) => {
+  const { data, error } = await supabase.functions.invoke("verify-phone", {
+    body: { action: "send_otp", phone },
+  });
+  if (error || data?.error) {
+    throw new Error(extractError(data, error, "Failed to send OTP"));
+  }
+  return data as { success: boolean; expires_in: number; message: string; dev_otp?: string };
+};
+
+export const verifyPhoneOtp = async (code: string) => {
+  const { data, error } = await supabase.functions.invoke("verify-phone", {
+    body: { action: "verify_otp", code },
+  });
+  if (error || data?.error) {
+    throw new Error(extractError(data, error, "Failed to verify OTP"));
+  }
+  return data as { success: boolean; phone_verified: boolean; verification_level: VerificationLevel };
 };

@@ -22,6 +22,37 @@ const PREF_KEYS = [
   "marketing_messages",
 ] as const;
 
+function computePermissions(verification: Record<string, unknown>, profile: Record<string, unknown>) {
+  const level = (verification.verification_level as string) || "unverified";
+  const phoneVerified = !!verification.phone_verified;
+  const hasLocation = !!(profile.state_name && profile.city_name);
+
+  const limitByLevel: Record<string, number> = {
+    unverified: 0,
+    basic_verified: 50000,
+    trusted_buyer: 500000,
+    high_trust_buyer: 999999999,
+  };
+
+  const concurrentByLevel: Record<string, number> = {
+    unverified: 0,
+    basic_verified: 1,
+    trusted_buyer: 3,
+    high_trust_buyer: 5,
+  };
+
+  return {
+    canStartProtectedPayment: level !== "unverified",
+    canOpenDispute: level !== "unverified",
+    canHoldActiveTransaction: level !== "unverified",
+    requiresPhoneVerification: !phoneVerified,
+    requiresLocation: !hasLocation,
+    transactionLimitNaira: limitByLevel[level] ?? 0,
+    maxConcurrentActiveTransactions: concurrentByLevel[level] ?? 0,
+    verificationLevel: level,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -60,7 +91,7 @@ Deno.serve(async (req) => {
       const [profileResult, prefsResult, verificationResult] = await Promise.allSettled([
         adminClient
           .from("profiles")
-          .select("id, full_name, email, phone, avatar_url, country_code, created_at")
+          .select("id, full_name, email, phone, avatar_url, country_code, state_name, city_name, created_at")
           .eq("id", userId)
           .single(),
         adminClient
@@ -70,7 +101,7 @@ Deno.serve(async (req) => {
           .single(),
         adminClient
           .from("account_verifications")
-          .select("email_verified, phone_verified, identity_verified, payout_verified")
+          .select("email_verified, phone_verified, identity_verified, payout_verified, verification_level")
           .eq("user_id", userId)
           .single(),
       ]);
@@ -78,7 +109,7 @@ Deno.serve(async (req) => {
       const profile =
         profileResult.status === "fulfilled" && profileResult.value.data
           ? profileResult.value.data
-          : { id: userId, full_name: "", email: "", phone: null, avatar_url: null, country_code: "NG", created_at: "" };
+          : { id: userId, full_name: "", email: "", phone: null, avatar_url: null, country_code: "NG", state_name: null, city_name: null, created_at: "" };
 
       const preferences =
         prefsResult.status === "fulfilled" && prefsResult.value.data
@@ -89,14 +120,15 @@ Deno.serve(async (req) => {
       const verification =
         verificationResult.status === "fulfilled" && verificationResult.value.data
           ? { ...verificationResult.value.data, email_verified: emailVerified }
-          : { email_verified: emailVerified, phone_verified: false, identity_verified: false, payout_verified: false };
+          : { email_verified: emailVerified, phone_verified: false, identity_verified: false, payout_verified: false, verification_level: "unverified" };
 
-      return jsonResponse({ profile, preferences, verification });
+      const permissions = computePermissions(verification, profile);
+
+      return jsonResponse({ profile, preferences, verification, permissions });
     }
 
     // ── PATCH: Update profile data ──
     if (req.method === "PATCH") {
-      // Parse body safely
       let body: Record<string, unknown>;
       try {
         body = await req.json();
@@ -137,6 +169,20 @@ Deno.serve(async (req) => {
           updates.country_code = body.country_code.toUpperCase();
         }
 
+        if (body.state_name !== undefined) {
+          if (body.state_name !== null && (typeof body.state_name !== "string" || body.state_name.length > 100)) {
+            return jsonResponse({ error: "state_name must be 100 characters or less" }, 400);
+          }
+          updates.state_name = body.state_name ? body.state_name.trim() : null;
+        }
+
+        if (body.city_name !== undefined) {
+          if (body.city_name !== null && (typeof body.city_name !== "string" || body.city_name.length > 100)) {
+            return jsonResponse({ error: "city_name must be 100 characters or less" }, 400);
+          }
+          updates.city_name = body.city_name ? body.city_name.trim() : null;
+        }
+
         if (Object.keys(updates).length === 0) {
           return jsonResponse({ error: "No valid profile fields provided" }, 400);
         }
@@ -145,10 +191,24 @@ Deno.serve(async (req) => {
           .from("profiles")
           .update(updates)
           .eq("id", userId)
-          .select("id, full_name, email, phone, avatar_url, country_code, created_at")
+          .select("id, full_name, email, phone, avatar_url, country_code, state_name, city_name, created_at")
           .single();
 
         if (error) return jsonResponse({ error: error.message }, 400);
+
+        // Recompute verification level if location changed
+        if (updates.state_name !== undefined || updates.city_name !== undefined) {
+          const { data: levelData } = await adminClient.rpc("compute_verification_level", {
+            _user_id: userId,
+          });
+          if (levelData) {
+            await adminClient
+              .from("account_verifications")
+              .update({ verification_level: levelData })
+              .eq("user_id", userId);
+          }
+        }
+
         return jsonResponse({ success: true, profile: updatedProfile });
       }
 
@@ -168,7 +228,6 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "No valid preference fields provided" }, 400);
         }
 
-        // Upsert: works whether or not a row exists
         const { data: savedPrefs, error } = await adminClient
           .from("notification_preferences")
           .upsert(
