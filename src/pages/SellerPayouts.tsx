@@ -478,6 +478,12 @@ const SellerPayouts = () => {
           masked_account_number: payout_account.masked_account_number,
         } : null}
       />
+      <ExportPayoutsDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        currentStatusFilter={statusFilter}
+        currentSearch={search}
+      />
     </div>
   );
 };

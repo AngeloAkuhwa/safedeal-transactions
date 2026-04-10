@@ -11,6 +11,7 @@ import { SellerDisputeTable } from "@/components/seller-disputes/SellerDisputeTa
 import { SellerDisputeActionPanel } from "@/components/seller-disputes/SellerDisputeActionPanel";
 import { SellerDisputeBlockedPanel } from "@/components/seller-disputes/SellerDisputeBlockedPanel";
 import { SellerDisputeEmptyState } from "@/components/seller-disputes/SellerDisputeEmptyState";
+import { ExportDisputesDialog } from "@/components/seller-disputes/ExportDisputesDialog";
 import { TransactionPagination } from "@/components/transactions/TransactionPagination";
 import { getSellerDisputes, type SellerDisputeFilters as FiltersType } from "@/services/seller-disputes.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
