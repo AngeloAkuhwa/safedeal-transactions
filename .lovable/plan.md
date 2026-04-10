@@ -1,42 +1,39 @@
-# Batch 1: Seller Catalog + Storefront Foundation — COMPLETED
 
-## What Was Built
 
-### Database
-- New enums: `product_visibility_type`, `product_status`
-- New tables: `product_categories`, `products`, `product_media`
-- Added `store_slug` column to `profiles`
-- Seeded 8 product categories
-- Full RLS policies for seller ownership, public access, admin access
+# Fix Product Media Upload + Add Progress Indicator
 
-### Edge Functions (5 new)
-- `seller-products` — POST create, GET list with filters
-- `seller-product-detail` — GET, PATCH, DELETE (soft)
-- `product-categories` — public GET
-- `public-storefront` — public GET with search/filter
-- `public-product-detail` — public GET with full media
+## Problem
+The `SellerProductCreate` page sends the raw file as `FormData` directly to the `upload-evidence` edge function, which expects JSON (`req.json()`), causing a parse error and 500 response.
 
-### Frontend
-- **Pages**: SellerStorefront, SellerProductCreate (4-step wizard), SellerProductDetail, PublicStorefront, PublicProductDetail
-- **Components**: ProductStatusBadge, ProductVisibilityBadge, ProductCard, StorefrontShareCard, PublicStorefrontHeader
-- **Services**: seller-storefront.service.ts, public-storefront.service.ts
-- **Nav**: Added "Storefront" tab to SellerNav
-- **Quick Actions**: Added "Add Product" to SellerQuickActions
-- **Routes**: `/seller/storefront/*`, `/store/:sellerSlug/*`
+## Root Cause
+The existing upload pipeline is a 3-step process:
+1. Call `upload-evidence` with `{ action: "sign_upload" }` to get Cloudinary credentials
+2. Upload file directly to Cloudinary (with XHR progress tracking)
+3. Call `upload-evidence` with `{ action: "register_file" }` to register metadata
 
-## CRITICAL: Future Transaction Linkage Rule
+The `SellerProductCreate` page skips all of this and sends raw FormData, which the edge function can't parse as JSON.
 
-All future storefront purchases MUST create standard shared transaction records using the existing transaction engine:
-- Storefront purchases must NOT create a separate parallel order system
-- Storefront-generated transactions must appear on seller Transactions page
-- Storefront-generated transactions must appear on buyer Orders page
-- The `product_id` column (added to `transactions` in a later batch) will link back to the originating listing
+## Solution
+Reuse the existing `uploadProductFile` function from `create-transaction.service.ts` which already handles the full Cloudinary upload flow with progress tracking. Also add a `product_media` context type to the edge function so files are stored in the right Cloudinary folder.
 
-## Page Responsibility
-- **Storefront** = product catalog/listing management
-- **Transactions** = all commercial deals (direct + future storefront-generated)
+### Changes
 
-## What Was NOT Changed
-- SellerCreateTransaction page and `/seller/transactions/new` route — untouched
-- create-transaction edge function — untouched
-- All transaction, payment, escrow, delivery, dispute tables — untouched
+**1. `src/pages/SellerProductCreate.tsx`**
+- Import `uploadProductFile` from `create-transaction.service.ts`
+- Replace the broken `handleFileUpload` with one that calls `uploadProductFile(file, onProgress)` for each file
+- Add per-file upload progress state and display a progress bar on each uploading thumbnail
+- Show a local preview (`URL.createObjectURL`) immediately while uploading, then switch to the Cloudinary URL on completion
+
+**2. `supabase/functions/upload-evidence/index.ts`**
+- Add `product_media` to the `contextMap` so `sign_upload` generates the correct Cloudinary folder
+- Add `product_media` handling in `registerFile` for `context_type` and `retention_category` mapping (these are enum values -- need to map to existing valid enum values: `transaction_media`)
+
+**3. `src/services/create-transaction.service.ts`** (or new `src/services/upload.service.ts`)
+- Export `uploadProductFile` so it can be imported by the product create page (it's already exported, just needs the import path)
+
+### Upload UX
+- Each file shows immediately as a local preview in the grid
+- A progress bar overlays the thumbnail during upload (0-100%)
+- On completion, the preview switches to the Cloudinary URL
+- On failure, the thumbnail shows an error state with retry option
+
