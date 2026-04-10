@@ -28,16 +28,16 @@ const PREF_KEYS = [
 // `trusted_buyer` and `high_trust_buyer` are scaffolded for future identity-based upgrades.
 const LIMIT_BY_LEVEL: Record<string, number> = {
   unverified: 0,
-  basic_verified: 50_000,
-  trusted_buyer: 200_000,
-  high_trust_buyer: 500_000,
+  basic_verified: 100_000,
+  trusted_buyer: 500_000,
+  high_trust_buyer: 1_000_000,
 };
 
 const CONCURRENT_BY_LEVEL: Record<string, number> = {
   unverified: 0,
-  basic_verified: 1,
-  trusted_buyer: 3,
-  high_trust_buyer: 5,
+  basic_verified: 2,
+  trusted_buyer: 5,
+  high_trust_buyer: 10,
 };
 
 const ACTIVE_TX_STATUSES = [
@@ -168,7 +168,22 @@ Deno.serve(async (req) => {
 
       const permissions = await computePermissions(verification, profile, adminClient, userId);
 
-      return jsonResponse({ profile, preferences, verification, permissions });
+      // Fetch latest identity submission (never expose review_notes)
+      let identitySubmission = null;
+      try {
+        const { data: idSub } = await adminClient
+          .from("identity_submissions")
+          .select("id, status, verification_method, legal_name, date_of_birth, masked_identifier, consent_accepted_at, submitted_at, reviewed_at, rejected_at, rejection_reason, provider_reference, created_at, updated_at")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        identitySubmission = idSub;
+      } catch {
+        // non-critical
+      }
+
+      return jsonResponse({ profile, preferences, verification, permissions, identity_submission: identitySubmission });
     }
 
     // ── PATCH: Update profile data ──

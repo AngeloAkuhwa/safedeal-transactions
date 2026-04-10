@@ -1120,6 +1120,84 @@ export type Database = {
           },
         ]
       }
+      identity_submissions: {
+        Row: {
+          consent_accepted_at: string
+          created_at: string
+          date_of_birth: string | null
+          document_file_id: string | null
+          id: string
+          legal_name: string
+          masked_identifier: string | null
+          provider_reference: string | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["identity_submission_status"]
+          submitted_at: string
+          updated_at: string
+          user_id: string
+          verification_method: Database["public"]["Enums"]["identity_verification_method"]
+        }
+        Insert: {
+          consent_accepted_at: string
+          created_at?: string
+          date_of_birth?: string | null
+          document_file_id?: string | null
+          id?: string
+          legal_name: string
+          masked_identifier?: string | null
+          provider_reference?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["identity_submission_status"]
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+          verification_method: Database["public"]["Enums"]["identity_verification_method"]
+        }
+        Update: {
+          consent_accepted_at?: string
+          created_at?: string
+          date_of_birth?: string | null
+          document_file_id?: string | null
+          id?: string
+          legal_name?: string
+          masked_identifier?: string | null
+          provider_reference?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["identity_submission_status"]
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+          verification_method?: Database["public"]["Enums"]["identity_verification_method"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identity_submissions_document_file_id_fkey"
+            columns: ["document_file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "identity_submissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       money_status_history: {
         Row: {
           changed_at: string
@@ -3048,6 +3126,13 @@ export type Database = {
         | "response_evidence"
         | "system_attachment"
         | "product_evidence"
+      identity_submission_status:
+        | "not_started"
+        | "pending_review"
+        | "verified"
+        | "rejected"
+        | "more_info_needed"
+      identity_verification_method: "nin" | "government_id"
       item_condition:
         | "brand_new"
         | "like_new"
@@ -3378,6 +3463,14 @@ export const Constants = {
         "system_attachment",
         "product_evidence",
       ],
+      identity_submission_status: [
+        "not_started",
+        "pending_review",
+        "verified",
+        "rejected",
+        "more_info_needed",
+      ],
+      identity_verification_method: ["nin", "government_id"],
       item_condition: [
         "brand_new",
         "like_new",

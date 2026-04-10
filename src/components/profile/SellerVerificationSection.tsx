@@ -2,11 +2,17 @@ import { ShieldCheck, Mail, Phone, CreditCard, Wallet, MapPin, CheckCircle2 } fr
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { SellerVerification } from "@/services/seller-profile.service";
+import type { SellerVerification, SellerPermissions } from "@/services/seller-profile.service";
 
 interface Props {
   verification: SellerVerification;
+  permissions?: SellerPermissions;
   isLoading?: boolean;
+}
+
+function formatNaira(n: number) {
+  if (n >= 999999999) return "Unlimited";
+  return `₦${n.toLocaleString()}`;
 }
 
 const getItems = (v: SellerVerification) => [
@@ -47,7 +53,7 @@ const getItems = (v: SellerVerification) => [
   },
 ];
 
-export function SellerVerificationSection({ verification, isLoading }: Props) {
+export function SellerVerificationSection({ verification, permissions, isLoading }: Props) {
   if (isLoading) {
     return (
       <Card>
@@ -87,6 +93,22 @@ export function SellerVerificationSection({ verification, isLoading }: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Limits display */}
+        {permissions && (
+          <div className="grid grid-cols-2 gap-3 mb-2">
+            <div className="bg-muted rounded-xl p-3 text-center">
+              <p className="text-xs text-muted-foreground">Transaction Limit</p>
+              <p className="text-sm font-bold text-foreground">{formatNaira(permissions.transactionLimitNaira)}</p>
+            </div>
+            <div className="bg-muted rounded-xl p-3 text-center">
+              <p className="text-xs text-muted-foreground">Active Transactions</p>
+              <p className="text-sm font-bold text-foreground">
+                {permissions.activeTransactionCount ?? 0} / {permissions.maxConcurrentActiveTransactions}
+              </p>
+            </div>
+          </div>
+        )}
+
         {items.map((item) => (
           <div
             key={item.key}

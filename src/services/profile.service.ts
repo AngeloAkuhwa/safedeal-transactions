@@ -54,6 +54,16 @@ export interface BuyerProfileResponse {
   verification: VerificationStatus;
   preferences: NotificationPreferences;
   permissions: BuyerPermissions;
+  identity_submission?: {
+    id: string;
+    status: string;
+    verification_method: string;
+    legal_name: string;
+    submitted_at: string;
+    reviewed_at: string | null;
+    rejected_at: string | null;
+    rejection_reason: string | null;
+  } | null;
 }
 
 export interface ServiceableRegion {

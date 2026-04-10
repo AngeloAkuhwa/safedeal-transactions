@@ -5,6 +5,7 @@ interface BuyerTrustSignals {
   emailVerified?: boolean;
   phoneVerified?: boolean;
   identityVerified?: boolean;
+  identitySubmitted?: boolean;
   verificationLevel?: string;
   isFirstTimeBuyer?: boolean;
 }
@@ -41,6 +42,13 @@ export function BuyerTrustBadges({ signals, compact }: Props) {
       icon: ShieldCheck,
       label: "Identity Verified",
       className: "bg-primary/10 text-primary border-primary/20",
+    });
+  } else if (signals.identitySubmitted) {
+    badges.push({
+      key: "identity_submitted",
+      icon: ShieldCheck,
+      label: "Identity Submitted",
+      className: "bg-warning/10 text-warning border-warning/20",
     });
   }
 

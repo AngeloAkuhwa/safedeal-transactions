@@ -217,6 +217,31 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
   return jsonResponse({ transaction_id: transactionId });
 }
 
+// ── Seller tiered limits ──
+const SELLER_LIMIT_BY_LEVEL: Record<string, number> = {
+  unverified: 0,
+  basic_verified: 100_000,
+  trusted_buyer: 500_000,
+  high_trust_buyer: 1_000_000,
+};
+
+const SELLER_CONCURRENT_BY_LEVEL: Record<string, number> = {
+  unverified: 0,
+  basic_verified: 2,
+  trusted_buyer: 5,
+  high_trust_buyer: 10,
+};
+
+const SELLER_ACTIVE_STATUSES = [
+  "awaiting_buyer",
+  "awaiting_payment",
+  "payment_secured",
+  "seller_preparing_delivery",
+  "seller_dispatched",
+  "delivered_awaiting_verification",
+  "disputed",
+];
+
 async function handlePublish(adminClient: any, userId: string, body: any) {
   const transactionId = body.transaction_id as string;
   if (!transactionId) {
@@ -238,6 +263,34 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
     return jsonResponse({ error: "Transaction is not a draft" }, 400);
   }
 
+  // ── Seller verification + limit checks ──
+  const { data: sellerVerif } = await adminClient
+    .from("account_verifications")
+    .select("verification_level")
+    .eq("user_id", userId)
+    .single();
+
+  const sellerLevel = (sellerVerif?.verification_level as string) || "unverified";
+  if (sellerLevel === "unverified") {
+    return jsonResponse({
+      error: "Complete phone verification and location setup before publishing transactions. Go to Profile Settings.",
+    }, 403);
+  }
+
+  // Check seller concurrent active transactions
+  const sellerMaxConcurrent = SELLER_CONCURRENT_BY_LEVEL[sellerLevel] ?? 0;
+  const { count: sellerActiveCount } = await adminClient
+    .from("transactions")
+    .select("id", { count: "exact", head: true })
+    .eq("seller_id", userId)
+    .in("status", SELLER_ACTIVE_STATUSES);
+
+  if ((sellerActiveCount ?? 0) >= sellerMaxConcurrent) {
+    return jsonResponse({
+      error: `You've reached your active transaction limit (${sellerMaxConcurrent}). Complete or resolve existing transactions first.`,
+    }, 403);
+  }
+
   // Validate required data exists
   const [itemRes, pricingRes, deliveryRes] = await Promise.all([
     adminClient.from("transaction_items").select("id, title").eq("transaction_id", transactionId).single(),
@@ -253,6 +306,14 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
   }
   if (!deliveryRes.data) {
     return jsonResponse({ error: "Delivery details are required" }, 400);
+  }
+
+  // Check item amount against seller's tier limit
+  const sellerAmountLimit = SELLER_LIMIT_BY_LEVEL[sellerLevel] ?? 0;
+  if (pricingRes.data.item_amount > sellerAmountLimit) {
+    return jsonResponse({
+      error: `This transaction (₦${Number(pricingRes.data.item_amount).toLocaleString()}) exceeds your ₦${sellerAmountLimit.toLocaleString()} seller limit. Complete identity verification to unlock higher limits.`,
+    }, 403);
   }
 
   // Transition to awaiting_buyer
