@@ -23,7 +23,6 @@ const REASON_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-// Dispute-relevant transaction event types
 const DISPUTE_EVENT_TYPES = [
   "dispute_opened",
   "seller_dispute_response",
@@ -34,6 +33,8 @@ const DISPUTE_EVENT_TYPES = [
   "delivery_marked",
   "buyer_confirmed_delivery",
   "payment_captured",
+  "additional_evidence_uploaded",
+  "seller_response_edited",
 ];
 
 const EVENT_LABELS: Record<string, string> = {
@@ -46,6 +47,8 @@ const EVENT_LABELS: Record<string, string> = {
   delivery_marked: "Delivery Marked",
   buyer_confirmed_delivery: "Buyer Confirmed Delivery",
   payment_captured: "Payment Captured",
+  additional_evidence_uploaded: "Additional Evidence Uploaded",
+  seller_response_edited: "Seller Response Edited",
 };
 
 Deno.serve(async (req) => {
@@ -91,7 +94,6 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "dispute_id is required" }, 400);
     }
 
-    // Fetch dispute
     const { data: dispute, error: disputeError } = await adminClient
       .from("disputes")
       .select("id, transaction_id, reason, description, status, opened_at, resolved_at, seller_response_due_at")
@@ -102,7 +104,6 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Dispute not found" }, 404);
     }
 
-    // Fetch transaction + seller ownership check
     const { data: transaction, error: txError } = await adminClient
       .from("transactions")
       .select("id, transaction_code, status, money_status, seller_id, buyer_id, created_at")
@@ -119,7 +120,6 @@ Deno.serve(async (req) => {
 
     const buyerId = transaction.buyer_id as string | null;
 
-    // Parallel enrichments
     const enrichments = await Promise.allSettled([
       // [0] Item
       adminClient
@@ -138,19 +138,19 @@ Deno.serve(async (req) => {
       buyerId
         ? adminClient.from("profiles").select("id, full_name, avatar_url").eq("id", buyerId).single()
         : Promise.resolve({ data: null }),
-      // [3] Dispute response
+      // [3] All dispute responses (multiple)
       adminClient
         .from("dispute_responses")
-        .select("response_text, submitted_at")
+        .select("id, response_text, submitted_at, response_number")
         .eq("dispute_id", disputeId)
-        .single(),
+        .order("response_number", { ascending: true }),
       // [4] All dispute evidence
       adminClient
         .from("dispute_evidence")
-        .select("id, submitted_by_role, evidence_type, file_id, notes, created_at")
+        .select("id, submitted_by_role, submitted_by_user_id, evidence_type, file_id, notes, created_at")
         .eq("dispute_id", disputeId)
         .order("created_at", { ascending: true }),
-      // [5] Status history timeline
+      // [5] Status history
       adminClient
         .from("dispute_status_history")
         .select("old_status, new_status, reason, changed_at")
@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
         .select("state, held_amount, frozen_amount, released_amount, refunded_amount")
         .eq("transaction_id", transaction.id)
         .single(),
-      // [12] Transaction events (dispute-relevant)
+      // [12] Transaction events
       adminClient
         .from("transaction_events")
         .select("event_type, actor_role, event_data, occurred_at")
@@ -213,7 +213,7 @@ Deno.serve(async (req) => {
     const itemData = settled(enrichments[0] as PromiseSettledResult<{ data: Record<string, unknown> }>);
     const pricingData = settled(enrichments[1] as PromiseSettledResult<{ data: Record<string, unknown> }>);
     const buyerData = settled(enrichments[2] as PromiseSettledResult<{ data: Record<string, unknown> }>);
-    const responseData = settled(enrichments[3] as PromiseSettledResult<{ data: Record<string, unknown> }>);
+    const responsesData = settled(enrichments[3] as PromiseSettledResult<{ data: Array<Record<string, unknown>> }>) ?? [];
     const evidenceRows = settled(enrichments[4] as PromiseSettledResult<{ data: Array<Record<string, unknown>> }>) ?? [];
     const statusHistoryRows = settled(enrichments[5] as PromiseSettledResult<{ data: Array<Record<string, unknown>> }>) ?? [];
     const outcomeData = settled(enrichments[6] as PromiseSettledResult<{ data: Record<string, unknown> }>);
@@ -266,12 +266,30 @@ Deno.serve(async (req) => {
     const buyerEvidence = mapEvidence(evidenceRows, "buyer");
     const sellerEvidence = mapEvidence(evidenceRows, "seller");
 
+    // Check if seller has additional evidence submitted during dispute
+    const additionalEvidenceSubmitted = evidenceRows.some(
+      (e) =>
+        e.submitted_by_role === "seller" &&
+        e.evidence_type === "supporting_document" &&
+        new Date(e.created_at as string) >= new Date(dispute.opened_at as string)
+    );
+
+    // Multi-response support
+    const responseCount = responsesData.length;
+    const hasResponse = responseCount > 0;
     let responseState: "pending" | "responded" | "not_responded" = "not_responded";
-    if (responseData) {
+    if (hasResponse) {
       responseState = "responded";
     } else if (dispute.status === "seller_response_pending" || dispute.status === "open") {
       responseState = "pending";
     }
+
+    const responses = responsesData.map((r) => ({
+      id: r.id as string,
+      response_text: r.response_text as string,
+      submitted_at: r.submitted_at as string,
+      response_number: (r.response_number as number) ?? 1,
+    }));
 
     const proofFiles = proofFileRows.map((p) => {
       const file = fileMap.get(p.file_id as string);
@@ -285,7 +303,7 @@ Deno.serve(async (req) => {
       };
     });
 
-    // Build enriched timeline: merge status_history + transaction_events
+    // Build enriched timeline
     const timelineEntries: Array<{
       type: "status_change" | "event";
       label: string;
@@ -294,13 +312,14 @@ Deno.serve(async (req) => {
       status?: string;
     }> = [];
 
+    const STATUS_LABELS: Record<string, string> = {
+      open: "Dispute Opened",
+      seller_response_pending: "Seller Notified",
+      under_review: "Review in Progress",
+      resolved: "Resolution Issued",
+    };
+
     for (const t of statusHistoryRows) {
-      const STATUS_LABELS: Record<string, string> = {
-        open: "Dispute Opened",
-        seller_response_pending: "Seller Notified",
-        under_review: "Review in Progress",
-        resolved: "Resolution Issued",
-      };
       timelineEntries.push({
         type: "status_change",
         label: STATUS_LABELS[t.new_status as string] ?? (t.new_status as string).replace(/_/g, " "),
@@ -319,10 +338,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Sort chronologically
     timelineEntries.sort((a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime());
 
-    // Deduplicate: if a status_change and event have same timestamp, keep only status_change
     const deduped: typeof timelineEntries = [];
     const seenTimes = new Set<string>();
     for (const entry of timelineEntries) {
@@ -343,12 +360,10 @@ Deno.serve(async (req) => {
           .eq("id", outcomeData.resolved_by_user_id as string)
           .single();
         if (resolver) resolverName = resolver.full_name as string;
-      } catch {
-        // stays null
-      }
+      } catch { /* stays null */ }
     }
 
-    // Determine payout blocked state
+    // Payout impact
     const isFrozen = (escrowData?.frozen_amount as number ?? 0) > 0;
     const isPayoutBlocked = isFrozen || payoutData?.status === "failed";
     const blockedAmount = isFrozen
@@ -360,7 +375,6 @@ Deno.serve(async (req) => {
         ? (payoutData?.failure_reason as string ?? "Payout failed")
         : null;
 
-    // Partial release: possible if escrow has both held and frozen amounts, or if outcome allows split
     const partialReleasePossible = outcomeData
       ? (outcomeData.release_amount as number ?? 0) > 0 && (outcomeData.refund_amount as number ?? 0) > 0
       : false;
@@ -409,10 +423,15 @@ Deno.serve(async (req) => {
         evidence: buyerEvidence,
       },
       seller_response: {
-        has_response: responseState === "responded",
+        has_response: hasResponse,
         response_state: responseState,
-        response_text: responseData?.response_text ?? null,
-        submitted_at: responseData?.submitted_at ?? null,
+        response_count: responseCount,
+        max_responses: 2,
+        responses,
+        additional_evidence_submitted: additionalEvidenceSubmitted,
+        // Backward compat
+        response_text: responses[0]?.response_text ?? null,
+        submitted_at: responses[0]?.submitted_at ?? null,
         evidence: sellerEvidence,
       },
       agreement_snapshot: snapshotData

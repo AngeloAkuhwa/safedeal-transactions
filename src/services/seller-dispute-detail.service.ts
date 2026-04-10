@@ -29,6 +29,13 @@ export interface SellerDisputeTimelineEntry {
   status?: string;
 }
 
+export interface SellerDisputeResponseEntry {
+  id: string;
+  response_text: string;
+  submitted_at: string;
+  response_number: number;
+}
+
 export interface SellerDisputePayoutImpact {
   is_blocked: boolean;
   blocked_amount: number;
@@ -92,6 +99,11 @@ export interface SellerDisputeDetailResponse {
   seller_response: {
     has_response: boolean;
     response_state: "pending" | "responded" | "not_responded";
+    response_count: number;
+    max_responses: number;
+    responses: SellerDisputeResponseEntry[];
+    additional_evidence_submitted: boolean;
+    // Backward compat
     response_text: string | null;
     submitted_at: string | null;
     evidence: SellerDisputeEvidence[];
@@ -157,7 +169,7 @@ export const submitSellerResponse = async (
   disputeId: string,
   responseText: string,
   evidenceFileIds: string[] = []
-): Promise<void> => {
+): Promise<{ response_number?: number }> => {
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -181,5 +193,39 @@ export const submitSellerResponse = async (
 
   if (!data || data.error) {
     throw new Error(data?.error || "Failed to submit response");
+  }
+
+  return data;
+};
+
+// ── Submit Additional Evidence ──
+
+export const submitAdditionalEvidence = async (
+  disputeId: string,
+  fileId: string
+): Promise<void> => {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    throw new Error("Not authenticated");
+  }
+
+  const { data, error } = await supabase.functions.invoke("submit-seller-response", {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+    body: {
+      dispute_id: disputeId,
+      is_additional_evidence_only: true,
+      evidence_file_ids: [fileId],
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message || "Failed to upload additional evidence");
+  }
+
+  if (!data || data.error) {
+    throw new Error(data?.error || "Failed to upload additional evidence");
   }
 };

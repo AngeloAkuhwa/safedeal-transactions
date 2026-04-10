@@ -13,6 +13,9 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+const MAX_RESPONSES = 2;
+const MAX_ADDITIONAL_EVIDENCE = 1;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -55,7 +58,8 @@ Deno.serve(async (req) => {
     }
 
     const disputeId = String(body.dispute_id || "").trim();
-    const responseText = String(body.response_text || "").trim();
+    const isAdditionalEvidenceOnly = body.is_additional_evidence_only === true;
+    const responseText = isAdditionalEvidenceOnly ? "" : String(body.response_text || "").trim();
     const evidenceFileIds: string[] = Array.isArray(body.evidence_file_ids)
       ? (body.evidence_file_ids as string[]).map((id) => String(id).trim()).filter(Boolean)
       : [];
@@ -63,20 +67,28 @@ Deno.serve(async (req) => {
     if (!disputeId) {
       return jsonResponse({ error: "dispute_id is required" }, 400);
     }
-    if (!responseText || responseText.length < 10) {
-      return jsonResponse({ error: "response_text must be at least 10 characters" }, 400);
-    }
-    if (responseText.length > 5000) {
-      return jsonResponse({ error: "response_text must not exceed 5000 characters" }, 400);
-    }
-    if (evidenceFileIds.length > 3) {
-      return jsonResponse({ error: "Maximum 3 evidence files allowed" }, 400);
+
+    if (!isAdditionalEvidenceOnly) {
+      if (!responseText || responseText.length < 10) {
+        return jsonResponse({ error: "response_text must be at least 10 characters" }, 400);
+      }
+      if (responseText.length > 5000) {
+        return jsonResponse({ error: "response_text must not exceed 5000 characters" }, 400);
+      }
+      if (evidenceFileIds.length > 3) {
+        return jsonResponse({ error: "Maximum 3 evidence files allowed per response" }, 400);
+      }
+    } else {
+      // Additional evidence only mode: exactly 1 file required
+      if (evidenceFileIds.length !== 1) {
+        return jsonResponse({ error: "Exactly 1 evidence file is required for additional evidence upload" }, 400);
+      }
     }
 
     // ── 4. Dispute ownership validation ──
     const { data: dispute, error: disputeError } = await adminClient
       .from("disputes")
-      .select("id, transaction_id, status, opened_by_user_id")
+      .select("id, transaction_id, status, opened_by_user_id, opened_at")
       .eq("id", disputeId)
       .single();
 
@@ -98,21 +110,100 @@ Deno.serve(async (req) => {
     const respondableStatuses = ["open", "seller_response_pending"];
     if (!respondableStatuses.includes(dispute.status as string)) {
       return jsonResponse({
-        error: `Dispute is in '${dispute.status}' status and cannot accept a response`,
+        error: `Dispute is in '${dispute.status}' status and cannot accept responses or evidence`,
       }, 409);
     }
 
-    const { data: existingResponse } = await adminClient
+    // ── 6. Count existing responses ──
+    const { data: existingResponses, error: countErr } = await adminClient
       .from("dispute_responses")
-      .select("id")
+      .select("id, response_number")
       .eq("dispute_id", disputeId)
-      .single();
+      .order("response_number", { ascending: true });
 
-    if (existingResponse) {
-      return jsonResponse({ error: "A response has already been submitted for this dispute" }, 409);
+    if (countErr) {
+      return jsonResponse({ error: "Failed to check existing responses" }, 500);
     }
 
-    // ── 6. Validate evidence files belong to seller ──
+    const responseCount = existingResponses?.length ?? 0;
+
+    if (isAdditionalEvidenceOnly) {
+      // ── Additional evidence only flow ──
+      // Check if seller already submitted additional evidence during dispute
+      const { data: existingAdditionalEvidence } = await adminClient
+        .from("dispute_evidence")
+        .select("id")
+        .eq("dispute_id", disputeId)
+        .eq("submitted_by_user_id", userId)
+        .eq("submitted_by_role", "seller")
+        .eq("evidence_type", "supporting_document")
+        .gte("created_at", dispute.opened_at as string);
+
+      if ((existingAdditionalEvidence?.length ?? 0) >= MAX_ADDITIONAL_EVIDENCE) {
+        return jsonResponse({ error: "Additional dispute evidence already submitted. Maximum 1 allowed." }, 409);
+      }
+
+      // Validate file
+      const fileId = evidenceFileIds[0];
+      const { data: files } = await adminClient
+        .from("files")
+        .select("id")
+        .eq("id", fileId)
+        .eq("uploaded_by_user_id", userId);
+
+      if (!files || files.length === 0) {
+        return jsonResponse({ error: "Evidence file not found or not owned by seller" }, 400);
+      }
+
+      // Insert evidence
+      const { error: evidenceError } = await adminClient
+        .from("dispute_evidence")
+        .insert({
+          dispute_id: disputeId,
+          submitted_by_user_id: userId,
+          submitted_by_role: "seller",
+          file_id: fileId,
+          evidence_type: "supporting_document",
+          notes: "Additional dispute evidence",
+        });
+
+      if (evidenceError) {
+        console.error("Insert additional evidence error:", evidenceError);
+        return jsonResponse({ error: "Failed to upload additional evidence" }, 500);
+      }
+
+      // Log events
+      await Promise.allSettled([
+        adminClient.from("transaction_events").insert({
+          transaction_id: dispute.transaction_id,
+          event_type: "evidence_uploaded",
+          actor_user_id: userId,
+          actor_role: "seller",
+          event_data: {
+            dispute_id: disputeId,
+            description: "Seller uploaded additional dispute evidence",
+          },
+        }),
+        adminClient.from("audit_logs").insert({
+          action: "dispute_response_submitted",
+          actor_user_id: userId,
+          transaction_id: dispute.transaction_id,
+          description: `Seller uploaded additional dispute evidence for dispute ${disputeId}`,
+          metadata: { dispute_id: disputeId, evidence_file_ids: evidenceFileIds, type: "additional_evidence" },
+        }),
+      ]);
+
+      return jsonResponse({ success: true, type: "additional_evidence" });
+    }
+
+    // ── Regular response flow ──
+    if (responseCount >= MAX_RESPONSES) {
+      return jsonResponse({ error: "Maximum response limit reached. You can submit at most 2 responses per dispute." }, 409);
+    }
+
+    const newResponseNumber = responseCount + 1;
+
+    // ── 7. Validate evidence files belong to seller ──
     if (evidenceFileIds.length > 0) {
       const { data: files, error: filesError } = await adminClient
         .from("files")
@@ -133,13 +224,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 7. Insert dispute response ──
+    // ── 8. Insert dispute response ──
     const { error: insertError } = await adminClient
       .from("dispute_responses")
       .insert({
         dispute_id: disputeId,
         responded_by_user_id: userId,
         response_text: responseText,
+        response_number: newResponseNumber,
       });
 
     if (insertError) {
@@ -147,7 +239,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Failed to submit response" }, 500);
     }
 
-    // ── 8. Attach evidence files ──
+    // ── 9. Attach evidence files ──
     if (evidenceFileIds.length > 0) {
       const evidenceInserts = evidenceFileIds.map((fileId) => ({
         dispute_id: disputeId,
@@ -163,29 +255,29 @@ Deno.serve(async (req) => {
 
       if (evidenceError) {
         console.error("Insert dispute evidence error:", evidenceError);
-        // Non-fatal — response is already saved
       }
     }
 
-    // ── 9. Status transition → under_review ──
-    const oldStatus = dispute.status;
-    const { error: statusError } = await adminClient
-      .from("disputes")
-      .update({ status: "under_review" })
-      .eq("id", disputeId);
+    // ── 10. Status transition → under_review (only on first response) ──
+    if (newResponseNumber === 1) {
+      const oldStatus = dispute.status;
+      const { error: statusError } = await adminClient
+        .from("disputes")
+        .update({ status: "under_review" })
+        .eq("id", disputeId);
 
-    if (statusError) {
-      console.error("Status update error:", statusError);
+      if (statusError) {
+        console.error("Status update error:", statusError);
+      }
+
+      await adminClient.from("dispute_status_history").insert({
+        dispute_id: disputeId,
+        old_status: oldStatus,
+        new_status: "under_review",
+        changed_by_user_id: userId,
+        reason: "Seller submitted initial response",
+      });
     }
-
-    // ── 10. Dispute status history ──
-    await adminClient.from("dispute_status_history").insert({
-      dispute_id: disputeId,
-      old_status: oldStatus,
-      new_status: "under_review",
-      changed_by_user_id: userId,
-      reason: "Seller submitted response",
-    });
 
     // ── 11. Transaction event logging ──
     await adminClient.from("transaction_events").insert({
@@ -195,8 +287,11 @@ Deno.serve(async (req) => {
       actor_role: "seller",
       event_data: {
         dispute_id: disputeId,
+        response_number: newResponseNumber,
         evidence_count: evidenceFileIds.length,
-        description: "Seller submitted dispute response",
+        description: newResponseNumber === 1
+          ? "Seller submitted dispute response"
+          : "Seller submitted follow-up response",
       },
     });
 
@@ -205,9 +300,10 @@ Deno.serve(async (req) => {
       action: "dispute_response_submitted",
       actor_user_id: userId,
       transaction_id: dispute.transaction_id,
-      description: `Seller submitted response to dispute ${disputeId} with ${evidenceFileIds.length} evidence file(s)`,
+      description: `Seller submitted response ${newResponseNumber} of ${MAX_RESPONSES} to dispute ${disputeId} with ${evidenceFileIds.length} evidence file(s)`,
       metadata: {
         dispute_id: disputeId,
+        response_number: newResponseNumber,
         evidence_file_ids: evidenceFileIds,
         response_length: responseText.length,
       },
@@ -216,18 +312,24 @@ Deno.serve(async (req) => {
     // ── 13. Notification to buyer ──
     const buyerId = transaction.buyer_id;
     if (buyerId) {
+      const message = newResponseNumber === 1
+        ? "The seller has submitted their response to your dispute case. The case is now under review."
+        : "The seller has submitted a follow-up response to your dispute case.";
+
       await adminClient.from("notifications").insert({
         user_id: buyerId,
         type: "dispute_update",
         channel: "in_app",
-        title: "Seller has responded to your dispute",
-        message: "The seller has submitted their response to your dispute case. The case is now under review.",
+        title: newResponseNumber === 1
+          ? "Seller has responded to your dispute"
+          : "Seller submitted a follow-up response",
+        message,
         related_dispute_id: disputeId,
         related_transaction_id: dispute.transaction_id,
       });
     }
 
-    return jsonResponse({ success: true });
+    return jsonResponse({ success: true, response_number: newResponseNumber });
   } catch (err) {
     console.error("submit-seller-response error:", err);
     return jsonResponse({ error: "Internal server error" }, 500);
