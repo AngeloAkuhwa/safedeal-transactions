@@ -1,4 +1,4 @@
-import { Mail, Phone, ShieldCheck, Info } from "lucide-react";
+import { Mail, Phone, ShieldCheck, Info, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface BuyerTrustSignals {
@@ -46,8 +46,8 @@ export function BuyerTrustBadges({ signals, compact }: Props) {
   } else if (signals.identitySubmitted) {
     badges.push({
       key: "identity_submitted",
-      icon: ShieldCheck,
-      label: "Identity Submitted",
+      icon: Clock,
+      label: "Identity Pending Review",
       className: "bg-warning/10 text-warning border-warning/20",
     });
   }
