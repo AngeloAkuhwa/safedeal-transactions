@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Save, Upload, Archive, Eye, EyeOff, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Upload, Archive, Eye, EyeOff, Trash2, Truck } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
