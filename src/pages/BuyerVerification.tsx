@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
   Loader2, ShieldCheck, Upload, Phone, UserCheck, ChevronRight,
-  FileText, AlertTriangle, CheckCircle2, Clock, XCircle, Send,
+  FileText, AlertTriangle, CheckCircle2, Clock, XCircle, Send, Lock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
