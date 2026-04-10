@@ -18,7 +18,7 @@ interface MinimalVerification {
 
 interface Props {
   profile: BuyerProfile & { state_name?: string | null; city_name?: string | null };
-  verification: VerificationStatus;
+  verification: MinimalVerification;
   onProfileChange: (updates: Record<string, unknown>) => void;
   showLocation?: boolean;
   onAvatarUploaded?: (url: string | null) => void;
