@@ -17,6 +17,7 @@ interface Props {
   onClearFilters: () => void;
   hasActiveFilters: boolean;
   items?: SellerDisputeItem[];
+  onExportClick?: () => void;
 }
 
 function exportDisputesCsv(items: SellerDisputeItem[]) {
@@ -79,6 +80,7 @@ export function SellerDisputeFilters({
   onClearFilters,
   hasActiveFilters,
   items = [],
+  onExportClick,
 }: Props) {
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
@@ -126,8 +128,7 @@ export function SellerDisputeFilters({
         variant="outline"
         size="sm"
         className="h-9 gap-1.5"
-        onClick={() => items.length > 0 && exportDisputesCsv(items)}
-        disabled={items.length === 0}
+        onClick={() => onExportClick?.()}
       >
         <Download className="h-3.5 w-3.5" />
         Export
