@@ -215,21 +215,8 @@ async function handleList(adminClient: any, userId: string, req: Request) {
   const pageSize = 20;
   const offset = (page - 1) * pageSize;
 
+  // Build product list query
   let query = adminClient
-    .from("products")
-    .select(`
-      id, title, slug, short_description, unit_price, currency_code,
-      stock_quantity, reserved_quantity, status, visibility_type, is_active,
-      category_id, published_at, created_at, updated_at,
-      product_media!inner(id, file_id, media_type, sort_order, is_primary)
-    `, { count: "exact" })
-    .eq("seller_id", userId)
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .range(offset, offset + pageSize - 1);
-
-  // Re-do without inner join to include products with no media
-  query = adminClient
     .from("products")
     .select(`
       id, title, slug, short_description, unit_price, currency_code,
@@ -254,7 +241,33 @@ async function handleList(adminClient: any, userId: string, req: Request) {
     query = query.or(`title.ilike.%${search}%,short_description.ilike.%${search}%`);
   }
 
-  const { data: products, error, count } = await query;
+  // Run product query + trust summary queries in parallel
+  const [
+    productsResult,
+    verificationResult,
+    publishedCountResult,
+    profileResult,
+  ] = await Promise.all([
+    query,
+    adminClient
+      .from("account_verifications")
+      .select("verification_level")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    adminClient
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("seller_id", userId)
+      .eq("status", "published")
+      .eq("is_active", true),
+    adminClient
+      .from("profiles")
+      .select("store_slug")
+      .eq("id", userId)
+      .maybeSingle(),
+  ]);
+
+  const { data: products, error, count } = productsResult;
   if (error) {
     console.error("Products list error:", error);
     return jsonResponse({ error: "Failed to load products" }, 500);
@@ -297,23 +310,25 @@ async function handleList(adminClient: any, userId: string, req: Request) {
     }
   }
 
-  // Get store slug
-  const { data: profileData } = await adminClient
-    .from("profiles")
-    .select("store_slug")
-    .eq("id", products?.[0]?.seller_id || "00000000-0000-0000-0000-000000000000")
-    .maybeSingle();
-
   const enriched = (products || []).map((p: any) => ({
     ...p,
     primary_image_url: mediaMap[p.id]?.file_url || null,
   }));
+
+  // Build trust_summary from DB data
+  const trustSummary = {
+    verification_level: verificationResult.data?.verification_level || "unverified",
+    published_count: publishedCountResult.count || 0,
+    rating: null, // No reviews table yet
+    review_count: 0,
+  };
 
   return jsonResponse({
     products: enriched,
     total: count || 0,
     page,
     page_size: pageSize,
-    store_slug: profileData?.store_slug || null,
+    store_slug: profileResult.data?.store_slug || null,
+    trust_summary: trustSummary,
   });
 }
