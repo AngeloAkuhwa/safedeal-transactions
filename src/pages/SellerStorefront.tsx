@@ -57,7 +57,7 @@ const SellerStorefront = () => {
   const verificationLevel = trust?.verification_level || "unverified";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0A0B1E]">
+    <div className="flex h-screen overflow-hidden bg-background">
       <SellerStorefrontSidebar
         sellerName={sellerName}
         avatarUrl={avatarUrl}
@@ -66,14 +66,14 @@ const SellerStorefront = () => {
 
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {/* Ambient glow */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-primary/3 rounded-full blur-[100px] pointer-events-none" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 lg:px-8 py-5 border-b border-[#1E2040] relative z-10">
+        <div className="flex items-center justify-between px-6 lg:px-8 py-5 border-b border-border relative z-10">
           <div className="lg:ml-0 ml-12">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">Storefront</h1>
-            <p className="text-[#8C8EAA] text-sm mt-0.5">Manage your product listings and public store</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Storefront</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">Manage your product listings and public store</p>
           </div>
           <Button
             onClick={() => navigate("/seller/storefront/new")}
@@ -88,24 +88,24 @@ const SellerStorefront = () => {
         <div className="flex-1 overflow-y-auto px-6 lg:px-8 py-6 space-y-6 relative z-10">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
             <>
               {/* Trust Summary */}
               {trust && (
-                <div className="bg-[#1E2040]/60 backdrop-blur-xl border border-[#30344F]/50 rounded-[24px] p-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[#30344F]">
+                <div className="bg-card border border-border rounded-2xl p-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
                     {/* Store Status */}
                     <div className="flex items-center gap-3 py-3 sm:py-0 sm:px-5 first:pt-0 last:pb-0 sm:first:pl-0 sm:last:pr-0">
                       <div className="flex items-center justify-center h-10 w-10 rounded-full bg-emerald-500/10 ring-2 ring-emerald-500/20">
-                        <ShieldCheck className="h-5 w-5 text-emerald-400" />
+                        <ShieldCheck className="h-5 w-5 text-emerald-500" />
                       </div>
                       <div>
-                        <p className="text-xs text-[#8C8EAA]">Store Status</p>
+                        <p className="text-xs text-muted-foreground">Store Status</p>
                         <div className="flex items-center gap-1.5">
                           <span className={`h-2 w-2 rounded-full ${getVerificationDotColor(trust.verification_level)}`} />
-                          <p className="text-sm font-semibold text-white">
+                          <p className="text-sm font-semibold text-foreground">
                             {getVerificationLabel(trust.verification_level)}
                           </p>
                         </div>
@@ -115,11 +115,11 @@ const SellerStorefront = () => {
                     {/* Seller Rating */}
                     <div className="flex items-center gap-3 py-3 sm:py-0 sm:px-5 first:pt-0 last:pb-0 sm:first:pl-0 sm:last:pr-0">
                       <div className="flex items-center justify-center h-10 w-10 rounded-full bg-amber-500/10 ring-2 ring-amber-500/20">
-                        <Star className="h-5 w-5 text-amber-400" />
+                        <Star className="h-5 w-5 text-amber-500" />
                       </div>
                       <div>
-                        <p className="text-xs text-[#8C8EAA]">Seller Rating</p>
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-xs text-muted-foreground">Seller Rating</p>
+                        <p className="text-sm font-semibold text-foreground">
                           {trust.rating != null
                             ? `${trust.rating} / 5.0 (${trust.review_count})`
                             : "No ratings yet"}
@@ -130,11 +130,11 @@ const SellerStorefront = () => {
                     {/* Published Products */}
                     <div className="flex items-center gap-3 py-3 sm:py-0 sm:px-5 first:pt-0 last:pb-0 sm:first:pl-0 sm:last:pr-0">
                       <div className="flex items-center justify-center h-10 w-10 rounded-full bg-blue-500/10 ring-2 ring-blue-500/20">
-                        <Package className="h-5 w-5 text-blue-400" />
+                        <Package className="h-5 w-5 text-blue-500" />
                       </div>
                       <div>
-                        <p className="text-xs text-[#8C8EAA]">Published Products</p>
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-xs text-muted-foreground">Published Products</p>
+                        <p className="text-sm font-semibold text-foreground">
                           {trust.published_count} Active
                         </p>
                       </div>
@@ -147,22 +147,22 @@ const SellerStorefront = () => {
               <StorefrontShareCard storeSlug={data?.store_slug || null} />
 
               {/* Filters */}
-              <div className="bg-[#1E2040]/60 backdrop-blur-xl border border-[#30344F]/50 rounded-[24px] p-4">
+              <div className="bg-card border border-border rounded-2xl p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C8EAA]" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <input
                       type="text"
                       placeholder="Search products..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 bg-[#151730] border border-[#30344F] rounded-xl text-sm text-white placeholder:text-[#8C8EAA] focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30"
+                      className="w-full pl-9 pr-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30"
                     />
                   </div>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#151730] border border-[#30344F] rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30 appearance-none"
+                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 appearance-none"
                   >
                     <option value="all">All Status</option>
                     <option value="draft">Draft</option>
@@ -173,7 +173,7 @@ const SellerStorefront = () => {
                   <select
                     value={visibilityFilter}
                     onChange={(e) => setVisibilityFilter(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#151730] border border-[#30344F] rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30 appearance-none"
+                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 appearance-none"
                   >
                     <option value="all">All Visibility</option>
                     <option value="public">Public</option>
@@ -183,7 +183,7 @@ const SellerStorefront = () => {
                   <select
                     value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#151730] border border-[#30344F] rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30 appearance-none"
+                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 appearance-none"
                   >
                     <option value="all">All Categories</option>
                     {(categories || []).map((cat: any) => (
@@ -195,19 +195,19 @@ const SellerStorefront = () => {
 
               {/* Product Grid */}
               {isError ? (
-                <div className="bg-[#1E2040]/60 backdrop-blur-xl border border-[#30344F]/50 rounded-[24px] p-12 text-center">
-                  <RefreshCw className="h-12 w-12 text-red-400/30 mx-auto mb-4" />
-                  <h2 className="text-lg font-bold text-white mb-2">Failed to load products</h2>
-                  <p className="text-sm text-[#8C8EAA] mb-4">Something went wrong. Please try again.</p>
-                  <Button onClick={() => refetch()} variant="outline" className="bg-[#1E2040] border-[#30344F] text-white hover:bg-[#30344F]">
+                <div className="bg-card border border-border rounded-2xl p-12 text-center">
+                  <RefreshCw className="h-12 w-12 text-destructive/30 mx-auto mb-4" />
+                  <h2 className="text-lg font-bold text-foreground mb-2">Failed to load products</h2>
+                  <p className="text-sm text-muted-foreground mb-4">Something went wrong. Please try again.</p>
+                  <Button onClick={() => refetch()} variant="outline">
                     Try Again
                   </Button>
                 </div>
               ) : !data?.products?.length ? (
-                <div className="bg-[#1E2040]/60 backdrop-blur-xl border border-[#30344F]/50 rounded-[24px] p-12 text-center">
-                  <Store className="h-16 w-16 text-[#30344F] mx-auto mb-4" />
-                  <h2 className="text-xl font-bold text-white mb-2">No products yet</h2>
-                  <p className="text-[#8C8EAA] text-sm max-w-md mx-auto mb-6">
+                <div className="bg-card border border-border rounded-2xl p-12 text-center">
+                  <Store className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                  <h2 className="text-xl font-bold text-foreground mb-2">No products yet</h2>
+                  <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
                     Create your first product listing to start building your public storefront.
                   </p>
                   <Button
@@ -231,7 +231,7 @@ const SellerStorefront = () => {
                     ))}
                   </div>
                   {data.total > data.page_size && (
-                    <p className="text-center text-sm text-[#8C8EAA] mt-6">
+                    <p className="text-center text-sm text-muted-foreground mt-6">
                       Showing {data.products.length} of {data.total} products
                     </p>
                   )}

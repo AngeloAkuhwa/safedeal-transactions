@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  Shield, LayoutDashboard, Store, ArrowLeftRight, Wallet, Scale, Settings, LogOut, Menu, X,
+  Shield, LayoutDashboard, Store, ArrowLeftRight, Wallet, Scale, Settings, LogOut, Menu,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ function getVerificationLabel(level: string) {
   }
 }
 
-function SidebarContent({ sellerName, avatarUrl, verificationLevel, onNavigate }: SellerStorefrontSidebarProps & { onNavigate?: () => void }) {
+function SidebarInner({ sellerName, avatarUrl, verificationLevel, onNavigate }: SellerStorefrontSidebarProps & { onNavigate?: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -57,14 +57,14 @@ function SidebarContent({ sellerName, avatarUrl, verificationLevel, onNavigate }
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0D0F2B] border-r border-[#1E2040]">
+    <div className="flex flex-col h-full bg-card border-r border-border">
       {/* Logo */}
       <div className="px-5 py-6">
         <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
             <Shield className="h-5 w-5 text-white" />
           </div>
-          <span className="text-lg font-bold text-white">SafeDeal</span>
+          <span className="text-lg font-bold text-foreground">SafeDeal</span>
         </Link>
       </div>
 
@@ -81,12 +81,12 @@ function SidebarContent({ sellerName, avatarUrl, verificationLevel, onNavigate }
               onClick={onNavigate}
               className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 isActive
-                  ? "bg-[#1E2040]/80 border border-[#30344F] text-white"
-                  : "text-[#8C8EAA] hover:text-white hover:bg-[#1E2040]/50"
+                  ? "bg-primary/10 border border-primary/20 text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
               {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-blue-500" />
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-primary" />
               )}
               <link.icon className="h-4.5 w-4.5" />
               <span>{link.label}</span>
@@ -100,28 +100,28 @@ function SidebarContent({ sellerName, avatarUrl, verificationLevel, onNavigate }
         <Link
           to="/seller/profile"
           onClick={onNavigate}
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#8C8EAA] hover:text-white hover:bg-[#1E2040]/50 transition-all"
+          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
         >
           <Settings className="h-4.5 w-4.5" />
           <span>Settings</span>
         </Link>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#8C8EAA] hover:text-red-400 hover:bg-[#1E2040]/50 transition-all"
+          className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-muted/50 transition-all"
         >
           <LogOut className="h-4.5 w-4.5" />
           <span>Sign Out</span>
         </button>
 
         {/* Seller profile */}
-        <div className="mt-4 pt-4 border-t border-[#1E2040] flex items-center gap-3 px-3">
-          <Avatar className="h-9 w-9 ring-2 ring-[#30344F]">
+        <div className="mt-4 pt-4 border-t border-border flex items-center gap-3 px-3">
+          <Avatar className="h-9 w-9 ring-2 ring-border">
             <AvatarImage src={avatarUrl ?? undefined} alt={sellerName} />
-            <AvatarFallback className="bg-[#1E2040] text-white text-xs">{initials}</AvatarFallback>
+            <AvatarFallback className="bg-muted text-foreground text-xs">{initials}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white truncate">{sellerName}</p>
-            <p className="text-xs text-[#8C8EAA]">{getVerificationLabel(verificationLevel)}</p>
+            <p className="text-sm font-semibold text-foreground truncate">{sellerName}</p>
+            <p className="text-xs text-muted-foreground">{getVerificationLabel(verificationLevel)}</p>
           </div>
         </div>
       </div>
@@ -136,14 +136,14 @@ export function SellerStorefrontSidebar(props: SellerStorefrontSidebarProps) {
     <>
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex w-[260px] h-screen flex-shrink-0">
-        <SidebarContent {...props} />
+        <SidebarInner {...props} />
       </aside>
 
       {/* Mobile hamburger */}
       <Button
         variant="ghost"
         size="icon"
-        className="lg:hidden fixed top-4 left-4 z-50 text-white bg-[#1E2040]/80 backdrop-blur-sm border border-[#30344F] rounded-xl"
+        className="lg:hidden fixed top-4 left-4 z-50 bg-card/80 backdrop-blur-sm border border-border rounded-xl text-foreground"
         onClick={() => setMobileOpen(true)}
       >
         <Menu className="h-5 w-5" />
@@ -151,9 +151,9 @@ export function SellerStorefrontSidebar(props: SellerStorefrontSidebarProps) {
 
       {/* Mobile sheet */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-[260px] p-0 bg-[#0D0F2B] border-[#1E2040]">
+        <SheetContent side="left" className="w-[260px] p-0 bg-card border-border">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
-          <SidebarContent {...props} onNavigate={() => setMobileOpen(false)} />
+          <SidebarInner {...props} onNavigate={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
     </>

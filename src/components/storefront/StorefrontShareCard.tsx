@@ -29,35 +29,35 @@ export function StorefrontShareCard({ storeSlug }: StorefrontShareCardProps) {
   };
 
   return (
-    <div className="bg-[#1E2040]/60 backdrop-blur-xl border-2 border-blue-500/20 rounded-[24px] p-6">
+    <div className="bg-card border-2 border-primary/20 rounded-2xl p-6">
       <div className="flex flex-col lg:flex-row items-start gap-6">
         {/* Left content */}
         <div className="flex-1 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-blue-500/10 text-blue-400">
+            <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-primary/10 text-primary">
               <LinkIcon className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Your Public Storefront</h3>
-              <p className="text-xs text-[#8C8EAA]">
+              <h3 className="text-base font-bold text-foreground">Your Public Storefront</h3>
+              <p className="text-xs text-muted-foreground">
                 Share this store link in your Instagram bio, WhatsApp, or X profile
               </p>
             </div>
           </div>
 
           {/* URL row */}
-          <div className="flex items-center gap-2 bg-[#151730] rounded-xl p-2 border border-[#30344F]">
-            <Globe className="h-4 w-4 text-[#8C8EAA] ml-2 shrink-0" />
-            <span className="flex-1 text-xs font-mono text-[#8C8EAA] truncate">
+          <div className="flex items-center gap-2 bg-muted rounded-xl p-2 border border-border">
+            <Globe className="h-4 w-4 text-muted-foreground ml-2 shrink-0" />
+            <span className="flex-1 text-xs font-mono text-muted-foreground truncate">
               {storeUrl}
             </span>
             <Button
               size="sm"
               variant="outline"
               onClick={handleCopy}
-              className="gap-1.5 shrink-0 bg-[#1E2040] border-[#30344F] text-[#8C8EAA] hover:text-white hover:bg-[#30344F]"
+              className="gap-1.5 shrink-0"
             >
-              {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? "Copied" : "Copy"}
             </Button>
           </div>
@@ -68,7 +68,7 @@ export function StorefrontShareCard({ storeSlug }: StorefrontShareCardProps) {
               size="sm"
               variant="outline"
               asChild
-              className="gap-1.5 bg-[#1E2040] border-[#30344F] text-[#8C8EAA] hover:text-white hover:bg-[#30344F]"
+              className="gap-1.5"
             >
               <a href={storeUrl} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -79,7 +79,7 @@ export function StorefrontShareCard({ storeSlug }: StorefrontShareCardProps) {
               size="sm"
               variant="outline"
               onClick={handleShare}
-              className="gap-1.5 bg-[#1E2040] border-[#30344F] text-[#8C8EAA] hover:text-white hover:bg-[#30344F]"
+              className="gap-1.5"
             >
               <Share2 className="h-3.5 w-3.5" />
               Share
@@ -98,7 +98,7 @@ export function StorefrontShareCard({ storeSlug }: StorefrontShareCardProps) {
               level="M"
             />
           </div>
-          <span className="text-xs text-[#8C8EAA]">QR Code</span>
+          <span className="text-xs text-muted-foreground">QR Code</span>
         </div>
       </div>
     </div>
