@@ -39,16 +39,16 @@ function relativeTime(dateStr?: string) {
 }
 
 const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
-  published: { label: "Published", bg: "bg-emerald-500/20", text: "text-emerald-400" },
-  draft: { label: "Draft", bg: "bg-amber-500/20", text: "text-amber-400" },
-  out_of_stock: { label: "Out of Stock", bg: "bg-gray-500/20", text: "text-gray-400" },
-  archived: { label: "Archived", bg: "bg-red-500/20", text: "text-red-400" },
+  published: { label: "Published", bg: "bg-emerald-500/20", text: "text-emerald-600 dark:text-emerald-400" },
+  draft: { label: "Draft", bg: "bg-amber-500/20", text: "text-amber-600 dark:text-amber-400" },
+  out_of_stock: { label: "Out of Stock", bg: "bg-gray-500/20", text: "text-gray-600 dark:text-gray-400" },
+  archived: { label: "Archived", bg: "bg-red-500/20", text: "text-red-600 dark:text-red-400" },
 };
 
 const visibilityConfig: Record<string, { label: string; bg: string; text: string }> = {
-  public: { label: "Public", bg: "bg-blue-500/20", text: "text-blue-400" },
-  buyer_specific: { label: "Buyer Specific", bg: "bg-amber-500/20", text: "text-amber-400" },
-  private_draft: { label: "Private", bg: "bg-[#1E2040]/90", text: "text-[#8C8EAA]" },
+  public: { label: "Public", bg: "bg-blue-500/20", text: "text-blue-600 dark:text-blue-400" },
+  buyer_specific: { label: "Buyer Specific", bg: "bg-amber-500/20", text: "text-amber-600 dark:text-amber-400" },
+  private_draft: { label: "Private", bg: "bg-muted", text: "text-muted-foreground" },
 };
 
 export function SellerProductCard({ product, onClick, onEdit }: SellerProductCardProps) {
@@ -59,15 +59,15 @@ export function SellerProductCard({ product, onClick, onEdit }: SellerProductCar
 
   const stockLabel = isOutOfStock ? "Out of Stock" : isLowStock ? "Low Stock" : "In Stock";
   const stockDot = isOutOfStock ? "bg-gray-400" : isLowStock ? "bg-amber-400" : "bg-emerald-400";
-  const stockText = isOutOfStock ? "text-gray-400" : isLowStock ? "text-amber-400" : "text-emerald-400";
+  const stockText = isOutOfStock ? "text-gray-500 dark:text-gray-400" : isLowStock ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400";
 
   return (
     <div
-      className={`group bg-[#1E2040]/60 backdrop-blur-xl border border-[#30344F]/50 rounded-[24px] overflow-hidden transition-all hover:border-[#30344F] hover:shadow-lg hover:shadow-blue-500/5 cursor-pointer ${isOutOfStock ? "opacity-60" : ""}`}
+      className={`group bg-card backdrop-blur-xl border border-border rounded-2xl overflow-hidden transition-all hover:border-primary/30 hover:shadow-lg cursor-pointer ${isOutOfStock ? "opacity-60" : ""}`}
       onClick={onClick}
     >
       {/* Image */}
-      <div className="relative h-56 overflow-hidden bg-[#151730]">
+      <div className="relative h-56 overflow-hidden bg-muted">
         {product.primary_image_url ? (
           <img
             src={product.primary_image_url}
@@ -77,7 +77,7 @@ export function SellerProductCard({ product, onClick, onEdit }: SellerProductCar
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Package className="h-12 w-12 text-[#30344F]" />
+            <Package className="h-12 w-12 text-muted-foreground/30" />
           </div>
         )}
         {/* Badges */}
@@ -94,18 +94,18 @@ export function SellerProductCard({ product, onClick, onEdit }: SellerProductCar
       {/* Content */}
       <div className="p-5 space-y-3">
         {product.category_name && (
-          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
             {product.category_name}
           </span>
         )}
-        <h3 className="text-lg font-bold text-white line-clamp-1">{product.title}</h3>
+        <h3 className="text-lg font-bold text-foreground line-clamp-1">{product.title}</h3>
         {product.short_description && (
-          <p className="text-sm text-[#8C8EAA] line-clamp-2">{product.short_description}</p>
+          <p className="text-sm text-muted-foreground line-clamp-2">{product.short_description}</p>
         )}
 
         {/* Price */}
-        <div className="pt-3 border-t border-[#30344F]">
-          <p className="text-2xl font-bold text-white">
+        <div className="pt-3 border-t border-border">
+          <p className="text-2xl font-bold text-foreground">
             {formatPrice(product.unit_price, product.currency_code)}
           </p>
         </div>
@@ -116,15 +116,15 @@ export function SellerProductCard({ product, onClick, onEdit }: SellerProductCar
             <span className={`h-2 w-2 rounded-full ${stockDot}`} />
             <span className={`text-xs font-medium ${stockText}`}>{stockLabel}</span>
           </div>
-          <span className="text-xs text-[#8C8EAA]">
+          <span className="text-xs text-muted-foreground">
             Qty: {product.stock_quantity}
           </span>
         </div>
 
         {/* Last updated */}
         {product.updated_at && (
-          <div className="pt-3 border-t border-[#30344F]">
-            <p className="text-xs text-[#8C8EAA]">
+          <div className="pt-3 border-t border-border">
+            <p className="text-xs text-muted-foreground">
               Last updated {relativeTime(product.updated_at)}
             </p>
           </div>
@@ -135,7 +135,7 @@ export function SellerProductCard({ product, onClick, onEdit }: SellerProductCar
           <Button
             size="sm"
             variant="outline"
-            className="flex-1 gap-1.5 bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300"
+            className="flex-1 gap-1.5 bg-primary/10 border-primary/30 text-primary hover:bg-primary/20"
             onClick={(e) => {
               e.stopPropagation();
               onEdit?.();
@@ -147,7 +147,7 @@ export function SellerProductCard({ product, onClick, onEdit }: SellerProductCar
           <Button
             size="sm"
             variant="outline"
-            className="bg-[#1E2040]/80 border-[#30344F] text-[#8C8EAA] hover:text-white hover:bg-[#1E2040]"
+            className="text-muted-foreground hover:text-foreground"
             onClick={(e) => e.stopPropagation()}
           >
             <MoreVertical className="h-3.5 w-3.5" />
