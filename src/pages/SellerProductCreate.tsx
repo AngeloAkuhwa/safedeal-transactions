@@ -197,6 +197,7 @@ const SellerProductCreate = () => {
         <SellerStorefrontSidebar
           sellerName={dashData?.seller?.full_name || "Seller"}
           avatarUrl={dashData?.seller?.avatar_url || null}
+          verificationLevel={dashData?.seller?.verification_level || "unverified"}
         />
 
         <div className="flex-1 overflow-y-auto">
