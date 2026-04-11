@@ -37,6 +37,7 @@ import SellerTransactionAgreement from "./pages/SellerTransactionAgreement";
 import SellerStorefront from "./pages/SellerStorefront";
 import SellerProductCreate from "./pages/SellerProductCreate";
 import SellerProductDetail from "./pages/SellerProductDetail";
+import SellerProductPreview from "./pages/SellerProductPreview";
 import PublicStorefront from "./pages/PublicStorefront";
 import PublicProductDetail from "./pages/PublicProductDetail";
 import NotFound from "./pages/NotFound";
@@ -98,6 +99,7 @@ const App = () => (
               <Route path="/seller/profile" element={<SellerProfileSettings />} />
               <Route path="/seller/storefront" element={<SellerStorefront />} />
               <Route path="/seller/storefront/new" element={<SellerProductCreate />} />
+              <Route path="/seller/storefront/:productId/preview" element={<SellerProductPreview />} />
               <Route path="/seller/storefront/:productId" element={<SellerProductDetail />} />
             </Route>
 
