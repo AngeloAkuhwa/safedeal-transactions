@@ -1,122 +1,62 @@
 
 
-# Redesign Seller Storefront — Premium Dark Sidebar Layout with QR Code
+# Plan: Theme-Responsive Storefront + Edit Product Page Redesign
 
-## Overview
+## Two Changes
 
-Replace the current top-nav + light-theme storefront page with the exact design from the attached screenshots/HTML: a dark navy sidebar layout with glassmorphism panels, ambient glow effects, premium product cards, and a functional QR code.
+### 1. Make Seller Storefront page theme-responsive
 
-## Architecture Change
+The current storefront page and sidebar use hardcoded dark colors (`#0A0B1E`, `#1E2040`, etc.) that ignore the website's light/dark theme toggle. Convert all hardcoded dark values to use Tailwind's theme-aware classes so the page looks correct in both light and dark modes.
 
-```text
-Current:  SellerNav (top bar) → main content
-New:      SellerStorefrontSidebar (left) + main content (right)
-          Sidebar only used on /seller/storefront* routes
-          Other seller pages keep SellerNav top bar (unchanged)
-```
+**Files to change:**
+- `src/pages/SellerStorefront.tsx` — Replace hardcoded dark backgrounds with theme classes (`bg-background`, `bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`). Keep the same layout structure.
+- `src/components/storefront/SellerStorefrontSidebar.tsx` — Convert from `bg-[#0D0F2B]` to `bg-card`/`bg-sidebar` with proper dark mode variants. Nav links use `text-muted-foreground`/`text-foreground` instead of hardcoded hex values.
+- `src/components/storefront/SellerProductCard.tsx` — Replace `bg-[#1E2040]/60`, `text-white`, `text-[#8C8EAA]`, `border-[#30344F]` with `bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`.
+- `src/components/storefront/StorefrontShareCard.tsx` — Same conversion to theme classes.
 
-## Files to Create
+The design intent: In **light mode**, it matches the clean white/`#FAFBFC` design from the uploaded HTML. In **dark mode**, it uses the app's standard dark theme tokens.
 
-### 1. `src/components/storefront/SellerStorefrontSidebar.tsx`
+### 2. Redesign `SellerProductDetail.tsx` (Edit Product page)
 
-Dark sidebar matching the design exactly:
-- SafeDeal logo with gradient circle at top
-- Nav links: Dashboard (`/seller`), Storefront (`/seller/storefront`, active state with left blue bar), Transactions (`/seller/transactions`), Payouts (`/seller/payouts`), Disputes (`/seller/disputes`)
-- Settings link at bottom
-- Seller avatar + name + "Verified Seller" at very bottom
-- Lucide icons mapped to each nav item
-- Active state: `bg-[#1E2040]/80 border border-[#30344F]` with left blue accent bar
-- Inactive: `text-[#8C8EAA] hover:text-white hover:bg-[#1E2040]/50`
-- Hidden on mobile (`hidden lg:flex`), toggled via hamburger in header
-- Props: `sellerName`, `avatarUrl`, `verificationLevel`
+Replace the current single-column layout with the design from the uploaded HTML, which uses:
 
-### 2. `src/components/storefront/SellerProductCard.tsx`
+**Layout:** Sidebar + header bar + 3/4 + 1/4 grid (`xl:grid-cols-4`, main content `xl:col-span-3`, right sidebar `xl:col-span-1`).
 
-Premium dark product card matching design pixel-for-pixel:
-- Glass panel: `bg-[#1E2040]/60 backdrop-blur-xl border border-[#30344F]/50 rounded-[24px]`
-- Image area: `h-56`, hover zoom (`group-hover:scale-105`)
-- Status badge (top-right): Published=green, Draft=amber, Out of Stock=gray, Archived=red
-- Visibility badge (top-right, next to status): Public=blue, Buyer Specific=amber, Private=`bg-[#1E2040]/90 text-[#8C8EAA]`
-- Category label below image: colored pill
-- Title: `text-lg font-bold text-white`
-- Description: `text-sm text-[#8C8EAA] line-clamp-2`
-- Price: `text-2xl font-bold text-white` with `border-t border-[#30344F]` separator
-- Stock badge with dot: green "In Stock" / amber "Low Stock" / muted "Out of Stock"
-- Quantity: `text-xs text-[#8C8EAA]`
-- "Last updated" with `border-t` separator — use relative time from `updated_at`
-- Action row: Edit button (`bg-primary/10 border-primary/30 text-primary`) + overflow "⋮" button
-- Out-of-stock cards: `opacity-60`
-- Props: product data + onClick + onEdit
+**Header bar:** Back button + "Edit Product" title + status badge + action buttons (Archive Product, Unpublish, Save Changes gradient button).
 
-### 3. Install `qrcode.react` package
+**Main content cards (left, col-span-3):**
+1. **Product Details** — Title + Category (2-col), Short Description, Full Description textarea, Condition + Brand + Model/SKU (3-col grid)
+2. **Product Media** — Grid of image thumbnails with hover overlay (edit/delete buttons), primary indicator dot, "+" upload placeholder
+3. **Pricing & Stock** — Unit Price (with ₦ prefix) + Stock Quantity (2-col), helper text "You'll be notified when stock runs low"
+4. **Agreement & Delivery** — Seller Notes textarea, Delivery Method select + Verification Window select (2-col), helper text
+5. **Visibility & Status** — 3-col radio card selector (Public / Buyer Specific / Private Draft) with icons and descriptions, selected state has primary border + bg tint
 
-For functional QR code generation in the share card.
+**Right sidebar (col-span-1):**
+1. **Product Status card** — Status badge, Stock (colored), Views count, Last Updated. Below: "Preview Product" and "View on Storefront" buttons
+2. **Quick Actions card** — Duplicate Product, Share Product, Archive Product (danger styled)
+3. **SafeDeal Protection card** — Trust messaging
 
-## Files to Modify
+**Key differences from current implementation:**
+- Replace `SellerNav` top bar with `SellerStorefrontSidebar` (same sidebar used on storefront page)
+- Remove `<Footer />`
+- Use `flex h-screen overflow-hidden` layout like storefront page
+- Cards use `rounded-2xl border border-border shadow-sm` with header sections that have `border-b`
+- All inputs: `px-4 py-3 rounded-lg border` styling
+- Visibility uses radio cards instead of a dropdown select
 
-### 4. `src/pages/SellerStorefront.tsx` — Full redesign
+**Files to change:**
+- `src/pages/SellerProductDetail.tsx` — Full rewrite of the return JSX. Keep all existing state, queries, mutations, and handlers. Add the sidebar layout wrapper, redesigned header, 4-column grid with all 5 main cards + 3 right sidebar cards. Use theme-aware classes throughout.
 
-Replace SellerNav with sidebar layout:
-- Outer: `flex h-screen overflow-hidden bg-[#0A0B1E]`
-- Left: `<SellerStorefrontSidebar />`
-- Right: main content area with:
-  - Ambient glow circles (absolute positioned, blurred)
-  - Header bar: hamburger (mobile) + "Storefront" title/subtitle + gradient "Add Product" button
-  - Scrollable content with glass panels for trust summary, share card, filters, product grid
-- Trust summary: glass panel with 3 items (Store Status, Seller Rating, Published Products) — all DB-driven from `data.trust_summary`
-- Filters: glass panel with 4-col grid (search + 3 selects) — dark-styled inputs using arbitrary Tailwind values
-- Product grid: `lg:grid-cols-3` using `SellerProductCard`
-- Empty/error states: dark-themed
+**New fields shown in design but not currently in the form:**
+- Brand and Model/SKU — add as local state fields, include in save payload (the edge function and DB may need these later; for now they are UI-only fields that get sent but may be ignored by the backend)
+- Verification Window — add as local state with select options (24h, 48h, 72h, 1 week)
 
-### 5. `src/components/storefront/StorefrontShareCard.tsx` — Premium dark redesign
+**No new components needed** — the right sidebar cards and visibility radio selector are simple enough to inline.
 
-Match the design:
-- Glass panel with `border-2 border-primary/20 rounded-[24px]`
-- Link icon + "Your Public Storefront" title (white, bold)
-- Subtitle: "Share this store link in your Instagram bio, WhatsApp, or X profile"
-- URL row in nested glass panel with globe icon + monospace URL + Copy button
-- "Preview Store" + "Share" buttons in dark surface style
-- **Functional QR code** on the right side using `qrcode.react` — generates QR for the store URL
-- QR code in white rounded container with "QR Code" label below
-
-### 6. `src/components/storefront/ProductCard.tsx` — Unchanged
-
-Existing light-theme card stays for marketplace/public storefront use.
-
-## Design Tokens (scoped to storefront page)
-
-| Token | Value |
-|-------|-------|
-| Background | `#0A0B1E` |
-| Surface | `#1E2040` |
-| Border | `#30344F` |
-| Muted text | `#8C8EAA` |
-| Primary | `#66A2EA` (maps to existing) |
-| Success | `#42E677` |
-| Warning | `#F4B400` |
-| Danger | `#F4526D` |
-| Glass panel | `bg-[#1E2040]/60 backdrop-blur-xl border border-[#30344F]/50` |
-
-## Functional QR Code
-
-- Use `qrcode.react` (`QRCodeSVG` component)
-- Generate QR for the seller's store URL (`${origin}/store/${storeSlug}`)
-- Render inside a white rounded container (128x128)
-- Label "QR Code" below in muted text
-
-## What Stays the Same
-
-- All data fetching (queries, services, edge functions)
-- All routing and navigation paths
-- Filter state management logic
-- Product click → `/seller/storefront/:id`
-- Other seller pages (dashboard, transactions, payouts, disputes, profile) keep `SellerNav` top bar
-- `ProductCard.tsx` for marketplace/public use — unchanged
-
-## Key Implementation Notes
-
-- The sidebar is **only** for the storefront page. Other seller routes are unaffected.
-- Mobile: sidebar hidden, hamburger button in header toggles a slide-over or mobile nav
-- Relative time for "Last updated": use a lightweight inline helper (no new dependency needed — simple "X days ago" logic)
-- All trust summary values remain DB-driven from `data.trust_summary`
+## What stays the same
+- All data fetching, mutations, services, edge functions
+- All routing paths
+- `SellerStorefrontSidebar` component (reused as-is, just made theme-responsive)
+- Filter logic on storefront page
+- Product card click → `/seller/storefront/:id`
 
