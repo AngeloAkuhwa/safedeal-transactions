@@ -1,14 +1,3 @@
-
-
-# Updated Plan: Batch 1 + Batch 2 (Revised with Scope Clarifications)
-
-This updates `.lovable/plan.md` to include a retroactive Batch 1 scope clarification section and the existing Batch 2 plan. No code changes — plan document update only.
-
----
-
-## New `.lovable/plan.md` Content
-
-```markdown
 # Batch 1: Seller Storefront + Product Catalog (Scope Clarifications)
 
 ## What Batch 1 Covers
@@ -66,12 +55,145 @@ Batch 1 includes a dedicated seller empty storefront state:
 
 # Batch 2: Public Marketplace Aggregation + Discovery (Revised)
 
-[Existing Batch 2 content remains unchanged — architecture diagram, auth vs data visibility, product inclusion rules, all 8 changes, exclusions, and 10 success criteria as currently written in the plan]
+## Architecture
+
+```text
+┌─────────────────────────────────┐
+│  marketplace edge function      │  Public-safe data, service role
+│  (aggregates across sellers)    │  for backend convenience only
+└──────────┬──────────────────────┘
+           │
+┌──────────▼──────────────────────┐
+│  /dashboard/marketplace         │  Buyer-auth protected route
+│  search + category + sort       │
+└──────────┬──────────────────────┘
+           │ click product
+           ▼
+┌─────────────────────────────────┐
+│  /store/:sellerSlug/:productSlug│  Existing PublicProductDetail
+└─────────────────────────────────┘
 ```
 
-## What This Plan Update Does
+## Auth vs Data Visibility
 
-1. **Adds Batch 1 retroactive clarifications** — 5 explicit scope items that align the plan with the current UI direction
-2. **Keeps Batch 2 exactly as approved** — no changes to marketplace architecture, edge function, or success criteria
-3. **No code changes** — this is a plan document update only
+- `/dashboard/marketplace` is buyer-auth protected via `ProtectedRoute requireRole="buyer"`
+- The marketplace edge function uses service role **only** for backend aggregation convenience — it queries across sellers in a single pass
+- The response shape is **public-safe**: it returns only data that is already visible on public storefronts (published, public, active products + seller display names and verification levels)
+- No private, draft, archived, buyer-specific, or inactive product data is ever returned
 
+## Product Inclusion Rules
+
+The marketplace query applies **all four** filters:
+- `status = 'published'`
+- `visibility_type = 'public'`
+- `is_active = true`
+- Products with any other status/visibility combination are excluded — this covers draft, archived, buyer_specific, and private_draft
+
+## Changes
+
+### 1. New Edge Function: `supabase/functions/marketplace/index.ts`
+
+No JWT verification needed (public-safe data). Uses service role for cross-seller aggregation.
+
+**Query params:** `search`, `category`, `page`, `sort` (newest | price_asc | price_desc)
+
+**Pagination rules:**
+- Default page size: 20
+- Max page size: 40 (clamped server-side)
+- Returns `total`, `page`, `page_size` for client-side pagination
+
+**Per-product response shape:**
+```typescript
+{
+  id, title, slug, short_description,
+  unit_price, currency_code, stock_quantity,
+  condition_label, primary_image_url,
+  seller: {
+    full_name, store_slug, avatar_url,
+    trust_summary: {
+      verification_level,    // "unverified" | "basic_verified" | "trusted_buyer"
+      email_verified,        // boolean
+      phone_verified,        // boolean
+      identity_verified      // boolean
+    }
+  }
+}
+```
+
+The `trust_summary` object lets ProductCard render trust signals consistently without ad-hoc interpretation.
+
+**Category list:** Returns active categories alongside products so the client can populate the filter dropdown without a separate call. Empty categories (zero matching products) are **excluded** from the returned list.
+
+### 2. New Service: `src/services/marketplace.service.ts`
+
+Calls marketplace edge function. Typed response interface.
+
+### 3. New Page: `src/pages/BuyerMarketplace.tsx`
+
+Buyer-protected route. Contains:
+- Search input
+- Category dropdown (active categories only, empty categories hidden)
+- Sort dropdown (Newest, Price Low→High, Price High→Low)
+- Product grid using updated `ProductCard`
+- Empty state for no results
+- Pagination controls
+
+**Pagination resets to page 1** whenever search, category, or sort changes.
+
+**Stock display states on cards:**
+- **In Stock** — `stock_quantity > 5`: no special indicator
+- **Low Stock** — `stock_quantity` 1–5: amber "Low Stock" badge
+- **Out of Stock** — `stock_quantity = 0`: overlay with "Out of Stock" label, card still visible but visually muted (public products remain discoverable; purchase CTA is disabled on detail page)
+
+### 4. Updated `ProductCard` Component
+
+Add optional props:
+- `sellerName?: string`
+- `sellerStoreSlug?: string`
+- `sellerTrustSummary?: { verification_level, email_verified, phone_verified, identity_verified }`
+
+When provided, render seller name + trust signal icon below the price. Existing storefront usage is unaffected (props are optional).
+
+Add stock badge logic: "Low Stock" amber badge when `stock_quantity` is 1–5.
+
+### 5. Route: Non-negotiable link pattern
+
+Every marketplace product card links to:
+```
+/store/:sellerSlug/:productSlug
+```
+This reuses the existing `PublicProductDetail` page. No alternative route patterns.
+
+### 6. Route Registration: `src/App.tsx`
+
+```
+<Route path="/dashboard/marketplace" element={<BuyerMarketplace />} />
+```
+Under buyer-protected routes.
+
+### 7. Buyer Navigation: `src/components/dashboard/BuyerNav.tsx`
+
+Add "Marketplace" link with `ShoppingBag` icon between Dashboard and Transactions.
+
+### 8. No Database Changes
+
+All data from existing tables: `products`, `product_media`, `files`, `profiles`, `account_verifications`, `product_categories`.
+
+## What Is NOT In This Batch
+- Price range filter
+- Seller filter
+- Ratings/reviews
+- Purchase flow
+
+## Success Criteria
+
+1. Buyers can browse all public, published, active products across all sellers at `/dashboard/marketplace`
+2. Product inclusion strictly enforces published + public + active filters
+3. Category filter works using active categories; empty categories are hidden
+4. Search by title/description works
+5. Sort by date and price works
+6. Pagination resets on filter change; respects default/max page size
+7. Seller trust signal/summary renders consistently on marketplace cards
+8. Stock states (In Stock, Low Stock, Out of Stock) display correctly on cards
+9. Product cards link exclusively to `/store/:sellerSlug/:productSlug`
+10. Page is buyer-auth protected; underlying data shape is public-safe
