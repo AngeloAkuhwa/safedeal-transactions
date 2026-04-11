@@ -1,3 +1,4 @@
+// SellerProductDetail page
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -328,18 +329,19 @@ const SellerProductDetail = () => {
                     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
                       {(product.media || []).map((m: any, idx: number) => (
                         <div key={m.id} className="relative group aspect-square rounded-xl border border-border overflow-hidden bg-muted">
-                          {m.media_type === "video" ? (
-                            <video src={m.file_url} className="w-full h-full object-cover" />
-                          ) : (
-                            <img src={m.file_url} alt="" className="w-full h-full object-cover" />
+                          {m.media_type === "video" && (
+                            <video src={m.file_url} className="w-full h-full object-cover"></video>
+                          )}
+                          {m.media_type !== "video" && (
+                            <img src={m.file_url} alt={title} className="w-full h-full object-cover" />
                           )}
                           {idx === 0 && (
                             <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-primary text-primary-foreground text-[10px] font-semibold rounded">
                               Primary
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <button className="p-1.5 rounded-lg bg-white/20 backdrop-blur-sm text-white hover:bg-white/30">
+                          <div className="absolute inset-0 bg-black/[0.4] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <button className="p-1.5 rounded-lg bg-white/[0.2] backdrop-blur-sm text-white hover:bg-white/[0.3]">
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
@@ -352,8 +354,6 @@ const SellerProductDetail = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-
               {/* Pricing & Stock */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
                 <div className="px-6 py-4 border-b border-border">
@@ -575,3 +575,4 @@ const SellerProductDetail = () => {
 };
 
 export default SellerProductDetail;
+
