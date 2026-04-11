@@ -354,8 +354,6 @@ const SellerProductDetail = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-
               {/* Pricing & Stock */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
                 <div className="px-6 py-4 border-b border-border">
