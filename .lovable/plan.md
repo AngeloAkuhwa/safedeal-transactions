@@ -1,63 +1,55 @@
 
 
-# Corrections: Edit Product Page — Match Design 100%
+# Redesign Add Product Page — Single-Page Sidebar Layout
 
-## Issues Found (comparing design HTML vs current implementation)
+## Overview
 
-### 1. Card Headers Missing Icons + Subtitles
+Replace the current multi-step wizard with a single scrollable page matching the design: sidebar layout (reusing `SellerStorefrontSidebar`), all sections visible at once, with header bar containing Back button + "Save Draft" + "Publish" actions.
 
-Each card header needs a colored Lucide icon + title + subtitle:
-- Product Details: `Info` icon + "Basic information about your product"
-- Product Media: `ImageIcon` icon + "Upload high-quality images and videos"
-- Pricing & Stock: `Banknote` icon + "Set your price and manage inventory"
-- Agreement & Delivery: `Handshake` icon + "Transaction terms and delivery options"
-- Visibility & Status: `Eye` icon + "Control who can see this product"
+## Changes — `src/pages/SellerProductCreate.tsx`
 
-All icons in `text-primary`, all titles bumped to `text-lg font-semibold`.
+**Full rewrite of the JSX structure.** All existing state, queries, mutations, upload logic preserved.
 
-### 2. Header Subtitle Text
+### Layout
+- Remove `SellerNav` + `Footer` + step wizard
+- Use `flex h-screen overflow-hidden` with `SellerStorefrontSidebar` on the left
+- Scrollable main area with `max-w-[1200px]` content
 
-Change to: "Update listing details, stock, pricing, and visibility"
+### Header Bar
+- Back button (arrow-left in rounded border box) + "Add Product" title + "Create a new product listing for your public store" subtitle
+- Right side: "Save Draft" outline button + gradient "Publish" button with check icon
 
-### 3. Agreement & Delivery — Keep Checkboxes As-Is
+### All Sections Visible (No Steps)
 
-**No change.** The current checkbox grid for delivery methods stays exactly as implemented. Only add a subtitle to the card header and keep everything else in this section unchanged.
+1. **Product Details** — icon `Info` + subtitle "Basic information about your product". 2-col: Title + Category. Full-width: Short Description. Full-width: Full Description textarea. 3-col: Condition (select) + Brand (input) + Model/SKU (input)
 
-### 4. Visibility Radio Cards — Icon + Label Layout
+2. **Product Media** — icon `ImageIcon` + subtitle. Large dashed upload area with cloud icon, "Upload Product Images" heading, "Drag and drop..." text, "Choose Files" primary button, file size note. Below: thumbnail grid of uploaded files + "+" placeholder
 
-Change to `flex items-center gap-3` row for icon + label, description below.
+3. **Pricing & Stock** — icon `Banknote` + subtitle. 2-col: Unit Price (₦ prefix) + Stock Quantity. Helper text "You'll be notified when stock runs low"
 
-### 5. Right Sidebar — Product Status Card
+4. **Agreement & Delivery** — icon `Handshake` + subtitle. Seller Notes textarea. Below: 2-col layout with Delivery Methods **checkboxes** (keeping existing 6 options grid) + Verification Window select (24h/48h/72h/1 week). Helper text under Verification Window
 
-- Increase header to `text-base font-semibold`, `px-6 py-4` padding
-- Stock: change to `{quantity} remaining` format
-- Remove icons from Views and Last Updated rows
-- Same padding fixes for Quick Actions and SafeDeal Protection headers
+5. **Visibility & Status** — icon `Eye` + subtitle. 3-col radio cards: Public (Globe icon, primary), Buyer Specific (Users icon, warning), Private Draft (Lock icon, muted). Selected state: `border-primary bg-primary/5`
 
-### 6. Right Sidebar — Button Styles
+6. **Bottom Bar** — SafeDeal Protection trust strip (shield icon + text) + Cancel button + "Create Product" gradient button
 
-- "Preview Product" — outline with `Eye` icon
-- "View on Storefront" — `bg-primary/5 border-primary/20 text-primary` with `ExternalLink` icon
+### Card Styling
+- `rounded-2xl border border-border shadow-sm`
+- Header: `p-6 border-b border-border` with icon + title + subtitle
+- Body: `p-6 space-y-6`
+- All inputs: `px-4 py-3 rounded-lg border`
 
-### 7. Quick Actions — Center Buttons
+### What's Removed
+- Step wizard, progress bar, Previous/Next navigation
+- `SellerNav` top bar, `Footer`
+- Agreement Terms field (state kept, not rendered)
 
-Change from `justify-start` to `justify-center`.
+### What's Kept
+- All state variables, queries, mutations, file upload logic
+- Delivery methods as checkboxes (user's explicit request)
+- All existing `DELIVERY_OPTIONS` array
+- `canNext()` validation adapted for single-page (check title + description + price)
 
-### 8. SafeDeal Protection Card — Split Header/Body
-
-Add `border-b border-border` header section, then separate body with shield icon + text.
-
-### 9. Media Section — Always Visible
-
-Remove conditional rendering; always show section with upload placeholder even when no media exists.
-
-## Files to Change
-
-- `src/pages/SellerProductDetail.tsx` — All fixes above (JSX/styling only, no logic changes)
-
-## What Stays the Same
-
-- All state, queries, mutations, handlers
-- Agreement & Delivery section layout (checkboxes remain)
-- Sidebar, routing, grid structure
+## File
+- `src/pages/SellerProductCreate.tsx` — full rewrite of return JSX + remove step state + remove unused imports
 
