@@ -509,11 +509,14 @@ const SellerProductDetail = () => {
                     <span className="text-xs text-foreground">{relativeTime(product.updated_at)}</span>
                   </div>
                   <div className="pt-3 border-t border-border space-y-2">
-                    <Button variant="outline" size="sm" className="w-full gap-1.5 justify-center" asChild>
-                      <a href={product.store_slug ? `/store/${product.store_slug}` : "#"} target="_blank" rel="noopener noreferrer">
-                        <Eye className="h-3.5 w-3.5" />
-                        Preview Product
-                      </a>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-1.5 justify-center"
+                      onClick={() => navigate(`/seller/storefront/${productId}/preview`)}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Preview Product
                     </Button>
                     <Button variant="ghost" size="sm" className="w-full gap-1.5 justify-center bg-primary/5 border border-primary/20 text-primary hover:bg-primary/10" asChild>
                       <a href={product.store_slug ? `/store/${product.store_slug}` : "#"} target="_blank" rel="noopener noreferrer">
