@@ -340,8 +340,8 @@ const SellerProductDetail = () => {
                               Primary
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <button className="p-1.5 rounded-lg bg-white/20 backdrop-blur-sm text-white hover:bg-white/30">
+                          <div className="absolute inset-0 bg-black/[0.4] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <button className="p-1.5 rounded-lg bg-white/[0.2] backdrop-blur-sm text-white hover:bg-white/[0.3]">
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
