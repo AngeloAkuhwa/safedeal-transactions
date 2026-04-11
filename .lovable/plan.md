@@ -1,199 +1,84 @@
-# Batch 1: Seller Storefront + Product Catalog (Scope Clarifications)
 
-## What Batch 1 Covers
 
-- Seller-owned products (CRUD, media, categories)
-- Product categories
-- Product media (images + video)
-- Seller storefront management dashboard (premium dark theme)
-- Public seller storefront (`/store/:sellerSlug`)
-- **Public Product Detail page** (`/store/:sellerSlug/:productSlug`) — named deliverable
-- No purchase-to-transaction logic
+# Redesign Seller Storefront Page — DB-Driven, Matching Design
 
-## Clarification 1: Public Product Detail Is a Named Batch 1 Deliverable
+## Design Direction
 
-The Public Product Detail page at `/store/:sellerSlug/:productSlug` is a first-class Batch 1 screen, not implied. It is shared by:
-- Seller public storefront flow (visitor clicks product from `/store/:sellerSlug`)
-- Later buyer marketplace / public discovery flow (Batch 2+)
-- Any direct product link shared externally
+The attached design shows a **clean light theme** (not dark/glassmorphism) with:
+- Header: "Storefront" title + subtitle + "Add Product" button
+- Trust summary row: 3 icon-led cards (Store Status, Seller Rating, Published Products)
+- Storefront share card
+- Filters row
+- Product grid
 
-One screen, one data shape, one route — reused everywhere.
-
-## Clarification 2: Public Storefront Screens Are Reusable Public Commerce Surfaces
-
-The routes `/store/:sellerSlug` and `/store/:sellerSlug/:productSlug` are **public commerce surfaces**, not seller dashboard extensions. They are:
-- Accessible without authentication
-- Auth-aware (show different header for logged-in buyers vs anonymous visitors)
-- Reused by buyer marketplace and purchase flows in later batches
-- The canonical way to view any product on SafeDeal
-
-## Clarification 3: Empty Storefront State
-
-Batch 1 includes a dedicated seller empty storefront state:
-- Shown when the seller has zero products
-- Contains onboarding messaging explaining what the storefront does
-- Prominent "Add Product" CTA
-- Explanation that published products appear on their public store URL
-
-## Clarification 4: Product Status Definitions
-
-| Status | Public Visibility | Purchasable (later) |
-|--------|-------------------|---------------------|
-| `draft` | Not visible publicly | No |
-| `published` | Visible if `visibility_type = 'public'` | Yes (when purchase flow exists) |
-| `out_of_stock` | Still visible publicly if public | No — shown but marked unavailable |
-| `archived` | Removed from active storefront | No |
-
-## Clarification 5: Buyer-Specific Products in Batch 1
-
-- Buyer-specific visibility exists in the schema in Batch 1
-- Buyer-linking and private-offer flows are **deferred to a later batch**
-- In Batch 1, buyer-specific products remain non-public, seller-managed listings only
-- They appear in the seller's storefront management dashboard but are never surfaced publicly
-
----
-
-# Batch 2: Public Marketplace Aggregation + Discovery (Revised)
-
-## Architecture
-
-```text
-┌─────────────────────────────────┐
-│  marketplace edge function      │  Public-safe data, service role
-│  (aggregates across sellers)    │  for backend convenience only
-└──────────┬──────────────────────┘
-           │
-┌──────────▼──────────────────────┐
-│  /dashboard/marketplace         │  Buyer-auth protected route
-│  search + category + sort       │
-└──────────┬──────────────────────┘
-           │ click product
-           ▼
-┌─────────────────────────────────┐
-│  /store/:sellerSlug/:productSlug│  Existing PublicProductDetail
-└─────────────────────────────────┘
-```
-
-## Auth vs Data Visibility
-
-- `/dashboard/marketplace` is buyer-auth protected via `ProtectedRoute requireRole="buyer"`
-- The marketplace edge function uses service role **only** for backend aggregation convenience — it queries across sellers in a single pass
-- The response shape is **public-safe**: it returns only data that is already visible on public storefronts (published, public, active products + seller display names and verification levels)
-- No private, draft, archived, buyer-specific, or inactive product data is ever returned
-
-## Product Inclusion Rules
-
-The marketplace query applies **all four** filters:
-- `status = 'published'`
-- `visibility_type = 'public'`
-- `is_active = true`
-- Products with any other status/visibility combination are excluded — this covers draft, archived, buyer_specific, and private_draft
+All summary data must be **DB-driven**, not hardcoded.
 
 ## Changes
 
-### 1. New Edge Function: `supabase/functions/marketplace/index.ts`
+### 1. Update `seller-products` Edge Function
 
-No JWT verification needed (public-safe data). Uses service role for cross-seller aggregation.
+Add a `trust_summary` object to the response by querying:
+- `account_verifications` for `verification_level` → maps to Store Status label ("Verified Seller", "Basic Verified", "Unverified")
+- Published product count from the products query (filtered to `status = 'published'`)
+- Seller rating: Since no reviews table exists yet, return `{ rating: null, review_count: 0 }` — the UI will show "No ratings yet" instead of a hardcoded "4.9/5.0"
 
-**Query params:** `search`, `category`, `page`, `sort` (newest | price_asc | price_desc)
-
-**Pagination rules:**
-- Default page size: 20
-- Max page size: 40 (clamped server-side)
-- Returns `total`, `page`, `page_size` for client-side pagination
-
-**Per-product response shape:**
-```typescript
+Response additions:
+```json
 {
-  id, title, slug, short_description,
-  unit_price, currency_code, stock_quantity,
-  condition_label, primary_image_url,
-  seller: {
-    full_name, store_slug, avatar_url,
-    trust_summary: {
-      verification_level,    // "unverified" | "basic_verified" | "trusted_buyer"
-      email_verified,        // boolean
-      phone_verified,        // boolean
-      identity_verified      // boolean
-    }
+  "trust_summary": {
+    "verification_level": "trusted_buyer",
+    "published_count": 3,
+    "rating": null,
+    "review_count": 0
   }
 }
 ```
 
-The `trust_summary` object lets ProductCard render trust signals consistently without ad-hoc interpretation.
+### 2. Redesign `src/pages/SellerStorefront.tsx`
 
-**Category list:** Returns active categories alongside products so the client can populate the filter dropdown without a separate call. Empty categories (zero matching products) are **excluded** from the returned list.
+Replace current layout with the design:
 
-### 2. New Service: `src/services/marketplace.service.ts`
+**Header row**: Keep existing title/subtitle/Add Product button layout but style to match design (clean, minimal, no gradient background).
 
-Calls marketplace edge function. Typed response interface.
+**Trust Summary Section** (NEW): A bordered card with 3 items in a row:
+- **Store Status**: Icon with green/yellow/gray ring based on `verification_level` from API. Labels: "Verified Seller" / "Basic Verified" / "Unverified"
+- **Seller Rating**: Star icon with amber ring. Shows `rating / 5.0` or "No ratings yet" if null — fully DB-driven
+- **Published Products**: Package icon with blue ring. Shows `{published_count} Active` from API
 
-### 3. New Page: `src/pages/BuyerMarketplace.tsx`
+**Storefront Share Card**: Kept as-is (already functional).
 
-Buyer-protected route. Contains:
-- Search input
-- Category dropdown (active categories only, empty categories hidden)
-- Sort dropdown (Newest, Price Low→High, Price High→Low)
-- Product grid using updated `ProductCard`
-- Empty state for no results
-- Pagination controls
+**Filters**: Same logic, cleaner styling aligned with design.
 
-**Pagination resets to page 1** whenever search, category, or sort changes.
+**Product Grid**: Switch to `lg:grid-cols-3` (not 4). Use existing `ProductCard` with `showBadges`.
 
-**Stock display states on cards:**
-- **In Stock** — `stock_quantity > 5`: no special indicator
-- **Low Stock** — `stock_quantity` 1–5: amber "Low Stock" badge
-- **Out of Stock** — `stock_quantity = 0`: overlay with "Out of Stock" label, card still visible but visually muted (public products remain discoverable; purchase CTA is disabled on detail page)
+**Remove** `<Footer />` from this page to match the design.
 
-### 4. Updated `ProductCard` Component
+### 3. Update `src/components/storefront/StorefrontShareCard.tsx`
 
-Add optional props:
-- `sellerName?: string`
-- `sellerStoreSlug?: string`
-- `sellerTrustSummary?: { verification_level, email_verified, phone_verified, identity_verified }`
+Minor styling refinements to match the clean card look in the design. No functional changes.
 
-When provided, render seller name + trust signal icon below the price. Existing storefront usage is unaffected (props are optional).
+### 4. No New Components Needed
 
-Add stock badge logic: "Low Stock" amber badge when `stock_quantity` is 1–5.
+The trust summary section is simple enough to inline in the page component. No separate component required.
 
-### 5. Route: Non-negotiable link pattern
+## What Stays the Same
 
-Every marketplace product card links to:
-```
-/store/:sellerSlug/:productSlug
-```
-This reuses the existing `PublicProductDetail` page. No alternative route patterns.
+- All routing, navigation, data flow
+- `SellerNav` top bar
+- Filter state management
+- Product card click → `/seller/storefront/:id`
+- All product status/visibility/stock logic
 
-### 6. Route Registration: `src/App.tsx`
+## DB-Driven Guarantees
 
-```
-<Route path="/dashboard/marketplace" element={<BuyerMarketplace />} />
-```
-Under buyer-protected routes.
+| UI Element | Data Source |
+|---|---|
+| Store Status | `account_verifications.verification_level` via edge function |
+| Seller Rating | Future reviews table; currently returns `null` → "No ratings yet" |
+| Published Products | `COUNT(products WHERE status='published')` via edge function |
+| Store URL | `profiles.store_slug` via edge function |
+| Product cards | `products` + `product_media` + `files` tables |
+| Categories | `product_categories` table |
 
-### 7. Buyer Navigation: `src/components/dashboard/BuyerNav.tsx`
+Zero hardcoded values in the UI.
 
-Add "Marketplace" link with `ShoppingBag` icon between Dashboard and Transactions.
-
-### 8. No Database Changes
-
-All data from existing tables: `products`, `product_media`, `files`, `profiles`, `account_verifications`, `product_categories`.
-
-## What Is NOT In This Batch
-- Price range filter
-- Seller filter
-- Ratings/reviews
-- Purchase flow
-
-## Success Criteria
-
-1. Buyers can browse all public, published, active products across all sellers at `/dashboard/marketplace`
-2. Product inclusion strictly enforces published + public + active filters
-3. Category filter works using active categories; empty categories are hidden
-4. Search by title/description works
-5. Sort by date and price works
-6. Pagination resets on filter change; respects default/max page size
-7. Seller trust signal/summary renders consistently on marketplace cards
-8. Stock states (In Stock, Low Stock, Out of Stock) display correctly on cards
-9. Product cards link exclusively to `/store/:sellerSlug/:productSlug`
-10. Page is buyer-auth protected; underlying data shape is public-safe
