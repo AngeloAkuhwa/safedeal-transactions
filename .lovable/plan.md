@@ -1,84 +1,122 @@
 
 
-# Redesign Seller Storefront Page — DB-Driven, Matching Design
+# Redesign Seller Storefront — Premium Dark Sidebar Layout with QR Code
 
-## Design Direction
+## Overview
 
-The attached design shows a **clean light theme** (not dark/glassmorphism) with:
-- Header: "Storefront" title + subtitle + "Add Product" button
-- Trust summary row: 3 icon-led cards (Store Status, Seller Rating, Published Products)
-- Storefront share card
-- Filters row
-- Product grid
+Replace the current top-nav + light-theme storefront page with the exact design from the attached screenshots/HTML: a dark navy sidebar layout with glassmorphism panels, ambient glow effects, premium product cards, and a functional QR code.
 
-All summary data must be **DB-driven**, not hardcoded.
+## Architecture Change
 
-## Changes
-
-### 1. Update `seller-products` Edge Function
-
-Add a `trust_summary` object to the response by querying:
-- `account_verifications` for `verification_level` → maps to Store Status label ("Verified Seller", "Basic Verified", "Unverified")
-- Published product count from the products query (filtered to `status = 'published'`)
-- Seller rating: Since no reviews table exists yet, return `{ rating: null, review_count: 0 }` — the UI will show "No ratings yet" instead of a hardcoded "4.9/5.0"
-
-Response additions:
-```json
-{
-  "trust_summary": {
-    "verification_level": "trusted_buyer",
-    "published_count": 3,
-    "rating": null,
-    "review_count": 0
-  }
-}
+```text
+Current:  SellerNav (top bar) → main content
+New:      SellerStorefrontSidebar (left) + main content (right)
+          Sidebar only used on /seller/storefront* routes
+          Other seller pages keep SellerNav top bar (unchanged)
 ```
 
-### 2. Redesign `src/pages/SellerStorefront.tsx`
+## Files to Create
 
-Replace current layout with the design:
+### 1. `src/components/storefront/SellerStorefrontSidebar.tsx`
 
-**Header row**: Keep existing title/subtitle/Add Product button layout but style to match design (clean, minimal, no gradient background).
+Dark sidebar matching the design exactly:
+- SafeDeal logo with gradient circle at top
+- Nav links: Dashboard (`/seller`), Storefront (`/seller/storefront`, active state with left blue bar), Transactions (`/seller/transactions`), Payouts (`/seller/payouts`), Disputes (`/seller/disputes`)
+- Settings link at bottom
+- Seller avatar + name + "Verified Seller" at very bottom
+- Lucide icons mapped to each nav item
+- Active state: `bg-[#1E2040]/80 border border-[#30344F]` with left blue accent bar
+- Inactive: `text-[#8C8EAA] hover:text-white hover:bg-[#1E2040]/50`
+- Hidden on mobile (`hidden lg:flex`), toggled via hamburger in header
+- Props: `sellerName`, `avatarUrl`, `verificationLevel`
 
-**Trust Summary Section** (NEW): A bordered card with 3 items in a row:
-- **Store Status**: Icon with green/yellow/gray ring based on `verification_level` from API. Labels: "Verified Seller" / "Basic Verified" / "Unverified"
-- **Seller Rating**: Star icon with amber ring. Shows `rating / 5.0` or "No ratings yet" if null — fully DB-driven
-- **Published Products**: Package icon with blue ring. Shows `{published_count} Active` from API
+### 2. `src/components/storefront/SellerProductCard.tsx`
 
-**Storefront Share Card**: Kept as-is (already functional).
+Premium dark product card matching design pixel-for-pixel:
+- Glass panel: `bg-[#1E2040]/60 backdrop-blur-xl border border-[#30344F]/50 rounded-[24px]`
+- Image area: `h-56`, hover zoom (`group-hover:scale-105`)
+- Status badge (top-right): Published=green, Draft=amber, Out of Stock=gray, Archived=red
+- Visibility badge (top-right, next to status): Public=blue, Buyer Specific=amber, Private=`bg-[#1E2040]/90 text-[#8C8EAA]`
+- Category label below image: colored pill
+- Title: `text-lg font-bold text-white`
+- Description: `text-sm text-[#8C8EAA] line-clamp-2`
+- Price: `text-2xl font-bold text-white` with `border-t border-[#30344F]` separator
+- Stock badge with dot: green "In Stock" / amber "Low Stock" / muted "Out of Stock"
+- Quantity: `text-xs text-[#8C8EAA]`
+- "Last updated" with `border-t` separator — use relative time from `updated_at`
+- Action row: Edit button (`bg-primary/10 border-primary/30 text-primary`) + overflow "⋮" button
+- Out-of-stock cards: `opacity-60`
+- Props: product data + onClick + onEdit
 
-**Filters**: Same logic, cleaner styling aligned with design.
+### 3. Install `qrcode.react` package
 
-**Product Grid**: Switch to `lg:grid-cols-3` (not 4). Use existing `ProductCard` with `showBadges`.
+For functional QR code generation in the share card.
 
-**Remove** `<Footer />` from this page to match the design.
+## Files to Modify
 
-### 3. Update `src/components/storefront/StorefrontShareCard.tsx`
+### 4. `src/pages/SellerStorefront.tsx` — Full redesign
 
-Minor styling refinements to match the clean card look in the design. No functional changes.
+Replace SellerNav with sidebar layout:
+- Outer: `flex h-screen overflow-hidden bg-[#0A0B1E]`
+- Left: `<SellerStorefrontSidebar />`
+- Right: main content area with:
+  - Ambient glow circles (absolute positioned, blurred)
+  - Header bar: hamburger (mobile) + "Storefront" title/subtitle + gradient "Add Product" button
+  - Scrollable content with glass panels for trust summary, share card, filters, product grid
+- Trust summary: glass panel with 3 items (Store Status, Seller Rating, Published Products) — all DB-driven from `data.trust_summary`
+- Filters: glass panel with 4-col grid (search + 3 selects) — dark-styled inputs using arbitrary Tailwind values
+- Product grid: `lg:grid-cols-3` using `SellerProductCard`
+- Empty/error states: dark-themed
 
-### 4. No New Components Needed
+### 5. `src/components/storefront/StorefrontShareCard.tsx` — Premium dark redesign
 
-The trust summary section is simple enough to inline in the page component. No separate component required.
+Match the design:
+- Glass panel with `border-2 border-primary/20 rounded-[24px]`
+- Link icon + "Your Public Storefront" title (white, bold)
+- Subtitle: "Share this store link in your Instagram bio, WhatsApp, or X profile"
+- URL row in nested glass panel with globe icon + monospace URL + Copy button
+- "Preview Store" + "Share" buttons in dark surface style
+- **Functional QR code** on the right side using `qrcode.react` — generates QR for the store URL
+- QR code in white rounded container with "QR Code" label below
+
+### 6. `src/components/storefront/ProductCard.tsx` — Unchanged
+
+Existing light-theme card stays for marketplace/public storefront use.
+
+## Design Tokens (scoped to storefront page)
+
+| Token | Value |
+|-------|-------|
+| Background | `#0A0B1E` |
+| Surface | `#1E2040` |
+| Border | `#30344F` |
+| Muted text | `#8C8EAA` |
+| Primary | `#66A2EA` (maps to existing) |
+| Success | `#42E677` |
+| Warning | `#F4B400` |
+| Danger | `#F4526D` |
+| Glass panel | `bg-[#1E2040]/60 backdrop-blur-xl border border-[#30344F]/50` |
+
+## Functional QR Code
+
+- Use `qrcode.react` (`QRCodeSVG` component)
+- Generate QR for the seller's store URL (`${origin}/store/${storeSlug}`)
+- Render inside a white rounded container (128x128)
+- Label "QR Code" below in muted text
 
 ## What Stays the Same
 
-- All routing, navigation, data flow
-- `SellerNav` top bar
-- Filter state management
-- Product card click → `/seller/storefront/:id`
-- All product status/visibility/stock logic
+- All data fetching (queries, services, edge functions)
+- All routing and navigation paths
+- Filter state management logic
+- Product click → `/seller/storefront/:id`
+- Other seller pages (dashboard, transactions, payouts, disputes, profile) keep `SellerNav` top bar
+- `ProductCard.tsx` for marketplace/public use — unchanged
 
-## DB-Driven Guarantees
+## Key Implementation Notes
 
-| UI Element | Data Source |
-|---|---|
-| Store Status | `account_verifications.verification_level` via edge function |
-| Seller Rating | Future reviews table; currently returns `null` → "No ratings yet" |
-| Published Products | `COUNT(products WHERE status='published')` via edge function |
-| Store URL | `profiles.store_slug` via edge function |
-| Product cards | `products` + `product_media` + `files` tables |
-| Categories | `product_categories` table |
-
-Zero hardcoded values in the UI.
+- The sidebar is **only** for the storefront page. Other seller routes are unaffected.
+- Mobile: sidebar hidden, hamburger button in header toggles a slide-over or mobile nav
+- Relative time for "Last updated": use a lightweight inline helper (no new dependency needed — simple "X days ago" logic)
+- All trust summary values remain DB-driven from `data.trust_summary`
 
