@@ -1,55 +1,55 @@
 
 
-# Redesign Add Product Page — Single-Page Sidebar Layout
+# Build Seller Product Preview Page
 
 ## Overview
 
-Replace the current multi-step wizard with a single scrollable page matching the design: sidebar layout (reusing `SellerStorefrontSidebar`), all sections visible at once, with header bar containing Back button + "Save Draft" + "Publish" actions.
+Create a new read-only "Product Preview" page at `/seller/storefront/:productId/preview` that fetches real-time product data from the DB and renders it in the design layout from `main_7.html`. This is what the seller sees when clicking "Preview Product" on the edit page — a polished, non-editable view of their listing.
 
-## Changes — `src/pages/SellerProductCreate.tsx`
+## New Files
 
-**Full rewrite of the JSX structure.** All existing state, queries, mutations, upload logic preserved.
+### `src/pages/SellerProductPreview.tsx`
 
-### Layout
-- Remove `SellerNav` + `Footer` + step wizard
-- Use `flex h-screen overflow-hidden` with `SellerStorefrontSidebar` on the left
-- Scrollable main area with `max-w-[1200px]` content
+A new page component with:
 
-### Header Bar
-- Back button (arrow-left in rounded border box) + "Add Product" title + "Create a new product listing for your public store" subtitle
-- Right side: "Save Draft" outline button + gradient "Publish" button with check icon
+**Layout:** `SellerStorefrontSidebar` + main content area (same shell as edit page). Theme-responsive using Tailwind theme classes throughout.
 
-### All Sections Visible (No Steps)
+**Header:** Back button + product thumbnail + product title + status/visibility badges. Right side: "Preview" button (active/current) + "Edit Product" button (navigates to edit page).
 
-1. **Product Details** — icon `Info` + subtitle "Basic information about your product". 2-col: Title + Category. Full-width: Short Description. Full-width: Full Description textarea. 3-col: Condition (select) + Brand (input) + Model/SKU (input)
+**Main Content (left 2/3 column):**
 
-2. **Product Media** — icon `ImageIcon` + subtitle. Large dashed upload area with cloud icon, "Upload Product Images" heading, "Drag and drop..." text, "Choose Files" primary button, file size note. Below: thumbnail grid of uploaded files + "+" placeholder
+1. **Product Gallery** card — icon `ImageIcon` + "Product Gallery" header. Large hero image (first media item) + thumbnail grid of remaining media. Uses `object-contain` for hero, `object-cover` for thumbnails.
 
-3. **Pricing & Stock** — icon `Banknote` + subtitle. 2-col: Unit Price (₦ prefix) + Stock Quantity. Helper text "You'll be notified when stock runs low"
+2. **Product Description** card — icon `AlignLeft` + header. "Overview" section showing `short_description`. "Full Details" section showing `description`. Bottom grid: Condition, Brand, Model/SKU.
 
-4. **Agreement & Delivery** — icon `Handshake` + subtitle. Seller Notes textarea. Below: 2-col layout with Delivery Methods **checkboxes** (keeping existing 6 options grid) + Verification Window select (24h/48h/72h/1 week). Helper text under Verification Window
+3. **Agreement Terms** card — icon `FileText` + header. SafeDeal Protection banner (shield icon + escrow explanation). Seller Notes text. Bottom grid: Verification Window + Delivery Method(s).
 
-5. **Visibility & Status** — icon `Eye` + subtitle. 3-col radio cards: Public (Globe icon, primary), Buyer Specific (Users icon, warning), Private Draft (Lock icon, muted). Selected state: `border-primary bg-primary/5`
+4. **Seller Information** card — icon `UserCheck` + header. Seller avatar, name, verified badge, "Trusted seller since..." text, Rating + Completed Sales grid. Data from seller dashboard query.
 
-6. **Bottom Bar** — SafeDeal Protection trust strip (shield icon + text) + Cancel button + "Create Product" gradient button
+**Right Sidebar (1/3 column):**
 
-### Card Styling
-- `rounded-2xl border border-border shadow-sm`
-- Header: `p-6 border-b border-border` with icon + title + subtitle
-- Body: `p-6 space-y-6`
-- All inputs: `px-4 py-3 rounded-lg border`
+1. **Pricing & Stock** card — Large price display (₦ formatted). Stock count with Low Stock/In Stock badge. Status badge. Visibility with icon + label + description. Public Store Link with copy button.
 
-### What's Removed
-- Step wizard, progress bar, Previous/Next navigation
-- `SellerNav` top bar, `Footer`
-- Agreement Terms field (state kept, not rendered)
+2. **Performance** card — Views, Saved, Last Updated rows with icons.
 
-### What's Kept
-- All state variables, queries, mutations, file upload logic
-- Delivery methods as checkboxes (user's explicit request)
-- All existing `DELIVERY_OPTIONS` array
-- `canNext()` validation adapted for single-page (check title + description + price)
+3. **Quick Actions** card — "Edit Product" (gradient primary), "Preview Public Page" (outline, navigates to public storefront URL), "Share Product" (outline), "Unpublish" (warning outline), "Archive Product" (danger outline). All functional buttons.
 
-## File
-- `src/pages/SellerProductCreate.tsx` — full rewrite of return JSX + remove step state + remove unused imports
+**Data fetching:** Reuses existing `getSellerProductDetail` service + `getSellerDashboard` for seller info. No new edge functions needed.
+
+**Theme enforcement:** All colors use Tailwind semantic classes (`bg-card`, `text-foreground`, `border-border`, `text-muted-foreground`, etc.). No hardcoded hex values.
+
+## Modified Files
+
+### `src/App.tsx`
+- Import `SellerProductPreview`
+- Add route: `<Route path="/seller/storefront/:productId/preview" element={<SellerProductPreview />} />`
+- Place it BEFORE the `:productId` catch-all route
+
+### `src/pages/SellerProductDetail.tsx`
+- Update "Preview Product" button's `onClick` to navigate to `/seller/storefront/${productId}/preview`
+
+## What Stays the Same
+- All services, edge functions, DB schema unchanged
+- Edit page functionality unchanged
+- Sidebar component reused as-is
 
