@@ -329,10 +329,11 @@ const SellerProductDetail = () => {
                     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
                       {(product.media || []).map((m: any, idx: number) => (
                         <div key={m.id} className="relative group aspect-square rounded-xl border border-border overflow-hidden bg-muted">
-                          {m.media_type === "video" ? (
+                          {m.media_type === "video" && (
                             <video src={m.file_url} className="w-full h-full object-cover"></video>
-                          ) : (
-                            <img src={m.file_url} alt="" className="w-full h-full object-cover" />
+                          )}
+                          {m.media_type !== "video" && (
+                            <img src={m.file_url} alt={title} className="w-full h-full object-cover" />
                           )}
                           {idx === 0 && (
                             <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-primary text-primary-foreground text-[10px] font-semibold rounded">
