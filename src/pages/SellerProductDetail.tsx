@@ -575,3 +575,4 @@ const SellerProductDetail = () => {
 };
 
 export default SellerProductDetail;
+
