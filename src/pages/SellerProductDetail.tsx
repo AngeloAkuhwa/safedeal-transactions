@@ -330,7 +330,7 @@ const SellerProductDetail = () => {
                       {(product.media || []).map((m: any, idx: number) => (
                         <div key={m.id} className="relative group aspect-square rounded-xl border border-border overflow-hidden bg-muted">
                           {m.media_type === "video" ? (
-                            <video src={m.file_url} className="w-full h-full object-cover" />
+                            <video src={m.file_url} className="w-full h-full object-cover"></video>
                           ) : (
                             <img src={m.file_url} alt="" className="w-full h-full object-cover" />
                           )}
