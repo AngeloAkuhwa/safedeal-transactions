@@ -120,7 +120,7 @@ const SellerProductPreview = () => {
     ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
     : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
 
-  const storeSlug = dashData?.seller?.store_slug || product.store_slug;
+  const storeSlug = (dashData?.seller as any)?.store_slug || product.store_slug;
   const publicUrl = storeSlug && product.slug ? `/store/${storeSlug}/${product.slug}` : null;
 
   const handleCopyLink = () => {
@@ -131,8 +131,8 @@ const SellerProductPreview = () => {
   };
 
   const sellerInitials = sellerName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
-  const memberSince = dashData?.seller?.created_at
-    ? format(new Date(dashData.seller.created_at), "MMMM yyyy")
+  const memberSince = (dashData?.seller as any)?.created_at
+    ? format(new Date((dashData.seller as any).created_at), "MMMM yyyy")
     : "—";
 
   return (
@@ -366,7 +366,7 @@ const SellerProductPreview = () => {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Completed Sales</p>
-                      <p className="text-sm font-semibold text-foreground">{dashData?.metrics?.transactions_created || 0}</p>
+                      <p className="text-sm font-semibold text-foreground">{(dashData?.metrics as any)?.transactions_created_count || 0}</p>
                     </div>
                   </div>
                 </div>
