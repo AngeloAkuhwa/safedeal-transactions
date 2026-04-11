@@ -1,8 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, Loader2, Save, Archive, Eye, EyeOff, Package, Clock, BarChart3,
+  ArrowLeft, Loader2, Save, Archive, Eye, EyeOff, ExternalLink,
   Globe, Users, Lock, Copy, Share2, ShieldCheck, Trash2,
+  Info, ImageIcon, Banknote, Handshake,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -168,7 +169,7 @@ const SellerProductDetail = () => {
   const product = data.product;
   const isOutOfStock = product.stock_quantity === 0;
   const isLowStock = product.stock_quantity >= 1 && product.stock_quantity <= 5;
-  const stockLabel = isOutOfStock ? "Out of Stock" : isLowStock ? "Low Stock" : "In Stock";
+  
   const stockColor = isOutOfStock ? "text-destructive" : isLowStock ? "text-amber-500" : "text-emerald-500";
 
   const visibilityOptions = [
@@ -205,7 +206,7 @@ const SellerProductDetail = () => {
                 <h1 className="text-xl font-bold text-foreground">Edit Product</h1>
                 <ProductStatusBadge status={product.status} />
               </div>
-              <p className="text-sm text-muted-foreground">Update your product details and settings</p>
+              <p className="text-sm text-muted-foreground">Update listing details, stock, pricing, and visibility</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -256,7 +257,11 @@ const SellerProductDetail = () => {
               {/* Product Details */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
                 <div className="px-6 py-4 border-b border-border">
-                  <h2 className="text-base font-semibold text-foreground">Product Details</h2>
+                  <div className="flex items-center gap-2">
+                    <Info className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-semibold text-foreground">Product Details</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">Basic information about your product</p>
                 </div>
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -311,14 +316,17 @@ const SellerProductDetail = () => {
               </div>
 
               {/* Product Media */}
-              {product.media?.length > 0 && (
-                <div className="bg-card border border-border rounded-2xl shadow-sm">
-                  <div className="px-6 py-4 border-b border-border">
-                    <h2 className="text-base font-semibold text-foreground">Product Media</h2>
+              <div className="bg-card border border-border rounded-2xl shadow-sm">
+                <div className="px-6 py-4 border-b border-border">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-semibold text-foreground">Product Media</h2>
                   </div>
-                  <div className="p-6">
+                  <p className="text-sm text-muted-foreground mt-1">Upload high-quality images and videos</p>
+                </div>
+                <div className="p-6">
                     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-                      {product.media.map((m: any, idx: number) => (
+                      {(product.media || []).map((m: any, idx: number) => (
                         <div key={m.id} className="relative group aspect-square rounded-xl border border-border overflow-hidden bg-muted">
                           {m.media_type === "video" ? (
                             <video src={m.file_url} className="w-full h-full object-cover" />
@@ -344,12 +352,16 @@ const SellerProductDetail = () => {
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Pricing & Stock */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
                 <div className="px-6 py-4 border-b border-border">
-                  <h2 className="text-base font-semibold text-foreground">Pricing & Stock</h2>
+                  <div className="flex items-center gap-2">
+                    <Banknote className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-semibold text-foreground">Pricing & Stock</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">Set your price and manage inventory</p>
                 </div>
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -372,7 +384,11 @@ const SellerProductDetail = () => {
               {/* Agreement & Delivery */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
                 <div className="px-6 py-4 border-b border-border">
-                  <h2 className="text-base font-semibold text-foreground">Agreement & Delivery</h2>
+                  <div className="flex items-center gap-2">
+                    <Handshake className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-semibold text-foreground">Agreement & Delivery</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">Transaction terms and delivery options</p>
                 </div>
                 <div className="p-6 space-y-4">
                   <div>
@@ -434,7 +450,11 @@ const SellerProductDetail = () => {
               {/* Visibility & Status */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
                 <div className="px-6 py-4 border-b border-border">
-                  <h2 className="text-base font-semibold text-foreground">Visibility & Status</h2>
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-semibold text-foreground">Visibility & Status</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">Control who can see this product</p>
                 </div>
                 <div className="p-6">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -451,9 +471,11 @@ const SellerProductDetail = () => {
                               : "border-border hover:border-primary/30 hover:bg-muted/50"
                           }`}
                         >
-                          <opt.icon className={`h-5 w-5 mb-2 ${isSelected ? "text-primary" : opt.color}`} />
-                          <p className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{opt.label}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{opt.description}</p>
+                          <div className="flex items-center gap-3 mb-2">
+                            <opt.icon className={`h-5 w-5 ${isSelected ? "text-primary" : opt.color}`} />
+                            <p className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{opt.label}</p>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{opt.description}</p>
                         </button>
                       );
                     })}
@@ -466,42 +488,36 @@ const SellerProductDetail = () => {
             <div className="xl:col-span-1 space-y-6">
               {/* Product Status */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-5 py-4 border-b border-border">
-                  <h3 className="text-sm font-semibold text-foreground">Product Status</h3>
+                <div className="px-6 py-4 border-b border-border">
+                  <h3 className="text-base font-semibold text-foreground">Product Status</h3>
                 </div>
-                <div className="p-5 space-y-3">
+                <div className="p-6 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Status</span>
                     <ProductStatusBadge status={product.status} />
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Stock</span>
-                    <span className={`text-xs font-semibold ${stockColor}`}>{stockLabel} ({product.stock_quantity})</span>
+                    <span className={`text-xs font-semibold ${stockColor}`}>{product.stock_quantity} remaining</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Views</span>
-                    <div className="flex items-center gap-1 text-xs text-foreground">
-                      <BarChart3 className="h-3 w-3" />
-                      <span>—</span>
-                    </div>
+                    <span className="text-xs text-foreground">—</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Last Updated</span>
-                    <div className="flex items-center gap-1 text-xs text-foreground">
-                      <Clock className="h-3 w-3" />
-                      <span>{relativeTime(product.updated_at)}</span>
-                    </div>
+                    <span className="text-xs text-foreground">{relativeTime(product.updated_at)}</span>
                   </div>
                   <div className="pt-3 border-t border-border space-y-2">
-                    <Button variant="outline" size="sm" className="w-full gap-1.5" asChild>
+                    <Button variant="outline" size="sm" className="w-full gap-1.5 justify-center" asChild>
                       <a href={product.store_slug ? `/store/${product.store_slug}` : "#"} target="_blank" rel="noopener noreferrer">
                         <Eye className="h-3.5 w-3.5" />
                         Preview Product
                       </a>
                     </Button>
-                    <Button variant="outline" size="sm" className="w-full gap-1.5" asChild>
+                    <Button variant="ghost" size="sm" className="w-full gap-1.5 justify-center bg-primary/5 border border-primary/20 text-primary hover:bg-primary/10" asChild>
                       <a href={product.store_slug ? `/store/${product.store_slug}` : "#"} target="_blank" rel="noopener noreferrer">
-                        <Package className="h-3.5 w-3.5" />
+                        <ExternalLink className="h-3.5 w-3.5" />
                         View on Storefront
                       </a>
                     </Button>
@@ -511,22 +527,22 @@ const SellerProductDetail = () => {
 
               {/* Quick Actions */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-5 py-4 border-b border-border">
-                  <h3 className="text-sm font-semibold text-foreground">Quick Actions</h3>
+                <div className="px-6 py-4 border-b border-border">
+                  <h3 className="text-base font-semibold text-foreground">Quick Actions</h3>
                 </div>
-                <div className="p-5 space-y-2">
-                  <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-foreground">
+                <div className="p-6 space-y-2">
+                  <Button variant="outline" size="sm" className="w-full justify-center gap-2 text-foreground">
                     <Copy className="h-3.5 w-3.5" />
                     Duplicate Product
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-foreground">
+                  <Button variant="outline" size="sm" className="w-full justify-center gap-2 text-foreground">
                     <Share2 className="h-3.5 w-3.5" />
                     Share Product
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start gap-2 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                    className="w-full justify-center gap-2 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
                     onClick={() => archiveMutation.mutate()}
                     disabled={archiveMutation.isPending}
                   >
@@ -538,14 +554,16 @@ const SellerProductDetail = () => {
 
               {/* SafeDeal Protection */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="p-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <ShieldCheck className="h-5 w-5 text-primary" />
-                    <h3 className="text-sm font-semibold text-foreground">SafeDeal Protection</h3>
+                <div className="px-6 py-4 border-b border-border">
+                  <h3 className="text-base font-semibold text-foreground">SafeDeal Protection</h3>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      All transactions through your storefront are protected by SafeDeal escrow. Funds are held securely until buyers verify their purchase.
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    All transactions through your storefront are protected by SafeDeal escrow. Funds are held securely until buyers verify their purchase.
-                  </p>
                 </div>
               </div>
             </div>
