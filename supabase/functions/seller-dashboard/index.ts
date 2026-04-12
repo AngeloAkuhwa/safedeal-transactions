@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     ] = await Promise.allSettled([
       adminClient
         .from("profiles")
-        .select("full_name, avatar_url")
+        .select("full_name, avatar_url, store_slug, created_at")
         .eq("id", userId)
         .single(),
 
@@ -76,9 +76,29 @@ Deno.serve(async (req) => {
     ]);
 
     // Profile
-    let seller = { full_name: "User", avatar_url: null as string | null };
+    let seller: {
+      full_name: string;
+      avatar_url: string | null;
+      store_slug: string | null;
+      created_at: string | null;
+      verification_level: string;
+    } = { full_name: "User", avatar_url: null, store_slug: null, created_at: null, verification_level: "unverified" };
     if (profileResult.status === "fulfilled" && profileResult.value.data) {
-      seller = profileResult.value.data;
+      const p = profileResult.value.data as Record<string, unknown>;
+      seller.full_name = (p.full_name as string) || "User";
+      seller.avatar_url = (p.avatar_url as string) || null;
+      seller.store_slug = (p.store_slug as string) || null;
+      seller.created_at = (p.created_at as string) || null;
+    }
+
+    // Fetch verification level
+    const { data: verData } = await adminClient
+      .from("account_verifications")
+      .select("verification_level")
+      .eq("user_id", userId)
+      .single();
+    if (verData) {
+      seller.verification_level = (verData as Record<string, unknown>).verification_level as string || "unverified";
     }
 
     // Metrics from all transactions
