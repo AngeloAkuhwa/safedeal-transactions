@@ -1,55 +1,28 @@
 
 
-# Build Seller Product Preview Page
+# Fix: Seller Information Section — Match Design 100%
 
-## Overview
+## Differences Found
 
-Create a new read-only "Product Preview" page at `/seller/storefront/:productId/preview` that fetches real-time product data from the DB and renders it in the design layout from `main_7.html`. This is what the seller sees when clicking "Preview Product" on the edit page — a polished, non-editable view of their listing.
+Comparing the design HTML (lines 247-284) with the current implementation (lines 337-373):
 
-## New Files
+| Element | Design | Current Code | Fix |
+|---------|--------|-------------|-----|
+| Card header | Icon + title only, no subtitle | Has subtitle "Your public seller profile" | Remove subtitle |
+| Header padding | `p-6` | `px-6 py-4` | Change to `p-6` |
+| Avatar size | `w-16 h-16` with `border-2 border-gray-100` | `h-12 w-12 ring-2 ring-border` | Increase to `h-16 w-16`, use `border-2 border-muted` |
+| Layout | `flex items-start gap-4` | `flex items-center gap-4 mb-4` | Change to `items-start`, remove `mb-4` |
+| Name text | `text-base font-semibold` | `text-sm font-semibold` | Bump to `text-base` |
+| Verified badge | Green pill badge with check icon + "Verified" text | Just a `CheckCircle2` icon | Change to green pill: `bg-green-500/10 text-green-600 border border-green-500/20` with CheckCircle2 icon + "Verified" text |
+| "Trusted seller since" | `text-sm text-muted mb-3` | `text-xs text-muted` | Change to `text-sm`, add `mb-3` |
+| Rating row | Star icon (amber) + "4.8" + "(127)" count | Just "—" dash | Add star icon, keep data dynamic (show "—" if unavailable) |
+| Stats grid | Inside the flex container (no border-t, positioned after mb-3 text) | Separate `div` with `pt-4 border-t` outside flex | Move grid inside the flex `div`, remove `border-t pt-4` from grid wrapper |
 
-### `src/pages/SellerProductPreview.tsx`
+## File to Change
 
-A new page component with:
+- `src/pages/SellerProductPreview.tsx` — lines 337-373 (Seller Information card only)
 
-**Layout:** `SellerStorefrontSidebar` + main content area (same shell as edit page). Theme-responsive using Tailwind theme classes throughout.
+## No other changes needed
 
-**Header:** Back button + product thumbnail + product title + status/visibility badges. Right side: "Preview" button (active/current) + "Edit Product" button (navigates to edit page).
-
-**Main Content (left 2/3 column):**
-
-1. **Product Gallery** card — icon `ImageIcon` + "Product Gallery" header. Large hero image (first media item) + thumbnail grid of remaining media. Uses `object-contain` for hero, `object-cover` for thumbnails.
-
-2. **Product Description** card — icon `AlignLeft` + header. "Overview" section showing `short_description`. "Full Details" section showing `description`. Bottom grid: Condition, Brand, Model/SKU.
-
-3. **Agreement Terms** card — icon `FileText` + header. SafeDeal Protection banner (shield icon + escrow explanation). Seller Notes text. Bottom grid: Verification Window + Delivery Method(s).
-
-4. **Seller Information** card — icon `UserCheck` + header. Seller avatar, name, verified badge, "Trusted seller since..." text, Rating + Completed Sales grid. Data from seller dashboard query.
-
-**Right Sidebar (1/3 column):**
-
-1. **Pricing & Stock** card — Large price display (₦ formatted). Stock count with Low Stock/In Stock badge. Status badge. Visibility with icon + label + description. Public Store Link with copy button.
-
-2. **Performance** card — Views, Saved, Last Updated rows with icons.
-
-3. **Quick Actions** card — "Edit Product" (gradient primary), "Preview Public Page" (outline, navigates to public storefront URL), "Share Product" (outline), "Unpublish" (warning outline), "Archive Product" (danger outline). All functional buttons.
-
-**Data fetching:** Reuses existing `getSellerProductDetail` service + `getSellerDashboard` for seller info. No new edge functions needed.
-
-**Theme enforcement:** All colors use Tailwind semantic classes (`bg-card`, `text-foreground`, `border-border`, `text-muted-foreground`, etc.). No hardcoded hex values.
-
-## Modified Files
-
-### `src/App.tsx`
-- Import `SellerProductPreview`
-- Add route: `<Route path="/seller/storefront/:productId/preview" element={<SellerProductPreview />} />`
-- Place it BEFORE the `:productId` catch-all route
-
-### `src/pages/SellerProductDetail.tsx`
-- Update "Preview Product" button's `onClick` to navigate to `/seller/storefront/${productId}/preview`
-
-## What Stays the Same
-- All services, edge functions, DB schema unchanged
-- Edit page functionality unchanged
-- Sidebar component reused as-is
+All data sources remain the same. Just JSX/styling corrections to match the design pixel-perfectly.
 
