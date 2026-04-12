@@ -351,14 +351,27 @@ const SellerProductPreview = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-base font-semibold text-foreground">{sellerName}</p>
-                        {verificationLevel !== "unverified" && (
+                        {(verificationLevel === "trusted_buyer" || verificationLevel === "high_trust_buyer") && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 border border-green-500/20">
                             <CheckCircle2 className="h-3 w-3" />
                             Verified
                           </span>
                         )}
+                        {verificationLevel === "basic_verified" && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Basic Verified
+                          </span>
+                        )}
+                        {verificationLevel === "unverified" && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                            Unverified
+                          </span>
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground mb-3">Trusted seller since {memberSince}</p>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {verificationLevel !== "unverified" ? "Trusted seller since" : "Member since"} {memberSince}
+                      </p>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Rating</p>
