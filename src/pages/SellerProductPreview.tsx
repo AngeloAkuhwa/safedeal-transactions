@@ -4,7 +4,7 @@ import {
   ArrowLeft, Loader2, Eye, ExternalLink, Pencil,
   Globe, Users, Lock, Copy, Share2, ShieldCheck, Archive,
   ImageIcon, AlignLeft, FileText, UserCheck, EyeOff,
-  Clock, Bookmark, BarChart3, Package, CheckCircle2,
+  Clock, Bookmark, BarChart3, Package, CheckCircle2, Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
