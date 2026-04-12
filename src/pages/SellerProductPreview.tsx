@@ -4,7 +4,7 @@ import {
   ArrowLeft, Loader2, Eye, ExternalLink, Pencil,
   Globe, Users, Lock, Copy, Share2, ShieldCheck, Archive,
   ImageIcon, AlignLeft, FileText, UserCheck, EyeOff,
-  Clock, Bookmark, BarChart3, Package, CheckCircle2,
+  Clock, Bookmark, BarChart3, Package, CheckCircle2, Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -336,37 +336,42 @@ const SellerProductPreview = () => {
 
               {/* Seller Information */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="p-6 border-b border-border">
                   <div className="flex items-center gap-2">
                     <UserCheck className="h-5 w-5 text-primary" />
                     <h2 className="text-lg font-semibold text-foreground">Seller Information</h2>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">Your public seller profile</p>
                 </div>
                 <div className="p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <Avatar className="h-12 w-12 ring-2 ring-border">
+                  <div className="flex items-start gap-4">
+                    <Avatar className="h-16 w-16 border-2 border-muted">
                       <AvatarImage src={avatarUrl ?? undefined} alt={sellerName} />
                       <AvatarFallback className="bg-muted text-foreground text-sm">{sellerInitials}</AvatarFallback>
                     </Avatar>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground">{sellerName}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-base font-semibold text-foreground">{sellerName}</p>
                         {verificationLevel !== "unverified" && (
-                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 border border-green-500/20">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Verified
+                          </span>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground">Trusted seller since {memberSince}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Rating</p>
-                      <p className="text-sm font-semibold text-foreground">—</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Completed Sales</p>
-                      <p className="text-sm font-semibold text-foreground">{(dashData?.metrics as any)?.transactions_created_count || 0}</p>
+                      <p className="text-sm text-muted-foreground mb-3">Trusted seller since {memberSince}</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Rating</p>
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                            <p className="text-sm font-semibold text-foreground">—</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Completed Sales</p>
+                          <p className="text-sm font-semibold text-foreground">{(dashData?.metrics as any)?.transactions_created_count || 0}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
