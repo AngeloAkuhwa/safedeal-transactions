@@ -577,6 +577,23 @@ const SellerProductPreview = () => {
           </div>
         </div>
       </div>
+      <ManageVisibilityModal
+        open={visibilityModalOpen}
+        onOpenChange={setVisibilityModalOpen}
+        product={product ? {
+          id: product.id,
+          title: product.title,
+          category_name: product.category_name,
+          unit_price: product.unit_price,
+          currency_code: product.currency_code || "NGN",
+          status: product.status,
+          visibility_type: product.visibility_type,
+          primary_image_url: product.primary_image_url,
+        } : null}
+        onUnpublish={handleUnpublish}
+        onArchive={handleArchive}
+        isPending={actionPending}
+      />
     </div>
   );
 };

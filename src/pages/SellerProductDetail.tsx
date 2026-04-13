@@ -579,4 +579,4 @@ const SellerProductDetail = () => {
 };
 
 export default SellerProductDetail;
-
+  const [visibilityModalOpen, setVisibilityModalOpen] = useState(false);
