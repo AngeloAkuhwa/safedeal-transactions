@@ -60,6 +60,33 @@ const SellerStorefront = () => {
   const sellerName = dashData?.seller?.full_name || "Seller";
   const avatarUrl = dashData?.seller?.avatar_url || null;
   const verificationLevel = trust?.verification_level || "unverified";
+  const handleUnpublish = async (productId: string) => {
+    setActionPending(true);
+    try {
+      await updateProduct(productId, { status: "draft" });
+      toast.success("Product unpublished");
+      setManageProduct(null);
+      queryClient.invalidateQueries({ queryKey: ["seller-products"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setActionPending(false);
+    }
+  };
+
+  const handleArchive = async (productId: string) => {
+    setActionPending(true);
+    try {
+      await archiveProduct(productId);
+      toast.success("Product archived");
+      setManageProduct(null);
+      queryClient.invalidateQueries({ queryKey: ["seller-products"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setActionPending(false);
+    }
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -232,6 +259,7 @@ const SellerStorefront = () => {
                         product={product}
                         onClick={() => navigate(`/seller/storefront/${product.id}`)}
                         onEdit={() => navigate(`/seller/storefront/${product.id}`)}
+                        onManageVisibility={() => setManageProduct(product)}
                       />
                     ))}
                   </div>
