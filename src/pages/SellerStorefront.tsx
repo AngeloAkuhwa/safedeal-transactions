@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Plus, RefreshCw, Store, Search, ShieldCheck, Star, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefrontSidebar";
 import { SellerProductCard } from "@/components/storefront/SellerProductCard";
 import { StorefrontShareCard } from "@/components/storefront/StorefrontShareCard";
-import { getSellerProducts, getProductCategories } from "@/services/seller-storefront.service";
+import { ManageVisibilityModal } from "@/components/storefront/ManageVisibilityModal";
+import { getSellerProducts, getProductCategories, updateProduct, archiveProduct } from "@/services/seller-storefront.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
+import { toast } from "@/components/ui/sonner";
 
 function getVerificationLabel(level: string) {
   switch (level) {
@@ -27,10 +29,13 @@ function getVerificationDotColor(level: string) {
 
 const SellerStorefront = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("all");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [manageProduct, setManageProduct] = useState<any>(null);
+  const [actionPending, setActionPending] = useState(false);
 
   const { data: dashData } = useQuery({
     queryKey: ["seller-dashboard"],
