@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Plus, RefreshCw, Store, Search, ShieldCheck, Star, Package } from "lucide-react";
+import { Loader2, Plus, RefreshCw, Store, Search, ShieldCheck, Star, Package, PackageOpen, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefrontSidebar";
 import { SellerProductCard } from "@/components/storefront/SellerProductCard";
@@ -236,19 +236,36 @@ const SellerStorefront = () => {
                   </Button>
                 </div>
               ) : !data?.products?.length ? (
-                <div className="bg-card border border-border rounded-2xl p-12 text-center">
-                  <Store className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-                  <h2 className="text-xl font-bold text-foreground mb-2">No products yet</h2>
-                  <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
-                    Create your first product listing to start building your public storefront.
+                <div className="bg-card border border-border rounded-2xl p-16 flex flex-col items-center text-center">
+                  <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+                    <PackageOpen className="h-10 w-10 text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground mb-3">You haven't added any products yet</h2>
+                  <p className="text-muted-foreground text-sm max-w-lg mx-auto mb-8 leading-relaxed">
+                    Start building your storefront by adding your first product. Once listed, buyers can discover and purchase directly from your public store page.
                   </p>
                   <Button
                     onClick={() => navigate("/seller/storefront/new")}
-                    className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border-0 rounded-xl"
+                    size="lg"
+                    className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground border-0 rounded-xl px-8 py-4 text-base"
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-5 w-5" />
                     Add Your First Product
                   </Button>
+
+                  <div className="mt-10 max-w-md w-full rounded-xl border border-primary/20 bg-primary/5 p-5 text-left">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5">
+                        <Lightbulb className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground mb-1">Pro Tip</h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Once you add a product, you can share your storefront link with buyers. They'll be able to browse your listings and start transactions directly.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <>
