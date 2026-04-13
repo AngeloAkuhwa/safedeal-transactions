@@ -239,7 +239,7 @@ const SellerProductDetail = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => product.status === "published" ? setVisibilityModalOpen(true) : handleStatusToggle()}
+              onClick={handleStatusToggle}
               disabled={updateMutation.isPending}
               className="gap-1.5"
             >
@@ -612,6 +612,32 @@ const SellerProductDetail = () => {
           });
         }}
         isPending={updateMutation.isPending || archiveMutation.isPending}
+      />
+      <PublishSuccessModal
+        open={publishSuccessOpen}
+        onOpenChange={setPublishSuccessOpen}
+        product={product ? {
+          title: product.title,
+          category_name: product.category?.name || null,
+          unit_price: product.unit_price,
+          currency_code: product.currency_code || "NGN",
+          primary_image_url: product.media?.[0]?.file_url || null,
+          slug: product.slug || "",
+        } : null}
+        storeSlug={product?.store_slug || dashData?.seller?.store_slug || null}
+        onPreview={() => {
+          setPublishSuccessOpen(false);
+          navigate(`/seller/storefront/${productId}/preview`);
+        }}
+        onViewStore={() => {
+          setPublishSuccessOpen(false);
+          const slug = product?.store_slug || dashData?.seller?.store_slug;
+          if (slug) navigate(`/store/${slug}`);
+        }}
+        onBackToStorefront={() => {
+          setPublishSuccessOpen(false);
+          navigate("/seller/storefront");
+        }}
       />
     </div>
   );
