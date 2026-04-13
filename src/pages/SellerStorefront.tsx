@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Plus, RefreshCw, Store, Search, ShieldCheck, Star, Package } from "lucide-react";
+import { Loader2, Plus, RefreshCw, Store, Search, ShieldCheck, Star, Package, PackageOpen, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefrontSidebar";
 import { SellerProductCard } from "@/components/storefront/SellerProductCard";
