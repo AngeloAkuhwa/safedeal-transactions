@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Loader2, Eye, ExternalLink, Pencil,
   Globe, Users, Lock, Copy, Share2, ShieldCheck, Archive,
@@ -11,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
 import { ProductStatusBadge } from "@/components/storefront/ProductStatusBadge";
 import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefrontSidebar";
-import { getSellerProductDetail } from "@/services/seller-storefront.service";
+import { ManageVisibilityModal } from "@/components/storefront/ManageVisibilityModal";
+import { getSellerProductDetail, updateProduct, archiveProduct } from "@/services/seller-storefront.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";

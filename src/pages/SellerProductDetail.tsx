@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { ManageVisibilityModal } from "@/components/storefront/ManageVisibilityModal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
