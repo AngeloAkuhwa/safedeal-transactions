@@ -274,6 +274,14 @@ const SellerStorefront = () => {
           )}
         </div>
       </div>
+      <ManageVisibilityModal
+        open={!!manageProduct}
+        onOpenChange={(open) => !open && setManageProduct(null)}
+        product={manageProduct}
+        onUnpublish={handleUnpublish}
+        onArchive={handleArchive}
+        isPending={actionPending}
+      />
     </div>
   );
 };
