@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { ManageVisibilityModal } from "@/components/storefront/ManageVisibilityModal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -56,6 +57,7 @@ const SellerProductDetail = () => {
   const [brand, setBrand] = useState("");
   const [modelSku, setModelSku] = useState("");
   const [verificationWindow, setVerificationWindow] = useState("48");
+  const [visibilityModalOpen, setVisibilityModalOpen] = useState(false);
 
   const { data: dashData } = useQuery({
     queryKey: ["seller-dashboard"],
@@ -214,7 +216,7 @@ const SellerProductDetail = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => archiveMutation.mutate()}
+              onClick={() => setVisibilityModalOpen(true)}
               disabled={archiveMutation.isPending}
               className="gap-1.5 text-destructive hover:text-destructive hidden sm:flex"
             >
@@ -224,7 +226,7 @@ const SellerProductDetail = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleStatusToggle}
+              onClick={() => product.status === "published" ? setVisibilityModalOpen(true) : handleStatusToggle()}
               disabled={updateMutation.isPending}
               className="gap-1.5"
             >
@@ -573,9 +575,34 @@ const SellerProductDetail = () => {
           </div>
         </div>
       </div>
+      <ManageVisibilityModal
+        open={visibilityModalOpen}
+        onOpenChange={setVisibilityModalOpen}
+        product={product ? {
+          id: product.id,
+          title: product.title,
+          category_name: product.category_name,
+          unit_price: product.unit_price,
+          currency_code: product.currency_code || "NGN",
+          status: product.status,
+          visibility_type: product.visibility_type,
+          primary_image_url: product.primary_image_url,
+        } : null}
+        onUnpublish={(pid) => {
+          updateMutation.mutate({ status: "draft" }, {
+            onSuccess: () => setVisibilityModalOpen(false),
+          });
+        }}
+        onArchive={(pid) => {
+          archiveMutation.mutate(undefined, {
+            onSuccess: () => setVisibilityModalOpen(false),
+          });
+        }}
+        isPending={updateMutation.isPending || archiveMutation.isPending}
+      />
     </div>
   );
 };
 
 export default SellerProductDetail;
-
+  

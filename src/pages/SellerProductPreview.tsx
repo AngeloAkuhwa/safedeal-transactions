@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Loader2, Eye, ExternalLink, Pencil,
   Globe, Users, Lock, Copy, Share2, ShieldCheck, Archive,
@@ -11,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
 import { ProductStatusBadge } from "@/components/storefront/ProductStatusBadge";
 import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefrontSidebar";
-import { getSellerProductDetail } from "@/services/seller-storefront.service";
+import { ManageVisibilityModal } from "@/components/storefront/ManageVisibilityModal";
+import { getSellerProductDetail, updateProduct, archiveProduct } from "@/services/seller-storefront.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
@@ -69,6 +71,9 @@ const visibilityMap: Record<string, { label: string; icon: typeof Globe; color: 
 const SellerProductPreview = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [visibilityModalOpen, setVisibilityModalOpen] = useState(false);
+  const [actionPending, setActionPending] = useState(false);
 
   const { data: dashData } = useQuery({
     queryKey: ["seller-dashboard"],
@@ -85,6 +90,33 @@ const SellerProductPreview = () => {
   const sellerName = dashData?.seller?.full_name || "Seller";
   const avatarUrl = dashData?.seller?.avatar_url || null;
   const verificationLevel = (dashData?.seller as any)?.verification_level || "unverified";
+  const handleUnpublish = async (pid: string) => {
+    setActionPending(true);
+    try {
+      await updateProduct(pid, { status: "draft" });
+      toast.success("Product unpublished");
+      setVisibilityModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["seller-product-detail", productId] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setActionPending(false);
+    }
+  };
+
+  const handleArchive = async (pid: string) => {
+    setActionPending(true);
+    try {
+      await archiveProduct(pid);
+      toast.success("Product archived");
+      setVisibilityModalOpen(false);
+      navigate("/seller/storefront");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setActionPending(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -510,6 +542,7 @@ const SellerProductPreview = () => {
                     variant="outline"
                     size="sm"
                     className="w-full justify-center gap-2 text-amber-600 border-amber-500/30 hover:bg-amber-500/10"
+                    onClick={() => setVisibilityModalOpen(true)}
                   >
                     <EyeOff className="h-3.5 w-3.5" />
                     Unpublish
@@ -518,6 +551,7 @@ const SellerProductPreview = () => {
                     variant="outline"
                     size="sm"
                     className="w-full justify-center gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    onClick={() => setVisibilityModalOpen(true)}
                   >
                     <Archive className="h-3.5 w-3.5" />
                     Archive Product
@@ -543,6 +577,23 @@ const SellerProductPreview = () => {
           </div>
         </div>
       </div>
+      <ManageVisibilityModal
+        open={visibilityModalOpen}
+        onOpenChange={setVisibilityModalOpen}
+        product={product ? {
+          id: product.id,
+          title: product.title,
+          category_name: product.category_name,
+          unit_price: product.unit_price,
+          currency_code: product.currency_code || "NGN",
+          status: product.status,
+          visibility_type: product.visibility_type,
+          primary_image_url: product.primary_image_url,
+        } : null}
+        onUnpublish={handleUnpublish}
+        onArchive={handleArchive}
+        isPending={actionPending}
+      />
     </div>
   );
 };
