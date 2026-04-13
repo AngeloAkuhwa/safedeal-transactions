@@ -17,6 +17,7 @@ interface SellerProductCardProps {
   };
   onClick?: () => void;
   onEdit?: () => void;
+  onManageVisibility?: () => void;
 }
 
 function formatPrice(amount: number, currency: string) {
