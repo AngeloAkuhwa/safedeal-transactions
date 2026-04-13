@@ -36,6 +36,9 @@ export interface SellerDashboardResponse {
   seller: {
     full_name: string;
     avatar_url: string | null;
+    store_slug: string | null;
+    created_at: string | null;
+    verification_level: string;
   };
   alerts: SellerAlert[];
   metrics: SellerMetrics;
