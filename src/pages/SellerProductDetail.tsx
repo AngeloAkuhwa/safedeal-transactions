@@ -150,7 +150,7 @@ const SellerProductDetail = () => {
 
   const sellerName = dashData?.seller?.full_name || "Seller";
   const avatarUrl = dashData?.seller?.avatar_url || null;
-  const verificationLevel = "unverified";
+  const verificationLevel = dashData?.seller?.verification_level || "unverified";
 
   if (isLoading) {
     return (
@@ -403,7 +403,7 @@ const SellerProductDetail = () => {
                       {[
                         { value: "pickup", label: "Pickup" },
                         { value: "delivery", label: "Delivery" },
-                        { value: "shipping", label: "Courier / Shipping" },
+                        { value: "courier_shipping", label: "Courier / Shipping" },
                         { value: "digital", label: "Digital / Instant" },
                         { value: "hand_delivery", label: "Hand Delivery" },
                         { value: "meetup", label: "Meetup" },

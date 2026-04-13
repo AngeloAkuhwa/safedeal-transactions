@@ -55,6 +55,7 @@ function formatDeliveryLabel(value: string) {
     pickup: "Pickup",
     delivery: "Delivery",
     shipping: "Courier / Shipping",
+    courier_shipping: "Courier / Shipping",
     digital: "Digital / Instant",
     hand_delivery: "Hand Delivery",
     meetup: "Meetup",
@@ -89,7 +90,7 @@ const SellerProductPreview = () => {
 
   const sellerName = dashData?.seller?.full_name || "Seller";
   const avatarUrl = dashData?.seller?.avatar_url || null;
-  const verificationLevel = (dashData?.seller as any)?.verification_level || "unverified";
+  const verificationLevel = dashData?.seller?.verification_level || "unverified";
   const handleUnpublish = async (pid: string) => {
     setActionPending(true);
     try {
