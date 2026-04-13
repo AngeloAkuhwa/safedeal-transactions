@@ -58,7 +58,7 @@ const SellerProductDetail = () => {
   const [brand, setBrand] = useState("");
   const [modelSku, setModelSku] = useState("");
   const [verificationWindow, setVerificationWindow] = useState("48");
-  const [visibilityModalOpen, setVisibilityModalOpen] = useState(false);
+  const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
 
   const { data: dashData } = useQuery({
     queryKey: ["seller-dashboard"],
@@ -145,8 +145,19 @@ const SellerProductDetail = () => {
 
   const handleStatusToggle = () => {
     const currentStatus = data?.product?.status;
-    const newStatus = currentStatus === "published" ? "draft" : "published";
-    updateMutation.mutate({ status: newStatus });
+    if (currentStatus === "published") {
+      // Unpublish goes through modal
+      setVisibilityModalOpen(true);
+      return;
+    }
+    // Publishing draft → published
+    updateMutation.mutate({ status: "published" }, {
+      onSuccess: () => {
+        setPublishSuccessOpen(true);
+        queryClient.invalidateQueries({ queryKey: ["seller-product-detail", productId] });
+        queryClient.invalidateQueries({ queryKey: ["seller-products"] });
+      },
+    });
   };
 
   const sellerName = dashData?.seller?.full_name || "Seller";
