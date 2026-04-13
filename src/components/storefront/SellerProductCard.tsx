@@ -52,7 +52,7 @@ const visibilityConfig: Record<string, { label: string; bg: string; text: string
   private_draft: { label: "Private", bg: "bg-muted", text: "text-muted-foreground" },
 };
 
-export function SellerProductCard({ product, onClick, onEdit }: SellerProductCardProps) {
+export function SellerProductCard({ product, onClick, onEdit, onManageVisibility }: SellerProductCardProps) {
   const isOutOfStock = product.stock_quantity === 0;
   const isLowStock = product.stock_quantity >= 1 && product.stock_quantity <= 5;
   const status = statusConfig[product.status || "draft"] || statusConfig.draft;
@@ -149,7 +149,10 @@ export function SellerProductCard({ product, onClick, onEdit }: SellerProductCar
             size="sm"
             variant="outline"
             className="text-muted-foreground hover:text-foreground"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onManageVisibility?.();
+            }}
           >
             <MoreVertical className="h-3.5 w-3.5" />
           </Button>
