@@ -310,9 +310,23 @@ async function handleList(adminClient: any, userId: string, req: Request) {
     }
   }
 
+  // Fetch category names for all products
+  const categoryIds = [...new Set((products || []).map((p: any) => p.category_id).filter(Boolean))];
+  let categoryMap: Record<string, string> = {};
+  if (categoryIds.length > 0) {
+    const { data: categories } = await adminClient
+      .from("product_categories")
+      .select("id, name")
+      .in("id", categoryIds);
+    if (categories) {
+      for (const c of categories) categoryMap[c.id] = c.name;
+    }
+  }
+
   const enriched = (products || []).map((p: any) => ({
     ...p,
     primary_image_url: mediaMap[p.id]?.file_url || null,
+    category_name: p.category_id ? categoryMap[p.category_id] || null : null,
   }));
 
   // Build trust_summary from DB data

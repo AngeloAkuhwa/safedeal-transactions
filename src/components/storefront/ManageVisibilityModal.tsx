@@ -1,9 +1,10 @@
 import { Archive, EyeOff, Info, Package, X } from "lucide-react";
-import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
+import { Dialog, DialogPortal, DialogOverlay, DialogTitle } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
 import { ProductStatusBadge } from "./ProductStatusBadge";
 import { ProductVisibilityBadge } from "./ProductVisibilityBadge";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
 interface ManageVisibilityProduct {
   id: string;
