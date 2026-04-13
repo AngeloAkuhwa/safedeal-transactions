@@ -58,6 +58,7 @@ const SellerProductDetail = () => {
   const [brand, setBrand] = useState("");
   const [modelSku, setModelSku] = useState("");
   const [verificationWindow, setVerificationWindow] = useState("48");
+  const [visibilityModalOpen, setVisibilityModalOpen] = useState(false);
   const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
 
   const { data: dashData } = useQuery({
