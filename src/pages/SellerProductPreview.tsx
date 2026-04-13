@@ -71,6 +71,9 @@ const visibilityMap: Record<string, { label: string; icon: typeof Globe; color: 
 const SellerProductPreview = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [visibilityModalOpen, setVisibilityModalOpen] = useState(false);
+  const [actionPending, setActionPending] = useState(false);
 
   const { data: dashData } = useQuery({
     queryKey: ["seller-dashboard"],
