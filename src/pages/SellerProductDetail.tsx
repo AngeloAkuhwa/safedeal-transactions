@@ -548,7 +548,7 @@ const SellerProductDetail = () => {
                     variant="outline"
                     size="sm"
                     className="w-full justify-center gap-2 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
-                    onClick={() => archiveMutation.mutate()}
+                    onClick={() => setVisibilityModalOpen(true)}
                     disabled={archiveMutation.isPending}
                   >
                     <Archive className="h-3.5 w-3.5" />
@@ -581,12 +581,12 @@ const SellerProductDetail = () => {
         product={product ? {
           id: product.id,
           title: product.title,
-          category_name: product.category_name,
+          category_name: product.category?.name || null,
           unit_price: product.unit_price,
           currency_code: product.currency_code || "NGN",
           status: product.status,
           visibility_type: product.visibility_type,
-          primary_image_url: product.primary_image_url,
+          primary_image_url: product.media?.[0]?.file_url || null,
         } : null}
         onUnpublish={(pid) => {
           updateMutation.mutate({ status: "draft" }, {
