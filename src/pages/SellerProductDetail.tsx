@@ -57,6 +57,7 @@ const SellerProductDetail = () => {
   const [brand, setBrand] = useState("");
   const [modelSku, setModelSku] = useState("");
   const [verificationWindow, setVerificationWindow] = useState("48");
+  const [visibilityModalOpen, setVisibilityModalOpen] = useState(false);
 
   const { data: dashData } = useQuery({
     queryKey: ["seller-dashboard"],
@@ -579,4 +580,4 @@ const SellerProductDetail = () => {
 };
 
 export default SellerProductDetail;
-  const [visibilityModalOpen, setVisibilityModalOpen] = useState(false);
+  
