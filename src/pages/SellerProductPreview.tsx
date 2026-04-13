@@ -90,6 +90,33 @@ const SellerProductPreview = () => {
   const sellerName = dashData?.seller?.full_name || "Seller";
   const avatarUrl = dashData?.seller?.avatar_url || null;
   const verificationLevel = (dashData?.seller as any)?.verification_level || "unverified";
+  const handleUnpublish = async (pid: string) => {
+    setActionPending(true);
+    try {
+      await updateProduct(pid, { status: "draft" });
+      toast.success("Product unpublished");
+      setVisibilityModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["seller-product-detail", productId] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setActionPending(false);
+    }
+  };
+
+  const handleArchive = async (pid: string) => {
+    setActionPending(true);
+    try {
+      await archiveProduct(pid);
+      toast.success("Product archived");
+      setVisibilityModalOpen(false);
+      navigate("/seller/storefront");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setActionPending(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -515,6 +542,7 @@ const SellerProductPreview = () => {
                     variant="outline"
                     size="sm"
                     className="w-full justify-center gap-2 text-amber-600 border-amber-500/30 hover:bg-amber-500/10"
+                    onClick={() => setVisibilityModalOpen(true)}
                   >
                     <EyeOff className="h-3.5 w-3.5" />
                     Unpublish
@@ -523,6 +551,7 @@ const SellerProductPreview = () => {
                     variant="outline"
                     size="sm"
                     className="w-full justify-center gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    onClick={() => setVisibilityModalOpen(true)}
                   >
                     <Archive className="h-3.5 w-3.5" />
                     Archive Product
