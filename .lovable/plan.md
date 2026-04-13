@@ -1,37 +1,43 @@
 
 
-# Fix: Remove Hardcoded Values & Type Mismatches in Seller Storefront
+# Fix: Unpublish/Archive "Fetch Failed" + Missing Image & Status in Modal
 
-## Problems
+## Two separate issues
 
-1. **`SellerDashboardResponse` type is stale** — the edge function now returns `verification_level`, `store_slug`, and `created_at` on the `seller` object, but the TypeScript interface only declares `full_name` and `avatar_url`. This forces unsafe `as any` casts everywhere.
+### Issue 1: CORS — "Failed to fetch" on Unpublish/Archive
 
-2. **Hardcoded `verificationLevel` on Edit page** — `SellerProductDetail.tsx` line 153 has `const verificationLevel = "unverified"` instead of reading from dashboard data.
+The `seller-product-detail` edge function is missing `Access-Control-Allow-Methods` in its CORS headers. Browsers require this header for PATCH/DELETE preflight requests. Without it, the request is blocked before it reaches the server.
 
-3. **Delivery method value mismatch** — the Create page stores `"courier_shipping"` in the DB, but the Edit page and Preview page reference `"shipping"` for the same option. Products created via the Create flow won't display correctly on Edit/Preview.
+**File:** `supabase/functions/seller-product-detail/index.ts`
 
-## Changes
-
-### `src/services/seller-dashboard.service.ts`
-Update the `SellerDashboardResponse.seller` interface to include the fields the edge function actually returns:
+Add `Access-Control-Allow-Methods` to `corsHeaders`:
 ```typescript
-seller: {
-  full_name: string;
-  avatar_url: string | null;
-  store_slug: string | null;
-  created_at: string | null;
-  verification_level: string;
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, ...",
 };
 ```
 
-### `src/pages/SellerProductDetail.tsx`
-- **Line 153**: Replace `const verificationLevel = "unverified"` with `const verificationLevel = dashData?.seller?.verification_level || "unverified"` (no more `as any` needed after the type fix above).
-- **Line 406**: Change delivery value `"shipping"` to `"courier_shipping"` to match the Create page and DB values.
+Then redeploy the function.
 
-### `src/pages/SellerProductPreview.tsx`
-- **Line 57**: Add `courier_shipping: "Courier / Shipping"` to the `formatDeliveryLabel` map. Keep `shipping` as a backward-compatible alias.
-- **Line 92**: Remove the `as any` cast — it will work cleanly after the type update.
+### Issue 2: Missing image and category in modal
 
-## No backend or DB changes needed
-The edge function already returns all these fields. This is purely a frontend type + value consistency fix.
+The product list from `seller-products` edge function returns `primary_image_url` and `status` correctly, so those should display. However, `category_name` is NOT returned — the query only selects `category_id`. The modal needs category name for the display (e.g., "Electronics • ₦1,230,000").
+
+**File:** `supabase/functions/seller-products/index.ts`
+
+After fetching products, look up category names from `product_categories` for all unique `category_id` values and enrich each product with `category_name`.
+
+### Issue 3: Accessibility warning
+
+**File:** `src/components/storefront/ManageVisibilityModal.tsx`
+
+Add `DialogTitle` from Radix (visually hidden or using the existing h3) and `aria-describedby={undefined}` to suppress console warnings.
+
+## Files changed
+
+1. `supabase/functions/seller-product-detail/index.ts` — add `Access-Control-Allow-Methods` CORS header
+2. `supabase/functions/seller-products/index.ts` — enrich products with `category_name` from `product_categories`
+3. `src/components/storefront/ManageVisibilityModal.tsx` — add `DialogTitle` for accessibility
 
