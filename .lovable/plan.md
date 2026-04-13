@@ -1,40 +1,56 @@
 
 
-# Fix: Seller Information — Show Real Verification Status & "Trusted Since" Year
+# Add "Manage Product Visibility" Modal
 
-## Problem
+## Overview
 
-The Seller Information card on the preview page shows incorrect data because:
-- The `seller-dashboard` edge function only fetches `full_name, avatar_url` from `profiles`
-- `verification_level`, `created_at`, and `store_slug` are never returned, so they're always `undefined`
-- The "Verified" badge and "Trusted seller since" text show fallback values
+Create a reusable modal component matching the design from `main_8-2.html` (lines 343-423). When the user clicks "Unpublish" or "Archive Product" anywhere on product cards or pages, this modal opens showing the product details and two action choices: Unpublish or Archive.
 
-## Solution
+## New File
 
-### 1. Update `seller-dashboard` edge function
+### `src/components/storefront/ManageVisibilityModal.tsx`
 
-Expand the profile select to include the missing fields:
+A Dialog-based modal accepting props:
+- `open`, `onOpenChange` — dialog state
+- `product` — `{ id, title, category_name, unit_price, currency_code, status, visibility_type, primary_image_url }`
+- `onUnpublish(productId)` — callback
+- `onArchive(productId)` — callback
+- `isPending` — loading state
 
-```sql
--- Change from:
-.select("full_name, avatar_url")
--- To:
-.select("full_name, avatar_url, store_slug, created_at")
-```
+**Modal content (matching design exactly):**
+1. **Header:** Archive icon (amber) + "Manage Product Visibility" title + close X button
+2. **Product summary card:** `bg-muted` rounded-xl with 20x20 product image thumbnail, product title, category + price, status + visibility badges
+3. **Warning banner:** amber `bg-warning/5 border-warning/20` — "Choose an action" heading + description
+4. **Two action cards:**
+   - **Unpublish:** `EyeOff` icon in amber bg, title, description, amber "Unpublish Product" button
+   - **Archive:** `Archive` icon in red bg, title, description, red "Archive Product" button
+5. **Footer:** Cancel button, right-aligned, separated by `border-t`
 
-Also fetch `verification_level` from `account_verifications` table and include it in the `seller` response object.
+All using theme classes (`bg-card`, `text-foreground`, `border-border`, `bg-muted`, etc.).
 
-### 2. Update `src/pages/SellerProductPreview.tsx` — Seller Information card
+## Modified Files
 
-- Show verification status dynamically based on actual `verification_level`:
-  - `trusted_buyer` / `high_trust_buyer` → green "Verified" pill badge
-  - `basic_verified` → blue "Basic Verified" pill badge  
-  - `unverified` → amber "Unverified" text (no green badge)
-- "Trusted seller since" shows the year from `created_at` (e.g., "Trusted seller since 2024")
-- If unverified, show "Member since 2024" instead of "Trusted seller since"
+### `src/pages/SellerStorefront.tsx`
+- Import `ManageVisibilityModal`
+- Add state: `manageProduct` (the product to manage, or null)
+- Pass `onManageVisibility` callback to `SellerProductCard`
+- Render modal; `onUnpublish` calls `updateProduct(id, { status: "draft" })` and refetches; `onArchive` calls `archiveProduct(id)` and refetches
 
-### Files Changed
+### `src/components/storefront/SellerProductCard.tsx`
+- Add `onManageVisibility?: () => void` prop
+- Wire the existing `MoreVertical` button to call `onManageVisibility`
+- Alternatively, add an "Unpublish" quick-action if product is published
 
-1. `supabase/functions/seller-dashboard/index.ts` — expand profile query + add verification_level fetch
-2. `src/pages/SellerProductPreview.tsx` — update Seller Information card to use real data with proper fallbacks
+### `src/pages/SellerProductPreview.tsx`
+- Import `ManageVisibilityModal`
+- Add state for modal open + wire the existing "Unpublish" and "Archive Product" buttons to open it
+- `onUnpublish` / `onArchive` call existing `updateProduct` / `archiveProduct` services, then refetch or navigate back
+
+### `src/pages/SellerProductDetail.tsx`
+- Import `ManageVisibilityModal`
+- Replace direct `handleStatusToggle` on the Unpublish button and direct archive button with opening the modal
+- Wire `onUnpublish` / `onArchive` to existing mutation logic
+
+## No backend changes needed
+Existing `updateProduct` (PATCH status) and `archiveProduct` (DELETE) services handle both actions.
 
