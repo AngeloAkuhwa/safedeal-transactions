@@ -1,43 +1,55 @@
 
 
-# Fix: Unpublish/Archive "Fetch Failed" + Missing Image & Status in Modal
+# Fix: Seller Storefront — Modal Data, Sidebar Archive, and Cleanup
 
-## Two separate issues
+## What was already done (Issues 1-3 — completed)
 
-### Issue 1: CORS — "Failed to fetch" on Unpublish/Archive
+1. **CORS headers** on `seller-product-detail` edge function — fixed and deployed
+2. **Category name enrichment** in `seller-products` edge function — fixed and deployed
+3. **Accessibility** (`DialogTitle` + `aria-describedby`) on `ManageVisibilityModal` — fixed
 
-The `seller-product-detail` edge function is missing `Access-Control-Allow-Methods` in its CORS headers. Browsers require this header for PATCH/DELETE preflight requests. Without it, the request is blocked before it reaches the server.
+## What still needs fixing (Issues 4-6)
 
-**File:** `supabase/functions/seller-product-detail/index.ts`
+### Issue 4: Modal shows no image or category on Edit and Preview pages
 
-Add `Access-Control-Allow-Methods` to `corsHeaders`:
+The detail endpoint returns nested objects (`product.category.name`, `product.media[0].file_url`), but both `SellerProductDetail.tsx` and `SellerProductPreview.tsx` pass flat fields (`product.category_name`, `product.primary_image_url`) which are `undefined`.
+
+**Files:**
+- `src/pages/SellerProductDetail.tsx` (lines 581-589)
+- `src/pages/SellerProductPreview.tsx` (lines 584-592)
+
+**Change:** Replace the modal product prop mapping:
 ```typescript
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, ...",
-};
+category_name: product.category?.name || null,        // was: product.category_name
+primary_image_url: product.media?.[0]?.file_url || null, // was: product.primary_image_url
 ```
 
-Then redeploy the function.
+### Issue 5: Sidebar "Archive Product" button bypasses confirmation modal
 
-### Issue 2: Missing image and category in modal
+The Quick Actions sidebar button calls `archiveMutation.mutate()` directly instead of opening the modal.
 
-The product list from `seller-products` edge function returns `primary_image_url` and `status` correctly, so those should display. However, `category_name` is NOT returned — the query only selects `category_id`. The modal needs category name for the display (e.g., "Electronics • ₦1,230,000").
+**File:** `src/pages/SellerProductDetail.tsx` (line 551)
 
-**File:** `supabase/functions/seller-products/index.ts`
+**Change:** Replace `archiveMutation.mutate()` with `setVisibilityModalOpen(true)`
 
-After fetching products, look up category names from `product_categories` for all unique `category_id` values and enrich each product with `category_name`.
+### Issue 6: Update `.lovable/plan.md` to reflect current state
 
-### Issue 3: Accessibility warning
+Replace the plan file contents with a summary of all completed and newly applied fixes.
 
-**File:** `src/components/storefront/ManageVisibilityModal.tsx`
+## Summary of all actions after fix
 
-Add `DialogTitle` from Radix (visually hidden or using the existing h3) and `aria-describedby={undefined}` to suppress console warnings.
+| Action | Trigger | Behavior |
+|--------|---------|----------|
+| Save Changes | Header button | PATCH with form fields, toast success |
+| Publish | Header button (draft) | Direct PATCH `{ status: "published" }` |
+| Unpublish | Header button (published) | Opens modal → PATCH `{ status: "draft" }` |
+| Archive | Header OR sidebar button | Opens modal → DELETE (soft archive) |
 
 ## Files changed
 
-1. `supabase/functions/seller-product-detail/index.ts` — add `Access-Control-Allow-Methods` CORS header
-2. `supabase/functions/seller-products/index.ts` — enrich products with `category_name` from `product_categories`
-3. `src/components/storefront/ManageVisibilityModal.tsx` — add `DialogTitle` for accessibility
+1. `src/pages/SellerProductDetail.tsx` — fix modal data mapping + sidebar archive button
+2. `src/pages/SellerProductPreview.tsx` — fix modal data mapping
+3. `.lovable/plan.md` — update to reflect completed work
+
+No backend changes needed.
 
