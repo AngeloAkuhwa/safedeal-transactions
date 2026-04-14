@@ -19,6 +19,7 @@ import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { Footer } from "@/components/landing/Footer";
 import { PurchaseAuthModal } from "@/components/storefront/PurchaseAuthModal";
 import { useLocation } from "react-router-dom";
+import { useIsProductSaved, useToggleSave } from "@/hooks/useSavedProducts";
 
 function formatPrice(amount: number, currency: string) {
   if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
@@ -78,7 +79,6 @@ const PublicProductDetail = () => {
     }
     return 1;
   });
-  const [liked, setLiked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -90,6 +90,10 @@ const PublicProductDetail = () => {
     queryFn: () => getPublicProductDetail(sellerSlug!, productSlug!),
     enabled: !!sellerSlug && !!productSlug,
   });
+
+  const productId = data?.product?.id;
+  const { data: isSaved } = useIsProductSaved(productId);
+  const toggleSave = useToggleSave();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: sessData }) => {
@@ -201,10 +205,14 @@ const PublicProductDetail = () => {
         </button>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setLiked(!liked)}
+            onClick={() => {
+              if (!isAuthenticated) { setShowAuthModal(true); return; }
+              toggleSave.mutate({ productId: product.id, saved: !!isSaved });
+              toast.success(isSaved ? "Removed from saved" : "Saved for later");
+            }}
             className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
           >
-            <Heart className={`h-4 w-4 ${liked ? "fill-current text-destructive" : "text-muted-foreground"}`} />
+            <Heart className={`h-4 w-4 ${isSaved ? "fill-current text-destructive" : "text-muted-foreground"}`} />
           </button>
           <button
             onClick={handleShare}
@@ -372,10 +380,13 @@ const PublicProductDetail = () => {
             <Button
               variant="outline"
               className={`gap-2 rounded-xl h-11 ${glassPanel} !rounded-xl`}
-              onClick={() => handleAuthGatedAction(() => { setLiked(!liked); toast.success(liked ? "Removed from saved" : "Saved for later"); })}
+              onClick={() => handleAuthGatedAction(() => {
+                toggleSave.mutate({ productId: product.id, saved: !!isSaved });
+                toast.success(isSaved ? "Removed from saved" : "Saved for later");
+              })}
             >
               <BookmarkPlus className="h-4 w-4" />
-              Save for Later
+              {isSaved ? "Saved" : "Save for Later"}
             </Button>
             <Button
               variant="outline"
