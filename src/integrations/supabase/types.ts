@@ -2216,6 +2216,35 @@ export type Database = {
           },
         ]
       }
+      saved_products: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          product_id: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          product_id: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       serviceable_regions: {
         Row: {
           city_name: string | null
