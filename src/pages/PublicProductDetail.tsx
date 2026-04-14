@@ -348,7 +348,7 @@ const PublicProductDetail = () => {
             <Button
               variant="outline"
               className={`gap-2 rounded-xl h-11 ${glassPanel} !rounded-xl`}
-              onClick={() => { setLiked(!liked); toast.success(liked ? "Removed from saved" : "Saved for later"); }}
+              onClick={() => handleAuthGatedAction(() => { setLiked(!liked); toast.success(liked ? "Removed from saved" : "Saved for later"); })}
             >
               <BookmarkPlus className="h-4 w-4" />
               Save for Later
@@ -356,7 +356,7 @@ const PublicProductDetail = () => {
             <Button
               variant="outline"
               className={`gap-2 rounded-xl h-11 ${glassPanel} !rounded-xl`}
-              onClick={() => toast.info("Contact seller feature coming soon")}
+              onClick={() => handleAuthGatedAction(() => toast.info("Contact seller feature coming soon"))}
             >
               <MessageCircle className="h-4 w-4" />
               Contact Seller
@@ -585,6 +585,21 @@ const PublicProductDetail = () => {
         </div>
       </div>
     </div>
+  );
+
+  const authModal = (
+    <PurchaseAuthModal
+      open={showAuthModal}
+      onOpenChange={setShowAuthModal}
+      product={{
+        name: product.title,
+        image: images[0]?.file_url || null,
+        price: product.unit_price,
+        currency: product.currency_code,
+      }}
+      sellerName={seller.full_name}
+      returnPath={location.pathname}
+    />
   );
 
   if (isAuthenticated) {
