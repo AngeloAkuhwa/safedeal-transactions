@@ -162,6 +162,7 @@ Deno.serve(async (req) => {
         currency_code: p.currency_code,
         stock_quantity: p.stock_quantity,
         condition_label: p.condition_label,
+        category_id: p.category_id || null,
         primary_image_url: primaryImageUrl,
         seller: sellerMap[p.seller_id] || {
           full_name: "Unknown Seller",
