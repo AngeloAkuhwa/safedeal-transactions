@@ -1,47 +1,24 @@
 
 
-# Add "Product Published Successfully" Modal
+# Fix Product Media Upload on Add Product Page
 
-## What changes
+## Problem
 
-After a seller clicks "Publish" on a draft product and it succeeds, show a success modal matching the reference design instead of just a toast. The modal includes:
+The upload area's "Choose Files" button calls `e.preventDefault()` (line 320), which blocks the `<label>` from triggering the hidden file input. The upload logic and Cloudinary integration already exist and work — they're just never triggered. Additionally, there are no limits enforced for the max 3 images + 1 video requirement.
 
-1. **Green gradient header** with checkmark icon, "Product Published Successfully!" title, and subtitle
-2. **Product summary card** showing image, title, category, price, and Published/Public badges
-3. **Info banner** — "Now Available to Customers" with escrow protection message
-4. **4 action buttons** in a 2x2 grid: Preview Product, View Store, Copy Link, Share Store
-5. **"Back to Storefront" CTA** at the bottom
+## Changes
 
-## Files
+### File: `src/pages/SellerProductCreate.tsx`
 
-### 1. New: `src/components/storefront/PublishSuccessModal.tsx`
+1. **Fix the button blocking the file input** — Remove `onClick={(e) => e.preventDefault()}` from the "Choose Files" button (line 320). Change it to a `<span>` styled as a button, or simply remove the `preventDefault`. Since the button is inside a `<label>`, clicking it should naturally trigger the file input.
 
-A Dialog-based modal component that receives:
-- `open` / `onOpenChange` props
-- `product` object (title, category name, price, image URL, slug)
-- `storeSlug` for building store/product URLs
-- Action handlers: navigate to preview, navigate to store, copy link, share
+2. **Enforce max 3 images + 1 video** — Add validation in `handleFileUpload`:
+   - Count current images and videos in `files` state
+   - Reject new files that would exceed 3 images or 1 video
+   - Show a toast error when limits are hit
+   - Disable/hide the "Add More" tile when limits are reached
 
-Design:
-- Green gradient top section (`bg-gradient-to-r from-emerald-500 to-green-500`) with white checkmark in a `bg-white/20 backdrop-blur` circle
-- Product card with image thumbnail, title, category + price, Published/Public badges
-- Gray info box with Globe icon and "Now Available to Customers" text
-- 2x2 grid of outline buttons: Preview Product (Eye), View Store (Store), Copy Link (Copy), Share Store (Share2)
-- Primary gradient "Back to Storefront" button
+3. **Update the upload area text** — Change helper text from "PNG, JPG, MP4 up to 10MB each" to "Max 3 images + 1 video · PNG, JPG, MP4 up to 10MB each"
 
-### 2. Modified: `src/pages/SellerProductDetail.tsx`
-
-- Add `publishSuccessOpen` state (boolean)
-- Split `handleStatusToggle`: when publishing (draft → published), use a separate mutation `onSuccess` that sets `publishSuccessOpen = true` instead of showing a toast
-- Import and render `PublishSuccessModal` with product data mapped from the detail response
-- Wire action buttons:
-  - **Preview Product** → navigate to `/seller/storefront/${productId}/preview`
-  - **View Store** → navigate to `/store/${storeSlug}`
-  - **Copy Link** → copy `window.location.origin + /store/${storeSlug}/${product.slug}` to clipboard, toast "Link copied"
-  - **Share Store** → use `navigator.share` if available, else copy store URL
-  - **Back to Storefront** → navigate to `/seller/storefront`
-
-### 3. No backend changes needed
-
-The publish PATCH already returns success — we just need to show the modal instead of a toast on success.
+No backend or edge function changes needed — the existing `uploadProductFile` and `upload-evidence` function handle everything correctly.
 
