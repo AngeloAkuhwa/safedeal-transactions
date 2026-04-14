@@ -4,8 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ShoppingCart, Trash2, Minus, Plus, Package, Loader2,
   ShieldCheck, AlertTriangle, CheckCircle2, ShoppingBag, RefreshCw,
-  UserCheck, Clock, Info,
+  UserCheck, Clock, Info, ExternalLink,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -279,43 +280,71 @@ const BuyerCart = () => {
                               disabled={!stock.canCheckout}
                             />
                           </div>
-                          <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-xl overflow-hidden bg-muted shrink-0">
-                            {item.product?.primary_image ? (
-                              <img src={item.product.primary_image} alt="" className="h-full w-full object-cover" />
-                            ) : (
-                              <div className="h-full w-full flex items-center justify-center">
-                                <Package className="h-10 w-10 text-muted-foreground/20" />
+                          {(() => {
+                            const canNavigate = !isSoldOut && !!item.product?.seller_slug && !!item.product?.slug;
+                            const clickableContent = (
+                              <div
+                                className={`flex gap-4 flex-1 min-w-0 ${canNavigate ? "cursor-pointer group/item" : ""}`}
+                                onClick={canNavigate ? () => navigate(`/store/${item.product!.seller_slug}/${item.product!.slug}/checkout?qty=${item.quantity}`) : undefined}
+                              >
+                                <div className={`h-28 w-28 sm:h-32 sm:w-32 rounded-xl overflow-hidden bg-muted shrink-0 ${canNavigate ? "group-hover/item:ring-2 group-hover/item:ring-primary/40 transition-all" : ""}`}>
+                                  {item.product?.primary_image ? (
+                                    <img src={item.product.primary_image} alt="" className="h-full w-full object-cover" />
+                                  ) : (
+                                    <div className="h-full w-full flex items-center justify-center">
+                                      <Package className="h-10 w-10 text-muted-foreground/20" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0 space-y-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <h3 className={`font-semibold text-foreground leading-tight line-clamp-2 text-base ${canNavigate ? "group-hover/item:text-primary transition-colors" : ""}`}>
+                                      {item.product?.title || "Unknown Product"}
+                                    </h3>
+                                    {canNavigate && (
+                                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0" />
+                                    )}
+                                  </div>
+                                  {item.product?.short_description && (
+                                    <p className="text-xs text-muted-foreground line-clamp-2">{item.product.short_description}</p>
+                                  )}
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <span>Sold by</span>
+                                    <span className="font-medium text-foreground">{item.product?.seller_name || "Seller"}</span>
+                                    <CheckCircle2 className="h-3 w-3 text-primary" />
+                                  </div>
+                                  {/* Stock badge */}
+                                  <Badge
+                                    variant="outline"
+                                    className={`rounded-full text-xs gap-1 ${
+                                      stock.variant === "success"
+                                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                        : stock.variant === "warning"
+                                        ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                        : "bg-destructive/10 text-destructive border-destructive/20"
+                                    }`}
+                                  >
+                                    {stock.variant === "success" && <CheckCircle2 className="h-3 w-3" />}
+                                    {stock.variant === "warning" && <AlertTriangle className="h-3 w-3" />}
+                                    {stock.label}
+                                  </Badge>
+                                </div>
                               </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0 space-y-1.5">
-                            <h3 className="font-semibold text-foreground leading-tight line-clamp-2 text-base">
-                              {item.product?.title || "Unknown Product"}
-                            </h3>
-                            {item.product?.short_description && (
-                              <p className="text-xs text-muted-foreground line-clamp-2">{item.product.short_description}</p>
-                            )}
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <span>Sold by</span>
-                              <span className="font-medium text-foreground">{item.product?.seller_name || "Seller"}</span>
-                              <CheckCircle2 className="h-3 w-3 text-primary" />
-                            </div>
-                            {/* Stock badge */}
-                            <Badge
-                              variant="outline"
-                              className={`rounded-full text-xs gap-1 ${
-                                stock.variant === "success"
-                                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                                  : stock.variant === "warning"
-                                  ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                                  : "bg-destructive/10 text-destructive border-destructive/20"
-                              }`}
-                            >
-                              {stock.variant === "success" && <CheckCircle2 className="h-3 w-3" />}
-                              {stock.variant === "warning" && <AlertTriangle className="h-3 w-3" />}
-                              {stock.label}
-                            </Badge>
-                          </div>
+                            );
+
+                            return canNavigate ? (
+                              <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    {clickableContent}
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs">
+                                    Click to view details & pay
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : clickableContent;
+                          })()}
                           {/* Price */}
                           <div className="text-right shrink-0 space-y-1">
                             <p className={`text-lg font-bold ${isSoldOut ? "line-through text-muted-foreground" : "text-foreground"}`}>
