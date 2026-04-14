@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/pagination";
 import { Search, ShoppingBag, PackageOpen, Shield, Lock, Clock, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input as PriceInput } from "@/components/ui/input";
 import { getMarketplaceProducts } from "@/services/marketplace.service";
 
 export default function BuyerMarketplace() {
@@ -31,6 +33,11 @@ export default function BuyerMarketplace() {
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+  const [appliedPriceMin, setAppliedPriceMin] = useState<string>("");
+  const [appliedPriceMax, setAppliedPriceMax] = useState<string>("");
+  const [priceOpen, setPriceOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -50,14 +57,32 @@ export default function BuyerMarketplace() {
     setPage(1);
   }, []);
 
+  const applyPriceFilter = useCallback(() => {
+    setAppliedPriceMin(priceMin);
+    setAppliedPriceMax(priceMax);
+    setPage(1);
+    setPriceOpen(false);
+  }, [priceMin, priceMax]);
+
+  const clearPriceFilter = useCallback(() => {
+    setPriceMin("");
+    setPriceMax("");
+    setAppliedPriceMin("");
+    setAppliedPriceMax("");
+    setPage(1);
+    setPriceOpen(false);
+  }, []);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["marketplace", debouncedSearch, category, sort, page],
+    queryKey: ["marketplace", debouncedSearch, category, sort, page, appliedPriceMin, appliedPriceMax],
     queryFn: () =>
       getMarketplaceProducts({
         search: debouncedSearch || undefined,
         category: category || undefined,
         sort,
         page,
+        price_min: appliedPriceMin ? Number(appliedPriceMin) : undefined,
+        price_max: appliedPriceMax ? Number(appliedPriceMax) : undefined,
       }),
   });
 
@@ -137,10 +162,42 @@ export default function BuyerMarketplace() {
                 <SelectItem value="price_desc">Price: High → Low</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" className="border-none bg-muted/50 gap-2 shrink-0">
-              <SlidersHorizontal className="h-4 w-4" />
-              Price Filter
-            </Button>
+            <Popover open={priceOpen} onOpenChange={setPriceOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={`border-none bg-muted/50 gap-2 shrink-0 ${appliedPriceMin || appliedPriceMax ? "ring-2 ring-primary" : ""}`}
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  {appliedPriceMin || appliedPriceMax
+                    ? `₦${appliedPriceMin || "0"} – ₦${appliedPriceMax || "∞"}`
+                    : "Price Filter"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 space-y-3" align="end">
+                <p className="text-sm font-medium">Price Range (₦)</p>
+                <div className="flex gap-2">
+                  <PriceInput
+                    type="number"
+                    placeholder="Min"
+                    value={priceMin}
+                    onChange={(e) => setPriceMin(e.target.value)}
+                    min={0}
+                  />
+                  <PriceInput
+                    type="number"
+                    placeholder="Max"
+                    value={priceMax}
+                    onChange={(e) => setPriceMax(e.target.value)}
+                    min={0}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" className="flex-1" onClick={applyPriceFilter}>Apply</Button>
+                  <Button size="sm" variant="outline" className="flex-1" onClick={clearPriceFilter}>Clear</Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Results count */}

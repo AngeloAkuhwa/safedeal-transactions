@@ -41,6 +41,8 @@ export interface MarketplaceFilters {
   category?: string;
   sort?: string;
   page?: number;
+  price_min?: number;
+  price_max?: number;
 }
 
 export interface MarketplaceResponse {
@@ -59,6 +61,8 @@ export async function getMarketplaceProducts(
   if (filters.category) params.category = filters.category;
   if (filters.sort) params.sort = filters.sort;
   if (filters.page) params.page = String(filters.page);
+  if (filters.price_min != null) params.price_min = String(filters.price_min);
+  if (filters.price_max != null) params.price_max = String(filters.price_max);
 
   const queryString = new URLSearchParams(params).toString();
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
