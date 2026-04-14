@@ -16,6 +16,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { Footer } from "@/components/landing/Footer";
+import { PurchaseAuthModal } from "@/components/storefront/PurchaseAuthModal";
+import { useLocation } from "react-router-dom";
 
 function formatPrice(amount: number, currency: string) {
   if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
@@ -64,10 +66,12 @@ const placeholderReviews = [
 const PublicProductDetail = () => {
   const { sellerSlug, productSlug } = useParams<{ sellerSlug: string; productSlug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [liked, setLiked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
@@ -109,7 +113,19 @@ const PublicProductDetail = () => {
   const currentImage = images[selectedImage]?.file_url;
 
   const handleBuyCTA = () => {
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
     toast.info("Purchase flow coming soon! Contact the seller directly for now.", { duration: 4000 });
+  };
+
+  const handleAuthGatedAction = (action: () => void) => {
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
+    action();
   };
 
   const handleShare = () => {
@@ -332,7 +348,7 @@ const PublicProductDetail = () => {
             <Button
               variant="outline"
               className={`gap-2 rounded-xl h-11 ${glassPanel} !rounded-xl`}
-              onClick={() => { setLiked(!liked); toast.success(liked ? "Removed from saved" : "Saved for later"); }}
+              onClick={() => handleAuthGatedAction(() => { setLiked(!liked); toast.success(liked ? "Removed from saved" : "Saved for later"); })}
             >
               <BookmarkPlus className="h-4 w-4" />
               Save for Later
@@ -340,7 +356,7 @@ const PublicProductDetail = () => {
             <Button
               variant="outline"
               className={`gap-2 rounded-xl h-11 ${glassPanel} !rounded-xl`}
-              onClick={() => toast.info("Contact seller feature coming soon")}
+              onClick={() => handleAuthGatedAction(() => toast.info("Contact seller feature coming soon"))}
             >
               <MessageCircle className="h-4 w-4" />
               Contact Seller
@@ -571,6 +587,21 @@ const PublicProductDetail = () => {
     </div>
   );
 
+  const authModal = (
+    <PurchaseAuthModal
+      open={showAuthModal}
+      onOpenChange={setShowAuthModal}
+      product={{
+        name: product.title,
+        image: images[0]?.file_url || null,
+        price: product.unit_price,
+        currency: product.currency_code,
+      }}
+      sellerName={seller.full_name}
+      returnPath={location.pathname}
+    />
+  );
+
   if (isAuthenticated) {
     return (
       <div className="flex h-screen bg-background overflow-hidden">
@@ -578,6 +609,7 @@ const PublicProductDetail = () => {
         <main className="flex-1 overflow-y-auto relative">
           {content}
         </main>
+        {authModal}
       </div>
     );
   }
@@ -599,6 +631,7 @@ const PublicProductDetail = () => {
       </header>
       <main className="flex-1 relative">{content}</main>
       <Footer />
+      {authModal}
     </div>
   );
 };
