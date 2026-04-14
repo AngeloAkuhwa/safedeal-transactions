@@ -40,6 +40,7 @@ import SellerProductDetail from "./pages/SellerProductDetail";
 import SellerProductPreview from "./pages/SellerProductPreview";
 import PublicStorefront from "./pages/PublicStorefront";
 import PublicProductDetail from "./pages/PublicProductDetail";
+import StorefrontCheckout from "./pages/StorefrontCheckout";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -82,6 +83,7 @@ const App = () => (
               <Route path="/dashboard/notifications" element={<BuyerNotifications />} />
               <Route path="/dashboard/profile" element={<BuyerProfileSettings />} />
               <Route path="/dashboard/verification" element={<BuyerVerification />} />
+              <Route path="/store/:sellerSlug/:productSlug/checkout" element={<StorefrontCheckout />} />
             </Route>
 
             {/* Protected: requires session + seller role */}

@@ -125,7 +125,7 @@ const PublicProductDetail = () => {
       setShowAuthModal(true);
       return;
     }
-    toast.info("Purchase flow coming soon! Contact the seller directly for now.", { duration: 4000 });
+    navigate(`/store/${sellerSlug}/${productSlug}/checkout?qty=${quantity}`);
   };
 
   const handleAuthGatedAction = (action: () => void) => {
