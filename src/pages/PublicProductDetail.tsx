@@ -127,12 +127,21 @@ const PublicProductDetail = () => {
   const videos = allMedia.filter((m: any) => m.media_type === "video");
   const currentImage = images[selectedImage]?.file_url;
 
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) { setShowAuthModal(true); return; }
+    setAddingToCart(true);
+    try {
+      await addToCart(product.id, quantity);
+      setInCart(true);
+      toast.success("Added to cart!");
+    } catch (err: any) { toast.error(err.message); }
+    finally { setAddingToCart(false); }
+  };
+
   const handleBuyCTA = () => {
-    if (!isAuthenticated) {
-      setShowAuthModal(true);
-      return;
-    }
-    navigate(`/store/${sellerSlug}/${productSlug}/checkout?qty=${quantity}`);
+    if (!isAuthenticated) { setShowAuthModal(true); return; }
+    if (inCart) { navigate("/dashboard/cart"); return; }
+    handleAddToCart();
   };
 
   const handleAuthGatedAction = (action: () => void) => {
