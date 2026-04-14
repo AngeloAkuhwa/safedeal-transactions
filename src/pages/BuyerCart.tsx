@@ -4,8 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ShoppingCart, Trash2, Minus, Plus, Package, Loader2,
   ShieldCheck, AlertTriangle, CheckCircle2, ShoppingBag, RefreshCw,
-  UserCheck, Clock, Info,
+  UserCheck, Clock, Info, ExternalLink,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
