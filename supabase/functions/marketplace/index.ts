@@ -31,6 +31,10 @@ Deno.serve(async (req) => {
     const search = url.searchParams.get("search")?.trim() || "";
     const category = url.searchParams.get("category") || "";
     const sort = url.searchParams.get("sort") || "newest";
+    const priceMinRaw = url.searchParams.get("price_min");
+    const priceMaxRaw = url.searchParams.get("price_max");
+    const priceMin = priceMinRaw ? parseFloat(priceMinRaw) : null;
+    const priceMax = priceMaxRaw ? parseFloat(priceMaxRaw) : null;
     const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
     const requestedPageSize = parseInt(url.searchParams.get("page_size") || "20", 10);
     const pageSize = Math.min(Math.max(1, requestedPageSize), 40);
@@ -56,6 +60,14 @@ Deno.serve(async (req) => {
     // Category filter
     if (category) {
       query = query.eq("category_id", category);
+    }
+
+    // Price filter
+    if (priceMin != null && !isNaN(priceMin)) {
+      query = query.gte("unit_price", priceMin);
+    }
+    if (priceMax != null && !isNaN(priceMax)) {
+      query = query.lte("unit_price", priceMax);
     }
 
     // Sort
