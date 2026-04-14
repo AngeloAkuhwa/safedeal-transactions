@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ShoppingCart, Trash2, Minus, Plus, Package, Loader2,
@@ -310,7 +310,17 @@ const BuyerCart = () => {
                                   )}
                                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                     <span>Sold by</span>
-                                    <span className="font-medium text-foreground">{item.product?.seller_name || "Seller"}</span>
+                                    {item.product?.seller_slug ? (
+                                      <Link
+                                        to={`/store/${item.product.seller_slug}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="font-medium text-foreground hover:text-primary transition-colors"
+                                      >
+                                        {item.product?.seller_name || "Seller"}
+                                      </Link>
+                                    ) : (
+                                      <span className="font-medium text-foreground">{item.product?.seller_name || "Seller"}</span>
+                                    )}
                                     <CheckCircle2 className="h-3 w-3 text-primary" />
                                   </div>
                                   {/* Stock badge */}

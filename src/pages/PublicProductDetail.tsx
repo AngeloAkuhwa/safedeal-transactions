@@ -4,7 +4,7 @@ import {
   Loader2, Shield, ArrowLeft, Package, ShieldCheck, Truck, Clock,
   Heart, Share2, Star, Minus, Plus, Play, BookmarkPlus, MessageCircle,
   CheckCircle2, Lock, FileText, ChevronRight, CircleDot, MapPin, User,
-  AlertCircle, ShoppingCart,
+  AlertCircle, ShoppingCart, Store,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -384,6 +384,34 @@ const PublicProductDetail = () => {
             >
               <MessageCircle className="h-4 w-4" />
               Contact Seller
+            </Button>
+          </div>
+
+          {/* Seller Info Card */}
+          <div className={`${glassPanel} p-4`}>
+            <div className="flex items-center gap-3 mb-3">
+              <Avatar className="h-10 w-10">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-blue-600 text-white font-bold">
+                  {(seller.full_name || "S")[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-foreground text-sm">{seller.full_name}</p>
+                <div className="flex items-center gap-1.5">
+                  {seller.email_verified && <CheckCircle2 className="h-3 w-3 text-primary" />}
+                  <span className="text-xs text-muted-foreground">
+                    {seller.identity_verified ? "ID Verified Seller" : seller.email_verified ? "Verified Seller" : "Seller"}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              className="w-full gap-2 rounded-xl"
+              onClick={() => navigate(`/store/${sellerSlug}`)}
+            >
+              <Store className="h-4 w-4" />
+              Visit Seller's Store
             </Button>
           </div>
         </div>

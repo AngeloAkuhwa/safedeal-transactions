@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
             .in("id", productIds)
         : Promise.resolve({ data: [] }),
       sellerIds.length > 0
-        ? admin.from("profiles").select("id,full_name").in("id", sellerIds)
+        ? admin.from("profiles").select("id,full_name,store_slug").in("id", sellerIds)
         : Promise.resolve({ data: [] }),
       sellerIds.length > 0
         ? admin.from("account_verifications").select("user_id,phone_verified").in("user_id", sellerIds)
@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     // Build seller map
     const sellerMap: Record<string, any> = {};
     for (const p of profiles) {
-      sellerMap[p.id] = { id: p.id, full_name: p.full_name, phone_verified: false };
+      sellerMap[p.id] = { id: p.id, full_name: p.full_name, store_slug: p.store_slug || null, phone_verified: false };
     }
     for (const v of verifications) {
       if (sellerMap[v.user_id]) {
