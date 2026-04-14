@@ -1,58 +1,47 @@
 
-Fix this as a debugging + hardening pass, not just a UI patch.
 
-1. Confirm the real failure path
-- The current review page turns every failure into the same fallback: “Session not found”.
-- I’ll update it to preserve and display the real backend error state:
-  - Unauthorized
-  - Forbidden / wrong account
-  - Missing session id
-  - Actual session not found
-  - Generic load failure
+# "Visit Seller's Store" Touchpoints in the Marketplace Flow
 
-2. Harden the frontend checkout-review request
-- In `src/pages/CartCheckoutReview.tsx`, replace the manual project-id function URL with the same backend base pattern used elsewhere (`VITE_SUPABASE_URL` or a small service wrapper).
-- Keep the created `checkout_session_id` in route params as now, but also store it temporarily in session storage as a fallback in case redirect/query handling is inconsistent.
-- Add console logging for:
-  - session id being requested
-  - response status
-  - backend error body
+## Current State
 
-3. Make the review screen resilient to account mismatch
-- Right now a 401/403/500 can still look like “Session not found”.
-- I’ll add proper empty/error states so if the user opens the flow under the wrong signed-in account, the page explicitly says they must continue as the buyer account that created the checkout.
+Right now, there is **no explicit "Visit Store" link** anywhere in the buyer's marketplace flow. The only store-related navigation is the back button on the product detail page, which says "Back to [Seller]'s Store" for unauthenticated users but "Back to Marketplace" for authenticated buyers.
 
-4. Add backend diagnostics to both functions
-- `supabase/functions/cart-checkout/index.ts`
-  - log created `checkout_session_id`
-  - log buyer id and selected cart items count
-- `supabase/functions/checkout-review/index.ts`
-  - log received `session_id`
-  - log authenticated user id
-  - log whether the session row exists
-  - log whether ownership check failed
-- This will let us distinguish:
-  - session was never created
-  - session id was lost
-  - wrong user opened it
-  - function endpoint/deployment mismatch
+## Recommended Placement Points
 
-5. Keep the current backend model
-- No database migration is needed for this fix.
-- The existing checkout session tables already have the needed buyer-scoped policies, and the review function is already using backend-level access, so this is not primarily an RLS-schema problem.
+Here are the **4 precise points** where a "Visit Store" or "View Seller's Store" action should appear, ordered by user intent strength:
 
-6. Small cleanup while fixing
-- Ensure the review page does not silently swallow malformed enriched data.
-- If needed, normalize seller/product enrichment so missing image/profile fields don’t break the session load experience.
+### 1. Product Detail Page — Seller Info Section
+**Where**: On the `PublicProductDetail` page, near where the seller's name/avatar appears (right column, below pricing card area).
+**Why**: This is the highest-intent moment. The buyer is already evaluating a product and naturally wants to see what else this seller offers.
+**How**: A clickable seller card with avatar, name, verification badge, and a "Visit Store →" button/link. Navigates to `/store/:sellerSlug`.
 
-Files to update
-- `src/pages/CartCheckoutReview.tsx`
-- optionally `src/services/checkout-review.service.ts` for a cleaner fetch wrapper
-- `supabase/functions/checkout-review/index.ts`
-- `supabase/functions/cart-checkout/index.ts`
+### 2. Marketplace Product Card — Seller Name
+**Where**: On `MarketplaceProductCard`, the seller name/avatar row at the bottom of each card.
+**Why**: While browsing the grid, buyers often want to explore a specific seller after seeing one appealing product.
+**How**: Make the seller name/avatar row a clickable link to `/store/:sellerSlug`. Use `e.stopPropagation()` so it doesn't trigger the card's product-detail click.
 
-Validation after implementation
-- Public storefront → add to cart → view cart → checkout selected → review page loads
-- Same flow with a wrong/non-buyer account shows a clear account-mismatch message
-- Session id is visible in logs from creation through review lookup
-- Review page no longer shows “Session not found” for unrelated errors
+### 3. Cart Item — Seller Name in Cart
+**Where**: On the `BuyerCart` page, where each cart item shows the seller's name.
+**Why**: Before committing to checkout, buyers may want to browse the seller's other products or verify legitimacy.
+**How**: Make seller name a clickable link to `/store/:sellerSlug`.
+
+### 4. Checkout Review Page — Seller Group Header
+**Where**: On `CartCheckoutReview`, each seller group card header already shows the seller avatar and name.
+**Why**: Last chance to verify the seller before paying. Lower priority since the buyer is already committed.
+**How**: Add a small "View Store" link next to the seller name in each group header.
+
+## Priority Recommendation
+
+Implement **points 1 and 2 first** — they cover the discovery phase where "Visit Store" is most valuable. Points 3 and 4 are secondary trust-building touchpoints.
+
+## Files to Change
+
+| File | Change |
+|------|--------|
+| `src/pages/PublicProductDetail.tsx` | Add a seller info card with "Visit Store" link |
+| `src/components/marketplace/MarketplaceProductCard.tsx` | Make seller name clickable to store |
+| `src/pages/BuyerCart.tsx` | Make seller name in cart items link to store |
+| `src/pages/CartCheckoutReview.tsx` | Add "View Store" link in seller group headers |
+
+No backend changes needed — `store_slug` / `sellerSlug` data is already available in all these contexts.
+
