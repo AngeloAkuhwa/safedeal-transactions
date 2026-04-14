@@ -20,7 +20,7 @@ function formatPrice(amount: number, currency = "NGN") {
   return `${currency} ${Number(amount).toLocaleString()}`;
 }
 
-const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 interface ProductInfo {
   id: string;
@@ -41,20 +41,29 @@ interface SellerInfo {
 async function fetchCheckoutSession(sessionId: string) {
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData?.session?.access_token;
-  if (!token) throw new Error("Not authenticated");
+  if (!token) throw new Error("NOT_AUTHENTICATED");
+
+  console.log("[checkout-review] fetching session:", sessionId);
 
   const res = await fetch(
-    `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/checkout-review?session_id=${sessionId}`,
+    `${SUPABASE_URL}/functions/v1/checkout-review?session_id=${sessionId}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
     }
   );
 
   const body = await res.json();
-  if (!res.ok) throw new Error(body.error || "Failed to load checkout session");
+  console.log("[checkout-review] response status:", res.status, body.error || "ok");
+
+  if (!res.ok) {
+    const err = new Error(body.error || "Failed to load checkout session");
+    (err as any).status = res.status;
+    throw err;
+  }
 
   const productMap = new Map<string, ProductInfo>(
     Object.entries(body.products || {})
