@@ -1,41 +1,60 @@
 
 
-# Add "Update Stock" Modal to Seller Storefront
+# Redesign Buyer Marketplace Page
 
-## What changes
+## Summary
 
-When a seller clicks the stock/quantity area on a product card in the storefront grid, an "Update Stock" modal opens (matching the reference design). The seller can adjust quantity with +/- buttons, quick-set buttons (5, 10, 0), and direct input. Saving calls the existing PATCH endpoint to update `stock_quantity`.
+Rebuild the Buyer Marketplace page to match the reference design: sidebar navigation layout, glassmorphism filter bar, redesigned product cards with category badges, seller avatars, stock status, "Escrow Price" label, cart icon, and a trust footer banner. Also ensure product images always display correctly.
 
-## Files
+## Changes
 
-### 1. New: `src/components/storefront/UpdateStockModal.tsx`
+### 1. New: `src/components/marketplace/BuyerSidebar.tsx`
 
-A Dialog-based modal receiving:
-- `open` / `onOpenChange`
-- `product` (id, title, category_name, unit_price, currency_code, stock_quantity, status, primary_image_url)
-- `onSave(productId, newQuantity)` callback
+A sidebar navigation for buyer pages (mirroring the reference), with:
+- SafeDeal logo at top
+- Nav links: Dashboard, Marketplace, Transactions, Disputes, Notifications (with badge count)
+- Bottom section: Settings link, user profile card (avatar, name, "Verified Buyer"), and a "Need Help?" support card
+- Active state: highlighted background + left blue accent bar on Marketplace
+- Responsive: collapsible on mobile
 
-UI (from reference):
-- Header: Boxes icon + "Update Stock" title
-- Product summary card: image thumbnail, title, category + price, stock status badge + product status badge
-- "Current Stock" label with `{quantity} units` on right
-- +/- buttons flanking a number input with "units" suffix
-- Quick-set buttons row: "Set 5", "Set 10", "Set 0"
-- Status preview box: shows computed "In Stock" / "Low Stock" / "Out of Stock" based on input value
-- Info text: "Products with 0 stock remain visible but cannot be purchased until restocked."
-- Footer: Cancel + "Save Stock Update" primary button
+### 2. New: `src/components/marketplace/MarketplaceProductCard.tsx`
 
-### 2. Modified: `src/components/storefront/SellerProductCard.tsx`
+A new card component specifically for the marketplace grid, matching the reference:
+- Glass-panel card (`bg-card/60 backdrop-blur border border-border`) with rounded-[24px]
+- Aspect-square image with `object-cover` + hover scale effect
+- **Category badge** overlay (top-left) — mapped from categories array by `category_id`
+- **Heart/wishlist button** (top-right, cosmetic for now)
+- Below image: seller row with avatar initial circle (colored gradient), seller name, verification checkmark, stock status badge (In Stock / Low Stock / Unavailable)
+- Product title (line-clamp-2)
+- "Escrow Price" label + formatted Naira price (or "Last Price" if out of stock)
+- Cart button (bottom-right) — disabled style if out of stock, shows bell icon instead
+- Out-of-stock cards: grayscale image, overlay, reduced opacity
 
-- Add `onUpdateStock` optional callback prop
-- Make the stock quantity area (lines 115-123) clickable — wrap it or add an onClick that calls `onUpdateStock` with `e.stopPropagation()`
+### 3. Modified: `src/pages/BuyerMarketplace.tsx`
 
-### 3. Modified: `src/pages/SellerStorefront.tsx`
+Full page redesign:
+- **Layout**: `flex h-screen` with `BuyerSidebar` on left + scrollable main content area
+- **Header bar**: "Marketplace" title + subtitle, green escrow protection badge (right), search icon button
+- **Filter section**: glass-panel bar with search input, category dropdown, sort dropdown, and a "Price Filter" styled button
+- **Product grid**: 4-column (xl) using `MarketplaceProductCard`, build a `categoryMap` from categories array to pass category names to each card
+- **Empty state**: same as current
+- **Pagination**: same as current
+- **Trust footer**: glass-panel banner with shield icon, "SafeDeal Buyer Protection" text, and 100% Secure / 24hr Dispute stats
+- Background glow effects (absolute positioned blurred circles)
 
-- Add `stockProduct` state (the product to update stock for)
-- Pass `onUpdateStock` to each `SellerProductCard`
-- Import and render `UpdateStockModal`
-- `onSave` handler: call `updateProduct(productId, { stock_quantity })`, invalidate queries, show toast
+### 4. Update edge function: `supabase/functions/marketplace/index.ts`
 
-No backend changes needed — the PATCH endpoint already supports `stock_quantity`.
+Add `category_id` to the shaped response so the client can map category names. (It's already returned in the raw query but stripped in the shape step — just include it in the output.)
+
+### 5. Update: `src/services/marketplace.service.ts`
+
+Add `category_id` to the `MarketplaceProduct` interface.
+
+### Image reliability
+
+- Use `object-cover` on all product images (already done but reinforced)
+- Add `onError` fallback handler on `<img>` tags to show a Package placeholder icon if the image fails to load
+- Never apply `grayscale` filter to in-stock images (only out-of-stock)
+
+## No database changes needed
 
