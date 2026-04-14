@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Heart, Search, ShieldCheck, Package, Loader2, Info, BookmarkX, CheckCircle,
+  Heart, Search, Loader2, BookmarkX, X,
 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,12 @@ function formatPrice(amount: number, currency: string) {
   return `${currency} ${Number(amount).toLocaleString()}`;
 }
 
+function getStockInfo(qty: number) {
+  if (qty <= 0) return { label: "Out of Stock", cls: "bg-muted text-muted-foreground" };
+  if (qty <= 5) return { label: "Low Stock", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" };
+  return { label: "In Stock", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" };
+}
+
 export default function BuyerSavedProducts() {
   const navigate = useNavigate();
   const { data, isLoading } = useSavedProducts();
@@ -27,10 +33,10 @@ export default function BuyerSavedProducts() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState("recent");
+  const [showBanner, setShowBanner] = useState(true);
 
   const items = data?.items || [];
 
-  // Unique categories from saved items
   const categories = useMemo(() => {
     const map = new Map<string, string>();
     items.forEach((item: any) => {
@@ -39,7 +45,6 @@ export default function BuyerSavedProducts() {
     return Array.from(map, ([slug, name]) => ({ slug, name }));
   }, [items]);
 
-  // Filter + sort
   const filtered = useMemo(() => {
     let result = [...items];
     if (search) {
@@ -55,7 +60,6 @@ export default function BuyerSavedProducts() {
     if (sort === "price_low") result.sort((a: any, b: any) => a.unit_price - b.unit_price);
     else if (sort === "price_high") result.sort((a: any, b: any) => b.unit_price - a.unit_price);
     else if (sort === "name") result.sort((a: any, b: any) => a.title.localeCompare(b.title));
-    // default "recent" is already ordered by saved_at desc
     return result;
   }, [items, search, category, sort]);
 
@@ -68,31 +72,36 @@ export default function BuyerSavedProducts() {
     <div className="flex min-h-screen bg-background">
       <BuyerSidebar />
       <main className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="mx-auto max-w-[1400px] px-4 md:px-8 py-6 md:py-8 space-y-6">
           {/* Header */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-              <Heart className="h-5 w-5 text-primary" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <Heart className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground">
+                  Saved Products
+                </h1>
+                <p className="text-sm md:text-base lg:text-lg text-muted-foreground">Products you've saved for later</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                Saved Products
-                <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">{items.length} items</Badge>
-              </h1>
-              <p className="text-sm text-muted-foreground">Products you've saved for later</p>
-            </div>
+            <Badge className="self-start sm:self-auto bg-primary/10 text-primary border-primary/20 text-sm px-3 py-1">
+              {items.length} {items.length === 1 ? "item" : "items"}
+            </Badge>
           </div>
 
           {/* Info banner */}
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/10">
-            <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Items may become unavailable</p>
-              <p className="text-xs text-muted-foreground">
+          {showBanner && (
+            <div className="flex items-center justify-between gap-3 p-3 px-4 rounded-xl bg-primary/5 border border-primary/10">
+              <p className="text-sm text-muted-foreground">
                 Saved products may sell out or be removed by the seller. Purchase soon to avoid disappointment.
               </p>
+              <button onClick={() => setShowBanner(false)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-          </div>
+          )}
 
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3">
@@ -102,11 +111,11 @@ export default function BuyerSavedProducts() {
                 placeholder="Search saved products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 rounded-xl"
+                className="pl-10 h-12 rounded-xl"
               />
             </div>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="w-full sm:w-44 rounded-xl">
+              <SelectTrigger className="w-full sm:w-48 h-12 rounded-xl">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -117,7 +126,7 @@ export default function BuyerSavedProducts() {
               </SelectContent>
             </Select>
             <Select value={sort} onValueChange={setSort}>
-              <SelectTrigger className="w-full sm:w-44 rounded-xl">
+              <SelectTrigger className="w-full sm:w-48 h-12 rounded-xl">
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
@@ -156,16 +165,19 @@ export default function BuyerSavedProducts() {
 
           {/* Product Grid */}
           {!isLoading && filtered.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filtered.map((item: any) => {
                 const outOfStock = item.stock_quantity <= 0;
+                const stock = getStockInfo(item.stock_quantity);
                 const sellerInitial = (item.seller?.full_name || "S")[0].toUpperCase();
+                const isVerified = item.seller?.trust_summary?.email_verified;
+
                 return (
                   <div
                     key={item.id}
                     className={cn(
-                      "group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm transition-all hover:shadow-lg cursor-pointer",
-                      outOfStock && "opacity-70"
+                      "group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer",
+                      outOfStock && "opacity-75"
                     )}
                     onClick={() => {
                       if (item.seller?.store_slug) {
@@ -187,72 +199,69 @@ export default function BuyerSavedProducts() {
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center">
-                          <Package className="h-12 w-12 text-muted-foreground/30" />
+                          <Heart className="h-12 w-12 text-muted-foreground/20" />
                         </div>
                       )}
 
-                      {outOfStock && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-background/60">
-                          <span className="rounded-full bg-destructive/90 px-3 py-1 text-xs font-semibold text-destructive-foreground">
-                            Out of Stock
-                          </span>
-                        </div>
-                      )}
+                      {/* Stock badge — top left */}
+                      <span className={cn("absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold", stock.cls)}>
+                        {stock.label}
+                      </span>
 
-                      {/* Filled heart (unsave) */}
+                      {/* Heart button — top right */}
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUnsave(item.id);
-                        }}
-                        className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm text-destructive"
+                        onClick={(e) => { e.stopPropagation(); handleUnsave(item.id); }}
+                        className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background/90 backdrop-blur-sm text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
                       >
-                        <Heart className="h-4 w-4 fill-current" />
+                        <Heart className="h-5 w-5 fill-current" />
                       </button>
-
-                      {/* Category badge */}
-                      {item.category && (
-                        <Badge className="absolute left-2.5 top-2.5 bg-background/80 text-foreground backdrop-blur-sm border-none text-[11px]">
-                          {item.category.name}
-                        </Badge>
-                      )}
                     </div>
 
                     {/* Content */}
-                    <div className="flex flex-1 flex-col p-3.5">
-                      <h3 className="mb-1 line-clamp-2 text-sm font-semibold text-foreground leading-tight">
+                    <div className="flex flex-1 flex-col p-5">
+                      {/* Category */}
+                      {item.category && (
+                        <Badge variant="secondary" className="self-start mb-2 text-[11px] font-medium">
+                          {item.category.name}
+                        </Badge>
+                      )}
+
+                      <h3 className="mb-1 line-clamp-2 text-lg font-semibold text-foreground leading-snug">
                         {item.title}
                       </h3>
                       {item.short_description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                        <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
                           {item.short_description}
                         </p>
                       )}
 
                       {/* Seller row */}
-                      <div className="mb-2 flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="bg-gradient-to-br from-primary to-blue-400 text-[10px] font-bold text-white">
+                      <div className="mb-3 pb-3 border-b border-border flex items-center gap-2">
+                        <Avatar className="h-7 w-7">
+                          <AvatarFallback className="bg-gradient-to-br from-primary to-blue-400 text-[10px] font-bold text-primary-foreground">
                             {sellerInitial}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="truncate text-xs text-muted-foreground">{item.seller?.full_name}</span>
-                        {item.seller?.trust_summary?.email_verified && (
-                          <CheckCircle className="h-3.5 w-3.5 shrink-0 text-primary" />
+                        <span className="truncate text-sm font-medium text-foreground">{item.seller?.full_name}</span>
+                        {isVerified && (
+                          <Badge className="ml-auto bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border-none text-[10px] px-2 py-0.5">
+                            VERIFIED
+                          </Badge>
                         )}
                       </div>
 
                       {/* Price + CTA */}
-                      <div className="mt-auto space-y-2">
-                        <div>
-                          <span className="text-[10px] text-muted-foreground">Escrow Price</span>
-                          <p className="text-base font-bold text-foreground leading-tight">
-                            {formatPrice(item.unit_price, item.currency_code)}
-                          </p>
-                        </div>
+                      <div className="mt-auto space-y-3">
+                        <p className="text-2xl font-bold text-foreground">
+                          {formatPrice(item.unit_price, item.currency_code)}
+                        </p>
                         <Button
-                          size="sm"
-                          className="w-full rounded-lg gap-1.5 text-xs"
+                          className={cn(
+                            "w-full h-11 rounded-xl text-sm font-semibold",
+                            outOfStock
+                              ? "bg-muted text-muted-foreground hover:bg-muted cursor-not-allowed"
+                              : "bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground"
+                          )}
                           disabled={outOfStock}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -261,8 +270,7 @@ export default function BuyerSavedProducts() {
                             }
                           }}
                         >
-                          <ShieldCheck className="h-3.5 w-3.5" />
-                          {outOfStock ? "Out of Stock" : "Buy with SafeDeal Protection"}
+                          {outOfStock ? "Currently Unavailable" : "Buy with Protection"}
                         </Button>
                       </div>
                     </div>
