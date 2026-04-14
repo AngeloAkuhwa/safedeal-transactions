@@ -1,26 +1,33 @@
 
 
-# Preserve Quantity Through Auth Redirect + E2E Test
+# Fix Post-Login Redirect to Product Page
 
-## Summary
+## Problem
 
-Store the selected quantity in `sessionStorage` alongside the redirect URL so it survives the auth flow. On return, restore it. Then test the full flow in the browser.
+`LoginForm.tsx` hardcodes `navigate("/dashboard")` after successful login (line 75), ignoring the `safedeal_redirect` value stored in `sessionStorage` by the `PurchaseAuthModal`. This means users who click "Buy" → get auth-gated → log in are always sent to the dashboard instead of back to the product page.
 
-## Changes
+## Fix (single file: `src/components/auth/LoginForm.tsx`)
 
-### 1. Update `src/components/storefront/PurchaseAuthModal.tsx`
+Update lines 74-78 in the `onSubmit` handler to check `sessionStorage` for `safedeal_redirect` before falling back to default routing:
 
-- Accept a new prop `quantity: number`
-- In `navigateToAuth`, also store `sessionStorage.setItem("safedeal_quantity", String(quantity))`
+```typescript
+if (roles && roles.length > 0) {
+  const storedRedirect = sessionStorage.getItem("safedeal_redirect");
+  if (storedRedirect) {
+    sessionStorage.removeItem("safedeal_redirect");
+    navigate(storedRedirect, { replace: true });
+  } else {
+    const destination = roles.some(r => r.role === "seller") && !roles.some(r => r.role === "buyer")
+      ? "/seller"
+      : "/dashboard";
+    navigate(destination, { replace: true });
+  }
+} else {
+  navigate("/role-selection", { replace: true });
+}
+```
 
-### 2. Update `src/pages/PublicProductDetail.tsx`
-
-- On mount, check for `sessionStorage.getItem("safedeal_quantity")`. If present, parse it and call `setQuantity(parsedValue)`, then remove the key
-- Pass `quantity` prop to `<PurchaseAuthModal>`
-
-### 3. Browser E2E test
-
-After implementing, navigate to a public product page as an anonymous user, select quantity > 1, click "Buy with SafeDeal Protection", verify the modal appears with correct product info, click through to auth, and confirm redirect returns to the product page with quantity preserved.
+This also improves the default routing by sending seller-only users to `/seller` instead of always `/dashboard`.
 
 ## No database or edge function changes needed.
 
