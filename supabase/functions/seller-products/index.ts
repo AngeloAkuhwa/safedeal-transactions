@@ -75,6 +75,7 @@ async function handleCreate(adminClient: any, userId: string, req: Request) {
     sku, brand, model, currency_code, unit_price, stock_quantity,
     visibility_type, seller_notes, agreement_terms, delivery_methods,
     verification_window_hours, file_ids, status: requestedStatus,
+    feature_highlights, delivery_scope, estimated_delivery_days,
   } = body;
 
   if (!title || typeof title !== "string" || title.trim().length < 2) {
@@ -169,6 +170,9 @@ async function handleCreate(adminClient: any, userId: string, req: Request) {
   if (agreement_terms) productData.agreement_terms = agreement_terms.trim();
   if (Array.isArray(delivery_methods) && delivery_methods.length > 0) productData.delivery_method = JSON.stringify(delivery_methods);
   if (verification_window_hours != null) productData.verification_window_hours = parseInt(verification_window_hours);
+  if (Array.isArray(feature_highlights)) productData.feature_highlights = feature_highlights;
+  if (delivery_scope) productData.delivery_scope = delivery_scope.trim();
+  if (estimated_delivery_days) productData.estimated_delivery_days = estimated_delivery_days.trim();
   if (finalStatus === "published") productData.published_at = new Date().toISOString();
 
   const { data: product, error: insertError } = await adminClient
