@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   ArrowLeft, Lock, ShieldCheck, Package, Loader2, CheckCircle2, Shield,
   ChevronDown, ChevronUp, Info, Users, CreditCard, Truck, AlertCircle,
-  Phone, BadgeCheck,
+  Phone, BadgeCheck, Store,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +35,7 @@ interface ProductInfo {
 interface SellerInfo {
   id: string;
   full_name: string | null;
+  store_slug: string | null;
   phone_verified: boolean;
 }
 
@@ -311,6 +312,16 @@ const CartCheckoutReview = () => {
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">A protected transaction will be created for this seller</p>
+                        {seller?.store_slug && (
+                          <Link
+                            to={`/store/${seller.store_slug}`}
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Store className="h-3 w-3" />
+                            Visit Store
+                          </Link>
+                        )}
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-xs text-muted-foreground">{groupItemCount} item{groupItemCount !== 1 ? "s" : ""}</p>
