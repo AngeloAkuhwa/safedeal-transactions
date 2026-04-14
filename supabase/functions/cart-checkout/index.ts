@@ -1,0 +1,368 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { computePricing } from "../_shared/pricing.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function generateShareToken(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  for (const b of bytes) result += chars[b % chars.length];
+  return result;
+}
+
+function mapCondition(c: string | null): string {
+  const m: Record<string, string> = { brand_new: "brand_new", like_new: "like_new", refurbished: "excellent", used_good: "good", used_fair: "fair" };
+  return m[c ?? ""] ?? "brand_new";
+}
+
+function mapDeliveryMethod(d: string | null): string {
+  const m: Record<string, string> = { pickup: "pickup", delivery: "courier", courier_shipping: "courier", digital: "hand_delivery", hand_delivery: "hand_delivery", meetup: "meetup" };
+  return m[d ?? ""] ?? "courier";
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Not authenticated" }, 401);
+
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await admin.auth.getUser(token);
+    if (userError || !userData?.user) return json({ error: "Invalid session" }, 401);
+    const buyerId = userData.user.id;
+
+    const { data: hasBuyer } = await admin.rpc("has_role", { _user_id: buyerId, _role: "buyer" });
+    if (!hasBuyer) return json({ error: "Buyer role required" }, 403);
+
+    const body = await req.json().catch(() => ({}));
+    const cartItemIds: string[] = body.cart_item_ids || [];
+    if (!cartItemIds.length) return json({ error: "cart_item_ids required" }, 400);
+
+    // 1. Fetch cart items
+    const { data: cartItems, error: ciErr } = await admin
+      .from("cart_items")
+      .select("id, product_id, quantity")
+      .eq("buyer_id", buyerId)
+      .in("id", cartItemIds);
+
+    if (ciErr) throw ciErr;
+    if (!cartItems || cartItems.length === 0) return json({ error: "No valid cart items found" }, 400);
+
+    const productIds = cartItems.map((ci: any) => ci.product_id);
+
+    // 2. Fetch all products
+    const { data: products, error: pErr } = await admin
+      .from("products")
+      .select("id, title, short_description, description, condition_label, brand, model, unit_price, currency_code, stock_quantity, reserved_quantity, seller_id, status, visibility_type, is_active, delivery_method, verification_window_hours, agreement_terms, estimated_delivery_days, slug")
+      .in("id", productIds);
+
+    if (pErr) throw pErr;
+    const productMap = new Map((products || []).map((p: any) => [p.id, p]));
+
+    // 3. Validate ALL items — block entire checkout if any fail
+    const errors: Array<{ product_id: string; error: string }> = [];
+    for (const ci of cartItems) {
+      const product = productMap.get(ci.product_id);
+      if (!product) { errors.push({ product_id: ci.product_id, error: "Product not found" }); continue; }
+      if (product.status !== "published" || !product.is_active || product.visibility_type !== "public") {
+        errors.push({ product_id: ci.product_id, error: "Product not available" }); continue;
+      }
+      if (product.seller_id === buyerId) {
+        errors.push({ product_id: ci.product_id, error: "Cannot purchase own product" }); continue;
+      }
+      const available = product.stock_quantity - product.reserved_quantity;
+      if (ci.quantity > available) {
+        errors.push({ product_id: ci.product_id, error: available > 0 ? `Only ${available} available` : "Sold out" }); continue;
+      }
+    }
+
+    if (errors.length > 0) {
+      return json({ error: "Some items need attention", validation_errors: errors }, 400);
+    }
+
+    // 4. Fetch buyer + seller profiles
+    const { data: buyerProfile } = await admin.from("profiles").select("id, full_name, email, phone").eq("id", buyerId).single();
+    if (!buyerProfile) return json({ error: "Buyer profile not found" }, 404);
+
+    const sellerIds = [...new Set(cartItems.map((ci: any) => productMap.get(ci.product_id)?.seller_id).filter(Boolean))];
+    const { data: sellerProfiles } = await admin.from("profiles").select("id, full_name, email, phone").in("id", sellerIds);
+    const sellerMap = new Map((sellerProfiles || []).map((s: any) => [s.id, s]));
+
+    // 5. Group cart items by seller
+    const sellerGroups = new Map<string, Array<{ cartItem: any; product: any }>>();
+    for (const ci of cartItems) {
+      const product = productMap.get(ci.product_id)!;
+      const sellerId = product.seller_id;
+      if (!sellerGroups.has(sellerId)) sellerGroups.set(sellerId, []);
+      sellerGroups.get(sellerId)!.push({ cartItem: ci, product });
+    }
+
+    // 6. Create checkout session
+    let subtotalAmount = 0;
+    let totalProtectionFee = 0;
+
+    // Pre-compute totals
+    for (const [, items] of sellerGroups) {
+      for (const { cartItem, product } of items) {
+        const lineTotal = product.unit_price * cartItem.quantity;
+        subtotalAmount += lineTotal;
+      }
+    }
+
+    // Compute per-seller-group pricing and sum fees
+    const sellerGroupPricings: Map<string, any> = new Map();
+    for (const [sellerId, items] of sellerGroups) {
+      let groupItemAmount = 0;
+      for (const { cartItem, product } of items) {
+        groupItemAmount += product.unit_price * cartItem.quantity;
+      }
+      const pricing = computePricing(groupItemAmount, items[0].product.currency_code);
+      sellerGroupPricings.set(sellerId, pricing);
+      totalProtectionFee += pricing.service_fee_amount;
+    }
+
+    const totalAmount = subtotalAmount + totalProtectionFee;
+
+    const { data: checkoutSession, error: csErr } = await admin
+      .from("checkout_sessions")
+      .insert({
+        buyer_id: buyerId,
+        status: "pending",
+        currency_code: "NGN",
+        subtotal_amount: subtotalAmount,
+        total_protection_fee: totalProtectionFee,
+        total_amount: totalAmount,
+      })
+      .select("id")
+      .single();
+
+    if (csErr || !checkoutSession) throw csErr || new Error("Failed to create checkout session");
+
+    // 7. Create per-seller transactions
+    const transactionResults: any[] = [];
+
+    for (const [sellerId, items] of sellerGroups) {
+      const sellerProfile = sellerMap.get(sellerId);
+      const pricing = sellerGroupPricings.get(sellerId);
+      let groupItemAmount = 0;
+      for (const { cartItem, product } of items) {
+        groupItemAmount += product.unit_price * cartItem.quantity;
+      }
+
+      // Check for existing awaiting_payment transaction for same buyer+seller in this checkout pattern
+      // For idempotency: check if there's already a pending tx for each product
+      let existingTx: any = null;
+      if (items.length === 1) {
+        const { data: existing } = await admin
+          .from("transactions")
+          .select("id, share_token, transaction_code, status")
+          .eq("buyer_id", buyerId)
+          .eq("source_product_id", items[0].product.id)
+          .eq("status", "awaiting_payment")
+          .maybeSingle();
+
+        if (existing) {
+          existingTx = existing;
+        }
+      }
+
+      let transactionId: string;
+      let shareToken: string;
+      let transactionCode: string;
+
+      if (existingTx) {
+        // Reuse existing transaction — update pricing if needed
+        transactionId = existingTx.id;
+        shareToken = existingTx.share_token;
+        transactionCode = existingTx.transaction_code;
+
+        // Update checkout_session_id on the existing transaction
+        await admin.from("transactions").update({ checkout_session_id: checkoutSession.id }).eq("id", transactionId);
+
+        // Update pricing
+        await admin.from("transaction_pricing").update({
+          item_amount: groupItemAmount,
+          platform_fee_amount: pricing.platform_fee_amount,
+          processing_fee_amount: pricing.paystack_fee_amount,
+          seller_net_amount: groupItemAmount,
+          buyer_total_amount: pricing.total_amount,
+        }).eq("transaction_id", transactionId);
+      } else {
+        // Create new transaction
+        const { data: txCode } = await admin.rpc("generate_transaction_code");
+        shareToken = generateShareToken();
+        transactionCode = txCode ?? `SD-${Date.now()}`;
+
+        const { data: newTx, error: txErr } = await admin
+          .from("transactions")
+          .insert({
+            transaction_code: transactionCode,
+            seller_id: sellerId,
+            buyer_id: buyerId,
+            created_by_user_id: buyerId,
+            buyer_contact_email: buyerProfile.email,
+            share_token: shareToken,
+            status: "awaiting_payment",
+            money_status: "not_secured",
+            dispute_status: "none",
+            source_product_id: items.length === 1 ? items[0].product.id : null,
+            checkout_session_id: checkoutSession.id,
+          })
+          .select("id")
+          .single();
+
+        if (txErr || !newTx) {
+          console.error("Failed to create transaction:", txErr);
+          throw new Error("Failed to create transaction");
+        }
+        transactionId = newTx.id;
+
+        // Create related records
+        const txItemInserts = items.map(({ cartItem, product }: any) => ({
+          transaction_id: transactionId,
+          title: product.title,
+          description: product.short_description || product.description || "",
+          quantity: cartItem.quantity,
+          condition_label: mapCondition(product.condition_label),
+          brand: product.brand,
+          model: product.model,
+        }));
+
+        // Parse delivery method from first product
+        let primaryDeliveryMethod = "courier";
+        const firstProduct = items[0].product;
+        if (firstProduct.delivery_method) {
+          try {
+            const methods = JSON.parse(firstProduct.delivery_method);
+            primaryDeliveryMethod = mapDeliveryMethod(Array.isArray(methods) ? methods[0] : firstProduct.delivery_method);
+          } catch {
+            primaryDeliveryMethod = mapDeliveryMethod(firstProduct.delivery_method);
+          }
+        }
+
+        const deliveryDays = parseInt(firstProduct.estimated_delivery_days || "7", 10) || 7;
+        const expectedDate = new Date();
+        expectedDate.setDate(expectedDate.getDate() + deliveryDays);
+
+        await Promise.all([
+          admin.from("transaction_items").insert(txItemInserts),
+          admin.from("transaction_pricing").insert({
+            transaction_id: transactionId,
+            currency_code: firstProduct.currency_code,
+            item_amount: groupItemAmount,
+            platform_fee_amount: pricing.platform_fee_amount,
+            processing_fee_amount: pricing.paystack_fee_amount,
+            seller_net_amount: groupItemAmount,
+            buyer_total_amount: pricing.total_amount,
+          }),
+          admin.from("transaction_delivery_terms").insert({
+            transaction_id: transactionId,
+            delivery_method: primaryDeliveryMethod,
+            expected_delivery_date: expectedDate.toISOString().split("T")[0],
+            verification_window_hours: firstProduct.verification_window_hours || 48,
+          }),
+          admin.from("transaction_participants").insert([
+            {
+              transaction_id: transactionId,
+              role: "buyer",
+              user_id: buyerId,
+              display_name: buyerProfile.full_name || "Buyer",
+              email: buyerProfile.email,
+              phone: buyerProfile.phone,
+            },
+            {
+              transaction_id: transactionId,
+              role: "seller",
+              user_id: sellerId,
+              display_name: sellerProfile?.full_name || "Seller",
+              email: sellerProfile?.email,
+              phone: sellerProfile?.phone,
+            },
+          ]),
+          admin.from("transaction_links").insert({
+            transaction_id: transactionId,
+            share_token: shareToken,
+            url: `/t/${shareToken}`,
+            is_active: true,
+          }),
+          admin.from("escrow_states").insert({
+            transaction_id: transactionId,
+            state: "awaiting_payment",
+            held_amount: 0,
+          }),
+        ]);
+
+        // Reserve stock for each product
+        for (const { cartItem, product } of items) {
+          await admin
+            .from("products")
+            .update({ reserved_quantity: product.reserved_quantity + cartItem.quantity })
+            .eq("id", product.id);
+        }
+      }
+
+      // Create checkout_session_items
+      for (const { cartItem, product } of items) {
+        await admin.from("checkout_session_items").insert({
+          checkout_session_id: checkoutSession.id,
+          cart_item_id: cartItem.id,
+          product_id: product.id,
+          seller_id: sellerId,
+          quantity: cartItem.quantity,
+          unit_price: product.unit_price,
+          line_total: product.unit_price * cartItem.quantity,
+          transaction_id: transactionId,
+        });
+      }
+
+      transactionResults.push({
+        transaction_id: transactionId,
+        share_token: shareToken,
+        transaction_code: transactionCode,
+        seller_name: sellerProfile?.full_name || "Seller",
+        seller_id: sellerId,
+        items: items.map(({ cartItem, product }: any) => ({
+          product_id: product.id,
+          title: product.title,
+          quantity: cartItem.quantity,
+          unit_price: product.unit_price,
+          line_total: product.unit_price * cartItem.quantity,
+        })),
+        subtotal: groupItemAmount,
+        protection_fee: pricing.service_fee_amount,
+        total: pricing.total_amount,
+      });
+    }
+
+    return json({
+      checkout_session_id: checkoutSession.id,
+      transactions: transactionResults,
+      totals: {
+        subtotal: subtotalAmount,
+        total_protection_fee: totalProtectionFee,
+        total_amount: totalAmount,
+        currency_code: "NGN",
+      },
+    });
+  } catch (err) {
+    console.error("cart-checkout error:", err);
+    return json({ error: err.message || "Internal server error" }, 500);
+  }
+});

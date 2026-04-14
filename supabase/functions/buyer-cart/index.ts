@@ -1,0 +1,262 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+};
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return json({ error: "Not authenticated" }, 401);
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const token = authHeader.replace("Bearer ", "");
+    const admin = createClient(supabaseUrl, serviceRoleKey);
+
+    const { data: userData, error: userError } = await admin.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return json({ error: "Invalid session" }, 401);
+    }
+    const buyerId = userData.user.id;
+
+    // Verify buyer role
+    const { data: hasBuyer } = await admin.rpc("has_role", { _user_id: buyerId, _role: "buyer" });
+    if (!hasBuyer) return json({ error: "Buyer role required" }, 403);
+
+    // ── GET: list cart items ──
+    if (req.method === "GET") {
+      const { data: cartItems, error: cartErr } = await admin
+        .from("cart_items")
+        .select("id, product_id, quantity, created_at, updated_at")
+        .eq("buyer_id", buyerId)
+        .order("created_at", { ascending: false });
+
+      if (cartErr) throw cartErr;
+      if (!cartItems || cartItems.length === 0) {
+        return json({ items: [], count: 0 });
+      }
+
+      const productIds = cartItems.map((ci: any) => ci.product_id);
+
+      // Fetch products with primary media
+      const { data: products } = await admin
+        .from("products")
+        .select("id, title, slug, unit_price, currency_code, stock_quantity, reserved_quantity, status, is_active, visibility_type, seller_id, short_description")
+        .in("id", productIds);
+
+      // Fetch primary media for these products
+      const { data: mediaRows } = await admin
+        .from("product_media")
+        .select("product_id, file_id, files(file_url)")
+        .in("product_id", productIds)
+        .eq("is_primary", true);
+
+      // Fetch seller names
+      const sellerIds = [...new Set((products || []).map((p: any) => p.seller_id))];
+      const { data: sellers } = await admin
+        .from("profiles")
+        .select("id, full_name, store_slug")
+        .in("id", sellerIds);
+
+      const productMap = new Map((products || []).map((p: any) => [p.id, p]));
+      const mediaMap = new Map((mediaRows || []).map((m: any) => [m.product_id, m.files?.file_url]));
+      const sellerMap = new Map((sellers || []).map((s: any) => [s.id, s]));
+
+      const enriched = cartItems.map((ci: any) => {
+        const product = productMap.get(ci.product_id);
+        if (!product) return { ...ci, product: null };
+        const availableQuantity = Math.max(0, product.stock_quantity - product.reserved_quantity);
+        const seller = sellerMap.get(product.seller_id);
+        return {
+          ...ci,
+          product: {
+            id: product.id,
+            title: product.title,
+            slug: product.slug,
+            unit_price: product.unit_price,
+            currency_code: product.currency_code,
+            stock_quantity: product.stock_quantity,
+            reserved_quantity: product.reserved_quantity,
+            available_quantity: availableQuantity,
+            status: product.status,
+            is_active: product.is_active,
+            visibility_type: product.visibility_type,
+            short_description: product.short_description,
+            primary_image: mediaMap.get(product.id) || null,
+            seller_id: product.seller_id,
+            seller_name: seller?.full_name || "Seller",
+            seller_slug: seller?.store_slug || null,
+          },
+        };
+      });
+
+      return json({ items: enriched, count: enriched.length });
+    }
+
+    // ── POST: add / remove / update_quantity ──
+    if (req.method !== "POST") {
+      return json({ error: "Method not allowed" }, 405);
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const action = body.action as string;
+
+    if (action === "add") {
+      const productId = body.product_id as string;
+      const quantity = Math.max(1, Math.floor(Number(body.quantity) || 1));
+      if (!productId) return json({ error: "product_id required" }, 400);
+
+      // Validate product
+      const { data: product, error: pErr } = await admin
+        .from("products")
+        .select("id, status, is_active, visibility_type, stock_quantity, reserved_quantity, seller_id")
+        .eq("id", productId)
+        .single();
+
+      if (pErr || !product) return json({ error: "Product not found" }, 404);
+      if (product.status !== "published" || !product.is_active || product.visibility_type !== "public") {
+        return json({ error: "Product is not available for purchase" }, 400);
+      }
+      if (product.seller_id === buyerId) {
+        return json({ error: "Cannot add your own product to cart" }, 400);
+      }
+
+      const available = product.stock_quantity - product.reserved_quantity;
+      if (quantity > available) {
+        return json({ error: `Only ${available} units available` }, 400);
+      }
+
+      // Upsert cart item
+      const { data: cartItem, error: insertErr } = await admin
+        .from("cart_items")
+        .upsert(
+          { buyer_id: buyerId, product_id: productId, quantity },
+          { onConflict: "buyer_id,product_id" }
+        )
+        .select("id")
+        .single();
+
+      if (insertErr) throw insertErr;
+      return json({ success: true, cart_item_id: cartItem.id });
+    }
+
+    if (action === "remove") {
+      const productId = body.product_id as string;
+      if (!productId) return json({ error: "product_id required" }, 400);
+
+      // Check for linked awaiting_payment transaction to cancel
+      const { data: linkedTx } = await admin
+        .from("transactions")
+        .select("id, status, source_product_id, buyer_id")
+        .eq("buyer_id", buyerId)
+        .eq("source_product_id", productId)
+        .eq("status", "awaiting_payment")
+        .maybeSingle();
+
+      if (linkedTx) {
+        // Get transaction items to know how much stock to release
+        const { data: txItems } = await admin
+          .from("transaction_items")
+          .select("quantity")
+          .eq("transaction_id", linkedTx.id);
+
+        const reservedQty = txItems?.reduce((sum: number, i: any) => sum + (i.quantity || 0), 0) || 0;
+
+        // Cancel the transaction
+        await admin
+          .from("transactions")
+          .update({ status: "cancelled" })
+          .eq("id", linkedTx.id);
+
+        // Release reserved stock
+        if (reservedQty > 0) {
+          const { data: product } = await admin
+            .from("products")
+            .select("reserved_quantity")
+            .eq("id", productId)
+            .single();
+
+          if (product) {
+            await admin
+              .from("products")
+              .update({ reserved_quantity: Math.max(0, product.reserved_quantity - reservedQty) })
+              .eq("id", productId);
+          }
+        }
+      }
+
+      // Delete cart item
+      await admin
+        .from("cart_items")
+        .delete()
+        .eq("buyer_id", buyerId)
+        .eq("product_id", productId);
+
+      return json({ success: true });
+    }
+
+    if (action === "update_quantity") {
+      const productId = body.product_id as string;
+      const quantity = Math.max(1, Math.floor(Number(body.quantity) || 1));
+      if (!productId) return json({ error: "product_id required" }, 400);
+
+      // Validate stock
+      const { data: product } = await admin
+        .from("products")
+        .select("stock_quantity, reserved_quantity")
+        .eq("id", productId)
+        .single();
+
+      if (!product) return json({ error: "Product not found" }, 404);
+      const available = product.stock_quantity - product.reserved_quantity;
+      if (quantity > available) {
+        return json({ error: `Only ${available} units available` }, 400);
+      }
+
+      await admin
+        .from("cart_items")
+        .update({ quantity })
+        .eq("buyer_id", buyerId)
+        .eq("product_id", productId);
+
+      return json({ success: true });
+    }
+
+    if (action === "check") {
+      // Quick check if a product is in cart
+      const productId = body.product_id as string;
+      if (!productId) return json({ error: "product_id required" }, 400);
+
+      const { data: item } = await admin
+        .from("cart_items")
+        .select("id, quantity")
+        .eq("buyer_id", buyerId)
+        .eq("product_id", productId)
+        .maybeSingle();
+
+      return json({ in_cart: !!item, quantity: item?.quantity || 0 });
+    }
+
+    return json({ error: "Unknown action" }, 400);
+  } catch (err) {
+    console.error("buyer-cart error:", err);
+    return json({ error: "Internal server error" }, 500);
+  }
+});
