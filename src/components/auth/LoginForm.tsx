@@ -72,7 +72,16 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
         toast.success("Welcome back!");
 
         if (roles && roles.length > 0) {
-          navigate("/dashboard", { replace: true });
+          const storedRedirect = sessionStorage.getItem("safedeal_redirect");
+          if (storedRedirect) {
+            sessionStorage.removeItem("safedeal_redirect");
+            navigate(storedRedirect, { replace: true });
+          } else {
+            const destination = roles.some((r: any) => r.role === "seller") && !roles.some((r: any) => r.role === "buyer")
+              ? "/seller"
+              : "/dashboard";
+            navigate(destination, { replace: true });
+          }
         } else {
           navigate("/role-selection", { replace: true });
         }
