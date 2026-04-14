@@ -631,6 +631,7 @@ const PublicProductDetail = () => {
       </header>
       <main className="flex-1 relative">{content}</main>
       <Footer />
+      {authModal}
     </div>
   );
 };
