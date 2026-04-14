@@ -1,40 +1,41 @@
 
 
-# Add Original Price Field to Products
+# Add "Complete Your Purchase" Auth-Gate Modal
 
 ## Summary
 
-Add an `original_price` column to the `products` table so sellers can set a "was" price that renders as a strikethrough next to the sale price. Update the seller creation form to include the field, update edge functions to handle it, and seed existing products with a reasonable value for testing.
+Create a purchase auth-gate modal component that appears when unauthenticated users click "Buy with SafeDeal Protection." The modal shows the product summary, value propositions, and offers Create Account / Log In / Continue Browsing options. After auth completes, redirect back to the same product detail page.
 
 ## Changes
 
-### 1. Database Migration
+### 1. Create `src/components/storefront/PurchaseAuthModal.tsx`
 
-```sql
-ALTER TABLE public.products ADD COLUMN original_price numeric;
-```
+A new Dialog-based modal component matching the reference design exactly:
 
-Then seed existing products with `original_price = unit_price * 1.18` (rounded) so the strikethrough shows immediately for testing.
+- **Header**: "Complete Your Purchase" title with X close button, separated by `border-b`
+- **Product card**: Gray rounded card (`bg-muted rounded-xl border`) with product thumbnail (64px), product title, "Sold by {seller name}", and price
+- **CTA text**: "Create a free SafeDeal account to complete your purchase" heading + "Join thousands of protected buyers on Nigeria's most trusted marketplace" subtext
+- **3 value prop rows**: Each with a colored icon circle + text:
+  - Blue truck icon: "Track your order in real time"
+  - Green shield icon: "Buyer protection on every purchase"  
+  - Amber check icon: "Access products from verified sellers across SafeDeal"
+- **Buttons**: "Create Account" (primary filled `rounded-xl`), "Log In" (outlined `rounded-xl`)
+- **Footer link**: "Continue browsing" text button
 
-### 2. Update `src/pages/SellerProductCreate.tsx`
+Props: `open`, `onOpenChange`, `product` (name, image, price, currency), `sellerName`, `returnPath`
 
-Add an "Original Price" input field next to the existing "Unit Price" field, with a label like "Original Price (optional)" and helper text "Show a crossed-out price to indicate a discount". Pass `original_price` in the create payload.
+Both "Create Account" and "Log In" buttons will navigate to `/auth?mode=signup` or `/auth?mode=login` respectively, storing the current product URL in `sessionStorage` under `safedeal_redirect` for post-auth return.
 
-### 3. Update `src/services/seller-storefront.service.ts`
+### 2. Update `src/pages/PublicProductDetail.tsx`
 
-Add `original_price` to `CreateProductPayload` and `UpdateProductPayload` interfaces.
+- Add `showAuthModal` state (boolean)
+- Update `handleBuyCTA`: if not authenticated, set `showAuthModal = true` instead of showing a toast. If authenticated, proceed with existing flow.
+- Also gate "Save for Later" and "Contact Seller" behind the same modal
+- Render `<PurchaseAuthModal>` at the bottom of the component, passing product details and `returnPath = location.pathname`
 
-### 4. Update `supabase/functions/seller-products/index.ts`
+### 3. Post-auth redirect handling
 
-Accept `original_price` from the request body and include it in the product INSERT.
+The `safedeal_redirect` sessionStorage key is already used by the existing buyer invite flow (per memory). The same mechanism will work here — after auth + role selection completes, the user is returned to the product detail page automatically. No changes needed to auth flow.
 
-### 5. Update `supabase/functions/public-product-detail/index.ts`
-
-Include `original_price` in the product response (already uses `SELECT *` so it may already be included, but verify the explicit field list).
-
-### 6. Update `src/pages/PublicProductDetail.tsx`
-
-Replace the hardcoded `unit_price * 1.18` calculation with the actual `product.original_price` value. Only show the strikethrough when `original_price` exists and is greater than `unit_price`.
-
-### No other backend changes needed.
+## No database or edge function changes needed.
 
