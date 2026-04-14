@@ -441,6 +441,67 @@ const SellerProductCreate = () => {
                   <Label htmlFor="notes">Seller Notes (private)</Label>
                   <Textarea id="notes" value={sellerNotes} onChange={(e) => setSellerNotes(e.target.value)} placeholder="Internal notes, not visible to buyers" rows={3} className="mt-1.5" />
                 </div>
+
+                {/* Feature Highlights */}
+                <div>
+                  <Label>Feature Highlights</Label>
+                  <p className="text-xs text-muted-foreground mb-2">Add key features buyers will see on the product detail page.</p>
+                  <div className="space-y-2">
+                    {featureHighlights.map((fh, idx) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <Input
+                          placeholder="Feature title"
+                          value={fh.title}
+                          onChange={(e) => {
+                            const updated = [...featureHighlights];
+                            updated[idx] = { ...updated[idx], title: e.target.value };
+                            setFeatureHighlights(updated);
+                          }}
+                          className="flex-1"
+                        />
+                        <Input
+                          placeholder="Brief description"
+                          value={fh.description}
+                          onChange={(e) => {
+                            const updated = [...featureHighlights];
+                            updated[idx] = { ...updated[idx], description: e.target.value };
+                            setFeatureHighlights(updated);
+                          }}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0"
+                          onClick={() => setFeatureHighlights(featureHighlights.filter((_, i) => i !== idx))}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFeatureHighlights([...featureHighlights, { title: "", description: "" }])}
+                    >
+                      + Add Feature
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="delivery_scope">Delivery Scope</Label>
+                    <Input id="delivery_scope" value={deliveryScope} onChange={(e) => setDeliveryScope(e.target.value)} placeholder="e.g. Lagos & Abuja" className="mt-1.5" />
+                  </div>
+                  <div>
+                    <Label htmlFor="est_delivery">Estimated Delivery</Label>
+                    <Input id="est_delivery" value={estimatedDeliveryDays} onChange={(e) => setEstimatedDeliveryDays(e.target.value)} placeholder="e.g. 1-3 business days" className="mt-1.5" />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <Label>Delivery Methods</Label>
