@@ -1,47 +1,105 @@
 
 
-# "Visit Seller's Store" Touchpoints in the Marketplace Flow
+# Saved Products (Wishlist) Feature
 
-## Current State
+## Summary
 
-Right now, there is **no explicit "Visit Store" link** anywhere in the buyer's marketplace flow. The only store-related navigation is the back button on the product detail page, which says "Back to [Seller]'s Store" for unauthenticated users but "Back to Marketplace" for authenticated buyers.
+Build a persistent wishlist system where authenticated buyers can save/unsave products from the marketplace, storefront, and product detail pages. Unauthenticated users see the PurchaseAuthModal when they try to save. A new "Saved Products" page (matching the uploaded `main_17.html` reference) displays all saved items with search/filter/sort. Clicking a saved item opens a product detail view (matching `main_18.html` reference) with full checkout flow continuity.
 
-## Recommended Placement Points
+## Database
 
-Here are the **4 precise points** where a "Visit Store" or "View Seller's Store" action should appear, ordered by user intent strength:
+**New table: `saved_products`**
 
-### 1. Product Detail Page — Seller Info Section
-**Where**: On the `PublicProductDetail` page, near where the seller's name/avatar appears (right column, below pricing card area).
-**Why**: This is the highest-intent moment. The buyer is already evaluating a product and naturally wants to see what else this seller offers.
-**How**: A clickable seller card with avatar, name, verification badge, and a "Visit Store →" button/link. Navigates to `/store/:sellerSlug`.
+```sql
+CREATE TABLE public.saved_products (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  buyer_id uuid NOT NULL,
+  product_id uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (buyer_id, product_id)
+);
 
-### 2. Marketplace Product Card — Seller Name
-**Where**: On `MarketplaceProductCard`, the seller name/avatar row at the bottom of each card.
-**Why**: While browsing the grid, buyers often want to explore a specific seller after seeing one appealing product.
-**How**: Make the seller name/avatar row a clickable link to `/store/:sellerSlug`. Use `e.stopPropagation()` so it doesn't trigger the card's product-detail click.
+ALTER TABLE public.saved_products ENABLE ROW LEVEL SECURITY;
 
-### 3. Cart Item — Seller Name in Cart
-**Where**: On the `BuyerCart` page, where each cart item shows the seller's name.
-**Why**: Before committing to checkout, buyers may want to browse the seller's other products or verify legitimacy.
-**How**: Make seller name a clickable link to `/store/:sellerSlug`.
+-- Buyers can CRUD their own saved products
+CREATE POLICY "buyers_select_own_saved" ON public.saved_products
+  FOR SELECT TO authenticated USING (auth.uid() = buyer_id);
 
-### 4. Checkout Review Page — Seller Group Header
-**Where**: On `CartCheckoutReview`, each seller group card header already shows the seller avatar and name.
-**Why**: Last chance to verify the seller before paying. Lower priority since the buyer is already committed.
-**How**: Add a small "View Store" link next to the seller name in each group header.
+CREATE POLICY "buyers_insert_own_saved" ON public.saved_products
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = buyer_id);
 
-## Priority Recommendation
+CREATE POLICY "buyers_delete_own_saved" ON public.saved_products
+  FOR DELETE TO authenticated USING (auth.uid() = buyer_id);
+```
 
-Implement **points 1 and 2 first** — they cover the discovery phase where "Visit Store" is most valuable. Points 3 and 4 are secondary trust-building touchpoints.
+No UPDATE policy needed — saves are insert/delete only.
 
-## Files to Change
+## Backend
 
-| File | Change |
-|------|--------|
-| `src/pages/PublicProductDetail.tsx` | Add a seller info card with "Visit Store" link |
-| `src/components/marketplace/MarketplaceProductCard.tsx` | Make seller name clickable to store |
-| `src/pages/BuyerCart.tsx` | Make seller name in cart items link to store |
-| `src/pages/CartCheckoutReview.tsx` | Add "View Store" link in seller group headers |
+**New edge function: `saved-products`**
 
-No backend changes needed — `store_slug` / `sellerSlug` data is already available in all these contexts.
+Handles three operations:
+- **GET**: Fetch all saved products for the authenticated buyer, joining `products`, `profiles` (seller), `product_media`, `product_categories`, and `account_verifications` for enriched data
+- **POST** `{ product_id }`: Insert a saved product row
+- **DELETE** `{ product_id }`: Remove a saved product row
+
+Also supports a lightweight **GET `?check=product_id`** to check if a single product is saved (for rendering filled hearts on detail pages).
+
+## Frontend Changes
+
+### 1. Saved Products Hook (`src/hooks/useSavedProducts.ts`)
+- React Query hook wrapping the edge function
+- `useSavedProducts()` — fetches full list for the Saved Products page
+- `useIsProductSaved(productId)` — checks if a single product is saved
+- `useToggleSave()` — mutation that inserts or deletes, invalidates queries
+- Handles optimistic updates for instant heart toggle feedback
+
+### 2. Heart Button Auth Gating
+Update the heart/like button in these components to:
+- Check auth state before toggling
+- If **unauthenticated**: show `PurchaseAuthModal` with return path set to current URL
+- If **authenticated**: call `useToggleSave()` mutation
+
+**Files to update:**
+- `src/components/marketplace/MarketplaceProductCard.tsx` — replace local `liked` state with server-backed toggle
+- `src/pages/PublicProductDetail.tsx` — replace local `liked` state with server-backed toggle for both the top-right heart and "Save for Later" button
+- `src/components/storefront/ProductCard.tsx` — add heart button if not present
+
+### 3. New Page: `src/pages/BuyerSavedProducts.tsx`
+Matches the `main_17.html` reference design:
+- Header: "Saved Products" title + item count badge
+- Info banner: "Items may become unavailable..."
+- Filter bar: search input, category dropdown, sort dropdown
+- Product grid (responsive 1→4 columns) with cards showing:
+  - Product image with filled red heart (unsave), stock badge
+  - Category tag, title, description, price
+  - Seller avatar + name + trust badge
+  - "Buy with SafeDeal Protection" CTA (links to product detail → checkout)
+  - Out-of-stock items shown with reduced opacity and disabled CTA
+- Empty state when no saved items
+
+### 4. Saved Product Detail View
+When clicking a saved product card, navigate to the existing `/store/:sellerSlug/:productSlug` route (PublicProductDetail). The detail page already has the layout matching `main_18.html`. The only change is ensuring the heart/save button reflects server state (filled = saved).
+
+### 5. Navigation
+- Add "Saved Products" nav item to `BuyerSidebar.tsx` with Heart icon, between Cart and Transactions
+- Route: `/dashboard/saved`
+- Add route to `App.tsx` under buyer-protected routes
+
+### 6. Sidebar Badge (Optional)
+Show saved item count badge on the Saved Products nav item, similar to the cart count pattern.
+
+## Files Summary
+
+| Action | File |
+|--------|------|
+| Migration | `saved_products` table + RLS |
+| Create | `supabase/functions/saved-products/index.ts` |
+| Create | `src/hooks/useSavedProducts.ts` |
+| Create | `src/pages/BuyerSavedProducts.tsx` |
+| Edit | `src/App.tsx` — add route |
+| Edit | `src/components/marketplace/BuyerSidebar.tsx` — add nav item |
+| Edit | `src/components/marketplace/MarketplaceProductCard.tsx` — server-backed heart |
+| Edit | `src/pages/PublicProductDetail.tsx` — server-backed heart + save |
+| Deploy | `saved-products` edge function |
 
