@@ -142,7 +142,7 @@ const PublicProductDetail = () => {
 
   const glassPanel = "bg-card/60 backdrop-blur-sm border border-border rounded-2xl";
 
-  const originalPrice = Math.round(product.unit_price * 1.18);
+  const originalPrice = product.original_price && product.original_price > product.unit_price ? product.original_price : null;
 
   const content = (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 space-y-6 relative z-10">
@@ -268,9 +268,11 @@ const PublicProductDetail = () => {
                 <p className="text-3xl font-bold text-foreground">
                   {formatPrice(product.unit_price, product.currency_code)}
                 </p>
-                <span className="text-base text-muted-foreground line-through">
-                  {formatPrice(originalPrice, product.currency_code)}
-                </span>
+                {originalPrice && (
+                  <span className="text-base text-muted-foreground line-through">
+                    {formatPrice(originalPrice, product.currency_code)}
+                  </span>
+                )}
               </div>
             </div>
 

@@ -54,6 +54,7 @@ const SellerProductCreate = () => {
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
+  const [originalPrice, setOriginalPrice] = useState("");
   const [stockQuantity, setStockQuantity] = useState("1");
   const [agreementTerms, setAgreementTerms] = useState("");
   const [deliveryMethods, setDeliveryMethods] = useState<string[]>([]);
@@ -88,6 +89,7 @@ const SellerProductCreate = () => {
         brand: brand || undefined,
         model: model || undefined,
         unit_price: parseFloat(unitPrice),
+        original_price: originalPrice ? parseFloat(originalPrice) : undefined,
         stock_quantity: parseInt(stockQuantity) || 0,
         agreement_terms: agreementTerms || undefined,
         delivery_methods: deliveryMethods.length > 0 ? deliveryMethods : undefined,
@@ -418,6 +420,16 @@ const SellerProductCreate = () => {
                       <Input id="price" type="number" min="0" step="0.01" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} placeholder="0.00" className="pl-8" />
                     </div>
                   </div>
+                  <div>
+                    <Label htmlFor="original-price">Original Price (₦) <span className="text-muted-foreground font-normal">— optional</span></Label>
+                    <div className="relative mt-1.5">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">₦</span>
+                      <Input id="original-price" type="number" min="0" step="0.01" value={originalPrice} onChange={(e) => setOriginalPrice(e.target.value)} placeholder="0.00" className="pl-8" />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Show a crossed-out price to indicate a discount</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="stock">Stock Quantity</Label>
                     <Input id="stock" type="number" min="0" value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} className="mt-1.5" />

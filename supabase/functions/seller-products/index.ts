@@ -72,7 +72,7 @@ async function handleCreate(adminClient: any, userId: string, req: Request) {
 
   const {
     title, category_id, short_description, description, condition_label,
-    sku, brand, model, currency_code, unit_price, stock_quantity,
+    sku, brand, model, currency_code, unit_price, original_price, stock_quantity,
     visibility_type, seller_notes, agreement_terms, delivery_methods,
     verification_window_hours, file_ids, status: requestedStatus,
     feature_highlights, delivery_scope, estimated_delivery_days,
@@ -173,6 +173,7 @@ async function handleCreate(adminClient: any, userId: string, req: Request) {
   if (Array.isArray(feature_highlights)) productData.feature_highlights = feature_highlights;
   if (delivery_scope) productData.delivery_scope = delivery_scope.trim();
   if (estimated_delivery_days) productData.estimated_delivery_days = estimated_delivery_days.trim();
+  if (original_price != null && !isNaN(Number(original_price)) && Number(original_price) > 0) productData.original_price = Number(original_price);
   if (finalStatus === "published") productData.published_at = new Date().toISOString();
 
   const { data: product, error: insertError } = await adminClient

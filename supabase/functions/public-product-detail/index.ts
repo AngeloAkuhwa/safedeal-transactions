@@ -117,6 +117,7 @@ Deno.serve(async (req) => {
         model: product.model,
         currency_code: product.currency_code,
         unit_price: product.unit_price,
+        original_price: product.original_price,
         stock_quantity: product.stock_quantity,
         agreement_terms: product.agreement_terms,
         delivery_method: product.delivery_method,

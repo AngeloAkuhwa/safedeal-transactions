@@ -1841,6 +1841,7 @@ export type Database = {
           id: string
           is_active: boolean
           model: string | null
+          original_price: number | null
           published_at: string | null
           reserved_quantity: number
           seller_id: string
@@ -1872,6 +1873,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           model?: string | null
+          original_price?: number | null
           published_at?: string | null
           reserved_quantity?: number
           seller_id: string
@@ -1903,6 +1905,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           model?: string | null
+          original_price?: number | null
           published_at?: string | null
           reserved_quantity?: number
           seller_id?: string
