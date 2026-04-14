@@ -131,14 +131,40 @@ const CartCheckoutReview = () => {
   }
 
   if (isError || !data?.session) {
+    const errMsg = (error as any)?.message || "";
+    const errStatus = (error as any)?.status;
+    const isAuthError = errStatus === 401 || errMsg === "NOT_AUTHENTICATED";
+    const isOwnershipError = errStatus === 403;
+    const isNotFound = errStatus === 404;
+
+    let title = "Something went wrong";
+    let description = "We couldn't load your checkout session. Please try again.";
+
+    if (isAuthError) {
+      title = "Sign in required";
+      description = "Please sign in to view your checkout session.";
+    } else if (isOwnershipError) {
+      title = "Wrong account";
+      description = errMsg || "This checkout belongs to a different account. Please sign in with the buyer account that created this checkout.";
+    } else if (isNotFound) {
+      title = "Session not found";
+      description = "This checkout session doesn't exist or may have expired.";
+    }
+
     return (
       <div className="flex min-h-screen bg-background">
         <BuyerSidebar />
         <main className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <Package className="h-16 w-16 text-muted-foreground/30 mx-auto" />
-            <h1 className="text-2xl font-bold">Session not found</h1>
-            <Button onClick={() => navigate("/dashboard/cart")}>Back to Cart</Button>
+          <div className="text-center space-y-4 max-w-md px-4">
+            <AlertCircle className="h-16 w-16 text-destructive/50 mx-auto" />
+            <h1 className="text-2xl font-bold">{title}</h1>
+            <p className="text-sm text-muted-foreground">{description}</p>
+            <div className="flex gap-3 justify-center">
+              <Button onClick={() => navigate("/dashboard/cart")}>Back to Cart</Button>
+              {isAuthError && (
+                <Button variant="outline" onClick={() => navigate("/auth")}>Sign In</Button>
+              )}
+            </div>
           </div>
         </main>
       </div>
