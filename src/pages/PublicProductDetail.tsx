@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/components/ui/sonner";
 import { getPublicProductDetail } from "@/services/public-storefront.service";
@@ -39,23 +39,23 @@ const deliveryMethodLabels: Record<string, string> = {
   meetup: "Meetup",
 };
 
-// Placeholder reviews data
+// Placeholder reviews data matching reference
 const placeholderReviews = [
   {
     id: "1",
-    name: "Adebayo O.",
+    name: "Adebayo Ogunlesi",
     avatar: null,
     rating: 5,
-    date: "2 weeks ago",
+    date: "2 days ago",
     text: "Excellent product! Exactly as described. The SafeDeal escrow gave me confidence to purchase.",
     verified: true,
   },
   {
     id: "2",
-    name: "Chioma A.",
+    name: "Ngozi Eze",
     avatar: null,
     rating: 4,
-    date: "1 month ago",
+    date: "1 week ago",
     text: "Good quality, fast delivery. Would buy again from this seller.",
     verified: true,
   },
@@ -140,16 +140,18 @@ const PublicProductDetail = () => {
 
   const featureHighlights: Array<{ title: string; description: string }> = product.feature_highlights || [];
 
-  const glassPanel = "bg-card/60 backdrop-blur-sm border border-border rounded-[24px]";
+  const glassPanel = "bg-card/60 backdrop-blur-sm border border-border rounded-2xl";
+
+  const originalPrice = Math.round(product.unit_price * 1.18);
 
   const content = (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-8 relative z-10">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 space-y-6 relative z-10">
       {/* Background glows */}
       <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
       <div className="pointer-events-none absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
 
-      {/* Top bar */}
-      <div className="flex items-center justify-between">
+      {/* Sticky top bar */}
+      <header className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 border-b border-border/50 bg-background/80 backdrop-blur-md h-14 flex items-center justify-between">
         <button
           onClick={() => navigate(isAuthenticated ? "/dashboard/marketplace" : `/store/${sellerSlug}`)}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -160,18 +162,18 @@ const PublicProductDetail = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setLiked(!liked)}
-            className="h-10 w-10 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
+            className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
           >
-            <Heart className={`h-5 w-5 ${liked ? "fill-current text-destructive" : "text-muted-foreground"}`} />
+            <Heart className={`h-4 w-4 ${liked ? "fill-current text-destructive" : "text-muted-foreground"}`} />
           </button>
           <button
             onClick={handleShare}
-            className="h-10 w-10 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
+            className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
           >
-            <Share2 className="h-5 w-5 text-muted-foreground" />
+            <Share2 className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -186,7 +188,7 @@ const PublicProductDetail = () => {
         <span className="text-foreground font-medium truncate max-w-[200px]">{product.title}</span>
       </div>
 
-      {/* Two-column grid */}
+      {/* Two-column grid — Image + Product Info */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left — Image Gallery */}
         <div className="space-y-3">
@@ -214,14 +216,7 @@ const PublicProductDetail = () => {
                     idx === selectedImage ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/40"
                   }`}
                 >
-                  <img
-                    src={img.file_url}
-                    alt=""
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
+                  <img src={img.file_url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                 </button>
               ))}
               {videos.map((vid: any) => (
@@ -238,8 +233,8 @@ const PublicProductDetail = () => {
         </div>
 
         {/* Right — Product Info */}
-        <div className="space-y-5">
-          {/* Category + Stock badges */}
+        <div className="space-y-4">
+          {/* Category + Stock inline */}
           <div className="flex items-center gap-2 flex-wrap">
             {product.category && (
               <Badge className="rounded-full text-xs bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
@@ -266,65 +261,64 @@ const PublicProductDetail = () => {
           )}
 
           {/* Pricing card */}
-          <div className={`${glassPanel} p-6 space-y-4`}>
+          <div className={`${glassPanel} p-5 space-y-3`}>
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">SafeDeal Escrow Price</p>
               <div className="flex items-baseline gap-3">
                 <p className="text-3xl font-bold text-foreground">
                   {formatPrice(product.unit_price, product.currency_code)}
                 </p>
+                <span className="text-base text-muted-foreground line-through">
+                  {formatPrice(originalPrice, product.currency_code)}
+                </span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center gap-2 p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
                 <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span className="text-xs font-medium text-foreground">Escrow Protected</span>
               </div>
-              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-primary/5 border border-primary/10">
+              <div className="flex items-center gap-2 p-2 rounded-xl bg-primary/5 border border-primary/10">
                 <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                 <span className="text-xs font-medium text-foreground">Verified Seller</span>
               </div>
-              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-primary/5 border border-primary/10">
+              <div className="flex items-center gap-2 p-2 rounded-xl bg-primary/5 border border-primary/10">
                 <Truck className="h-4 w-4 text-primary shrink-0" />
                 <span className="text-xs font-medium text-foreground">Delivery Support</span>
               </div>
-              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-primary/5 border border-primary/10">
+              <div className="flex items-center gap-2 p-2 rounded-xl bg-primary/5 border border-primary/10">
                 <Clock className="h-4 w-4 text-primary shrink-0" />
                 <span className="text-xs font-medium text-foreground">{product.verification_window_hours || 48}hr Verification</span>
               </div>
             </div>
           </div>
 
-          {/* Quantity selector — outside pricing card */}
+          {/* Quantity selector — bordered square buttons */}
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium text-foreground">Quantity:</span>
-            <div className={`${glassPanel} !rounded-xl flex items-center`}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10 rounded-l-xl rounded-r-none"
+            <div className="flex items-center gap-1">
+              <button
+                className="h-9 w-9 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
               >
                 <Minus className="h-4 w-4" />
-              </Button>
-              <span className="w-12 text-center text-sm font-semibold border-x border-border">{quantity}</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10 rounded-r-xl rounded-l-none"
+              </button>
+              <span className="w-10 text-center text-sm font-semibold">{quantity}</span>
+              <button
+                className="h-9 w-9 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors disabled:opacity-50"
                 onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))}
                 disabled={quantity >= product.stock_quantity}
               >
                 <Plus className="h-4 w-4" />
-              </Button>
+              </button>
             </div>
           </div>
 
-          {/* CTA Button — Blue gradient */}
+          {/* CTA Button */}
           <Button
             size="lg"
-            className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground gap-2 rounded-xl h-14 text-lg font-semibold shadow-lg shadow-primary/20"
+            className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
             onClick={handleBuyCTA}
             disabled={product.stock_quantity === 0}
           >
@@ -353,11 +347,11 @@ const PublicProductDetail = () => {
         </div>
       </div>
 
-      {/* Below-the-fold sections — 2/3 + 1/3 layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Product Description — 2 cols */}
-        <div className={`${glassPanel} p-6 lg:col-span-2`}>
-          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+      {/* Below-the-fold — ALL sections stacked vertically in max-w-4xl */}
+      <div className="max-w-4xl space-y-6">
+        {/* Product Description */}
+        <div className={`${glassPanel} p-5`}>
+          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
             Product Description
           </h2>
@@ -383,7 +377,7 @@ const PublicProductDetail = () => {
             </div>
           )}
 
-          {/* Fallback brand/model if no feature highlights */}
+          {/* Fallback brand/model */}
           {featureHighlights.length === 0 && (product.brand || product.model) && (
             <div className="mt-4 grid grid-cols-2 gap-3">
               {product.brand && (
@@ -408,10 +402,10 @@ const PublicProductDetail = () => {
           )}
         </div>
 
-        {/* Product Agreement — 1 col */}
+        {/* Product Agreement */}
         {agreementBullets.length > 0 && (
-          <div className={`${glassPanel} p-6 border-2 border-primary/20`}>
-            <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+          <div className={`${glassPanel} p-5 border-2 border-primary/20`}>
+            <h2 className="text-xl font-bold text-foreground mb-3 flex items-center gap-2">
               <Lock className="h-5 w-5 text-primary" />
               Product Agreement Details
             </h2>
@@ -424,7 +418,6 @@ const PublicProductDetail = () => {
             <ul className="space-y-3">
               {agreementBullets.map((item: string, i: number) => {
                 const isExclusion = item.toLowerCase().includes("exclusion") || item.toLowerCase().includes("not include") || item.toLowerCase().includes("no refund");
-                // Try to parse "Title: Description" format
                 const colonIdx = item.indexOf(":");
                 const hasTitle = colonIdx > 0 && colonIdx < 40;
                 return (
@@ -446,106 +439,100 @@ const PublicProductDetail = () => {
             </ul>
           </div>
         )}
-      </div>
 
-      {/* Delivery & Fulfillment */}
-      <div className={`${glassPanel} p-6`}>
-        <h2 className="text-lg font-semibold text-foreground mb-5 flex items-center gap-2">
-          <Truck className="h-5 w-5 text-primary" />
-          Delivery & Fulfillment
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          {deliveryMethods.length > 0 ? (
-            deliveryMethods.map((method: string) => (
-              <div key={method} className="flex items-center gap-4 p-4 rounded-xl bg-muted/40 border border-border">
-                {method === "hand_delivery" || method === "meetup" ? (
-                  <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
-                    <User className="h-5 w-5 text-amber-600" />
+        {/* Delivery & Fulfillment */}
+        <div className={`${glassPanel} p-5`}>
+          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <Truck className="h-5 w-5 text-primary" />
+            Delivery & Fulfillment
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+            {deliveryMethods.length > 0 ? (
+              deliveryMethods.map((method: string) => (
+                <div key={method} className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border">
+                  {method === "hand_delivery" || method === "meetup" ? (
+                    <div className="h-9 w-9 rounded-full bg-amber-500/10 flex items-center justify-center">
+                      <User className="h-4 w-4 text-amber-600" />
+                    </div>
+                  ) : (
+                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Truck className="h-4 w-4 text-primary" />
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{deliveryMethodLabels[method] || method}</p>
+                    <p className="text-xs text-muted-foreground">Tracked & supported by SafeDeal</p>
                   </div>
-                ) : (
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Truck className="h-5 w-5 text-primary" />
-                  </div>
-                )}
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border">
+                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Truck className="h-4 w-4 text-primary" />
+                </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground">{deliveryMethodLabels[method] || method}</p>
+                  <p className="text-sm font-semibold text-foreground">Standard Delivery</p>
                   <p className="text-xs text-muted-foreground">Tracked & supported by SafeDeal</p>
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/40 border border-border">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Truck className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Standard Delivery</p>
-                <p className="text-xs text-muted-foreground">Tracked & supported by SafeDeal</p>
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
-            <MapPin className="h-4 w-4 text-primary shrink-0" />
-            <div>
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Delivery Scope</p>
-              <p className="text-sm font-medium text-foreground">{product.delivery_scope || "Contact seller"}</p>
+          {/* Delivery detail rows — single card */}
+          <div className="rounded-xl border border-border bg-muted/30 divide-y divide-border/50">
+            <div className="flex justify-between items-center px-4 py-3">
+              <span className="text-sm text-muted-foreground">Delivery Scope</span>
+              <span className="text-sm font-semibold text-foreground">{product.delivery_scope || "Contact seller"}</span>
             </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
-            <Clock className="h-4 w-4 text-primary shrink-0" />
-            <div>
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Estimated Delivery</p>
-              <p className="text-sm font-medium text-foreground">{product.estimated_delivery_days || "Contact seller"}</p>
+            <div className="flex justify-between items-center px-4 py-3">
+              <span className="text-sm text-muted-foreground">Estimated Delivery</span>
+              <span className="text-sm font-semibold text-foreground">{product.estimated_delivery_days || "Contact seller"}</span>
             </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
-            <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
-            <div>
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Handled By</p>
-              <p className="text-sm font-medium text-foreground">SafeDeal Escrow</p>
+            <div className="flex justify-between items-center px-4 py-3">
+              <span className="text-sm text-muted-foreground">Handled By</span>
+              <span className="text-sm font-semibold text-foreground">SafeDeal Escrow</span>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Customer Reviews */}
-      <div className={`${glassPanel} p-6`}>
-        <h2 className="text-lg font-semibold text-foreground mb-5 flex items-center gap-2">
-          <Star className="h-5 w-5 text-primary" />
-          Customer Reviews
-        </h2>
+        {/* Customer Reviews */}
+        <div className={`${glassPanel} p-5`}>
+          <h2 className="text-xl font-bold text-foreground mb-5 flex items-center gap-2">
+            <Star className="h-5 w-5 text-amber-400" />
+            Customer Reviews
+          </h2>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Rating Summary */}
-          <div className="flex flex-col items-center justify-center p-6 rounded-xl bg-muted/30 border border-border">
-            <p className="text-5xl font-bold text-foreground mb-1">4.8</p>
-            <div className="flex gap-0.5 mb-2">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Star key={i} className={`h-4 w-4 ${i <= 4 ? "fill-amber-400 text-amber-400" : "fill-amber-400/50 text-amber-400/50"}`} />
-              ))}
+          {/* Rating summary — horizontal layout */}
+          <div className="flex flex-col sm:flex-row gap-6 pb-5 mb-5 border-b border-border">
+            {/* Left: rating number + stars */}
+            <div className="flex flex-col items-center justify-center sm:min-w-[140px]">
+              <p className="text-5xl font-bold text-foreground mb-1">4.8</p>
+              <div className="flex gap-0.5 mb-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Star key={i} className={`h-4 w-4 ${i <= 4 ? "fill-amber-400 text-amber-400" : "fill-amber-400/50 text-amber-400/50"}`} />
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">Based on 127 reviews</p>
             </div>
-            <p className="text-xs text-muted-foreground">Based on 24 reviews</p>
 
-            <div className="w-full mt-4 space-y-2">
+            {/* Right: star bars */}
+            <div className="flex-1 space-y-2 justify-center flex flex-col">
               {[
-                { stars: 5, pct: 75 },
-                { stars: 4, pct: 18 },
-                { stars: 3, pct: 7 },
+                { label: "5 star", pct: 85 },
+                { label: "4 star", pct: 12 },
+                { label: "3 star", pct: 2 },
               ].map((row) => (
-                <div key={row.stars} className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-8">{row.stars}★</span>
+                <div key={row.label} className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground w-12 shrink-0">{row.label}</span>
                   <Progress value={row.pct} className="flex-1 h-2" />
-                  <span className="text-xs text-muted-foreground w-8">{row.pct}%</span>
+                  <span className="text-xs text-muted-foreground w-8 text-right">{row.pct}%</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Individual Reviews */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="space-y-4">
             {placeholderReviews.map((review) => (
               <div key={review.id} className="p-4 rounded-xl bg-muted/30 border border-border">
                 <div className="flex items-center gap-3 mb-3">
