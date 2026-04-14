@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2, Shield, ArrowLeft, Package, ShieldCheck, Truck, Clock,
   Heart, Share2, Star, Minus, Plus, Play, BookmarkPlus, MessageCircle,

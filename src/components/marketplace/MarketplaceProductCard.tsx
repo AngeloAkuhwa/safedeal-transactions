@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { useToggleSave, useAuthState, useSavedProductIds } from "@/hooks/useSavedProducts";
 import { PurchaseAuthModal } from "@/components/storefront/PurchaseAuthModal";
 import { toast } from "@/components/ui/sonner";
+import { addToCart } from "@/services/cart.service";
+import { useQueryClient } from "@tanstack/react-query";
 import type { MarketplaceProduct } from "@/services/marketplace.service";
 
 interface Props {
