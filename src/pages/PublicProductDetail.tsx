@@ -66,10 +66,12 @@ const placeholderReviews = [
 const PublicProductDetail = () => {
   const { sellerSlug, productSlug } = useParams<{ sellerSlug: string; productSlug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [liked, setLiked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
@@ -111,7 +113,19 @@ const PublicProductDetail = () => {
   const currentImage = images[selectedImage]?.file_url;
 
   const handleBuyCTA = () => {
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
     toast.info("Purchase flow coming soon! Contact the seller directly for now.", { duration: 4000 });
+  };
+
+  const handleAuthGatedAction = (action: () => void) => {
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
+    action();
   };
 
   const handleShare = () => {
