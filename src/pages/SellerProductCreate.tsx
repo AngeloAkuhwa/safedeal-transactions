@@ -110,6 +110,27 @@ const SellerProductCreate = () => {
     const selectedFiles = e.target.files;
     if (!selectedFiles?.length) return;
     const fileArray = Array.from(selectedFiles);
+
+    // Enforce max 3 images + 1 video
+    const currentImages = files.filter((f) => f.media_type === "image").length;
+    const currentVideos = files.filter((f) => f.media_type === "video").length;
+    const filtered: File[] = [];
+    for (const file of fileArray) {
+      const isVideo = file.type.startsWith("video/");
+      if (isVideo) {
+        if (currentVideos + filtered.filter((f) => f.type.startsWith("video/")).length >= 1) {
+          toast.error("Maximum 1 video allowed.");
+          continue;
+        }
+      } else {
+        if (currentImages + filtered.filter((f) => !f.type.startsWith("video/")).length >= 3) {
+          toast.error("Maximum 3 images allowed.");
+          continue;
+        }
+      }
+      filtered.push(file);
+    }
+    if (!filtered.length) return;
     e.target.value = "";
 
     const newEntries: FileEntry[] = fileArray.map((file) => ({
@@ -317,10 +338,10 @@ const SellerProductCreate = () => {
                     <p className="font-medium text-foreground">Upload Product Images</p>
                     <p className="text-sm text-muted-foreground">Drag and drop or click to browse your files</p>
                   </div>
-                  <Button type="button" size="sm" className="mt-1" onClick={(e) => e.preventDefault()}>
+                  <span className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground h-9 px-4 mt-1 pointer-events-none">
                     Choose Files
-                  </Button>
-                  <p className="text-xs text-muted-foreground">PNG, JPG, MP4 up to 10MB each</p>
+                  </span>
+                  <p className="text-xs text-muted-foreground">Max 3 images + 1 video · PNG, JPG, MP4 up to 10MB each</p>
                   <input type="file" className="hidden" accept="image/*,video/*" multiple onChange={handleFileUpload} disabled={uploading} />
                 </label>
 
