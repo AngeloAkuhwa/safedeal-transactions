@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2, Shield, ArrowLeft, Package, ShieldCheck, Truck, Clock,
   Heart, Share2, Star, Minus, Plus, Play, BookmarkPlus, MessageCircle,
@@ -69,6 +69,7 @@ const PublicProductDetail = () => {
   const { sellerSlug, productSlug } = useParams<{ sellerSlug: string; productSlug: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(() => {
     const stored = sessionStorage.getItem("safedeal_quantity");
@@ -137,6 +138,7 @@ const PublicProductDetail = () => {
     try {
       await addToCart(product.id, quantity);
       setInCart(true);
+      queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
       toast.success("Added to cart!");
     } catch (err: any) { toast.error(err.message); }
     finally { setAddingToCart(false); }

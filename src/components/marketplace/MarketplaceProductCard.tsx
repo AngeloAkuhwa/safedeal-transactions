@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { useToggleSave, useAuthState, useSavedProductIds } from "@/hooks/useSavedProducts";
 import { PurchaseAuthModal } from "@/components/storefront/PurchaseAuthModal";
 import { toast } from "@/components/ui/sonner";
+import { addToCart } from "@/services/cart.service";
+import { useQueryClient } from "@tanstack/react-query";
 import type { MarketplaceProduct } from "@/services/marketplace.service";
 
 interface Props {
@@ -40,10 +42,12 @@ function getAvatarColor(name: string) {
 
 export function MarketplaceProductCard({ product, categoryName, onClick }: Props) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { isAuthenticated } = useAuthState();
   const { data: savedIds } = useSavedProductIds();
   const toggleSave = useToggleSave();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
 
   const isSaved = (savedIds || []).includes(product.id);
   const outOfStock = product.stock_quantity <= 0;
@@ -175,11 +179,23 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
               size="icon"
               variant={outOfStock ? "outline" : "default"}
               className="h-8 w-8 rounded-lg shrink-0"
-              disabled={outOfStock}
-              onClick={(e) => e.stopPropagation()}
+              disabled={outOfStock || addingToCart}
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (!isAuthenticated) { setShowAuthModal(true); return; }
+                setAddingToCart(true);
+                try {
+                  await addToCart(product.id, 1);
+                  queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
+                  toast.success("Added to cart!");
+                } catch (err: any) { toast.error(err.message); }
+                finally { setAddingToCart(false); }
+              }}
             >
               {outOfStock ? (
                 <Bell className="h-3.5 w-3.5" />
+              ) : addingToCart ? (
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
               ) : (
                 <ShoppingCart className="h-3.5 w-3.5" />
               )}
