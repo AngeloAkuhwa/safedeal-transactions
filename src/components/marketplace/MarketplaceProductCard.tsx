@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Heart, ShoppingCart, Bell, CheckCircle, PackageOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ function getAvatarColor(name: string) {
 }
 
 export function MarketplaceProductCard({ product, categoryName, onClick }: Props) {
+  const navigate = useNavigate();
   const [imgError, setImgError] = useState(false);
   const [liked, setLiked] = useState(false);
   const outOfStock = product.stock_quantity <= 0;
@@ -103,15 +105,23 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
       <div className="flex flex-1 flex-col p-3.5">
         {/* Seller row */}
         <div className="mb-2 flex items-center gap-2">
-          <div
-            className={cn(
-              "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[10px] font-bold text-white",
-              getAvatarColor(seller.full_name)
-            )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (seller.store_slug) navigate(`/store/${seller.store_slug}`);
+            }}
+            className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity"
           >
-            {sellerInitial}
-          </div>
-          <span className="truncate text-xs text-muted-foreground">{seller.full_name}</span>
+            <div
+              className={cn(
+                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[10px] font-bold text-white",
+                getAvatarColor(seller.full_name)
+              )}
+            >
+              {sellerInitial}
+            </div>
+            <span className="truncate text-xs text-muted-foreground hover:text-foreground transition-colors">{seller.full_name}</span>
+          </button>
           {seller.trust_summary.email_verified && (
             <CheckCircle className="h-3.5 w-3.5 shrink-0 text-primary" />
           )}
