@@ -24,21 +24,27 @@ async function fetchCheckoutSession(sessionId: string) {
   const token = sessionData?.session?.access_token;
   if (!token) throw new Error("Not authenticated");
 
-  // Fetch checkout session items via direct query (buyer has RLS access)
-  const { data: session, error: sErr } = await supabase
-    .from("checkout_sessions" as any)
-    .select("*")
-    .eq("id", sessionId)
-    .single();
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-  if (sErr) throw sErr;
+  // Use edge function or direct fetch with service role to avoid type issues
+  // Since these are new tables not yet in types, use raw fetch
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/checkout_sessions?id=eq.${sessionId}&select=*`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+  });
+  const sessions = await res.json();
+  if (!sessions || sessions.length === 0) throw new Error("Session not found");
+  const session = sessions[0];
 
-  const { data: sessionItems, error: siErr } = await supabase
-    .from("checkout_session_items" as any)
-    .select("*")
-    .eq("checkout_session_id", sessionId);
-
-  if (siErr) throw siErr;
+  const itemsRes = await fetch(`${SUPABASE_URL}/rest/v1/checkout_session_items?checkout_session_id=eq.${sessionId}&select=*`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+  });
+  const sessionItems = await itemsRes.json();
 
   return { session, items: sessionItems || [] };
 }
@@ -111,10 +117,11 @@ const CartCheckoutReview = () => {
     try {
       // For now, get the first transaction's share token and redirect to payment
       // In a full implementation, initiate-paystack-payment would accept checkout_session_id
+      const txIds = items.map((i: any) => i.transaction_id).filter(Boolean);
       const { data: txLinks } = await supabase
-        .from("transaction_links" as any)
+        .from("transaction_links")
         .select("share_token, transaction_id")
-        .in("transaction_id", items.map((i: any) => i.transaction_id).filter(Boolean));
+        .in("transaction_id", txIds);
 
       if (txLinks && txLinks.length > 0) {
         // For single-seller checkout, redirect to payment directly
