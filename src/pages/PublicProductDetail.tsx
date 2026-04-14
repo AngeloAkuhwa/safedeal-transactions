@@ -68,7 +68,15 @@ const PublicProductDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedImage, setSelectedImage] = useState(0);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(() => {
+    const stored = sessionStorage.getItem("safedeal_quantity");
+    if (stored) {
+      sessionStorage.removeItem("safedeal_quantity");
+      const parsed = Number(stored);
+      return parsed > 0 ? parsed : 1;
+    }
+    return 1;
+  });
   const [liked, setLiked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -599,6 +607,7 @@ const PublicProductDetail = () => {
       }}
       sellerName={seller.full_name}
       returnPath={location.pathname}
+      quantity={quantity}
     />
   );
 

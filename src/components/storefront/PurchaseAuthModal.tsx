@@ -14,6 +14,7 @@ interface PurchaseAuthModalProps {
   };
   sellerName: string;
   returnPath: string;
+  quantity?: number;
 }
 
 function formatPrice(amount: number, currency: string) {
@@ -27,11 +28,15 @@ export function PurchaseAuthModal({
   product,
   sellerName,
   returnPath,
+  quantity,
 }: PurchaseAuthModalProps) {
   const navigate = useNavigate();
 
   const navigateToAuth = (mode: "login" | "signup") => {
     sessionStorage.setItem("safedeal_redirect", returnPath);
+    if (quantity && quantity > 1) {
+      sessionStorage.setItem("safedeal_quantity", String(quantity));
+    }
     navigate(`/auth?mode=${mode}`);
   };
 
