@@ -16,6 +16,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { Footer } from "@/components/landing/Footer";
+import { PurchaseAuthModal } from "@/components/storefront/PurchaseAuthModal";
+import { useLocation } from "react-router-dom";
 
 function formatPrice(amount: number, currency: string) {
   if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
