@@ -12,6 +12,7 @@ interface CreateProductPayload {
   brand?: string;
   model?: string;
   currency_code?: string;
+  original_price?: number;
   unit_price: number;
   stock_quantity: number;
   visibility_type?: string;
