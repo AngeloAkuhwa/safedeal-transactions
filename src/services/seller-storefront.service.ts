@@ -21,6 +21,9 @@ interface CreateProductPayload {
   verification_window_hours?: number;
   file_ids?: Array<{ file_id: string; media_type: string }>;
   status?: string;
+  feature_highlights?: Array<{ title: string; description: string }>;
+  delivery_scope?: string;
+  estimated_delivery_days?: string;
 }
 
 interface UpdateProductPayload extends Partial<CreateProductPayload> {

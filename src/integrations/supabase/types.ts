@@ -1834,7 +1834,10 @@ export type Database = {
           created_at: string
           currency_code: string
           delivery_method: string | null
+          delivery_scope: string | null
           description: string
+          estimated_delivery_days: string | null
+          feature_highlights: Json | null
           id: string
           is_active: boolean
           model: string | null
@@ -1862,7 +1865,10 @@ export type Database = {
           created_at?: string
           currency_code?: string
           delivery_method?: string | null
+          delivery_scope?: string | null
           description: string
+          estimated_delivery_days?: string | null
+          feature_highlights?: Json | null
           id?: string
           is_active?: boolean
           model?: string | null
@@ -1890,7 +1896,10 @@ export type Database = {
           created_at?: string
           currency_code?: string
           delivery_method?: string | null
+          delivery_scope?: string | null
           description?: string
+          estimated_delivery_days?: string | null
+          feature_highlights?: Json | null
           id?: string
           is_active?: boolean
           model?: string | null
