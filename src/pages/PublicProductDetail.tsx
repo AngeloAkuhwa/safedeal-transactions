@@ -138,6 +138,7 @@ const PublicProductDetail = () => {
     try {
       await addToCart(product.id, quantity);
       setInCart(true);
+      queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
       toast.success("Added to cart!");
     } catch (err: any) { toast.error(err.message); }
     finally { setAddingToCart(false); }
