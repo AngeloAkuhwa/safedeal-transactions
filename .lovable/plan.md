@@ -1,30 +1,42 @@
 
 
-# Fix Cart Badge Sync + Add Sidebar Collapse
+# Redesign Saved Products Page to Match Reference Design
 
-## Problems
-1. Sidebar uses query key `["buyer-cart-count"]` while the cart page uses `["buyer-cart"]`. When items are added/removed, only `["buyer-cart"]` gets invalidated, so the sidebar badge stays stale.
-2. The sidebar has no collapse/expand toggle on desktop.
+## What's changing
 
-## Solution
+The current page has visual differences from the reference design. Here's what needs to be fixed:
 
-### 1. Unify cart query key
-Change `BuyerSidebar.tsx` to use `queryKey: ["buyer-cart"]` (same as cart page). This means any `invalidateQueries({ queryKey: ["buyer-cart"] })` from add/remove/checkout operations automatically refreshes the sidebar badge count too.
+### Layout & Spacing
+- **Header**: Larger title (3xl/4xl), subtitle text-lg, badge moved to right side of header row (not inline with title)
+- **Info banner**: Single-line layout with dismiss (×) button, text all on one line, no bold sub-heading
+- **Filter bar**: Taller inputs (h-12), more spacing (gap-6 between cards)
+- **Grid gap**: `gap-6` instead of `gap-4`
+- **Content area max-width**: `max-w-[1400px]` with `p-4 md:p-8`
 
-### 2. Ensure all cart mutations invalidate the shared key
-In `BuyerCart.tsx`, after remove/update/checkout calls, add `queryClient.invalidateQueries({ queryKey: ["buyer-cart"] })`. Also do the same in `MarketplaceProductCard` and `PublicProductDetail` where "Add to Cart" is called — invalidate `["buyer-cart"]` so the sidebar badge updates immediately.
+### Product Card Differences
+- **No glassmorphism**: Cards use solid white `bg-card` with proper shadow, no `backdrop-blur-sm` or `bg-card/60`
+- **Stock badge**: Top-left colored badge (green "In Stock", amber "Low Stock", gray "Out of Stock") instead of an overlay
+- **Heart button**: Larger (w-10 h-10), with border
+- **Category badge**: Below image inside content area (not overlaid on image)
+- **Content padding**: `p-5` instead of `p-3.5`
+- **Title**: `text-lg` instead of `text-sm`
+- **Price**: `text-2xl font-bold` instead of `text-base`, no "Escrow Price" label
+- **Seller row**: Has border-bottom separator, seller name is `text-sm font-medium text-foreground` (not muted)
+- **Trust badge**: Colored pill badges — green "TRUSTED" or blue "VERIFIED" (not a checkmark icon)
+- **CTA button**: Gradient `bg-gradient-to-r from-primary to-blue-600`, taller `h-11`, no shield icon. Out-of-stock shows gray "Currently Unavailable"
+- **Hover effect**: `translateY(-4px)` lift on hover
+- **No "Escrow Price" label** above price
 
-### 3. Add desktop collapse toggle
-Add a `collapsed` state to `BuyerSidebar`. When collapsed, the sidebar shrinks to ~64px showing only icons (and the cart badge as a dot). A toggle button (chevron icon) at the top or bottom lets the user expand/collapse at will. The nav items hide their labels when collapsed but keep icons visible.
+### Responsiveness
+- Grid: `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`
+- Filters stack vertically on mobile, side-by-side on md+
+- Header stacks on mobile with badge below title
 
-## Files to change
+## File to change
 
 | File | Change |
 |------|--------|
-| `src/components/marketplace/BuyerSidebar.tsx` | Fix query key to `["buyer-cart"]`, add collapse state + toggle button, show icon-only mode when collapsed |
-| `src/pages/BuyerCart.tsx` | Ensure remove/update handlers invalidate `["buyer-cart"]` (already mostly done, verify) |
-| `src/components/marketplace/MarketplaceProductCard.tsx` | After `addToCart`, invalidate `["buyer-cart"]` |
-| `src/pages/PublicProductDetail.tsx` | After `addToCart`, invalidate `["buyer-cart"]` |
+| `src/pages/BuyerSavedProducts.tsx` | Full redesign of the page layout and card component to match reference pixel-for-pixel |
 
-No backend or migration changes needed.
+No backend changes needed.
 
