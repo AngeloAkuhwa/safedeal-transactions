@@ -20,8 +20,7 @@ function formatPrice(amount: number, currency = "NGN") {
   return `${currency} ${Number(amount).toLocaleString()}`;
 }
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 
 interface ProductInfo {
   id: string;
@@ -35,8 +34,8 @@ interface ProductInfo {
 
 interface SellerInfo {
   id: string;
-  display_name: string | null;
-  phone_verified: boolean | null;
+  full_name: string | null;
+  phone_verified: boolean;
 }
 
 async function fetchCheckoutSession(sessionId: string) {
@@ -44,40 +43,27 @@ async function fetchCheckoutSession(sessionId: string) {
   const token = sessionData?.session?.access_token;
   if (!token) throw new Error("Not authenticated");
 
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    apikey: ANON_KEY,
-  };
+  const res = await fetch(
+    `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/checkout-review?session_id=${sessionId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/checkout_sessions?id=eq.${sessionId}&select=*`, { headers });
-  const sessions = await res.json();
-  if (!sessions || sessions.length === 0) throw new Error("Session not found");
-  const session = sessions[0];
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error || "Failed to load checkout session");
 
-  const itemsRes = await fetch(`${SUPABASE_URL}/rest/v1/checkout_session_items?checkout_session_id=eq.${sessionId}&select=*`, { headers });
-  const sessionItems: any[] = (await itemsRes.json()) || [];
+  const productMap = new Map<string, ProductInfo>(
+    Object.entries(body.products || {})
+  );
+  const sellerMap = new Map<string, SellerInfo>(
+    Object.entries(body.sellers || {})
+  );
 
-  // Collect unique product and seller IDs
-  const productIds = [...new Set(sessionItems.map((i) => i.product_id))];
-  const sellerIds = [...new Set(sessionItems.map((i) => i.seller_id))];
-
-  // Fetch products and sellers in parallel
-  const [productsRes, sellersRes] = await Promise.all([
-    productIds.length > 0
-      ? fetch(`${SUPABASE_URL}/rest/v1/products?id=in.(${productIds.join(",")})&select=id,title,short_description,primary_image,stock_quantity,reserved_quantity,status`, { headers })
-      : Promise.resolve(null),
-    sellerIds.length > 0
-      ? fetch(`${SUPABASE_URL}/rest/v1/profiles?id=in.(${sellerIds.join(",")})&select=id,display_name,phone_verified`, { headers })
-      : Promise.resolve(null),
-  ]);
-
-  const products: ProductInfo[] = productsRes ? await productsRes.json() : [];
-  const sellers: SellerInfo[] = sellersRes ? await sellersRes.json() : [];
-
-  const productMap = new Map(products.map((p) => [p.id, p]));
-  const sellerMap = new Map(sellers.map((s) => [s.id, s]));
-
-  return { session, items: sessionItems, productMap, sellerMap };
+  return { session: body.session, items: body.items || [], productMap, sellerMap };
 }
 
 const GRADIENT_COLORS = [
@@ -104,7 +90,6 @@ const CartCheckoutReview = () => {
     setOpenBreakdowns((prev) => ({ ...prev, [sellerId]: !prev[sellerId] }));
   };
 
-  // Empty / loading / error states
   if (!sessionId) {
     return (
       <div className="flex min-h-screen bg-background">
@@ -148,7 +133,6 @@ const CartCheckoutReview = () => {
 
   const { session, items, productMap, sellerMap } = data;
 
-  // Group items by seller
   const sellerGroups = new Map<string, any[]>();
   for (const item of items) {
     const key = item.seller_id;
@@ -189,7 +173,6 @@ const CartCheckoutReview = () => {
       <BuyerSidebar />
       <main className="flex-1 overflow-auto">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-          {/* Header */}
           <header className="flex items-center justify-between">
             <button
               onClick={() => navigate("/dashboard/cart")}
@@ -204,13 +187,11 @@ const CartCheckoutReview = () => {
             </div>
           </header>
 
-          {/* Title */}
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Review & Pay</h1>
             <p className="text-sm text-muted-foreground mt-1">Review your grouped order before payment</p>
           </div>
 
-          {/* Info banner */}
           <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
             <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <p className="text-sm text-foreground">
@@ -218,7 +199,6 @@ const CartCheckoutReview = () => {
             </p>
           </div>
 
-          {/* Summary stat cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className={`${glassPanel} p-4`}>
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
@@ -250,19 +230,16 @@ const CartCheckoutReview = () => {
             </div>
           </div>
 
-          {/* Fee calculation info */}
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
             <Info className="h-3.5 w-3.5 shrink-0" />
             SafeDeal calculates protection fees separately for each seller order, then combines them into one checkout total.
           </p>
 
-          {/* Main grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Seller groups — 2/3 */}
             <div className="lg:col-span-2 space-y-5">
               {Array.from(sellerGroups.entries()).map(([sellerId, sellerItems], idx) => {
                 const seller = sellerMap.get(sellerId);
-                const sellerName = seller?.display_name || "Unknown Seller";
+                const sellerName = seller?.full_name || "Unknown Seller";
                 const sellerInitial = sellerName.charAt(0).toUpperCase();
                 const phoneVerified = seller?.phone_verified ?? false;
                 const gradient = GRADIENT_COLORS[idx % GRADIENT_COLORS.length];
@@ -274,7 +251,6 @@ const CartCheckoutReview = () => {
 
                 return (
                   <div key={sellerId} className={`${glassPanel} overflow-hidden`}>
-                    {/* Seller header */}
                     <div className="p-5 flex items-start gap-4">
                       <Avatar className="h-11 w-11 shrink-0">
                         <AvatarFallback className={`bg-gradient-to-br ${gradient} text-white font-bold text-base`}>
@@ -302,7 +278,6 @@ const CartCheckoutReview = () => {
                       </div>
                     </div>
 
-                    {/* Product items */}
                     <div className="px-5 pb-2 divide-y divide-border">
                       {sellerItems.map((item: any) => {
                         const product = productMap.get(item.product_id);
@@ -314,7 +289,6 @@ const CartCheckoutReview = () => {
 
                         return (
                           <div key={item.id} className="flex gap-3 py-3">
-                            {/* Thumbnail */}
                             <div className="h-16 w-16 rounded-lg bg-muted overflow-hidden shrink-0">
                               {image ? (
                                 <img src={image} alt={title} className="h-full w-full object-cover" />
@@ -345,7 +319,6 @@ const CartCheckoutReview = () => {
                       })}
                     </div>
 
-                    {/* Collapsible fee breakdown */}
                     <Collapsible open={isOpen} onOpenChange={() => toggleBreakdown(sellerId)}>
                       <CollapsibleTrigger className="w-full flex items-center justify-between px-5 py-3 border-t border-border text-sm hover:bg-muted/50 transition-colors">
                         <span className="font-medium text-foreground flex items-center gap-1.5">
@@ -389,7 +362,6 @@ const CartCheckoutReview = () => {
               })}
             </div>
 
-            {/* Payment summary sidebar — 1/3 */}
             <div className="lg:col-span-1">
               <div className="lg:sticky lg:top-4 space-y-4">
                 <div className={`${glassPanel} p-5 space-y-4`}>
@@ -420,7 +392,6 @@ const CartCheckoutReview = () => {
                   </div>
                 </div>
 
-                {/* SafeDeal Protection card */}
                 <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2.5">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="h-5 w-5 text-emerald-500" />
@@ -441,7 +412,6 @@ const CartCheckoutReview = () => {
                   </ul>
                 </div>
 
-                {/* CTA */}
                 <Button
                   size="lg"
                   className="w-full gap-2 rounded-xl h-12 text-base font-semibold bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground shadow-lg shadow-primary/20"
