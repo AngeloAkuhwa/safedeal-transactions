@@ -146,10 +146,10 @@ const SellerProductCreate = () => {
 
     setFiles((prev) => [...prev, ...newEntries]);
     setUploading(true);
-    let activeUploads = fileArray.length;
+    let activeUploads = filtered.length;
 
-    for (let i = 0; i < fileArray.length; i++) {
-      const file = fileArray[i];
+    for (let i = 0; i < filtered.length; i++) {
+      const file = filtered[i];
       const tempId = newEntries[i].file_id;
       uploadProductFile(file, (pct) => {
         setFiles((prev) => prev.map((f) => (f.file_id === tempId ? { ...f, progress: pct } : f)));
@@ -378,11 +378,18 @@ const SellerProductCreate = () => {
                         )}
                       </div>
                     ))}
-                    <label className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors">
-                      <ImagePlus className="h-6 w-6 text-muted-foreground mb-1" />
-                      <span className="text-xs text-muted-foreground">Add More</span>
-                      <input type="file" className="hidden" accept="image/*,video/*" multiple onChange={handleFileUpload} disabled={uploading} />
-                    </label>
+                    {(() => {
+                      const imgCount = files.filter((f) => f.media_type === "image").length;
+                      const vidCount = files.filter((f) => f.media_type === "video").length;
+                      if (imgCount >= 3 && vidCount >= 1) return null;
+                      return (
+                        <label className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors">
+                          <ImagePlus className="h-6 w-6 text-muted-foreground mb-1" />
+                          <span className="text-xs text-muted-foreground">Add More</span>
+                          <input type="file" className="hidden" accept="image/*,video/*" multiple onChange={handleFileUpload} disabled={uploading} />
+                        </label>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
