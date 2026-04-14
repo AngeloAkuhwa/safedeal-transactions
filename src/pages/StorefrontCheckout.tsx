@@ -360,9 +360,12 @@ const StorefrontCheckout = () => {
   );
 
   return (
-    <BuyerSidebar>
-      {content}
-    </BuyerSidebar>
+    <div className="flex min-h-screen bg-background">
+      <BuyerSidebar />
+      <main className="flex-1 overflow-auto">
+        {content}
+      </main>
+    </div>
   );
 };
 
