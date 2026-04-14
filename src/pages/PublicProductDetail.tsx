@@ -85,21 +85,21 @@ const PublicProductDetail = () => {
   const [inCart, setInCart] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
 
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["public-product-detail", sellerSlug, productSlug],
+    queryFn: () => getPublicProductDetail(sellerSlug!, productSlug!),
+    enabled: !!sellerSlug && !!productSlug,
+  });
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: sessData }) => {
       const authed = !!sessData.session;
       setIsAuthenticated(authed);
-      // Check if product is in cart
       if (authed && data?.product?.id) {
         checkInCart(data.product.id).then((res) => setInCart(res.in_cart)).catch(() => {});
       }
     });
   }, [data?.product?.id]);
-
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["public-product-detail", sellerSlug, productSlug],
-    queryFn: () => getPublicProductDetail(sellerSlug!, productSlug!),
-    enabled: !!sellerSlug && !!productSlug,
   });
 
   if (isLoading) {
