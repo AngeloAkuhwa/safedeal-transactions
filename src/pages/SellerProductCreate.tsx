@@ -133,7 +133,7 @@ const SellerProductCreate = () => {
     if (!filtered.length) return;
     e.target.value = "";
 
-    const newEntries: FileEntry[] = fileArray.map((file) => ({
+    const newEntries: FileEntry[] = filtered.map((file) => ({
       file_id: `temp-${Date.now()}-${Math.random()}`,
       media_type: file.type.startsWith("video/") ? "video" : "image",
       preview_url: URL.createObjectURL(file),
