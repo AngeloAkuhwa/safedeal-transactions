@@ -18,6 +18,7 @@ interface SellerProductCardProps {
   onClick?: () => void;
   onEdit?: () => void;
   onManageVisibility?: () => void;
+  onUpdateStock?: () => void;
 }
 
 function formatPrice(amount: number, currency: string) {
@@ -52,7 +53,7 @@ const visibilityConfig: Record<string, { label: string; bg: string; text: string
   private_draft: { label: "Private", bg: "bg-muted", text: "text-muted-foreground" },
 };
 
-export function SellerProductCard({ product, onClick, onEdit, onManageVisibility }: SellerProductCardProps) {
+export function SellerProductCard({ product, onClick, onEdit, onManageVisibility, onUpdateStock }: SellerProductCardProps) {
   const isOutOfStock = product.stock_quantity === 0;
   const isLowStock = product.stock_quantity >= 1 && product.stock_quantity <= 5;
   const status = statusConfig[product.status || "draft"] || statusConfig.draft;
@@ -112,7 +113,14 @@ export function SellerProductCard({ product, onClick, onEdit, onManageVisibility
         </div>
 
         {/* Stock */}
-        <div className="flex items-center justify-between">
+        <div
+          className="flex items-center justify-between cursor-pointer hover:bg-muted/50 -mx-2 px-2 py-1 rounded-lg transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onUpdateStock?.();
+          }}
+          title="Click to update stock"
+        >
           <div className="flex items-center gap-1.5">
             <span className={`h-2 w-2 rounded-full ${stockDot}`} />
             <span className={`text-xs font-medium ${stockText}`}>{stockLabel}</span>
