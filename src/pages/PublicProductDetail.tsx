@@ -19,6 +19,7 @@ import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { Footer } from "@/components/landing/Footer";
 import { PurchaseAuthModal } from "@/components/storefront/PurchaseAuthModal";
 import { useLocation } from "react-router-dom";
+import { useIsProductSaved, useToggleSave } from "@/hooks/useSavedProducts";
 
 function formatPrice(amount: number, currency: string) {
   if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
