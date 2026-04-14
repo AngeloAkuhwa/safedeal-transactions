@@ -89,10 +89,15 @@ const CartCheckoutReview = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openBreakdowns, setOpenBreakdowns] = useState<Record<string, boolean>>({});
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["checkout-session", sessionId],
     queryFn: () => fetchCheckoutSession(sessionId!),
     enabled: !!sessionId,
+    retry: (failureCount, err: any) => {
+      // Don't retry auth/ownership errors
+      if (err?.status === 401 || err?.status === 403 || err?.status === 404) return false;
+      return failureCount < 2;
+    },
   });
 
   const toggleBreakdown = (sellerId: string) => {
