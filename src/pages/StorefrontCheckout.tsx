@@ -66,7 +66,8 @@ const StorefrontCheckout = () => {
   // Pricing
   const itemSubtotal = product.unit_price * quantity;
   const pricing = computePricing(itemSubtotal, product.currency_code);
-  const isCapped = pricing.service_fee_amount >= 2000;
+  const isCapped = pricing.is_capped;
+  const isFloored = pricing.is_floored;
 
   // Primary image
   const images = (product.media || []).filter((m: any) => m.media_type === "image");
@@ -129,7 +130,10 @@ const StorefrontCheckout = () => {
         </div>
       </header>
 
-      <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Complete Your Purchase</h1>
+      <div>
+        <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Complete Your Purchase</h1>
+        <p className="text-sm text-muted-foreground mt-1">Review your order details and confirm payment</p>
+      </div>
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -289,11 +293,16 @@ const StorefrontCheckout = () => {
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-muted-foreground">SafeDeal Protection Fee</span>
                     {isCapped && (
                       <Badge variant="outline" className="rounded-full text-[10px] px-1.5 py-0 bg-amber-500/10 text-amber-600 border-amber-500/20">
                         capped
+                      </Badge>
+                    )}
+                    {isFloored && !isCapped && (
+                      <Badge variant="outline" className="rounded-full text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
+                        min
                       </Badge>
                     )}
                   </div>
@@ -301,6 +310,7 @@ const StorefrontCheckout = () => {
                     {formatPrice(pricing.service_fee_amount, product.currency_code)}
                   </span>
                 </div>
+                <p className="text-[10px] text-muted-foreground -mt-1">Non-refundable</p>
                 <div className="border-t border-border my-2" />
                 <div className="flex items-center justify-between">
                   <span className="text-base font-bold text-foreground">Total Amount</span>
@@ -319,7 +329,7 @@ const StorefrontCheckout = () => {
               </div>
               <ul className="space-y-2.5">
                 {[
-                  "Money held in escrow until you verify the item",
+                  "Funds held in secure escrow until you confirm receipt",
                   `${product.verification_window_hours || 48}-hour verification window after delivery`,
                   "Full refund if item doesn't match description",
                   "Dedicated dispute resolution support",
@@ -348,7 +358,7 @@ const StorefrontCheckout = () => {
             </Button>
 
             <p className="text-xs text-muted-foreground text-center">
-              By proceeding, you agree to SafeDeal's{" "}
+              By confirming, you agree to SafeDeal's{" "}
               <span className="text-primary hover:underline cursor-pointer">Terms of Service</span>
               {" "}and{" "}
               <span className="text-primary hover:underline cursor-pointer">Buyer Protection Policy</span>

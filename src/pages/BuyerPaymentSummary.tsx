@@ -550,13 +550,15 @@ export default function BuyerPaymentSummary() {
                   <span className="text-base font-semibold text-foreground">{currencySymbol}{itemAmount.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-sm text-muted-foreground">SafeDeal Protection Fee</span>
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-medium text-muted-foreground border-muted-foreground/30">capped</Badge>
+                    {feeAmount >= 2500 && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-medium text-amber-600 border-amber-500/30 bg-amber-500/10">capped</Badge>
+                    )}
                   </div>
                   <span className="text-base font-semibold text-success">{currencySymbol}{feeAmount.toLocaleString()}</span>
                 </div>
-                <p className="text-xs text-muted-foreground -mt-1 pl-0.5">Covers secure payment holding, buyer protection, and dispute resolution.</p>
+                <p className="text-xs text-muted-foreground -mt-1 pl-0.5">Non-refundable · Covers escrow, buyer protection & dispute resolution</p>
               </div>
 
               <div className="pt-4 border-t-2">

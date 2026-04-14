@@ -3,6 +3,9 @@
  * in supabase/functions/_shared/pricing.ts
  */
 
+const MIN_PLATFORM_FEE = 250;
+const MAX_TOTAL_FEE = 2500;
+
 export interface PricingResult {
   currency_code: string;
   item_amount: number;
@@ -11,6 +14,9 @@ export interface PricingResult {
   service_fee_amount: number;
   service_fee_rate: number;
   total_amount: number;
+  is_floored: boolean;
+  is_capped: boolean;
+  non_refundable: boolean;
 }
 
 function computePaystackLocalFee(itemAmount: number): number {
@@ -40,16 +46,28 @@ export function computePricing(
       service_fee_amount: 0,
       service_fee_rate: 0,
       total_amount: 0,
+      is_floored: false,
+      is_capped: false,
+      non_refundable: true,
     };
   }
 
   const paystackFee = computePaystackLocalFee(itemAmount);
   const tierRate = getSafeDealLocalTierRate(itemAmount);
-  const targetServiceFee = Math.round(itemAmount * tierRate);
-  const rawPlatformFee = Math.max(targetServiceFee - paystackFee, 0);
+
+  // Platform fee = max(₦250, tierRate × item - paystackFee)
+  const rawPlatformFee = Math.max(MIN_PLATFORM_FEE, Math.round(itemAmount * tierRate) - paystackFee);
+
+  // Total service fee = min(₦2,500, paystackFee + platformFee)
   const rawServiceFee = paystackFee + rawPlatformFee;
-  const serviceFeeAmount = Math.min(rawServiceFee, 2000);
+  const serviceFeeAmount = Math.min(rawServiceFee, MAX_TOTAL_FEE);
+
+  // Recalculate platform fee after cap
   const platformFee = Math.max(serviceFeeAmount - paystackFee, 0);
+
+  const is_floored = rawPlatformFee === MIN_PLATFORM_FEE;
+  const is_capped = rawServiceFee > MAX_TOTAL_FEE;
+
   const serviceFeeRate = serviceFeeAmount / itemAmount;
 
   return {
@@ -60,5 +78,8 @@ export function computePricing(
     service_fee_amount: serviceFeeAmount,
     service_fee_rate: Math.round(serviceFeeRate * 10000) / 10000,
     total_amount: itemAmount + serviceFeeAmount,
+    is_floored,
+    is_capped,
+    non_refundable: true,
   };
 }
