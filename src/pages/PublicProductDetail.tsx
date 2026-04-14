@@ -609,6 +609,7 @@ const PublicProductDetail = () => {
         <main className="flex-1 overflow-y-auto relative">
           {content}
         </main>
+        {authModal}
       </div>
     );
   }
