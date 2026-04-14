@@ -362,10 +362,10 @@ const PublicProductDetail = () => {
             size="lg"
             className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
             onClick={handleBuyCTA}
-            disabled={product.stock_quantity === 0}
+            disabled={product.stock_quantity === 0 || addingToCart}
           >
-            <ShieldCheck className="h-5 w-5" />
-            Buy with SafeDeal Protection
+            {addingToCart ? <Loader2 className="h-5 w-5 animate-spin" /> : inCart ? <ShoppingCart className="h-5 w-5" /> : <ShieldCheck className="h-5 w-5" />}
+            {addingToCart ? "Adding..." : inCart ? "View in Cart" : "Add to Cart"}
           </Button>
 
           <div className="grid grid-cols-2 gap-3">
