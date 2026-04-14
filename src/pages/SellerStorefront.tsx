@@ -7,6 +7,7 @@ import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefron
 import { SellerProductCard } from "@/components/storefront/SellerProductCard";
 import { StorefrontShareCard } from "@/components/storefront/StorefrontShareCard";
 import { ManageVisibilityModal } from "@/components/storefront/ManageVisibilityModal";
+import { UpdateStockModal } from "@/components/storefront/UpdateStockModal";
 import { getSellerProducts, getProductCategories, updateProduct, archiveProduct } from "@/services/seller-storefront.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { toast } from "@/components/ui/sonner";
@@ -35,7 +36,9 @@ const SellerStorefront = () => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [manageProduct, setManageProduct] = useState<any>(null);
+  const [stockProduct, setStockProduct] = useState<any>(null);
   const [actionPending, setActionPending] = useState(false);
+  const [stockPending, setStockPending] = useState(false);
 
   const { data: dashData } = useQuery({
     queryKey: ["seller-dashboard"],
@@ -71,6 +74,20 @@ const SellerStorefront = () => {
       toast.error(err.message);
     } finally {
       setActionPending(false);
+    }
+  };
+
+  const handleSaveStock = async (productId: string, newQuantity: number) => {
+    setStockPending(true);
+    try {
+      await updateProduct(productId, { stock_quantity: newQuantity });
+      toast.success("Stock updated successfully");
+      setStockProduct(null);
+      queryClient.invalidateQueries({ queryKey: ["seller-products"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setStockPending(false);
     }
   };
 
@@ -277,6 +294,7 @@ const SellerStorefront = () => {
                         onClick={() => navigate(`/seller/storefront/${product.id}`)}
                         onEdit={() => navigate(`/seller/storefront/${product.id}`)}
                         onManageVisibility={() => setManageProduct(product)}
+                        onUpdateStock={() => setStockProduct(product)}
                       />
                     ))}
                   </div>
@@ -298,6 +316,13 @@ const SellerStorefront = () => {
         onUnpublish={handleUnpublish}
         onArchive={handleArchive}
         isPending={actionPending}
+      />
+      <UpdateStockModal
+        open={!!stockProduct}
+        onOpenChange={(open) => !open && setStockProduct(null)}
+        product={stockProduct}
+        onSave={handleSaveStock}
+        isPending={stockPending}
       />
     </div>
   );
