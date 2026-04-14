@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/components/ui/sonner";
 import { getPublicProductDetail } from "@/services/public-storefront.service";
+import { addToCart, checkInCart } from "@/services/cart.service";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
@@ -81,12 +82,19 @@ const PublicProductDetail = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [inCart, setInCart] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setIsAuthenticated(!!data.session);
+    supabase.auth.getSession().then(({ data: sessData }) => {
+      const authed = !!sessData.session;
+      setIsAuthenticated(authed);
+      // Check if product is in cart
+      if (authed && data?.product?.id) {
+        checkInCart(data.product.id).then((res) => setInCart(res.in_cart)).catch(() => {});
+      }
     });
-  }, []);
+  }, [data?.product?.id]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["public-product-detail", sellerSlug, productSlug],
