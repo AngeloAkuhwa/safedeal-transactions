@@ -1,46 +1,40 @@
 
 
-# Fix Product Detail Page — Match Reference Design 100%
+# Add Original Price Field to Products
 
 ## Summary
 
-Single-file rebuild of `src/pages/PublicProductDetail.tsx` to close all remaining gaps with the reference design, with sensible dimension adjustments.
+Add an `original_price` column to the `products` table so sellers can set a "was" price that renders as a strikethrough next to the sale price. Update the seller creation form to include the field, update edge functions to handle it, and seed existing products with a reasonable value for testing.
 
-## All Changes (single file: `src/pages/PublicProductDetail.tsx`)
+## Changes
 
-### 1. Sticky header bar
-Wrap the top bar (back button + heart/share icons) in a proper sticky header with `border-b border-border/50 bg-background/80 backdrop-blur-md` styling, height `h-16` (not h-20, adjusted for fit).
+### 1. Database Migration
 
-### 2. Add strikethrough original price
-Show a crossed-out price next to the main price in the pricing card. Use `unit_price * 1.18` as placeholder since no `original_price` field exists. Display as `line-through text-base text-muted-foreground`.
+```sql
+ALTER TABLE public.products ADD COLUMN original_price numeric;
+```
 
-### 3. Fix below-the-fold layout
-Currently: Description takes 2/3, Agreement takes 1/3 in a side-by-side grid.
-Fix: Stack ALL sections (Description, Agreement, Delivery, Reviews) vertically in a single `max-w-4xl` column. Remove the `lg:grid-cols-3` split entirely.
+Then seed existing products with `original_price = unit_price * 1.18` (rounded) so the strikethrough shows immediately for testing.
 
-### 4. Update section headings
-Change from `text-lg font-semibold` to `text-xl font-bold` (balanced size, not oversized).
+### 2. Update `src/pages/SellerProductCreate.tsx`
 
-### 5. Fix delivery details layout
-Replace the 3 separate icon cards (Delivery Scope, Estimated Delivery, Handled By) with a single card containing label-value rows using `flex justify-between` per row, separated by `border-b border-border/50`.
+Add an "Original Price" input field next to the existing "Unit Price" field, with a label like "Original Price (optional)" and helper text "Show a crossed-out price to indicate a discount". Pass `original_price` in the create payload.
 
-### 6. Fix reviews section layout
-- Change from vertical card (rating left column) to horizontal flex: large rating number + stars on left, star bars on right, separated by a vertical divider
-- Update labels from "5★" to "5 star", "4★" to "4 star", etc.
-- Update data: "Based on 127 reviews", percentages 85%/12%/2%
-- Update reviewer names to "Adebayo Ogunlesi" and "Ngozi Eze"
-- Update dates to "2 days ago" and "1 week ago"
-- Change star icon in section heading to `text-amber-400`
+### 3. Update `src/services/seller-storefront.service.ts`
 
-### 7. Fix quantity selector styling
-Replace ghost buttons with individual bordered square buttons (`border border-border rounded-lg`) inside the glass container.
+Add `original_price` to `CreateProductPayload` and `UpdateProductPayload` interfaces.
 
-### 8. Dimension adjustments
-- Glass panels: `rounded-2xl` instead of `rounded-[24px]`
-- Pricing card padding: `p-5` instead of `p-6`
-- CTA button: `h-12` instead of `h-14`, `text-base` instead of `text-lg`
-- Section spacing: `space-y-6` instead of `space-y-8` for tighter vertical rhythm
-- Trust indicator items: `p-2` instead of `p-2.5`
+### 4. Update `supabase/functions/seller-products/index.ts`
 
-### No database or edge function changes needed.
+Accept `original_price` from the request body and include it in the product INSERT.
+
+### 5. Update `supabase/functions/public-product-detail/index.ts`
+
+Include `original_price` in the product response (already uses `SELECT *` so it may already be included, but verify the explicit field list).
+
+### 6. Update `src/pages/PublicProductDetail.tsx`
+
+Replace the hardcoded `unit_price * 1.18` calculation with the actual `product.original_price` value. Only show the strikethrough when `original_price` exists and is greater than `unit_price`.
+
+### No other backend changes needed.
 
