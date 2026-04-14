@@ -61,7 +61,9 @@ const SellerProductCreate = () => {
   const [sellerNotes, setSellerNotes] = useState("");
   const [visibilityType, setVisibilityType] = useState("public");
   const [files, setFiles] = useState<FileEntry[]>([]);
-
+  const [featureHighlights, setFeatureHighlights] = useState<{ title: string; description: string }[]>([]);
+  const [deliveryScope, setDeliveryScope] = useState("");
+  const [estimatedDeliveryDays, setEstimatedDeliveryDays] = useState("");
   const { data: dashData } = useQuery({
     queryKey: ["seller-dashboard"],
     queryFn: getSellerDashboard,
@@ -94,6 +96,9 @@ const SellerProductCreate = () => {
           : undefined,
         seller_notes: sellerNotes || undefined,
         visibility_type: visibilityType,
+        feature_highlights: featureHighlights.filter(f => f.title.trim()),
+        delivery_scope: deliveryScope || undefined,
+        estimated_delivery_days: estimatedDeliveryDays || undefined,
         file_ids: files.filter((f) => f.status === "done").map((f) => ({ file_id: f.file_id, media_type: f.media_type })),
         status,
       }),
