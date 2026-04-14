@@ -252,6 +252,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cart_items: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       case_reviews: {
         Row: {
           created_at: string
@@ -297,6 +324,99 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      checkout_session_items: {
+        Row: {
+          cart_item_id: string | null
+          checkout_session_id: string
+          created_at: string
+          id: string
+          line_total: number
+          product_id: string
+          quantity: number
+          seller_id: string
+          transaction_id: string | null
+          unit_price: number
+        }
+        Insert: {
+          cart_item_id?: string | null
+          checkout_session_id: string
+          created_at?: string
+          id?: string
+          line_total: number
+          product_id: string
+          quantity: number
+          seller_id: string
+          transaction_id?: string | null
+          unit_price: number
+        }
+        Update: {
+          cart_item_id?: string | null
+          checkout_session_id?: string
+          created_at?: string
+          id?: string
+          line_total?: number
+          product_id?: string
+          quantity?: number
+          seller_id?: string
+          transaction_id?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_session_items_cart_item_id_fkey"
+            columns: ["cart_item_id"]
+            isOneToOne: false
+            referencedRelation: "cart_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_session_items_checkout_session_id_fkey"
+            columns: ["checkout_session_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkout_sessions: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          currency_code: string
+          id: string
+          payment_reference: string | null
+          status: string
+          subtotal_amount: number
+          total_amount: number
+          total_protection_fee: number
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          currency_code?: string
+          id?: string
+          payment_reference?: string | null
+          status?: string
+          subtotal_amount?: number
+          total_amount?: number
+          total_protection_fee?: number
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          currency_code?: string
+          id?: string
+          payment_reference?: string | null
+          status?: string
+          subtotal_amount?: number
+          total_amount?: number
+          total_protection_fee?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       delivery_confirmations: {
         Row: {
@@ -1496,6 +1616,7 @@ export type Database = {
           amount: number
           authorized_at: string | null
           captured_at: string | null
+          checkout_session_id: string | null
           created_at: string
           currency_code: string
           failed_at: string | null
@@ -1514,6 +1635,7 @@ export type Database = {
           amount: number
           authorized_at?: string | null
           captured_at?: string | null
+          checkout_session_id?: string | null
           created_at?: string
           currency_code: string
           failed_at?: string | null
@@ -1532,6 +1654,7 @@ export type Database = {
           amount?: number
           authorized_at?: string | null
           captured_at?: string | null
+          checkout_session_id?: string | null
           created_at?: string
           currency_code?: string
           failed_at?: string | null
@@ -2887,6 +3010,7 @@ export type Database = {
           buyer_id: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
+          checkout_session_id: string | null
           completed_at: string | null
           created_at: string
           created_by_user_id: string
@@ -2899,6 +3023,7 @@ export type Database = {
           seller_id: string
           share_link_expires_at: string | null
           share_token: string
+          source_product_id: string | null
           status: Database["public"]["Enums"]["transaction_status"]
           transaction_code: string
           updated_at: string
@@ -2911,6 +3036,7 @@ export type Database = {
           buyer_id?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          checkout_session_id?: string | null
           completed_at?: string | null
           created_at?: string
           created_by_user_id: string
@@ -2923,6 +3049,7 @@ export type Database = {
           seller_id: string
           share_link_expires_at?: string | null
           share_token: string
+          source_product_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"]
           transaction_code: string
           updated_at?: string
@@ -2935,6 +3062,7 @@ export type Database = {
           buyer_id?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          checkout_session_id?: string | null
           completed_at?: string | null
           created_at?: string
           created_by_user_id?: string
@@ -2947,6 +3075,7 @@ export type Database = {
           seller_id?: string
           share_link_expires_at?: string | null
           share_token?: string
+          source_product_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"]
           transaction_code?: string
           updated_at?: string
