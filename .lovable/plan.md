@@ -1,48 +1,50 @@
 
 
-# Buyer Marketplace Enhancements
+# Buyer Product Detail Redesign + Price Filter
 
 ## Summary
 
-Fix broken product images (Cloudinary URL space issue), add "Sort by" label and "Price Filter" button to the filter bar, update the escrow banner text, and make the heart/wishlist button toggle with visual feedback.
+Two changes: (1) Redesign the `PublicProductDetail` page to match the reference — sidebar layout with glassmorphism panels, image gallery, pricing card, agreement details, delivery section, and reviews section. Auth-aware: shows `BuyerSidebar` for authenticated buyers, public header for guests. (2) Make the "Price Filter" button functional with a popover containing min/max price inputs.
 
 ## Changes
 
-### 1. Fix broken images — two parts
+### 1. Redesign: `src/pages/PublicProductDetail.tsx`
 
-**a) `supabase/functions/upload-evidence/index.ts` (line 214)**
-Add `.trim()` to prevent future bad URLs:
-```typescript
-const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME")!.trim();
-```
+Full rebuild to match reference design:
 
-**b) SQL migration** to fix existing broken URLs in the `files` table:
-```sql
-UPDATE public.files
-SET file_url = REPLACE(file_url, 'cloudinary.com/ ', 'cloudinary.com/')
-WHERE file_url LIKE '%cloudinary.com/ %';
+- **Layout**: Auth-aware — if user is authenticated buyer, show `BuyerSidebar` + "Back to Marketplace" header. If guest, show existing public header.
+- **Top header bar**: "Back to Marketplace" link (left), heart + share buttons (right)
+- **Breadcrumb**: Home > Category > Product title
+- **Two-column grid**:
+  - **Left**: Main image in glass-panel rounded-[24px], thumbnail strip (4 columns, includes video play button if video media exists)
+  - **Right**: Category badge + stock badge, title, short description, glass-panel pricing card (price, escrow/verified/delivery/verification indicators), quantity selector (+/-), "Buy with SafeDeal Protection" CTA button, "Save for Later" + "Contact Seller" secondary buttons
+- **Below grid** (2-col + 1-col layout):
+  - **Product Description** section: glass-panel with description text, feature highlights grid (parsed from description or shown as-is)
+  - **Product Agreement Details** section: glass-panel with bordered primary accent, agreement terms parsed as bullet points
+  - **Delivery & Fulfillment** section: glass-panel with delivery method cards + delivery details
+  - **Customer Reviews** section: glass-panel with rating summary + star bars + individual review cards (placeholder/static data for now since reviews aren't in DB yet)
+- **Styling**: All sections use `glass-panel` (bg-card/60 backdrop-blur border border-border rounded-[24px])
+- **Image handling**: `object-cover` + `onError` fallback, same as marketplace cards
 
-UPDATE public.files
-SET secure_url = REPLACE(secure_url, 'cloudinary.com/ ', 'cloudinary.com/')
-WHERE secure_url IS NOT NULL AND secure_url LIKE '%cloudinary.com/ %';
-```
+### 2. Functional Price Filter: `src/pages/BuyerMarketplace.tsx`
 
-### 2. Update filter bar — `src/pages/BuyerMarketplace.tsx`
+- Replace the static "Price Filter" button with a `Popover` containing:
+  - Min price input (number)
+  - Max price input (number)
+  - "Apply" button
+  - "Clear" button
+- Store `priceMin` and `priceMax` state
+- Pass to `getMarketplaceProducts` as new filter params
 
-- Change search placeholder to `"Search for electronics, fashion, vehicles..."`
-- Change the escrow banner text from "Escrow Protected" to `"All purchases protected by SafeDeal escrow"` (matching reference)
-- Add a "Price Filter" button (cosmetic/placeholder for now) next to the sort dropdown
-- Update sort dropdown to show "Sort by: Newest" style label
+### 3. Update: `src/services/marketplace.service.ts`
 
-### 3. Wishlist toggle — `src/components/marketplace/MarketplaceProductCard.tsx`
+- Add `price_min` and `price_max` to `MarketplaceFilters` interface
+- Pass them as query params
 
-- Add `liked` state toggle on the heart button click
-- When liked: fill the heart red (`fill-current text-destructive`), when not liked: outline only
-- This is client-side only for now (no persistence)
+### 4. Update: `supabase/functions/marketplace/index.ts`
 
-### 4. Update trust footer text
+- Read `price_min` and `price_max` query params
+- Add `.gte("unit_price", price_min)` and `.lte("unit_price", price_max)` filters to the products query when present
 
-Change the trust footer description to match the reference: "Funds are held in escrow until you confirm delivery and satisfaction."
-
-## No new database tables needed
+### No database changes needed
 
