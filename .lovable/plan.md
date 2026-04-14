@@ -1,60 +1,48 @@
 
 
-# Redesign Buyer Marketplace Page
+# Buyer Marketplace Enhancements
 
 ## Summary
 
-Rebuild the Buyer Marketplace page to match the reference design: sidebar navigation layout, glassmorphism filter bar, redesigned product cards with category badges, seller avatars, stock status, "Escrow Price" label, cart icon, and a trust footer banner. Also ensure product images always display correctly.
+Fix broken product images (Cloudinary URL space issue), add "Sort by" label and "Price Filter" button to the filter bar, update the escrow banner text, and make the heart/wishlist button toggle with visual feedback.
 
 ## Changes
 
-### 1. New: `src/components/marketplace/BuyerSidebar.tsx`
+### 1. Fix broken images — two parts
 
-A sidebar navigation for buyer pages (mirroring the reference), with:
-- SafeDeal logo at top
-- Nav links: Dashboard, Marketplace, Transactions, Disputes, Notifications (with badge count)
-- Bottom section: Settings link, user profile card (avatar, name, "Verified Buyer"), and a "Need Help?" support card
-- Active state: highlighted background + left blue accent bar on Marketplace
-- Responsive: collapsible on mobile
+**a) `supabase/functions/upload-evidence/index.ts` (line 214)**
+Add `.trim()` to prevent future bad URLs:
+```typescript
+const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME")!.trim();
+```
 
-### 2. New: `src/components/marketplace/MarketplaceProductCard.tsx`
+**b) SQL migration** to fix existing broken URLs in the `files` table:
+```sql
+UPDATE public.files
+SET file_url = REPLACE(file_url, 'cloudinary.com/ ', 'cloudinary.com/')
+WHERE file_url LIKE '%cloudinary.com/ %';
 
-A new card component specifically for the marketplace grid, matching the reference:
-- Glass-panel card (`bg-card/60 backdrop-blur border border-border`) with rounded-[24px]
-- Aspect-square image with `object-cover` + hover scale effect
-- **Category badge** overlay (top-left) — mapped from categories array by `category_id`
-- **Heart/wishlist button** (top-right, cosmetic for now)
-- Below image: seller row with avatar initial circle (colored gradient), seller name, verification checkmark, stock status badge (In Stock / Low Stock / Unavailable)
-- Product title (line-clamp-2)
-- "Escrow Price" label + formatted Naira price (or "Last Price" if out of stock)
-- Cart button (bottom-right) — disabled style if out of stock, shows bell icon instead
-- Out-of-stock cards: grayscale image, overlay, reduced opacity
+UPDATE public.files
+SET secure_url = REPLACE(secure_url, 'cloudinary.com/ ', 'cloudinary.com/')
+WHERE secure_url IS NOT NULL AND secure_url LIKE '%cloudinary.com/ %';
+```
 
-### 3. Modified: `src/pages/BuyerMarketplace.tsx`
+### 2. Update filter bar — `src/pages/BuyerMarketplace.tsx`
 
-Full page redesign:
-- **Layout**: `flex h-screen` with `BuyerSidebar` on left + scrollable main content area
-- **Header bar**: "Marketplace" title + subtitle, green escrow protection badge (right), search icon button
-- **Filter section**: glass-panel bar with search input, category dropdown, sort dropdown, and a "Price Filter" styled button
-- **Product grid**: 4-column (xl) using `MarketplaceProductCard`, build a `categoryMap` from categories array to pass category names to each card
-- **Empty state**: same as current
-- **Pagination**: same as current
-- **Trust footer**: glass-panel banner with shield icon, "SafeDeal Buyer Protection" text, and 100% Secure / 24hr Dispute stats
-- Background glow effects (absolute positioned blurred circles)
+- Change search placeholder to `"Search for electronics, fashion, vehicles..."`
+- Change the escrow banner text from "Escrow Protected" to `"All purchases protected by SafeDeal escrow"` (matching reference)
+- Add a "Price Filter" button (cosmetic/placeholder for now) next to the sort dropdown
+- Update sort dropdown to show "Sort by: Newest" style label
 
-### 4. Update edge function: `supabase/functions/marketplace/index.ts`
+### 3. Wishlist toggle — `src/components/marketplace/MarketplaceProductCard.tsx`
 
-Add `category_id` to the shaped response so the client can map category names. (It's already returned in the raw query but stripped in the shape step — just include it in the output.)
+- Add `liked` state toggle on the heart button click
+- When liked: fill the heart red (`fill-current text-destructive`), when not liked: outline only
+- This is client-side only for now (no persistence)
 
-### 5. Update: `src/services/marketplace.service.ts`
+### 4. Update trust footer text
 
-Add `category_id` to the `MarketplaceProduct` interface.
+Change the trust footer description to match the reference: "Funds are held in escrow until you confirm delivery and satisfaction."
 
-### Image reliability
-
-- Use `object-cover` on all product images (already done but reinforced)
-- Add `onError` fallback handler on `<img>` tags to show a Package placeholder icon if the image fails to load
-- Never apply `grayscale` filter to in-stock images (only out-of-stock)
-
-## No database changes needed
+## No new database tables needed
 
