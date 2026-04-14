@@ -4,7 +4,7 @@ import {
   Loader2, Shield, ArrowLeft, Package, ShieldCheck, Truck, Clock,
   Heart, Share2, Star, Minus, Plus, Play, BookmarkPlus, MessageCircle,
   CheckCircle2, Lock, FileText, ChevronRight, CircleDot, MapPin, User,
-  AlertCircle,
+  AlertCircle, ShoppingCart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
