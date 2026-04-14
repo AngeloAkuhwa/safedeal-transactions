@@ -41,6 +41,8 @@ import SellerProductPreview from "./pages/SellerProductPreview";
 import PublicStorefront from "./pages/PublicStorefront";
 import PublicProductDetail from "./pages/PublicProductDetail";
 import StorefrontCheckout from "./pages/StorefrontCheckout";
+import BuyerCart from "./pages/BuyerCart";
+import CartCheckoutReview from "./pages/CartCheckoutReview";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -83,6 +85,8 @@ const App = () => (
               <Route path="/dashboard/notifications" element={<BuyerNotifications />} />
               <Route path="/dashboard/profile" element={<BuyerProfileSettings />} />
               <Route path="/dashboard/verification" element={<BuyerVerification />} />
+              <Route path="/dashboard/cart" element={<BuyerCart />} />
+              <Route path="/dashboard/cart/checkout" element={<CartCheckoutReview />} />
               <Route path="/store/:sellerSlug/:productSlug/checkout" element={<StorefrontCheckout />} />
             </Route>
 

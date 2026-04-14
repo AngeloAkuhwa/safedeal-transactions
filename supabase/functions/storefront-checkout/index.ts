@@ -102,6 +102,25 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "product_id is required" }, 400);
     }
 
+    // Check for existing awaiting_payment transaction (idempotency)
+    const { data: existingTx } = await adminClient
+      .from("transactions")
+      .select("id, share_token, transaction_code, status")
+      .eq("buyer_id", buyerId)
+      .eq("source_product_id", productId)
+      .eq("status", "awaiting_payment")
+      .maybeSingle();
+
+    if (existingTx) {
+      // Reuse existing transaction — return same share_token
+      console.log(`Reusing existing transaction ${existingTx.id} for product ${productId}`);
+      return jsonResponse({
+        transaction_id: existingTx.id,
+        share_token: existingTx.share_token,
+        transaction_code: existingTx.transaction_code,
+      });
+    }
+
     // Fetch product
     const { data: product, error: productError } = await adminClient
       .from("products")
@@ -172,6 +191,7 @@ Deno.serve(async (req) => {
         status: "awaiting_payment",
         money_status: "not_secured",
         dispute_status: "none",
+        source_product_id: productId,
       })
       .select("id")
       .single();

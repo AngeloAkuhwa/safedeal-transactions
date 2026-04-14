@@ -4,7 +4,7 @@ import {
   Loader2, Shield, ArrowLeft, Package, ShieldCheck, Truck, Clock,
   Heart, Share2, Star, Minus, Plus, Play, BookmarkPlus, MessageCircle,
   CheckCircle2, Lock, FileText, ChevronRight, CircleDot, MapPin, User,
-  AlertCircle,
+  AlertCircle, ShoppingCart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/components/ui/sonner";
 import { getPublicProductDetail } from "@/services/public-storefront.service";
+import { addToCart, checkInCart } from "@/services/cart.service";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
@@ -81,18 +82,24 @@ const PublicProductDetail = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [imgError, setImgError] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setIsAuthenticated(!!data.session);
-    });
-  }, []);
+  const [inCart, setInCart] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["public-product-detail", sellerSlug, productSlug],
     queryFn: () => getPublicProductDetail(sellerSlug!, productSlug!),
     enabled: !!sellerSlug && !!productSlug,
   });
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: sessData }) => {
+      const authed = !!sessData.session;
+      setIsAuthenticated(authed);
+      if (authed && data?.product?.id) {
+        checkInCart(data.product.id).then((res) => setInCart(res.in_cart)).catch(() => {});
+      }
+    });
+  }, [data?.product?.id]);
 
   if (isLoading) {
     return (
@@ -120,12 +127,21 @@ const PublicProductDetail = () => {
   const videos = allMedia.filter((m: any) => m.media_type === "video");
   const currentImage = images[selectedImage]?.file_url;
 
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) { setShowAuthModal(true); return; }
+    setAddingToCart(true);
+    try {
+      await addToCart(product.id, quantity);
+      setInCart(true);
+      toast.success("Added to cart!");
+    } catch (err: any) { toast.error(err.message); }
+    finally { setAddingToCart(false); }
+  };
+
   const handleBuyCTA = () => {
-    if (!isAuthenticated) {
-      setShowAuthModal(true);
-      return;
-    }
-    navigate(`/store/${sellerSlug}/${productSlug}/checkout?qty=${quantity}`);
+    if (!isAuthenticated) { setShowAuthModal(true); return; }
+    if (inCart) { navigate("/dashboard/cart"); return; }
+    handleAddToCart();
   };
 
   const handleAuthGatedAction = (action: () => void) => {
@@ -346,10 +362,10 @@ const PublicProductDetail = () => {
             size="lg"
             className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
             onClick={handleBuyCTA}
-            disabled={product.stock_quantity === 0}
+            disabled={product.stock_quantity === 0 || addingToCart}
           >
-            <ShieldCheck className="h-5 w-5" />
-            Buy with SafeDeal Protection
+            {addingToCart ? <Loader2 className="h-5 w-5 animate-spin" /> : inCart ? <ShoppingCart className="h-5 w-5" /> : <ShieldCheck className="h-5 w-5" />}
+            {addingToCart ? "Adding..." : inCart ? "View in Cart" : "Add to Cart"}
           </Button>
 
           <div className="grid grid-cols-2 gap-3">

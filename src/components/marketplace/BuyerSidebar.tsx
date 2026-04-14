@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -11,16 +12,19 @@ import {
   Shield,
   Menu,
   X,
+  ShoppingCart,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { getCartItems } from "@/services/cart.service";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Marketplace", icon: ShoppingBag, path: "/dashboard/marketplace" },
+  { label: "Cart", icon: ShoppingCart, path: "/dashboard/cart", showBadge: true },
   { label: "Transactions", icon: ArrowLeftRight, path: "/dashboard/transactions" },
   { label: "Disputes", icon: AlertTriangle, path: "/dashboard/disputes" },
   { label: "Notifications", icon: Bell, path: "/dashboard/notifications" },
@@ -32,6 +36,12 @@ export function BuyerSidebar() {
   const { buyerName, avatarUrl } = useBuyerIdentity();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const { data: cartData } = useQuery({
+    queryKey: ["buyer-cart-count"],
+    queryFn: getCartItems,
+    staleTime: 30_000,
+  });
+  const cartCount = cartData?.count || 0;
   const initials = buyerName
     .split(" ")
     .map((n) => n[0])
@@ -69,6 +79,11 @@ export function BuyerSidebar() {
             >
               <item.icon className="h-4 w-4 shrink-0" />
               {item.label}
+              {(item as any).showBadge && cartCount > 0 && (
+                <Badge className="ml-auto h-5 min-w-[20px] px-1.5 text-[10px] bg-primary text-primary-foreground">
+                  {cartCount}
+                </Badge>
+              )}
             </button>
           );
         })}
