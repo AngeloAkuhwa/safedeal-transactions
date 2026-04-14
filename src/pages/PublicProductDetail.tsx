@@ -79,12 +79,15 @@ const PublicProductDetail = () => {
     }
     return 1;
   });
-  const [liked, setLiked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [inCart, setInCart] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+
+  const productId = data?.product?.id;
+  const { data: isSaved } = useIsProductSaved(productId);
+  const toggleSave = useToggleSave();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["public-product-detail", sellerSlug, productSlug],
