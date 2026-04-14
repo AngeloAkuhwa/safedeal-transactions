@@ -1,49 +1,22 @@
 
 
-# Redesign BuyerCart.tsx to Match Reference Design
+# Make Cart Items Clickable to View Checkout Details
 
 ## What Changes
 
-The current cart page uses a compact card layout with seller grouping headers. The reference design uses a more spacious layout with:
+Each cart item card in `BuyerCart.tsx` becomes clickable. On hover, a subtle tooltip/visual cue shows "Click to view details & pay". Clicking navigates to the existing `StorefrontCheckout` page (`/store/:sellerSlug/:productSlug/checkout?qty=N`) where the buyer can see full order details (product summary, seller info, delivery method, purchase agreement) and pay directly — the flow that already exists.
 
-1. **Top navigation bar** instead of sidebar — the reference uses a horizontal top nav with "Cart" highlighted. However, the app already uses `BuyerSidebar`, so we keep the sidebar but match the content layout.
+## File Changes
 
-2. **Summary stat cards** — three cards at the top: "Total Items", "Selected for Checkout", "Needs Attention" with colored counts and circular icon backgrounds.
+### 1. `src/pages/BuyerCart.tsx`
 
-3. **Larger cart item cards** — each card is taller with:
-   - Checkbox on far left
-   - Larger product image (128px on desktop)
-   - Product title, description, "Sold by [Name] [Verified badge]", category badge
-   - Price and stock badge on the right side
-   - Horizontal divider, then Qty controls and Remove button below
-   - Selected items get a `border-2 border-primary` highlight
-   - Sold out items show strikethrough price, greyed-out qty controls, "Sold Out" text instead of line total
+- Wrap each cart item card's **image + product info area** (not the checkbox or qty/remove controls) in a clickable region using `onClick` that navigates to `/store/${item.product.seller_slug}/${item.product.slug}/checkout?qty=${item.quantity}`
+- Add `cursor-pointer` and a hover effect (e.g., `group` class + subtle background shift) to the clickable area
+- Add a small hover indicator: a `Tooltip` wrapping the clickable area with content "Click to view details & pay" (using the existing `Tooltip` component from `@/components/ui/tooltip`)
+- Only enable click navigation when `item.product?.seller_slug` and `item.product?.slug` are available and item is not sold out
+- For sold-out items, keep the card non-clickable (no cursor-pointer, no tooltip)
 
-4. **No seller grouping headers** — items are listed flat (no "Seller Name" section headers)
+### 2. No other files need changes
 
-5. **Order Summary sidebar** redesigned:
-   - "Selected Items" count row
-   - "Subtotal" row
-   - "Service Fee" row
-   - Divider, then bold "Total"
-   - "Checkout Selected Items" button
-   - Trust indicators: Escrow Protected, Verified Sellers, Confirmation Window
-   - Info banner: "Transactions are grouped by seller and protected individually"
-
-6. **"Remove Selected" button** in the select-all bar (not just a count indicator)
-
-## Technical Approach
-
-Rewrite `src/pages/BuyerCart.tsx` to match the reference:
-- Remove seller grouping — flat list of items
-- Add 3 summary stat cards above the items list
-- Redesign each cart item card to be taller, with the reference layout (image beside info, price+stock on right, qty row below divider)
-- Selected items get `border-primary` highlight
-- Sold out items: strikethrough price, grey controls, "Sold Out" label
-- Update Order Summary to show Selected Items count, Subtotal, Service Fee rows
-- Add trust indicators with shield/user-check/clock icons
-- Add info banner at bottom of sidebar
-- Add "Remove Selected" to select-all bar
-
-No backend or edge function changes needed — purely a UI redesign of the existing page.
+The `StorefrontCheckout` page already shows the full "Complete Your Purchase" screen with order summary, seller info, delivery method, purchase agreement, and payment button — exactly matching the uploaded reference HTML.
 
