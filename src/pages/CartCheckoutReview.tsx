@@ -20,7 +20,7 @@ function formatPrice(amount: number, currency = "NGN") {
   return `${currency} ${Number(amount).toLocaleString()}`;
 }
 
-const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 interface ProductInfo {
   id: string;
@@ -41,20 +41,29 @@ interface SellerInfo {
 async function fetchCheckoutSession(sessionId: string) {
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData?.session?.access_token;
-  if (!token) throw new Error("Not authenticated");
+  if (!token) throw new Error("NOT_AUTHENTICATED");
+
+  console.log("[checkout-review] fetching session:", sessionId);
 
   const res = await fetch(
-    `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/checkout-review?session_id=${sessionId}`,
+    `${SUPABASE_URL}/functions/v1/checkout-review?session_id=${sessionId}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
     }
   );
 
   const body = await res.json();
-  if (!res.ok) throw new Error(body.error || "Failed to load checkout session");
+  console.log("[checkout-review] response status:", res.status, body.error || "ok");
+
+  if (!res.ok) {
+    const err = new Error(body.error || "Failed to load checkout session");
+    (err as any).status = res.status;
+    throw err;
+  }
 
   const productMap = new Map<string, ProductInfo>(
     Object.entries(body.products || {})
@@ -80,10 +89,15 @@ const CartCheckoutReview = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openBreakdowns, setOpenBreakdowns] = useState<Record<string, boolean>>({});
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["checkout-session", sessionId],
     queryFn: () => fetchCheckoutSession(sessionId!),
     enabled: !!sessionId,
+    retry: (failureCount, err: any) => {
+      // Don't retry auth/ownership errors
+      if (err?.status === 401 || err?.status === 403 || err?.status === 404) return false;
+      return failureCount < 2;
+    },
   });
 
   const toggleBreakdown = (sellerId: string) => {
@@ -117,14 +131,40 @@ const CartCheckoutReview = () => {
   }
 
   if (isError || !data?.session) {
+    const errMsg = (error as any)?.message || "";
+    const errStatus = (error as any)?.status;
+    const isAuthError = errStatus === 401 || errMsg === "NOT_AUTHENTICATED";
+    const isOwnershipError = errStatus === 403;
+    const isNotFound = errStatus === 404;
+
+    let title = "Something went wrong";
+    let description = "We couldn't load your checkout session. Please try again.";
+
+    if (isAuthError) {
+      title = "Sign in required";
+      description = "Please sign in to view your checkout session.";
+    } else if (isOwnershipError) {
+      title = "Wrong account";
+      description = errMsg || "This checkout belongs to a different account. Please sign in with the buyer account that created this checkout.";
+    } else if (isNotFound) {
+      title = "Session not found";
+      description = "This checkout session doesn't exist or may have expired.";
+    }
+
     return (
       <div className="flex min-h-screen bg-background">
         <BuyerSidebar />
         <main className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <Package className="h-16 w-16 text-muted-foreground/30 mx-auto" />
-            <h1 className="text-2xl font-bold">Session not found</h1>
-            <Button onClick={() => navigate("/dashboard/cart")}>Back to Cart</Button>
+          <div className="text-center space-y-4 max-w-md px-4">
+            <AlertCircle className="h-16 w-16 text-destructive/50 mx-auto" />
+            <h1 className="text-2xl font-bold">{title}</h1>
+            <p className="text-sm text-muted-foreground">{description}</p>
+            <div className="flex gap-3 justify-center">
+              <Button onClick={() => navigate("/dashboard/cart")}>Back to Cart</Button>
+              {isAuthError && (
+                <Button variant="outline" onClick={() => navigate("/auth")}>Sign In</Button>
+              )}
+            </div>
           </div>
         </main>
       </div>

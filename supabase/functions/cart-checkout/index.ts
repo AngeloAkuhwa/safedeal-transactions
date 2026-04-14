@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (csErr || !checkoutSession) throw csErr || new Error("Failed to create checkout session");
-
+    console.log(`cart-checkout: created session=${checkoutSession.id}, buyer=${buyerId}, items=${cartItems.length}`);
     // 7. Create per-seller transactions
     const transactionResults: any[] = [];
 
