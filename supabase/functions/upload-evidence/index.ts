@@ -211,7 +211,7 @@ async function registerFile(
   const mimeType = mimeMap[format.toLowerCase()] || "application/octet-stream";
 
   // Build optimized file_url
-  const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME")!;
+  const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME")!.trim();
   const fileUrl = `https://res.cloudinary.com/${cloudName}/${resource_type}/upload/q_auto,f_auto/${public_id}`;
 
   // Insert file record using service role (bypasses RLS)

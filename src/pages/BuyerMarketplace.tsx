@@ -19,7 +19,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Search, ShoppingBag, PackageOpen, Shield, Lock, Clock } from "lucide-react";
+import { Search, ShoppingBag, PackageOpen, Shield, Lock, Clock, SlidersHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { getMarketplaceProducts } from "@/services/marketplace.service";
 
 export default function BuyerMarketplace() {

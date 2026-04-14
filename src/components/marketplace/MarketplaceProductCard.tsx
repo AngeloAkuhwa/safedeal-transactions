@@ -36,6 +36,7 @@ function getAvatarColor(name: string) {
 
 export function MarketplaceProductCard({ product, categoryName, onClick }: Props) {
   const [imgError, setImgError] = useState(false);
+  const [liked, setLiked] = useState(false);
   const outOfStock = product.stock_quantity <= 0;
   const lowStock = product.stock_quantity > 0 && product.stock_quantity <= 5;
   const seller = product.seller;
