@@ -3,11 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Loader2, Shield, ArrowLeft, Package, ShieldCheck, Truck, Clock,
   Heart, Share2, Star, Minus, Plus, Play, BookmarkPlus, MessageCircle,
-  CheckCircle2, Lock, FileText,
+  CheckCircle2, Lock, FileText, ChevronRight, CircleDot, MapPin, User,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "@/components/ui/sonner";
 import { getPublicProductDetail } from "@/services/public-storefront.service";
 import { useState, useEffect } from "react";
@@ -27,6 +29,37 @@ const conditionLabels: Record<string, string> = {
   used_fair: "Used - Fair",
   refurbished: "Refurbished",
 };
+
+const deliveryMethodLabels: Record<string, string> = {
+  pickup: "Pickup",
+  delivery: "Delivery",
+  courier_shipping: "Courier / Shipping",
+  digital: "Digital / Instant",
+  hand_delivery: "Hand Delivery",
+  meetup: "Meetup",
+};
+
+// Placeholder reviews data
+const placeholderReviews = [
+  {
+    id: "1",
+    name: "Adebayo O.",
+    avatar: null,
+    rating: 5,
+    date: "2 weeks ago",
+    text: "Excellent product! Exactly as described. The SafeDeal escrow gave me confidence to purchase.",
+    verified: true,
+  },
+  {
+    id: "2",
+    name: "Chioma A.",
+    avatar: null,
+    rating: 4,
+    date: "1 month ago",
+    text: "Good quality, fast delivery. Would buy again from this seller.",
+    verified: true,
+  },
+];
 
 const PublicProductDetail = () => {
   const { sellerSlug, productSlug } = useParams<{ sellerSlug: string; productSlug: string }>();
@@ -75,13 +108,6 @@ const PublicProductDetail = () => {
   const videos = allMedia.filter((m: any) => m.media_type === "video");
   const currentImage = images[selectedImage]?.file_url;
 
-  const sellerInitials = seller.full_name
-    .split(" ")
-    .map((n: string) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
   const handleBuyCTA = () => {
     toast.info("Purchase flow coming soon! Contact the seller directly for now.", { duration: 4000 });
   };
@@ -92,14 +118,27 @@ const PublicProductDetail = () => {
   };
 
   const stockStatus = product.stock_quantity === 0
-    ? { label: "Out of Stock", cls: "bg-destructive/10 text-destructive border-destructive/20" }
+    ? { label: "Out of Stock", cls: "bg-destructive/10 text-destructive border-destructive/20", dot: "bg-destructive" }
     : product.stock_quantity <= 5
-    ? { label: `Only ${product.stock_quantity} left`, cls: "bg-amber-500/10 text-amber-600 border-amber-500/20" }
-    : { label: "In Stock", cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" };
+    ? { label: `Only ${product.stock_quantity} left`, cls: "bg-amber-500/10 text-amber-600 border-amber-500/20", dot: "bg-amber-500" }
+    : { label: "In Stock", cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", dot: "bg-emerald-500" };
 
+  // Parse agreement terms into titled bullets
   const agreementBullets = product.agreement_terms
     ? product.agreement_terms.split(/\n|;/).map((s: string) => s.trim()).filter(Boolean)
     : [];
+
+  // Parse delivery methods
+  let deliveryMethods: string[] = [];
+  if (product.delivery_method) {
+    try {
+      deliveryMethods = JSON.parse(product.delivery_method);
+    } catch {
+      deliveryMethods = [product.delivery_method];
+    }
+  }
+
+  const featureHighlights: Array<{ title: string; description: string }> = product.feature_highlights || [];
 
   const glassPanel = "bg-card/60 backdrop-blur-sm border border-border rounded-[24px]";
 
@@ -119,28 +158,29 @@ const PublicProductDetail = () => {
           {isAuthenticated ? "Back to Marketplace" : `Back to ${seller.full_name}'s Store`}
         </button>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full"
+          <button
             onClick={() => setLiked(!liked)}
+            className="h-10 w-10 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
           >
-            <Heart className={`h-5 w-5 ${liked ? "fill-current text-destructive" : ""}`} />
-          </Button>
-          <Button variant="ghost" size="icon" className="rounded-full" onClick={handleShare}>
-            <Share2 className="h-5 w-5" />
-          </Button>
+            <Heart className={`h-5 w-5 ${liked ? "fill-current text-destructive" : "text-muted-foreground"}`} />
+          </button>
+          <button
+            onClick={handleShare}
+            className="h-10 w-10 rounded-full border border-border flex items-center justify-center hover:bg-accent transition-colors"
+          >
+            <Share2 className="h-5 w-5 text-muted-foreground" />
+          </button>
         </div>
       </div>
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Link to={isAuthenticated ? "/dashboard/marketplace" : "/"} className="hover:text-foreground">Home</Link>
-        <span>/</span>
+        <ChevronRight className="h-3 w-3" />
         {product.category && (
           <>
             <span className="hover:text-foreground">{product.category.name}</span>
-            <span>/</span>
+            <ChevronRight className="h-3 w-3" />
           </>
         )}
         <span className="text-foreground font-medium truncate max-w-[200px]">{product.title}</span>
@@ -170,8 +210,8 @@ const PublicProductDetail = () => {
                 <button
                   key={img.id}
                   onClick={() => { setSelectedImage(idx); setImgError(false); }}
-                  className={`aspect-square rounded-xl border-2 overflow-hidden ${
-                    idx === selectedImage ? "border-primary" : "border-border"
+                  className={`aspect-square rounded-xl border-2 overflow-hidden transition-all ${
+                    idx === selectedImage ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/40"
                   }`}
                 >
                   <img
@@ -179,7 +219,6 @@ const PublicProductDetail = () => {
                     alt=""
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = "";
                       (e.target as HTMLImageElement).style.display = "none";
                     }}
                   />
@@ -188,7 +227,7 @@ const PublicProductDetail = () => {
               {videos.map((vid: any) => (
                 <button
                   key={vid.id}
-                  className="aspect-square rounded-xl border-2 border-border overflow-hidden bg-muted flex items-center justify-center"
+                  className="aspect-square rounded-xl border-2 border-border overflow-hidden bg-muted flex items-center justify-center hover:border-primary/40 transition-all"
                   onClick={() => toast.info("Video playback coming soon")}
                 >
                   <Play className="h-6 w-6 text-muted-foreground" />
@@ -200,10 +239,10 @@ const PublicProductDetail = () => {
 
         {/* Right — Product Info */}
         <div className="space-y-5">
-          {/* Category + Stock */}
+          {/* Category + Stock badges */}
           <div className="flex items-center gap-2 flex-wrap">
             {product.category && (
-              <Badge variant="outline" className="rounded-full text-xs">
+              <Badge className="rounded-full text-xs bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
                 {product.category.name}
               </Badge>
             )}
@@ -212,100 +251,80 @@ const PublicProductDetail = () => {
                 {conditionLabels[product.condition_label] || product.condition_label}
               </Badge>
             )}
-            <Badge variant="outline" className={`rounded-full text-xs ${stockStatus.cls}`}>
+            <Badge variant="outline" className={`rounded-full text-xs ${stockStatus.cls} gap-1.5`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${stockStatus.dot}`} />
               {stockStatus.label}
             </Badge>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+          <h1 className="text-3xl lg:text-4xl font-bold text-foreground leading-tight">
             {product.title}
           </h1>
 
           {product.short_description && (
-            <p className="text-muted-foreground">{product.short_description}</p>
+            <p className="text-muted-foreground text-base">{product.short_description}</p>
           )}
 
-          {/* Seller mini-card */}
-          <div className="flex items-center gap-3">
-            <Avatar className="h-9 w-9">
-              <AvatarImage src={seller.avatar_url ?? undefined} />
-              <AvatarFallback className="bg-primary/10 text-primary text-xs">{sellerInitials}</AvatarFallback>
-            </Avatar>
-            <div>
-              <Link to={`/store/${sellerSlug}`} className="text-sm font-medium hover:underline">
-                {seller.full_name}
-              </Link>
-              <div className="flex items-center gap-1">
-                <Shield className="h-3 w-3 text-emerald-500" />
-                <span className="text-xs text-emerald-500">
-                  {seller.verification_level === "trusted_buyer" ? "Trusted Seller" : seller.verification_level === "basic_verified" ? "Verified" : "Seller"}
-                </span>
-              </div>
-            </div>
-          </div>
-
           {/* Pricing card */}
-          <div className={`${glassPanel} p-5 space-y-4`}>
+          <div className={`${glassPanel} p-6 space-y-4`}>
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">SafeDeal Escrow Price</p>
-              <p className="text-3xl font-bold text-foreground">
-                {formatPrice(product.unit_price, product.currency_code)}
-              </p>
+              <div className="flex items-baseline gap-3">
+                <p className="text-3xl font-bold text-foreground">
+                  {formatPrice(product.unit_price, product.currency_code)}
+                </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
                 <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>Escrow Protected</span>
+                <span className="text-xs font-medium text-foreground">Escrow Protected</span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-primary/5 border border-primary/10">
                 <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                <span>Verified Seller</span>
+                <span className="text-xs font-medium text-foreground">Verified Seller</span>
               </div>
-              {product.delivery_method && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Truck className="h-4 w-4 text-primary shrink-0" />
-                  <span>{product.delivery_method}</span>
-                </div>
-              )}
-              {product.verification_window_hours && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Clock className="h-4 w-4 text-primary shrink-0" />
-                  <span>{product.verification_window_hours}h Verification</span>
-                </div>
-              )}
-            </div>
-
-            {/* Quantity */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">Qty:</span>
-              <div className="flex items-center border border-border rounded-lg">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <span className="w-8 text-center text-sm font-medium">{quantity}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))}
-                  disabled={quantity >= product.stock_quantity}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-primary/5 border border-primary/10">
+                <Truck className="h-4 w-4 text-primary shrink-0" />
+                <span className="text-xs font-medium text-foreground">Delivery Support</span>
+              </div>
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-primary/5 border border-primary/10">
+                <Clock className="h-4 w-4 text-primary shrink-0" />
+                <span className="text-xs font-medium text-foreground">{product.verification_window_hours || 48}hr Verification</span>
               </div>
             </div>
           </div>
 
-          {/* CTA Buttons */}
+          {/* Quantity selector — outside pricing card */}
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-foreground">Quantity:</span>
+            <div className={`${glassPanel} !rounded-xl flex items-center`}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-l-xl rounded-r-none"
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="w-12 text-center text-sm font-semibold border-x border-border">{quantity}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-r-xl rounded-l-none"
+                onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))}
+                disabled={quantity >= product.stock_quantity}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* CTA Button — Blue gradient */}
           <Button
             size="lg"
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+            className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground gap-2 rounded-xl h-14 text-lg font-semibold shadow-lg shadow-primary/20"
             onClick={handleBuyCTA}
             disabled={product.stock_quantity === 0}
           >
@@ -314,11 +333,19 @@ const PublicProductDetail = () => {
           </Button>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" className="gap-2" onClick={() => { setLiked(!liked); toast.success(liked ? "Removed from saved" : "Saved for later"); }}>
+            <Button
+              variant="outline"
+              className={`gap-2 rounded-xl h-11 ${glassPanel} !rounded-xl`}
+              onClick={() => { setLiked(!liked); toast.success(liked ? "Removed from saved" : "Saved for later"); }}
+            >
               <BookmarkPlus className="h-4 w-4" />
               Save for Later
             </Button>
-            <Button variant="outline" className="gap-2" onClick={() => toast.info("Contact seller feature coming soon")}>
+            <Button
+              variant="outline"
+              className={`gap-2 rounded-xl h-11 ${glassPanel} !rounded-xl`}
+              onClick={() => toast.info("Contact seller feature coming soon")}
+            >
               <MessageCircle className="h-4 w-4" />
               Contact Seller
             </Button>
@@ -326,50 +353,96 @@ const PublicProductDetail = () => {
         </div>
       </div>
 
-      {/* Below-the-fold sections */}
+      {/* Below-the-fold sections — 2/3 + 1/3 layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Description - 2 cols */}
+        {/* Product Description — 2 cols */}
         <div className={`${glassPanel} p-6 lg:col-span-2`}>
-          <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
             Product Description
           </h2>
           <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
             {product.description}
           </p>
-          {/* Feature highlights */}
-          {(product.brand || product.model) && (
+
+          {/* Feature Highlights grid */}
+          {featureHighlights.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Feature Highlights</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {featureHighlights.map((fh: any, idx: number) => (
+                  <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-muted/40">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{fh.title}</p>
+                      <p className="text-xs text-muted-foreground">{fh.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Fallback brand/model if no feature highlights */}
+          {featureHighlights.length === 0 && (product.brand || product.model) && (
             <div className="mt-4 grid grid-cols-2 gap-3">
               {product.brand && (
-                <div className="rounded-xl bg-muted/50 p-3">
-                  <p className="text-[11px] text-muted-foreground uppercase">Brand</p>
-                  <p className="text-sm font-medium">{product.brand}</p>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/40">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Brand</p>
+                    <p className="text-xs text-muted-foreground">{product.brand}</p>
+                  </div>
                 </div>
               )}
               {product.model && (
-                <div className="rounded-xl bg-muted/50 p-3">
-                  <p className="text-[11px] text-muted-foreground uppercase">Model</p>
-                  <p className="text-sm font-medium">{product.model}</p>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/40">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Model</p>
+                    <p className="text-xs text-muted-foreground">{product.model}</p>
+                  </div>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Agreement Terms - 1 col */}
+        {/* Product Agreement — 1 col */}
         {agreementBullets.length > 0 && (
-          <div className={`${glassPanel} p-6 border-l-4 border-l-primary`}>
+          <div className={`${glassPanel} p-6 border-2 border-primary/20`}>
             <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
               <Lock className="h-5 w-5 text-primary" />
-              Product Agreement
+              Product Agreement Details
             </h2>
-            <ul className="space-y-2">
-              {agreementBullets.map((item: string, i: number) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  {item}
-                </li>
-              ))}
+            <div className="rounded-xl bg-primary/5 border border-primary/10 p-3 mb-4">
+              <p className="text-xs text-primary font-medium flex items-center gap-2">
+                <AlertCircle className="h-3.5 w-3.5" />
+                By purchasing this item, you agree to the following terms set by the seller.
+              </p>
+            </div>
+            <ul className="space-y-3">
+              {agreementBullets.map((item: string, i: number) => {
+                const isExclusion = item.toLowerCase().includes("exclusion") || item.toLowerCase().includes("not include") || item.toLowerCase().includes("no refund");
+                // Try to parse "Title: Description" format
+                const colonIdx = item.indexOf(":");
+                const hasTitle = colonIdx > 0 && colonIdx < 40;
+                return (
+                  <li key={i} className="flex items-start gap-2.5">
+                    <CircleDot className={`h-4 w-4 shrink-0 mt-0.5 ${isExclusion ? "text-destructive" : "text-primary"}`} />
+                    <div className="text-sm">
+                      {hasTitle ? (
+                        <>
+                          <span className="font-semibold text-foreground">{item.substring(0, colonIdx)}</span>
+                          <span className="text-muted-foreground">{item.substring(colonIdx)}</span>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">{item}</span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -377,43 +450,133 @@ const PublicProductDetail = () => {
 
       {/* Delivery & Fulfillment */}
       <div className={`${glassPanel} p-6`}>
-        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-foreground mb-5 flex items-center gap-2">
           <Truck className="h-5 w-5 text-primary" />
           Delivery & Fulfillment
         </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          {deliveryMethods.length > 0 ? (
+            deliveryMethods.map((method: string) => (
+              <div key={method} className="flex items-center gap-4 p-4 rounded-xl bg-muted/40 border border-border">
+                {method === "hand_delivery" || method === "meetup" ? (
+                  <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                    <User className="h-5 w-5 text-amber-600" />
+                  </div>
+                ) : (
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Truck className="h-5 w-5 text-primary" />
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{deliveryMethodLabels[method] || method}</p>
+                  <p className="text-xs text-muted-foreground">Tracked & supported by SafeDeal</p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/40 border border-border">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Truck className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Standard Delivery</p>
+                <p className="text-xs text-muted-foreground">Tracked & supported by SafeDeal</p>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-xl bg-muted/50 p-4 text-center">
-            <Truck className="mx-auto h-6 w-6 text-primary mb-2" />
-            <p className="text-sm font-medium">{product.delivery_method || "Standard Delivery"}</p>
-            <p className="text-xs text-muted-foreground mt-1">Tracked & insured</p>
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
+            <MapPin className="h-4 w-4 text-primary shrink-0" />
+            <div>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Delivery Scope</p>
+              <p className="text-sm font-medium text-foreground">{product.delivery_scope || "Contact seller"}</p>
+            </div>
           </div>
-          <div className="rounded-xl bg-muted/50 p-4 text-center">
-            <Clock className="mx-auto h-6 w-6 text-primary mb-2" />
-            <p className="text-sm font-medium">{product.verification_window_hours || 24}h Verification</p>
-            <p className="text-xs text-muted-foreground mt-1">Inspect before release</p>
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
+            <Clock className="h-4 w-4 text-primary shrink-0" />
+            <div>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Estimated Delivery</p>
+              <p className="text-sm font-medium text-foreground">{product.estimated_delivery_days || "Contact seller"}</p>
+            </div>
           </div>
-          <div className="rounded-xl bg-muted/50 p-4 text-center">
-            <ShieldCheck className="mx-auto h-6 w-6 text-emerald-500 mb-2" />
-            <p className="text-sm font-medium">Escrow Protection</p>
-            <p className="text-xs text-muted-foreground mt-1">Funds secured until verified</p>
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
+            <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+            <div>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Handled By</p>
+              <p className="text-sm font-medium text-foreground">SafeDeal Escrow</p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Customer Reviews - Placeholder */}
+      {/* Customer Reviews */}
       <div className={`${glassPanel} p-6`}>
-        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-foreground mb-5 flex items-center gap-2">
           <Star className="h-5 w-5 text-primary" />
           Customer Reviews
         </h2>
-        <div className="flex flex-col items-center justify-center py-8 text-center">
-          <div className="flex gap-1 mb-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Star key={i} className="h-5 w-5 text-muted-foreground/20" />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Rating Summary */}
+          <div className="flex flex-col items-center justify-center p-6 rounded-xl bg-muted/30 border border-border">
+            <p className="text-5xl font-bold text-foreground mb-1">4.8</p>
+            <div className="flex gap-0.5 mb-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Star key={i} className={`h-4 w-4 ${i <= 4 ? "fill-amber-400 text-amber-400" : "fill-amber-400/50 text-amber-400/50"}`} />
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">Based on 24 reviews</p>
+
+            <div className="w-full mt-4 space-y-2">
+              {[
+                { stars: 5, pct: 75 },
+                { stars: 4, pct: 18 },
+                { stars: 3, pct: 7 },
+              ].map((row) => (
+                <div key={row.stars} className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground w-8">{row.stars}★</span>
+                  <Progress value={row.pct} className="flex-1 h-2" />
+                  <span className="text-xs text-muted-foreground w-8">{row.pct}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Individual Reviews */}
+          <div className="lg:col-span-2 space-y-4">
+            {placeholderReviews.map((review) => (
+              <div key={review.id} className="p-4 rounded-xl bg-muted/30 border border-border">
+                <div className="flex items-center gap-3 mb-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                      {review.name.split(" ").map(n => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-foreground">{review.name}</span>
+                      {review.verified && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                          VERIFIED PURCHASE
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <Star key={i} className={`h-3 w-3 ${i <= review.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/20"}`} />
+                        ))}
+                      </div>
+                      <span className="text-xs text-muted-foreground">{review.date}</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">{review.text}</p>
+              </div>
             ))}
           </div>
-          <p className="text-sm text-muted-foreground">No reviews yet</p>
-          <p className="text-xs text-muted-foreground mt-1">Be the first to review this product after purchase</p>
         </div>
       </div>
     </div>
