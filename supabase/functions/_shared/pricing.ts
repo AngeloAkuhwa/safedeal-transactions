@@ -9,7 +9,15 @@
  * - item_amount: agreed item price BEFORE buyer-facing service fees
  * - service_fee_rate: buyer-facing all-in percentage (backend-owned commercial value)
  * - service_fee_amount: paystack_fee_amount + platform_fee_amount
+ *
+ * Rules:
+ * - SafeDeal platform fee floored at ₦250 (minimum revenue per transaction)
+ * - Total service fee capped at ₦2,500 (buyer-friendly ceiling)
+ * - Fees are non-refundable
  */
+
+const MIN_PLATFORM_FEE = 250;
+const MAX_TOTAL_FEE = 2500;
 
 export interface PricingResult {
   currency_code: string;
@@ -19,6 +27,9 @@ export interface PricingResult {
   service_fee_amount: number;
   service_fee_rate: number;
   total_amount: number;
+  is_floored: boolean;
+  is_capped: boolean;
+  non_refundable: boolean;
 }
 
 type PricingMode = "local" | "international";
@@ -33,14 +44,12 @@ function computePaystackLocalFee(itemAmount: number): number {
   const percentageFee = itemAmount * 0.015;
   const flatFee = itemAmount < 2500 ? 0 : 100;
   const rawFee = percentageFee + flatFee;
-  // Local transactions capped at ₦2,000
   return Math.min(Math.round(rawFee), 2000);
 }
 
 /**
  * Paystack international fee rules (stubbed for future use):
  * - Mastercard/Visa/Verve: 3.9% + ₦100
- * - AmEx: 4.5% (not implemented yet, defaults to 3.9% + ₦100)
  */
 function computePaystackInternationalFee(itemAmount: number): number {
   const percentageFee = itemAmount * 0.039;
@@ -50,7 +59,6 @@ function computePaystackInternationalFee(itemAmount: number): number {
 
 /**
  * SafeDeal buyer-facing tiered service fee rates for local NGN transactions.
- * The rate decreases as transaction size increases.
  */
 function getSafeDealLocalTierRate(itemAmount: number): number {
   if (itemAmount <= 100_000) return 0.039;
@@ -61,10 +69,6 @@ function getSafeDealLocalTierRate(itemAmount: number): number {
 
 /**
  * Compute full pricing breakdown for a transaction.
- *
- * @param itemAmount - Agreed item price before buyer-facing fees
- * @param currencyCode - Currency code (default: "NGN")
- * @param mode - "local" or "international" (default: "local")
  */
 export function computePricing(
   itemAmount: number,
@@ -80,6 +84,9 @@ export function computePricing(
       service_fee_amount: 0,
       service_fee_rate: 0,
       total_amount: 0,
+      is_floored: false,
+      is_capped: false,
+      non_refundable: true,
     };
   }
 
@@ -90,26 +97,25 @@ export function computePricing(
       : computePaystackLocalFee(itemAmount);
 
   // Step 2: Determine SafeDeal target service rate
-  // For international, use 3.9% minimum (must cover higher Paystack fee)
   const tierRate =
     mode === "international"
       ? Math.max(getSafeDealLocalTierRate(itemAmount), 0.039)
       : getSafeDealLocalTierRate(itemAmount);
 
-  // Step 3: Compute target service fee amount
-  const targetServiceFee = Math.round(itemAmount * tierRate);
+  // Step 3: Platform fee = max(₦250, tierRate × item - paystackFee)
+  const rawPlatformFee = Math.max(MIN_PLATFORM_FEE, Math.round(itemAmount * tierRate) - paystackFee);
 
-  // Step 4: Split — platform gets remainder after Paystack
-  const rawPlatformFee = Math.max(targetServiceFee - paystackFee, 0);
-
-  // Step 5: Cap total service fee at ₦2,000
+  // Step 4: Total service fee = min(₦2,500, paystackFee + platformFee)
   const rawServiceFee = paystackFee + rawPlatformFee;
-  const serviceFeeAmount = Math.min(rawServiceFee, 2000);
+  const serviceFeeAmount = Math.min(rawServiceFee, MAX_TOTAL_FEE);
 
-  // Step 6: Recalculate platform fee after cap
+  // Step 5: Recalculate platform fee after cap
   const platformFee = Math.max(serviceFeeAmount - paystackFee, 0);
 
-  // Step 7: Effective rate
+  const is_floored = rawPlatformFee === MIN_PLATFORM_FEE;
+  const is_capped = rawServiceFee > MAX_TOTAL_FEE;
+
+  // Step 6: Effective rate
   const serviceFeeRate = serviceFeeAmount / itemAmount;
 
   return {
@@ -118,7 +124,10 @@ export function computePricing(
     paystack_fee_amount: paystackFee,
     platform_fee_amount: platformFee,
     service_fee_amount: serviceFeeAmount,
-    service_fee_rate: Math.round(serviceFeeRate * 10000) / 10000, // 4 decimal places
+    service_fee_rate: Math.round(serviceFeeRate * 10000) / 10000,
     total_amount: itemAmount + serviceFeeAmount,
+    is_floored,
+    is_capped,
+    non_refundable: true,
   };
 }
