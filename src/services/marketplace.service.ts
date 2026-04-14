@@ -23,6 +23,7 @@ export interface MarketplaceProduct {
   currency_code: string;
   stock_quantity: number;
   condition_label: string | null;
+  category_id: string | null;
   primary_image_url: string | null;
   seller: MarketplaceSeller;
 }

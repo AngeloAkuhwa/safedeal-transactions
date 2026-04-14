@@ -1,19 +1,29 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { BuyerNav } from "@/components/dashboard/BuyerNav";
-import { ProductCard } from "@/components/storefront/ProductCard";
+import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
+import { MarketplaceProductCard } from "@/components/marketplace/MarketplaceProductCard";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, ShoppingBag, PackageOpen } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { Search, ShoppingBag, PackageOpen, Shield, Lock, Clock } from "lucide-react";
 import { getMarketplaceProducts } from "@/services/marketplace.service";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function BuyerMarketplace() {
   const navigate = useNavigate();
-  const [buyerName, setBuyerName] = useState("Buyer");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -21,25 +31,6 @@ export default function BuyerMarketplace() {
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
 
-  // Load profile
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase
-        .from("profiles")
-        .select("full_name, avatar_url")
-        .eq("id", user.id)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setBuyerName(data.full_name || "Buyer");
-            setAvatarUrl(data.avatar_url);
-          }
-        });
-    });
-  }, []);
-
-  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
@@ -48,7 +39,6 @@ export default function BuyerMarketplace() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Reset page on filter change
   const handleCategoryChange = useCallback((val: string) => {
     setCategory(val === "all" ? "" : val);
     setPage(1);
@@ -76,139 +66,188 @@ export default function BuyerMarketplace() {
   const pageSize = data?.page_size || 20;
   const totalPages = Math.ceil(total / pageSize);
 
+  const categoryMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    categories.forEach((c) => {
+      m[c.id] = c.name;
+    });
+    return m;
+  }, [categories]);
+
   return (
-    <div className="min-h-screen bg-background">
-      <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
+    <div className="flex h-screen bg-background overflow-hidden">
+      <BuyerSidebar />
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <ShoppingBag className="h-6 w-6 text-primary" />
-            Marketplace
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Browse products from verified sellers across SafeDeal
-          </p>
-        </div>
+      <main className="flex-1 overflow-y-auto relative">
+        {/* Background glows */}
+        <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
+        <div className="pointer-events-none absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search products..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6 relative z-10">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="pl-10 lg:pl-0">
+              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <ShoppingBag className="h-6 w-6 text-primary" />
+                Marketplace
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Browse products from verified sellers across SafeDeal
+              </p>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1.5">
+              <Shield className="h-4 w-4 text-success" />
+              <span className="text-xs font-medium text-success">Escrow Protected</span>
+            </div>
           </div>
-          <Select value={category || "all"} onValueChange={handleCategoryChange}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name} ({c.product_count})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={sort} onValueChange={handleSortChange}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="price_asc">Price: Low → High</SelectItem>
-              <SelectItem value="price_desc">Price: High → Low</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
 
-        {/* Results count */}
-        {!isLoading && (
-          <p className="text-sm text-muted-foreground">
-            {total} product{total !== 1 ? "s" : ""} found
-          </p>
-        )}
-
-        {/* Grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="aspect-square bg-muted animate-pulse rounded-xl" />
-            ))}
-          </div>
-        ) : products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <PackageOpen className="h-16 w-16 text-muted-foreground/30 mb-4" />
-            <h3 className="text-lg font-semibold text-foreground">No products found</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Try adjusting your search or filters
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                showBadges={false}
-                sellerName={product.seller.full_name}
-                sellerTrustSummary={product.seller.trust_summary}
-                onClick={() => {
-                  if (product.seller.store_slug) {
-                    navigate(`/store/${product.seller.store_slug}/${product.slug}`);
-                  }
-                }}
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-3 rounded-2xl border border-border bg-card/60 backdrop-blur-sm p-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search products..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 border-none bg-muted/50"
               />
-            ))}
+            </div>
+            <Select value={category || "all"} onValueChange={handleCategoryChange}>
+              <SelectTrigger className="w-full sm:w-[180px] border-none bg-muted/50">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name} ({c.product_count})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sort} onValueChange={handleSortChange}>
+              <SelectTrigger className="w-full sm:w-[180px] border-none bg-muted/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="price_asc">Price: Low → High</SelectItem>
+                <SelectItem value="price_desc">Price: High → Low</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <Pagination>
-            <PaginationContent>
-              {page > 1 && (
-                <PaginationItem>
-                  <PaginationPrevious onClick={() => setPage(page - 1)} href="#" />
-                </PaginationItem>
-              )}
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                let pageNum: number;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (page <= 3) {
-                  pageNum = i + 1;
-                } else if (page >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = page - 2 + i;
-                }
-                return (
-                  <PaginationItem key={pageNum}>
-                    <PaginationLink
-                      href="#"
-                      isActive={pageNum === page}
-                      onClick={() => setPage(pageNum)}
-                    >
-                      {pageNum}
-                    </PaginationLink>
+          {/* Results count */}
+          {!isLoading && (
+            <p className="text-sm text-muted-foreground">
+              {total} product{total !== 1 ? "s" : ""} found
+            </p>
+          )}
+
+          {/* Grid */}
+          {isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="aspect-[3/4] bg-muted animate-pulse rounded-2xl" />
+              ))}
+            </div>
+          ) : products.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <PackageOpen className="h-16 w-16 text-muted-foreground/30 mb-4" />
+              <h3 className="text-lg font-semibold text-foreground">No products found</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Try adjusting your search or filters
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {products.map((product) => (
+                <MarketplaceProductCard
+                  key={product.id}
+                  product={product}
+                  categoryName={
+                    product.category_id ? categoryMap[product.category_id] : undefined
+                  }
+                  onClick={() => {
+                    if (product.seller.store_slug) {
+                      navigate(`/store/${product.seller.store_slug}/${product.slug}`);
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <Pagination>
+              <PaginationContent>
+                {page > 1 && (
+                  <PaginationItem>
+                    <PaginationPrevious onClick={() => setPage(page - 1)} href="#" />
                   </PaginationItem>
-                );
-              })}
-              {page < totalPages && (
-                <PaginationItem>
-                  <PaginationNext onClick={() => setPage(page + 1)} href="#" />
-                </PaginationItem>
-              )}
-            </PaginationContent>
-          </Pagination>
-        )}
+                )}
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        href="#"
+                        isActive={pageNum === page}
+                        onClick={() => setPage(pageNum)}
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+                {page < totalPages && (
+                  <PaginationItem>
+                    <PaginationNext onClick={() => setPage(page + 1)} href="#" />
+                  </PaginationItem>
+                )}
+              </PaginationContent>
+            </Pagination>
+          )}
+
+          {/* Trust footer */}
+          <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-sm p-5">
+            <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+                <Shield className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-foreground">
+                  SafeDeal Buyer Protection
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Every purchase is protected by our escrow system. Your money is safe until you confirm delivery.
+                </p>
+              </div>
+              <div className="flex gap-6">
+                <div className="text-center">
+                  <Lock className="mx-auto h-4 w-4 text-primary mb-1" />
+                  <p className="text-xs font-semibold text-foreground">100%</p>
+                  <p className="text-[10px] text-muted-foreground">Secure</p>
+                </div>
+                <div className="text-center">
+                  <Clock className="mx-auto h-4 w-4 text-primary mb-1" />
+                  <p className="text-xs font-semibold text-foreground">24hr</p>
+                  <p className="text-[10px] text-muted-foreground">Disputes</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );
