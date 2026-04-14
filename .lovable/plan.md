@@ -1,50 +1,58 @@
 
+Fix this as a debugging + hardening pass, not just a UI patch.
 
-# Fix "Session not found" on Cart Checkout Review
+1. Confirm the real failure path
+- The current review page turns every failure into the same fallback: “Session not found”.
+- I’ll update it to preserve and display the real backend error state:
+  - Unauthorized
+  - Forbidden / wrong account
+  - Missing session id
+  - Actual session not found
+  - Generic load failure
 
-## Root Cause
+2. Harden the frontend checkout-review request
+- In `src/pages/CartCheckoutReview.tsx`, replace the manual project-id function URL with the same backend base pattern used elsewhere (`VITE_SUPABASE_URL` or a small service wrapper).
+- Keep the created `checkout_session_id` in route params as now, but also store it temporarily in session storage as a fallback in case redirect/query handling is inconsistent.
+- Add console logging for:
+  - session id being requested
+  - response status
+  - backend error body
 
-Three issues are causing the checkout review page to fail:
+3. Make the review screen resilient to account mismatch
+- Right now a 401/403/500 can still look like “Session not found”.
+- I’ll add proper empty/error states so if the user opens the flow under the wrong signed-in account, the page explicitly says they must continue as the buyer account that created the checkout.
 
-1. **Wrong user context**: The `CartCheckoutReview` page queries `checkout_sessions` via the Supabase REST API with the user's JWT. RLS enforces `auth.uid() = buyer_id`. If you're logged in as the seller (which the session logs confirm — `seller@samplestore.test`), the query returns empty and triggers "Session not found". However, this will also fail for the buyer because of issue #2.
+4. Add backend diagnostics to both functions
+- `supabase/functions/cart-checkout/index.ts`
+  - log created `checkout_session_id`
+  - log buyer id and selected cart items count
+- `supabase/functions/checkout-review/index.ts`
+  - log received `session_id`
+  - log authenticated user id
+  - log whether the session row exists
+  - log whether ownership check failed
+- This will let us distinguish:
+  - session was never created
+  - session id was lost
+  - wrong user opened it
+  - function endpoint/deployment mismatch
 
-2. **Wrong column names in profile fetch**: The review page queries `profiles` for `display_name` and `phone_verified` — neither column exists. The correct columns are `full_name` (on profiles) and `phone_verified` (on `account_verifications`). This causes the REST query to return an error/empty, breaking the seller info display.
+5. Keep the current backend model
+- No database migration is needed for this fix.
+- The existing checkout session tables already have the needed buyer-scoped policies, and the review function is already using backend-level access, so this is not primarily an RLS-schema problem.
 
-3. **No product SELECT RLS for buyers**: The `products` table likely lacks a policy allowing buyers to read published products by ID, which would cause the product detail fetch to return empty.
+6. Small cleanup while fixing
+- Ensure the review page does not silently swallow malformed enriched data.
+- If needed, normalize seller/product enrichment so missing image/profile fields don’t break the session load experience.
 
-## Fix Plan
+Files to update
+- `src/pages/CartCheckoutReview.tsx`
+- optionally `src/services/checkout-review.service.ts` for a cleaner fetch wrapper
+- `supabase/functions/checkout-review/index.ts`
+- `supabase/functions/cart-checkout/index.ts`
 
-### 1. `src/pages/CartCheckoutReview.tsx` — Fix data fetching
-
-- Change profile query from `select=id,display_name,phone_verified` to `select=id,full_name` (drop `phone_verified` since it's not on profiles)
-- For verification badges, either skip them or join `account_verifications` via a separate query
-- Update all references from `display_name` to `full_name` in the rendering code
-- Add better error logging so the actual REST response is visible in console
-
-### 2. Switch from REST API to edge function approach
-
-Since RLS makes cross-table queries complex, the better fix is to create a dedicated edge function `checkout-review` that:
-- Authenticates the buyer
-- Fetches the checkout session, items, products, seller profiles, and verification status using the service role
-- Returns enriched data in one response
-
-This mirrors how every other page in the app works (edge functions for data fetching).
-
-### Recommended approach: New `checkout-review` edge function
-
-**`supabase/functions/checkout-review/index.ts`**:
-- Accept GET with `?session_id=...`
-- Verify buyer auth + role
-- Confirm `checkout_sessions.buyer_id = authenticated user`
-- Fetch session items, join products (title, image, stock), seller profiles (full_name), account_verifications (phone_verified)
-- Return complete enriched payload
-
-**`src/pages/CartCheckoutReview.tsx`**:
-- Replace raw REST calls with a single fetch to `checkout-review?session_id=...`
-- Fix `display_name` → `full_name` references
-- Fix `phone_verified` to come from the enriched response
-
-### 3. No migration needed
-
-Tables and RLS policies are already correct. The fix is purely in the data-fetching layer and column name references.
-
+Validation after implementation
+- Public storefront → add to cart → view cart → checkout selected → review page loads
+- Same flow with a wrong/non-buyer account shows a clear account-mismatch message
+- Session id is visible in logs from creation through review lookup
+- Review page no longer shows “Session not found” for unrelated errors
