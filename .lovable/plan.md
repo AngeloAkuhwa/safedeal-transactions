@@ -1,24 +1,41 @@
 
 
-# Fix Product Media Upload on Add Product Page
+# Add "Update Stock" Modal to Seller Storefront
 
-## Problem
+## What changes
 
-The upload area's "Choose Files" button calls `e.preventDefault()` (line 320), which blocks the `<label>` from triggering the hidden file input. The upload logic and Cloudinary integration already exist and work — they're just never triggered. Additionally, there are no limits enforced for the max 3 images + 1 video requirement.
+When a seller clicks the stock/quantity area on a product card in the storefront grid, an "Update Stock" modal opens (matching the reference design). The seller can adjust quantity with +/- buttons, quick-set buttons (5, 10, 0), and direct input. Saving calls the existing PATCH endpoint to update `stock_quantity`.
 
-## Changes
+## Files
 
-### File: `src/pages/SellerProductCreate.tsx`
+### 1. New: `src/components/storefront/UpdateStockModal.tsx`
 
-1. **Fix the button blocking the file input** — Remove `onClick={(e) => e.preventDefault()}` from the "Choose Files" button (line 320). Change it to a `<span>` styled as a button, or simply remove the `preventDefault`. Since the button is inside a `<label>`, clicking it should naturally trigger the file input.
+A Dialog-based modal receiving:
+- `open` / `onOpenChange`
+- `product` (id, title, category_name, unit_price, currency_code, stock_quantity, status, primary_image_url)
+- `onSave(productId, newQuantity)` callback
 
-2. **Enforce max 3 images + 1 video** — Add validation in `handleFileUpload`:
-   - Count current images and videos in `files` state
-   - Reject new files that would exceed 3 images or 1 video
-   - Show a toast error when limits are hit
-   - Disable/hide the "Add More" tile when limits are reached
+UI (from reference):
+- Header: Boxes icon + "Update Stock" title
+- Product summary card: image thumbnail, title, category + price, stock status badge + product status badge
+- "Current Stock" label with `{quantity} units` on right
+- +/- buttons flanking a number input with "units" suffix
+- Quick-set buttons row: "Set 5", "Set 10", "Set 0"
+- Status preview box: shows computed "In Stock" / "Low Stock" / "Out of Stock" based on input value
+- Info text: "Products with 0 stock remain visible but cannot be purchased until restocked."
+- Footer: Cancel + "Save Stock Update" primary button
 
-3. **Update the upload area text** — Change helper text from "PNG, JPG, MP4 up to 10MB each" to "Max 3 images + 1 video · PNG, JPG, MP4 up to 10MB each"
+### 2. Modified: `src/components/storefront/SellerProductCard.tsx`
 
-No backend or edge function changes needed — the existing `uploadProductFile` and `upload-evidence` function handle everything correctly.
+- Add `onUpdateStock` optional callback prop
+- Make the stock quantity area (lines 115-123) clickable — wrap it or add an onClick that calls `onUpdateStock` with `e.stopPropagation()`
+
+### 3. Modified: `src/pages/SellerStorefront.tsx`
+
+- Add `stockProduct` state (the product to update stock for)
+- Pass `onUpdateStock` to each `SellerProductCard`
+- Import and render `UpdateStockModal`
+- `onSave` handler: call `updateProduct(productId, { stock_quantity })`, invalidate queries, show toast
+
+No backend changes needed — the PATCH endpoint already supports `stock_quantity`.
 
