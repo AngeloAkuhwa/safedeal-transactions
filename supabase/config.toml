@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.public-product-detail]
 verify_jwt = false
+
+[functions.saved-products]
+verify_jwt = false
