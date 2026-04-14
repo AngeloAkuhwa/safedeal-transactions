@@ -86,10 +86,16 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
 
         {/* Wishlist */}
         <button
-          onClick={(e) => e.stopPropagation()}
-          className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-destructive transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            setLiked(!liked);
+          }}
+          className={cn(
+            "absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-colors",
+            liked ? "text-destructive" : "text-muted-foreground hover:text-destructive"
+          )}
         >
-          <Heart className="h-4 w-4" />
+          <Heart className={cn("h-4 w-4", liked && "fill-current")} />
         </button>
       </div>
 
