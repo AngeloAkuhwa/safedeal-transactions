@@ -100,7 +100,6 @@ const PublicProductDetail = () => {
       }
     });
   }, [data?.product?.id]);
-  });
 
   if (isLoading) {
     return (
