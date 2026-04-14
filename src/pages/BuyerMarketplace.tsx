@@ -19,7 +19,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Search, ShoppingBag, PackageOpen, Shield, Lock, Clock } from "lucide-react";
+import { Search, ShoppingBag, PackageOpen, Shield, Lock, Clock, SlidersHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { getMarketplaceProducts } from "@/services/marketplace.service";
 
 export default function BuyerMarketplace() {
@@ -97,7 +98,7 @@ export default function BuyerMarketplace() {
             </div>
             <div className="hidden sm:flex items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1.5">
               <Shield className="h-4 w-4 text-success" />
-              <span className="text-xs font-medium text-success">Escrow Protected</span>
+              <span className="text-xs font-medium text-success">All purchases protected by SafeDeal escrow</span>
             </div>
           </div>
 
@@ -106,7 +107,7 @@ export default function BuyerMarketplace() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search products..."
+                placeholder="Search for electronics, fashion, vehicles..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 border-none bg-muted/50"
@@ -126,7 +127,8 @@ export default function BuyerMarketplace() {
               </SelectContent>
             </Select>
             <Select value={sort} onValueChange={handleSortChange}>
-              <SelectTrigger className="w-full sm:w-[180px] border-none bg-muted/50">
+              <SelectTrigger className="w-full sm:w-[200px] border-none bg-muted/50">
+                <span className="text-muted-foreground mr-1">Sort by:</span>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -135,6 +137,10 @@ export default function BuyerMarketplace() {
                 <SelectItem value="price_desc">Price: High → Low</SelectItem>
               </SelectContent>
             </Select>
+            <Button variant="outline" className="border-none bg-muted/50 gap-2 shrink-0">
+              <SlidersHorizontal className="h-4 w-4" />
+              Price Filter
+            </Button>
           </div>
 
           {/* Results count */}
@@ -230,7 +236,7 @@ export default function BuyerMarketplace() {
                   SafeDeal Buyer Protection
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Every purchase is protected by our escrow system. Your money is safe until you confirm delivery.
+                  Funds are held in escrow until you confirm delivery and satisfaction.
                 </p>
               </div>
               <div className="flex gap-6">
