@@ -3,7 +3,7 @@ import {
   Lock,
   Fingerprint,
   Box,
-  Image,
+  Image as ImageIcon,
   DollarSign,
   Truck,
   ShieldCheck,
