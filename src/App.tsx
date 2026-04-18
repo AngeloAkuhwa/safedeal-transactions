@@ -44,6 +44,10 @@ import StorefrontCheckout from "./pages/StorefrontCheckout";
 import BuyerCart from "./pages/BuyerCart";
 import BuyerSavedProducts from "./pages/BuyerSavedProducts";
 import CartCheckoutReview from "./pages/CartCheckoutReview";
+import OfferClaimLanding from "./pages/OfferClaimLanding";
+import BuyerPrivateOffers from "./pages/BuyerPrivateOffers";
+import AdminOffers from "./pages/AdminOffers";
+import AdminOfferDetail from "./pages/AdminOfferDetail";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -66,6 +70,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/store/:sellerSlug" element={<PublicStorefront />} />
             <Route path="/store/:sellerSlug/:productSlug" element={<PublicProductDetail />} />
+            <Route path="/offer/:offerToken" element={<OfferClaimLanding />} />
 
             {/* Protected: requires session */}
             <Route element={<ProtectedRoute />}>
@@ -89,7 +94,14 @@ const App = () => (
               <Route path="/dashboard/cart" element={<BuyerCart />} />
               <Route path="/dashboard/saved" element={<BuyerSavedProducts />} />
               <Route path="/dashboard/cart/checkout" element={<CartCheckoutReview />} />
+              <Route path="/dashboard/offers" element={<BuyerPrivateOffers />} />
               <Route path="/store/:sellerSlug/:productSlug/checkout" element={<StorefrontCheckout />} />
+            </Route>
+
+            {/* Admin routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/admin/offers" element={<AdminOffers />} />
+              <Route path="/admin/offers/:offerId" element={<AdminOfferDetail />} />
             </Route>
 
             {/* Protected: requires session + seller role */}
