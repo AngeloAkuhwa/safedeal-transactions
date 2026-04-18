@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     // Fetch transaction
     const { data: tx, error: txErr } = await admin
       .from("transactions")
-      .select("id, transaction_code, status, money_status, buyer_id, seller_id, created_at")
+      .select("id, transaction_code, status, money_status, buyer_id, seller_id, created_at, source_offer_id")
       .eq("id", transactionId)
       .single();
 
