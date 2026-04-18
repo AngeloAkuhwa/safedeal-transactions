@@ -38,7 +38,11 @@ Deno.serve(async (req) => {
     const userEmail = userData.user.email?.toLowerCase() || "";
 
     // Auto-expire any stale offers + auto-link by email
-    await adminClient.rpc("expire_stale_offers").catch(() => {});
+    try {
+      await adminClient.rpc("expire_stale_offers");
+    } catch (_e) {
+      // best-effort; ignore failure
+    }
 
     if (userEmail) {
       // Catch-up auto-link in case the trigger didn't run (e.g., social signup variations)
