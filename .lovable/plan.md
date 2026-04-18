@@ -1,74 +1,57 @@
 
-# Continue Batch 5 — Final Polish Pass
+# Fix: Show product images & videos in Locked Agreement Snapshot
 
-Picking up from the approved refined spec. Backend + resolver + edit guard are in place. Remaining work is UI polish + bundle support + navigation entry points.
+## Problem
+Buyer sees empty image placeholders in `LockedSnapshotCard` → "Product Images" section. The agreement loads via `transaction-agreement` edge function but never returns the product media (images/videos) for buyer-specific offers.
 
-## What's left
+## Root cause
+The `transaction-agreement` edge function fetches `transaction_items` and `transaction_media`, but for **private-offer** transactions:
+- `transaction_media` is empty (sellers attach media to **products**, not transactions, in the new offer flow).
+- `buyer_specific_offer_items` stores `primary_media_url` (single thumbnail), but the offer's products hold the full image/video gallery in the `product_media` table.
 
-### 1. Multi-item builder in `SellerCreateTransaction.tsx`
-- Add "Add another item" button in step 2 (Item Details)
-- Each item: title, short description, quantity, unit price, condition summary, primary media
-- Items stored as array in wizard state
-- Send `items[]` array to `create-transaction` publish action
-- Step 3 (Agreement) and Step 4 (Review) updated to show bundle subtotal
-- Service `publishTransaction` already accepts items array — verify shape
+So the snapshot card has nothing to render → falls back to 4 empty placeholders.
 
-### 2. Wizard rebrand → "Create Private Offer"
-- Page title, breadcrumb, hero copy, all step headers updated
-- Submit CTA: "Create Private Offer"
-- `TransactionSuccess.tsx` modal:
-  - Headline: "Private Offer Created"
-  - Primary asset: copyable `offer_url` with WhatsApp + Email + Copy actions
-  - Remove the secondary transaction `share_url` from this view (transaction doesn't exist yet)
-  - Add "View in Private Offers" link → `/seller/offers`
+## Plan
 
-### 3. `seller-offers` UI surface
-- New page `SellerPrivateOffers.tsx` at `/seller/offers` — list with status filters, item count column, expiry, intended buyer email
-- New page `SellerOfferDetail.tsx` at `/seller/offers/:offerId` — bundle items + offer events + cancel/regenerate token actions (gated by edit matrix from §5 of spec)
-- Wire into `seller-offers` edge fn (already returns nested items + tx summary per spec)
+### 1. Backend: enrich `transaction-agreement` with product media
+File: `supabase/functions/transaction-agreement/index.ts`
 
-### 4. Navigation entry points
-- `SellerNav.tsx` → add "Private Offers" link with offer count badge
-- `BuyerNav.tsx` → add "Private Offers" link with unread count badge
-- Seller dashboard quick actions → swap "Create Protected Transaction" → "Create Private Offer"
+- After fetching the transaction, look up linked offer:
+  ```ts
+  buyer_specific_product_offers WHERE transaction_id = tx.id
+  ```
+- If an offer exists, fetch its items + linked products + media:
+  ```ts
+  buyer_specific_offer_items (offer_id) → product_id[]
+  product_media WHERE product_id IN (...) ORDER BY display_order
+    JOIN files (file_url, secure_url, mime_type, original_file_name)
+  ```
+- Merge into response as a new `productMedia: [{ product_id, file_url, secure_url, mime_type, media_type, display_order }]` array.
+- Also include `bundleItems` (snapshot rows) so multi-item bundles render properly instead of just `transaction_items.title`.
+- Keep existing `media: transaction_media` for legacy non-offer transactions (fallback).
 
-### 5. Storefront "Private" badge + filter
-- `SellerStorefront.tsx`: add "All / Public / Private" filter chip, render `<Badge variant="outline">Private</Badge>` on cards where `visibility_type='buyer_specific'`
-- `seller-products` LIST already returns `visibility_type` — verify and add to card prop
-- `MarketplaceProductCard.tsx` / `SellerProductCard.tsx` → conditional badge
+### 2. Service type update
+File: `src/services/agreement.service.ts`
+- Add `productMedia?: MediaItem[]` and `bundleItems?: BundleItem[]` to `AgreementData`.
 
-### 6. Admin bundle-aware detail
-- `AdminOfferDetail.tsx` → render items table with snapshot fields (title, qty, unit price, line total, current product status)
-- `AdminOffers.tsx` list → add "Items" column
+### 3. UI: render images + videos
+File: `src/components/agreement/LockedSnapshotCard.tsx`
+- "Product Images" section:
+  - Source priority: `data.productMedia` (offer flow) → `data.media` (legacy).
+  - Filter `mime_type` starting with `image/` → grid of thumbnails (click to open lightbox/new tab).
+  - Filter `mime_type` starting with `video/` → render `<video controls poster=…>` with native preview controls.
+- Empty state only when both lists are empty.
+- "Item Details" section:
+  - If `bundleItems.length > 1`, render a small itemized list (title × qty @ unit price) instead of the single-line description.
 
-### 7. Verify edge fns match locked spec
-- `claim-offer` → confirm reuse-or-create rule matches table in §2 (draft / awaiting_buyer / awaiting_payment → reuse; cancelled / timed_out → create new; payment_secured+ → resume to detail)
-- `paystack-webhook` → confirm offer flips to `purchased` only after hold success
-- `create-transaction` publish → confirm no transaction created (only products + offer + offer_items + event)
+### 4. No DB migration needed
+All required tables (`product_media`, `files`, `buyer_specific_offer_items`) already exist with appropriate access via service role inside the edge function.
 
-## Files to touch
+## Files touched
+- `supabase/functions/transaction-agreement/index.ts` — fetch + return product media & bundle items
+- `src/services/agreement.service.ts` — extend response type
+- `src/components/agreement/LockedSnapshotCard.tsx` — render images grid + video player + bundle list
 
-**Modify:**
-- `src/pages/SellerCreateTransaction.tsx` — multi-item, rebrand
-- `src/components/seller/TransactionSuccess.tsx` — offer-link primary
-- `src/components/seller/SellerNav.tsx` — Private Offers link
-- `src/components/dashboard/BuyerNav.tsx` — Private Offers link
-- `src/pages/SellerStorefront.tsx` — filter chip + Private badge
-- `src/components/storefront/SellerProductCard.tsx` — Private badge
-- `src/services/create-transaction.service.ts` — multi-item payload (verify)
-- `src/services/seller-offers.service.ts` — detail + cancel/regenerate
-- `src/pages/AdminOfferDetail.tsx` — items table
-- `src/pages/AdminOffers.tsx` — items column
-- `src/App.tsx` — add `/seller/offers`, `/seller/offers/:offerId`
-- `supabase/functions/seller-offers/index.ts` — verify items + tx summary in response
-
-**Create:**
-- `src/pages/SellerPrivateOffers.tsx`
-- `src/pages/SellerOfferDetail.tsx`
-
-## Out of scope (deferred)
-- Background scheduler for `expire_stale_offers()` (function exists; called on-read for now)
-- Email notifications to buyers on offer creation
-- Offer duplication action
-
-Reply **"Approved"** to implement.
+## Out of scope
+- Lightbox component (use simple click-to-open in new tab; can upgrade later)
+- Editing media after agreement lock (already prevented by edit lock)
