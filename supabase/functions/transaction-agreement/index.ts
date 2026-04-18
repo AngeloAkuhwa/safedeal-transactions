@@ -99,11 +99,13 @@ Deno.serve(async (req) => {
           .select("state, held_amount, frozen_amount, released_amount, refunded_amount")
           .eq("transaction_id", transactionId)
           .maybeSingle(),
-        admin
-          .from("buyer_specific_product_offers")
-          .select("id")
-          .eq("transaction_id", transactionId)
-          .maybeSingle(),
+        tx.source_offer_id
+          ? admin
+              .from("buyer_specific_product_offers")
+              .select("id")
+              .eq("id", tx.source_offer_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
       ]);
 
     // Fetch product media + bundle items if this is an offer-backed transaction
