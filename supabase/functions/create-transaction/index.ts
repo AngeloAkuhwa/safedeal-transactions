@@ -341,12 +341,73 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
   }
   const offerStatus = linkedBuyerId ? "linked" : "pending_claim";
 
-  // Use the first item as the offer's `product_id` anchor (legacy compatibility)
-  // We'll set this AFTER creating the first product below.
-  const { data: newOffer, error: offerErr } = await adminClient
+  // ── Create products first, then offer with first product as anchor ──
+  const createdProducts: { id: string; item: any; index: number }[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    const slug = `po-${offerToken.substring(0, 8).toLowerCase()}${items.length > 1 ? `-${i + 1}` : ""}`;
+    const { data: prod, error: prodErr } = await adminClient
+      .from("products")
+      .insert({
+        seller_id: userId,
+        title: it.title,
+        slug,
+        description: it.description || it.title,
+        short_description: (it.description || "").substring(0, 200),
+        condition_label: mapConditionToProduct(it.condition || "brand_new"),
+        currency_code: it.currency_code || currencyCode,
+        unit_price: Number(it.price),
+        stock_quantity: Math.max(1, parseInt(it.quantity) || 1),
+        visibility_type: "buyer_specific",
+        status: "published",
+        is_active: true,
+        delivery_method: JSON.stringify([mapDeliveryToProduct(delivery.delivery_method)]),
+        verification_window_hours: delivery.verification_window_hours || 72,
+        seller_notes: notes?.seller_notes || null,
+        estimated_delivery_days: delivery.expected_delivery_date
+          ? String(Math.max(1, Math.ceil((new Date(delivery.expected_delivery_date).getTime() - Date.now()) / 86400000)))
+          : "7",
+        published_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    if (prodErr || !prod) {
+      console.error("Failed to create product:", prodErr);
+      return jsonResponse({ error: `Failed to create product ${i + 1}: ${prodErr?.message || "unknown"}` }, 500);
+    }
+    createdProducts.push({ id: prod.id, item: it, index: i });
+  }
+
+  // Link media (shared across all products on multi-item; primary on first)
+  if (mediaFiles.length > 0) {
+    for (const cp of createdProducts) {
+      const rows = mediaFiles.map((m: any, idx: number) => ({
+        product_id: cp.id,
+        file_id: m.file_id,
+        media_type: m.media_type === "video" ? "video" : "image",
+        sort_order: idx,
+        is_primary: idx === 0,
+      }));
+      await adminClient.from("product_media").insert(rows);
+    }
+  }
+
+  // Get primary media URL for snapshots
+  let primaryMediaUrl: string | null = null;
+  if (mediaFiles.length > 0) {
+    const { data: f } = await adminClient
+      .from("files")
+      .select("file_url, secure_url")
+      .eq("id", mediaFiles[0].file_id)
+      .maybeSingle();
+    primaryMediaUrl = f?.secure_url || f?.file_url || null;
+  }
+
+  // Create offer pointing to first product
+  const { data: realOffer, error: realOfferErr } = await adminClient
     .from("buyer_specific_product_offers")
     .insert({
-      product_id: "00000000-0000-0000-0000-000000000000", // placeholder, updated below
+      product_id: createdProducts[0].id,
       seller_id: userId,
       buyer_id: linkedBuyerId,
       buyer_email: buyerEmail,
@@ -360,159 +421,65 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
     .select("id")
     .single();
 
-  // Placeholder product_id is rejected by FK. Workaround: create first product, then offer.
-  // Roll back the placeholder approach and do it in correct order.
-  if (offerErr) {
-    console.error("Pre-create offer failed (expected), retrying with real product:", offerErr);
-    // Delete any partial — none in this branch since insert failed.
+  if (realOfferErr || !realOffer) {
+    console.error("Failed to create offer:", realOfferErr);
+    return jsonResponse({ error: `Failed to create private offer: ${realOfferErr?.message || "unknown"}` }, 500);
   }
 
-  // ── Correct order: create products first, then offer with first product as anchor ──
-  if (offerErr) {
-    // Insert products one-by-one and collect ids.
-    const createdProducts: { id: string; item: any; index: number }[] = [];
-    for (let i = 0; i < items.length; i++) {
-      const it = items[i];
-      const slug = `po-${offerToken.substring(0, 8).toLowerCase()}${items.length > 1 ? `-${i + 1}` : ""}`;
-      const { data: prod, error: prodErr } = await adminClient
-        .from("products")
-        .insert({
-          seller_id: userId,
-          title: it.title,
-          slug,
-          description: it.description || it.title,
-          short_description: (it.description || "").substring(0, 200),
-          condition_label: mapConditionToProduct(it.condition || "brand_new"),
-          currency_code: it.currency_code || currencyCode,
-          unit_price: Number(it.price),
-          stock_quantity: Math.max(1, parseInt(it.quantity) || 1),
-          visibility_type: "buyer_specific",
-          status: "published",
-          is_active: true,
-          delivery_method: JSON.stringify([mapDeliveryToProduct(delivery.delivery_method)]),
-          verification_window_hours: delivery.verification_window_hours || 72,
-          seller_notes: notes?.seller_notes || null,
-          estimated_delivery_days: delivery.expected_delivery_date
-            ? String(Math.max(1, Math.ceil((new Date(delivery.expected_delivery_date).getTime() - Date.now()) / 86400000)))
-            : "7",
-          published_at: new Date().toISOString(),
-        })
-        .select("id")
-        .single();
-      if (prodErr || !prod) {
-        console.error("Failed to create product:", prodErr);
-        return jsonResponse({ error: `Failed to create product ${i + 1}` }, 500);
-      }
-      createdProducts.push({ id: prod.id, item: it, index: i });
-    }
+  // Snapshot items
+  const itemRows = createdProducts.map((cp) => ({
+    offer_id: realOffer.id,
+    product_id: cp.id,
+    product_title: cp.item.title,
+    short_description: (cp.item.description || "").substring(0, 200),
+    condition_summary: cp.item.condition || "brand_new",
+    quantity: Math.max(1, parseInt(cp.item.quantity) || 1),
+    unit_price_snapshot: Number(cp.item.price),
+    currency_code: cp.item.currency_code || currencyCode,
+    primary_media_url: primaryMediaUrl,
+    position: cp.index,
+  }));
+  await adminClient.from("buyer_specific_offer_items").insert(itemRows);
 
-    // Link media (shared across all products on multi-item; primary on first)
-    if (mediaFiles.length > 0) {
-      for (const cp of createdProducts) {
-        const rows = mediaFiles.map((m: any, idx: number) => ({
-          product_id: cp.id,
-          file_id: m.file_id,
-          media_type: m.media_type === "video" ? "video" : "image",
-          sort_order: idx,
-          is_primary: idx === 0,
-        }));
-        await adminClient.from("product_media").insert(rows);
-      }
-    }
-
-    // Get primary media URL for snapshots
-    let primaryMediaUrl: string | null = null;
-    if (mediaFiles.length > 0) {
-      const { data: f } = await adminClient
-        .from("files")
-        .select("file_url, secure_url")
-        .eq("id", mediaFiles[0].file_id)
-        .maybeSingle();
-      primaryMediaUrl = f?.secure_url || f?.file_url || null;
-    }
-
-    // Create offer pointing to first product
-    const { data: realOffer, error: realOfferErr } = await adminClient
-      .from("buyer_specific_product_offers")
-      .insert({
-        product_id: createdProducts[0].id,
-        seller_id: userId,
-        buyer_id: linkedBuyerId,
-        buyer_email: buyerEmail,
-        offer_token: offerToken,
-        status: offerStatus,
-        expires_at: expiresAt,
-        linked_at: linkedBuyerId ? new Date().toISOString() : null,
-        created_via: "create_transaction_wizard",
-        source_draft_id: draftId,
-      })
-      .select("id")
-      .single();
-
-    if (realOfferErr || !realOffer) {
-      console.error("Failed to create offer:", realOfferErr);
-      return jsonResponse({ error: "Failed to create private offer" }, 500);
-    }
-
-    // Snapshot items
-    const itemRows = createdProducts.map((cp) => ({
-      offer_id: realOffer.id,
-      product_id: cp.id,
-      product_title: cp.item.title,
-      short_description: (cp.item.description || "").substring(0, 200),
-      condition_summary: cp.item.condition || "brand_new",
-      quantity: Math.max(1, parseInt(cp.item.quantity) || 1),
-      unit_price_snapshot: Number(cp.item.price),
-      currency_code: cp.item.currency_code || currencyCode,
-      primary_media_url: primaryMediaUrl,
-      position: cp.index,
-    }));
-    await adminClient.from("buyer_specific_offer_items").insert(itemRows);
-
-    // Audit
-    await adminClient.from("offer_events").insert({
-      offer_id: realOffer.id,
-      event_type: linkedBuyerId ? "created_and_linked" : "created_pending_claim",
-      actor_user_id: userId,
-      metadata: {
-        buyer_email: buyerEmail,
-        items_count: items.length,
-        total_amount: totalAmount,
-        currency: currencyCode,
-        delivery_terms: delivery,
-      },
-    });
-
-    // Mark all uploaded files non-temporary
-    const fileIds = mediaFiles.map((m: any) => m.file_id);
-    if (fileIds.length > 0) {
-      await adminClient.from("files").update({ is_temporary: false }).in("id", fileIds);
-    }
-
-    // ── Delete the draft staging transaction ──
-    // We don't need it anymore. The real transaction is created by claim-offer.
-    await adminClient.from("transaction_items").delete().eq("transaction_id", draftId);
-    await adminClient.from("transaction_pricing").delete().eq("transaction_id", draftId);
-    await adminClient.from("transaction_delivery_terms").delete().eq("transaction_id", draftId);
-    await adminClient.from("transaction_notes").delete().eq("transaction_id", draftId);
-    await adminClient.from("transaction_media").delete().eq("transaction_id", draftId);
-    await adminClient.from("transaction_participants").delete().eq("transaction_id", draftId);
-    await adminClient.from("transactions").delete().eq("id", draftId);
-
-    return jsonResponse({
-      offer_url: `/offer/${offerToken}`,
-      offer_token: offerToken,
-      offer_id: realOffer.id,
-      buyer_linked: !!linkedBuyerId,
-      expires_at: expiresAt,
+  // Audit
+  await adminClient.from("offer_events").insert({
+    offer_id: realOffer.id,
+    event_type: linkedBuyerId ? "created_and_linked" : "created_pending_claim",
+    actor_user_id: userId,
+    metadata: {
+      buyer_email: buyerEmail,
       items_count: items.length,
       total_amount: totalAmount,
-      currency_code: currencyCode,
-    });
+      currency: currencyCode,
+      delivery_terms: delivery,
+    },
+  });
+
+  // Mark all uploaded files non-temporary
+  const fileIds = mediaFiles.map((m: any) => m.file_id);
+  if (fileIds.length > 0) {
+    await adminClient.from("files").update({ is_temporary: false }).in("id", fileIds);
   }
 
-  // We should never get here in the new flow, but keep a graceful response.
-  return jsonResponse({ error: "Unexpected publish state" }, 500);
+  // ── Delete the draft staging transaction ──
+  await adminClient.from("transaction_items").delete().eq("transaction_id", draftId);
+  await adminClient.from("transaction_pricing").delete().eq("transaction_id", draftId);
+  await adminClient.from("transaction_delivery_terms").delete().eq("transaction_id", draftId);
+  await adminClient.from("transaction_notes").delete().eq("transaction_id", draftId);
+  await adminClient.from("transaction_media").delete().eq("transaction_id", draftId);
+  await adminClient.from("transaction_participants").delete().eq("transaction_id", draftId);
+  await adminClient.from("transactions").delete().eq("id", draftId);
+
+  return jsonResponse({
+    offer_url: `/offer/${offerToken}`,
+    offer_token: offerToken,
+    offer_id: realOffer.id,
+    buyer_linked: !!linkedBuyerId,
+    expires_at: expiresAt,
+    items_count: items.length,
+    total_amount: totalAmount,
+    currency_code: currencyCode,
+  });
 }
 
 async function upsertByTransaction(client: any, table: string, transactionId: string, data: Record<string, any>) {
