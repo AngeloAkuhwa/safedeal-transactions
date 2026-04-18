@@ -24,7 +24,12 @@ function LockedBadge() {
 }
 
 export function LockedSnapshotCard({ data }: LockedSnapshotCardProps) {
-  const { transaction, item, pricing, delivery } = data;
+  const { transaction, item, pricing, delivery, productMedia, bundleItems } = data;
+  const media = productMedia ?? [];
+  const images = media.filter((m) => (m.mime_type ?? "").startsWith("image/") || m.media_type === "image");
+  const videos = media.filter((m) => (m.mime_type ?? "").startsWith("video/") || m.media_type === "video");
+  const items = bundleItems ?? [];
+  const isBundle = items.length > 1;
 
   return (
     <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
