@@ -1,95 +1,173 @@
 
-# Compatibility Check: Will the Batch 5 Plan Break the Existing Product Flow?
+# Batch 5 — Final Refined Spec (with lifecycle + routing corrections)
 
-## Short answer: **No — the plan is compatible**, but **two coexistence rules must be locked in** so the two flows don't collide.
+## What changes vs the previous plan
 
----
+Adopting all 7 tightening points from the review. The biggest correction:
 
-## What already exists (and will keep working untouched)
-
-**Public/storefront product creation** at `/seller/storefront/new` (`SellerProductCreate.tsx` → `seller-products` edge fn):
-- Full catalog form: title, category, slug, brand, model, agreement terms, delivery methods, feature highlights, multiple media, stock_quantity (any), visibility selector
-- Already writes `visibility_type` (default `'public'`, also supports `'buyer_specific'` and `'private'`)
-- Already enforces `UNIQUE(seller_id, slug)`
-- Already powers the seller storefront, public marketplace, cart, public product detail
-
-**This plan does NOT touch** `SellerProductCreate.tsx`, `seller-products` edge fn, `seller-storefront`, `seller-product-detail`, marketplace, or storefront listing routes. **Zero regression risk on the public flow.**
+> **Transaction creation moves from seller-publish to buyer-resolver.**
+> Publishing creates products + offer + offer_items only. The shared transaction is created lazily, on the buyer's first valid resolver hit.
 
 ---
 
-## Where the two flows touch the same tables — and how we keep them safe
+## 1. Seller publish (lighter than before)
 
-| Shared resource | Public flow today | Batch 5 (private offer) flow | Collision risk | Mitigation |
-|---|---|---|---|---|
-| `products` table | Inserts `visibility_type='public'` (or `private`) | Inserts `visibility_type='buyer_specific'` | None — different visibility | RLS already filters public surfaces by `visibility_type='public'` |
-| `products.slug` UNIQUE per seller | Seller picks slug | Auto-generate slug like `private-{shortToken}` | Slug collision if seller manually uses same name | Auto-generated slugs are token-prefixed and hidden — no collision |
-| `product_media` | Linked via `product_id` | Linked via `product_id` (uses already-uploaded wizard photos) | None | Same insert path |
-| `transactions.source_product_id` | Set by `storefront-checkout` | Set by `create-transaction` on publish | None | Same column, both populate it |
-| Inventory math (`stock_quantity − reserved_quantity`) | Reserved on payment held | Reserved on payment held (same hook) | None | Inherits same rule |
-| Marketplace / public storefront edge fns | Filter `visibility_type='public'` | Filtered out automatically | None | RLS + WHERE clauses already correct |
+`SellerCreateTransaction.tsx` wizard → `create-transaction` edge fn `publish` action now does:
 
----
+1. Insert N `products` rows (one per item, `visibility_type='buyer_specific'`, `slug='po-{token8}-{i}'`)
+2. Link uploaded media to each product via `product_media`
+3. Insert ONE `buyer_specific_product_offers` row (`status='pending_claim'` or `linked` if buyer email matches an existing account)
+4. Insert N `buyer_specific_offer_items` with full snapshot (title, short_description, condition_summary, quantity, unit_price_snapshot, currency, primary_media_url)
+5. Write `offer_events` (`created`)
+6. Return `{ offer_url: '/offer/{token}', offer_id }` — **no transaction yet**
 
-## Two coexistence rules to lock (added to the plan)
-
-### Rule A — Private-offer products are isolated from public surfaces
-The private-offer wizard creates products with:
-- `visibility_type = 'buyer_specific'` (mandatory, not user-selectable)
-- `status = 'published'` but **invisible** because all public queries filter on `visibility_type='public'`
-- `slug` auto-generated as `po-{8-char-token}` (collision-proof, hidden from URLs — buyers reach the product only via `/offer/:offerToken`, never via `/store/:sellerSlug/:slug`)
-- Excluded from seller's own storefront listing (`SellerStorefront.tsx`) by adding a `visibility_type != 'buyer_specific'` filter to `seller-products` list query
-
-> **Add to plan:** modify `seller-products` LIST query to exclude `visibility_type='buyer_specific'` so private-offer products don't pollute the seller's main catalog. Show them in a separate **"Private Offers"** tab on the seller dashboard instead.
-
-### Rule B — Private-offer products cannot be edited via the storefront editor
-- `SellerProductDetail.tsx` (the storefront product editor) blocks edit when `visibility_type='buyer_specific'` and shows: *"This product is part of a private offer. Manage it from your Private Offers list."*
-- Stock quantity, price, and agreement on a private-offer product are managed through the offer (cancel + reactivate flow), not the catalog editor
-
-> **Add to plan:** small guard in `SellerProductDetail.tsx` + redirect link to `/seller/offers/:offerId`.
+No dormant transactions. No skewed seller dashboard counts.
 
 ---
 
-## What about the public storefront page rendering buyer-specific products?
+## 2. Resolver responsibility (locked & narrow)
 
-Triple-checked:
-- `public-storefront` edge fn → filters `status='published' AND visibility_type='public'` ✅
-- `public-product-detail` → same filter ✅
-- `marketplace` edge fn → same filter ✅
-- `product_media` RLS policy `anon_select_published_product_media` → only joins on `visibility_type='public'` ✅
-- `cart_items` / `saved_products` → users can only add public products through the storefront UI; if a buyer-specific product_id is ever supplied, RLS on `products` blocks it because `cart_items` reads join through public surfaces
+`/offer/:offerToken` → `OfferClaimLanding.tsx` (thin) → calls `claim-offer` edge fn which does ONLY:
 
-**Hidden from public browsing is enforced at 4 layers — safe.**
+1. **Validate** token (exists, not cancelled, not expired)
+2. **Identify** caller (signed-in match, anon, wrong account, signup-needed)
+3. **Link** buyer if matches by email and `buyer_id` null
+4. **Reuse-or-create** transaction (rules below)
+5. **Redirect** to `/dashboard/transactions/:txId/agreement`
 
----
+Nothing else. No payment work, no agreement work.
 
-## Updated build steps (additions only — rest of prior plan unchanged)
+### Reuse-or-create rule (locked)
+For one `(offer_id, buyer_id)` pair:
 
-### Database migration adds
-- Index `idx_products_visibility_buyer_specific` on `products(seller_id) WHERE visibility_type='buyer_specific'` (faster offer-list queries)
-
-### Edge function additions
-- `create-transaction` publish step inserts product with `slug = 'po-' || substring(offer_token, 1, 8)` and `visibility_type='buyer_specific'`
-- `seller-products` LIST endpoint adds `.neq('visibility_type', 'buyer_specific')` to keep storefront list clean
-- New endpoint in `seller-offers` (or extend existing) for "list my private-offer products + offers"
-
-### Frontend additions
-- `SellerProductDetail.tsx` → guard: if `visibility_type='buyer_specific'`, show read-only banner + link to offer management (no edit form)
-- New section in seller dashboard: **"Private Offers"** card linking to `/seller/offers` (list of private-offer products with their offer status)
-
----
-
-## Final compatibility verdict
-
-| Concern | Status |
+| Existing transaction state | Action |
 |---|---|
-| Does it overwrite the existing public create flow? | ❌ No — entirely separate wizard |
-| Does it pollute seller's storefront product list? | ✅ Prevented by visibility filter |
-| Does it leak buyer-specific products to public? | ✅ 4-layer filter already in place |
-| Does it conflict on slug uniqueness? | ✅ Auto-prefixed slugs |
-| Does it break checkout / cart / marketplace? | ✅ Untouched code paths |
-| Does it follow the same stock + transaction rules as public products? | ✅ Locked in plan §2 |
-| Does it require schema changes to `products`? | ❌ No — uses existing columns |
+| `draft`, `awaiting_buyer`, `awaiting_payment` | **Reuse** (return its id) |
+| `cancelled`, `timed_out`, payment failed before hold | **Create new** |
+| `payment_secured` or beyond | **Resume** → redirect to existing tx detail |
 
-**The plan suits perfectly and will not break the system**, provided Rule A (storefront list exclusion + auto-slug) and Rule B (edit guard) are included as above.
+Guarantees: at most one live pre-purchase transaction per `(offer, buyer)`.
 
-Reply **"Approved"** and I'll switch to default mode and implement the full Batch 5 with these two coexistence rules baked in.
+### Transaction creation (when needed)
+- One `transactions` row with `source_offer_id`, `source_product_id` = first item, `seller_id`, `buyer_id`
+- N `transaction_items` rows from `buyer_specific_offer_items` snapshots
+- Status: `awaiting_buyer` (existing flow expects this before agreement acceptance)
+- Write `offer_events` (`transaction_created`)
+- Promote offer status: `linked` → `claimed`, set `claimed_at`
+
+---
+
+## 3. Offer lifecycle (sharper states)
+
+Keep enum simple at DB level (`pending_claim`, `linked`, `expired`, `cancelled`, `claimed`, `purchased`) but add internal sub-states via timestamps:
+
+| State | Trigger | Timestamp |
+|---|---|---|
+| `pending_claim` | Created, no buyer account match | `created_at` |
+| `linked` | Buyer account exists/matched (auto-link or signup trigger) | `linked_at` |
+| `claimed` | Buyer entered resolver successfully + transaction created | `claimed_at` |
+| `purchased` | Payment hold succeeded (paystack-webhook) | `purchased_at` |
+| `expired` | Past `expires_at`, no active tx | `expired_at` |
+| `cancelled` | Seller cancelled | `cancelled_at` |
+
+`claimed` ≠ `purchased`. Webhook is the only thing that flips to `purchased`.
+
+---
+
+## 4. Buyer journey (explicit)
+
+```text
+WhatsApp link → /offer/:token
+       ↓ (resolver: validate → link → reuse-or-create tx)
+/dashboard/transactions/:txId/agreement   ← existing page
+       ↓ accept terms
+/dashboard/transactions/:txId             ← existing review (now renders bundle items)
+       ↓ pay
+/t/:shareToken/pay                        ← existing payment
+       ↓ webhook: hold success → offer.status='purchased'
+/dashboard/transactions/:txId/tracking    ← existing tracking
+```
+
+Zero new buyer pages beyond the thin resolver.
+
+---
+
+## 5. Seller storefront visibility & edit rules (locked)
+
+**Visible:** Private products show on seller's own storefront with a "Private" badge + "All / Public / Private" filter chip. Public marketplace + public storefront page still hide them (4-layer filter unchanged).
+
+**Edit matrix:**
+
+| Action | Before any claim | After claim (live tx exists) | After purchase |
+|---|---|---|---|
+| View product detail | ✅ read-only | ✅ read-only | ✅ read-only |
+| Cancel offer | ✅ | ❌ (must cancel tx first) | ❌ |
+| Regenerate token | ✅ | ❌ | ❌ |
+| Duplicate offer (clone) | ✅ | ✅ | ✅ |
+| Edit price / qty / agreement | ❌ (locked once published — managed via cancel+recreate) | ❌ | ❌ |
+
+`SellerProductDetail.tsx` shows a banner: *"This is a private offer product. Manage it from your Private Offers list."* with link to `/dashboard/offers/seller/:offerId`.
+
+---
+
+## 6. Snapshot rules (locked)
+
+`buyer_specific_offer_items` snapshots at publish time:
+- `product_title`, `short_description`, `condition_summary`
+- `quantity`, `unit_price_snapshot`, `currency_code`
+- `primary_media_url`
+
+Resolver uses these snapshots when creating `transaction_items` — never re-reads live `products` table. Offer truth stays stable across product cancellation/duplication.
+
+---
+
+## 7. Admin oversight (bundle-aware)
+
+`/admin/offers/:offerId` shows:
+- Header: seller, intended buyer email, linked buyer, status, expiry, current/previous tokens
+- **Items list** (with snapshot + current product status)
+- Linked transaction (if any) + payment + escrow state
+- Claim/purchase history (claimed_at, purchased_at)
+- Full `offer_events` audit trail
+
+`/admin/offers` list adds an "Items" column showing item count.
+
+---
+
+## Build steps (delta)
+
+### Database (small migration)
+- New table `buyer_specific_offer_items` with snapshot columns
+- Index `(offer_id)`, `(product_id)`
+- RLS: inherits parent offer access (seller owns, buyer reads linked, admin reads all)
+- Add `source_offer_id` confirmed on `transactions` (already added in earlier migration ✅)
+
+### Edge functions
+- **Modify `create-transaction`** publish step → drop transaction creation; create products + offer + offer_items + event only; return `offer_url` only
+- **Modify `claim-offer`** → add reuse-or-create transaction logic with the locked rule table; promote status to `claimed`; return `redirect_to`
+- **Modify `paystack-webhook`** → on hold success for `source_offer_id != null` → set offer `status='purchased'`, `purchased_at=now()`, write event
+- **Modify `seller-products` LIST** → keep `buyer_specific` items in results, return `visibility_type` so UI can render badge
+- **Modify `seller-offers`** → return offer with nested `items[]` array (snapshots) and live transaction summary
+
+### Frontend
+- **`SellerCreateTransaction.tsx`** → "Add another item" in step 2 (multi-item builder); rename CTA to "Create Private Offer"; update success modal to show only the offer link (primary)
+- **`OfferClaimLanding.tsx`** → thin resolver: spinner → call `claim-offer` → `navigate(redirect_to)` with the 9-scenario error matrix preserved
+- **`SellerStorefront.tsx`** → "Private" badge on cards where `visibility_type='buyer_specific'`; "All / Public / Private" filter chip
+- **`SellerProductDetail.tsx`** → read-only banner + "Manage offer" link
+- **Buyer review/agreement pages** → no changes needed; render N `transaction_items` (already supported)
+- **`AdminOfferDetail.tsx`** → render bundle items list with snapshots
+
+---
+
+## Success criteria
+- ✅ No dormant transactions at seller publish
+- ✅ One live pre-purchase transaction per `(offer, buyer)` enforced
+- ✅ Buyer lands on existing agreement page; reuses entire post-agreement flow
+- ✅ Multi-item bundles work end-to-end (one link → one transaction → many items)
+- ✅ Private products visible to seller (badge), hidden from public (4 layers)
+- ✅ Seller cannot edit private products mid-flow
+- ✅ Snapshots make offer truth stable across product changes
+- ✅ Admin sees full bundle + audit traceability
+- ✅ Lifecycle states cleanly separate `claimed` (entered flow) from `purchased` (payment held)
+
+Reply **"Approved"** to implement.
