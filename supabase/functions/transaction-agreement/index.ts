@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch all agreement data in parallel
-    const [snapshotRes, itemRes, pricingRes, deliveryRes, sellerRes, escrowRes] =
+    const [snapshotRes, itemRes, pricingRes, deliveryRes, sellerRes, escrowRes, offerRes] =
       await Promise.all([
         admin
           .from("transaction_agreement_snapshots")
