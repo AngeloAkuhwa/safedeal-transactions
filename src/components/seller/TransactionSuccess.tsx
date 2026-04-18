@@ -81,18 +81,21 @@ export function TransactionSuccess({
               <Check className="h-10 w-10 text-white" strokeWidth={3} />
             </div>
           </div>
-          <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-3">Transaction Created Successfully!</h1>
-          <p className="text-lg text-muted-foreground mb-6">Your protected transaction is ready to share with the buyer</p>
+          <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-3">Private Offer Created</h1>
+          <p className="text-lg text-muted-foreground mb-6">Share the secure offer link below with your buyer to start the protected transaction.</p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-full px-5 py-2.5">
-              <FileText className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">Transaction Status: Created</span>
+              <Lock className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold text-primary">Offer Status: Awaiting Buyer Claim</span>
             </div>
-            <div className="inline-flex items-center gap-2 bg-yellow-100 border border-yellow-300 rounded-full px-5 py-2.5 dark:bg-yellow-900/30 dark:border-yellow-700">
-              <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-              <span className="text-sm font-semibold text-yellow-900 dark:text-yellow-300">Money Status: Awaiting Buyer Payment</span>
-            </div>
+            <button
+              onClick={() => navigate("/seller/offers")}
+              className="inline-flex items-center gap-2 bg-card border border-border rounded-full px-5 py-2.5 hover:bg-muted transition-colors"
+            >
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold text-foreground">View in Private Offers</span>
+            </button>
           </div>
         </div>
       </section>
@@ -105,9 +108,9 @@ export function TransactionSuccess({
               <Shield className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="text-xl font-bold text-white mb-2">Important: Payment Has Not Occurred Yet</h3>
+              <h3 className="text-xl font-bold text-white mb-2">Transaction starts when the buyer pays</h3>
               <p className="text-primary-foreground/90 text-sm leading-relaxed">
-                The buyer must pay through the secure link below for SafeDeal protection to apply. Until payment is received, funds are not held in escrow and the transaction agreement is not locked.
+                We don't create a live transaction until the buyer opens this link and accepts the agreement. Funds enter escrow only after they pay through the secure flow — at that point all terms become immutable.
               </p>
             </div>
           </div>
@@ -118,14 +121,14 @@ export function TransactionSuccess({
           <div className="bg-gradient-to-r from-primary to-primary/90 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <FileText className="h-6 w-6 text-white" />
+                <Lock className="h-6 w-6 text-white" />
                 <div>
-                  <p className="text-xs text-primary-foreground/70 font-medium">Transaction Code</p>
-                  <p className="text-xl font-bold text-white">#{transactionCode}</p>
+                  <p className="text-xs text-primary-foreground/70 font-medium">Offer Token</p>
+                  <p className="text-xl font-bold text-white font-mono">{transactionCode}</p>
                 </div>
               </div>
               <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                <span className="text-xs text-white font-medium">Created</span>
+                <span className="text-xs text-white font-medium">Private Offer</span>
               </div>
             </div>
           </div>
@@ -209,13 +212,13 @@ export function TransactionSuccess({
               <Share2 className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Share Secure Link</h2>
-              <p className="text-sm text-muted-foreground">Send this protected transaction link to the buyer</p>
+              <h2 className="text-2xl font-bold text-foreground">Share Private Offer Link</h2>
+              <p className="text-sm text-muted-foreground">Send this unique offer link to the buyer through a private channel</p>
             </div>
           </div>
 
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-foreground mb-3">Secure Transaction Link</label>
+            <label className="block text-sm font-semibold text-foreground mb-3">Private Offer Link</label>
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 relative">
                 <Input

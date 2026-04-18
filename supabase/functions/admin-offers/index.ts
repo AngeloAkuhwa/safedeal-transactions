@@ -97,12 +97,26 @@ async function handleList(adminClient: any, url: URL) {
   const pm: Record<string, any> = {};
   for (const p of (productsRes.data || [])) pm[p.id] = p;
 
+  // Items count per offer
+  const offerIds = list.map((o: any) => o.id);
+  const itemCounts: Record<string, number> = {};
+  if (offerIds.length) {
+    const { data: items } = await adminClient
+      .from("buyer_specific_offer_items")
+      .select("offer_id")
+      .in("offer_id", offerIds);
+    for (const it of (items || [])) {
+      itemCounts[it.offer_id] = (itemCounts[it.offer_id] || 0) + 1;
+    }
+  }
+
   return jsonResponse({
     offers: list.map((o: any) => ({
       ...o,
       seller: sm[o.seller_id] || null,
       buyer: o.buyer_id ? bm[o.buyer_id] || null : null,
       product: pm[o.product_id] || null,
+      items_count: itemCounts[o.id] || 0,
     })),
     total: count || 0,
     page,
@@ -119,7 +133,7 @@ async function handleDetail(adminClient: any, offerId: string) {
 
   if (error || !offer) return jsonResponse({ error: "Offer not found" }, 404);
 
-  const [sellerRes, buyerRes, productRes, mediaRes, eventsRes, txRes, verifRes] = await Promise.all([
+  const [sellerRes, buyerRes, productRes, mediaRes, eventsRes, txRes, verifRes, itemsRes] = await Promise.all([
     adminClient.from("profiles").select("id, full_name, email, avatar_url, created_at, store_slug").eq("id", offer.seller_id).maybeSingle(),
     offer.buyer_id
       ? adminClient.from("profiles").select("id, full_name, email, avatar_url, created_at").eq("id", offer.buyer_id).maybeSingle()
@@ -143,7 +157,29 @@ async function handleDetail(adminClient: any, offerId: string) {
     offer.buyer_id
       ? adminClient.from("account_verifications").select("verification_level").eq("user_id", offer.buyer_id).maybeSingle()
       : Promise.resolve({ data: null }),
+    adminClient
+      .from("buyer_specific_offer_items")
+      .select("id, position, product_id, product_title, short_description, condition_summary, quantity, unit_price_snapshot, currency_code, primary_media_url")
+      .eq("offer_id", offerId)
+      .order("position", { ascending: true }),
   ]);
+
+  // Enrich items with current product status
+  const items = itemsRes.data || [];
+  const itemProductIds = items.map((i: any) => i.product_id).filter(Boolean);
+  let itemProductMap: Record<string, any> = {};
+  if (itemProductIds.length) {
+    const { data: itemProducts } = await adminClient
+      .from("products")
+      .select("id, status, stock_quantity, reserved_quantity")
+      .in("id", itemProductIds);
+    for (const p of (itemProducts || [])) itemProductMap[p.id] = p;
+  }
+  const enrichedItems = items.map((it: any) => ({
+    ...it,
+    line_total: Number(it.unit_price_snapshot) * (it.quantity || 1),
+    current_product: itemProductMap[it.product_id] || null,
+  }));
 
   let payment = null;
   let escrow = null;
@@ -175,5 +211,7 @@ async function handleDetail(adminClient: any, offerId: string) {
     payment,
     escrow,
     events: eventsRes.data || [],
+    items: enrichedItems,
+    items_count: enrichedItems.length,
   });
 }

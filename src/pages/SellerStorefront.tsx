@@ -226,8 +226,8 @@ const SellerStorefront = () => {
                   >
                     <option value="all">All Visibility</option>
                     <option value="public">Public</option>
-                    <option value="buyer_specific">Buyer Specific</option>
-                    <option value="private_draft">Private</option>
+                    <option value="buyer_specific">Private</option>
+                    <option value="private_draft">Draft</option>
                   </select>
                   <select
                     value={categoryFilter}

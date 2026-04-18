@@ -58,6 +58,7 @@ export default function AdminOffers() {
                 <thead className="bg-muted/40 border-b border-border">
                   <tr className="text-xs uppercase text-muted-foreground">
                     <th className="text-left p-3">Product</th>
+                    <th className="text-center p-3">Items</th>
                     <th className="text-left p-3">Seller</th>
                     <th className="text-left p-3">Buyer / Email</th>
                     <th className="text-left p-3">Status</th>
@@ -74,6 +75,11 @@ export default function AdminOffers() {
                         <div className="text-xs text-muted-foreground">
                           {o.product?.currency_code} {Number(o.product?.unit_price || 0).toLocaleString()}
                         </div>
+                      </td>
+                      <td className="p-3 text-center">
+                        <span className="inline-flex items-center justify-center min-w-[28px] h-6 px-2 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                          {(o as any).items_count ?? 1}
+                        </span>
                       </td>
                       <td className="p-3 text-sm">
                         <div className="text-foreground">{o.seller?.full_name || "—"}</div>
@@ -94,7 +100,7 @@ export default function AdminOffers() {
                     </tr>
                   ))}
                   {data.offers.length === 0 && (
-                    <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No offers match these filters.</td></tr>
+                    <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">No offers match these filters.</td></tr>
                   )}
                 </tbody>
               </table>

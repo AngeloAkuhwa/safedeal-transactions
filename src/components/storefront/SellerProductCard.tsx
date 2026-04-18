@@ -49,8 +49,8 @@ const statusConfig: Record<string, { label: string; bg: string; text: string }> 
 
 const visibilityConfig: Record<string, { label: string; bg: string; text: string }> = {
   public: { label: "Public", bg: "bg-blue-500/20", text: "text-blue-600 dark:text-blue-400" },
-  buyer_specific: { label: "Buyer Specific", bg: "bg-amber-500/20", text: "text-amber-600 dark:text-amber-400" },
-  private_draft: { label: "Private", bg: "bg-muted", text: "text-muted-foreground" },
+  buyer_specific: { label: "Private", bg: "bg-amber-500/20", text: "text-amber-600 dark:text-amber-400" },
+  private_draft: { label: "Draft", bg: "bg-muted", text: "text-muted-foreground" },
 };
 
 export function SellerProductCard({ product, onClick, onEdit, onManageVisibility, onUpdateStock }: SellerProductCardProps) {
