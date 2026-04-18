@@ -76,7 +76,11 @@ Deno.serve(async (req) => {
     if (!offerToken) return jsonResponse({ error: "offer_token required" }, 400);
 
     // Auto-expire stale offers
-    await adminClient.rpc("expire_stale_offers").catch(() => {});
+    try {
+      await adminClient.rpc("expire_stale_offers");
+    } catch (_e) {
+      // best-effort; ignore failure
+    }
 
     // Fetch offer + items
     const { data: offer, error: offerErr } = await adminClient
