@@ -3,7 +3,7 @@ import {
   Lock,
   Fingerprint,
   Box,
-  Image,
+  Image as ImageIcon,
   DollarSign,
   Truck,
   ShieldCheck,
@@ -24,7 +24,12 @@ function LockedBadge() {
 }
 
 export function LockedSnapshotCard({ data }: LockedSnapshotCardProps) {
-  const { transaction, item, pricing, delivery } = data;
+  const { transaction, item, pricing, delivery, productMedia, bundleItems } = data;
+  const media = productMedia ?? [];
+  const images = media.filter((m) => (m.mime_type ?? "").startsWith("image/") || m.media_type === "image");
+  const videos = media.filter((m) => (m.mime_type ?? "").startsWith("video/") || m.media_type === "video");
+  const items = bundleItems ?? [];
+  const isBundle = items.length > 1;
 
   return (
     <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -57,10 +62,47 @@ export function LockedSnapshotCard({ data }: LockedSnapshotCardProps) {
             <div className="bg-muted/50 rounded-xl border-2 border-border p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Box className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-bold text-foreground">Item Details</h3>
+                <h3 className="text-lg font-bold text-foreground">
+                  {isBundle ? `Items (${items.length})` : "Item Details"}
+                </h3>
                 <LockedBadge />
               </div>
-              {item ? (
+              {isBundle ? (
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                  {items.map((b) => (
+                    <div
+                      key={b.product_id + b.position}
+                      className="flex gap-3 p-3 rounded-lg bg-background border border-border"
+                    >
+                      {b.primary_media_url ? (
+                        <img
+                          src={b.primary_media_url}
+                          alt={b.product_title}
+                          className="w-16 h-16 rounded object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                          <ImageIcon className="h-5 w-5 text-muted-foreground/50" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-foreground truncate">
+                          {b.product_title}
+                        </div>
+                        {b.short_description && (
+                          <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                            {b.short_description}
+                          </div>
+                        )}
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Qty {b.quantity} · {b.currency_code}{" "}
+                          {Number(b.unit_price_snapshot).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : item ? (
                 <div className="space-y-4">
                   <div>
                     <div className="text-xs font-semibold text-muted-foreground mb-1">Item Title</div>
@@ -88,23 +130,61 @@ export function LockedSnapshotCard({ data }: LockedSnapshotCardProps) {
               )}
             </div>
 
-            {/* Product Images placeholder */}
+            {/* Product Media */}
             <div className="bg-muted/50 rounded-xl border-2 border-border p-6">
               <div className="flex items-center gap-2 mb-4">
-                <Image className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-bold text-foreground">Product Images</h3>
+                <ImageIcon className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-bold text-foreground">Product Media</h3>
                 <LockedBadge />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="aspect-square rounded-lg border-2 border-border bg-muted flex items-center justify-center"
-                  >
-                    <Image className="h-8 w-8 text-muted-foreground/40" />
-                  </div>
-                ))}
-              </div>
+              {images.length === 0 && videos.length === 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="aspect-square rounded-lg border-2 border-border bg-muted flex items-center justify-center"
+                    >
+                      <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {images.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {images.map((m, i) => (
+                        <a
+                          key={i}
+                          href={m.secure_url || m.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="aspect-square rounded-lg overflow-hidden border-2 border-border hover:border-primary transition-colors block"
+                        >
+                          <img
+                            src={m.secure_url || m.file_url}
+                            alt={`Product image ${i + 1}`}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  {videos.length > 0 && (
+                    <div className="space-y-2">
+                      {videos.map((v, i) => (
+                        <video
+                          key={i}
+                          src={v.secure_url || v.file_url}
+                          controls
+                          preload="metadata"
+                          className="w-full rounded-lg border-2 border-border bg-background"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

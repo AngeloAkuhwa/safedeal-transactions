@@ -58,6 +58,26 @@ export interface AgreementData {
     released_amount: number;
     refunded_amount: number;
   } | null;
+  productMedia?: Array<{
+    product_id: string;
+    file_url: string;
+    secure_url: string | null;
+    mime_type: string | null;
+    media_type: string;
+    sort_order: number;
+    is_primary: boolean;
+  }>;
+  bundleItems?: Array<{
+    product_id: string;
+    product_title: string;
+    short_description: string | null;
+    condition_summary: string | null;
+    quantity: number;
+    unit_price_snapshot: number;
+    currency_code: string;
+    primary_media_url: string | null;
+    position: number;
+  }>;
 }
 
 export const getAgreementData = async (transactionId: string): Promise<AgreementData> => {
