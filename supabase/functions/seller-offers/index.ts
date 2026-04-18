@@ -85,8 +85,9 @@ async function handleList(adminClient: any, userId: string) {
   const list = offers || [];
   const productIds = [...new Set(list.map((o: any) => o.product_id))];
   const buyerIds = list.map((o: any) => o.buyer_id).filter(Boolean);
+  const offerIds = list.map((o: any) => o.id);
 
-  const [productsRes, mediaRes, buyersRes] = await Promise.all([
+  const [productsRes, mediaRes, buyersRes, itemsRes, txRes] = await Promise.all([
     productIds.length > 0
       ? adminClient
           .from("products")
@@ -106,6 +107,19 @@ async function handleList(adminClient: any, userId: string) {
           .select("id, full_name, email, avatar_url")
           .in("id", buyerIds)
       : Promise.resolve({ data: [] }),
+    offerIds.length > 0
+      ? adminClient
+          .from("buyer_specific_offer_items")
+          .select("offer_id, id, product_title, short_description, quantity, unit_price_snapshot, currency_code, primary_media_url, position")
+          .in("offer_id", offerIds)
+          .order("position", { ascending: true })
+      : Promise.resolve({ data: [] }),
+    offerIds.length > 0
+      ? adminClient
+          .from("transactions")
+          .select("id, status, money_status, source_offer_id")
+          .in("source_offer_id", offerIds)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const productMap: Record<string, any> = {};
@@ -119,21 +133,29 @@ async function handleList(adminClient: any, userId: string) {
   const buyerMap: Record<string, any> = {};
   for (const b of (buyersRes.data || [])) buyerMap[b.id] = b;
 
+  const itemsByOffer: Record<string, any[]> = {};
+  for (const it of (itemsRes.data || [])) {
+    if (!itemsByOffer[it.offer_id]) itemsByOffer[it.offer_id] = [];
+    itemsByOffer[it.offer_id].push(it);
+  }
+
+  const txByOffer: Record<string, any> = {};
+  for (const t of (txRes.data || [])) {
+    if (t.source_offer_id) txByOffer[t.source_offer_id] = t;
+  }
+
   const enriched = list.map((o: any) => ({
     ...o,
     product: productMap[o.product_id]
-      ? {
-          ...productMap[o.product_id],
-          primary_image_url: mediaMap[o.product_id] || null,
-        }
+      ? { ...productMap[o.product_id], primary_image_url: mediaMap[o.product_id] || null }
       : null,
     buyer: o.buyer_id ? buyerMap[o.buyer_id] || null : null,
+    items: itemsByOffer[o.id] || [],
+    items_count: (itemsByOffer[o.id] || []).length,
+    transaction: txByOffer[o.id] || null,
   }));
 
-  return jsonResponse({
-    offers: enriched,
-    total: enriched.length,
-  });
+  return jsonResponse({ offers: enriched, total: enriched.length });
 }
 
 async function handleCancel(adminClient: any, userId: string, offerId: string) {

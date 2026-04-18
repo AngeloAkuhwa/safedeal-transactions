@@ -252,6 +252,66 @@ export type Database = {
         }
         Relationships: []
       }
+      buyer_specific_offer_items: {
+        Row: {
+          condition_summary: string | null
+          created_at: string
+          currency_code: string
+          id: string
+          offer_id: string
+          position: number
+          primary_media_url: string | null
+          product_id: string
+          product_title: string
+          quantity: number
+          short_description: string | null
+          unit_price_snapshot: number
+        }
+        Insert: {
+          condition_summary?: string | null
+          created_at?: string
+          currency_code?: string
+          id?: string
+          offer_id: string
+          position?: number
+          primary_media_url?: string | null
+          product_id: string
+          product_title: string
+          quantity?: number
+          short_description?: string | null
+          unit_price_snapshot: number
+        }
+        Update: {
+          condition_summary?: string | null
+          created_at?: string
+          currency_code?: string
+          id?: string
+          offer_id?: string
+          position?: number
+          primary_media_url?: string | null
+          product_id?: string
+          product_title?: string
+          quantity?: number
+          short_description?: string | null
+          unit_price_snapshot?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyer_specific_offer_items_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_specific_product_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_specific_offer_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buyer_specific_product_offers: {
         Row: {
           buyer_email: string | null

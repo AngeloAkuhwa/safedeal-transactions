@@ -150,10 +150,11 @@ const SellerCreateTransaction = () => {
 
   const publishMutation = useMutation({
     mutationFn: (txId: string) => publishTransaction(txId),
-    onSuccess: (result) => {
-      setPublishedUrl(result.share_url);
-      setPublishedCode(result.transaction_code ?? "");
-      toast({ title: "Transaction created!", description: "Your secure link is ready to share." });
+    onSuccess: (result: any) => {
+      // New private-offer flow returns offer_url; fall back to share_url for legacy.
+      setPublishedUrl(result.offer_url || result.share_url || "");
+      setPublishedCode(result.offer_token || result.transaction_code || "");
+      toast({ title: "Private offer created!", description: "Share the offer link with your buyer." });
     },
     onError: (err: Error) => {
       toast({ title: "Publish failed", description: err.message, variant: "destructive" });

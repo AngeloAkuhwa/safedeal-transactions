@@ -68,15 +68,37 @@ export async function saveDraft(formData: CreateTransactionData): Promise<{ tran
   return data;
 }
 
-export async function publishTransaction(transactionId: string): Promise<{ share_url: string; transaction_code?: string }> {
+export interface PublishOfferResult {
+  offer_url: string;
+  offer_token: string;
+  offer_id: string;
+  buyer_linked: boolean;
+  expires_at: string;
+  items_count: number;
+  total_amount: number;
+  currency_code: string;
+  // legacy compatibility
+  share_url?: string;
+  transaction_code?: string;
+}
+
+export async function publishTransaction(
+  transactionId: string,
+  options?: { items?: any[]; expires_in_days?: number },
+): Promise<PublishOfferResult> {
   const headers = await getAuthHeader();
   const { data, error } = await supabase.functions.invoke("create-transaction", {
     headers,
-    body: { action: "publish", transaction_id: transactionId },
+    body: {
+      action: "publish",
+      transaction_id: transactionId,
+      items: options?.items,
+      expires_in_days: options?.expires_in_days,
+    },
   });
-  if (error) throw new Error(error.message || "Failed to publish transaction");
-  if (!data || data.error) throw new Error(data?.error || "Failed to publish transaction");
-  return data;
+  if (error) throw new Error(error.message || "Failed to publish offer");
+  if (!data || data.error) throw new Error(data?.error || "Failed to publish offer");
+  return data as PublishOfferResult;
 }
 
 /** Compute SHA-256 hash of a File */
