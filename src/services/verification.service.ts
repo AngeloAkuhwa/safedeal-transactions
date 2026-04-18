@@ -88,8 +88,10 @@ export const getVerificationData = async (transactionId: string): Promise<Verifi
       try {
         const body = await context.json();
         if (body?.redirect) {
+          // Expected redirect (e.g. transaction not in verification state) — not a real error
           const redirectError = new Error(body.error || "Transaction is not ready for verification") as any;
           redirectError.redirect = body.redirect;
+          redirectError.silent = true;
           throw redirectError;
         }
         if (body?.error) throw new Error(body.error);
