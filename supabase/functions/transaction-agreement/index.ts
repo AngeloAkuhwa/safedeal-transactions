@@ -178,6 +178,8 @@ Deno.serve(async (req) => {
       delivery: deliveryRes.data,
       seller: sellerRes.data,
       escrow: escrowRes.data,
+      productMedia,
+      bundleItems,
     });
   } catch (err) {
     console.error("transaction-agreement error:", err);
