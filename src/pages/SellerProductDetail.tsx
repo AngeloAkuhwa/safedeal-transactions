@@ -183,9 +183,10 @@ const SellerProductDetail = () => {
   }
 
   const product = data.product;
+  const isPrivateOffer = product.visibility_type === "buyer_specific";
   const isOutOfStock = product.stock_quantity === 0;
   const isLowStock = product.stock_quantity >= 1 && product.stock_quantity <= 5;
-  
+
   const stockColor = isOutOfStock ? "text-destructive" : isLowStock ? "text-amber-500" : "text-emerald-500";
 
   const visibilityOptions = [
@@ -193,6 +194,59 @@ const SellerProductDetail = () => {
     { value: "buyer_specific", label: "Buyer Specific", description: "Only visible to specific buyers you share with", icon: Users, color: "text-amber-500" },
     { value: "private_draft", label: "Private Draft", description: "Hidden from all buyers, only you can see", icon: Lock, color: "text-muted-foreground" },
   ];
+
+  // Read-only guard for private-offer products
+  if (isPrivateOffer) {
+    return (
+      <div className="flex h-screen overflow-hidden bg-background">
+        <SellerStorefrontSidebar sellerName={sellerName} avatarUrl={avatarUrl} verificationLevel={verificationLevel} />
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          <div className="flex items-center gap-4 px-6 lg:px-8 py-4 border-b border-border">
+            <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => navigate("/seller/storefront")}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-foreground">{product.title}</h1>
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 inline-flex items-center gap-1">
+                  <Lock className="h-3 w-3" /> Private
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">Private offer product · read-only</p>
+            </div>
+          </div>
+          <div className="flex-1 px-6 lg:px-8 py-6 max-w-3xl">
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 mb-6">
+              <div className="flex items-start gap-3">
+                <Lock className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                <div>
+                  <h2 className="text-base font-semibold text-foreground mb-1">This is a private offer product</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Manage it from your <strong>Private Offers</strong> list. Price, quantity, and agreement terms are locked once published — to change anything, cancel and recreate the offer.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-card border border-border rounded-2xl p-6 space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase">Snapshot</h3>
+              <p className="text-2xl font-bold text-foreground">{product.title}</p>
+              {product.short_description && <p className="text-sm text-muted-foreground">{product.short_description}</p>}
+              <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border">
+                <div>
+                  <p className="text-xs text-muted-foreground">Price</p>
+                  <p className="text-lg font-semibold text-foreground">{product.currency_code} {Number(product.unit_price).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Stock</p>
+                  <p className={`text-lg font-semibold ${stockColor}`}>{product.stock_quantity}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
