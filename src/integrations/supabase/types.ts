@@ -252,6 +252,69 @@ export type Database = {
         }
         Relationships: []
       }
+      buyer_specific_product_offers: {
+        Row: {
+          buyer_email: string | null
+          buyer_id: string | null
+          cancelled_at: string | null
+          claimed_at: string | null
+          created_at: string
+          created_via: string
+          expired_at: string | null
+          expires_at: string | null
+          id: string
+          linked_at: string | null
+          offer_token: string
+          previous_tokens: string[]
+          product_id: string
+          purchased_at: string | null
+          seller_id: string
+          source_draft_id: string | null
+          status: Database["public"]["Enums"]["buyer_specific_offer_status"]
+          updated_at: string
+        }
+        Insert: {
+          buyer_email?: string | null
+          buyer_id?: string | null
+          cancelled_at?: string | null
+          claimed_at?: string | null
+          created_at?: string
+          created_via?: string
+          expired_at?: string | null
+          expires_at?: string | null
+          id?: string
+          linked_at?: string | null
+          offer_token: string
+          previous_tokens?: string[]
+          product_id: string
+          purchased_at?: string | null
+          seller_id: string
+          source_draft_id?: string | null
+          status?: Database["public"]["Enums"]["buyer_specific_offer_status"]
+          updated_at?: string
+        }
+        Update: {
+          buyer_email?: string | null
+          buyer_id?: string | null
+          cancelled_at?: string | null
+          claimed_at?: string | null
+          created_at?: string
+          created_via?: string
+          expired_at?: string | null
+          expires_at?: string | null
+          id?: string
+          linked_at?: string | null
+          offer_token?: string
+          previous_tokens?: string[]
+          product_id?: string
+          purchased_at?: string | null
+          seller_id?: string
+          source_draft_id?: string | null
+          status?: Database["public"]["Enums"]["buyer_specific_offer_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cart_items: {
         Row: {
           buyer_id: string
@@ -1571,6 +1634,41 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          offer_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          offer_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          offer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_events_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_specific_product_offers"
             referencedColumns: ["id"]
           },
         ]
@@ -3052,6 +3150,7 @@ export type Database = {
           seller_id: string
           share_link_expires_at: string | null
           share_token: string
+          source_offer_id: string | null
           source_product_id: string | null
           status: Database["public"]["Enums"]["transaction_status"]
           transaction_code: string
@@ -3078,6 +3177,7 @@ export type Database = {
           seller_id: string
           share_link_expires_at?: string | null
           share_token: string
+          source_offer_id?: string | null
           source_product_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"]
           transaction_code: string
@@ -3104,6 +3204,7 @@ export type Database = {
           seller_id?: string
           share_link_expires_at?: string | null
           share_token?: string
+          source_offer_id?: string | null
           source_product_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"]
           transaction_code?: string
@@ -3363,6 +3464,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["verification_level_type"]
       }
+      expire_stale_offers: { Args: never; Returns: number }
       generate_transaction_code: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -3423,6 +3525,13 @@ export type Database = {
         | "system_action"
         | "dispute_response_edited"
         | "dispute_evidence_replaced"
+      buyer_specific_offer_status:
+        | "pending_claim"
+        | "linked"
+        | "claimed"
+        | "purchased"
+        | "expired"
+        | "cancelled"
       delivery_method_type: "courier" | "pickup" | "meetup" | "hand_delivery"
       delivery_proof_type:
         | "shipping_receipt"
@@ -3751,6 +3860,14 @@ export const Constants = {
         "system_action",
         "dispute_response_edited",
         "dispute_evidence_replaced",
+      ],
+      buyer_specific_offer_status: [
+        "pending_claim",
+        "linked",
+        "claimed",
+        "purchased",
+        "expired",
+        "cancelled",
       ],
       delivery_method_type: ["courier", "pickup", "meetup", "hand_delivery"],
       delivery_proof_type: [
