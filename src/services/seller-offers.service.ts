@@ -1,5 +1,24 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export interface SellerOfferItem {
+  id: string;
+  offer_id: string;
+  position: number;
+  product_title: string;
+  short_description: string | null;
+  quantity: number;
+  unit_price_snapshot: number;
+  currency_code: string;
+  primary_media_url: string | null;
+}
+
+export interface SellerOfferTransaction {
+  id: string;
+  status: string;
+  money_status: string;
+  source_offer_id: string;
+}
+
 export interface SellerOffer {
   id: string;
   offer_token: string;
@@ -29,6 +48,9 @@ export interface SellerOffer {
     email: string;
     avatar_url: string | null;
   } | null;
+  items: SellerOfferItem[];
+  items_count: number;
+  transaction: SellerOfferTransaction | null;
 }
 
 async function authHeaders() {
@@ -43,6 +65,13 @@ export async function listSellerOffers(): Promise<{ offers: SellerOffer[]; total
   if (error) throw new Error(error.message || "Failed to load offers");
   if (!data || data.error) throw new Error(data?.error || "Failed to load offers");
   return data;
+}
+
+export async function getSellerOfferDetail(offerId: string): Promise<SellerOffer> {
+  const { offers } = await listSellerOffers();
+  const found = offers.find((o) => o.id === offerId);
+  if (!found) throw new Error("Offer not found");
+  return found;
 }
 
 export async function cancelSellerOffer(offerId: string): Promise<void> {
@@ -64,4 +93,21 @@ export async function reactivateSellerOffer(offerId: string, expiresInDays = 7):
   if (error) throw new Error(error.message);
   if (data?.error) throw new Error(data.error);
   return data;
+}
+
+/** Edit-matrix helper: can the seller still cancel/regenerate this offer? */
+export function canModifyOffer(offer: SellerOffer): { canCancel: boolean; canRegenerate: boolean; reason?: string } {
+  if (offer.status === "purchased") {
+    return { canCancel: false, canRegenerate: false, reason: "Offer has been purchased and is now a live transaction." };
+  }
+  if (offer.status === "claimed" && offer.transaction && !["cancelled", "timed_out"].includes(offer.transaction.status)) {
+    return { canCancel: false, canRegenerate: false, reason: "A buyer has entered this offer flow. Cancel the linked transaction first." };
+  }
+  if (offer.status === "cancelled") {
+    return { canCancel: false, canRegenerate: true };
+  }
+  if (offer.status === "expired") {
+    return { canCancel: false, canRegenerate: true };
+  }
+  return { canCancel: true, canRegenerate: false };
 }

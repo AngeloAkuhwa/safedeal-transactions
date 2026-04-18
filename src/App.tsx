@@ -35,6 +35,8 @@ import SellerDisputes from "./pages/SellerDisputes";
 import SellerDisputeDetail from "./pages/SellerDisputeDetail";
 import SellerTransactionAgreement from "./pages/SellerTransactionAgreement";
 import SellerStorefront from "./pages/SellerStorefront";
+import SellerPrivateOffers from "./pages/SellerPrivateOffers";
+import SellerOfferDetail from "./pages/SellerOfferDetail";
 import SellerProductCreate from "./pages/SellerProductCreate";
 import SellerProductDetail from "./pages/SellerProductDetail";
 import SellerProductPreview from "./pages/SellerProductPreview";
@@ -121,6 +123,8 @@ const App = () => (
               <Route path="/seller/storefront/new" element={<SellerProductCreate />} />
               <Route path="/seller/storefront/:productId/preview" element={<SellerProductPreview />} />
               <Route path="/seller/storefront/:productId" element={<SellerProductDetail />} />
+              <Route path="/seller/offers" element={<SellerPrivateOffers />} />
+              <Route path="/seller/offers/:offerId" element={<SellerOfferDetail />} />
             </Route>
 
             {/* Catch-all */}

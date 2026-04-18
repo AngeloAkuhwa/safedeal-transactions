@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Shield, Bell, LogOut, Menu, X,
-  LayoutDashboard, ArrowLeftRight, Scale, BellRing, User, ShoppingBag,
+  LayoutDashboard, ArrowLeftRight, Scale, BellRing, User, ShoppingBag, Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,6 +20,7 @@ const navLinks = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Marketplace", href: "/dashboard/marketplace", icon: ShoppingBag },
   { label: "Transactions", href: "/dashboard/transactions", icon: ArrowLeftRight },
+  { label: "Private Offers", href: "/dashboard/offers", icon: Lock },
   { label: "Disputes", href: "/dashboard/disputes", icon: Scale },
   { label: "Notifications", href: "/dashboard/notifications", icon: BellRing },
   { label: "Profile", href: "/dashboard/profile", icon: User },
