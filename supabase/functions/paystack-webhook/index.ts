@@ -273,6 +273,25 @@ Deno.serve(async (req) => {
           status: "pending",
         });
 
+        // ── If this transaction was created from a private offer, mark offer purchased ──
+        const { data: txOffer } = await supabase
+          .from("transactions")
+          .select("source_offer_id")
+          .eq("id", txId)
+          .maybeSingle();
+        if (txOffer?.source_offer_id) {
+          await supabase
+            .from("buyer_specific_product_offers")
+            .update({ status: "purchased", purchased_at: now })
+            .eq("id", txOffer.source_offer_id);
+          await supabase.from("offer_events").insert({
+            offer_id: txOffer.source_offer_id,
+            event_type: "purchased_via_payment",
+            actor_user_id: tx.buyer_id,
+            metadata: { transaction_id: txId, payment_reference: providerReference, amount: pricing.total_amount },
+          });
+        }
+
         await updateWebhookLog(supabase, providerReference, true, "Successfully processed charge.success");
       } catch (processErr) {
         console.error("Webhook processing error:", processErr);

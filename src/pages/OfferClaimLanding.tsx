@@ -1,7 +1,8 @@
+// Thin resolver: validates token, redirects into the existing buyer flow.
+// Renders only loading + error states — the happy path always navigates away.
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Shield, Lock, Clock, AlertTriangle, Mail, Package, ArrowRight, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Shield, Lock, Clock, AlertTriangle, Mail, ArrowRight, XCircle, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,63 +10,105 @@ import { viewOffer, claimOffer } from "@/services/buyer-offers.service";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+type Item = {
+  id: string;
+  product_title: string;
+  short_description: string | null;
+  quantity: number;
+  unit_price_snapshot: number;
+  currency_code: string;
+  primary_media_url: string | null;
+};
+
 export default function OfferClaimLanding() {
   const { offerToken } = useParams<{ offerToken: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [authed, setAuthed] = useState<boolean | null>(null);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [claiming, setClaiming] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Detect auth then load offer + auto-claim if signed in & matched
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setAuthed(!!session));
-  }, []);
+    let cancelled = false;
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled) return;
+      const isAuthed = !!session;
+      setAuthed(isAuthed);
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["offer-claim", offerToken, authed],
-    queryFn: () => viewOffer(offerToken!),
-    enabled: !!offerToken && authed !== null,
-  });
+      try {
+        const result = await viewOffer(offerToken!);
+        if (cancelled) return;
 
-  const claimMut = useMutation({
-    mutationFn: () => claimOffer(offerToken!),
-    onSuccess: (res) => {
-      if (res.scenario === "claimed" && res.product) {
-        toast({ title: "Offer claimed!", description: "Continue to checkout to complete your purchase." });
-        navigate(`/dashboard/offers`);
-      } else {
-        refetch();
+        // If signed in and matched → auto-claim → redirect into existing flow
+        if (isAuthed && result.scenario === "ready_to_claim") {
+          await runClaim();
+          return;
+        }
+        // Resume / already_purchased terminal redirects
+        if ((result as any).redirect_to) {
+          navigate((result as any).redirect_to, { replace: true });
+          return;
+        }
+        setData(result);
+      } catch (err: any) {
+        setErrorMsg(err.message || "Failed to load offer");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    },
-    onError: (err: Error) => toast({ title: "Failed to claim", description: err.message, variant: "destructive" }),
-  });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offerToken]);
 
-  // Handle redirects for terminal scenarios
-  useEffect(() => {
-    if (data?.scenario === "resume_transaction" && data.transaction_id) {
-      navigate(`/t/${offerToken}/pay`);
+  async function runClaim() {
+    if (!offerToken) return;
+    setClaiming(true);
+    try {
+      const result = await claimOffer(offerToken);
+      if ((result as any).redirect_to) {
+        navigate((result as any).redirect_to, { replace: true });
+        return;
+      }
+      // No redirect (e.g. wrong_account, expired) — show state
+      setData(result);
+      setLoading(false);
+    } catch (err: any) {
+      toast({ title: "Failed to claim offer", description: err.message, variant: "destructive" });
+      setErrorMsg(err.message);
+    } finally {
+      setClaiming(false);
     }
-    if (data?.scenario === "already_purchased" && data.transaction_id) {
-      navigate(`/dashboard/transactions/${data.transaction_id}`);
-    }
-  }, [data, navigate, offerToken]);
+  }
 
-  if (isLoading || authed === null) {
+  // Loading
+  if (loading || authed === null || claiming) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="text-center space-y-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground">
+            {claiming ? "Claiming your offer…" : "Loading offer…"}
+          </p>
+        </div>
       </div>
     );
   }
 
+  if (errorMsg) {
+    return <ErrorScreen title="Something went wrong" message={errorMsg} />;
+  }
   if (!data) {
-    return (
-      <ErrorScreen title="Offer not found" message="This offer link is invalid or has been removed." />
-    );
+    return <ErrorScreen title="Offer not found" message="This offer link is invalid or has been removed." />;
   }
 
+  // Terminal scenarios
   if (data.scenario === "not_found") {
     return <ErrorScreen title="Offer not found" message={data.error || "This offer link is invalid."} />;
   }
-
   if (data.scenario === "expired") {
     return (
       <ErrorScreen
@@ -75,17 +118,21 @@ export default function OfferClaimLanding() {
       />
     );
   }
-
   if (data.scenario === "cancelled") {
-    return <ErrorScreen icon={<XCircle className="h-10 w-10 text-destructive" />} title="Offer no longer available" message="The seller cancelled this private offer." />;
+    return (
+      <ErrorScreen
+        icon={<XCircle className="h-10 w-10 text-destructive" />}
+        title="Offer no longer available"
+        message="The seller cancelled this private offer."
+      />
+    );
   }
-
   if (data.scenario === "wrong_account") {
     return (
       <ErrorScreen
         icon={<AlertTriangle className="h-10 w-10 text-warning" />}
         title="This offer is for a different account"
-        message={`This private offer was sent to ${data.intended_email_hint}. Sign out and sign in with that account to claim it.`}
+        message={`Sent to ${data.intended_email_hint}. Sign out and sign in with that account to claim it.`}
         action={
           <Button onClick={async () => { await supabase.auth.signOut(); navigate(`/auth?redirect=/offer/${offerToken}`); }}>
             Sign in with different account
@@ -94,11 +141,59 @@ export default function OfferClaimLanding() {
       />
     );
   }
+  if (data.scenario === "already_purchased") {
+    return (
+      <ErrorScreen
+        icon={<Package className="h-10 w-10 text-success" />}
+        title="Offer already purchased"
+        message="This offer has been completed."
+      />
+    );
+  }
 
-  // anon_view or ready_to_claim — show offer
-  const product = data.product;
-  const seller = data.seller;
-  const offer = data.offer;
+  // Anonymous view — show preview + sign-in CTA
+  if (data.scenario === "anon_view") {
+    return (
+      <AnonymousPreview
+        seller={data.seller}
+        items={data.items || []}
+        offerToken={offerToken!}
+        intendedEmail={data.intended_email_hint}
+        navigate={navigate}
+      />
+    );
+  }
+
+  // ready_to_claim fallback (anon → just signed in but auto-claim didn't fire)
+  if (data.scenario === "ready_to_claim") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-6 text-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+            <Button onClick={runClaim} disabled={claiming}>
+              Continue to offer <ArrowRight className="h-4 w-4 ml-1.5" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return <ErrorScreen title="Unexpected state" message="Please refresh and try again." />;
+}
+
+function AnonymousPreview({
+  seller, items, offerToken, intendedEmail, navigate,
+}: {
+  seller: any;
+  items: Item[];
+  offerToken: string;
+  intendedEmail: string;
+  navigate: ReturnType<typeof useNavigate>;
+}) {
+  const total = items.reduce((sum, it) => sum + Number(it.unit_price_snapshot) * it.quantity, 0);
+  const currency = items[0]?.currency_code || "NGN";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-background">
@@ -109,79 +204,53 @@ export default function OfferClaimLanding() {
           </Badge>
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground">A private offer just for you</h1>
           <p className="text-muted-foreground mt-2">
-            From <span className="font-semibold text-foreground">{seller?.full_name}</span>
+            From <span className="font-semibold text-foreground">{seller?.full_name || "the seller"}</span>
           </p>
         </div>
 
         <Card className="overflow-hidden shadow-xl border-border/60 mb-6">
-          {product?.media?.[0]?.file_url && (
-            <div className="aspect-video bg-muted">
-              <img src={product.media[0].file_url} alt={product.title} className="w-full h-full object-cover" />
-            </div>
-          )}
           <CardContent className="p-6 space-y-4">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">{product?.title}</h2>
-              {product?.short_description && (
-                <p className="text-sm text-muted-foreground mt-2">{product.short_description}</p>
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <span className="text-sm text-muted-foreground">{items.length} item{items.length !== 1 ? "s" : ""}</span>
+              <span className="text-sm font-semibold text-foreground">{currency} {total.toLocaleString()}</span>
+            </div>
+            <div className="space-y-3">
+              {items.slice(0, 3).map((it) => (
+                <div key={it.id} className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex items-center justify-center shrink-0">
+                    {it.primary_media_url ? (
+                      <img src={it.primary_media_url} alt={it.product_title} className="w-full h-full object-cover" />
+                    ) : (
+                      <Package className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{it.product_title}</p>
+                    <p className="text-xs text-muted-foreground">Qty {it.quantity} · {it.currency_code} {Number(it.unit_price_snapshot).toLocaleString()}</p>
+                  </div>
+                </div>
+              ))}
+              {items.length > 3 && (
+                <p className="text-xs text-muted-foreground text-center">+ {items.length - 3} more item{items.length - 3 !== 1 ? "s" : ""}</p>
               )}
             </div>
-            <div className="flex items-baseline justify-between border-t border-border pt-4">
-              <span className="text-sm text-muted-foreground">Offer price</span>
-              <span className="text-3xl font-bold text-foreground">
-                {product?.currency_code} {Number(product?.unit_price).toLocaleString()}
-              </span>
-            </div>
-            {offer?.expires_at && (
-              <div className="flex items-center gap-2 text-xs text-warning bg-warning/10 rounded-lg p-3">
-                <Clock className="h-3.5 w-3.5" />
-                Expires on {new Date(offer.expires_at).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}
-              </div>
-            )}
           </CardContent>
         </Card>
 
-        {/* Action area */}
-        {data.scenario === "anon_view" && (
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="p-6 text-center space-y-4">
-              <Mail className="h-8 w-8 text-primary mx-auto" />
-              <div>
-                <h3 className="font-semibold text-foreground">Sign in to claim this offer</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  This offer was sent to <span className="font-mono">{data.intended_email_hint}</span>
-                </p>
-              </div>
-              <div className="flex gap-3 justify-center">
-                <Button onClick={() => navigate(`/auth?redirect=/offer/${offerToken}`)}>
-                  Sign in / Sign up <ArrowRight className="h-4 w-4 ml-1.5" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {data.scenario === "ready_to_claim" && (
-          <Card className="border-success/30 bg-success/5">
-            <CardContent className="p-6 text-center space-y-4">
-              <CheckCircle className="h-8 w-8 text-success mx-auto" />
-              <div>
-                <h3 className="font-semibold text-foreground">Ready to claim</h3>
-                <p className="text-sm text-muted-foreground mt-1">Accept this offer to view it in your inbox and continue to secure checkout.</p>
-              </div>
-              <Button
-                size="lg"
-                onClick={() => claimMut.mutate()}
-                disabled={claimMut.isPending}
-                className="gap-2"
-              >
-                {claimMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Claim offer & continue
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-6 text-center space-y-4">
+            <Mail className="h-8 w-8 text-primary mx-auto" />
+            <div>
+              <h3 className="font-semibold text-foreground">Sign in to claim this offer</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                This offer was sent to <span className="font-mono">{intendedEmail}</span>
+              </p>
+            </div>
+            <Button onClick={() => navigate(`/auth?redirect=/offer/${offerToken}`)}>
+              Sign in / Sign up <ArrowRight className="h-4 w-4 ml-1.5" />
+            </Button>
+          </CardContent>
+        </Card>
 
         <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <Shield className="h-3.5 w-3.5 text-primary" />
@@ -193,10 +262,7 @@ export default function OfferClaimLanding() {
 }
 
 function ErrorScreen({
-  title,
-  message,
-  icon,
-  action,
+  title, message, icon, action,
 }: {
   title: string;
   message: string;
