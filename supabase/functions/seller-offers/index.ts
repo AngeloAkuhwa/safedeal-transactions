@@ -68,7 +68,11 @@ Deno.serve(async (req) => {
 });
 
 async function handleList(adminClient: any, userId: string) {
-  await adminClient.rpc("expire_stale_offers").catch(() => {});
+  try {
+    await adminClient.rpc("expire_stale_offers");
+  } catch (_e) {
+    // best-effort; ignore failure
+  }
 
   const { data: offers, error } = await adminClient
     .from("buyer_specific_product_offers")
