@@ -18,7 +18,10 @@ export default function AdminOfferDetail() {
   if (isLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (isError || !data) return <div className="min-h-screen p-8 text-destructive">Failed to load offer.</div>;
 
-  const { offer, seller, buyer, buyer_verification_level, product, transaction, payment, escrow, events } = data;
+  const { offer, seller, buyer, buyer_verification_level, product, transaction, payment, escrow, events, items } = data;
+  const itemList: any[] = items || [];
+  const itemsTotal = itemList.reduce((s, it) => s + Number(it.line_total ?? Number(it.unit_price_snapshot) * (it.quantity || 1)), 0);
+  const currency = itemList[0]?.currency_code ?? product?.currency_code ?? "NGN";
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-8">
@@ -82,6 +85,54 @@ export default function AdminOfferDetail() {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-foreground">Bundle items ({itemList.length})</h3>
+              <p className="text-sm font-bold text-foreground">Snapshot total: {currency} {itemsTotal.toLocaleString()}</p>
+            </div>
+            {itemList.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No items recorded.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead className="text-xs uppercase text-muted-foreground border-b border-border">
+                    <tr>
+                      <th className="text-left p-2">#</th>
+                      <th className="text-left p-2">Title (snapshot)</th>
+                      <th className="text-right p-2">Qty</th>
+                      <th className="text-right p-2">Unit price</th>
+                      <th className="text-right p-2">Line total</th>
+                      <th className="text-left p-2">Current product</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {itemList.map((it: any, i: number) => (
+                      <tr key={it.id} className="border-b border-border/60">
+                        <td className="p-2 text-muted-foreground">{i + 1}</td>
+                        <td className="p-2">
+                          <p className="text-foreground font-medium">{it.product_title}</p>
+                          {it.short_description && <p className="text-xs text-muted-foreground line-clamp-1">{it.short_description}</p>}
+                        </td>
+                        <td className="p-2 text-right">{it.quantity}</td>
+                        <td className="p-2 text-right">{it.currency_code} {Number(it.unit_price_snapshot).toLocaleString()}</td>
+                        <td className="p-2 text-right font-medium">{it.currency_code} {Number(it.line_total ?? Number(it.unit_price_snapshot) * it.quantity).toLocaleString()}</td>
+                        <td className="p-2">
+                          {it.current_product ? (
+                            <Badge variant="outline" className="text-xs">{it.current_product.status}</Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">missing</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardContent className="p-5">

@@ -372,18 +372,18 @@ const SellerCreateTransaction = () => {
       {/* Hero */}
       <div className="bg-gradient-to-br from-sky-50 via-background to-green-50 dark:from-sky-950/20 dark:via-background dark:to-green-950/20">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
-          <p className="text-sm font-medium text-muted-foreground mb-1">Transaction Creation</p>
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Create Protected Transaction</h1>
-          <p className="text-muted-foreground mt-1">Set up a secure transaction with buyer protection and escrow payment</p>
+          <p className="text-sm font-medium text-muted-foreground mb-1">Private Offer</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Create Private Offer</h1>
+          <p className="text-muted-foreground mt-1">Build a buyer-specific protected offer. The link is unique to one buyer and never appears in your public storefront.</p>
           <div className="flex flex-wrap gap-3 mt-4">
             <Badge variant="outline" className="gap-1.5 py-1.5 px-3 border-primary/30 text-primary">
-              <Shield className="h-3.5 w-3.5" /> Secure Escrow Payment
+              <Lock className="h-3.5 w-3.5" /> Private buyer link
             </Badge>
             <Badge variant="outline" className="gap-1.5 py-1.5 px-3 border-success/30 text-success">
-              <CheckCircle className="h-3.5 w-3.5" /> Buyer Protection
+              <Shield className="h-3.5 w-3.5" /> Escrow on payment
             </Badge>
             <Badge variant="outline" className="gap-1.5 py-1.5 px-3 border-warning/30 text-warning">
-              <Lock className="h-3.5 w-3.5" /> Agreement Lock After Payment
+              <CheckCircle className="h-3.5 w-3.5" /> Hidden from marketplace
             </Badge>
           </div>
         </div>
