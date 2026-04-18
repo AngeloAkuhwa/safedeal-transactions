@@ -191,9 +191,9 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
 
 const SELLER_LIMIT_BY_LEVEL: Record<string, number> = {
   unverified: 0,
-  basic_verified: 50_000,
-  trusted_buyer: 200_000,
-  high_trust_buyer: 500_000,
+  basic_verified: 200_000,
+  trusted_buyer: 5_000_000,
+  high_trust_buyer: Number.MAX_SAFE_INTEGER,
 };
 
 function mapConditionToProduct(c: string): string {
