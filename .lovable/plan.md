@@ -1,67 +1,75 @@
 
 
-# Phase 5 — Pickup/Meetup Handoff Code Verification
+The user wants a genuine end-to-end test of the delivery + verification flow across all 5 phases, covering happy paths AND non-happy paths, with no errors hidden. This requires browser automation + DB inspection + edge function probing — all of which need default mode.
 
-## Scope
-
-Currently for `pickup` and `meetup` deliveries, Phase 2 generates a 6-digit handoff code, stores it in `delivery_tracking_details.signature_name`, and Phase 3 surfaces it to the buyer. **But the seller can still mark the transaction as delivered without actually verifying the buyer received the goods.** Phase 5 closes that loop: when a seller marks a pickup/meetup transaction as `delivered`, they must enter the code the buyer showed them, and we cross-check it server-side.
+# Full E2E Test Plan — Delivery & Verification Flow
 
 ## Approach
 
-Reuse `signature_name` as the source of truth (already populated at dispatch time). No new tables — the existing `delivery_tokens` table is more complex than needed for this in-person handoff flow and is reserved for the rider OTP flow per the memory note.
+I will drive the actual preview as a real seller and a real buyer in two sequenced sessions, exercising every variant we shipped. After each step I'll verify the result two ways: (1) what the UI shows on the *other* party's screen, (2) what the database actually persisted (via direct read queries). I will report every defect I find — no glossing.
 
-## What changes
+## Pre-flight (read-only, no destructive)
 
-### 1. Edge function — `update-delivery-status/index.ts`
+1. Query DB to find suitable test transactions per delivery method (`courier`, `pickup`, `meetup`, `hand_delivery`) currently in `payment_secured` or `seller_preparing_delivery`. If none exist for a method, I'll note it and skip that variant rather than fabricate data.
+2. Identify the seller + buyer accounts on those transactions and confirm the user is logged in as one of them in the preview. **I'll need the user to provide the second account's credentials** (or accept that I can only test the side they're logged into, with DB cross-checks for the other side).
 
-For the `delivered` action, when delivery method is `pickup` or `meetup`:
-- Require new body field `handoff_code_input` (6 chars).
-- Load `signature_name` from `delivery_tracking_details` for this transaction.
-- If null → 400 "No handoff code on file. Re-issue the code via Mark as Dispatched."
-- Compare case-insensitively, trimmed. Mismatch → 400 "Handoff code does not match."
-- On match → proceed with existing delivered transition. Append a `transaction_event` of type `handoff_code_verified` with `event_data: { method, verified_at }`.
+## Test matrix
 
-For `courier` and `hand_delivery` → no change, behaves as today.
+For each available delivery method, run the sequence below. If a step fails, capture the error, screenshot, relevant DB row, and edge function logs — then continue (don't abort the whole run).
 
-### 2. Service — `src/services/delivery.service.ts`
+### Sequence A — Happy path: dispatch → deliver → buyer confirms
 
-Add `handoff_code_input?: string` to the `UpdateDeliveryStatusPayload` type.
+1. **Seller dispatches** (`/seller/transactions/:id/update-delivery`)
+   - Verify Phase 2 form renders method-specific fields.
+   - Submit. Capture toast + new status.
+   - DB check: `transactions.status`, `delivery_tracking_details.*`, `signature_name` (handoff code) for pickup/meetup, `transaction_events` row.
 
-### 3. Component edits — `src/components/seller/DispatchForm.tsx`
+2. **Buyer view** (`/buyer/transactions/:id` and `/tracking`)
+   - Verify Phase 3 `<InTransitBlock>` renders correct variant + data matches DB.
+   - Verify Phase 4 `<DeliveryTermsCard>` shows locked terms.
+   - For pickup/meetup: confirm handoff code visible and matches `signature_name`.
 
-When `action === "delivered"` and method is `pickup` or `meetup`:
-- Render a single 6-digit `<InputOTP>` field labeled "Enter the code the buyer showed you".
-- Helper text: "Ask the buyer to read out the 6-digit code from their order page. This proves they received the item."
-- Required, 6 chars.
+3. **Seller marks delivered**
+   - Courier/hand_delivery: submit (optional evidence).
+   - Pickup/meetup: enter the correct 6-digit code from step 2. Submit.
+   - DB check: `delivered_at`, status flip, `handoff_code_verified` event for pickup/meetup.
 
-For `courier` / `hand_delivery` `delivered` action → keep existing evidence uploader UI unchanged.
+4. **Buyer view post-delivery**
+   - `<VerifyReceiptCTA>` visible with countdown.
+   - Countdown deadline matches `delivered_at + verification_window_hours`.
 
-### 4. Page wiring — `src/pages/SellerUpdateDelivery.tsx`
+5. **Buyer confirms receipt** (`/dashboard/transactions/:id/verify`)
+   - Walk through confirmation.
+   - DB check: status `completed`, money status `funds_released`, `transaction_status_history` row.
+   - `<TransactionCompletionBanner>` renders **buyer_confirmed** variant on both sides.
 
-- Add local state `handoffCodeInput` and pass into `<DispatchForm>`.
-- Validate before calling `updateDeliveryStatus` (length 6, alphanumeric).
-- Pass `handoff_code_input` in the payload when applicable.
-- Surface server-side mismatch error via existing toast pattern.
+### Sequence B — Non-happy paths (Phase 5 hardening)
 
-### 5. Buyer-side reassurance — `src/components/transactions/InTransitBlock.tsx`
+For one pickup or meetup transaction:
+- **Wrong handoff code** → seller submits "000000". Expect 400 "Handoff code does not match." Toast surfaces it. Status unchanged in DB.
+- **Empty handoff code** → seller submits blank. Expect validation error before request fires.
+- **Case sensitivity** → if code is e.g. "ABC123", try "abc123". Expect success (we documented case-insensitive comparison).
 
-Minor copy add for pickup/meetup variants: "The seller will ask for this code at handoff. Don't share it before you have the item in hand."
+### Sequence C — Non-happy paths (general)
 
-## Files touched
+- **Missing required dispatch field** (e.g. courier with no tracking number) → expect form-level validation error.
+- **Buyer opens dispute** instead of confirming → status `disputed`, money status `funds_frozen`. Note the dispute flow continuing is out of scope but I'll verify the entry transition works.
+- **Direct edge function call** for `update-delivery-status` with a `deliver` action on a transaction not yet `seller_dispatched` → expect server-side state-machine rejection.
 
-**Edge function (edited):**
-- `supabase/functions/update-delivery-status/index.ts`
+### Sequence D — Variants we cannot easily trigger live
 
-**Frontend (edited):**
-- `src/services/delivery.service.ts`
-- `src/components/seller/DispatchForm.tsx`
-- `src/pages/SellerUpdateDelivery.tsx`
-- `src/components/transactions/InTransitBlock.tsx`
+- **Auto-release banner** (timeout path): cannot wait 72h. I'll verify by querying a transaction whose `delivered_awaiting_verification` is past its deadline (if any exist in DB) and inspecting the `completion_event` derivation logic in the edge function output via `supabase--curl_edge_functions`. If none exist, I'll only confirm the code path classifies correctly by tracing the function — flagged as not live-tested.
+- **Dispute-resolved banner**: same approach — find an existing completed-via-resolved transaction or trace logic only.
 
-## Out of scope
+## What I will report
 
-- Multi-attempt rate limiting on code entry (deferred — current design just rejects per request).
-- Rotating the code if the seller fails N times (deferred).
-- Full migration to the `delivery_tokens` table for in-person handoffs (deferred — that table is reserved for rider/courier OTPs).
-- SMS/email of the handoff code to the buyer (in-app only for now).
+A defect log table per sequence:
+
+| # | Method | Step | Expected | Actual | DB / log evidence | Severity |
+
+Plus a final summary: how many of the 5 phases passed cleanly, where the cross-party sync is solid, and the specific gaps that need a code fix.
+
+## What I need from you before I start
+
+One quick decision (only one — I won't pile on questions):
 
