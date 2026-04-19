@@ -82,9 +82,9 @@ Deno.serve(async (req) => {
           .maybeSingle(),
         supabase
           .from("transaction_media")
-          .select("id, file_id, media_type, display_order, files(file_url, secure_url, mime_type, original_file_name)")
+          .select("id, file_id, media_type, sort_order, files(file_url, secure_url, mime_type, original_file_name)")
           .eq("transaction_id", txId)
-          .order("display_order", { ascending: true }),
+          .order("sort_order", { ascending: true }),
       ]);
 
     if (txRes.error) throw txRes.error;
