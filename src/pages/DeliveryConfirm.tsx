@@ -205,11 +205,6 @@ export default function DeliveryConfirm() {
                 The buyer now has time to inspect the item before funds are released. Thanks for delivering with SafeDeal.
               </p>
             </div>
-              <p className="text-base font-bold text-foreground">Delivery confirmed</p>
-              <p className="text-sm text-muted-foreground">
-                The buyer now has time to inspect the item before funds are released. Thanks for delivering with SafeDeal.
-              </p>
-            </div>
             <Button asChild variant="outline" className="w-full rounded-xl">
               <Link to="/">Done</Link>
             </Button>
