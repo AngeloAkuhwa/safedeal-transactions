@@ -107,7 +107,7 @@ const SellerTransactionDetail = () => {
     );
   }
 
-  const { transaction: tx, buyer, item, pricing, escrow, agreement, delivery_tracking, delivery_terms, timeline, next_action, completion_event } = data;
+  const { transaction: tx, buyer, item, pricing, escrow, agreement, delivery_tracking, delivery_terms, timeline, next_action, completion_event, rider_link } = data;
   const currency = pricing?.currency_code ?? "NGN";
   const statusInfo = statusLabels[tx.status] ?? { label: tx.status, variant: "secondary" as const };
   const moneyInfo = moneyLabels[tx.money_status] ?? { label: tx.money_status, color: "text-muted-foreground" };
