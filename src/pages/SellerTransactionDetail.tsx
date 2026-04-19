@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { getSellerTransactionDetail } from "@/services/seller-transaction-detail.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { BuyerTrustBadges } from "@/components/trust/BuyerTrustBadges";
+import { DeliveryTermsCard } from "@/components/transactions/DeliveryTermsCard";
+import { TransactionCompletionBanner } from "@/components/transactions/TransactionCompletionBanner";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   draft: { label: "Draft", variant: "secondary" },
@@ -104,7 +106,7 @@ const SellerTransactionDetail = () => {
     );
   }
 
-  const { transaction: tx, buyer, item, pricing, escrow, agreement, delivery_tracking, timeline, next_action } = data;
+  const { transaction: tx, buyer, item, pricing, escrow, agreement, delivery_tracking, delivery_terms, timeline, next_action, completion_event } = data;
   const currency = pricing?.currency_code ?? "NGN";
   const statusInfo = statusLabels[tx.status] ?? { label: tx.status, variant: "secondary" as const };
   const moneyInfo = moneyLabels[tx.money_status] ?? { label: tx.money_status, color: "text-muted-foreground" };
