@@ -156,6 +156,7 @@ export interface UpdateDeliveryStatusPayload {
   pickupReadyAt?: string | null;
   riderName?: string | null;
   riderPhone?: string | null;
+  handoffCodeInput?: string | null;
 }
 
 export interface UpdateDeliveryStatusResult {
@@ -186,6 +187,7 @@ export async function updateDeliveryStatus(
       pickup_ready_at: payload.pickupReadyAt || null,
       rider_name: payload.riderName || null,
       rider_phone: payload.riderPhone || null,
+      handoff_code_input: payload.handoffCodeInput || null,
     },
   });
 

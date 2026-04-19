@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
       pickup_ready_at,
       rider_name,
       rider_phone,
+      handoff_code_input,
     } = body;
 
     if (!transaction_id) return jsonResponse({ error: "transaction_id required" }, 400);
@@ -165,12 +166,42 @@ Deno.serve(async (req) => {
       }
     }
 
+    let handoffCodeVerifiedAt: string | null = null;
     if (action === "delivered") {
       if (!file_ids || !Array.isArray(file_ids) || file_ids.length === 0) {
         return jsonResponse({ error: "At least one evidence file is required for delivered status" }, 400);
       }
       if (deliveryMethod === "courier" && !tracking_number?.trim()) {
         return jsonResponse({ error: "Tracking number is required for courier deliveries" }, 400);
+      }
+
+      // Pickup/meetup: cross-check buyer's handoff code
+      if (deliveryMethod === "pickup" || deliveryMethod === "meetup") {
+        const input = typeof handoff_code_input === "string" ? handoff_code_input.trim() : "";
+        if (!input || input.length !== 6) {
+          return jsonResponse({ error: "A 6-digit handoff code is required to confirm in-person delivery." }, 400);
+        }
+
+        const { data: trackRow } = await admin
+          .from("delivery_tracking_details")
+          .select("signature_name")
+          .eq("transaction_id", transaction_id)
+          .maybeSingle();
+
+        const stored = trackRow?.signature_name ?? null;
+        if (!stored) {
+          return jsonResponse({
+            error: "No handoff code on file. Re-issue the code via Mark as Dispatched.",
+          }, 400);
+        }
+
+        // Stored format: "HANDOFF:123456"
+        const storedCode = stored.startsWith("HANDOFF:") ? stored.slice("HANDOFF:".length) : stored;
+        if (storedCode.trim().toUpperCase() !== input.toUpperCase()) {
+          return jsonResponse({ error: "Handoff code does not match. Ask the buyer to re-read the code from their order page." }, 400);
+        }
+
+        handoffCodeVerifiedAt = new Date().toISOString();
       }
     }
 
@@ -332,6 +363,22 @@ Deno.serve(async (req) => {
         updated_by_user_id: userId,
       }),
     );
+
+    // Audit handoff code verification as its own event
+    if (handoffCodeVerifiedAt) {
+      parallelOps.push(
+        admin.from("transaction_events").insert({
+          transaction_id,
+          event_type: "handoff_code_verified",
+          actor_user_id: userId,
+          actor_role: "seller",
+          event_data: {
+            method: deliveryMethod,
+            verified_at: handoffCodeVerifiedAt,
+          },
+        }),
+      );
+    }
 
     // Upsert delivery_tracking_details with method-aware fields
     if (

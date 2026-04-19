@@ -22,6 +22,7 @@ import { DeliveryMethodBadge, type DeliveryMethod } from "@/components/seller/De
 import { MissingTermsWarning } from "@/components/seller/MissingTermsWarning";
 import { FulfillmentGuidance } from "@/components/seller/FulfillmentGuidance";
 import { DispatchForm, emptyDispatchState, resolveCourierName, type DispatchFormState } from "@/components/seller/DispatchForm";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 function fmt(amount: number | undefined | null, currency: string) {
   const val = amount ?? 0;
@@ -65,6 +66,7 @@ export default function SellerUpdateDelivery() {
   const [dispatchState, setDispatchState] = useState<DispatchFormState>(emptyDispatchState);
   const [processingNote, setProcessingNote] = useState("");
   const [deliveredEvidence, setDeliveredEvidence] = useState<UploadedDeliveryFile[]>([]);
+  const [handoffCodeInput, setHandoffCodeInput] = useState("");
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadingNames, setUploadingNames] = useState<string[]>([]);
   const [dispatchUploadingNames, setDispatchUploadingNames] = useState<string[]>([]);
@@ -109,10 +111,11 @@ export default function SellerUpdateDelivery() {
     if (selectedAction === "delivered") {
       if (deliveredEvidence.length === 0) return false;
       if (deliveryMethod === "courier" && !dispatchState.trackingNumber.trim()) return false;
+      if ((deliveryMethod === "pickup" || deliveryMethod === "meetup") && handoffCodeInput.trim().length !== 6) return false;
       return true;
     }
     return false;
-  }, [selectedAction, deliveryMethod, dispatchState, deliveredEvidence.length]);
+  }, [selectedAction, deliveryMethod, dispatchState, deliveredEvidence.length, handoffCodeInput]);
 
   const canSubmit =
     isValid &&
@@ -182,6 +185,10 @@ export default function SellerUpdateDelivery() {
         pickupReadyAt: dispatchState.pickupReadyAt || null,
         riderName: dispatchState.riderName.trim() || null,
         riderPhone: dispatchState.riderPhone.trim() || null,
+        handoffCodeInput:
+          selectedAction === "delivered" && (deliveryMethod === "pickup" || deliveryMethod === "meetup")
+            ? handoffCodeInput.trim()
+            : null,
       });
 
       let successDesc = `Status updated to ${selectedAction} successfully.`;
@@ -488,6 +495,37 @@ export default function SellerUpdateDelivery() {
                     setUploadingNames={setDispatchUploadingNames}
                     setUploadProgress={setDispatchUploadProgress}
                   />
+                )}
+
+                {/* Pickup/Meetup: handoff code verification */}
+                {(deliveryMethod === "pickup" || deliveryMethod === "meetup") && (
+                  <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 space-y-3">
+                    <div>
+                      <Label className="text-sm font-semibold text-foreground">
+                        Enter the code the buyer showed you <span className="text-destructive">*</span>
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Ask the buyer to read out the 6-digit code from their order page. This proves they received the item.
+                      </p>
+                    </div>
+                    <InputOTP
+                      maxLength={6}
+                      value={handoffCodeInput}
+                      onChange={(v) => setHandoffCodeInput(v.replace(/\D/g, ""))}
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                    {handoffCodeInput.length > 0 && handoffCodeInput.length < 6 && (
+                      <p className="text-xs text-destructive">Code must be exactly 6 digits.</p>
+                    )}
+                  </div>
                 )}
 
                 {/* Delivery proof evidence (always required for delivered) */}
