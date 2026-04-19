@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Loader2, RefreshCw, Plus, Search, Download, FileText,
   TrendingUp, CheckCircle, ArrowLeftRight, ChevronLeft, ChevronRight,
-  Shield,
+  Shield, QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -282,23 +282,39 @@ const SellerTransactions = () => {
                           <Badge variant={status.variant}>{status.label}</Badge>
                         </TableCell>
                         <TableCell className="px-6 py-4">
-                          <Button
-                            variant={action.variant === "default" ? "default" : "outline"}
-                            size="sm"
-                            className="text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (tx.transaction_status === "awaiting_buyer") {
-                                navigate(`/seller/transactions/${tx.transaction_id}/share`);
-                              } else if (["payment_secured", "seller_preparing_delivery", "seller_dispatched"].includes(tx.transaction_status)) {
-                                navigate(`/seller/transactions/${tx.transaction_id}/delivery`);
-                              } else {
-                                navigate(`/seller/transactions/${tx.transaction_id}`);
-                              }
-                            }}
-                          >
-                            {action.label}
-                          </Button>
+                          <div className="flex items-center gap-1.5">
+                            {tx.has_active_rider_token && (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8 shrink-0 border-primary/30 text-primary hover:bg-primary/10"
+                                title="Rider confirmation link"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/seller/transactions/${tx.transaction_id}#rider`);
+                                }}
+                              >
+                                <QrCode className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant={action.variant === "default" ? "default" : "outline"}
+                              size="sm"
+                              className="text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (tx.transaction_status === "awaiting_buyer") {
+                                  navigate(`/seller/transactions/${tx.transaction_id}/share`);
+                                } else if (["payment_secured", "seller_preparing_delivery", "seller_dispatched"].includes(tx.transaction_status)) {
+                                  navigate(`/seller/transactions/${tx.transaction_id}/delivery`);
+                                } else {
+                                  navigate(`/seller/transactions/${tx.transaction_id}`);
+                                }
+                              }}
+                            >
+                              {action.label}
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

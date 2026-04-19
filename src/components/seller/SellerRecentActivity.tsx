@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ArrowLeftRight, Shield, Search, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeftRight, Shield, Search, SlidersHorizontal, ChevronLeft, ChevronRight, QrCode } from "lucide-react";
 import type { SellerActivity } from "@/services/seller-dashboard.service";
 
 interface SellerRecentActivityProps {
@@ -149,23 +149,39 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                        <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
                      </TableCell>
                      <TableCell className="px-6 py-4">
-                       <Button
-                         variant={actionInfo.variant === "default" ? "default" : "outline"}
-                         size="sm"
-                         className="text-xs"
-                         onClick={(e) => {
-                           e.stopPropagation();
-                           if (row.transaction_status === "awaiting_buyer") {
-                             navigate(`/seller/transactions/${row.transaction_id}/share`);
-                           } else if (row.transaction_status === "seller_preparing_delivery") {
-                             navigate(`/seller/transactions/${row.transaction_id}/delivery`);
-                           } else {
-                             navigate(`/seller/transactions/${row.transaction_id}`);
-                           }
-                         }}
-                       >
-                         {actionInfo.label}
-                       </Button>
+                       <div className="flex items-center gap-1.5">
+                         {row.has_active_rider_token && (
+                           <Button
+                             variant="outline"
+                             size="icon"
+                             className="h-8 w-8 shrink-0 border-primary/30 text-primary hover:bg-primary/10"
+                             title="Rider confirmation link"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               navigate(`/seller/transactions/${row.transaction_id}#rider`);
+                             }}
+                           >
+                             <QrCode className="h-4 w-4" />
+                           </Button>
+                         )}
+                         <Button
+                           variant={actionInfo.variant === "default" ? "default" : "outline"}
+                           size="sm"
+                           className="text-xs"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             if (row.transaction_status === "awaiting_buyer") {
+                               navigate(`/seller/transactions/${row.transaction_id}/share`);
+                             } else if (row.transaction_status === "seller_preparing_delivery") {
+                               navigate(`/seller/transactions/${row.transaction_id}/delivery`);
+                             } else {
+                               navigate(`/seller/transactions/${row.transaction_id}`);
+                             }
+                           }}
+                         >
+                           {actionInfo.label}
+                         </Button>
+                       </div>
                      </TableCell>
                    </TableRow>
                 );
