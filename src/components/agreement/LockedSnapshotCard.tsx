@@ -9,6 +9,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type { AgreementData } from "@/services/agreement.service";
+import { ProductMediaGallery } from "@/components/transactions/ProductMediaGallery";
 
 interface LockedSnapshotCardProps {
   data: AgreementData;
@@ -137,54 +138,11 @@ export function LockedSnapshotCard({ data }: LockedSnapshotCardProps) {
                 <h3 className="text-lg font-bold text-foreground">Product Media</h3>
                 <LockedBadge />
               </div>
-              {images.length === 0 && videos.length === 0 ? (
-                <div className="grid grid-cols-2 gap-3">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className="aspect-square rounded-lg border-2 border-border bg-muted flex items-center justify-center"
-                    >
-                      <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {images.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2">
-                      {images.map((m, i) => (
-                        <a
-                          key={i}
-                          href={m.secure_url || m.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="aspect-square rounded-lg overflow-hidden border-2 border-border hover:border-primary transition-colors block"
-                        >
-                          <img
-                            src={m.secure_url || m.file_url}
-                            alt={`Product image ${i + 1}`}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                  {videos.length > 0 && (
-                    <div className="space-y-2">
-                      {videos.map((v, i) => (
-                        <video
-                          key={i}
-                          src={v.secure_url || v.file_url}
-                          controls
-                          preload="metadata"
-                          className="w-full rounded-lg border-2 border-border bg-background"
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+              <ProductMediaGallery
+                media={media}
+                title={item?.title ?? "Product media"}
+                variant="compact"
+              />
             </div>
           </div>
 
