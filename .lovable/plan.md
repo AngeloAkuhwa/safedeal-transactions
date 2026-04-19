@@ -1,57 +1,56 @@
 
-# Fix: Show product images & videos in Locked Agreement Snapshot
+# Diagnosis & Fix: Stuck "Awaiting Setup" + No Pay Button
 
-## Problem
-Buyer sees empty image placeholders in `LockedSnapshotCard` → "Product Images" section. The agreement loads via `transaction-agreement` edge function but never returns the product media (images/videos) for buyer-specific offers.
+## What's actually wrong (not the state machine)
 
-## Root cause
-The `transaction-agreement` edge function fetches `transaction_items` and `transaction_media`, but for **private-offer** transactions:
-- `transaction_media` is empty (sellers attach media to **products**, not transactions, in the new offer flow).
-- `buyer_specific_offer_items` stores `primary_media_url` (single thumbnail), but the offer's products hold the full image/video gallery in the `product_media` table.
+The transaction state machine is correct. Two real bugs are causing what you see:
 
-So the snapshot card has nothing to render → falls back to 4 empty placeholders.
+### Bug 1 — Buyer lands on Detail page instead of Agreement page after claiming
+- `claim-offer` correctly returns `redirect_to: /dashboard/transactions/:id/agreement`
+- But once the buyer clicks back to the dashboard and re-opens the transaction (current URL: `/dashboard/transactions/06c3374c…` — Detail page, not `/agreement`), there is no path forward.
+- The Detail page shows status `awaiting_buyer` → "Awaiting Setup, this transaction is being set up" with **no CTA**. Buyer is stuck.
 
-## Plan
+### Bug 2 — Transaction is in `awaiting_buyer` instead of `awaiting_payment`
+- DB confirms: `status='awaiting_buyer'`, `money_status='not_secured'`, `agreement_locked_at=null`.
+- The buyer already claimed (`claimed_at` is set on offer), so the transaction should be advanced to `awaiting_payment` so the "Pay Now" button shows up on the Agreement page.
+- `claim-offer` creates the tx as `awaiting_buyer` and never transitions it. The Agreement page also never bumps it. So the buyer sees the locked terms but `initiate-paystack-payment` (which requires `awaiting_payment`) is never reachable.
 
-### 1. Backend: enrich `transaction-agreement` with product media
-File: `supabase/functions/transaction-agreement/index.ts`
+### Bug 3 — Item Details on Detail page shows "Untitled Item" + empty image
+- `transaction-detail` selects `transaction_items.title, condition` but the column is `condition_label`. DB shows the title IS stored ("Touch Light Phone") — so the issue is a mismatch in the SELECT or a different code path.
+- Verified: DB row has `title: "Touch Light Phone"` and `condition_label: "brand_new"`. The screenshot shows "Untitled Item" → either `transaction-detail` is failing silently on the bad column name `condition` (should be `condition_label`) and falling back to "Untitled Item", or it's reading a different row. Will fix the column name and the fallback.
+- Image placeholder: same root cause as the agreement-page fix — `transaction-detail` does not pull `product_media` for offer-sourced transactions. Will mirror the productMedia fetch we added to `transaction-agreement`.
 
-- After fetching the transaction, look up linked offer:
-  ```ts
-  buyer_specific_product_offers WHERE transaction_id = tx.id
-  ```
-- If an offer exists, fetch its items + linked products + media:
-  ```ts
-  buyer_specific_offer_items (offer_id) → product_id[]
-  product_media WHERE product_id IN (...) ORDER BY display_order
-    JOIN files (file_url, secure_url, mime_type, original_file_name)
-  ```
-- Merge into response as a new `productMedia: [{ product_id, file_url, secure_url, mime_type, media_type, display_order }]` array.
-- Also include `bundleItems` (snapshot rows) so multi-item bundles render properly instead of just `transaction_items.title`.
-- Keep existing `media: transaction_media` for legacy non-offer transactions (fallback).
+## Fix plan
 
-### 2. Service type update
-File: `src/services/agreement.service.ts`
-- Add `productMedia?: MediaItem[]` and `bundleItems?: BundleItem[]` to `AgreementData`.
+### 1. `supabase/functions/claim-offer/index.ts`
+When creating or reusing a `draft`/`awaiting_buyer` tx for a claimed offer, advance it to `awaiting_payment` immediately (the agreement is already locked-by-snapshot; buyer just needs to pay).
+- New tx path: insert with `status: 'awaiting_payment'`.
+- Reuse path: if reused tx is `draft` or `awaiting_buyer`, UPDATE to `awaiting_payment`. The state machine allows both transitions.
 
-### 3. UI: render images + videos
-File: `src/components/agreement/LockedSnapshotCard.tsx`
-- "Product Images" section:
-  - Source priority: `data.productMedia` (offer flow) → `data.media` (legacy).
-  - Filter `mime_type` starting with `image/` → grid of thumbnails (click to open lightbox/new tab).
-  - Filter `mime_type` starting with `video/` → render `<video controls poster=…>` with native preview controls.
-- Empty state only when both lists are empty.
-- "Item Details" section:
-  - If `bundleItems.length > 1`, render a small itemized list (title × qty @ unit price) instead of the single-line description.
+### 2. `supabase/functions/transaction-detail/index.ts`
+- Fix SELECT: replace `condition` → `condition_label` (and category may not exist; verify and drop if so).
+- Add productMedia fetch (same pattern as `transaction-agreement`): look up `source_offer_id` → `buyer_specific_offer_items.product_id[]` → `product_media` join `files`. Return `productMedia[]`.
+- For offer transactions, prefer the offer's bundle items for the displayed title/quantity so we never show "Untitled Item".
 
-### 4. No DB migration needed
-All required tables (`product_media`, `files`, `buyer_specific_offer_items`) already exist with appropriate access via service role inside the edge function.
+### 3. `src/pages/BuyerTransactionDetail.tsx`
+- Render the first product image from `productMedia` (image mime) inside the Item Details card instead of the empty placeholder.
+- When `status === 'awaiting_payment'`, show a primary CTA button "Review Agreement & Pay" → `/dashboard/transactions/:id/agreement`. (The `transaction-detail` response already includes `next_action.action = "review_agreement"` — just wire it to a visible button in the hero/status panel.)
+
+### 4. One-off data repair for the stuck transaction
+Run a single UPDATE to unblock the user right now:
+```sql
+UPDATE transactions
+SET status = 'awaiting_payment'
+WHERE id = '06c3374c-b4ac-4f91-9859-ba7a598f2125'
+  AND status = 'awaiting_buyer';
+```
 
 ## Files touched
-- `supabase/functions/transaction-agreement/index.ts` — fetch + return product media & bundle items
-- `src/services/agreement.service.ts` — extend response type
-- `src/components/agreement/LockedSnapshotCard.tsx` — render images grid + video player + bundle list
+- `supabase/functions/claim-offer/index.ts` — set `awaiting_payment` on create + transition on reuse
+- `supabase/functions/transaction-detail/index.ts` — fix column name, add productMedia, prefer offer bundle for title
+- `src/pages/BuyerTransactionDetail.tsx` — image rendering + "Review Agreement & Pay" CTA
+- Migration: one-off UPDATE for the stuck tx
 
 ## Out of scope
-- Lightbox component (use simple click-to-open in new tab; can upgrade later)
-- Editing media after agreement lock (already prevented by edit lock)
+- Auto-redirecting Detail → Agreement when status is `awaiting_payment` (intentional: buyer should be able to inspect detail then choose to pay).
+- Refactoring `awaiting_buyer` out of the state machine — it's still useful for seller-created drafts that need buyer email confirmation before payment.
