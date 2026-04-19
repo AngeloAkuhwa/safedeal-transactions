@@ -66,6 +66,12 @@ export default function BuyerTransactionReview() {
     queryKey: ["transaction-review", shareToken],
     queryFn: () => getTransactionReview(shareToken!),
     enabled: !!shareToken,
+    // Auto-refetch every 3s ONLY while payment is pending so the page
+    // flips to "funds held" as soon as the Paystack webhook lands.
+    refetchInterval: (q) => {
+      const ms = (q.state.data as ReviewData | undefined)?.transaction.money_status;
+      return ms === "payment_pending" ? 3000 : false;
+    },
   });
 
   // Fetch buyer verification for payment gating
