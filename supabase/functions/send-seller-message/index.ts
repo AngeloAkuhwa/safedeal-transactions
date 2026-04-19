@@ -110,16 +110,23 @@ Deno.serve(async (req) => {
 
     const senderName = senderProfile?.full_name || "A user";
 
-    // Create notification for recipient
+    // Create notification for recipient as a "direct_message" so it shows
+    // in the Messages bucket on both buyer and seller notification screens.
+    const recipientIsSeller = recipientId === txData.seller_id;
+    const deeplinkRoute = recipientIsSeller
+      ? `/seller/transactions/${transaction_id}#messages`
+      : `/dashboard/transactions/${transaction_id}#messages`;
+
     const { error: notifError } = await serviceClient.from("notifications").insert({
       user_id: recipientId,
-      type: "transaction_update",
+      type: "direct_message",
       channel: "in_app",
       title: `New message from ${senderName}`,
       message: message.trim().length > 100 ? message.trim().slice(0, 100) + "…" : message.trim(),
       related_transaction_id: transaction_id,
       status: "pending",
       is_read: false,
+      metadata: { event_type: "direct_message", route: deeplinkRoute },
     });
 
     if (notifError) {
