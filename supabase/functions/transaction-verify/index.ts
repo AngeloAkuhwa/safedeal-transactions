@@ -410,7 +410,7 @@ async function confirmReceipt(
       .from("escrow_states")
       .update({
         state: "released",
-        released_amount: escrow.held_amount,
+        released_amount: escrowRow.held_amount,
         held_amount: 0,
         last_changed_at: now2,
       })
