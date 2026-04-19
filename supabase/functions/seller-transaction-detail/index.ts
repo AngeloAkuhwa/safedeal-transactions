@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch related data in parallel
-    const [itemRes, deliveryTermsRes, linkRes, buyerProfileRes, buyerVerifRes, participantRes, escrowRes, pricingRes, snapshotRes, statusHistoryRes, deliveryTrackingRes] = await Promise.all([
+    const [itemRes, deliveryTermsRes, linkRes, buyerProfileRes, buyerVerifRes, participantRes, escrowRes, pricingRes, snapshotRes, statusHistoryRes, deliveryTrackingRes, deliveryConfRes] = await Promise.all([
       adminClient
         .from("transaction_items")
         .select("title, description, quantity, condition_label, brand, model")
@@ -120,13 +120,18 @@ Deno.serve(async (req) => {
         .eq("transaction_id", transactionId)
         .maybeSingle(),
       adminClient
-        .from("money_status_history")
+        .from("transaction_status_history")
         .select("old_status, new_status, changed_at, reason")
         .eq("transaction_id", transactionId)
         .order("changed_at", { ascending: true }),
       adminClient
         .from("delivery_tracking_details")
         .select("courier_name, tracking_number, tracking_url, shipped_at, delivered_at, expected_delivery_at")
+        .eq("transaction_id", transactionId)
+        .maybeSingle(),
+      adminClient
+        .from("delivery_confirmations")
+        .select("seller_marked_delivered_at, buyer_acknowledged_delivery_at, system_delivery_marked_at")
         .eq("transaction_id", transactionId)
         .maybeSingle(),
     ]);
