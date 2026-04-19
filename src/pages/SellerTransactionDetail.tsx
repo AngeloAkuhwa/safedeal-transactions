@@ -186,6 +186,14 @@ const SellerTransactionDetail = () => {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {tx.status === "completed" && completion_event && (
+          <TransactionCompletionBanner
+            variant={completion_event.variant}
+            completedAt={completion_event.completed_at}
+            perspective="seller"
+          />
+        )}
+
         {/* 3-column info grid */}
         <div className="grid md:grid-cols-3 gap-4">
           {/* Buyer Info */}
