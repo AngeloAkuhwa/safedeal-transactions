@@ -29,11 +29,12 @@ Deno.serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: userData, error: userError } = await adminClient.auth.getUser(token);
-    if (userError || !userData?.user) {
+    const { data: claimsData, error: claimsError } = await adminClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      console.error("seller-dashboard auth error:", claimsError);
       return jsonResponse({ error: "Invalid session" }, 401);
     }
-    const userId = userData.user.id;
+    const userId = claimsData.claims.sub as string;
 
     // Verify seller role
     const { data: hasRole, error: roleError } = await adminClient.rpc("has_role", {
