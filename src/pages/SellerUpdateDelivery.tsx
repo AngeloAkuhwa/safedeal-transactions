@@ -702,7 +702,7 @@ export default function SellerUpdateDelivery() {
           }}
           riderUrl={riderDialog.url}
           handoffCode={riderDialog.handoffCode}
-          itemTitle={tx?.item_title ?? null}
+          itemTitle={data?.product?.title ?? null}
           transactionCode={tx?.transaction_code ?? null}
         />
       )}
