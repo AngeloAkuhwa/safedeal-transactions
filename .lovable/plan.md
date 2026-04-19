@@ -1,61 +1,56 @@
 
 
-User approved the audit plan and wants Batch 8 implemented. Let me confirm what needs to happen — I have all the context from the prior plan.
+# Where to peg the rider confirmation link in the seller section
 
-# Batch 8 — Inventory Audit + Auto Out-of-Stock
+## What we already have
+- **Public rider page**: `/delivery/confirm/:token` (`DeliveryConfirm.tsx`) — matches your mockup design intent (token verify → buyer OTP → confirm).
+- **Token is generated** at dispatch in `update-delivery-status` and returned as `rider_confirmation_url`.
+- **Today** the link only appears once, in `RiderConfirmationDialog` immediately after the seller hits "Mark as Dispatched", then it's gone. The seller cannot retrieve it later — bad if they hand off to a different rider, lose the chat, or dispatch from desktop but need it on mobile.
 
-## What ships
+## The fix — surface the link in 3 persistent places
 
-### 1. Schema migration
+### 1. Seller Transaction Detail page — primary home
+**Route:** `/seller/transactions/:transactionId`
+**File:** `src/pages/SellerTransactionDetail.tsx`
 
-- New enum `product_inventory_change_type` (`restock`, `reserve`, `release`, `sold`, `manual_adjustment`)
-- New table `product_inventory_logs`:
-  - `id uuid pk`, `product_id`, `change_type`, `quantity_delta int`, `balance_after int`, `reference_type text null`, `reference_id uuid null`, `notes text null`, `changed_by_user_id uuid null`, `created_at`
-- RLS:
-  - Sellers: SELECT logs for products they own
-  - Admins: SELECT all
-  - INSERT only via service role (no client policy)
-- Trigger `auto_out_of_stock_status` on `products` AFTER UPDATE OF `stock_quantity, reserved_quantity`:
-  - If `stock_quantity - reserved_quantity <= 0` AND `status = 'published'` → flip to `out_of_stock`
-  - If `stock_quantity - reserved_quantity > 0` AND `status = 'out_of_stock'` → flip back to `published`
-  - Skip when status is `draft` or `archived`
+Add a new **"Rider Confirmation"** card (only visible when `tx.status` is `seller_dispatched` or `seller_preparing_delivery` AND a token exists) showing:
+- The shareable URL (copy button)
+- A **QR code** (rider scans from seller's phone/desktop)
+- WhatsApp share button
+- "Open" button
+- Token expiry countdown
+- Backup 6-digit handoff code (for pickup/meetup)
 
-### 2. Edge function changes
+This is the canonical "always reachable" location.
 
-Add a small inline `logInventoryChange()` helper to each function (no shared modules — project rule).
+### 2. Active Transactions list — quick access
+**File:** `src/pages/SellerTransactions.tsx`
+On any row whose status is `seller_dispatched`, add a small **"Rider link"** action button (icon-only on mobile) that opens the same dialog you already have (`RiderConfirmationDialog`). Saves a click for sellers managing several active dispatches.
 
-- **`cart-checkout`** + **`storefront-checkout`**: log `reserve` after `reserved_quantity` increment (`reference_type='transaction'`, `reference_id=transaction.id`)
-- **`buyer-cart`** (cart-expiry cleanup) + **`decline-transaction`** + cancel paths: log `release`
-- **`verify-paystack-payment`** + **`paystack-webhook`** on success: decrement BOTH `stock_quantity` and `reserved_quantity` by the purchased qty, then log `sold`. **This closes the latent bug where reserve never converts to sold.**
-- **`seller-products`** (PATCH new action `restock`): increment `stock_quantity` by `delta`, log `restock` with optional note. Also support `manual_adjustment` for absolute corrections.
+### 3. Seller Dashboard "Active Deliveries" widget
+**File:** `src/components/seller/SellerRecentActivity.tsx` (or the active-deliveries section)
+For each currently dispatched transaction, show a "Get rider link" quick action. This is what a seller sees first when they open the app on their phone before heading to the handoff.
 
-### 3. Frontend
+## Data plumbing required
+- `seller-transaction-detail` Edge Function: include the active token's URL + expiry from `delivery_confirmation_tokens` (where `status='active'`).
+- `seller-transactions` Edge Function: include a boolean `has_active_rider_token` per row (cheap join). Defer URL fetch to the row click.
+- `seller-dashboard` Edge Function: same boolean for the active deliveries widget.
 
-- New `RestockModal.tsx` on seller product detail (`SellerProductDetail.tsx`):
-  - Shows current stock + reserved + available
-  - Input: quantity to add, optional note
-  - Calls `seller-products` PATCH `{action:'restock', product_id, delta, notes}`
-- New `InventoryLogTable.tsx` showing the last 20 movements per product
-- Out-of-stock badge on `<ProductStatusBadge>` already exists — driven automatically by the trigger now
-- Service: `src/services/seller-products.service.ts` add `restockProduct()` + `getInventoryLogs()`
+## New shared component
+`src/components/seller/RiderLinkCard.tsx` — used on the detail page; shows URL + QR + WhatsApp + copy + expiry. Reuses logic from existing `RiderConfirmationDialog`.
 
-### 4. Archive safety check
+QR code: use `qrcode.react` (small, well-maintained, no system deps).
 
-Verify (read-only) that archiving via `seller-products` sets `status='archived'` + `is_active=false` without deleting the row, and that `product_inventory_logs.product_id` does NOT have `ON DELETE CASCADE` — keeps history even if a product is later hard-deleted by an admin.
+## Mockup alignment
+Your uploaded mockup is the **rider-facing** page. Our existing `DeliveryConfirm.tsx` already implements that flow but with simpler styling. Optional follow-up: restyle `DeliveryConfirm.tsx` to match the mockup more closely (glass-card, progress steps header, brand chip). Flag this as a separate small task — tell me if you want it included.
 
 ## Out of scope
+- SMS/push notification of the link to the rider (just copy/QR/WhatsApp for now).
+- Token rotation UI (regenerate if compromised) — easy follow-up.
+- Restyling the public rider page to match the mockup pixel-perfect (separate task).
 
-- Realtime stock notifications to seller
-- Bulk restock CSV
-- Inventory forecasting / alerts at low-stock thresholds (could be a follow-up)
-
-## Files touched
-
-**New:** migration, `src/components/seller/RestockModal.tsx`, `src/components/seller/InventoryLogTable.tsx`
-**Modified:** `supabase/functions/cart-checkout/index.ts`, `supabase/functions/storefront-checkout/index.ts`, `supabase/functions/buyer-cart/index.ts`, `supabase/functions/verify-paystack-payment/index.ts`, `supabase/functions/paystack-webhook/index.ts`, `supabase/functions/decline-transaction/index.ts`, `supabase/functions/seller-products/index.ts`, `src/pages/SellerProductDetail.tsx`, `src/services/seller-products.service.ts` (or create), `src/integrations/supabase/types.ts` (auto-regen)
-
-## Risk notes
-
-- The "convert reserve → sold" change in `verify-paystack-payment` is the highest-risk edit. It's currently silently skipped, so adding it is strictly safer, but I'll guard with idempotency: only decrement if a `sold` log row for the same `reference_id` (transaction_id) doesn't already exist.
-- The trigger flips status automatically — sellers cannot manually keep a published product visible at zero stock. This matches `mem://logic/product-status-definitions`.
+## Files to add / change
+**New:** `src/components/seller/RiderLinkCard.tsx`
+**Modified:** `src/pages/SellerTransactionDetail.tsx`, `src/pages/SellerTransactions.tsx`, `src/components/seller/SellerRecentActivity.tsx`, `supabase/functions/seller-transaction-detail/index.ts`, `supabase/functions/seller-transactions/index.ts`, `supabase/functions/seller-dashboard/index.ts`
+**Dependency:** add `qrcode.react`
 
