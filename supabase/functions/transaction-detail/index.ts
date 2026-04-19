@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     // Fetch transaction and validate buyer ownership
     const { data: tx, error: txError } = await adminClient
       .from("transactions")
-      .select("id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, created_at, updated_at, share_token")
+      .select("id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, created_at, updated_at, share_token, source_offer_id")
       .eq("id", transactionId)
       .single();
 
@@ -155,6 +155,31 @@ Deno.serve(async (req) => {
 
     const nextAction = deriveNextAction(tx.status, dispute?.id ?? null);
 
+    // Fetch product media for offer-sourced transactions
+    let productMedia: Array<{ product_id: string; file_url: string | null; secure_url: string | null; mime_type: string | null; media_type: string | null; sort_order: number }> = [];
+    if (tx.source_offer_id) {
+      const { data: offerItems } = await adminClient
+        .from("buyer_specific_offer_items")
+        .select("product_id")
+        .eq("offer_id", tx.source_offer_id);
+      const productIds = (offerItems ?? []).map((r: any) => r.product_id).filter(Boolean);
+      if (productIds.length > 0) {
+        const { data: mediaRows } = await adminClient
+          .from("product_media")
+          .select("product_id, media_type, sort_order, files:file_id (file_url, secure_url, mime_type)")
+          .in("product_id", productIds)
+          .order("sort_order", { ascending: true });
+        productMedia = (mediaRows ?? []).map((m: any) => ({
+          product_id: m.product_id,
+          file_url: m.files?.file_url ?? null,
+          secure_url: m.files?.secure_url ?? null,
+          mime_type: m.files?.mime_type ?? null,
+          media_type: m.media_type ?? null,
+          sort_order: m.sort_order ?? 0,
+        }));
+      }
+    }
+
     return jsonResponse({
       transaction: {
         id: tx.id,
@@ -166,7 +191,9 @@ Deno.serve(async (req) => {
         verification_deadline_at: verificationDeadlineAt,
         share_token: tx.share_token ?? null,
       },
-      item: item ?? { title: "Untitled Item", description: null, quantity: 1, condition: null, brand: null, model: null, category: null },
+      item: item
+        ? { title: item.title, description: item.description, quantity: item.quantity, condition: item.condition_label, brand: item.brand, model: item.model, category: null }
+        : { title: "Untitled Item", description: null, quantity: 1, condition: null, brand: null, model: null, category: null },
       pricing: computedPricing,
       delivery_terms: deliveryTerms,
       delivery_tracking: tracking,
@@ -185,6 +212,7 @@ Deno.serve(async (req) => {
       dispute: dispute ? { id: dispute.id, status: dispute.status, reason: dispute.reason, opened_at: dispute.opened_at, description: dispute.description } : null,
       agreement: agreement ? { locked_at: agreement.locked_at } : null,
       next_action: nextAction,
+      product_media: productMedia,
     });
   } catch (err) {
     console.error("transaction-detail error:", err);

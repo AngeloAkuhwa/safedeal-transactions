@@ -85,6 +85,15 @@ export interface TransactionNextAction {
   action: string | null;
 }
 
+export interface TransactionDetailProductMedia {
+  product_id: string;
+  file_url: string | null;
+  secure_url: string | null;
+  mime_type: string | null;
+  media_type: string | null;
+  sort_order: number;
+}
+
 export interface TransactionDetailResponse {
   transaction: {
     id: string;
@@ -108,6 +117,7 @@ export interface TransactionDetailResponse {
   dispute: TransactionDetailDispute | null;
   agreement: { locked_at: string } | null;
   next_action: TransactionNextAction;
+  product_media?: TransactionDetailProductMedia[];
 }
 
 export const getTransactionDetail = async (
