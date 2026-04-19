@@ -22,6 +22,7 @@ import { DeliveryMethodBadge, type DeliveryMethod } from "@/components/seller/De
 import { MissingTermsWarning } from "@/components/seller/MissingTermsWarning";
 import { FulfillmentGuidance } from "@/components/seller/FulfillmentGuidance";
 import { DispatchForm, emptyDispatchState, resolveCourierName, type DispatchFormState } from "@/components/seller/DispatchForm";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 function fmt(amount: number | undefined | null, currency: string) {
   const val = amount ?? 0;
@@ -65,6 +66,7 @@ export default function SellerUpdateDelivery() {
   const [dispatchState, setDispatchState] = useState<DispatchFormState>(emptyDispatchState);
   const [processingNote, setProcessingNote] = useState("");
   const [deliveredEvidence, setDeliveredEvidence] = useState<UploadedDeliveryFile[]>([]);
+  const [handoffCodeInput, setHandoffCodeInput] = useState("");
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadingNames, setUploadingNames] = useState<string[]>([]);
   const [dispatchUploadingNames, setDispatchUploadingNames] = useState<string[]>([]);
@@ -109,10 +111,11 @@ export default function SellerUpdateDelivery() {
     if (selectedAction === "delivered") {
       if (deliveredEvidence.length === 0) return false;
       if (deliveryMethod === "courier" && !dispatchState.trackingNumber.trim()) return false;
+      if ((deliveryMethod === "pickup" || deliveryMethod === "meetup") && handoffCodeInput.trim().length !== 6) return false;
       return true;
     }
     return false;
-  }, [selectedAction, deliveryMethod, dispatchState, deliveredEvidence.length]);
+  }, [selectedAction, deliveryMethod, dispatchState, deliveredEvidence.length, handoffCodeInput]);
 
   const canSubmit =
     isValid &&
@@ -182,6 +185,10 @@ export default function SellerUpdateDelivery() {
         pickupReadyAt: dispatchState.pickupReadyAt || null,
         riderName: dispatchState.riderName.trim() || null,
         riderPhone: dispatchState.riderPhone.trim() || null,
+        handoffCodeInput:
+          selectedAction === "delivered" && (deliveryMethod === "pickup" || deliveryMethod === "meetup")
+            ? handoffCodeInput.trim()
+            : null,
       });
 
       let successDesc = `Status updated to ${selectedAction} successfully.`;
