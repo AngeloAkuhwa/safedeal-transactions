@@ -4,12 +4,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Loader2, Save, Archive, Eye, EyeOff, ExternalLink,
   Globe, Users, Lock, Copy, Share2, ShieldCheck, Trash2,
-  Info, ImageIcon, Banknote, Handshake,
+  Info, ImageIcon, Banknote, Handshake, PackagePlus,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ManageVisibilityModal } from "@/components/storefront/ManageVisibilityModal";
 import { PublishSuccessModal } from "@/components/storefront/PublishSuccessModal";
+import { RestockModal } from "@/components/seller/RestockModal";
+import { InventoryLogTable } from "@/components/seller/InventoryLogTable";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -60,6 +62,7 @@ const SellerProductDetail = () => {
   const [verificationWindow, setVerificationWindow] = useState("48");
   const [visibilityModalOpen, setVisibilityModalOpen] = useState(false);
   const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
+  const [restockOpen, setRestockOpen] = useState(false);
 
   const { data: dashData } = useQuery({
     queryKey: ["seller-dashboard"],
@@ -425,12 +428,24 @@ const SellerProductDetail = () => {
                 </div>
               {/* Pricing & Stock */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
-                <div className="px-6 py-4 border-b border-border">
+                <div className="px-6 py-4 border-b border-border flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <Banknote className="h-5 w-5 text-primary" />
-                    <h2 className="text-lg font-semibold text-foreground">Pricing & Stock</h2>
+                    <div>
+                      <h2 className="text-lg font-semibold text-foreground">Pricing & Stock</h2>
+                      <p className="text-sm text-muted-foreground mt-1">Set your price and manage inventory</p>
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">Set your price and manage inventory</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRestockOpen(true)}
+                    className="gap-1.5"
+                  >
+                    <PackagePlus className="h-3.5 w-3.5" />
+                    Restock
+                  </Button>
                 </div>
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -444,11 +459,18 @@ const SellerProductDetail = () => {
                     <div>
                       <Label className="text-sm font-medium text-foreground">Stock Quantity</Label>
                       <Input type="number" value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} className="mt-1.5 px-4 py-3 rounded-lg" />
+                      <p className="text-xs text-muted-foreground mt-1.5">
+                        Reserved: <span className="font-semibold text-amber-500">{product.reserved_quantity || 0}</span>{" "}
+                        · Available: <span className="font-semibold text-emerald-500">{Math.max(0, (product.stock_quantity || 0) - (product.reserved_quantity || 0))}</span>
+                      </p>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">You'll be notified when stock runs low</p>
+                  <p className="text-xs text-muted-foreground">Manual stock edits are logged in the inventory history below.</p>
                 </div>
               </div>
+
+              {/* Inventory History */}
+              <InventoryLogTable productId={productId!} />
 
               {/* Agreement & Delivery */}
               <div className="bg-card border border-border rounded-2xl shadow-sm">
