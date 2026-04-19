@@ -29,12 +29,18 @@ Deno.serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: claimsData, error: claimsError } = await adminClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
-      console.error("seller-dashboard auth error:", claimsError);
+    // Stateless JWT decode (avoid session-bound getUser which fails after session revoke)
+    let userId: string;
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (!payload?.sub || (payload.exp && payload.exp * 1000 < Date.now())) {
+        return jsonResponse({ error: "Invalid session" }, 401);
+      }
+      userId = payload.sub as string;
+    } catch (e) {
+      console.error("seller-dashboard JWT decode error:", e);
       return jsonResponse({ error: "Invalid session" }, 401);
     }
-    const userId = claimsData.claims.sub as string;
 
     // Verify seller role
     const { data: hasRole, error: roleError } = await adminClient.rpc("has_role", {
