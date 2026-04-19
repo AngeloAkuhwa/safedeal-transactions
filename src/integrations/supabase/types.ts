@@ -3744,6 +3744,7 @@ export type Database = {
         | "payout_released"
         | "auto_cancelled"
         | "auto_released"
+        | "handoff_code_verified"
       transaction_media_type: "image" | "video"
       transaction_party_role: "buyer" | "seller"
       transaction_status:
@@ -4100,6 +4101,7 @@ export const Constants = {
         "payout_released",
         "auto_cancelled",
         "auto_released",
+        "handoff_code_verified",
       ],
       transaction_media_type: ["image", "video"],
       transaction_party_role: ["buyer", "seller"],
