@@ -302,11 +302,35 @@ async function confirmReceipt(
   if (tx.money_status !== "funds_held_in_escrow") {
     return jsonResponse({ error: "Funds not held in escrow" }, 409);
   }
-  if (!escrow || escrow.state !== "held") {
-    return jsonResponse({ error: "Escrow not in held state" }, 409);
-  }
   if (tx.verification_deadline_at && new Date(tx.verification_deadline_at) < new Date()) {
     return jsonResponse({ error: "Verification window has expired" }, 410);
+  }
+
+  // Self-heal: backfill escrow_states row if missing (legacy data gap)
+  let escrowRow = escrow;
+  if (!escrowRow) {
+    const { data: pricingForBackfill } = await admin
+      .from("transaction_pricing")
+      .select("buyer_total_amount")
+      .eq("transaction_id", transactionId)
+      .single();
+    const heldAmount = pricingForBackfill?.buyer_total_amount ?? 0;
+    const { data: inserted, error: insertErr } = await admin
+      .from("escrow_states")
+      .insert({
+        transaction_id: transactionId,
+        state: "held",
+        held_amount: heldAmount,
+      })
+      .select("*")
+      .single();
+    if (insertErr || !inserted) {
+      console.error("Failed to backfill escrow_states:", insertErr);
+      return jsonResponse({ error: "Escrow record missing and could not be created" }, 500);
+    }
+    escrowRow = inserted;
+  } else if (escrowRow.state !== "held") {
+    return jsonResponse({ error: "Escrow not in held state" }, 409);
   }
 
   // Get pricing for payout
@@ -386,7 +410,7 @@ async function confirmReceipt(
       .from("escrow_states")
       .update({
         state: "released",
-        released_amount: escrow.held_amount,
+        released_amount: escrowRow.held_amount,
         held_amount: 0,
         last_changed_at: now2,
       })
