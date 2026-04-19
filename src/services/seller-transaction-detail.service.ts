@@ -76,6 +76,12 @@ export interface SellerTransactionDetailResponse {
     delivered_at: string | null;
     expected_delivery_at: string | null;
   } | null;
+  delivery_terms: {
+    delivery_method: string;
+    expected_delivery_date: string | null;
+    verification_window_hours: number | null;
+    address: string | null;
+  } | null;
   timeline: TimelineStep[];
   next_action: {
     title: string;
