@@ -1,74 +1,88 @@
 
-# Fix: Buyer Stuck on "Pay Now" — Region Eligibility Mismatch (NOT a flow bug)
 
-## Root cause (verified in DB)
+# Fix: Private offer media never linked → buyer sees no images/videos
 
-The buyer payment flow is **NOT broken** and works the same for marketplace + private offers. What's blocking `angeloakuhwak@gmail.com` from clicking Pay:
+## Root cause (verified end-to-end against the DB)
 
-| Field | Value |
-|---|---|
-| `state_name` | `Lagos` |
-| `city_name` | `Lekki` ❌ |
-| `is_region_eligible` | `false` |
+The seller uploaded 1 image + 1 video for "Touch Light Phone" through the Create Transaction wizard. After payment, the buyer sees no media because **the file rows were never linked to either `transaction_media` (draft) or `product_media` (published product)**. The files exist orphaned in the `files` table.
 
-`"Lekki"` is **not a valid Lagos LGA** in `serviceable_regions`. The real LGAs are `Eti-Osa` (Lekki Phase 1/Phase 2/VI) and `Ibeju-Lekki` (Sangotedo, Awoyaya). So `buyer-profile` correctly set `is_region_eligible=false`, and the Review/Pay pages correctly show the "region" lock banner — payment is blocked by design.
+There are **3 cooperating bugs** in the publish flow, all in `supabase/functions/create-transaction/index.ts`:
 
-The "Pay Now" button is sitting behind: *"Protected transactions are only available in Lagos during launch — Update your location to a Lagos LGA in Profile Settings."* The user likely scrolled past that banner.
+### Bug A — `handleSaveDraft` accepts `file_ids` but never inserts into `transaction_media`
+Lines 184–186 only flip `is_temporary=false` on the file rows. There is no `INSERT INTO transaction_media (transaction_id, file_id, media_type, sort_order)`. So the draft has zero linked media.
 
-## Why other preseeded users feel "alive"
+### Bug B — `handlePublish` queries a column that doesn't exist
+Line 279 selects `display_order` from `transaction_media`, but the actual column is `sort_order`. The Supabase JS query errors out, `mediaFilesRes.data` becomes `null`, then `mediaFiles = []` (line 291). The downstream `product_media` insert (line 391) is silently skipped.
 
-Preseeded users (`buyer@samplestore.test`, `seller@…`) have `city_name='Ajeromi-Ifelodun'` / `'Lagos'` with `is_region_eligible=true` (seeded directly, bypassing validation). So they sail through.
+### Bug C — Same wrong column used in two more places
+- `verify-paystack-payment/index.ts` lines 226, 228 → snapshot JSON for the agreement also fails to read media.
+- `resolve-share-token/index.ts` lines 85 → the share-token review page can't read media either.
+Both reference `display_order` instead of `sort_order`.
 
-## The flow IS unified
+### Net effect
+`product_media` for product `48048ef2…` has 0 rows. So `transaction-agreement` and `transaction-detail` (which we recently fixed to read from `product_media`) correctly return empty arrays — there is genuinely nothing to show. The seller's uploads were lost from the user-visible flow.
 
-Marketplace and private-offer buyers both hit the same gates in this order:
-```text
-/t/:shareToken (Review)  →  canPay check (buyer-profile.permissions)
-       ↓ Pay clicked
-/t/:shareToken/pay (Payment Summary)  →  same canPay check + agree-to-terms
-       ↓
-initiate-paystack-payment edge function  →  Gates 1–4 (verification, region, amount, concurrency)
-       ↓ Paystack popup
-verify-paystack-payment  →  payment_secured
-```
-No path divergence. The single difference is that private-offer transactions arrive at `/t/:shareToken` already locked-by-snapshot via `claim-offer`.
+## Fix plan
 
-## Plan — two complementary fixes
+### 1. `supabase/functions/create-transaction/index.ts` (primary fix)
 
-### Fix 1 (immediate unblock): repair this user's profile data
+**`handleSaveDraft` — actually link uploaded files to the draft.**
+After the `Promise.all` block, replace the existing `transaction_media` rows for this draft with the latest `file_ids`:
+- `DELETE FROM transaction_media WHERE transaction_id = :draft AND file_id NOT IN (:file_ids)`
+- For each `file_id`, infer `media_type` from `files.mime_type` (`image/*` → `image`, `video/*` → `video`)
+- `UPSERT INTO transaction_media (transaction_id, file_id, media_type, sort_order)` ordered by the array position. Use `onConflict: "transaction_id,file_id"` (need a unique index — see step 4).
 
-One-shot SQL — set the buyer to a real, active Lagos LGA so `is_region_eligible` becomes true. We'll use `Eti-Osa` (which contains the Lekki area):
+**`handlePublish` — fix the read.**
+Line 279: `display_order` → `sort_order` (also update the `.order(...)` call).
+
+**`handlePublish` — make the `product_media` insert robust.**
+Already correct (lines 381–393), but add an `if (error) console.error` after the insert so future failures surface in logs instead of being swallowed.
+
+### 2. `supabase/functions/verify-paystack-payment/index.ts`
+Lines 226 & 228: replace `display_order` with `sort_order` in the SELECT and the `.order(...)`. This ensures the immutable agreement snapshot built at payment time also captures the media URLs.
+
+### 3. `supabase/functions/resolve-share-token/index.ts`
+Lines 85 & next-line `.order(...)`: same `display_order` → `sort_order` rename so the public review page (used for buyer-specific offers and marketplace shares) renders media correctly.
+
+### 4. One-off SQL data repair (migration)
+Backfill the orphaned files for this stuck transaction and any similar cases:
+
 ```sql
-UPDATE profiles 
-SET city_name = 'Eti-Osa', is_region_eligible = true 
-WHERE id = 'd7e198dd-aabc-4bd5-b9b9-7fab57543359';
+-- Step 1: For the specific stuck product, link the latest image+video the seller uploaded
+INSERT INTO product_media (product_id, file_id, media_type, sort_order, is_primary)
+VALUES
+  ('48048ef2-38d5-4ffe-887b-3acea32bca92',
+   '932b7a35-fea9-4bb9-8b5f-b350743db615', 'image', 0, true),
+  ('48048ef2-38d5-4ffe-887b-3acea32bca92',
+   '0e2d64a3-e0be-4447-ace7-10f5d08a4010', 'video', 1, false);
+
+-- Step 2: Update the offer item's primary_media_url for thumbnail rendering
+UPDATE buyer_specific_offer_items
+SET primary_media_url = (SELECT file_url FROM files WHERE id = '932b7a35-fea9-4bb9-8b5f-b350743db615')
+WHERE offer_id = 'e16a3324-692c-4496-bcf8-bed5be74dcf2';
+
+-- Step 3: Add unique index for future onConflict upserts
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_transaction_media_txn_file
+  ON transaction_media (transaction_id, file_id);
 ```
 
-Then recompute their verification level via the existing `compute_verification_level` RPC so `basic_verified` sticks.
+## Why this is the right fix (not a quick hack)
 
-### Fix 2 (UX clarity): make the lock reason *louder* and *actionable inline*
-
-Today the region lock banner sits at the top of the Pay page but the big "Pay" CTA in the right column shows the price label and is `disabled` — users don't always connect the two. We'll:
-
-1. **`BuyerTransactionReview.tsx` → `NextActionCard`**: when `lockReason === "region"`, replace the disabled "Pay …" button with an enabled **"Update Location to Continue"** button that routes to `/dashboard/profile#location`. Same for `"verification"` and `"concurrency"` (already partially handled — make consistent).
-2. **`BuyerPaymentSummary.tsx`**: do the same on the right-rail Pay button so the user can't just sit and wonder why the disabled button won't click.
-3. Add a small `<a href="#location">` anchor target in `PersonalInfoSection.tsx` so the deep-link scrolls to the LGA selector.
-
-### Fix 3 (data hygiene): block invalid stale values
-
-The buyer's profile got into a `'Lekki'` state somehow (probably seeded or updated via an older free-text input). To prevent recurrence:
-- Add a one-off migration that sweeps all `profiles` where `state_name`/`city_name` doesn't match an active row in `serviceable_regions` and force `is_region_eligible=false` (already the case here, but make it deterministic + log how many rows were touched).
-- No schema change needed; the edge function already validates on update.
+- Restores the documented data flow: `upload-evidence` → `files` → `transaction_media` (draft) → `product_media` (on publish).
+- Fixes the bug for **all** future private offers, not just this user. Marketplace listings already work because `seller-products` correctly inserts into `product_media`.
+- Backfills the one stuck record so this buyer sees their already-paid item without re-upload.
+- The agreement snapshot and the public share page also start showing media.
 
 ## Files touched
 
-- **SQL migration** — repair the user's row + global re-validation sweep.
-- `src/pages/BuyerTransactionReview.tsx` — `NextActionCard`: render an "Update Location" / "Verify Account" / "View My Transactions" CTA instead of the disabled Pay button when `lockReason` is set.
-- `src/pages/BuyerPaymentSummary.tsx` — same pattern on the Pay summary right rail.
-- `src/components/profile/PersonalInfoSection.tsx` — add `id="location"` anchor on the location card so `#location` deep-links scroll into view.
+- `supabase/functions/create-transaction/index.ts` — link media on draft save; rename `display_order` → `sort_order`; log media insert errors.
+- `supabase/functions/verify-paystack-payment/index.ts` — rename `display_order` → `sort_order` (×2).
+- `supabase/functions/resolve-share-token/index.ts` — rename `display_order` → `sort_order` (×2).
+- New migration: backfill `product_media` for product `48048ef2…`, set `primary_media_url`, and add `uniq_transaction_media_txn_file` unique index.
 
 ## Out of scope
 
-- Adding "Lekki" to `serviceable_regions` as its own LGA — it isn't one.
-- Changing the regional gate itself (intentional Lagos-only launch policy per `mem://constraints/regional-rollout`).
-- Any change to the state machine, `claim-offer`, `transaction-agreement`, or Paystack flow — they're working correctly end-to-end.
+- Changing the wizard UI (the client already sends `file_ids` correctly).
+- Migrating away from `transaction_media` entirely (still useful as a draft staging table; we just need the link to work).
+- Any change to `transaction-agreement` or `transaction-detail` — they already read `product_media` correctly from our previous fix; they were just receiving an empty set.
+
