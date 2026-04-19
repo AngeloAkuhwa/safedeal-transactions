@@ -97,11 +97,34 @@ Deno.serve(async (req) => {
     if (tx.seller_id !== userId) return jsonResponse({ error: "Not authorized" }, 403);
 
     // Fetch delivery terms
-    const { data: terms } = await admin
+    let { data: terms } = await admin
       .from("transaction_delivery_terms")
       .select("delivery_method, verification_window_hours")
       .eq("transaction_id", transaction_id)
       .maybeSingle();
+
+    // Repair fallback: if terms are somehow missing (legacy/edge-case),
+    // bootstrap a default row so fulfillment isn't blocked.
+    if (!terms) {
+      console.warn(`Missing delivery terms for transaction ${transaction_id} — bootstrapping defaults`);
+      const { data: bootstrapped, error: bootstrapErr } = await admin
+        .from("transaction_delivery_terms")
+        .insert({
+          transaction_id,
+          delivery_method: "courier",
+          expected_delivery_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .slice(0, 10),
+          verification_window_hours: 72,
+        })
+        .select("delivery_method, verification_window_hours")
+        .single();
+      if (bootstrapErr) {
+        console.error("Failed to bootstrap delivery terms:", bootstrapErr);
+      } else {
+        terms = bootstrapped;
+      }
+    }
 
     const deliveryMethod = terms?.delivery_method ?? "courier";
     const verificationWindowHours = terms?.verification_window_hours ?? 72;
