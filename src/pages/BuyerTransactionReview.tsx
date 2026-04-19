@@ -203,101 +203,190 @@ export default function BuyerTransactionReview() {
         </div>
       </section>
 
-      {/* Transaction header */}
-      <section className="bg-card border-b py-6">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/30">
-                  <FileText className="h-3 w-3 mr-1" />
-                  Transaction #{data.transaction.transaction_code}
-                </Badge>
-                <Badge className="bg-warning/10 text-warning border-warning/30 hover:bg-warning/10">
-                  <span className="w-2 h-2 bg-warning rounded-full mr-1.5 animate-pulse" />
-                  Payment Pending
-                </Badge>
+      {/* Transaction header — driven by live money_status / agreement_locked_at */}
+      {(() => {
+        const ms = data.transaction.money_status;
+        const locked = !!data.transaction.agreement_locked_at;
+        let chipClass = "bg-warning/10 text-warning border-warning/30 hover:bg-warning/10";
+        let dotClass = "bg-warning";
+        let chipLabel = "Payment Pending";
+        if (ms === "funds_held_in_escrow" || locked) {
+          chipClass = "bg-success/10 text-success border-success/30 hover:bg-success/10";
+          dotClass = "bg-success";
+          chipLabel = "Funds Held Securely";
+        } else if (ms === "funds_releasing" || ms === "funds_released") {
+          chipClass = "bg-primary/10 text-primary border-primary/30 hover:bg-primary/10";
+          dotClass = "bg-primary";
+          chipLabel = ms === "funds_released" ? "Funds Released" : "Releasing Funds";
+        } else if (ms === "refund_pending" || ms === "refund_issued") {
+          chipClass = "bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/10";
+          dotClass = "bg-destructive";
+          chipLabel = ms === "refund_issued" ? "Refunded" : "Refund Pending";
+        }
+        return (
+          <section className="bg-card border-b py-6">
+            <div className="max-w-7xl mx-auto px-4">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/30">
+                      <FileText className="h-3 w-3 mr-1" />
+                      Transaction #{data.transaction.transaction_code}
+                    </Badge>
+                    <Badge className={chipClass}>
+                      <span className={`w-2 h-2 rounded-full mr-1.5 ${ms === "payment_pending" ? "animate-pulse" : ""} ${dotClass}`} />
+                      {chipLabel}
+                    </Badge>
+                  </div>
+                  <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+                    {locked ? "Locked Transaction Agreement" : "Review Transaction Agreement"}
+                  </h1>
+                  <p className="text-muted-foreground mt-1">
+                    {locked
+                      ? "Payment received. Agreement is now immutable for both parties."
+                      : "Please review all details carefully before proceeding with payment"}
+                  </p>
+                </div>
+                <Button variant="outline" size="sm">
+                  <HelpCircle className="h-4 w-4" />
+                  Help
+                </Button>
               </div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Review Transaction Agreement</h1>
-              <p className="text-muted-foreground mt-1">Please review all details carefully before proceeding with payment</p>
             </div>
-            <Button variant="outline" size="sm">
-              <HelpCircle className="h-4 w-4" />
-              Help
-            </Button>
-          </div>
-        </div>
-      </section>
+          </section>
+        );
+      })()}
 
-      {/* Money state preview */}
-      <section className="py-4 bg-muted border-b">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-warning/10 rounded-lg flex items-center justify-center">
-              <Hourglass className="h-5 w-5 text-warning" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Transaction Status</p>
-              <p className="text-sm font-bold text-foreground">Awaiting Payment</p>
-            </div>
-          </div>
-          <div className="hidden sm:block w-px h-10 bg-border" />
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
-              <LockOpen className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Money Status</p>
-              <p className="text-sm font-bold text-muted-foreground">Not Yet Secured</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Lock warning */}
-      <section className="py-6 bg-destructive/5">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="bg-card border-2 border-destructive/40 rounded-2xl shadow-lg p-6">
-            <div className="flex items-start gap-4">
-              <div className="w-14 h-14 bg-destructive/10 rounded-xl flex items-center justify-center shrink-0">
-                <Lock className="h-7 w-7 text-destructive" />
+      {/* Money state preview — driven by live state */}
+      {(() => {
+        const ms = data.transaction.money_status;
+        const locked = !!data.transaction.agreement_locked_at;
+        const fundsHeld = ms === "funds_held_in_escrow" || locked;
+        const txStatusLabel = fundsHeld
+          ? "Payment Secured"
+          : ms === "payment_pending"
+          ? "Payment Processing"
+          : "Awaiting Payment";
+        const moneyLabel = fundsHeld
+          ? "Funds Held in Escrow"
+          : ms === "payment_pending"
+          ? "Verifying Payment…"
+          : "Not Yet Secured";
+        return (
+          <section className="py-4 bg-muted border-b">
+            <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-6">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${fundsHeld ? "bg-success/10" : "bg-warning/10"}`}>
+                  {fundsHeld ? <Lock className="h-5 w-5 text-success" /> : <Hourglass className="h-5 w-5 text-warning" />}
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Transaction Status</p>
+                  <p className="text-sm font-bold text-foreground">{txStatusLabel}</p>
+                </div>
               </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-foreground mb-3">Critical: Agreement Becomes Permanently Locked After Payment</h3>
-                <div className="space-y-2 mb-4">
-                  {[
-                    { bold: "Item details", rest: "(title, description, images) cannot be changed" },
-                    { bold: "Quantity and condition", rest: "specifications are frozen" },
-                    { bold: "Agreed price and currency", rest: "become immutable" },
-                    { bold: "Delivery terms and verification window", rest: "are locked" },
-                  ].map((item) => (
-                    <div key={item.bold} className="flex items-start gap-2">
-                      <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-bold text-foreground">{item.bold}</span> {item.rest}
-                      </p>
+              <div className="hidden sm:block w-px h-10 bg-border" />
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${fundsHeld ? "bg-success/10" : "bg-muted"}`}>
+                  {fundsHeld ? <Lock className="h-5 w-5 text-success" /> : <LockOpen className="h-5 w-5 text-muted-foreground" />}
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Money Status</p>
+                  <p className={`text-sm font-bold ${fundsHeld ? "text-success" : "text-muted-foreground"}`}>{moneyLabel}</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* Lock state — green confirmation when locked, red warning when not */}
+      {data.transaction.agreement_locked_at ? (
+        <section className="py-6 bg-success/5">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="bg-card border-2 border-success/40 rounded-2xl shadow-lg p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 bg-success/10 rounded-xl flex items-center justify-center shrink-0">
+                  <ShieldCheck className="h-7 w-7 text-success" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-foreground mb-3">Agreement Locked &amp; Funds Held Securely</h3>
+                  <div className="space-y-2 mb-4">
+                    {[
+                      { bold: "Item details", rest: "are now frozen and cannot be edited" },
+                      { bold: "Quantity, condition, and price", rest: "are immutable" },
+                      { bold: "Delivery terms and verification window", rest: "are locked" },
+                      { bold: "Your payment", rest: "is held in SafeDeal escrow until you confirm receipt" },
+                    ].map((item) => (
+                      <div key={item.bold} className="flex items-start gap-2">
+                        <CheckCircle className="h-4 w-4 text-success mt-0.5 shrink-0" />
+                        <p className="text-sm text-muted-foreground">
+                          <span className="font-bold text-foreground">{item.bold}</span> {item.rest}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-success/10 border border-success/30 rounded-lg p-3 mb-4">
+                    <div className="flex items-center gap-2 text-sm text-success">
+                      <Lock className="h-4 w-4 shrink-0" />
+                      <span className="font-bold">Locked on {format(new Date(data.transaction.agreement_locked_at), "MMM d, yyyy 'at' h:mm a")}</span>
                     </div>
-                  ))}
-                </div>
-                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
-                  <div className="flex items-center gap-2 text-sm text-destructive">
-                    <AlertTriangle className="h-4 w-4 shrink-0" />
-                    <span className="font-bold">Neither buyer nor seller can modify the agreement after payment is made</span>
                   </div>
+                  {authState === "ready" && (
+                    <Button onClick={() => navigate(`/dashboard/transactions/${data.transaction.id}`)} className="rounded-xl">
+                      View Transaction
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  )}
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section className="py-6 bg-destructive/5">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="bg-card border-2 border-destructive/40 rounded-2xl shadow-lg p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 bg-destructive/10 rounded-xl flex items-center justify-center shrink-0">
+                  <Lock className="h-7 w-7 text-destructive" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-foreground mb-3">Critical: Agreement Becomes Permanently Locked After Payment</h3>
+                  <div className="space-y-2 mb-4">
+                    {[
+                      { bold: "Item details", rest: "(title, description, images) cannot be changed" },
+                      { bold: "Quantity and condition", rest: "specifications are frozen" },
+                      { bold: "Agreed price and currency", rest: "become immutable" },
+                      { bold: "Delivery terms and verification window", rest: "are locked" },
+                    ].map((item) => (
+                      <div key={item.bold} className="flex items-start gap-2">
+                        <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                        <p className="text-sm text-muted-foreground">
+                          <span className="font-bold text-foreground">{item.bold}</span> {item.rest}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-sm text-destructive">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      <span className="font-bold">Neither buyer nor seller can modify the agreement after payment is made</span>
+                    </div>
+                  </div>
 
-                {/* Pre-payment info banner */}
-                <div className="mt-4 bg-primary/10 border border-primary/30 rounded-lg p-3">
-                  <div className="flex items-center gap-2 text-sm text-primary">
-                    <Info className="h-4 w-4 shrink-0" />
-                    <span className="font-semibold">The seller may still update transaction details until payment is completed</span>
+                  {/* Pre-payment info banner */}
+                  <div className="mt-4 bg-primary/10 border border-primary/30 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-sm text-primary">
+                      <Info className="h-4 w-4 shrink-0" />
+                      <span className="font-semibold">The seller may still update transaction details until payment is completed</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Main content */}
       <div className="max-w-7xl mx-auto px-4 py-8 w-full">
