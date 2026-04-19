@@ -155,6 +155,7 @@ Deno.serve(async (req) => {
     const statusHistory = statusHistoryRes.data ?? [];
     const deliveryTracking = deliveryTrackingRes.data;
     const deliveryConf = deliveryConfRes.data as Record<string, unknown> | null;
+    const riderTokenRow = riderTokenRes.data as Record<string, unknown> | null;
 
     // Derive completion event (reason-aware)
     let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" } | null = null;
