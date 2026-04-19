@@ -311,9 +311,9 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
     adminClient.from("transaction_notes").select("*").eq("transaction_id", draftId).maybeSingle(),
     adminClient
       .from("transaction_media")
-      .select("file_id, media_type, display_order")
+      .select("file_id, media_type, sort_order")
       .eq("transaction_id", draftId)
-      .order("display_order"),
+      .order("sort_order"),
     adminClient.from("transaction_items").select("*").eq("transaction_id", draftId).maybeSingle(),
   ]);
 
