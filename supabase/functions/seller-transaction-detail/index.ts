@@ -298,6 +298,15 @@ Deno.serve(async (req) => {
     const shareToken = link?.share_token ?? null;
     const shareUrl = shareToken ? `/t/${shareToken}` : null;
 
+    // Active rider confirmation token (only relevant during dispatch/delivery)
+    const riderLink = riderTokenRow?.token
+      ? {
+          token: riderTokenRow.token as string,
+          path: `/delivery/confirm/${riderTokenRow.token as string}`,
+          expires_at: (riderTokenRow.expires_at as string) ?? null,
+        }
+      : null;
+
     return jsonResponse({
       transaction: {
         id: tx.id,
