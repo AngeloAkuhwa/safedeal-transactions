@@ -165,6 +165,8 @@ export interface UpdateDeliveryStatusResult {
   delivered_at?: string | null;
   verification_deadline_at?: string | null;
   handoff_code?: string | null;
+  rider_token?: string | null;
+  rider_confirmation_url?: string | null;
 }
 
 export async function updateDeliveryStatus(

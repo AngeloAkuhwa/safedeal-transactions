@@ -50,6 +50,7 @@ import OfferClaimLanding from "./pages/OfferClaimLanding";
 import BuyerPrivateOffers from "./pages/BuyerPrivateOffers";
 import AdminOffers from "./pages/AdminOffers";
 import AdminOfferDetail from "./pages/AdminOfferDetail";
+import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="/store/:sellerSlug" element={<PublicStorefront />} />
             <Route path="/store/:sellerSlug/:productSlug" element={<PublicProductDetail />} />
             <Route path="/offer/:offerToken" element={<OfferClaimLanding />} />
+            <Route path="/delivery/confirm/:token" element={<DeliveryConfirm />} />
 
             {/* Protected: requires session */}
             <Route element={<ProtectedRoute />}>

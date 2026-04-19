@@ -196,10 +196,15 @@ export default function DeliveryConfirm() {
 
         {stage === "confirmed" && (
           <div className="space-y-4">
-            <div className="rounded-xl border-2 border-green-500/30 bg-green-500/5 p-6 text-center space-y-3">
-              <div className="mx-auto h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+            <div className="rounded-xl border-2 border-success/30 bg-success/5 p-6 text-center space-y-3">
+              <div className="mx-auto h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
+                <CheckCircle2 className="h-6 w-6 text-success" />
               </div>
+              <p className="text-base font-bold text-foreground">Delivery confirmed</p>
+              <p className="text-sm text-muted-foreground">
+                The buyer now has time to inspect the item before funds are released. Thanks for delivering with SafeDeal.
+              </p>
+            </div>
               <p className="text-base font-bold text-foreground">Delivery confirmed</p>
               <p className="text-sm text-muted-foreground">
                 The buyer now has time to inspect the item before funds are released. Thanks for delivering with SafeDeal.
