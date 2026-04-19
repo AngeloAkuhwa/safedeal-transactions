@@ -630,6 +630,11 @@ const BuyerTransactionDetail = () => {
               </div>
             )}
 
+            {/* ── Locked Delivery Terms ── */}
+            {delivery_terms && agreement && (
+              <DeliveryTermsCard terms={delivery_terms} lockedAt={agreement.locked_at} />
+            )}
+
             {/* ── Seller Information (desktop, scrolls normally) ── */}
             {seller && (
               <div className="hidden lg:block bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-6">
