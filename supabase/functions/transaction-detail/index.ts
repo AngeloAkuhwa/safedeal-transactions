@@ -214,6 +214,7 @@ Deno.serve(async (req) => {
         created_at: tx.created_at,
         verification_deadline_at: verificationDeadlineAt,
         share_token: tx.share_token ?? null,
+        agreement_locked_at: tx.agreement_locked_at ?? null,
       },
       item: item
         ? { title: item.title, description: item.description, quantity: item.quantity, condition: item.condition_label, brand: item.brand, model: item.model, category: null }
