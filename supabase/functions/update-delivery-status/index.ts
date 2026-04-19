@@ -389,12 +389,13 @@ Deno.serve(async (req) => {
       action === "dispatched" ||
       action === "delivered"
     ) {
-      const trackingPayload: Record<string, unknown> = {
-        transaction_id,
-        tracking_number: tracking_number?.trim() || null,
-        courier_name: courier_name?.trim() || rider_name?.trim() || null,
-        tracking_url: tracking_url?.trim() || null,
-      };
+      // IMPORTANT: only set fields the caller actually provided so a later
+      // `delivered` upsert doesn't wipe out values written at `dispatched` time.
+      const trackingPayload: Record<string, unknown> = { transaction_id };
+      if (tracking_number?.trim()) trackingPayload.tracking_number = tracking_number.trim();
+      const resolvedCourier = courier_name?.trim() || rider_name?.trim();
+      if (resolvedCourier) trackingPayload.courier_name = resolvedCourier;
+      if (tracking_url?.trim()) trackingPayload.tracking_url = tracking_url.trim();
       if (action === "dispatched") {
         trackingPayload.shipped_at = pickup_ready_at || scheduled_handoff_at || now;
       }
