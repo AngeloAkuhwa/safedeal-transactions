@@ -760,23 +760,37 @@ export default function BuyerPaymentSummary() {
               <div className="bg-card rounded-2xl shadow-lg border p-6">
                 <h3 className="text-lg font-bold text-foreground mb-4">Payment Actions</h3>
 
-                <button
-                  onClick={handlePay}
-                  disabled={!agreedToTerms || isProcessing}
-                  className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold py-4 rounded-xl hover:opacity-90 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>Processing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="h-5 w-5" />
-                      <span>Pay {currencySymbol}{totalAmount.toLocaleString()}</span>
-                    </>
-                  )}
-                </button>
+                {!canPay ? (
+                  <button
+                    onClick={() => navigate(lockReason === "concurrency" ? "/dashboard/transactions" : "/dashboard/profile#location")}
+                    className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold py-4 rounded-xl hover:opacity-90 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 mb-3"
+                  >
+                    <User className="h-5 w-5" />
+                    <span>
+                      {lockReason === "region" ? "Update Location to Continue"
+                        : lockReason === "concurrency" ? "View My Transactions"
+                        : "Verify Account to Continue"}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handlePay}
+                    disabled={!agreedToTerms || isProcessing}
+                    className="w-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold py-4 rounded-xl hover:opacity-90 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span>Processing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-5 w-5" />
+                        <span>Pay {currencySymbol}{totalAmount.toLocaleString()}</span>
+                      </>
+                    )}
+                  </button>
+                )}
 
                 <button
                   onClick={() => navigate(`/t/${shareToken}`)}

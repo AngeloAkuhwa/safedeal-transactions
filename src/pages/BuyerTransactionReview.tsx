@@ -315,7 +315,8 @@ export default function BuyerTransactionReview() {
                 authState={authState}
                 canPay={canPay}
                 lockReason={lockReason}
-                onGoToProfile={() => navigate("/dashboard/profile")}
+                onGoToProfile={() => navigate("/dashboard/profile#location")}
+                onGoToTransactions={() => navigate("/dashboard/transactions")}
               />
               <PaymentSummaryCard data={data} currencySymbol={currencySymbol} itemAmount={itemAmount} feeAmount={feeAmount} feeRate={feeRate} totalAmount={totalAmount} />
               <ProtectionFeaturesCard data={data} />
@@ -764,9 +765,16 @@ function FraudWarningCard() {
   );
 }
 
-function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockReason, onGoToProfile }: {
-  payLabel: string; onPay: () => void; onDecline: () => void; authState: AuthState; canPay: boolean; lockReason: string | null; onGoToProfile: () => void;
+function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockReason, onGoToProfile, onGoToTransactions }: {
+  payLabel: string; onPay: () => void; onDecline: () => void; authState: AuthState; canPay: boolean; lockReason: string | null; onGoToProfile: () => void; onGoToTransactions: () => void;
 }) {
+  const isLocked = !canPay && authState === "ready";
+  const lockedCtaLabel =
+    lockReason === "region" ? "Update Location to Continue"
+    : lockReason === "concurrency" ? "View My Transactions"
+    : "Verify Account to Continue";
+  const lockedCtaAction = lockReason === "concurrency" ? onGoToTransactions : onGoToProfile;
+
   return (
     <div className="bg-primary rounded-2xl shadow-2xl p-6 text-primary-foreground">
       <div className="flex items-center gap-2 mb-4">
@@ -774,7 +782,7 @@ function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockRea
         <span className="text-xs font-bold uppercase tracking-wider">Next Action Required</span>
       </div>
 
-      {!canPay && authState === "ready" && (
+      {isLocked && (
         <div className="bg-destructive/20 border border-destructive/40 rounded-xl p-4 mb-4">
           <div className="flex items-start gap-2">
             <Lock className="h-5 w-5 mt-0.5 shrink-0" />
@@ -782,7 +790,7 @@ function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockRea
               {lockReason === "region" ? (
                 <>
                   <p className="text-sm font-bold">Lagos-only during launch</p>
-                  <p className="text-xs opacity-80 mt-1">Protected transactions are only available in Lagos. Update your location.</p>
+                  <p className="text-xs opacity-80 mt-1">Protected transactions are only available in Lagos. Update your location to a valid Lagos LGA.</p>
                 </>
               ) : lockReason === "concurrency" ? (
                 <>
@@ -795,30 +803,39 @@ function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockRea
                   <p className="text-xs opacity-80 mt-1">Complete phone verification and location to unlock payments.</p>
                 </>
               )}
-              <Button
-                size="sm"
-                variant="secondary"
-                className="mt-2 text-xs"
-                onClick={onGoToProfile}
-              >
-                Go to Profile Settings
-              </Button>
             </div>
           </div>
         </div>
       )}
 
-      <h3 className="text-xl font-bold mb-2">{authState === "anonymous" ? "Sign Up to Pay Securely" : "Pay Securely"}</h3>
-      <p className="text-sm opacity-80 mb-6">Complete your payment to lock this agreement and begin the protected transaction process.</p>
-      <Button
-        onClick={onPay}
-        disabled={!canPay && authState === "ready"}
-        className="w-full bg-primary-foreground text-primary font-bold py-6 rounded-xl hover:bg-primary-foreground/90 shadow-lg mb-4"
-        size="lg"
-      >
-        <Lock className="h-5 w-5" />
-        {payLabel}
-      </Button>
+      <h3 className="text-xl font-bold mb-2">
+        {isLocked ? "Action Needed Before Payment" : authState === "anonymous" ? "Sign Up to Pay Securely" : "Pay Securely"}
+      </h3>
+      <p className="text-sm opacity-80 mb-6">
+        {isLocked
+          ? "Resolve the issue above to unlock the secure payment for this transaction."
+          : "Complete your payment to lock this agreement and begin the protected transaction process."}
+      </p>
+
+      {isLocked ? (
+        <Button
+          onClick={lockedCtaAction}
+          className="w-full bg-primary-foreground text-primary font-bold py-6 rounded-xl hover:bg-primary-foreground/90 shadow-lg mb-4"
+          size="lg"
+        >
+          <User className="h-5 w-5" />
+          {lockedCtaLabel}
+        </Button>
+      ) : (
+        <Button
+          onClick={onPay}
+          className="w-full bg-primary-foreground text-primary font-bold py-6 rounded-xl hover:bg-primary-foreground/90 shadow-lg mb-4"
+          size="lg"
+        >
+          <Lock className="h-5 w-5" />
+          {payLabel}
+        </Button>
+      )}
       <Button
         onClick={onDecline}
         variant="outline"

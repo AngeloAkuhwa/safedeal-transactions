@@ -359,7 +359,7 @@ export function PersonalInfoSection({ profile, verification, onProfileChange, sh
         {showLocation && (
           <>
             <Separator />
-            <div className="space-y-4">
+            <div id="location" className="space-y-4 scroll-mt-24">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-primary" />
