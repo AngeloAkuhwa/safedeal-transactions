@@ -1,6 +1,6 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Loader2, RefreshCw, ArrowLeft, Copy, CheckCircle, Shield,
   User, CreditCard, Truck, Package, FileText, Clock, Lock,
@@ -69,6 +69,7 @@ function fmt(amount: number | undefined | null, currency: string) {
 const SellerTransactionDetail = () => {
   const { transactionId } = useParams<{ transactionId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
 
