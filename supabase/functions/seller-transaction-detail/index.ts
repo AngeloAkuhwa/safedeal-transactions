@@ -134,6 +134,14 @@ Deno.serve(async (req) => {
         .select("seller_marked_delivered_at, buyer_acknowledged_delivery_at, system_delivery_marked_at")
         .eq("transaction_id", transactionId)
         .maybeSingle(),
+      adminClient
+        .from("delivery_confirmation_tokens")
+        .select("token, expires_at, status, created_at")
+        .eq("transaction_id", transactionId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     const item = itemRes.data;
