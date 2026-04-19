@@ -146,9 +146,16 @@ const SellerTransactionDetail = () => {
     });
   };
 
-  const feePercent = pricing && pricing.item_amount > 0
-    ? ((pricing.platform_fee_amount / pricing.item_amount) * 100).toFixed(0)
-    : "3";
+  const feePercent = (() => {
+    if (!pricing || !pricing.item_amount || pricing.item_amount <= 0) return "3";
+    if (typeof pricing.platform_fee_amount === "number" && pricing.platform_fee_amount > 0) {
+      return ((pricing.platform_fee_amount / pricing.item_amount) * 100).toFixed(1);
+    }
+    if (typeof pricing.service_fee_rate === "number" && pricing.service_fee_rate > 0) {
+      return (pricing.service_fee_rate * 100).toFixed(1);
+    }
+    return "3";
+  })();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

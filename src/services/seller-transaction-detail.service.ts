@@ -25,8 +25,11 @@ export interface SellerTransactionDetailItem {
 export interface SellerTransactionDetailPricing {
   item_amount: number;
   service_fee_amount: number;
+  service_fee_rate?: number;
   platform_fee_amount: number;
   payment_processing_fee_amount: number;
+  paystack_fee_amount?: number;
+  processing_fee_amount?: number;
   seller_net_amount: number;
   buyer_total_amount: number;
   currency_code: string;
