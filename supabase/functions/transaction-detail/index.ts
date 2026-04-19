@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
       agreementResult,
       deliveryConfResult,
     ] = await Promise.allSettled([
-      adminClient.from("transaction_items").select("title, description, quantity, condition, brand, model, category").eq("transaction_id", transactionId).single(),
+      adminClient.from("transaction_items").select("title, description, quantity, condition_label, brand, model").eq("transaction_id", transactionId).single(),
       adminClient.from("transaction_pricing").select("item_amount, currency_code").eq("transaction_id", transactionId).single(),
       adminClient.from("transaction_delivery_terms").select("delivery_method, expected_delivery_date, verification_window_hours, delivery_address_line1, delivery_address_line2, delivery_city, delivery_state, delivery_postal_code, delivery_country_code").eq("transaction_id", transactionId).single(),
       adminClient.from("delivery_tracking_details").select("courier_name, tracking_number, tracking_url, shipped_at, delivered_at, expected_delivery_at").eq("transaction_id", transactionId).single(),

@@ -189,6 +189,14 @@ Deno.serve(async (req) => {
     // Reuse pre-payment tx
     const reusable = (existingTxs || []).find((t: any) => REUSABLE_PRE_PAYMENT_STATES.includes(t.status));
     if (reusable) {
+      // Advance to awaiting_payment if still in draft / awaiting_buyer
+      if (reusable.status === "draft" || reusable.status === "awaiting_buyer") {
+        const { error: advErr } = await adminClient
+          .from("transactions")
+          .update({ status: "awaiting_payment" })
+          .eq("id", reusable.id);
+        if (advErr) console.error("Failed to advance reused tx to awaiting_payment:", advErr);
+      }
       // Promote offer to claimed if not already
       if (offer.status !== "claimed") {
         await adminClient
@@ -313,7 +321,7 @@ async function createTransactionFromOffer(adminClient: any, offer: any, buyerId:
       created_by_user_id: offer.seller_id,
       buyer_contact_email: offer.buyer_email,
       share_token: shareToken,
-      status: "awaiting_buyer",
+      status: "awaiting_payment",
       money_status: "not_secured",
       dispute_status: "none",
       source_product_id: offer.product_id,
