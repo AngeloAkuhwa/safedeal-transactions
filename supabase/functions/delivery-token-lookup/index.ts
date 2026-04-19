@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
       return jsonResponse({
         success: true,
         transaction_code: tx.transaction_code,
-        item_title: tx.item_title,
+        item_title: itemTitle,
         seller_name: seller?.full_name ?? "Seller",
         buyer_name_first: (buyer?.full_name ?? "").split(" ")[0] || "Buyer",
         masked_buyer_phone: masked,
