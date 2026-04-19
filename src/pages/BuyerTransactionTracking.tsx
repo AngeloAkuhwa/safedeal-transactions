@@ -34,6 +34,8 @@ import type { TransactionDetailResponse } from "@/services/transaction-detail.se
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { InTransitBlock } from "@/components/transactions/InTransitBlock";
 import { VerifyReceiptCTA } from "@/components/transactions/VerifyReceiptCTA";
+import { DeliveryTermsCard } from "@/components/transactions/DeliveryTermsCard";
+import { TransactionCompletionBanner } from "@/components/transactions/TransactionCompletionBanner";
 import { cn } from "@/lib/utils";
 
 /* ─── Helpers ─── */
@@ -182,7 +184,7 @@ const BuyerTransactionTracking = () => {
 
   const {
     transaction: tx, item, pricing, delivery_terms, delivery_tracking,
-    delivery_proof_files, dispatch_evidence_files, seller, escrow, status_history, dispute, next_action,
+    delivery_proof_files, dispatch_evidence_files, seller, escrow, status_history, dispute, agreement, next_action, completion_event,
   } = data;
   const showInTransit = tx.status === "seller_dispatched" || tx.status === "delivered_awaiting_verification";
   const showVerifyCTA = tx.status === "delivered_awaiting_verification";
@@ -302,6 +304,15 @@ const BuyerTransactionTracking = () => {
 
           {/* ═══ LEFT (2/3) ═══ */}
           <div className="lg:col-span-2 space-y-5 sm:space-y-6">
+
+            {tx.status === "completed" && completion_event && (
+              <TransactionCompletionBanner
+                variant={completion_event.variant}
+                completedAt={completion_event.completed_at}
+                fundsReleasedAt={status_history.find((h) => h.new_status === "completed")?.changed_at ?? null}
+                perspective="buyer"
+              />
+            )}
 
             {showVerifyCTA && (
               <VerifyReceiptCTA
