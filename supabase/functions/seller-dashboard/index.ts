@@ -269,6 +269,7 @@ Deno.serve(async (req) => {
       transaction_status: string;
       money_status: string;
       created_at: string;
+      has_active_rider_token?: boolean;
     }> = [];
 
     if (recentTxResult.status === "fulfilled" && recentTxResult.value.data) {
@@ -280,6 +281,7 @@ Deno.serve(async (req) => {
         const batchQueries = [
           adminClient.from("transaction_items").select("transaction_id, title").in("transaction_id", txIds),
           adminClient.from("transaction_pricing").select("transaction_id, buyer_total_amount, currency_code").in("transaction_id", txIds),
+          adminClient.from("delivery_confirmation_tokens").select("transaction_id").eq("status", "active").in("transaction_id", txIds),
         ];
         if (buyerIds.length > 0) {
           batchQueries.push(
@@ -306,9 +308,16 @@ Deno.serve(async (req) => {
           }
         }
 
+        const activeTokenSet = new Set<string>();
+        if (batchResults[2].status === "fulfilled" && batchResults[2].value.data) {
+          for (const r of batchResults[2].value.data as Array<Record<string, unknown>>) {
+            activeTokenSet.add(r.transaction_id as string);
+          }
+        }
+
         const buyerMap = new Map<string, { name: string; email: string }>();
-        if (batchResults.length > 2 && batchResults[2].status === "fulfilled" && batchResults[2].value.data) {
-          for (const b of batchResults[2].value.data as Array<Record<string, unknown>>) {
+        if (batchResults.length > 3 && batchResults[3].status === "fulfilled" && batchResults[3].value.data) {
+          for (const b of batchResults[3].value.data as Array<Record<string, unknown>>) {
             buyerMap.set(b.id as string, { name: b.full_name as string, email: b.email as string });
           }
         }
@@ -324,6 +333,7 @@ Deno.serve(async (req) => {
           transaction_status: tx.status as string,
           money_status: tx.money_status as string,
           created_at: tx.created_at as string,
+          has_active_rider_token: activeTokenSet.has(tx.id as string),
         }));
       }
     }

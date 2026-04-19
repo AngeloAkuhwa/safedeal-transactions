@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch related data in parallel
-    const [itemRes, deliveryTermsRes, linkRes, buyerProfileRes, buyerVerifRes, participantRes, escrowRes, pricingRes, snapshotRes, statusHistoryRes, deliveryTrackingRes, deliveryConfRes] = await Promise.all([
+    const [itemRes, deliveryTermsRes, linkRes, buyerProfileRes, buyerVerifRes, participantRes, escrowRes, pricingRes, snapshotRes, statusHistoryRes, deliveryTrackingRes, deliveryConfRes, riderTokenRes] = await Promise.all([
       adminClient
         .from("transaction_items")
         .select("title, description, quantity, condition_label, brand, model")
@@ -134,6 +134,14 @@ Deno.serve(async (req) => {
         .select("seller_marked_delivered_at, buyer_acknowledged_delivery_at, system_delivery_marked_at")
         .eq("transaction_id", transactionId)
         .maybeSingle(),
+      adminClient
+        .from("delivery_confirmation_tokens")
+        .select("token, expires_at, status, created_at")
+        .eq("transaction_id", transactionId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     const item = itemRes.data;
@@ -147,6 +155,7 @@ Deno.serve(async (req) => {
     const statusHistory = statusHistoryRes.data ?? [];
     const deliveryTracking = deliveryTrackingRes.data;
     const deliveryConf = deliveryConfRes.data as Record<string, unknown> | null;
+    const riderTokenRow = riderTokenRes.data as Record<string, unknown> | null;
 
     // Derive completion event (reason-aware)
     let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" } | null = null;
@@ -289,6 +298,15 @@ Deno.serve(async (req) => {
     const shareToken = link?.share_token ?? null;
     const shareUrl = shareToken ? `/t/${shareToken}` : null;
 
+    // Active rider confirmation token (only relevant during dispatch/delivery)
+    const riderLink = riderTokenRow?.token
+      ? {
+          token: riderTokenRow.token as string,
+          path: `/delivery/confirm/${riderTokenRow.token as string}`,
+          expires_at: (riderTokenRow.expires_at as string) ?? null,
+        }
+      : null;
+
     return jsonResponse({
       transaction: {
         id: tx.id,
@@ -337,6 +355,7 @@ Deno.serve(async (req) => {
       timeline,
       next_action: nextAction,
       completion_event: completionEvent,
+      rider_link: riderLink,
     });
   } catch (err) {
     console.error("seller-transaction-detail error:", err);

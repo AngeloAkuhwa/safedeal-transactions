@@ -203,6 +203,20 @@ Deno.serve(async (req) => {
     const totalPages = Math.ceil(totalCount / pageSize);
     const paginatedRows = filteredRows.slice((page - 1) * pageSize, page * pageSize);
 
+    // Check active rider tokens for paginated rows (cheap join)
+    const paginatedIds = paginatedRows.map((t) => t.id);
+    const activeTokenIds = new Set<string>();
+    if (paginatedIds.length > 0) {
+      const { data: tokenRows } = await adminClient
+        .from("delivery_confirmation_tokens")
+        .select("transaction_id")
+        .eq("status", "active")
+        .in("transaction_id", paginatedIds);
+      for (const r of (tokenRows ?? []) as Array<{ transaction_id: string }>) {
+        activeTokenIds.add(r.transaction_id);
+      }
+    }
+
     // Build response rows
     const transactions = paginatedRows.map((tx) => {
       const buyer = tx.buyer_id
@@ -229,6 +243,7 @@ Deno.serve(async (req) => {
         transaction_status: tx.status,
         money_status: tx.money_status,
         created_at: tx.created_at,
+        has_active_rider_token: activeTokenIds.has(tx.id),
       };
     });
 

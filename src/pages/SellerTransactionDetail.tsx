@@ -1,6 +1,6 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Loader2, RefreshCw, ArrowLeft, Copy, CheckCircle, Shield,
   User, CreditCard, Truck, Package, FileText, Clock, Lock,
@@ -18,6 +18,7 @@ import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { BuyerTrustBadges } from "@/components/trust/BuyerTrustBadges";
 import { DeliveryTermsCard } from "@/components/transactions/DeliveryTermsCard";
 import { TransactionCompletionBanner } from "@/components/transactions/TransactionCompletionBanner";
+import { RiderLinkCard } from "@/components/seller/RiderLinkCard";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   draft: { label: "Draft", variant: "secondary" },
@@ -68,6 +69,7 @@ function fmt(amount: number | undefined | null, currency: string) {
 const SellerTransactionDetail = () => {
   const { transactionId } = useParams<{ transactionId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
 
@@ -83,6 +85,16 @@ const SellerTransactionDetail = () => {
     enabled: !!transactionId,
     retry: 1,
   });
+
+  // Auto-scroll to rider link section when navigated with #rider hash
+  useEffect(() => {
+    if (location.hash === "#rider" && data?.rider_link) {
+      const el = document.getElementById("rider");
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+      }
+    }
+  }, [location.hash, data?.rider_link]);
 
   if (isLoading) {
     return (
@@ -106,7 +118,7 @@ const SellerTransactionDetail = () => {
     );
   }
 
-  const { transaction: tx, buyer, item, pricing, escrow, agreement, delivery_tracking, delivery_terms, timeline, next_action, completion_event } = data;
+  const { transaction: tx, buyer, item, pricing, escrow, agreement, delivery_tracking, delivery_terms, timeline, next_action, completion_event, rider_link } = data;
   const currency = pricing?.currency_code ?? "NGN";
   const statusInfo = statusLabels[tx.status] ?? { label: tx.status, variant: "secondary" as const };
   const moneyInfo = moneyLabels[tx.money_status] ?? { label: tx.money_status, color: "text-muted-foreground" };
@@ -192,6 +204,18 @@ const SellerTransactionDetail = () => {
             completedAt={completion_event.completed_at}
             perspective="seller"
           />
+        )}
+
+        {/* Rider confirmation link — visible while preparing/dispatched and a token exists */}
+        {rider_link && ["seller_preparing_delivery", "seller_dispatched"].includes(tx.status) && (
+          <div id="rider" className="scroll-mt-24">
+            <RiderLinkCard
+              riderUrl={`${window.location.origin}${rider_link.path}`}
+              expiresAt={rider_link.expires_at}
+              itemTitle={item?.title ?? null}
+              transactionCode={tx.transaction_code}
+            />
+          </div>
         )}
 
         {/* 3-column info grid */}
