@@ -253,6 +253,7 @@ Deno.serve(async (req) => {
       agreement: agreement ? { locked_at: agreement.locked_at } : null,
       next_action: nextAction,
       product_media: productMedia,
+      completion_event: completionEvent,
     });
   } catch (err) {
     console.error("transaction-detail error:", err);
