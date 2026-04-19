@@ -210,10 +210,12 @@ const SellerTransactionDetail = () => {
         {rider_link && ["seller_preparing_delivery", "seller_dispatched"].includes(tx.status) && (
           <div id="rider" className="scroll-mt-24">
             <RiderLinkCard
-              riderUrl={`${window.location.origin}${rider_link.path}`}
+              transactionId={transactionId!}
+              riderUrl={rider_link.url || `${window.location.origin}${rider_link.path}`}
               expiresAt={rider_link.expires_at}
               itemTitle={item?.title ?? null}
               transactionCode={tx.transaction_code}
+              onRotated={() => refetch()}
             />
           </div>
         )}

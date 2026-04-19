@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       await Promise.all([
         supabase
           .from("transactions")
-          .select("id, transaction_code, status, money_status, created_at, agreement_locked_at, seller_id")
+          .select("id, transaction_code, status, money_status, created_at, agreement_locked_at, seller_id, source_offer_id, source_product_id")
           .eq("id", txId)
           .single(),
         supabase
@@ -110,6 +110,42 @@ Deno.serve(async (req) => {
       ? computePricing(Number(pricingRaw.item_amount) || 0, pricingRaw.currency_code || "NGN")
       : null;
 
+    // 5. Resolve media: prefer transaction_media; fall back to product_media
+    //    (offer-claimed transactions store media on the source product, not on the transaction)
+    let media: unknown[] = mediaRes.data ?? [];
+    if (media.length === 0) {
+      const productIds: string[] = [];
+      // Single-product transaction
+      if (tx.source_product_id) productIds.push(tx.source_product_id as string);
+      // Offer-claimed (potentially multi-product) transaction
+      if (tx.source_offer_id) {
+        const { data: offerItems } = await supabase
+          .from("buyer_specific_offer_items")
+          .select("product_id, position")
+          .eq("offer_id", tx.source_offer_id)
+          .order("position", { ascending: true });
+        for (const oi of offerItems ?? []) {
+          if (oi.product_id && !productIds.includes(oi.product_id)) {
+            productIds.push(oi.product_id);
+          }
+        }
+      }
+      if (productIds.length > 0) {
+        const { data: pmRows } = await supabase
+          .from("product_media")
+          .select("id, file_id, media_type, sort_order, product_id, files(file_url, secure_url, mime_type, original_file_name)")
+          .in("product_id", productIds)
+          .order("sort_order", { ascending: true });
+        media = (pmRows ?? []).map((m: Record<string, unknown>) => ({
+          id: m.id,
+          file_id: m.file_id,
+          media_type: m.media_type,
+          sort_order: m.sort_order,
+          files: m.files,
+        }));
+      }
+    }
+
     const response = {
       transaction: {
         id: tx.id,
@@ -123,7 +159,7 @@ Deno.serve(async (req) => {
       pricing: computedPricing,
       delivery: deliveryRes.data || null,
       escrow: escrowRes.data || null,
-      media: mediaRes.data || [],
+      media,
       seller: sellerRes.data
         ? {
             full_name: sellerRes.data.full_name,
