@@ -75,14 +75,37 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Token has expired" }, 410);
     }
 
-    // Fetch transaction + buyer/seller info
-    const [{ data: tx }, { data: buyer }, { data: seller }] = await Promise.all([
-      admin.from("transactions").select("id, transaction_code, status, item_title").eq("id", tokenRow.transaction_id).maybeSingle(),
+    // Fetch transaction + buyer/seller + item info
+    const [txRes, buyerRes, sellerRes, itemRes] = await Promise.all([
+      admin.from("transactions").select("id, transaction_code, status").eq("id", tokenRow.transaction_id).maybeSingle(),
       admin.from("profiles").select("id, full_name, phone").eq("id", tokenRow.buyer_id).maybeSingle(),
       admin.from("profiles").select("id, full_name").eq("id", tokenRow.seller_id).maybeSingle(),
+      admin.from("transaction_items").select("title").eq("transaction_id", tokenRow.transaction_id).limit(1).maybeSingle(),
     ]);
 
-    if (!tx) return jsonResponse({ error: "Transaction not found" }, 404);
+    if (txRes.error) {
+      console.error("delivery-token-lookup: transactions fetch error:", txRes.error);
+      return jsonResponse({ error: "Failed to load transaction" }, 500);
+    }
+    if (buyerRes.error) {
+      console.error("delivery-token-lookup: buyer profile fetch error:", buyerRes.error);
+    }
+    if (sellerRes.error) {
+      console.error("delivery-token-lookup: seller profile fetch error:", sellerRes.error);
+    }
+    if (itemRes.error) {
+      console.warn("delivery-token-lookup: transaction_items fetch error (will fall back):", itemRes.error);
+    }
+
+    const tx = txRes.data;
+    const buyer = buyerRes.data;
+    const seller = sellerRes.data;
+    const itemTitle = itemRes.data?.title || "Order item";
+
+    if (!tx) {
+      console.error("delivery-token-lookup: transaction row not found for token", { transaction_id: tokenRow.transaction_id });
+      return jsonResponse({ error: "Transaction not found" }, 404);
+    }
 
     const buyerPhone = buyer?.phone ?? null;
     const masked = buyerPhone ? maskPhone(buyerPhone) : null;
@@ -92,7 +115,7 @@ Deno.serve(async (req) => {
       return jsonResponse({
         success: true,
         transaction_code: tx.transaction_code,
-        item_title: tx.item_title,
+        item_title: itemTitle,
         seller_name: seller?.full_name ?? "Seller",
         buyer_name_first: (buyer?.full_name ?? "").split(" ")[0] || "Buyer",
         masked_buyer_phone: masked,
