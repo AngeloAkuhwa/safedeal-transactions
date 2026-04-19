@@ -423,7 +423,8 @@ async function handlePublish(adminClient: any, userId: string, body: any) {
         sort_order: idx,
         is_primary: idx === 0,
       }));
-      await adminClient.from("product_media").insert(rows);
+      const { error: pmErr } = await adminClient.from("product_media").insert(rows);
+      if (pmErr) console.error(`product_media insert failed for product ${cp.id}:`, pmErr);
     }
   }
 
