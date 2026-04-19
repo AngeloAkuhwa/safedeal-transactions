@@ -18,6 +18,7 @@ import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { BuyerTrustBadges } from "@/components/trust/BuyerTrustBadges";
 import { DeliveryTermsCard } from "@/components/transactions/DeliveryTermsCard";
 import { TransactionCompletionBanner } from "@/components/transactions/TransactionCompletionBanner";
+import { RiderLinkCard } from "@/components/seller/RiderLinkCard";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   draft: { label: "Draft", variant: "secondary" },
