@@ -3021,7 +3021,9 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_read: boolean
           message_text: string
+          read_at: string | null
           recipient_user_id: string
           sender_user_id: string
           transaction_id: string
@@ -3029,7 +3031,9 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_read?: boolean
           message_text: string
+          read_at?: string | null
           recipient_user_id: string
           sender_user_id: string
           transaction_id: string
@@ -3037,7 +3041,9 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_read?: boolean
           message_text?: string
+          read_at?: string | null
           recipient_user_id?: string
           sender_user_id?: string
           transaction_id?: string
@@ -3825,6 +3831,7 @@ export type Database = {
         | "verification_update"
         | "security_alert"
         | "system_message"
+        | "direct_message"
       payment_method_type: "card" | "bank_transfer" | "wallet"
       payment_provider: "paystack" | "flutterwave" | "stripe" | "manual"
       payment_status:
@@ -4189,6 +4196,7 @@ export const Constants = {
         "verification_update",
         "security_alert",
         "system_message",
+        "direct_message",
       ],
       payment_method_type: ["card", "bank_transfer", "wallet"],
       payment_provider: ["paystack", "flutterwave", "stripe", "manual"],

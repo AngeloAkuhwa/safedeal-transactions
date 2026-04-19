@@ -19,6 +19,7 @@ import { BuyerTrustBadges } from "@/components/trust/BuyerTrustBadges";
 import { DeliveryTermsCard } from "@/components/transactions/DeliveryTermsCard";
 import { TransactionCompletionBanner } from "@/components/transactions/TransactionCompletionBanner";
 import { RiderLinkCard } from "@/components/seller/RiderLinkCard";
+import { MessageThread } from "@/components/transactions/MessageThread";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   draft: { label: "Draft", variant: "secondary" },
@@ -518,6 +519,12 @@ const SellerTransactionDetail = () => {
             <span className="text-xs font-semibold text-foreground">Contact Support</span>
           </button>
         </div>
+
+        {/* Messages thread (anchored at #messages for notification deep links) */}
+        <MessageThread
+          transactionId={tx.id}
+          counterpartyName={buyer?.name ?? "Buyer"}
+        />
 
         {/* Bottom Nav */}
         <div className="flex flex-col sm:flex-row gap-3 pb-8">
