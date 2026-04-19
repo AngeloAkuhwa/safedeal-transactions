@@ -198,12 +198,14 @@ const SellerTransactionDetail = () => {
 
         {/* Rider confirmation link — visible while preparing/dispatched and a token exists */}
         {rider_link && ["seller_preparing_delivery", "seller_dispatched"].includes(tx.status) && (
-          <RiderLinkCard
-            riderUrl={`${window.location.origin}${rider_link.path}`}
-            expiresAt={rider_link.expires_at}
-            itemTitle={item?.title ?? null}
-            transactionCode={tx.transaction_code}
-          />
+          <div id="rider" className="scroll-mt-24">
+            <RiderLinkCard
+              riderUrl={`${window.location.origin}${rider_link.path}`}
+              expiresAt={rider_link.expires_at}
+              itemTitle={item?.title ?? null}
+              transactionCode={tx.transaction_code}
+            />
+          </div>
         )}
 
         {/* 3-column info grid */}
