@@ -50,6 +50,8 @@ import { TransactionReceipt } from "@/components/transactions/TransactionReceipt
 import { ProductMediaGallery } from "@/components/transactions/ProductMediaGallery";
 import { InTransitBlock } from "@/components/transactions/InTransitBlock";
 import { VerifyReceiptCTA } from "@/components/transactions/VerifyReceiptCTA";
+import { DeliveryTermsCard } from "@/components/transactions/DeliveryTermsCard";
+import { TransactionCompletionBanner } from "@/components/transactions/TransactionCompletionBanner";
 
 /* ───── Status badge config ───── */
 const statusConfig: Record<string, { label: string; className: string }> = {
@@ -270,7 +272,7 @@ const BuyerTransactionDetail = () => {
     );
   }
 
-  const { transaction: tx, item, pricing, delivery_terms, delivery_tracking, delivery_proof_files, dispatch_evidence_files, seller, escrow, status_history, dispute, agreement, next_action, product_media } = data;
+  const { transaction: tx, item, pricing, delivery_terms, delivery_tracking, delivery_proof_files, dispatch_evidence_files, seller, escrow, status_history, dispute, agreement, next_action, product_media, completion_event } = data;
   const showInTransit = tx.status === "seller_dispatched" || tx.status === "delivered_awaiting_verification";
   const showVerifyCTA = tx.status === "delivered_awaiting_verification";
   const currentStatusIndex = getStatusIndex(tx.status);
@@ -387,6 +389,16 @@ const BuyerTransactionDetail = () => {
                   shareToken={tx.share_token}
                 />
               </div>
+            )}
+
+            {tx.status === "completed" && completion_event && (
+              <TransactionCompletionBanner
+                variant={completion_event.variant}
+                completedAt={completion_event.completed_at}
+                fundsReleasedAt={status_history.find((h) => h.new_status === "completed")?.changed_at ?? null}
+                perspective="buyer"
+                onViewReceipt={handlePrint}
+              />
             )}
 
             {showVerifyCTA && (
