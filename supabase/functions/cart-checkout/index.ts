@@ -309,12 +309,36 @@ Deno.serve(async (req) => {
           }),
         ]);
 
-        // Reserve stock for each product
+        // Reserve stock for each product + log inventory change
         for (const { cartItem, product } of items) {
+          const newReserved = product.reserved_quantity + cartItem.quantity;
           await admin
             .from("products")
-            .update({ reserved_quantity: product.reserved_quantity + cartItem.quantity })
+            .update({ reserved_quantity: newReserved })
             .eq("id", product.id);
+
+          // Log reserve (idempotent on (product, transaction))
+          const { data: existingLog } = await admin
+            .from("product_inventory_logs")
+            .select("id")
+            .eq("product_id", product.id)
+            .eq("change_type", "reserve")
+            .eq("reference_type", "transaction")
+            .eq("reference_id", transactionId)
+            .maybeSingle();
+
+          if (!existingLog) {
+            await admin.from("product_inventory_logs").insert({
+              product_id: product.id,
+              change_type: "reserve",
+              quantity_delta: cartItem.quantity,
+              balance_after: product.stock_quantity - newReserved,
+              reference_type: "transaction",
+              reference_id: transactionId,
+              notes: "Stock reserved at cart checkout",
+              changed_by_user_id: buyerId,
+            });
+          }
         }
       }
 

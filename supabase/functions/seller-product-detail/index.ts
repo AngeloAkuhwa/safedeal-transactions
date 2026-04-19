@@ -22,6 +22,50 @@ function slugify(text: string): string {
     .substring(0, 80);
 }
 
+/**
+ * Inline inventory-log helper. Writes a row to product_inventory_logs.
+ * Idempotency-aware: if `dedupe_reference` is provided and a log with the
+ * same (reference_type, reference_id, change_type) already exists, this
+ * is a no-op.
+ */
+async function logInventoryChange(
+  adminClient: any,
+  params: {
+    product_id: string;
+    change_type: "restock" | "reserve" | "release" | "sold" | "manual_adjustment";
+    quantity_delta: number;
+    balance_after: number;
+    reference_type?: string | null;
+    reference_id?: string | null;
+    notes?: string | null;
+    changed_by_user_id?: string | null;
+    dedupe_reference?: boolean;
+  }
+) {
+  if (params.dedupe_reference && params.reference_type && params.reference_id) {
+    const { data: existing } = await adminClient
+      .from("product_inventory_logs")
+      .select("id")
+      .eq("product_id", params.product_id)
+      .eq("change_type", params.change_type)
+      .eq("reference_type", params.reference_type)
+      .eq("reference_id", params.reference_id)
+      .maybeSingle();
+    if (existing) return;
+  }
+
+  await adminClient.from("product_inventory_logs").insert({
+    product_id: params.product_id,
+    change_type: params.change_type,
+    quantity_delta: params.quantity_delta,
+    balance_after: params.balance_after,
+    reference_type: params.reference_type ?? null,
+    reference_id: params.reference_id ?? null,
+    notes: params.notes ?? null,
+    changed_by_user_id: params.changed_by_user_id ?? null,
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -56,6 +100,11 @@ Deno.serve(async (req) => {
     const productId = url.searchParams.get("product_id");
     if (!productId) {
       return jsonResponse({ error: "product_id is required" }, 400);
+    }
+
+    // Sub-route: GET ?product_id=...&logs=1 → inventory logs
+    if (req.method === "GET" && url.searchParams.get("logs") === "1") {
+      return await handleGetLogs(adminClient, userId, productId);
     }
 
     if (req.method === "GET") {
@@ -148,6 +197,32 @@ async function handleGet(adminClient: any, userId: string, productId: string) {
   });
 }
 
+async function handleGetLogs(adminClient: any, userId: string, productId: string) {
+  // Verify ownership first
+  const { data: product } = await adminClient
+    .from("products")
+    .select("id, seller_id")
+    .eq("id", productId)
+    .eq("seller_id", userId)
+    .maybeSingle();
+
+  if (!product) return jsonResponse({ error: "Product not found" }, 404);
+
+  const { data: logs, error } = await adminClient
+    .from("product_inventory_logs")
+    .select("id, change_type, quantity_delta, balance_after, reference_type, reference_id, notes, created_at, changed_by_user_id")
+    .eq("product_id", productId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error("inventory logs fetch error:", error);
+    return jsonResponse({ error: "Failed to load inventory logs" }, 500);
+  }
+
+  return jsonResponse({ logs: logs || [] });
+}
+
 async function handlePatch(adminClient: any, userId: string, productId: string, req: Request) {
   const body = await req.json().catch(() => null);
   if (!body) return jsonResponse({ error: "Invalid request body" }, 400);
@@ -155,7 +230,7 @@ async function handlePatch(adminClient: any, userId: string, productId: string, 
   // Verify ownership
   const { data: existing } = await adminClient
     .from("products")
-    .select("id, slug, status, seller_id")
+    .select("id, slug, status, seller_id, stock_quantity, reserved_quantity")
     .eq("id", productId)
     .eq("seller_id", userId)
     .single();
@@ -164,6 +239,79 @@ async function handlePatch(adminClient: any, userId: string, productId: string, 
     return jsonResponse({ error: "Product not found" }, 404);
   }
 
+  // ─── Sub-action: restock ───
+  if (body.action === "restock") {
+    const delta = Math.floor(Number(body.delta) || 0);
+    if (delta <= 0) return jsonResponse({ error: "delta must be a positive integer" }, 400);
+    if (delta > 100000) return jsonResponse({ error: "delta too large (max 100000)" }, 400);
+
+    const newStock = existing.stock_quantity + delta;
+
+    const { error: updErr } = await adminClient
+      .from("products")
+      .update({ stock_quantity: newStock })
+      .eq("id", productId);
+
+    if (updErr) {
+      console.error("restock update error:", updErr);
+      return jsonResponse({ error: "Failed to restock" }, 500);
+    }
+
+    await logInventoryChange(adminClient, {
+      product_id: productId,
+      change_type: "restock",
+      quantity_delta: delta,
+      balance_after: newStock,
+      reference_type: "manual_restock",
+      notes: body.notes ? String(body.notes).slice(0, 500) : null,
+      changed_by_user_id: userId,
+    });
+
+    return jsonResponse({
+      success: true,
+      stock_quantity: newStock,
+      reserved_quantity: existing.reserved_quantity,
+      available_quantity: newStock - existing.reserved_quantity,
+    });
+  }
+
+  // ─── Sub-action: manual_adjustment (absolute set) ───
+  if (body.action === "manual_adjustment") {
+    const newStock = Math.max(0, Math.floor(Number(body.new_stock_quantity) ?? -1));
+    if (Number.isNaN(newStock) || newStock < 0) {
+      return jsonResponse({ error: "new_stock_quantity must be a non-negative integer" }, 400);
+    }
+    const delta = newStock - existing.stock_quantity;
+
+    const { error: updErr } = await adminClient
+      .from("products")
+      .update({ stock_quantity: newStock })
+      .eq("id", productId);
+
+    if (updErr) {
+      console.error("manual_adjustment update error:", updErr);
+      return jsonResponse({ error: "Failed to adjust stock" }, 500);
+    }
+
+    await logInventoryChange(adminClient, {
+      product_id: productId,
+      change_type: "manual_adjustment",
+      quantity_delta: delta,
+      balance_after: newStock,
+      reference_type: "manual_adjustment",
+      notes: body.notes ? String(body.notes).slice(0, 500) : null,
+      changed_by_user_id: userId,
+    });
+
+    return jsonResponse({
+      success: true,
+      stock_quantity: newStock,
+      reserved_quantity: existing.reserved_quantity,
+      available_quantity: newStock - existing.reserved_quantity,
+    });
+  }
+
+  // ─── Default: standard product update ───
   const updateData: Record<string, unknown> = {};
 
   const textFields = [
@@ -185,7 +333,17 @@ async function handlePatch(adminClient: any, userId: string, productId: string, 
 
   if (body.category_id !== undefined) updateData.category_id = body.category_id || null;
   if (body.unit_price !== undefined) updateData.unit_price = Number(body.unit_price);
-  if (body.stock_quantity !== undefined) updateData.stock_quantity = Math.max(0, parseInt(body.stock_quantity) || 0);
+
+  // Track stock_quantity change for inventory log
+  let stockDelta = 0;
+  let newStockAfter = existing.stock_quantity;
+  if (body.stock_quantity !== undefined) {
+    const newStock = Math.max(0, parseInt(body.stock_quantity) || 0);
+    updateData.stock_quantity = newStock;
+    stockDelta = newStock - existing.stock_quantity;
+    newStockAfter = newStock;
+  }
+
   if (body.visibility_type !== undefined) updateData.visibility_type = body.visibility_type;
   if (body.verification_window_hours !== undefined) updateData.verification_window_hours = body.verification_window_hours;
 
@@ -266,6 +424,19 @@ async function handlePatch(adminClient: any, userId: string, productId: string, 
     if (updateError) {
       console.error("Product update error:", updateError);
       return jsonResponse({ error: "Failed to update product" }, 500);
+    }
+
+    // Log manual stock change made via the standard edit form
+    if (stockDelta !== 0) {
+      await logInventoryChange(adminClient, {
+        product_id: productId,
+        change_type: "manual_adjustment",
+        quantity_delta: stockDelta,
+        balance_after: newStockAfter,
+        reference_type: "product_edit",
+        notes: "Stock adjusted via product edit form",
+        changed_by_user_id: userId,
+      });
     }
   }
 

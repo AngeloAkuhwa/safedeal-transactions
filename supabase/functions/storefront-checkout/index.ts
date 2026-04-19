@@ -286,6 +286,18 @@ Deno.serve(async (req) => {
         .update({ reserved_quantity: product.reserved_quantity + quantity })
         .eq("id", productId),
 
+      // Log reserve in inventory audit trail
+      adminClient.from("product_inventory_logs").insert({
+        product_id: productId,
+        change_type: "reserve",
+        quantity_delta: quantity,
+        balance_after: product.stock_quantity - (product.reserved_quantity + quantity),
+        reference_type: "transaction",
+        reference_id: transactionId,
+        notes: "Stock reserved at storefront checkout",
+        changed_by_user_id: buyerId,
+      }),
+
       // Escrow state
       adminClient.from("escrow_states").insert({
         transaction_id: transactionId,

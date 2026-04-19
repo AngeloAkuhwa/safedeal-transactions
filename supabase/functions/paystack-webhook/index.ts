@@ -273,6 +273,66 @@ Deno.serve(async (req) => {
           status: "pending",
         });
 
+        // Convert reserved stock → sold (idempotent)
+        try {
+          const { data: txWithProduct } = await supabase
+            .from("transactions")
+            .select("source_product_id")
+            .eq("id", txId)
+            .maybeSingle();
+
+          if (txWithProduct?.source_product_id) {
+            const productId = txWithProduct.source_product_id;
+
+            const { data: existingSoldLog } = await supabase
+              .from("product_inventory_logs")
+              .select("id")
+              .eq("product_id", productId)
+              .eq("change_type", "sold")
+              .eq("reference_type", "transaction")
+              .eq("reference_id", txId)
+              .maybeSingle();
+
+            if (!existingSoldLog) {
+              const { data: txItems } = await supabase
+                .from("transaction_items")
+                .select("quantity")
+                .eq("transaction_id", txId);
+              const totalQty = (txItems || []).reduce(
+                (s: number, i: any) => s + (Number(i.quantity) || 0),
+                0
+              );
+
+              if (totalQty > 0) {
+                const { data: prod } = await supabase
+                  .from("products")
+                  .select("stock_quantity, reserved_quantity")
+                  .eq("id", productId)
+                  .single();
+                if (prod) {
+                  const newStock = Math.max(0, prod.stock_quantity - totalQty);
+                  const newReserved = Math.max(0, prod.reserved_quantity - totalQty);
+                  await supabase
+                    .from("products")
+                    .update({ stock_quantity: newStock, reserved_quantity: newReserved })
+                    .eq("id", productId);
+                  await supabase.from("product_inventory_logs").insert({
+                    product_id: productId,
+                    change_type: "sold",
+                    quantity_delta: -totalQty,
+                    balance_after: newStock - newReserved,
+                    reference_type: "transaction",
+                    reference_id: txId,
+                    notes: "Reserved stock converted to sold (via webhook)",
+                  });
+                }
+              }
+            }
+          }
+        } catch (invErr) {
+          console.error("webhook: inventory conversion failed (non-fatal):", invErr);
+        }
+
         // ── If this transaction was created from a private offer, mark offer purchased ──
         const { data: txOffer } = await supabase
           .from("transactions")
