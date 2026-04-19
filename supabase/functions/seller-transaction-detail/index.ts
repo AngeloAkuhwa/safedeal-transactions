@@ -146,6 +146,30 @@ Deno.serve(async (req) => {
     const snapshot = snapshotRes.data;
     const statusHistory = statusHistoryRes.data ?? [];
     const deliveryTracking = deliveryTrackingRes.data;
+    const deliveryConf = deliveryConfRes.data as Record<string, unknown> | null;
+
+    // Derive completion event (reason-aware)
+    let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" } | null = null;
+    if (tx.status === "completed") {
+      const completedRow = [...statusHistory].reverse().find((h: Record<string, unknown>) => h.new_status === "completed");
+      if (completedRow) {
+        const prev = ((completedRow as Record<string, unknown>).old_status as string | null) ?? null;
+        let variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" = "unknown";
+        if (prev === "delivered_awaiting_verification") {
+          if (deliveryConf?.buyer_acknowledged_delivery_at) variant = "buyer_confirmed";
+          else if (deliveryConf?.system_delivery_marked_at) variant = "auto_released";
+          else variant = "buyer_confirmed";
+        } else if (prev === "resolved" || prev === "disputed") {
+          variant = "dispute_resolved";
+        }
+        completionEvent = {
+          completed_at: ((completedRow as Record<string, unknown>).changed_at as string) ?? "",
+          previous_status: prev,
+          reason: ((completedRow as Record<string, unknown>).reason as string | null) ?? null,
+          variant,
+        };
+      }
+    }
 
     const buyerVerif = buyerVerifRes.data as Record<string, unknown> | null;
 
