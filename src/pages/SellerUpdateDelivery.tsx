@@ -1,25 +1,27 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import {
   Loader2, ArrowLeft, Shield, Clock, Package, Truck, CheckCircle,
   Upload, AlertTriangle, Lock, Headphones, X, FileVideo, Image as ImageIcon,
-  ShieldCheck, ArrowRight, Info, Barcode,
+  ShieldCheck, ArrowRight, Info, PackageCheck, Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SellerNav } from "@/components/seller/SellerNav";
 import { Footer } from "@/components/landing/Footer";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { getSellerTransactionDetail } from "@/services/seller-transaction-detail.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
-import { uploadDeliveryEvidence, updateDeliveryStatus, UploadedDeliveryFile } from "@/services/delivery.service";
+import { uploadDeliveryEvidence, updateDeliveryStatus, type UploadedDeliveryFile } from "@/services/delivery.service";
+import { DeliveryMethodBadge, type DeliveryMethod } from "@/components/seller/DeliveryMethodBadge";
+import { MissingTermsWarning } from "@/components/seller/MissingTermsWarning";
+import { FulfillmentGuidance } from "@/components/seller/FulfillmentGuidance";
+import { DispatchForm, emptyDispatchState, resolveCourierName, type DispatchFormState } from "@/components/seller/DispatchForm";
 
 function fmt(amount: number | undefined | null, currency: string) {
   const val = amount ?? 0;
@@ -38,6 +40,20 @@ const timelineSteps = [
 const ACCEPTED_TYPES = "image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm";
 const MAX_FILES = 3;
 
+type ActionKey = "processing" | "dispatched" | "delivered";
+
+const ALLOWED_FROM: Record<ActionKey, string[]> = {
+  processing: ["payment_secured", "seller_preparing_delivery"],
+  dispatched: ["payment_secured", "seller_preparing_delivery"],
+  delivered: ["seller_dispatched", "seller_preparing_delivery"],
+};
+
+const ACTION_META: Record<ActionKey, { label: string; subLabel: string; icon: typeof Package; cta: string }> = {
+  processing: { label: "Mark as Processing", subLabel: "Preparing shipment", icon: Package, cta: "Mark as Processing" },
+  dispatched: { label: "Mark as Dispatched", subLabel: "Item is on the way", icon: Send, cta: "Mark as Dispatched" },
+  delivered: { label: "Mark as Delivered", subLabel: "Handoff complete", icon: PackageCheck, cta: "Confirm Delivery" },
+};
+
 export default function SellerUpdateDelivery() {
   const { transactionId } = useParams<{ transactionId: string }>();
   const navigate = useNavigate();
@@ -45,12 +61,14 @@ export default function SellerUpdateDelivery() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [orderStatus, setOrderStatus] = useState("");
-  const [trackingNumber, setTrackingNumber] = useState("");
-  const [deliveryNotes, setDeliveryNotes] = useState("");
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedDeliveryFile[]>([]);
+  const [selectedAction, setSelectedAction] = useState<ActionKey | "">("");
+  const [dispatchState, setDispatchState] = useState<DispatchFormState>(emptyDispatchState);
+  const [processingNote, setProcessingNote] = useState("");
+  const [deliveredEvidence, setDeliveredEvidence] = useState<UploadedDeliveryFile[]>([]);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadingNames, setUploadingNames] = useState<string[]>([]);
+  const [dispatchUploadingNames, setDispatchUploadingNames] = useState<string[]>([]);
+  const [dispatchUploadProgress, setDispatchUploadProgress] = useState<Record<string, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: dashData } = useQuery({
@@ -64,47 +82,68 @@ export default function SellerUpdateDelivery() {
     enabled: !!transactionId,
   });
 
-  const deliveryMethod = data?.transaction?.delivery_method ?? "courier";
-  const isCourier = deliveryMethod === "courier";
+  const tx = data?.transaction;
+  const deliveryMethod = (tx?.delivery_method ?? "courier") as DeliveryMethod;
+  const deliveryTerms = data?.delivery_terms;
+  const termsMissing = !deliveryTerms;
 
-  // Validation logic
-  const isTrackingRequired =
-    (orderStatus === "dispatched" && isCourier) ||
-    (orderStatus === "delivered" && isCourier);
-  const isEvidenceRequired = orderStatus === "delivered";
-  const trackingValid = !isTrackingRequired || trackingNumber.trim().length > 0;
-  const evidenceValid = !isEvidenceRequired || uploadedFiles.length > 0;
-  const canSubmit = orderStatus !== "" && trackingValid && evidenceValid && uploadingNames.length === 0 && !isSubmitting;
+  const allowedActions = useMemo<ActionKey[]>(() => {
+    if (!tx?.status) return [];
+    return (Object.keys(ALLOWED_FROM) as ActionKey[]).filter((a) => ALLOWED_FROM[a].includes(tx.status));
+  }, [tx?.status]);
+
+  // Validation per action
+  const isValid = useMemo(() => {
+    if (!selectedAction) return false;
+    if (selectedAction === "processing") return true;
+    if (selectedAction === "dispatched") {
+      if (deliveryMethod === "courier") {
+        const courier = resolveCourierName(dispatchState);
+        return !!courier && !!dispatchState.trackingNumber.trim();
+      }
+      if (deliveryMethod === "pickup") return !!dispatchState.pickupReadyAt;
+      if (deliveryMethod === "meetup") return !!dispatchState.scheduledHandoffAt;
+      if (deliveryMethod === "hand_delivery") return !!dispatchState.riderName.trim();
+      return false;
+    }
+    if (selectedAction === "delivered") {
+      if (deliveredEvidence.length === 0) return false;
+      if (deliveryMethod === "courier" && !dispatchState.trackingNumber.trim()) return false;
+      return true;
+    }
+    return false;
+  }, [selectedAction, deliveryMethod, dispatchState, deliveredEvidence.length]);
+
+  const canSubmit =
+    isValid &&
+    uploadingNames.length === 0 &&
+    dispatchUploadingNames.length === 0 &&
+    !isSubmitting;
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-
-    const remainingSlots = MAX_FILES - uploadedFiles.length;
+    const remainingSlots = MAX_FILES - deliveredEvidence.length;
     if (remainingSlots <= 0) {
       toast({ title: "Upload limit reached", description: `Maximum ${MAX_FILES} files allowed.`, variant: "destructive" });
       return;
     }
-
     const toUpload = files.slice(0, remainingSlots);
-
     for (const file of toUpload) {
       const isVideo = file.type.startsWith("video/");
       const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
       if (file.size > maxSize) {
-        toast({ title: "File too large", description: `${file.name} exceeds ${isVideo ? "50MB" : "10MB"} limit.`, variant: "destructive" });
+        toast({ title: "File too large", description: `${file.name} exceeds ${isVideo ? "50MB" : "10MB"}.`, variant: "destructive" });
         continue;
       }
-
       const tempKey = file.name + Date.now();
       setUploadingNames((prev) => [...prev, tempKey]);
       setUploadProgress((prev) => ({ ...prev, [tempKey]: 0 }));
-
       try {
         const result = await uploadDeliveryEvidence(file, (pct) => {
           setUploadProgress((prev) => ({ ...prev, [tempKey]: pct }));
         });
-        setUploadedFiles((prev) => [...prev, result]);
+        setDeliveredEvidence((prev) => [...prev, result]);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Upload failed";
         toast({ title: "Upload failed", description: msg, variant: "destructive" });
@@ -117,39 +156,39 @@ export default function SellerUpdateDelivery() {
         });
       }
     }
-
-    // Reset input
     if (fileInputRef.current) fileInputRef.current.value = "";
-  }, [uploadedFiles.length, toast]);
+  }, [deliveredEvidence.length, toast]);
 
   const removeFile = (fileId: string) => {
-    setUploadedFiles((prev) => prev.filter((f) => f.file_id !== fileId));
+    setDeliveredEvidence((prev) => prev.filter((f) => f.file_id !== fileId));
   };
 
-  const handleConfirmDelivery = async () => {
-    if (!orderStatus) {
-      toast({ title: "Select order status", description: "Please select the current order status.", variant: "destructive" });
-      return;
-    }
-    if (!trackingValid) {
-      toast({ title: "Tracking required", description: "Please enter a tracking number for courier deliveries.", variant: "destructive" });
-      return;
-    }
-    if (!evidenceValid) {
-      toast({ title: "Evidence required", description: "Please upload at least one evidence file for delivered status.", variant: "destructive" });
-      return;
-    }
-
+  const handleSubmit = async () => {
+    if (!selectedAction || !canSubmit) return;
     setIsSubmitting(true);
     try {
-      await updateDeliveryStatus(
-        transactionId!,
-        orderStatus as "processing" | "dispatched" | "delivered",
-        trackingNumber.trim() || null,
-        deliveryNotes.trim() || null,
-        uploadedFiles.map((f) => f.file_id),
-      );
-      toast({ title: "Delivery Updated", description: `Status updated to ${orderStatus} successfully.` });
+      const courierName = deliveryMethod === "courier" ? resolveCourierName(dispatchState) : null;
+      const result = await updateDeliveryStatus({
+        transactionId: transactionId!,
+        action: selectedAction,
+        trackingNumber: dispatchState.trackingNumber.trim() || null,
+        deliveryNotes: processingNote.trim() || dispatchState.dispatchNote.trim() || null,
+        fileIds: deliveredEvidence.map((f) => f.file_id),
+        courierName,
+        trackingUrl: dispatchState.trackingUrl.trim() || null,
+        dispatchNote: dispatchState.dispatchNote.trim() || null,
+        dispatchEvidenceFileIds: dispatchState.dispatchEvidence.map((f) => f.file_id),
+        scheduledHandoffAt: dispatchState.scheduledHandoffAt || null,
+        pickupReadyAt: dispatchState.pickupReadyAt || null,
+        riderName: dispatchState.riderName.trim() || null,
+        riderPhone: dispatchState.riderPhone.trim() || null,
+      });
+
+      let successDesc = `Status updated to ${selectedAction} successfully.`;
+      if (result.handoff_code) {
+        successDesc = `Handoff code: ${result.handoff_code}. Share this with the buyer at handoff.`;
+      }
+      toast({ title: "Delivery updated", description: successDesc });
       queryClient.invalidateQueries({ queryKey: ["seller-transaction-detail", transactionId] });
       navigate(`/seller/transactions/${transactionId}`);
     } catch (err: unknown) {
@@ -168,7 +207,7 @@ export default function SellerUpdateDelivery() {
     );
   }
 
-  if (error || !data) {
+  if (error || !data || !tx) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <SellerNav sellerName={dashData?.seller?.full_name ?? "Seller"} avatarUrl={dashData?.seller?.avatar_url ?? null} />
@@ -186,7 +225,6 @@ export default function SellerUpdateDelivery() {
     );
   }
 
-  const tx = data.transaction;
   const item = data.item;
   const pricing = data.pricing;
   const currency = pricing?.currency_code ?? "NGN";
@@ -218,9 +256,10 @@ export default function SellerUpdateDelivery() {
         {/* Header Card */}
         <Card className="rounded-2xl shadow border p-6 md:p-8 space-y-6">
           <div className="flex items-start justify-between flex-wrap gap-4">
-            <div>
+            <div className="space-y-2">
               <h1 className="text-2xl md:text-3xl font-bold">Update Delivery Status</h1>
-              <p className="text-sm text-muted-foreground mt-1">Provide tracking details and proof of delivery to proceed.</p>
+              <p className="text-sm text-muted-foreground">Choose what's happening now and provide method-specific details.</p>
+              <DeliveryMethodBadge method={deliveryMethod} />
             </div>
             <div className="flex items-center gap-3">
               <div className="bg-blue-50 dark:bg-blue-950/30 px-4 py-2 rounded-lg border border-blue-100 dark:border-blue-900">
@@ -290,13 +329,19 @@ export default function SellerUpdateDelivery() {
                   <Clock className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <span className="text-muted-foreground text-xs font-medium uppercase">Delivery Method</span>
-                  <p className="font-medium capitalize">{deliveryMethod.replace("_", " ")}</p>
+                  <span className="text-muted-foreground text-xs font-medium uppercase">Verification window</span>
+                  <p className="font-medium">{deliveryTerms?.verification_window_hours ?? 72} hours</p>
                 </div>
               </div>
             </div>
           </div>
         </Card>
+
+        {/* Missing terms warning */}
+        <MissingTermsWarning show={termsMissing} />
+
+        {/* Fulfillment guidance */}
+        <FulfillmentGuidance method={deliveryMethod} />
 
         {/* Transaction Progress */}
         <Card className="rounded-2xl shadow border p-6 md:p-8">
@@ -348,147 +393,178 @@ export default function SellerUpdateDelivery() {
           </div>
         </div>
 
-        {/* Delivery Details & Evidence Form */}
+        {/* Action Selector + Form */}
         <Card className="rounded-2xl shadow border overflow-hidden">
           <div className="border-b bg-muted/50 px-6 py-4 flex items-center gap-3">
             <Truck className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-lg font-semibold">Delivery Details & Evidence</h2>
+            <h2 className="text-lg font-semibold">Choose what's happening</h2>
           </div>
 
           <div className="p-6 md:p-8 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="orderStatus">Order Status <span className="text-destructive">*</span></Label>
-                <Select value={orderStatus} onValueChange={setOrderStatus}>
-                  <SelectTrigger id="orderStatus" className="rounded-xl bg-muted">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(tx.status === "payment_secured" || tx.status === "seller_preparing_delivery") && (
-                      <SelectItem value="processing">Processing</SelectItem>
+            {/* Three-action picker */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {(Object.keys(ACTION_META) as ActionKey[]).map((key) => {
+                const meta = ACTION_META[key];
+                const enabled = allowedActions.includes(key);
+                const active = selectedAction === key;
+                const Icon = meta.icon;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={!enabled}
+                    onClick={() => setSelectedAction(key)}
+                    className={cn(
+                      "rounded-xl border-2 p-4 text-left transition-all",
+                      active
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : enabled
+                          ? "border-border hover:border-primary/50 bg-background"
+                          : "border-border bg-muted/40 opacity-50 cursor-not-allowed",
                     )}
-                    {(tx.status === "payment_secured" || tx.status === "seller_preparing_delivery") && (
-                      <SelectItem value="dispatched">Dispatched</SelectItem>
-                    )}
-                    {(tx.status === "seller_dispatched" || tx.status === "seller_preparing_delivery") && (
-                      <SelectItem value="delivered">Delivered</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="trackingNumber">
-                  Tracking Number {isTrackingRequired && <span className="text-destructive">*</span>}
-                </Label>
-                <div className="relative">
-                  <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="trackingNumber"
-                    placeholder="e.g. 1Z999AA10123456784"
-                    value={trackingNumber}
-                    onChange={(e) => setTrackingNumber(e.target.value)}
-                    className="rounded-xl bg-muted pl-10"
-                  />
-                </div>
-                {isTrackingRequired && !trackingNumber.trim() && (
-                  <p className="text-xs text-destructive">Tracking number is required for courier deliveries</p>
-                )}
-                {!isCourier && orderStatus && orderStatus !== "processing" && (
-                  <p className="text-xs text-muted-foreground">Optional for {deliveryMethod.replace("_", " ")} delivery</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="deliveryNotes">Delivery Notes (Optional)</Label>
-              <Textarea
-                id="deliveryNotes"
-                placeholder="Add any special instructions or details about the shipment..."
-                value={deliveryNotes}
-                onChange={(e) => setDeliveryNotes(e.target.value)}
-                rows={3}
-                className="rounded-xl bg-muted"
-                maxLength={500}
-              />
-            </div>
-
-            {/* Upload Evidence Section */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold">
-                  Upload Evidence {isEvidenceRequired && <span className="text-destructive">*</span>}
-                  <span className="text-xs text-muted-foreground font-normal ml-2">
-                    {uploadedFiles.length}/{MAX_FILES} files
-                  </span>
-                </h3>
-              </div>
-
-              {isEvidenceRequired && uploadedFiles.length === 0 && uploadingNames.length === 0 && (
-                <p className="text-xs text-destructive">At least one evidence file is required for delivered status</p>
-              )}
-
-              {/* Uploaded files list */}
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-2">
-                  {uploadedFiles.map((f) => (
-                    <div key={f.file_id} className="flex items-center gap-3 bg-muted/50 border rounded-xl p-3">
-                      {f.mime_type.startsWith("video/") ? (
-                        <FileVideo className="h-5 w-5 text-purple-500 shrink-0" />
-                      ) : (
-                        <ImageIcon className="h-5 w-5 text-green-500 shrink-0" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{f.original_name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{f.fingerprint}</p>
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={cn(
+                        "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+                        active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                      )}>
+                        <Icon className="h-4 w-4" />
                       </div>
-                      {f.mime_type.startsWith("image/") && (
-                        <img src={f.secure_url} alt={f.original_name} className="h-10 w-10 rounded object-cover" />
-                      )}
-                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeFile(f.file_id)}>
-                        <X className="h-4 w-4" />
-                      </Button>
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-semibold">{meta.label}</p>
+                        <p className="text-xs text-muted-foreground">{meta.subLabel}</p>
+                        {!enabled && (
+                          <p className="text-[10px] text-muted-foreground italic mt-1">Not available from current status</p>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Per-action form */}
+            {selectedAction === "processing" && (
+              <div className="space-y-2 pt-2">
+                <Label htmlFor="processingNote">Note for buyer <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                <textarea
+                  id="processingNote"
+                  placeholder="e.g. Packing today, will dispatch tomorrow morning"
+                  value={processingNote}
+                  onChange={(e) => setProcessingNote(e.target.value)}
+                  rows={3}
+                  maxLength={500}
+                  className="w-full rounded-xl bg-muted border border-input px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+            )}
+
+            {selectedAction === "dispatched" && (
+              <div className="pt-2">
+                <DispatchForm
+                  method={deliveryMethod}
+                  pickupAddress={deliveryTerms?.address ?? null}
+                  state={dispatchState}
+                  onChange={setDispatchState}
+                  uploadingNames={dispatchUploadingNames}
+                  uploadProgress={dispatchUploadProgress}
+                  setUploadingNames={setDispatchUploadingNames}
+                  setUploadProgress={setDispatchUploadProgress}
+                />
+              </div>
+            )}
+
+            {selectedAction === "delivered" && (
+              <div className="space-y-6 pt-2">
+                {/* Delivered may also need tracking confirmation for courier */}
+                {deliveryMethod === "courier" && (
+                  <DispatchForm
+                    method={deliveryMethod}
+                    pickupAddress={deliveryTerms?.address ?? null}
+                    state={dispatchState}
+                    onChange={setDispatchState}
+                    uploadingNames={dispatchUploadingNames}
+                    uploadProgress={dispatchUploadProgress}
+                    setUploadingNames={setDispatchUploadingNames}
+                    setUploadProgress={setDispatchUploadProgress}
+                  />
+                )}
+
+                {/* Delivery proof evidence (always required for delivered) */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">
+                      Delivery proof evidence <span className="text-destructive">*</span>
+                      <span className="text-xs text-muted-foreground font-normal ml-2">
+                        {deliveredEvidence.length}/{MAX_FILES} files
+                      </span>
+                    </h3>
+                  </div>
+
+                  {deliveredEvidence.length === 0 && uploadingNames.length === 0 && (
+                    <p className="text-xs text-destructive">At least one evidence file is required for delivered status</p>
+                  )}
+
+                  {deliveredEvidence.length > 0 && (
+                    <div className="space-y-2">
+                      {deliveredEvidence.map((f) => (
+                        <div key={f.file_id} className="flex items-center gap-3 bg-muted/50 border rounded-xl p-3">
+                          {f.mime_type.startsWith("video/") ? (
+                            <FileVideo className="h-5 w-5 text-purple-500 shrink-0" />
+                          ) : (
+                            <ImageIcon className="h-5 w-5 text-green-500 shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{f.original_name}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{f.fingerprint}</p>
+                          </div>
+                          {f.mime_type.startsWith("image/") && (
+                            <img src={f.secure_url} alt={f.original_name} className="h-10 w-10 rounded object-cover" />
+                          )}
+                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeFile(f.file_id)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {uploadingNames.map((key) => (
+                    <div key={key} className="bg-muted/50 border rounded-xl p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        <span className="text-sm text-muted-foreground">Uploading...</span>
+                        <span className="text-sm font-medium ml-auto">{uploadProgress[key] ?? 0}%</span>
+                      </div>
+                      <Progress value={uploadProgress[key] ?? 0} className="h-2" />
                     </div>
                   ))}
-                </div>
-              )}
 
-              {/* Uploading progress */}
-              {uploadingNames.map((key) => (
-                <div key={key} className="bg-muted/50 border rounded-xl p-3 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span className="text-sm text-muted-foreground">Uploading...</span>
-                    <span className="text-sm font-medium ml-auto">{uploadProgress[key] ?? 0}%</span>
-                  </div>
-                  <Progress value={uploadProgress[key] ?? 0} className="h-2" />
+                  {deliveredEvidence.length < MAX_FILES && (
+                    <div
+                      className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept={ACCEPTED_TYPES}
+                        multiple
+                        className="hidden"
+                        onChange={handleFileSelect}
+                      />
+                      <div className="w-14 h-14 bg-blue-50 dark:bg-blue-950/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Upload className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <p className="text-sm font-medium">Click to upload or drag and drop</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Images (JPEG, PNG, WEBP — max 10MB) or videos (MP4, MOV, WEBM — max 50MB). Up to {MAX_FILES} files total.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              ))}
-
-              {/* Upload zone */}
-              {uploadedFiles.length < MAX_FILES && (
-                <div
-                  className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept={ACCEPTED_TYPES}
-                    multiple
-                    className="hidden"
-                    onChange={handleFileSelect}
-                  />
-                  <div className="w-14 h-14 bg-blue-50 dark:bg-blue-950/30 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Upload className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <p className="text-sm font-medium">Click to upload or drag and drop</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Images (JPEG, PNG, WEBP — max 10MB) or videos (MP4, MOV, WEBM — max 50MB). Up to {MAX_FILES} files total.
-                  </p>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-2">
@@ -496,7 +572,7 @@ export default function SellerUpdateDelivery() {
                 Cancel
               </Button>
               <Button
-                onClick={handleConfirmDelivery}
+                onClick={handleSubmit}
                 disabled={!canSubmit}
                 className="shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-transform"
               >
@@ -506,7 +582,7 @@ export default function SellerUpdateDelivery() {
                   </>
                 ) : (
                   <>
-                    Confirm Delivery <ArrowRight className="h-4 w-4 ml-1" />
+                    {selectedAction ? ACTION_META[selectedAction].cta : "Choose an action above"} <ArrowRight className="h-4 w-4 ml-1" />
                   </>
                 )}
               </Button>
@@ -529,7 +605,7 @@ export default function SellerUpdateDelivery() {
           <div className="space-y-3">
             {[
               { step: 1, title: "Buyer Will Be Notified", desc: "The buyer will receive notification that the item has been shipped/delivered." },
-              { step: 2, title: "Buyer Verification Window Begins", desc: "The buyer will have a designated period to confirm receipt and verify the item matches the agreement." },
+              { step: 2, title: "Buyer Verification Window Begins", desc: `The buyer will have ${deliveryTerms?.verification_window_hours ?? 72} hours to confirm receipt and verify the item matches the agreement.` },
               { step: 3, title: "Funds Remain in Escrow", desc: `Your payment (${fmt(itemAmount, currency)}) stays securely held by SafeDeal until buyer confirms or any dispute is resolved.` },
             ].map((s) => (
               <div key={s.step} className="bg-background border rounded-xl p-4 flex gap-4">
