@@ -1,63 +1,73 @@
 
 
-# Phase 3 — Buyer-facing tracking & verification
+# Phase 4 — Locked terms display + reason-aware completion
 
 ## Scope
 
-Surface the rich dispatch context (method, courier, tracking, dispatch note, dispatch evidence, handoff codes for pickup/meetup) on buyer-facing pages, and strengthen the verification CTA with a deadline countdown.
+Two final UI hardening pieces: a shared **locked DeliveryTermsCard** shown on both buyer & seller transaction detail pages, and a **reason-aware completion banner** that explains *why* a transaction completed (buyer confirmed / auto-released / dispute resolved).
 
 ## What changes
 
-### 1. Edge function — `transaction-detail/index.ts`
-Extend the response to expose the data Phase 2 started persisting:
-- Add to `delivery_tracking`: `courier_name`, `tracking_url`, `dispatch_note` (already partly returned — confirm), and `signature_name` (we use this column to carry the handoff/pickup code so the buyer can read it back).
-- Add `delivery_method` from `transaction_delivery_terms` to the top-level transaction payload (or a new `delivery_terms` block mirroring the seller-side response).
-- Add a new `dispatch_evidence_files[]` array — query `delivery_proof_files` filtered by `proof_type = 'dispatch_evidence'`, join `files` for `secure_url` / `mime_type` / `original_file_name`.
-- Add `verification_deadline_at` derived from `delivered_at + verification_window_hours` so the countdown doesn't have to re-compute on the client.
+### 1. New component — `src/components/transactions/DeliveryTermsCard.tsx`
 
-### 2. Service — `src/services/transaction-detail.service.ts`
-Mirror the new fields in the TS response interface so the page is fully typed.
+Shared card used by both sides. Displays the immutable agreement terms with a `Lock` icon to convey immutability:
+- Delivery method (uses Phase 2 `<DeliveryMethodBadge>`)
+- Expected delivery date
+- Verification window (e.g. "72 hours after delivery")
+- Tracking requirement rule (method-aware copy: "Tracking number required for courier" / "Handoff code required at pickup" / etc.)
+- Delivery address (when present)
+- Special handoff conditions for pickup/meetup
+- Lock badge + "Locked at {agreement_locked_at}" footer
 
-### 3. New component — `src/components/transactions/InTransitBlock.tsx`
-A method-aware "what's happening with my package" card, rendered when status is `seller_dispatched` or `delivered_awaiting_verification`.
+Props: `terms` (delivery_terms object), `lockedAt` (timestamp), optional `compact` variant.
 
-Variants:
-- **courier**: courier name + tracking number + clickable tracking URL + shipped timestamp + expected delivery + dispatch note.
-- **pickup**: pickup-ready timestamp + pickup location (from `delivery_terms.address`) + "Show this code at pickup: XXXXXX" handoff code block.
-- **meetup**: scheduled handoff timestamp + meetup location + "Share this code at handoff: XXXXXX".
-- **hand_delivery**: rider/courier name + dispatch note + dispatch evidence gallery.
+### 2. Edge function — `transaction-detail/index.ts`
 
-Includes a `<DeliveryMethodBadge>` (reusing the Phase 2 component) and a `<ProductMediaGallery variant="compact">` to render `dispatch_evidence_files` when present.
+Confirm `delivery_terms` block is returned to the buyer (mirror what seller-side already returns: `delivery_method`, `expected_delivery_date`, `verification_window_hours`, `address`). Add it to the response if missing. Also include `agreement_locked_at`.
 
-### 4. New component — `src/components/transactions/VerifyReceiptCTA.tsx`
-A high-contrast CTA card shown when status is `delivered_awaiting_verification`:
-- Reuses the existing `VerificationCountdown` component (already takes `deadlineAt` + `deliveredAt`).
-- Two prominent buttons: **Confirm Receipt** (routes to existing `BuyerTransactionVerify`) and **Open Dispute** (routes to existing dispute flow).
-- Plain-language copy explaining what each button does and the auto-release consequence.
+### 3. Service — `src/services/transaction-detail.service.ts`
 
-### 5. Edited pages
+Add `delivery_terms` and `agreement_locked_at` to the `TransactionDetailResponse` interface.
 
-**`src/pages/BuyerTransactionTracking.tsx`** — drop the new `<InTransitBlock>` above the existing timeline and the `<VerifyReceiptCTA>` at the top once delivered.
+### 4. Page edits — add `<DeliveryTermsCard>` to:
+- `src/pages/BuyerTransactionDetail.tsx` (right column / sidebar)
+- `src/pages/SellerTransactionDetail.tsx` (right column / sidebar)
+- Optionally `src/pages/BuyerTransactionTracking.tsx` (compact variant)
 
-**`src/pages/BuyerTransactionDetail.tsx`** — same two components, sized for the detail layout.
+### 5. Reason-aware completion banner — rewrite `src/components/seller/TransactionSuccess.tsx`
+
+Currently a generic success message. Rewrite to be reason-aware by inspecting `transaction_status_history` (already available via the detail endpoints — verify; if not, extend `transaction-detail` and `seller-transaction-detail` to return the last status-history row that transitioned to `completed`).
+
+Three variants based on the transition source:
+- **Buyer-confirmed**: "Buyer confirmed receipt on {date} — funds released to seller"
+- **Auto-released** (timed_out → completed via system actor): "Verification window ended on {date} without dispute — funds auto-released to seller"
+- **Dispute-resolved** (resolved → completed): "Dispute resolved in seller's favor on {date} — funds released to seller"
+
+Each variant shows: completion timestamp, fund-release timestamp (from `escrow_states` / `money_status_history`), and a link to the receipt. Different icon/color per variant (CheckCircle green / Clock amber / Scale blue).
+
+Reuse on buyer side too — rename to a neutral `TransactionCompletionBanner.tsx` (keep `TransactionSuccess.tsx` as a thin re-export to avoid breaking imports) and surface it on `BuyerTransactionDetail.tsx` when status is `completed`.
 
 ## Files touched
 
-**Edge function (edited):**
-- `supabase/functions/transaction-detail/index.ts`
+**Edge functions (edited):**
+- `supabase/functions/transaction-detail/index.ts` — add `delivery_terms` block + completion-reason fields.
+- `supabase/functions/seller-transaction-detail/index.ts` — add completion-reason fields (delivery_terms already returned).
 
 **Frontend (new):**
-- `src/components/transactions/InTransitBlock.tsx`
-- `src/components/transactions/VerifyReceiptCTA.tsx`
+- `src/components/transactions/DeliveryTermsCard.tsx`
+- `src/components/transactions/TransactionCompletionBanner.tsx`
 
 **Frontend (edited):**
 - `src/services/transaction-detail.service.ts` — extend response interface.
-- `src/pages/BuyerTransactionTracking.tsx`
-- `src/pages/BuyerTransactionDetail.tsx`
+- `src/services/seller-transaction-detail.service.ts` — extend response interface.
+- `src/pages/BuyerTransactionDetail.tsx` — render terms card + completion banner.
+- `src/pages/SellerTransactionDetail.tsx` — render terms card + completion banner.
+- `src/pages/BuyerTransactionTracking.tsx` — compact terms card (optional).
+- `src/components/seller/TransactionSuccess.tsx` — convert to thin re-export of the new shared banner.
 
-## Out of scope (Phase 4)
+## Out of scope (future)
 
-- Locked `DeliveryTermsCard` (separate component shown on both sides).
-- Completion banner reason-aware rewrite.
-- Real cross-check of pickup/meetup handoff code against `delivery_tokens` table — Phase 3 just surfaces the code stored in `signature_name`; full token verification on `Mark as Delivered` is Phase 5.
+- Real cross-check of pickup/meetup handoff code against `delivery_tokens` table (Phase 5).
+- Real-time courier API integrations (DHL/GIG webhooks).
+- SMS/WhatsApp delivery notifications.
 
