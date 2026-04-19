@@ -16,6 +16,7 @@ export interface SellerTransaction {
   transaction_status: string;
   money_status: string;
   created_at: string;
+  has_active_rider_token?: boolean;
 }
 
 export interface SellerTransactionsPagination {
