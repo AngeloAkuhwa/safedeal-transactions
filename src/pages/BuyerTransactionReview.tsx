@@ -7,7 +7,7 @@ import {
   Package, Truck, Clock, ClipboardCheck, CheckCircle, XCircle,
   Store, Star, Handshake, IdCard, Phone, Building2, CalendarDays,
   TrendingUp, HelpCircle, Info, Scale, HandCoins,
-  FileText, LockOpen, Hourglass, CircleDot, Award, X, User, Ban
+  FileText, LockOpen, Hourglass, CircleDot, Award, X, User, Ban, ChevronRight
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -642,18 +642,18 @@ function ItemDetailsCard({ data }: { data: ReviewData }) {
         <p className="text-muted-foreground leading-relaxed">{item.description}</p>
       </div>
 
-      {/* Media gallery */}
+      {/* Media gallery — reuses the shared component (handles videos + lightbox) */}
       {data.media && data.media.length > 0 && (
-        <div className="flex overflow-x-auto gap-4 p-6 bg-muted">
-          {data.media.map((m) => (
-            <div key={m.id} className="shrink-0 w-64 h-64 bg-card rounded-xl overflow-hidden border-2 border-border shadow-md">
-              <img
-                src={m.files?.secure_url || m.files?.file_url || ""}
-                alt={m.files?.original_file_name || "Item image"}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ))}
+        <div className="p-6 bg-muted">
+          <ProductMediaGallery
+            title={item.title}
+            media={data.media.map((m) => ({
+              file_url: m.files?.file_url ?? null,
+              secure_url: m.files?.secure_url ?? null,
+              mime_type: m.files?.mime_type ?? null,
+              media_type: m.media_type ?? null,
+            }))}
+          />
         </div>
       )}
 
