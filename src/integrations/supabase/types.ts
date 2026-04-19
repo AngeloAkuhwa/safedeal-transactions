@@ -2099,6 +2099,53 @@ export type Database = {
         }
         Relationships: []
       }
+      product_inventory_logs: {
+        Row: {
+          balance_after: number
+          change_type: Database["public"]["Enums"]["product_inventory_change_type"]
+          changed_by_user_id: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          product_id: string
+          quantity_delta: number
+          reference_id: string | null
+          reference_type: string | null
+        }
+        Insert: {
+          balance_after: number
+          change_type: Database["public"]["Enums"]["product_inventory_change_type"]
+          changed_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity_delta: number
+          reference_id?: string | null
+          reference_type?: string | null
+        }
+        Update: {
+          balance_after?: number
+          change_type?: Database["public"]["Enums"]["product_inventory_change_type"]
+          changed_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity_delta?: number
+          reference_id?: string | null
+          reference_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_inventory_logs_changed_by_user_id_fkey"
+            columns: ["changed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_media: {
         Row: {
           created_at: string
@@ -3756,6 +3803,12 @@ export type Database = {
         | "completed"
         | "failed"
         | "cancelled"
+      product_inventory_change_type:
+        | "restock"
+        | "reserve"
+        | "release"
+        | "sold"
+        | "manual_adjustment"
       product_status: "draft" | "published" | "out_of_stock" | "archived"
       product_visibility_type: "public" | "buyer_specific" | "private_draft"
       profile_status: "active" | "suspended" | "blocked"
@@ -4116,6 +4169,13 @@ export const Constants = {
         "completed",
         "failed",
         "cancelled",
+      ],
+      product_inventory_change_type: [
+        "restock",
+        "reserve",
+        "release",
+        "sold",
+        "manual_adjustment",
       ],
       product_status: ["draft", "published", "out_of_stock", "archived"],
       product_visibility_type: ["public", "buyer_specific", "private_draft"],
