@@ -14,7 +14,6 @@ async function getAuthHeader() {
   return { Authorization: `Bearer ${session.access_token}` };
 }
 
-/** Compute SHA-256 hash of a File */
 async function computeFileHash(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
@@ -22,7 +21,6 @@ async function computeFileHash(file: File): Promise<string> {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Validate magic bytes for file types */
 function validateMagicBytes(buffer: ArrayBuffer, expectedType: string): boolean {
   const bytes = new Uint8Array(buffer.slice(0, 12));
   switch (expectedType) {
@@ -40,26 +38,24 @@ function validateMagicBytes(buffer: ArrayBuffer, expectedType: string): boolean 
   }
 }
 
-/** Upload a delivery evidence file to Cloudinary via upload-evidence */
-export async function uploadDeliveryEvidence(
+async function uploadEvidenceCore(
   file: File,
+  context: "delivery_proof" | "dispatch_evidence",
   onProgress?: (pct: number) => void,
 ): Promise<UploadedDeliveryFile> {
-  // Validate magic bytes
   const buffer = await file.arrayBuffer();
   if (!validateMagicBytes(buffer, file.type)) {
     throw new Error("File content doesn't match its type. Please upload a valid file.");
   }
 
-  // Validate size limits
   const isVideo = file.type.startsWith("video/");
   const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
   if (file.size > maxSize) {
     throw new Error(`File exceeds ${isVideo ? "50MB" : "10MB"} limit`);
   }
 
-  // 1. Get signed upload params
   const headers = await getAuthHeader();
+  // Backend currently signs for delivery_proof context; reuse for both since storage path is the same
   const { data: signData, error: signErr } = await supabase.functions.invoke("upload-evidence", {
     headers,
     body: { action: "sign_upload", context: "delivery_proof" },
@@ -69,11 +65,7 @@ export async function uploadDeliveryEvidence(
   }
 
   const { timestamp, signature, api_key, cloud_name, folder } = signData;
-
-  // 2. Compute hash
   const fileHash = await computeFileHash(file);
-
-  // 3. Upload to Cloudinary with XHR for progress
   const resourceType = isVideo ? "video" : "image";
   const uploadUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/${resourceType}/upload`;
 
@@ -103,7 +95,6 @@ export async function uploadDeliveryEvidence(
     xhr.send(formDataUpload);
   });
 
-  // 4. Register file in backend
   const { data: regData, error: regErr } = await supabase.functions.invoke("upload-evidence", {
     headers,
     body: {
@@ -117,7 +108,7 @@ export async function uploadDeliveryEvidence(
       original_filename: file.name,
       file_hash: fileHash,
       hash_algorithm: "sha256",
-      context_type: "delivery_proof",
+      context_type: context,
     },
   });
 
@@ -134,23 +125,67 @@ export async function uploadDeliveryEvidence(
   };
 }
 
-/** Update delivery status via edge function */
+/** Upload a delivery (delivered-status) evidence file */
+export function uploadDeliveryEvidence(
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<UploadedDeliveryFile> {
+  return uploadEvidenceCore(file, "delivery_proof", onProgress);
+}
+
+/** Upload a dispatch-time evidence file (courier receipt, package photo at dispatch) */
+export function uploadDispatchEvidence(
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<UploadedDeliveryFile> {
+  return uploadEvidenceCore(file, "dispatch_evidence", onProgress);
+}
+
+export interface UpdateDeliveryStatusPayload {
+  transactionId: string;
+  action: "processing" | "dispatched" | "delivered";
+  trackingNumber?: string | null;
+  deliveryNotes?: string | null;
+  fileIds?: string[];
+  // Method-aware optional fields
+  courierName?: string | null;
+  trackingUrl?: string | null;
+  dispatchNote?: string | null;
+  dispatchEvidenceFileIds?: string[];
+  scheduledHandoffAt?: string | null;
+  pickupReadyAt?: string | null;
+  riderName?: string | null;
+  riderPhone?: string | null;
+}
+
+export interface UpdateDeliveryStatusResult {
+  success: boolean;
+  new_status: string;
+  delivered_at?: string | null;
+  verification_deadline_at?: string | null;
+  handoff_code?: string | null;
+}
+
 export async function updateDeliveryStatus(
-  transactionId: string,
-  action: "processing" | "dispatched" | "delivered",
-  trackingNumber: string | null,
-  deliveryNotes: string | null,
-  fileIds: string[],
-): Promise<{ success: boolean; new_status: string }> {
+  payload: UpdateDeliveryStatusPayload,
+): Promise<UpdateDeliveryStatusResult> {
   const headers = await getAuthHeader();
   const { data, error } = await supabase.functions.invoke("update-delivery-status", {
     headers,
     body: {
-      transaction_id: transactionId,
-      action,
-      tracking_number: trackingNumber || null,
-      delivery_notes: deliveryNotes || null,
-      file_ids: fileIds,
+      transaction_id: payload.transactionId,
+      action: payload.action,
+      tracking_number: payload.trackingNumber || null,
+      delivery_notes: payload.deliveryNotes || null,
+      file_ids: payload.fileIds || [],
+      courier_name: payload.courierName || null,
+      tracking_url: payload.trackingUrl || null,
+      dispatch_note: payload.dispatchNote || null,
+      dispatch_evidence_file_ids: payload.dispatchEvidenceFileIds || [],
+      scheduled_handoff_at: payload.scheduledHandoffAt || null,
+      pickup_ready_at: payload.pickupReadyAt || null,
+      rider_name: payload.riderName || null,
+      rider_phone: payload.riderPhone || null,
     },
   });
 

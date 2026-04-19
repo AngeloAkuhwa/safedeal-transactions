@@ -13,40 +13,40 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-// Map UI action to DB status enum
 const ACTION_TO_STATUS: Record<string, string> = {
   processing: "seller_preparing_delivery",
   dispatched: "seller_dispatched",
   delivered: "delivered_awaiting_verification",
 };
 
-// Map UI action to transaction_event_type enum
 const ACTION_TO_EVENT: Record<string, string> = {
   processing: "seller_preparing_delivery",
   dispatched: "seller_dispatched",
   delivered: "delivered",
 };
 
-// Map UI action to delivery_update_status enum
 const ACTION_TO_DELIVERY_STATUS: Record<string, string> = {
   processing: "processing",
   dispatched: "dispatched",
   delivered: "delivered",
 };
 
-// Allowed source statuses for each action
 const ALLOWED_FROM: Record<string, string[]> = {
   processing: ["payment_secured", "seller_preparing_delivery"],
   dispatched: ["payment_secured", "seller_preparing_delivery"],
   delivered: ["seller_dispatched", "seller_preparing_delivery"],
 };
 
-// Determine proof_type from mime_type
 function getProofType(mimeType: string | null): string {
   if (!mimeType) return "other";
   if (mimeType.startsWith("video/")) return "shipment_video";
   if (mimeType.startsWith("image/")) return "package_photo";
   return "other";
+}
+
+function generateHandoffCode(): string {
+  // 6-digit numeric code
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 Deno.serve(async (req) => {
@@ -65,28 +65,40 @@ Deno.serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify user
     const { data: userData, error: userError } = await admin.auth.getUser(token);
     if (userError || !userData?.user) {
       return jsonResponse({ error: "Invalid session" }, 401);
     }
     const userId = userData.user.id;
 
-    // Verify seller role
     const { data: hasRole } = await admin.rpc("has_role", { _user_id: userId, _role: "seller" });
     if (!hasRole) {
       return jsonResponse({ error: "Seller role required" }, 403);
     }
 
     const body = await req.json();
-    const { transaction_id, action, tracking_number, delivery_notes, file_ids } = body;
+    const {
+      transaction_id,
+      action,
+      tracking_number,
+      delivery_notes,
+      file_ids,
+      // New method-aware fields
+      courier_name,
+      tracking_url,
+      dispatch_note,
+      dispatch_evidence_file_ids,
+      scheduled_handoff_at,
+      pickup_ready_at,
+      rider_name,
+      rider_phone,
+    } = body;
 
     if (!transaction_id) return jsonResponse({ error: "transaction_id required" }, 400);
     if (!action || !ACTION_TO_STATUS[action]) {
       return jsonResponse({ error: "Invalid action. Must be: processing, dispatched, delivered" }, 400);
     }
 
-    // Fetch transaction
     const { data: tx, error: txErr } = await admin
       .from("transactions")
       .select("id, status, money_status, seller_id, buyer_id")
@@ -96,15 +108,12 @@ Deno.serve(async (req) => {
     if (txErr || !tx) return jsonResponse({ error: "Transaction not found" }, 404);
     if (tx.seller_id !== userId) return jsonResponse({ error: "Not authorized" }, 403);
 
-    // Fetch delivery terms
     let { data: terms } = await admin
       .from("transaction_delivery_terms")
       .select("delivery_method, verification_window_hours")
       .eq("transaction_id", transaction_id)
       .maybeSingle();
 
-    // Repair fallback: if terms are somehow missing (legacy/edge-case),
-    // bootstrap a default row so fulfillment isn't blocked.
     if (!terms) {
       console.warn(`Missing delivery terms for transaction ${transaction_id} — bootstrapping defaults`);
       const { data: bootstrapped, error: bootstrapErr } = await admin
@@ -112,9 +121,7 @@ Deno.serve(async (req) => {
         .insert({
           transaction_id,
           delivery_method: "courier",
-          expected_delivery_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .slice(0, 10),
+          expected_delivery_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
           verification_window_hours: 72,
         })
         .select("delivery_method, verification_window_hours")
@@ -128,9 +135,8 @@ Deno.serve(async (req) => {
 
     const deliveryMethod = terms?.delivery_method ?? "courier";
     const verificationWindowHours = terms?.verification_window_hours ?? 72;
-    const isCourier = deliveryMethod === "courier";
 
-    // Validate state transition
+    // State transition validation
     const allowedFrom = ALLOWED_FROM[action];
     if (!allowedFrom.includes(tx.status)) {
       return jsonResponse({
@@ -138,10 +144,24 @@ Deno.serve(async (req) => {
       }, 400);
     }
 
-    // Action-specific validation
-    if (action === "dispatched" && isCourier) {
-      if (!tracking_number?.trim()) {
-        return jsonResponse({ error: "Tracking number is required for courier deliveries" }, 400);
+    // ============= METHOD-AWARE VALIDATION =============
+    if (action === "dispatched") {
+      if (deliveryMethod === "courier") {
+        if (!tracking_number?.trim()) {
+          return jsonResponse({ error: "Tracking number is required for courier dispatch" }, 400);
+        }
+      } else if (deliveryMethod === "pickup") {
+        if (!pickup_ready_at) {
+          return jsonResponse({ error: "Pickup-ready timestamp is required for pickup dispatch" }, 400);
+        }
+      } else if (deliveryMethod === "meetup") {
+        if (!scheduled_handoff_at) {
+          return jsonResponse({ error: "Scheduled handoff time is required for meetup dispatch" }, 400);
+        }
+      } else if (deliveryMethod === "hand_delivery") {
+        if (!rider_name?.trim()) {
+          return jsonResponse({ error: "Rider/courier name is required for hand-delivery dispatch" }, 400);
+        }
       }
     }
 
@@ -149,12 +169,12 @@ Deno.serve(async (req) => {
       if (!file_ids || !Array.isArray(file_ids) || file_ids.length === 0) {
         return jsonResponse({ error: "At least one evidence file is required for delivered status" }, 400);
       }
-      if (isCourier && !tracking_number?.trim()) {
+      if (deliveryMethod === "courier" && !tracking_number?.trim()) {
         return jsonResponse({ error: "Tracking number is required for courier deliveries" }, 400);
       }
     }
 
-    // Validate file ownership if file_ids provided
+    // Validate file ownership for delivery proof files
     const validFileIds: string[] = [];
     if (file_ids && Array.isArray(file_ids) && file_ids.length > 0) {
       const { data: files, error: filesErr } = await admin
@@ -169,9 +189,7 @@ Deno.serve(async (req) => {
 
       for (const fid of file_ids) {
         const file = files?.find((f: { id: string }) => f.id === fid);
-        if (!file) {
-          return jsonResponse({ error: `File ${fid} not found` }, 400);
-        }
+        if (!file) return jsonResponse({ error: `File ${fid} not found` }, 400);
         if (file.uploaded_by_user_id !== userId) {
           return jsonResponse({ error: `File ${fid} does not belong to you` }, 403);
         }
@@ -179,12 +197,31 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Validate dispatch evidence file ownership
+    const validDispatchFileIds: string[] = [];
+    if (dispatch_evidence_file_ids && Array.isArray(dispatch_evidence_file_ids) && dispatch_evidence_file_ids.length > 0) {
+      const { data: dFiles, error: dErr } = await admin
+        .from("files")
+        .select("id, mime_type, uploaded_by_user_id")
+        .in("id", dispatch_evidence_file_ids);
+      if (dErr) {
+        console.error("Dispatch file validation error:", dErr);
+        return jsonResponse({ error: "Failed to validate dispatch evidence files" }, 500);
+      }
+      for (const fid of dispatch_evidence_file_ids) {
+        const f = dFiles?.find((x: { id: string }) => x.id === fid);
+        if (!f) return jsonResponse({ error: `Dispatch file ${fid} not found` }, 400);
+        if (f.uploaded_by_user_id !== userId) {
+          return jsonResponse({ error: `Dispatch file ${fid} does not belong to you` }, 403);
+        }
+        validDispatchFileIds.push(fid);
+      }
+    }
+
     const newStatus = ACTION_TO_STATUS[action];
     const now = new Date().toISOString();
 
-    // 1. Handle intermediate transitions required by the state machine
-    // The DB trigger enforces: payment_secured → seller_preparing_delivery → seller_dispatched
-    // So if we're jumping from payment_secured to dispatched/delivered, we must step through
+    // Intermediate transitions (state-machine compliance)
     const needsIntermediateStep =
       tx.status === "payment_secured" && (action === "dispatched" || action === "delivered");
 
@@ -193,13 +230,10 @@ Deno.serve(async (req) => {
         .from("transactions")
         .update({ status: "seller_preparing_delivery" })
         .eq("id", transaction_id);
-
       if (intermediateErr) {
         console.error("Intermediate transition error:", intermediateErr);
         return jsonResponse({ error: `Failed intermediate transition: ${intermediateErr.message}` }, 500);
       }
-
-      // Log the intermediate step
       await admin.from("transaction_status_history").insert({
         transaction_id,
         old_status: tx.status,
@@ -209,7 +243,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // For delivered action going through dispatched intermediate
     const needsDispatchStep =
       (tx.status === "payment_secured" || tx.status === "seller_preparing_delivery") && action === "delivered";
 
@@ -218,12 +251,10 @@ Deno.serve(async (req) => {
         .from("transactions")
         .update({ status: "seller_dispatched" })
         .eq("id", transaction_id);
-
       if (dispatchErr) {
         console.error("Dispatch intermediate error:", dispatchErr);
         return jsonResponse({ error: `Failed dispatch transition: ${dispatchErr.message}` }, 500);
       }
-
       await admin.from("transaction_status_history").insert({
         transaction_id,
         old_status: "seller_preparing_delivery",
@@ -233,12 +264,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2. Update transaction status to final target
+    // Final transition to target status
     const updatePayload: Record<string, unknown> = { status: newStatus };
     if (action === "delivered") {
       updatePayload.delivered_at = now;
-      const deadline = new Date(Date.now() + verificationWindowHours * 60 * 60 * 1000).toISOString();
-      updatePayload.verification_deadline_at = deadline;
+      updatePayload.verification_deadline_at = new Date(Date.now() + verificationWindowHours * 60 * 60 * 1000).toISOString();
     }
 
     const { error: updateErr } = await admin
@@ -251,21 +281,24 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: `Failed to update status: ${updateErr.message}` }, 500);
     }
 
-    // 2-7: Parallel writes for history, events, tracking, delivery updates, proof files, notifications
+    // Generate handoff code for pickup/meetup at dispatch time
+    let handoffCode: string | null = null;
+    if (action === "dispatched" && (deliveryMethod === "pickup" || deliveryMethod === "meetup")) {
+      handoffCode = generateHandoffCode();
+    }
+
     const parallelOps: Promise<unknown>[] = [];
 
-    // 2. transaction_status_history
     parallelOps.push(
       admin.from("transaction_status_history").insert({
         transaction_id,
         old_status: tx.status,
         new_status: newStatus,
         changed_by_user_id: userId,
-        reason: delivery_notes || `Seller updated to ${action}`,
-      })
+        reason: dispatch_note || delivery_notes || `Seller updated to ${action}`,
+      }),
     );
 
-    // 3. transaction_events
     parallelOps.push(
       admin.from("transaction_events").insert({
         transaction_id,
@@ -274,45 +307,65 @@ Deno.serve(async (req) => {
         actor_role: "seller",
         event_data: {
           action,
+          delivery_method: deliveryMethod,
           tracking_number: tracking_number || null,
+          tracking_url: tracking_url || null,
+          courier_name: courier_name || null,
+          rider_name: rider_name || null,
+          rider_phone: rider_phone || null,
+          scheduled_handoff_at: scheduled_handoff_at || null,
+          pickup_ready_at: pickup_ready_at || null,
+          dispatch_note: dispatch_note || null,
           delivery_notes: delivery_notes || null,
+          handoff_code: handoffCode,
           file_count: validFileIds.length,
+          dispatch_evidence_count: validDispatchFileIds.length,
         },
-      })
+      }),
     );
 
-    // 4. delivery_updates
     parallelOps.push(
       admin.from("delivery_updates").insert({
         transaction_id,
         status: ACTION_TO_DELIVERY_STATUS[action],
-        notes: delivery_notes || null,
+        notes: dispatch_note || delivery_notes || null,
         updated_by_user_id: userId,
-      })
+      }),
     );
 
-    // 5. Upsert delivery_tracking_details
-    if (tracking_number?.trim() || action === "dispatched" || action === "delivered") {
+    // Upsert delivery_tracking_details with method-aware fields
+    if (
+      tracking_number?.trim() ||
+      courier_name?.trim() ||
+      tracking_url?.trim() ||
+      handoffCode ||
+      action === "dispatched" ||
+      action === "delivered"
+    ) {
       const trackingPayload: Record<string, unknown> = {
         transaction_id,
         tracking_number: tracking_number?.trim() || null,
+        courier_name: courier_name?.trim() || rider_name?.trim() || null,
+        tracking_url: tracking_url?.trim() || null,
       };
       if (action === "dispatched") {
-        trackingPayload.shipped_at = now;
+        trackingPayload.shipped_at = pickup_ready_at || scheduled_handoff_at || now;
       }
       if (action === "delivered") {
         trackingPayload.delivered_at = now;
       }
+      // Reuse signature_name column to store handoff code (existing column, no schema change needed)
+      if (handoffCode) {
+        trackingPayload.signature_name = `HANDOFF:${handoffCode}`;
+      }
 
       parallelOps.push(
-        admin.from("delivery_tracking_details")
-          .upsert(trackingPayload, { onConflict: "transaction_id" })
+        admin.from("delivery_tracking_details").upsert(trackingPayload, { onConflict: "transaction_id" }),
       );
     }
 
-    // 6. delivery_proof_files for each validated file
+    // Delivery proof files (delivered evidence)
     if (validFileIds.length > 0) {
-      // Get file details to determine proof_type
       const { data: fileDetails } = await admin
         .from("files")
         .select("id, mime_type")
@@ -328,37 +381,61 @@ Deno.serve(async (req) => {
         };
       });
 
-      parallelOps.push(
-        admin.from("delivery_proof_files").insert(proofInserts)
-      );
-
-      // Mark files as non-temporary
+      parallelOps.push(admin.from("delivery_proof_files").insert(proofInserts));
       parallelOps.push(
         admin.from("files")
           .update({ is_temporary: false, context_type: "delivery_proof", retention_category: "delivery_proof" })
-          .in("id", validFileIds)
+          .in("id", validFileIds),
       );
     }
 
-    // 7. delivery_confirmations for delivered
+    // Dispatch evidence files (dispatch-time uploads, separate proof_type)
+    if (validDispatchFileIds.length > 0) {
+      const dispatchInserts = validDispatchFileIds.map((fid) => ({
+        transaction_id,
+        file_id: fid,
+        proof_type: "dispatch_evidence" as const,
+        uploaded_by_user_id: userId,
+      }));
+      parallelOps.push(admin.from("delivery_proof_files").insert(dispatchInserts));
+      parallelOps.push(
+        admin.from("files")
+          .update({ is_temporary: false, context_type: "delivery_proof", retention_category: "delivery_proof" })
+          .in("id", validDispatchFileIds),
+      );
+    }
+
     if (action === "delivered") {
       parallelOps.push(
-        admin.from("delivery_confirmations")
-          .upsert({
-            transaction_id,
-            seller_marked_delivered_at: now,
-          }, { onConflict: "transaction_id" })
+        admin.from("delivery_confirmations").upsert({
+          transaction_id,
+          seller_marked_delivered_at: now,
+        }, { onConflict: "transaction_id" }),
       );
     }
 
-    // 8. Create buyer notification
+    // Buyer notification
     if (tx.buyer_id && (action === "dispatched" || action === "delivered")) {
-      const notifTitle = action === "dispatched"
-        ? "Your item has been dispatched"
-        : "Your item has been marked as delivered";
-      const notifMessage = action === "dispatched"
-        ? "The seller has shipped your item. You will be notified when it arrives."
-        : `Your item has been marked as delivered. Please verify within ${verificationWindowHours} hours.`;
+      let notifTitle = "";
+      let notifMessage = "";
+      if (action === "dispatched") {
+        if (deliveryMethod === "pickup") {
+          notifTitle = "Your item is ready for pickup";
+          notifMessage = `The seller has marked your item ready for pickup. Use code ${handoffCode} at handoff.`;
+        } else if (deliveryMethod === "meetup") {
+          notifTitle = "Meetup scheduled for your item";
+          notifMessage = `The seller scheduled a handoff. Use code ${handoffCode} when meeting.`;
+        } else if (deliveryMethod === "hand_delivery") {
+          notifTitle = "Your item has been dispatched";
+          notifMessage = `Your item is being hand-delivered${rider_name ? ` by ${rider_name}` : ""}. You will be notified when it arrives.`;
+        } else {
+          notifTitle = "Your item has been dispatched";
+          notifMessage = `Your item has been shipped${courier_name ? ` via ${courier_name}` : ""}${tracking_number ? ` (tracking ${tracking_number})` : ""}. You will be notified when it arrives.`;
+        }
+      } else {
+        notifTitle = "Your item has been marked as delivered";
+        notifMessage = `Your item has been marked as delivered. Please verify within ${verificationWindowHours} hours.`;
+      }
 
       parallelOps.push(
         admin.from("notifications").insert({
@@ -369,11 +446,10 @@ Deno.serve(async (req) => {
           message: notifMessage,
           related_transaction_id: transaction_id,
           status: "pending",
-        })
+        }),
       );
     }
 
-    // Execute all parallel operations
     const results = await Promise.allSettled(parallelOps);
     const failures = results.filter((r) => r.status === "rejected");
     if (failures.length > 0) {
@@ -387,6 +463,7 @@ Deno.serve(async (req) => {
       verification_deadline_at: action === "delivered"
         ? new Date(Date.now() + verificationWindowHours * 60 * 60 * 1000).toISOString()
         : null,
+      handoff_code: handoffCode,
     });
   } catch (err) {
     console.error("update-delivery-status error:", err);
