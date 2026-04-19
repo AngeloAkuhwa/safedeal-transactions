@@ -268,33 +268,15 @@ const SellerTransactionDetail = () => {
             )}
           </Card>
 
-          {/* Delivery Terms */}
-          <Card className="rounded-2xl shadow-md p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Truck className="h-5 w-5 text-primary" />
-              <h3 className="text-base font-bold text-foreground">Delivery Terms</h3>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Delivery Method</p>
-                <p className="text-sm font-semibold text-foreground">{deliveryLabels[tx.delivery_method] ?? tx.delivery_method}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Expected Delivery</p>
-                <p className="text-sm font-semibold text-foreground">{formattedDate(tx.expected_delivery_date)}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Verification Window</p>
-                <p className="text-sm font-semibold text-foreground">{tx.verification_window_hours} hours after delivery</p>
-              </div>
-              {delivery_tracking?.tracking_number && (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Tracking Number</p>
-                  <p className="text-sm font-semibold text-foreground">{delivery_tracking.tracking_number}</p>
-                </div>
-              )}
-            </div>
-          </Card>
+          {/* Delivery Terms (shared locked card) */}
+          <DeliveryTermsCard
+            terms={delivery_terms ?? {
+              delivery_method: tx.delivery_method,
+              expected_delivery_date: tx.expected_delivery_date,
+              verification_window_hours: tx.verification_window_hours,
+            }}
+            lockedAt={tx.agreement_locked_at}
+          />
         </div>
 
         {/* 2-column: Item + Agreement */}
