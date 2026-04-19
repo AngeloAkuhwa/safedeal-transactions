@@ -1,88 +1,58 @@
 
 
-# Fix: Private offer media never linked → buyer sees no images/videos
+# Plan: Product Media Gallery (images + video, lightbox, download, keyboard nav, video poster thumbs)
 
-## Root cause (verified end-to-end against the DB)
+## Diagnosis
 
-The seller uploaded 1 image + 1 video for "Touch Light Phone" through the Create Transaction wizard. After payment, the buyer sees no media because **the file rows were never linked to either `transaction_media` (draft) or `product_media` (published product)**. The files exist orphaned in the `files` table.
+DB confirms both files are linked on the buyer's transaction:
+- 1 image (`image/png`)
+- 1 video (`video/mp4`)
 
-There are **3 cooperating bugs** in the publish flow, all in `supabase/functions/create-transaction/index.ts`:
+`transaction-detail` and `transaction-agreement` already return them correctly in `product_media[]`. The bug is purely UI:
+- `BuyerTransactionDetail.tsx` only renders the first image and silently drops the video.
+- `LockedSnapshotCard.tsx` shows images + an inline `<video>` but has no lightbox, no download, no keyboard nav.
 
-### Bug A — `handleSaveDraft` accepts `file_ids` but never inserts into `transaction_media`
-Lines 184–186 only flip `is_temporary=false` on the file rows. There is no `INSERT INTO transaction_media (transaction_id, file_id, media_type, sort_order)`. So the draft has zero linked media.
+## What we'll build
 
-### Bug B — `handlePublish` queries a column that doesn't exist
-Line 279 selects `display_order` from `transaction_media`, but the actual column is `sort_order`. The Supabase JS query errors out, `mediaFilesRes.data` becomes `null`, then `mediaFiles = []` (line 291). The downstream `product_media` insert (line 391) is silently skipped.
+A reusable **`ProductMediaGallery`** used on:
+1. `BuyerTransactionDetail.tsx` → replaces the single hero image inside the Item Details card.
+2. `LockedSnapshotCard.tsx` → replaces the ad-hoc grid + video block in the Product Media card.
 
-### Bug C — Same wrong column used in two more places
-- `verify-paystack-payment/index.ts` lines 226, 228 → snapshot JSON for the agreement also fails to read media.
-- `resolve-share-token/index.ts` lines 85 → the share-token review page can't read media either.
-Both reference `display_order` instead of `sort_order`.
+### Component spec (`src/components/transactions/ProductMediaGallery.tsx`)
+- **Hero pane**: selected media. Image → `<img object-contain>`. Video → `<video controls preload="metadata" poster=…>` with native controls (play, seek, volume, fullscreen, PiP).
+- **Thumbnail strip**: horizontal, 64×64 squares, `snap-x overflow-x-auto`. Active thumb has primary-color ring.
+  - Image thumbs: the image itself (Cloudinary `w_128,h_128,c_fill` transform).
+  - **Video thumbs: real Cloudinary poster frame** — append `so_1,w_128,h_128,c_fill,f_jpg` and swap extension to `.jpg` so the strip shows an actual frame from the video, plus a small Play icon overlay. No extra network call beyond the existing Cloudinary CDN fetch.
+- **Action bar** (top-right of hero): two icon buttons:
+  - **Download** → uses `getCloudinaryDownloadUrl` (adds `fl_attachment`) and triggers a real file save via an `<a download>` click.
+  - **Fullscreen** → opens shadcn `Dialog` with the asset centered on a dark backdrop. Image: `object-contain max-h-[90vh]`. Video: `controls autoplay`.
+- **Keyboard nav**: left/right arrow keys cycle through media when the gallery (or its lightbox) is focused. Dialog `Esc` already closes natively.
+- **Empty state**: existing 4-tile placeholder grid.
+- **Single-media case**: hides thumbnail strip, keeps action bar.
 
-### Net effect
-`product_media` for product `48048ef2…` has 0 rows. So `transaction-agreement` and `transaction-detail` (which we recently fixed to read from `product_media`) correctly return empty arrays — there is genuinely nothing to show. The seller's uploads were lost from the user-visible flow.
+### Layout discipline (so pages don't look busy)
+- Hero aspect: **16/10** on Detail page (replaces current `h-52 sm:h-64`); **square** on Agreement card to match the existing 2-col layout.
+- Thumb strip has fixed max-height with `snap-x overflow-x-auto`.
+- Reuses existing `bg-muted`, `border-border`, `rounded-xl` tokens — no new colors.
 
-## Fix plan
-
-### 1. `supabase/functions/create-transaction/index.ts` (primary fix)
-
-**`handleSaveDraft` — actually link uploaded files to the draft.**
-After the `Promise.all` block, replace the existing `transaction_media` rows for this draft with the latest `file_ids`:
-- `DELETE FROM transaction_media WHERE transaction_id = :draft AND file_id NOT IN (:file_ids)`
-- For each `file_id`, infer `media_type` from `files.mime_type` (`image/*` → `image`, `video/*` → `video`)
-- `UPSERT INTO transaction_media (transaction_id, file_id, media_type, sort_order)` ordered by the array position. Use `onConflict: "transaction_id,file_id"` (need a unique index — see step 4).
-
-**`handlePublish` — fix the read.**
-Line 279: `display_order` → `sort_order` (also update the `.order(...)` call).
-
-**`handlePublish` — make the `product_media` insert robust.**
-Already correct (lines 381–393), but add an `if (error) console.error` after the insert so future failures surface in logs instead of being swallowed.
-
-### 2. `supabase/functions/verify-paystack-payment/index.ts`
-Lines 226 & 228: replace `display_order` with `sort_order` in the SELECT and the `.order(...)`. This ensures the immutable agreement snapshot built at payment time also captures the media URLs.
-
-### 3. `supabase/functions/resolve-share-token/index.ts`
-Lines 85 & next-line `.order(...)`: same `display_order` → `sort_order` rename so the public review page (used for buyer-specific offers and marketplace shares) renders media correctly.
-
-### 4. One-off SQL data repair (migration)
-Backfill the orphaned files for this stuck transaction and any similar cases:
-
-```sql
--- Step 1: For the specific stuck product, link the latest image+video the seller uploaded
-INSERT INTO product_media (product_id, file_id, media_type, sort_order, is_primary)
-VALUES
-  ('48048ef2-38d5-4ffe-887b-3acea32bca92',
-   '932b7a35-fea9-4bb9-8b5f-b350743db615', 'image', 0, true),
-  ('48048ef2-38d5-4ffe-887b-3acea32bca92',
-   '0e2d64a3-e0be-4447-ace7-10f5d08a4010', 'video', 1, false);
-
--- Step 2: Update the offer item's primary_media_url for thumbnail rendering
-UPDATE buyer_specific_offer_items
-SET primary_media_url = (SELECT file_url FROM files WHERE id = '932b7a35-fea9-4bb9-8b5f-b350743db615')
-WHERE offer_id = 'e16a3324-692c-4496-bcf8-bed5be74dcf2';
-
--- Step 3: Add unique index for future onConflict upserts
-CREATE UNIQUE INDEX IF NOT EXISTS uniq_transaction_media_txn_file
-  ON transaction_media (transaction_id, file_id);
+### Cloudinary helpers
+Add to `src/lib/cloudinary.ts`:
+```ts
+export function getCloudinaryDownloadUrl(url: string, filename?: string): string
+export function getCloudinaryVideoPoster(url: string, w?: number, h?: number): string
 ```
-
-## Why this is the right fix (not a quick hack)
-
-- Restores the documented data flow: `upload-evidence` → `files` → `transaction_media` (draft) → `product_media` (on publish).
-- Fixes the bug for **all** future private offers, not just this user. Marketplace listings already work because `seller-products` correctly inserts into `product_media`.
-- Backfills the one stuck record so this buyer sees their already-paid item without re-upload.
-- The agreement snapshot and the public share page also start showing media.
+- `getCloudinaryDownloadUrl` — inserts `fl_attachment` (optionally `fl_attachment:filename`) after `/upload/`. Falls back to original URL for non-Cloudinary files.
+- `getCloudinaryVideoPoster` — inserts `so_1,w_{w},h_{h},c_fill,f_jpg` and swaps the extension to `.jpg` so we get a real video poster frame from Cloudinary's CDN with no extra API call.
 
 ## Files touched
 
-- `supabase/functions/create-transaction/index.ts` — link media on draft save; rename `display_order` → `sort_order`; log media insert errors.
-- `supabase/functions/verify-paystack-payment/index.ts` — rename `display_order` → `sort_order` (×2).
-- `supabase/functions/resolve-share-token/index.ts` — rename `display_order` → `sort_order` (×2).
-- New migration: backfill `product_media` for product `48048ef2…`, set `primary_media_url`, and add `uniq_transaction_media_txn_file` unique index.
+- **NEW** `src/components/transactions/ProductMediaGallery.tsx` — gallery with hero + thumb strip + lightbox dialog + download + arrow-key nav.
+- `src/lib/cloudinary.ts` — add `getCloudinaryDownloadUrl` and `getCloudinaryVideoPoster`.
+- `src/pages/BuyerTransactionDetail.tsx` — replace the hero block (~lines 396–434) with `<ProductMediaGallery media={product_media ?? []} title={item.title} />`. Remove the now-unused single-image derivation.
+- `src/components/agreement/LockedSnapshotCard.tsx` — replace the existing image grid + inline video with `<ProductMediaGallery variant="compact" />` so the Agreement card stays the same size.
 
 ## Out of scope
 
-- Changing the wizard UI (the client already sends `file_ids` correctly).
-- Migrating away from `transaction_media` entirely (still useful as a draft staging table; we just need the link to work).
-- Any change to `transaction-agreement` or `transaction-detail` — they already read `product_media` correctly from our previous fix; they were just receiving an empty set.
+- Changes to `transaction-detail` / `transaction-agreement` edge functions — already returning correct data.
+- Server-side video thumbnail generation pipelines — Cloudinary's on-the-fly `so_1,…,f_jpg` transform gives us a real poster frame without any extra backend work.
 
