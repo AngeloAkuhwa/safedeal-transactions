@@ -269,6 +269,7 @@ Deno.serve(async (req) => {
       transaction_status: string;
       money_status: string;
       created_at: string;
+      has_active_rider_token?: boolean;
     }> = [];
 
     if (recentTxResult.status === "fulfilled" && recentTxResult.value.data) {
