@@ -114,8 +114,8 @@ Deno.serve(async (req) => {
       adminClient.from("transaction_items").select("title, description, quantity, condition_label, brand, model").eq("transaction_id", transactionId).single(),
       adminClient.from("transaction_pricing").select("item_amount, currency_code").eq("transaction_id", transactionId).single(),
       adminClient.from("transaction_delivery_terms").select("delivery_method, expected_delivery_date, verification_window_hours, delivery_address_line1, delivery_address_line2, delivery_city, delivery_state, delivery_postal_code, delivery_country_code").eq("transaction_id", transactionId).single(),
-      adminClient.from("delivery_tracking_details").select("courier_name, tracking_number, tracking_url, shipped_at, delivered_at, expected_delivery_at").eq("transaction_id", transactionId).single(),
-      adminClient.from("delivery_proof_files").select("id, proof_type, created_at, file_id, files(file_url, original_file_name, mime_type)").eq("transaction_id", transactionId),
+      adminClient.from("delivery_tracking_details").select("courier_name, tracking_number, tracking_url, shipped_at, delivered_at, expected_delivery_at, signature_name").eq("transaction_id", transactionId).single(),
+      adminClient.from("delivery_proof_files").select("id, proof_type, created_at, file_id, files(file_url, secure_url, original_file_name, mime_type)").eq("transaction_id", transactionId),
       adminClient.from("profiles").select("full_name, avatar_url, created_at").eq("id", tx.seller_id).single(),
       adminClient.from("escrow_states").select("state, held_amount, released_amount, frozen_amount, refunded_amount").eq("transaction_id", transactionId).single(),
       adminClient.from("transaction_status_history").select("old_status, new_status, reason, changed_at").eq("transaction_id", transactionId).order("changed_at", { ascending: true }),
@@ -197,14 +197,29 @@ Deno.serve(async (req) => {
       pricing: computedPricing,
       delivery_terms: deliveryTerms,
       delivery_tracking: tracking,
-      delivery_proof_files: proofFiles.map((pf: Record<string, unknown>) => ({
-        id: pf.id,
-        proof_type: pf.proof_type,
-        created_at: pf.created_at,
-        file_url: (pf.files as Record<string, unknown>)?.file_url ?? null,
-        file_name: (pf.files as Record<string, unknown>)?.original_file_name ?? null,
-        mime_type: (pf.files as Record<string, unknown>)?.mime_type ?? null,
-      })),
+      delivery_proof_files: proofFiles
+        .filter((pf: Record<string, unknown>) => pf.proof_type !== "dispatch_evidence")
+        .map((pf: Record<string, unknown>) => ({
+          id: pf.id,
+          proof_type: pf.proof_type,
+          created_at: pf.created_at,
+          file_url: (pf.files as Record<string, unknown>)?.file_url ?? null,
+          file_name: (pf.files as Record<string, unknown>)?.original_file_name ?? null,
+          mime_type: (pf.files as Record<string, unknown>)?.mime_type ?? null,
+        })),
+      dispatch_evidence_files: proofFiles
+        .filter((pf: Record<string, unknown>) => pf.proof_type === "dispatch_evidence")
+        .map((pf: Record<string, unknown>) => {
+          const f = (pf.files as Record<string, unknown>) ?? {};
+          return {
+            id: pf.id,
+            created_at: pf.created_at,
+            file_url: f.file_url ?? null,
+            secure_url: f.secure_url ?? null,
+            file_name: f.original_file_name ?? null,
+            mime_type: f.mime_type ?? null,
+          };
+        }),
       seller: seller ? { full_name: seller.full_name, avatar_url: seller.avatar_url, member_since: seller.created_at } : null,
       escrow: escrow,
       status_history: statusHistory,

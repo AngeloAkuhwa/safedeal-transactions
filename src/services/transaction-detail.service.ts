@@ -39,6 +39,16 @@ export interface TransactionDetailTracking {
   shipped_at: string | null;
   delivered_at: string | null;
   expected_delivery_at: string | null;
+  signature_name: string | null;
+}
+
+export interface TransactionDispatchEvidenceFile {
+  id: string;
+  created_at: string;
+  file_url: string | null;
+  secure_url: string | null;
+  file_name: string | null;
+  mime_type: string | null;
 }
 
 export interface TransactionDetailProofFile {
@@ -110,6 +120,7 @@ export interface TransactionDetailResponse {
   delivery_terms: TransactionDetailDeliveryTerms | null;
   delivery_tracking: TransactionDetailTracking | null;
   delivery_proof_files: TransactionDetailProofFile[];
+  dispatch_evidence_files?: TransactionDispatchEvidenceFile[];
   seller: TransactionDetailSeller | null;
   escrow: TransactionDetailEscrow | null;
   status_history: TransactionStatusEntry[];
