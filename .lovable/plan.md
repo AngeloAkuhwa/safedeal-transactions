@@ -1,56 +1,74 @@
 
-# Diagnosis & Fix: Stuck "Awaiting Setup" + No Pay Button
+# Fix: Buyer Stuck on "Pay Now" — Region Eligibility Mismatch (NOT a flow bug)
 
-## What's actually wrong (not the state machine)
+## Root cause (verified in DB)
 
-The transaction state machine is correct. Two real bugs are causing what you see:
+The buyer payment flow is **NOT broken** and works the same for marketplace + private offers. What's blocking `angeloakuhwak@gmail.com` from clicking Pay:
 
-### Bug 1 — Buyer lands on Detail page instead of Agreement page after claiming
-- `claim-offer` correctly returns `redirect_to: /dashboard/transactions/:id/agreement`
-- But once the buyer clicks back to the dashboard and re-opens the transaction (current URL: `/dashboard/transactions/06c3374c…` — Detail page, not `/agreement`), there is no path forward.
-- The Detail page shows status `awaiting_buyer` → "Awaiting Setup, this transaction is being set up" with **no CTA**. Buyer is stuck.
+| Field | Value |
+|---|---|
+| `state_name` | `Lagos` |
+| `city_name` | `Lekki` ❌ |
+| `is_region_eligible` | `false` |
 
-### Bug 2 — Transaction is in `awaiting_buyer` instead of `awaiting_payment`
-- DB confirms: `status='awaiting_buyer'`, `money_status='not_secured'`, `agreement_locked_at=null`.
-- The buyer already claimed (`claimed_at` is set on offer), so the transaction should be advanced to `awaiting_payment` so the "Pay Now" button shows up on the Agreement page.
-- `claim-offer` creates the tx as `awaiting_buyer` and never transitions it. The Agreement page also never bumps it. So the buyer sees the locked terms but `initiate-paystack-payment` (which requires `awaiting_payment`) is never reachable.
+`"Lekki"` is **not a valid Lagos LGA** in `serviceable_regions`. The real LGAs are `Eti-Osa` (Lekki Phase 1/Phase 2/VI) and `Ibeju-Lekki` (Sangotedo, Awoyaya). So `buyer-profile` correctly set `is_region_eligible=false`, and the Review/Pay pages correctly show the "region" lock banner — payment is blocked by design.
 
-### Bug 3 — Item Details on Detail page shows "Untitled Item" + empty image
-- `transaction-detail` selects `transaction_items.title, condition` but the column is `condition_label`. DB shows the title IS stored ("Touch Light Phone") — so the issue is a mismatch in the SELECT or a different code path.
-- Verified: DB row has `title: "Touch Light Phone"` and `condition_label: "brand_new"`. The screenshot shows "Untitled Item" → either `transaction-detail` is failing silently on the bad column name `condition` (should be `condition_label`) and falling back to "Untitled Item", or it's reading a different row. Will fix the column name and the fallback.
-- Image placeholder: same root cause as the agreement-page fix — `transaction-detail` does not pull `product_media` for offer-sourced transactions. Will mirror the productMedia fetch we added to `transaction-agreement`.
+The "Pay Now" button is sitting behind: *"Protected transactions are only available in Lagos during launch — Update your location to a Lagos LGA in Profile Settings."* The user likely scrolled past that banner.
 
-## Fix plan
+## Why other preseeded users feel "alive"
 
-### 1. `supabase/functions/claim-offer/index.ts`
-When creating or reusing a `draft`/`awaiting_buyer` tx for a claimed offer, advance it to `awaiting_payment` immediately (the agreement is already locked-by-snapshot; buyer just needs to pay).
-- New tx path: insert with `status: 'awaiting_payment'`.
-- Reuse path: if reused tx is `draft` or `awaiting_buyer`, UPDATE to `awaiting_payment`. The state machine allows both transitions.
+Preseeded users (`buyer@samplestore.test`, `seller@…`) have `city_name='Ajeromi-Ifelodun'` / `'Lagos'` with `is_region_eligible=true` (seeded directly, bypassing validation). So they sail through.
 
-### 2. `supabase/functions/transaction-detail/index.ts`
-- Fix SELECT: replace `condition` → `condition_label` (and category may not exist; verify and drop if so).
-- Add productMedia fetch (same pattern as `transaction-agreement`): look up `source_offer_id` → `buyer_specific_offer_items.product_id[]` → `product_media` join `files`. Return `productMedia[]`.
-- For offer transactions, prefer the offer's bundle items for the displayed title/quantity so we never show "Untitled Item".
+## The flow IS unified
 
-### 3. `src/pages/BuyerTransactionDetail.tsx`
-- Render the first product image from `productMedia` (image mime) inside the Item Details card instead of the empty placeholder.
-- When `status === 'awaiting_payment'`, show a primary CTA button "Review Agreement & Pay" → `/dashboard/transactions/:id/agreement`. (The `transaction-detail` response already includes `next_action.action = "review_agreement"` — just wire it to a visible button in the hero/status panel.)
+Marketplace and private-offer buyers both hit the same gates in this order:
+```text
+/t/:shareToken (Review)  →  canPay check (buyer-profile.permissions)
+       ↓ Pay clicked
+/t/:shareToken/pay (Payment Summary)  →  same canPay check + agree-to-terms
+       ↓
+initiate-paystack-payment edge function  →  Gates 1–4 (verification, region, amount, concurrency)
+       ↓ Paystack popup
+verify-paystack-payment  →  payment_secured
+```
+No path divergence. The single difference is that private-offer transactions arrive at `/t/:shareToken` already locked-by-snapshot via `claim-offer`.
 
-### 4. One-off data repair for the stuck transaction
-Run a single UPDATE to unblock the user right now:
+## Plan — two complementary fixes
+
+### Fix 1 (immediate unblock): repair this user's profile data
+
+One-shot SQL — set the buyer to a real, active Lagos LGA so `is_region_eligible` becomes true. We'll use `Eti-Osa` (which contains the Lekki area):
 ```sql
-UPDATE transactions
-SET status = 'awaiting_payment'
-WHERE id = '06c3374c-b4ac-4f91-9859-ba7a598f2125'
-  AND status = 'awaiting_buyer';
+UPDATE profiles 
+SET city_name = 'Eti-Osa', is_region_eligible = true 
+WHERE id = 'd7e198dd-aabc-4bd5-b9b9-7fab57543359';
 ```
 
+Then recompute their verification level via the existing `compute_verification_level` RPC so `basic_verified` sticks.
+
+### Fix 2 (UX clarity): make the lock reason *louder* and *actionable inline*
+
+Today the region lock banner sits at the top of the Pay page but the big "Pay" CTA in the right column shows the price label and is `disabled` — users don't always connect the two. We'll:
+
+1. **`BuyerTransactionReview.tsx` → `NextActionCard`**: when `lockReason === "region"`, replace the disabled "Pay …" button with an enabled **"Update Location to Continue"** button that routes to `/dashboard/profile#location`. Same for `"verification"` and `"concurrency"` (already partially handled — make consistent).
+2. **`BuyerPaymentSummary.tsx`**: do the same on the right-rail Pay button so the user can't just sit and wonder why the disabled button won't click.
+3. Add a small `<a href="#location">` anchor target in `PersonalInfoSection.tsx` so the deep-link scrolls to the LGA selector.
+
+### Fix 3 (data hygiene): block invalid stale values
+
+The buyer's profile got into a `'Lekki'` state somehow (probably seeded or updated via an older free-text input). To prevent recurrence:
+- Add a one-off migration that sweeps all `profiles` where `state_name`/`city_name` doesn't match an active row in `serviceable_regions` and force `is_region_eligible=false` (already the case here, but make it deterministic + log how many rows were touched).
+- No schema change needed; the edge function already validates on update.
+
 ## Files touched
-- `supabase/functions/claim-offer/index.ts` — set `awaiting_payment` on create + transition on reuse
-- `supabase/functions/transaction-detail/index.ts` — fix column name, add productMedia, prefer offer bundle for title
-- `src/pages/BuyerTransactionDetail.tsx` — image rendering + "Review Agreement & Pay" CTA
-- Migration: one-off UPDATE for the stuck tx
+
+- **SQL migration** — repair the user's row + global re-validation sweep.
+- `src/pages/BuyerTransactionReview.tsx` — `NextActionCard`: render an "Update Location" / "Verify Account" / "View My Transactions" CTA instead of the disabled Pay button when `lockReason` is set.
+- `src/pages/BuyerPaymentSummary.tsx` — same pattern on the Pay summary right rail.
+- `src/components/profile/PersonalInfoSection.tsx` — add `id="location"` anchor on the location card so `#location` deep-links scroll into view.
 
 ## Out of scope
-- Auto-redirecting Detail → Agreement when status is `awaiting_payment` (intentional: buyer should be able to inspect detail then choose to pay).
-- Refactoring `awaiting_buyer` out of the state machine — it's still useful for seller-created drafts that need buyer email confirmation before payment.
+
+- Adding "Lekki" to `serviceable_regions` as its own LGA — it isn't one.
+- Changing the regional gate itself (intentional Lagos-only launch policy per `mem://constraints/regional-rollout`).
+- Any change to the state machine, `claim-offer`, `transaction-agreement`, or Paystack flow — they're working correctly end-to-end.
