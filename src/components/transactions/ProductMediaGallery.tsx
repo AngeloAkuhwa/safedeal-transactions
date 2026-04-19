@@ -191,7 +191,18 @@ export function ProductMediaGallery({ media, title, variant = "default" }: Produ
                 aria-current={isActive}
               >
                 {m.thumb ? (
-                  <img src={m.thumb} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  <img
+                    src={m.thumb}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      if (!m.isVideo && img.src !== m.url) {
+                        img.src = m.url;
+                      }
+                    }}
+                  />
                 ) : (
                   <div className="w-full h-full bg-muted flex items-center justify-center">
                     <ImageIcon className="h-4 w-4 text-muted-foreground/50" />

@@ -1,7 +1,8 @@
 /**
  * Build a Cloudinary thumbnail URL by inserting resize transforms.
- * Expects a URL like: .../upload/q_auto,f_auto/...
- * Returns: .../upload/w_200,h_200,c_fill,q_auto,f_auto/...
+ * Handles URLs that already contain a transform segment (e.g. q_auto,f_auto)
+ * by merging the resize params into the existing segment instead of stacking
+ * a second transform segment (which Cloudinary may reject).
  */
 export function getCloudinaryThumbnail(
   fileUrl: string,
@@ -12,7 +13,29 @@ export function getCloudinaryThumbnail(
   const idx = fileUrl.indexOf(marker);
   if (idx === -1) return fileUrl;
   const insertAt = idx + marker.length;
-  return `${fileUrl.slice(0, insertAt)}w_${width},h_${height},c_fill,${fileUrl.slice(insertAt)}`;
+  const after = fileUrl.slice(insertAt);
+  const slashIdx = after.indexOf("/");
+  const firstSegment = slashIdx === -1 ? after : after.slice(0, slashIdx);
+  const rest = slashIdx === -1 ? "" : after.slice(slashIdx);
+
+  // Detect existing Cloudinary transform segment.
+  // Skip version segments like "v1234567890".
+  const isVersion = /^v\d+$/.test(firstSegment);
+  const isTransform =
+    !isVersion &&
+    (firstSegment.includes(",") ||
+      /^(q_|f_|w_|h_|c_|e_|dpr_|g_|so_|t_|fl_|ar_|b_|bo_|co_|l_|o_|r_|x_|y_|z_)/.test(
+        firstSegment
+      ));
+
+  const resize = `w_${width},h_${height},c_fill`;
+
+  if (isTransform) {
+    // Merge into existing transform segment to avoid double-stacking.
+    return `${fileUrl.slice(0, insertAt)}${resize},${firstSegment}${rest}`;
+  }
+  // Fresh transform segment.
+  return `${fileUrl.slice(0, insertAt)}${resize},q_auto,f_auto/${after}`;
 }
 
 /**
