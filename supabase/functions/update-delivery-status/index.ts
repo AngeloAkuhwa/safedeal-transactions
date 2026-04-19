@@ -335,6 +335,14 @@ Deno.serve(async (req) => {
     if (action === "dispatched" && tx.buyer_id) {
       riderToken = generateRiderToken();
       const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+
+      // Resolve canonical URL: PUBLIC_APP_URL > client app_origin > origin header
+      const publicBase = Deno.env.get("PUBLIC_APP_URL");
+      const clientOrigin = (body.app_origin as string | undefined)?.replace(/\/$/, "");
+      const headerOrigin = req.headers.get("origin") ?? req.headers.get("referer")?.replace(/\/[^/]*$/, "") ?? "";
+      const appBase = publicBase || clientOrigin || headerOrigin;
+      const persistedUrl = appBase ? `${appBase}/delivery/confirm/${riderToken}` : null;
+
       const { error: tokenErr } = await admin
         .from("delivery_confirmation_tokens")
         .insert({
@@ -344,13 +352,13 @@ Deno.serve(async (req) => {
           token: riderToken,
           expires_at: expiresAt,
           status: "active",
+          confirmation_url: persistedUrl,
         });
       if (tokenErr) {
         console.error("Failed to issue rider token:", tokenErr);
         riderToken = null;
       } else {
-        const origin = req.headers.get("origin") ?? req.headers.get("referer")?.replace(/\/[^/]*$/, "") ?? "";
-        riderConfirmationUrl = origin ? `${origin}/delivery/confirm/${riderToken}` : `/delivery/confirm/${riderToken}`;
+        riderConfirmationUrl = persistedUrl ?? `/delivery/confirm/${riderToken}`;
       }
     }
 

@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
         .maybeSingle(),
       adminClient
         .from("delivery_confirmation_tokens")
-        .select("token, expires_at, status, created_at")
+        .select("token, expires_at, status, created_at, confirmation_url")
         .eq("transaction_id", transactionId)
         .eq("status", "active")
         .order("created_at", { ascending: false })
@@ -207,26 +207,39 @@ Deno.serve(async (req) => {
         }
       : { name: "Unknown Buyer", email: "", phone: "", avatar_url: null, is_verified: false, email_verified: false, phone_verified: false, verification_level: "unverified" };
 
-    let computedPricing = null;
+    let computedPricing: Record<string, unknown> | null = null;
     if (pricingRow) {
-      const rawServiceFee = (pricingRow.platform_fee_amount ?? 0) + (pricingRow.processing_fee_amount ?? 0);
-      const serviceFee = Math.min(rawServiceFee, 2000);
-      const sellerNet = pricingRow.item_amount - serviceFee;
+      // Use authoritative computePricing helper for full breakdown
+      const pr = computePricing(
+        Number(pricingRow.item_amount) || 0,
+        pricingRow.currency_code || "NGN",
+      );
       computedPricing = {
-        item_amount: pricingRow.item_amount,
-        service_fee_amount: serviceFee,
-        seller_net_amount: sellerNet,
-        buyer_total_amount: pricingRow.item_amount + serviceFee,
-        currency_code: pricingRow.currency_code ?? "NGN",
+        item_amount: pr.item_amount,
+        platform_fee_amount: pr.platform_fee_amount,
+        paystack_fee_amount: pr.paystack_fee_amount,
+        // Legacy alias for older UI code:
+        payment_processing_fee_amount: pr.paystack_fee_amount,
+        processing_fee_amount: pr.paystack_fee_amount,
+        service_fee_amount: pr.service_fee_amount,
+        service_fee_rate: pr.service_fee_rate,
+        seller_net_amount: pr.item_amount - pr.platform_fee_amount,
+        buyer_total_amount: pr.total_amount,
+        currency_code: pr.currency_code,
       };
     } else if (escrow && escrow.held_amount > 0) {
-      const pricingResult = computePricing(escrow.held_amount, "NGN");
+      const pr = computePricing(escrow.held_amount, "NGN");
       computedPricing = {
-        item_amount: pricingResult.item_amount,
-        service_fee_amount: pricingResult.service_fee_amount,
-        seller_net_amount: pricingResult.item_amount - pricingResult.service_fee_amount,
-        buyer_total_amount: pricingResult.total_amount,
-        currency_code: "NGN",
+        item_amount: pr.item_amount,
+        platform_fee_amount: pr.platform_fee_amount,
+        paystack_fee_amount: pr.paystack_fee_amount,
+        payment_processing_fee_amount: pr.paystack_fee_amount,
+        processing_fee_amount: pr.paystack_fee_amount,
+        service_fee_amount: pr.service_fee_amount,
+        service_fee_rate: pr.service_fee_rate,
+        seller_net_amount: pr.item_amount - pr.platform_fee_amount,
+        buyer_total_amount: pr.total_amount,
+        currency_code: pr.currency_code,
       };
     }
 
@@ -303,6 +316,7 @@ Deno.serve(async (req) => {
       ? {
           token: riderTokenRow.token as string,
           path: `/delivery/confirm/${riderTokenRow.token as string}`,
+          url: (riderTokenRow.confirmation_url as string | null) ?? null,
           expires_at: (riderTokenRow.expires_at as string) ?? null,
         }
       : null;

@@ -146,9 +146,16 @@ const SellerTransactionDetail = () => {
     });
   };
 
-  const feePercent = pricing && pricing.item_amount > 0
-    ? ((pricing.platform_fee_amount / pricing.item_amount) * 100).toFixed(0)
-    : "3";
+  const feePercent = (() => {
+    if (!pricing || !pricing.item_amount || pricing.item_amount <= 0) return "3";
+    if (typeof pricing.platform_fee_amount === "number" && pricing.platform_fee_amount > 0) {
+      return ((pricing.platform_fee_amount / pricing.item_amount) * 100).toFixed(1);
+    }
+    if (typeof pricing.service_fee_rate === "number" && pricing.service_fee_rate > 0) {
+      return (pricing.service_fee_rate * 100).toFixed(1);
+    }
+    return "3";
+  })();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -210,10 +217,12 @@ const SellerTransactionDetail = () => {
         {rider_link && ["seller_preparing_delivery", "seller_dispatched"].includes(tx.status) && (
           <div id="rider" className="scroll-mt-24">
             <RiderLinkCard
-              riderUrl={`${window.location.origin}${rider_link.path}`}
+              transactionId={transactionId!}
+              riderUrl={rider_link.url || `${window.location.origin}${rider_link.path}`}
               expiresAt={rider_link.expires_at}
               itemTitle={item?.title ?? null}
               transactionCode={tx.transaction_code}
+              onRotated={() => refetch()}
             />
           </div>
         )}
