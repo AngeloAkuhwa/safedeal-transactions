@@ -102,6 +102,7 @@ export interface SellerTransactionDetailResponse {
   rider_link?: {
     token: string;
     path: string;
+    url: string | null;
     expires_at: string | null;
   } | null;
 }
