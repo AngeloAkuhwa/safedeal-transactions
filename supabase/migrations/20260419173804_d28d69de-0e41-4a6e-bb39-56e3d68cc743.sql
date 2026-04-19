@@ -1,0 +1,1 @@
+ALTER TYPE public.transaction_event_type ADD VALUE IF NOT EXISTS 'handoff_code_verified';
