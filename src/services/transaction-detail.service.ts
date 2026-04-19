@@ -104,6 +104,13 @@ export interface TransactionDetailProductMedia {
   sort_order: number;
 }
 
+export interface TransactionCompletionEvent {
+  completed_at: string;
+  previous_status: string | null;
+  reason: string | null;
+  variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown";
+}
+
 export interface TransactionDetailResponse {
   transaction: {
     id: string;
@@ -114,6 +121,7 @@ export interface TransactionDetailResponse {
     created_at: string;
     verification_deadline_at: string | null;
     share_token: string | null;
+    agreement_locked_at: string | null;
   };
   item: TransactionDetailItem;
   pricing: TransactionDetailPricing;
@@ -129,6 +137,7 @@ export interface TransactionDetailResponse {
   agreement: { locked_at: string } | null;
   next_action: TransactionNextAction;
   product_media?: TransactionDetailProductMedia[];
+  completion_event?: TransactionCompletionEvent | null;
 }
 
 export const getTransactionDetail = async (
