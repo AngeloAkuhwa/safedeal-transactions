@@ -86,6 +86,16 @@ const SellerTransactionDetail = () => {
     retry: 1,
   });
 
+  // Auto-scroll to rider link section when navigated with #rider hash
+  useEffect(() => {
+    if (location.hash === "#rider" && data?.rider_link) {
+      const el = document.getElementById("rider");
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+      }
+    }
+  }, [location.hash, data?.rider_link]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
