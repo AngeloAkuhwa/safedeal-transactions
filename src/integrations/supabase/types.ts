@@ -541,6 +541,45 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_confirmation_tokens: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          seller_id: string
+          status: Database["public"]["Enums"]["delivery_confirmation_token_status"]
+          token: string
+          transaction_id: string
+          used_at: string | null
+          used_by_phone: string | null
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          seller_id: string
+          status?: Database["public"]["Enums"]["delivery_confirmation_token_status"]
+          token: string
+          transaction_id: string
+          used_at?: string | null
+          used_by_phone?: string | null
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          seller_id?: string
+          status?: Database["public"]["Enums"]["delivery_confirmation_token_status"]
+          token?: string
+          transaction_id?: string
+          used_at?: string | null
+          used_by_phone?: string | null
+        }
+        Relationships: []
+      }
       delivery_confirmations: {
         Row: {
           buyer_acknowledged_delivery_at: string | null
@@ -3592,6 +3631,11 @@ export type Database = {
         | "purchased"
         | "expired"
         | "cancelled"
+      delivery_confirmation_token_status:
+        | "active"
+        | "used"
+        | "expired"
+        | "revoked"
       delivery_method_type: "courier" | "pickup" | "meetup" | "hand_delivery"
       delivery_proof_type:
         | "shipping_receipt"
@@ -3930,6 +3974,12 @@ export const Constants = {
         "purchased",
         "expired",
         "cancelled",
+      ],
+      delivery_confirmation_token_status: [
+        "active",
+        "used",
+        "expired",
+        "revoked",
       ],
       delivery_method_type: ["courier", "pickup", "meetup", "hand_delivery"],
       delivery_proof_type: [

@@ -49,6 +49,17 @@ function generateHandoffCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+/** Generate a 32-char URL-safe token for rider confirmation */
+function generateRiderToken(): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  // Base64url encode
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -318,6 +329,31 @@ Deno.serve(async (req) => {
       handoffCode = generateHandoffCode();
     }
 
+    // Generate rider confirmation token at dispatch time (Batch 7)
+    let riderToken: string | null = null;
+    let riderConfirmationUrl: string | null = null;
+    if (action === "dispatched" && tx.buyer_id) {
+      riderToken = generateRiderToken();
+      const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+      const { error: tokenErr } = await admin
+        .from("delivery_confirmation_tokens")
+        .insert({
+          transaction_id,
+          seller_id: userId,
+          buyer_id: tx.buyer_id,
+          token: riderToken,
+          expires_at: expiresAt,
+          status: "active",
+        });
+      if (tokenErr) {
+        console.error("Failed to issue rider token:", tokenErr);
+        riderToken = null;
+      } else {
+        const origin = req.headers.get("origin") ?? req.headers.get("referer")?.replace(/\/[^/]*$/, "") ?? "";
+        riderConfirmationUrl = origin ? `${origin}/delivery/confirm/${riderToken}` : `/delivery/confirm/${riderToken}`;
+      }
+    }
+
     const parallelOps: Promise<unknown>[] = [];
 
     parallelOps.push(
@@ -512,6 +548,8 @@ Deno.serve(async (req) => {
         ? new Date(Date.now() + verificationWindowHours * 60 * 60 * 1000).toISOString()
         : null,
       handoff_code: handoffCode,
+      rider_token: riderToken,
+      rider_confirmation_url: riderConfirmationUrl,
     });
   } catch (err) {
     console.error("update-delivery-status error:", err);

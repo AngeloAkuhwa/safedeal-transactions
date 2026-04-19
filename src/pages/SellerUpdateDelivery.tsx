@@ -22,6 +22,7 @@ import { DeliveryMethodBadge, type DeliveryMethod } from "@/components/seller/De
 import { MissingTermsWarning } from "@/components/seller/MissingTermsWarning";
 import { FulfillmentGuidance } from "@/components/seller/FulfillmentGuidance";
 import { DispatchForm, emptyDispatchState, resolveCourierName, type DispatchFormState } from "@/components/seller/DispatchForm";
+import { RiderConfirmationDialog } from "@/components/seller/RiderConfirmationDialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 function fmt(amount: number | undefined | null, currency: string) {
@@ -72,6 +73,7 @@ export default function SellerUpdateDelivery() {
   const [dispatchUploadingNames, setDispatchUploadingNames] = useState<string[]>([]);
   const [dispatchUploadProgress, setDispatchUploadProgress] = useState<Record<string, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [riderDialog, setRiderDialog] = useState<{ url: string; handoffCode: string | null } | null>(null);
 
   const { data: dashData } = useQuery({
     queryKey: ["seller-dashboard"],
@@ -197,7 +199,13 @@ export default function SellerUpdateDelivery() {
       }
       toast({ title: "Delivery updated", description: successDesc });
       queryClient.invalidateQueries({ queryKey: ["seller-transaction-detail", transactionId] });
-      navigate(`/seller/transactions/${transactionId}`);
+
+      // Show rider link dialog instead of immediately navigating, when dispatch issued a token
+      if (selectedAction === "dispatched" && result.rider_confirmation_url) {
+        setRiderDialog({ url: result.rider_confirmation_url, handoffCode: result.handoff_code ?? null });
+      } else {
+        navigate(`/seller/transactions/${transactionId}`);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to update delivery status";
       toast({ title: "Update failed", description: msg, variant: "destructive" });
@@ -684,6 +692,20 @@ export default function SellerUpdateDelivery() {
       </main>
 
       <Footer />
+
+      {riderDialog && (
+        <RiderConfirmationDialog
+          open={!!riderDialog}
+          onClose={() => {
+            setRiderDialog(null);
+            navigate(`/seller/transactions/${transactionId}`);
+          }}
+          riderUrl={riderDialog.url}
+          handoffCode={riderDialog.handoffCode}
+          itemTitle={data?.item?.title ?? null}
+          transactionCode={tx?.transaction_code ?? null}
+        />
+      )}
     </div>
   );
 }
