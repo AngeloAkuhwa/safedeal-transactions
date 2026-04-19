@@ -355,6 +355,7 @@ Deno.serve(async (req) => {
       timeline,
       next_action: nextAction,
       completion_event: completionEvent,
+      rider_link: riderLink,
     });
   } catch (err) {
     console.error("seller-transaction-detail error:", err);
