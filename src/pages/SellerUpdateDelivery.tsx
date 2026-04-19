@@ -692,6 +692,20 @@ export default function SellerUpdateDelivery() {
       </main>
 
       <Footer />
+
+      {riderDialog && (
+        <RiderConfirmationDialog
+          open={!!riderDialog}
+          onClose={() => {
+            setRiderDialog(null);
+            navigate(`/seller/transactions/${transactionId}`);
+          }}
+          riderUrl={riderDialog.url}
+          handoffCode={riderDialog.handoffCode}
+          itemTitle={tx?.item_title ?? null}
+          transactionCode={tx?.transaction_code ?? null}
+        />
+      )}
     </div>
   );
 }

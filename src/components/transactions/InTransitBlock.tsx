@@ -155,6 +155,17 @@ export function InTransitBlock({ deliveryTerms, tracking, dispatchEvidence = [],
         </div>
       )}
 
+      {/* Rider OTP heads-up — applies to any in-transit method */}
+      {(status === "seller_dispatched" || status === "seller_preparing_delivery") && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-foreground">
+          <p className="font-semibold mb-1">If the rider asks for an OTP</p>
+          <p className="text-muted-foreground">
+            We may text you a 6-digit code if the rider opens the SafeDeal delivery link. Only read it back to them
+            <span className="font-semibold"> once you have the item in hand</span>.
+          </p>
+        </div>
+      )}
+
       {/* Dispatch evidence gallery (any method) */}
       {dispatchEvidence.length > 0 && (
         <div className="pt-3 border-t border-border space-y-2">
