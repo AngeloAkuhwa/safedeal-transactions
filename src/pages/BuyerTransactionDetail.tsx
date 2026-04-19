@@ -816,6 +816,14 @@ const BuyerTransactionDetail = () => {
               </div>
             </div>
           </div>
+
+          {/* Messages thread (anchored at #messages for deep links from notifications) */}
+          <div className="mt-8">
+            <MessageThread
+              transactionId={tx.id}
+              counterpartyName={seller?.full_name ?? "Seller"}
+            />
+          </div>
         </div>
       </main>
 

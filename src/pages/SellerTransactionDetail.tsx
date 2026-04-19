@@ -520,6 +520,12 @@ const SellerTransactionDetail = () => {
           </button>
         </div>
 
+        {/* Messages thread (anchored at #messages for notification deep links) */}
+        <MessageThread
+          transactionId={tx.id}
+          counterpartyName={buyer?.name ?? "Buyer"}
+        />
+
         {/* Bottom Nav */}
         <div className="flex flex-col sm:flex-row gap-3 pb-8">
           <Button variant="outline" onClick={() => navigate("/seller/transactions")} className="flex-1 gap-2">
