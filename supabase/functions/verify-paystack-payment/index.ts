@@ -252,6 +252,10 @@ export async function processPaystackVerification(
     locked_by_user_id: tx.buyer_id,
   });
 
+  // 6g.1. Convert reserved stock → sold (idempotent)
+  // Decrement BOTH stock_quantity and reserved_quantity by purchased qty.
+  await convertReservedToSold(supabase, txId);
+
   // 6h. Transaction event
   await supabase.from("transaction_events").insert({
     transaction_id: txId,
@@ -273,6 +277,81 @@ export async function processPaystackVerification(
   });
 
   return { success: true };
+}
+
+/**
+ * After payment succeeds, decrement stock_quantity and reserved_quantity for
+ * each transaction_item's source product. Idempotent: skips if a 'sold' log
+ * already exists for this transaction.
+ */
+async function convertReservedToSold(
+  supabase: ReturnType<typeof createClient>,
+  txId: string
+) {
+  // Get the source product (single-product txns) and items quantity
+  const { data: tx } = await supabase
+    .from("transactions")
+    .select("id, source_product_id")
+    .eq("id", txId)
+    .maybeSingle();
+
+  if (!tx?.source_product_id) {
+    // Multi-product transactions: not supported in current model; skip
+    return;
+  }
+
+  const productId = tx.source_product_id;
+
+  // Idempotency check
+  const { data: existingSoldLog } = await supabase
+    .from("product_inventory_logs")
+    .select("id")
+    .eq("product_id", productId)
+    .eq("change_type", "sold")
+    .eq("reference_type", "transaction")
+    .eq("reference_id", txId)
+    .maybeSingle();
+
+  if (existingSoldLog) return;
+
+  // Sum quantities from transaction_items
+  const { data: items } = await supabase
+    .from("transaction_items")
+    .select("quantity")
+    .eq("transaction_id", txId);
+
+  const totalQty = (items || []).reduce((s: number, i: any) => s + (Number(i.quantity) || 0), 0);
+  if (totalQty <= 0) return;
+
+  // Atomic decrement of both stock_quantity AND reserved_quantity
+  const { data: product } = await supabase
+    .from("products")
+    .select("stock_quantity, reserved_quantity")
+    .eq("id", productId)
+    .single();
+
+  if (!product) return;
+
+  const newStock = Math.max(0, product.stock_quantity - totalQty);
+  const newReserved = Math.max(0, product.reserved_quantity - totalQty);
+
+  await supabase
+    .from("products")
+    .update({
+      stock_quantity: newStock,
+      reserved_quantity: newReserved,
+    })
+    .eq("id", productId);
+
+  await supabase.from("product_inventory_logs").insert({
+    product_id: productId,
+    change_type: "sold",
+    quantity_delta: -totalQty,
+    balance_after: newStock - newReserved,
+    reference_type: "transaction",
+    reference_id: txId,
+    notes: "Reserved stock converted to sold after payment confirmed",
+  });
 }
 
 Deno.serve(async (req) => {
