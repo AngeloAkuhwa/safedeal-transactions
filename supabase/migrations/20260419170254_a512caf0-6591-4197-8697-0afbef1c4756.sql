@@ -1,0 +1,1 @@
+ALTER TYPE public.delivery_proof_type ADD VALUE IF NOT EXISTS 'dispatch_evidence';

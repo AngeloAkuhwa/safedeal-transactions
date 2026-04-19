@@ -3599,6 +3599,7 @@ export type Database = {
         | "signature_proof"
         | "shipment_video"
         | "other"
+        | "dispatch_evidence"
       delivery_update_status: "processing" | "dispatched" | "delivered"
       dispute_case_status:
         | "open"
@@ -3936,6 +3937,7 @@ export const Constants = {
         "signature_proof",
         "shipment_video",
         "other",
+        "dispatch_evidence",
       ],
       delivery_update_status: ["processing", "dispatched", "delivered"],
       dispute_case_status: [
