@@ -509,6 +509,10 @@ const BuyerTransactionTracking = () => {
           {/* ═══ RIGHT SIDEBAR (1/3) ═══ */}
           <div className="space-y-5 sm:space-y-6">
 
+            {delivery_terms && agreement && (
+              <DeliveryTermsCard terms={delivery_terms} lockedAt={agreement.locked_at} compact />
+            )}
+
             {/* Item Summary */}
             <div className="bg-card rounded-2xl shadow-lg border border-border p-4 sm:p-5">
               <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
