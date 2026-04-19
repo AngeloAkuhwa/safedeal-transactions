@@ -96,6 +96,11 @@ export interface SellerTransactionDetailResponse {
     checklist: string[];
   };
   completion_event?: SellerCompletionEvent | null;
+  rider_link?: {
+    token: string;
+    path: string;
+    expires_at: string | null;
+  } | null;
 }
 
 export const getSellerTransactionDetail = async (
