@@ -1,73 +1,67 @@
 
 
-# Phase 4 — Locked terms display + reason-aware completion
+# Phase 5 — Pickup/Meetup Handoff Code Verification
 
 ## Scope
 
-Two final UI hardening pieces: a shared **locked DeliveryTermsCard** shown on both buyer & seller transaction detail pages, and a **reason-aware completion banner** that explains *why* a transaction completed (buyer confirmed / auto-released / dispute resolved).
+Currently for `pickup` and `meetup` deliveries, Phase 2 generates a 6-digit handoff code, stores it in `delivery_tracking_details.signature_name`, and Phase 3 surfaces it to the buyer. **But the seller can still mark the transaction as delivered without actually verifying the buyer received the goods.** Phase 5 closes that loop: when a seller marks a pickup/meetup transaction as `delivered`, they must enter the code the buyer showed them, and we cross-check it server-side.
+
+## Approach
+
+Reuse `signature_name` as the source of truth (already populated at dispatch time). No new tables — the existing `delivery_tokens` table is more complex than needed for this in-person handoff flow and is reserved for the rider OTP flow per the memory note.
 
 ## What changes
 
-### 1. New component — `src/components/transactions/DeliveryTermsCard.tsx`
+### 1. Edge function — `update-delivery-status/index.ts`
 
-Shared card used by both sides. Displays the immutable agreement terms with a `Lock` icon to convey immutability:
-- Delivery method (uses Phase 2 `<DeliveryMethodBadge>`)
-- Expected delivery date
-- Verification window (e.g. "72 hours after delivery")
-- Tracking requirement rule (method-aware copy: "Tracking number required for courier" / "Handoff code required at pickup" / etc.)
-- Delivery address (when present)
-- Special handoff conditions for pickup/meetup
-- Lock badge + "Locked at {agreement_locked_at}" footer
+For the `delivered` action, when delivery method is `pickup` or `meetup`:
+- Require new body field `handoff_code_input` (6 chars).
+- Load `signature_name` from `delivery_tracking_details` for this transaction.
+- If null → 400 "No handoff code on file. Re-issue the code via Mark as Dispatched."
+- Compare case-insensitively, trimmed. Mismatch → 400 "Handoff code does not match."
+- On match → proceed with existing delivered transition. Append a `transaction_event` of type `handoff_code_verified` with `event_data: { method, verified_at }`.
 
-Props: `terms` (delivery_terms object), `lockedAt` (timestamp), optional `compact` variant.
+For `courier` and `hand_delivery` → no change, behaves as today.
 
-### 2. Edge function — `transaction-detail/index.ts`
+### 2. Service — `src/services/delivery.service.ts`
 
-Confirm `delivery_terms` block is returned to the buyer (mirror what seller-side already returns: `delivery_method`, `expected_delivery_date`, `verification_window_hours`, `address`). Add it to the response if missing. Also include `agreement_locked_at`.
+Add `handoff_code_input?: string` to the `UpdateDeliveryStatusPayload` type.
 
-### 3. Service — `src/services/transaction-detail.service.ts`
+### 3. Component edits — `src/components/seller/DispatchForm.tsx`
 
-Add `delivery_terms` and `agreement_locked_at` to the `TransactionDetailResponse` interface.
+When `action === "delivered"` and method is `pickup` or `meetup`:
+- Render a single 6-digit `<InputOTP>` field labeled "Enter the code the buyer showed you".
+- Helper text: "Ask the buyer to read out the 6-digit code from their order page. This proves they received the item."
+- Required, 6 chars.
 
-### 4. Page edits — add `<DeliveryTermsCard>` to:
-- `src/pages/BuyerTransactionDetail.tsx` (right column / sidebar)
-- `src/pages/SellerTransactionDetail.tsx` (right column / sidebar)
-- Optionally `src/pages/BuyerTransactionTracking.tsx` (compact variant)
+For `courier` / `hand_delivery` `delivered` action → keep existing evidence uploader UI unchanged.
 
-### 5. Reason-aware completion banner — rewrite `src/components/seller/TransactionSuccess.tsx`
+### 4. Page wiring — `src/pages/SellerUpdateDelivery.tsx`
 
-Currently a generic success message. Rewrite to be reason-aware by inspecting `transaction_status_history` (already available via the detail endpoints — verify; if not, extend `transaction-detail` and `seller-transaction-detail` to return the last status-history row that transitioned to `completed`).
+- Add local state `handoffCodeInput` and pass into `<DispatchForm>`.
+- Validate before calling `updateDeliveryStatus` (length 6, alphanumeric).
+- Pass `handoff_code_input` in the payload when applicable.
+- Surface server-side mismatch error via existing toast pattern.
 
-Three variants based on the transition source:
-- **Buyer-confirmed**: "Buyer confirmed receipt on {date} — funds released to seller"
-- **Auto-released** (timed_out → completed via system actor): "Verification window ended on {date} without dispute — funds auto-released to seller"
-- **Dispute-resolved** (resolved → completed): "Dispute resolved in seller's favor on {date} — funds released to seller"
+### 5. Buyer-side reassurance — `src/components/transactions/InTransitBlock.tsx`
 
-Each variant shows: completion timestamp, fund-release timestamp (from `escrow_states` / `money_status_history`), and a link to the receipt. Different icon/color per variant (CheckCircle green / Clock amber / Scale blue).
-
-Reuse on buyer side too — rename to a neutral `TransactionCompletionBanner.tsx` (keep `TransactionSuccess.tsx` as a thin re-export to avoid breaking imports) and surface it on `BuyerTransactionDetail.tsx` when status is `completed`.
+Minor copy add for pickup/meetup variants: "The seller will ask for this code at handoff. Don't share it before you have the item in hand."
 
 ## Files touched
 
-**Edge functions (edited):**
-- `supabase/functions/transaction-detail/index.ts` — add `delivery_terms` block + completion-reason fields.
-- `supabase/functions/seller-transaction-detail/index.ts` — add completion-reason fields (delivery_terms already returned).
-
-**Frontend (new):**
-- `src/components/transactions/DeliveryTermsCard.tsx`
-- `src/components/transactions/TransactionCompletionBanner.tsx`
+**Edge function (edited):**
+- `supabase/functions/update-delivery-status/index.ts`
 
 **Frontend (edited):**
-- `src/services/transaction-detail.service.ts` — extend response interface.
-- `src/services/seller-transaction-detail.service.ts` — extend response interface.
-- `src/pages/BuyerTransactionDetail.tsx` — render terms card + completion banner.
-- `src/pages/SellerTransactionDetail.tsx` — render terms card + completion banner.
-- `src/pages/BuyerTransactionTracking.tsx` — compact terms card (optional).
-- `src/components/seller/TransactionSuccess.tsx` — convert to thin re-export of the new shared banner.
+- `src/services/delivery.service.ts`
+- `src/components/seller/DispatchForm.tsx`
+- `src/pages/SellerUpdateDelivery.tsx`
+- `src/components/transactions/InTransitBlock.tsx`
 
-## Out of scope (future)
+## Out of scope
 
-- Real cross-check of pickup/meetup handoff code against `delivery_tokens` table (Phase 5).
-- Real-time courier API integrations (DHL/GIG webhooks).
-- SMS/WhatsApp delivery notifications.
+- Multi-attempt rate limiting on code entry (deferred — current design just rejects per request).
+- Rotating the code if the seller fails N times (deferred).
+- Full migration to the `delivery_tokens` table for in-person handoffs (deferred — that table is reserved for rider/courier OTPs).
+- SMS/email of the handoff code to the buyer (in-app only for now).
 
