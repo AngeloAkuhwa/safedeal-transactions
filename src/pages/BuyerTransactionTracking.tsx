@@ -32,6 +32,8 @@ import { Separator } from "@/components/ui/separator";
 import { getTransactionDetail } from "@/services/transaction-detail.service";
 import type { TransactionDetailResponse } from "@/services/transaction-detail.service";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
+import { InTransitBlock } from "@/components/transactions/InTransitBlock";
+import { VerifyReceiptCTA } from "@/components/transactions/VerifyReceiptCTA";
 import { cn } from "@/lib/utils";
 
 /* ─── Helpers ─── */
@@ -180,8 +182,10 @@ const BuyerTransactionTracking = () => {
 
   const {
     transaction: tx, item, pricing, delivery_terms, delivery_tracking,
-    delivery_proof_files, seller, escrow, status_history, dispute, next_action,
+    delivery_proof_files, dispatch_evidence_files, seller, escrow, status_history, dispute, next_action,
   } = data;
+  const showInTransit = tx.status === "seller_dispatched" || tx.status === "delivered_awaiting_verification";
+  const showVerifyCTA = tx.status === "delivered_awaiting_verification";
 
   const sBadge = statusConfig[tx.status] ?? { label: tx.status, className: "bg-muted text-muted-foreground border-border" };
   const mBadge = moneyConfig[tx.money_status] ?? { label: tx.money_status, className: "bg-muted text-muted-foreground border-border" };
@@ -298,6 +302,23 @@ const BuyerTransactionTracking = () => {
 
           {/* ═══ LEFT (2/3) ═══ */}
           <div className="lg:col-span-2 space-y-5 sm:space-y-6">
+
+            {showVerifyCTA && (
+              <VerifyReceiptCTA
+                transactionId={tx.id}
+                deadlineAt={tx.verification_deadline_at}
+                deliveredAt={delivery_tracking?.delivered_at ?? null}
+              />
+            )}
+
+            {showInTransit && (
+              <InTransitBlock
+                deliveryTerms={delivery_terms}
+                tracking={delivery_tracking}
+                dispatchEvidence={dispatch_evidence_files}
+                status={tx.status}
+              />
+            )}
 
             {/* Next Action */}
             {next_action && (

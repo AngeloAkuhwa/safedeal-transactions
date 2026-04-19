@@ -48,6 +48,8 @@ import { useEffect, useState, useRef } from "react";
 import { ContactSellerModal } from "@/components/transactions/ContactSellerModal";
 import { TransactionReceipt } from "@/components/transactions/TransactionReceipt";
 import { ProductMediaGallery } from "@/components/transactions/ProductMediaGallery";
+import { InTransitBlock } from "@/components/transactions/InTransitBlock";
+import { VerifyReceiptCTA } from "@/components/transactions/VerifyReceiptCTA";
 
 /* ───── Status badge config ───── */
 const statusConfig: Record<string, { label: string; className: string }> = {
@@ -268,7 +270,9 @@ const BuyerTransactionDetail = () => {
     );
   }
 
-  const { transaction: tx, item, pricing, delivery_terms, delivery_tracking, delivery_proof_files, seller, escrow, status_history, dispute, agreement, next_action, product_media } = data;
+  const { transaction: tx, item, pricing, delivery_terms, delivery_tracking, delivery_proof_files, dispatch_evidence_files, seller, escrow, status_history, dispute, agreement, next_action, product_media } = data;
+  const showInTransit = tx.status === "seller_dispatched" || tx.status === "delivered_awaiting_verification";
+  const showVerifyCTA = tx.status === "delivered_awaiting_verification";
   const currentStatusIndex = getStatusIndex(tx.status);
   const sBadge = statusConfig[tx.status] ?? { label: tx.status, className: "bg-muted text-muted-foreground border-border" };
   const mBadge = moneyConfig[tx.money_status] ?? { label: tx.money_status, className: "bg-muted text-muted-foreground border-border" };
@@ -383,6 +387,23 @@ const BuyerTransactionDetail = () => {
                   shareToken={tx.share_token}
                 />
               </div>
+            )}
+
+            {showVerifyCTA && (
+              <VerifyReceiptCTA
+                transactionId={tx.id}
+                deadlineAt={tx.verification_deadline_at}
+                deliveredAt={delivery_tracking?.delivered_at ?? null}
+              />
+            )}
+
+            {showInTransit && (
+              <InTransitBlock
+                deliveryTerms={delivery_terms}
+                tracking={delivery_tracking}
+                dispatchEvidence={dispatch_evidence_files}
+                status={tx.status}
+              />
             )}
 
             {/* ── Item Details ── */}
