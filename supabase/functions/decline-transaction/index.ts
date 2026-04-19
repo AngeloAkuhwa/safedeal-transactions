@@ -87,6 +87,57 @@ Deno.serve(async (req) => {
       .update({ is_active: false })
       .eq("share_token", shareToken);
 
+    // 6b. Release reserved stock for any source products on this transaction
+    const { data: txItems } = await supabase
+      .from("transaction_items")
+      .select("quantity")
+      .eq("transaction_id", txId);
+
+    const { data: txWithProduct } = await supabase
+      .from("transactions")
+      .select("source_product_id")
+      .eq("id", txId)
+      .maybeSingle();
+
+    const reservedQty = (txItems || []).reduce((s: number, i: any) => s + (i.quantity || 0), 0);
+    if (txWithProduct?.source_product_id && reservedQty > 0) {
+      const { data: prod } = await supabase
+        .from("products")
+        .select("reserved_quantity, stock_quantity")
+        .eq("id", txWithProduct.source_product_id)
+        .single();
+
+      if (prod) {
+        const newReserved = Math.max(0, prod.reserved_quantity - reservedQty);
+        await supabase
+          .from("products")
+          .update({ reserved_quantity: newReserved })
+          .eq("id", txWithProduct.source_product_id);
+
+        // Log release (idempotent on transaction)
+        const { data: existingLog } = await supabase
+          .from("product_inventory_logs")
+          .select("id")
+          .eq("product_id", txWithProduct.source_product_id)
+          .eq("change_type", "release")
+          .eq("reference_type", "transaction_declined")
+          .eq("reference_id", txId)
+          .maybeSingle();
+
+        if (!existingLog) {
+          await supabase.from("product_inventory_logs").insert({
+            product_id: txWithProduct.source_product_id,
+            change_type: "release",
+            quantity_delta: -reservedQty,
+            balance_after: prod.stock_quantity - newReserved,
+            reference_type: "transaction_declined",
+            reference_id: txId,
+            notes: "Stock released after buyer declined transaction",
+          });
+        }
+      }
+    }
+
     // 7. Notify the seller
     await supabase.from("notifications").insert({
       user_id: tx.seller_id,

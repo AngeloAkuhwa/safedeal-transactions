@@ -189,15 +189,39 @@ Deno.serve(async (req) => {
         if (reservedQty > 0) {
           const { data: product } = await admin
             .from("products")
-            .select("reserved_quantity")
+            .select("reserved_quantity, stock_quantity")
             .eq("id", productId)
             .single();
 
           if (product) {
+            const newReserved = Math.max(0, product.reserved_quantity - reservedQty);
             await admin
               .from("products")
-              .update({ reserved_quantity: Math.max(0, product.reserved_quantity - reservedQty) })
+              .update({ reserved_quantity: newReserved })
               .eq("id", productId);
+
+            // Log release (idempotent per cancelled transaction)
+            const { data: existingLog } = await admin
+              .from("product_inventory_logs")
+              .select("id")
+              .eq("product_id", productId)
+              .eq("change_type", "release")
+              .eq("reference_type", "transaction_cancelled")
+              .eq("reference_id", linkedTx.id)
+              .maybeSingle();
+
+            if (!existingLog) {
+              await admin.from("product_inventory_logs").insert({
+                product_id: productId,
+                change_type: "release",
+                quantity_delta: -reservedQty,
+                balance_after: product.stock_quantity - newReserved,
+                reference_type: "transaction_cancelled",
+                reference_id: linkedTx.id,
+                notes: "Stock released after cart-item removal cancelled the transaction",
+                changed_by_user_id: buyerId,
+              });
+            }
           }
         }
       }
