@@ -715,6 +715,14 @@ const SellerProductDetail = () => {
           navigate("/seller/storefront");
         }}
       />
+      <RestockModal
+        open={restockOpen}
+        onOpenChange={setRestockOpen}
+        productId={productId!}
+        productTitle={product.title}
+        currentStock={product.stock_quantity || 0}
+        currentReserved={product.reserved_quantity || 0}
+      />
     </div>
   );
 };
