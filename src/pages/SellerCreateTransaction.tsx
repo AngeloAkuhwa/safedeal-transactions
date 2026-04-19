@@ -51,10 +51,10 @@ const CONDITION_OPTIONS = [
 ];
 
 const DELIVERY_OPTIONS = [
-  { value: "courier", label: "Standard Shipping" },
-  { value: "pickup", label: "Local Pickup" },
-  { value: "meetup", label: "Express Shipping" },
-  { value: "hand_delivery", label: "Hand Delivery" },
+  { value: "courier", label: "Courier / Standard Shipping" },
+  { value: "pickup", label: "Buyer Pickup" },
+  { value: "meetup", label: "Meet-Up in Person" },
+  { value: "hand_delivery", label: "Hand Delivery (in person)" },
 ];
 
 const VERIFICATION_WINDOWS = [
