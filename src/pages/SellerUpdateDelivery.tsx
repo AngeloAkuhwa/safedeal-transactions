@@ -497,6 +497,37 @@ export default function SellerUpdateDelivery() {
                   />
                 )}
 
+                {/* Pickup/Meetup: handoff code verification */}
+                {(deliveryMethod === "pickup" || deliveryMethod === "meetup") && (
+                  <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 space-y-3">
+                    <div>
+                      <Label className="text-sm font-semibold text-foreground">
+                        Enter the code the buyer showed you <span className="text-destructive">*</span>
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Ask the buyer to read out the 6-digit code from their order page. This proves they received the item.
+                      </p>
+                    </div>
+                    <InputOTP
+                      maxLength={6}
+                      value={handoffCodeInput}
+                      onChange={(v) => setHandoffCodeInput(v.replace(/\D/g, ""))}
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                    {handoffCodeInput.length > 0 && handoffCodeInput.length < 6 && (
+                      <p className="text-xs text-destructive">Code must be exactly 6 digits.</p>
+                    )}
+                  </div>
+                )}
+
                 {/* Delivery proof evidence (always required for delivered) */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">

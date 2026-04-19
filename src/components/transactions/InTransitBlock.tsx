@@ -55,6 +55,9 @@ function HandoffCodeBlock({ code, prompt }: { code: string; prompt: string }) {
       <p className="text-xs text-muted-foreground mt-2">
         Only share this code with the seller or rider at the moment of handoff.
       </p>
+      <p className="text-xs font-medium text-foreground mt-1">
+        The seller will ask for this code at handoff. Don't share it before you have the item in hand.
+      </p>
     </div>
   );
 }
