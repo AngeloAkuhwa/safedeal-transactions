@@ -186,6 +186,41 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
       : []),
   ]);
 
+  // Link uploaded files to the draft via transaction_media so they survive into product_media on publish
+  if (fileIds.length > 0) {
+    // Remove any previously-linked files no longer in the list
+    await adminClient
+      .from("transaction_media")
+      .delete()
+      .eq("transaction_id", transactionId)
+      .not("file_id", "in", `(${fileIds.map((id) => `"${id}"`).join(",")})`);
+
+    // Look up mime types so we can infer media_type
+    const { data: filesMeta } = await adminClient
+      .from("files")
+      .select("id, mime_type")
+      .in("id", fileIds);
+    const mimeById = new Map<string, string>(
+      (filesMeta || []).map((f: any) => [f.id as string, (f.mime_type as string) || ""]),
+    );
+
+    const mediaRows = fileIds.map((fid, idx) => {
+      const mime = mimeById.get(fid) || "";
+      const media_type = mime.startsWith("video/") ? "video" : "image";
+      return {
+        transaction_id: transactionId,
+        file_id: fid,
+        media_type,
+        sort_order: idx,
+      };
+    });
+
+    const { error: mediaErr } = await adminClient
+      .from("transaction_media")
+      .upsert(mediaRows, { onConflict: "transaction_id,file_id" });
+    if (mediaErr) console.error("transaction_media upsert error:", mediaErr);
+  }
+
   return jsonResponse({ transaction_id: transactionId });
 }
 
