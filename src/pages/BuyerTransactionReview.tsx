@@ -31,6 +31,7 @@ import { getBuyerProfile } from "@/services/profile.service";
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
+import { ProductMediaGallery } from "@/components/transactions/ProductMediaGallery";
 
 type AuthState = "loading" | "anonymous" | "needs-role" | "ready";
 
