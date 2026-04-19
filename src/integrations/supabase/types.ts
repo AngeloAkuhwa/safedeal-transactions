@@ -544,6 +544,7 @@ export type Database = {
       delivery_confirmation_tokens: {
         Row: {
           buyer_id: string
+          confirmation_url: string | null
           created_at: string
           expires_at: string
           id: string
@@ -556,6 +557,7 @@ export type Database = {
         }
         Insert: {
           buyer_id: string
+          confirmation_url?: string | null
           created_at?: string
           expires_at: string
           id?: string
@@ -568,6 +570,7 @@ export type Database = {
         }
         Update: {
           buyer_id?: string
+          confirmation_url?: string | null
           created_at?: string
           expires_at?: string
           id?: string
@@ -1186,6 +1189,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      edge_function_errors: {
+        Row: {
+          created_at: string
+          error_code: string | null
+          function_name: string
+          http_status: number | null
+          id: string
+          message: string
+          request_context: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_code?: string | null
+          function_name: string
+          http_status?: number | null
+          id?: string
+          message: string
+          request_context?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_code?: string | null
+          function_name?: string
+          http_status?: number | null
+          id?: string
+          message?: string
+          request_context?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       escrow_ledger_entries: {
         Row: {
