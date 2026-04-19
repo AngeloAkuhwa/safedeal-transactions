@@ -47,6 +47,7 @@ import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { useEffect, useState, useRef } from "react";
 import { ContactSellerModal } from "@/components/transactions/ContactSellerModal";
 import { TransactionReceipt } from "@/components/transactions/TransactionReceipt";
+import { ProductMediaGallery } from "@/components/transactions/ProductMediaGallery";
 
 /* ───── Status badge config ───── */
 const statusConfig: Record<string, { label: string; className: string }> = {
@@ -268,9 +269,6 @@ const BuyerTransactionDetail = () => {
   }
 
   const { transaction: tx, item, pricing, delivery_terms, delivery_tracking, delivery_proof_files, seller, escrow, status_history, dispute, agreement, next_action, product_media } = data;
-  const heroImage = (product_media ?? []).find((m) => (m.mime_type ?? "").startsWith("image/"))?.secure_url
-    ?? (product_media ?? []).find((m) => (m.mime_type ?? "").startsWith("image/"))?.file_url
-    ?? null;
   const currentStatusIndex = getStatusIndex(tx.status);
   const sBadge = statusConfig[tx.status] ?? { label: tx.status, className: "bg-muted text-muted-foreground border-border" };
   const mBadge = moneyConfig[tx.money_status] ?? { label: tx.money_status, className: "bg-muted text-muted-foreground border-border" };
@@ -394,13 +392,7 @@ const BuyerTransactionDetail = () => {
                 Item Details
               </h2>
               <div className="grid md:grid-cols-2 gap-4 sm:gap-5">
-                <div className="h-52 sm:h-64 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
-                  {heroImage ? (
-                    <img src={heroImage} alt={item.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <ImageIcon className="h-16 w-16 text-muted-foreground/30" />
-                  )}
-                </div>
+                <ProductMediaGallery media={product_media ?? []} title={item.title} />
                 <div className="space-y-3 sm:space-y-4">
                   <h3 className="text-lg sm:text-xl font-bold text-foreground">{item.title}</h3>
                   <div className="space-y-2 sm:space-y-3">
