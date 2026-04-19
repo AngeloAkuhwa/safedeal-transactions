@@ -40,6 +40,13 @@ export interface TimelineStep {
   timestamp: string | null;
 }
 
+export interface SellerCompletionEvent {
+  completed_at: string;
+  previous_status: string | null;
+  reason: string | null;
+  variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown";
+}
+
 export interface SellerTransactionDetailResponse {
   transaction: {
     id: string;
@@ -88,6 +95,7 @@ export interface SellerTransactionDetailResponse {
     description: string;
     checklist: string[];
   };
+  completion_event?: SellerCompletionEvent | null;
 }
 
 export const getSellerTransactionDetail = async (

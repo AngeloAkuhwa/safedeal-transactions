@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     // Fetch transaction and validate buyer ownership
     const { data: tx, error: txError } = await adminClient
       .from("transactions")
-      .select("id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, created_at, updated_at, share_token, source_offer_id")
+      .select("id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, created_at, updated_at, share_token, source_offer_id, agreement_locked_at")
       .eq("id", transactionId)
       .single();
 
@@ -155,6 +155,30 @@ Deno.serve(async (req) => {
 
     const nextAction = deriveNextAction(tx.status, dispute?.id ?? null);
 
+    // Derive completion event (reason-aware): the status_history row whose new_status === 'completed'
+    let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" } | null = null;
+    if (tx.status === "completed") {
+      const completedRow = [...statusHistory].reverse().find((h: Record<string, unknown>) => h.new_status === "completed");
+      if (completedRow) {
+        const prev = (completedRow.old_status as string | null) ?? null;
+        let variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" = "unknown";
+        if (prev === "delivered_awaiting_verification") {
+          // Buyer confirmed OR auto-release — distinguish via delivery_confirmations
+          if (deliveryConf?.buyer_acknowledged_delivery_at) variant = "buyer_confirmed";
+          else if (deliveryConf?.system_delivery_marked_at) variant = "auto_released";
+          else variant = "buyer_confirmed";
+        } else if (prev === "resolved" || prev === "disputed") {
+          variant = "dispute_resolved";
+        }
+        completionEvent = {
+          completed_at: (completedRow.changed_at as string) ?? "",
+          previous_status: prev,
+          reason: (completedRow.reason as string | null) ?? null,
+          variant,
+        };
+      }
+    }
+
     // Fetch product media for offer-sourced transactions
     let productMedia: Array<{ product_id: string; file_url: string | null; secure_url: string | null; mime_type: string | null; media_type: string | null; sort_order: number }> = [];
     if (tx.source_offer_id) {
@@ -190,6 +214,7 @@ Deno.serve(async (req) => {
         created_at: tx.created_at,
         verification_deadline_at: verificationDeadlineAt,
         share_token: tx.share_token ?? null,
+        agreement_locked_at: tx.agreement_locked_at ?? null,
       },
       item: item
         ? { title: item.title, description: item.description, quantity: item.quantity, condition: item.condition_label, brand: item.brand, model: item.model, category: null }
@@ -228,6 +253,7 @@ Deno.serve(async (req) => {
       agreement: agreement ? { locked_at: agreement.locked_at } : null,
       next_action: nextAction,
       product_media: productMedia,
+      completion_event: completionEvent,
     });
   } catch (err) {
     console.error("transaction-detail error:", err);

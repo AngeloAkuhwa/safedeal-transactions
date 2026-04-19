@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch related data in parallel
-    const [itemRes, deliveryTermsRes, linkRes, buyerProfileRes, buyerVerifRes, participantRes, escrowRes, pricingRes, snapshotRes, statusHistoryRes, deliveryTrackingRes] = await Promise.all([
+    const [itemRes, deliveryTermsRes, linkRes, buyerProfileRes, buyerVerifRes, participantRes, escrowRes, pricingRes, snapshotRes, statusHistoryRes, deliveryTrackingRes, deliveryConfRes] = await Promise.all([
       adminClient
         .from("transaction_items")
         .select("title, description, quantity, condition_label, brand, model")
@@ -120,13 +120,18 @@ Deno.serve(async (req) => {
         .eq("transaction_id", transactionId)
         .maybeSingle(),
       adminClient
-        .from("money_status_history")
+        .from("transaction_status_history")
         .select("old_status, new_status, changed_at, reason")
         .eq("transaction_id", transactionId)
         .order("changed_at", { ascending: true }),
       adminClient
         .from("delivery_tracking_details")
         .select("courier_name, tracking_number, tracking_url, shipped_at, delivered_at, expected_delivery_at")
+        .eq("transaction_id", transactionId)
+        .maybeSingle(),
+      adminClient
+        .from("delivery_confirmations")
+        .select("seller_marked_delivered_at, buyer_acknowledged_delivery_at, system_delivery_marked_at")
         .eq("transaction_id", transactionId)
         .maybeSingle(),
     ]);
@@ -141,6 +146,30 @@ Deno.serve(async (req) => {
     const snapshot = snapshotRes.data;
     const statusHistory = statusHistoryRes.data ?? [];
     const deliveryTracking = deliveryTrackingRes.data;
+    const deliveryConf = deliveryConfRes.data as Record<string, unknown> | null;
+
+    // Derive completion event (reason-aware)
+    let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" } | null = null;
+    if (tx.status === "completed") {
+      const completedRow = [...statusHistory].reverse().find((h: Record<string, unknown>) => h.new_status === "completed");
+      if (completedRow) {
+        const prev = ((completedRow as Record<string, unknown>).old_status as string | null) ?? null;
+        let variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" = "unknown";
+        if (prev === "delivered_awaiting_verification") {
+          if (deliveryConf?.buyer_acknowledged_delivery_at) variant = "buyer_confirmed";
+          else if (deliveryConf?.system_delivery_marked_at) variant = "auto_released";
+          else variant = "buyer_confirmed";
+        } else if (prev === "resolved" || prev === "disputed") {
+          variant = "dispute_resolved";
+        }
+        completionEvent = {
+          completed_at: ((completedRow as Record<string, unknown>).changed_at as string) ?? "",
+          previous_status: prev,
+          reason: ((completedRow as Record<string, unknown>).reason as string | null) ?? null,
+          variant,
+        };
+      }
+    }
 
     const buyerVerif = buyerVerifRes.data as Record<string, unknown> | null;
 
@@ -307,6 +336,7 @@ Deno.serve(async (req) => {
       } : null,
       timeline,
       next_action: nextAction,
+      completion_event: completionEvent,
     });
   } catch (err) {
     console.error("seller-transaction-detail error:", err);
