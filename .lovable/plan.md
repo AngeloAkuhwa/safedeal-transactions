@@ -1,93 +1,126 @@
 
 
-# Plan: Fix receipt printing + seller notifications + buyer→seller messages
+# Plan: Expanded test plan + automated execution + full report
 
-## Issue 1 — "Download/View Receipt" prints a blank page
+## Goal
+1. Expand the test plans to cover **every buyer and seller dashboard tab/section** including data correctness checks against the underlying tables.
+2. **Execute the tests** that can be automated (DB queries, edge function curls, RLS checks, state machine validation, dashboard data integrity).
+3. Deliver a **full report** as `/mnt/documents/safedeal-test-report.md` listing pass/fail per scenario, expected vs actual, table snapshots, and a list of items requiring manual UI verification.
 
-**Root cause** (`src/components/transactions/TransactionReceipt.tsx`):
-The print CSS targets only **direct** children of `body` and `#root`:
-```css
-body > *:not(#safedeal-receipt-root),
-#root > *:not(#safedeal-receipt-root) { display: none !important; }
-```
-But `#safedeal-receipt-root` is rendered deep inside the page tree (inside `BuyerTransactionDetail` → wrapper divs), not as a direct child of `#root`. So the rule hides the receipt's ancestor div, which hides the receipt itself. Combined with the `hidden` Tailwind class (which sets `display:none` even in print on some browsers), nothing renders.
+## Scope of automated execution
+What I CAN run for you (no UI clicks needed):
+- Direct DB integrity checks (RLS, triggers, state machine, FK guards)
+- Edge function smoke tests via `supabase--curl_edge_functions` (buyer-dashboard, seller-dashboard, buyer-notifications, seller-notifications, transaction-messages, marketplace, etc.)
+- Dashboard payload vs raw-table reconciliation (e.g. `metrics.active_purchases` vs actual `transactions` count for the buyer)
+- Verification level computation tests (call `compute_verification_level` for synthetic states)
+- Transaction state machine: attempt invalid transitions and assert rejection
+- Inventory math: `available = stock - reserved` invariant across all products
+- Escrow ledger balance vs `escrow_states` reconciliation
+- Notification routing: confirm `direct_message` rows deeplink to the seller route
+- Edge function logs scan for errors in last 24h
 
-**Fix**:
-- Render the receipt into a **portal at `document.body`** (using `createPortal`) so it becomes a direct child of `body` and the print scoping works.
-- Replace `className="hidden print:!block"` with inline styles: `style={{ display: 'none' }}` on screen, flipped to `display:block` only inside `@media print` via the scoped style block. This avoids the Tailwind specificity trap.
-- Tighten the print CSS to: hide everything in `body` except `#safedeal-receipt-root` and its descendants, then explicitly show the receipt.
+What requires **you in the browser** (I'll list these explicitly in the report):
+- Paystack popup payment (real card)
+- Phone OTP delivery (real SMS)
+- Email verification clicks
+- Cloudinary uploads
+- Visual receipt print preview
 
-## Issue 2 — Seller notifications 404
+## Expanded test plan additions
 
-**Root cause**:
-- `SellerNav` links to `/seller/notifications`
-- No such route in `src/App.tsx`
-- No `SellerNotifications` page exists
-- Buyer notification edge function (`buyer-notifications`) is buyer-scoped
+### New Section E — Buyer dashboard data correctness (`/dashboard`)
+For a chosen buyer account, assert each surface matches DB:
+| Surface | Field | Source of truth | Assertion |
+|---|---|---|---|
+| Hero | `buyer.full_name` | `profiles.full_name` | exact match |
+| Metrics | `active_purchases` | `transactions WHERE buyer_id=? AND status IN active_set` | count match |
+| Metrics | `awaiting_delivery` | `status IN (payment_secured, seller_preparing_delivery, seller_dispatched)` | count match |
+| Metrics | `awaiting_verification` | `status='delivered_awaiting_verification'` | count match |
+| Metrics | `open_disputes` | `disputes WHERE opened_by_user_id=? AND status NOT IN (resolved)` | count match |
+| Recent purchases | row order | `transactions ORDER BY created_at DESC LIMIT 5` | order + amount match |
+| Recent notifications | row order | `notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 5` | order + title match |
 
-**Fix**:
-1. **New page** `src/pages/SellerNotifications.tsx` — visually identical to `BuyerNotifications` but uses `SellerNav`, seller name from seller dashboard hook, and calls a new seller-scoped service.
-2. **New edge function** `seller-notifications` — mirror of `buyer-notifications` but:
-   - Selects notifications where `user_id = auth.uid()` (same column, role-agnostic)
-   - Resolves transaction joins via `transactions.seller_id = auth.uid()` for context
-   - Includes new `direct_message` type so messages from buyers surface here
-   - Maps each notification to a seller-side route (e.g. `/seller/transactions/:id` instead of `/dashboard/transactions/:id`)
-3. **New service** `src/services/seller-notifications.service.ts` mirroring the buyer one.
-4. **Mirror read endpoint** `seller-notifications-read` (mark single / mark all).
-5. **Add route** `/seller/notifications` in `App.tsx` wrapped in `ProtectedRoute`.
-6. Reuse existing UI primitives: `NotificationSummaryCards`, `NotificationFilters`, `NotificationList`, `NotificationEmptyState`, `TransactionPagination` — they are already role-agnostic.
+### New Section F — Buyer page-level data correctness
+Per page: list expected DB source, run query, assert UI payload matches.
+- `/buyer/transactions` list + filters + counts → `transactions` filtered by buyer + RLS
+- `/buyer/transactions/:id` → joined view: `transactions, transaction_items, transaction_pricing, agreement_snapshots, transaction_delivery_terms, payments, escrow_states, escrow_ledger_entries, delivery_updates, transaction_messages`
+- `/buyer/disputes` list + summary cards → `disputes` + `dispute_responses` counts
+- `/buyer/disputes/:id` → `disputes, dispute_evidence, dispute_responses, dispute_outcomes, dispute_status_history`
+- `/buyer/notifications` filters + counts → `notifications` aggregated by `type` and `is_read`
+- `/buyer/saved` → `saved_products` join `products`
+- `/buyer/cart` → `cart_items` join `products` with availability re-check
+- `/buyer/profile` tabs → `profiles, account_verifications, identity_submissions, notification_preferences, devices`
 
-> Why not literally reuse `BuyerNotifications`? It hard-codes `BuyerNav`, `useBuyerIdentity`, and routes notifications to `/dashboard/...`. Cleaner to ship a thin seller wrapper around the same shared components.
+### New Section G — Seller dashboard data correctness (`/seller/dashboard`)
+| Surface | Field | Source of truth | Assertion |
+|---|---|---|---|
+| Hero | seller name + storefront slug + verification badge | `profiles, account_verifications` | match |
+| Alerts | each alert type | derived from `transactions, disputes, seller_payout_accounts` | count + amount match |
+| Metrics | `transactions_created_count` | `transactions WHERE seller_id=?` | count match |
+| Metrics | `awaiting_buyer_payment_amount` | sum where `status='awaiting_payment'` | sum match |
+| Metrics | `funds_held_in_escrow_amount` | sum from `escrow_states.held_amount` | sum match |
+| Metrics | `funds_pending_release_amount` | sum from `escrow_states` where `state='funds_releasing'` | sum match |
+| Metrics | `payouts_completed_amount` | sum from `escrow_ledger_entries` (release entries) | sum match |
+| Recent activity | order + amounts | `transactions ORDER BY created_at DESC LIMIT 5` | match |
+| Quick actions | `draft_count` | `transaction_drafts WHERE seller_id=?` | match |
 
-## Issue 3 — Buyer messages to seller don't appear anywhere
+### New Section H — Seller page-level data correctness
+- `/seller/transactions` summary cards (total / in-progress / completed / earned) → reconciliation
+- `/seller/transactions/:id` → full join including rider link, delivery terms
+- `/seller/products` → `products WHERE seller_id` with status counts; `available = stock - reserved`
+- `/seller/products/:id` → join `product_media`, validates 3 images / 1 video constraint
+- `/seller/private-offers` → `buyer_specific_product_offers` with status grouping
+- `/seller/payouts` → `escrow_ledger_entries` release entries grouped by transaction
+- `/seller/disputes` summary → mirror of buyer side, reversed party
+- `/seller/notifications` → seller-scoped notifications with `direct_message` filter
+- `/seller/profile` tabs → `profiles, seller_payout_accounts, account_verifications`
+- `/seller/storefront` → seller catalog visibility logic
 
-**Root cause**:
-- `send-seller-message` correctly inserts into `transaction_messages` AND creates a notification with `type='transaction_update'` for the seller.
-- BUT seller has nowhere to read it: no notifications page (Issue 2) AND seller transaction detail has no thread view.
-- Realtime is not enabled on `transaction_messages`.
+### New Section I — Cross-account sync correctness
+For a buyer-seller transaction pair created via the parallel flow:
+- Buyer's `transactions` row id == Seller's `transactions` row id
+- Buyer's notification `payment_secured` event has corresponding seller notification with same `related_transaction_id`
+- A `transaction_messages` row from buyer surfaces in both `buyer-notifications` and `seller-notifications` payloads with appropriate `direct_message` type and correct deeplinks
+- Escrow ledger sums on both sides reflect same source rows (RLS scopes views identically)
 
-**Fix** (two surfaces, both needed):
+### New Section J — Verification permission engine deep dive
+- Run `compute_verification_level(user_id)` for 6 synthetic states; assert returned tier
+- Validate gating: insert a buyer + force pre-states; call `cart-checkout` edge function with amounts at boundaries (₦49,999 / ₦50,000 / ₦50,001 / ₦200,001) and assert allow/block
+- Confirm `notifications` row of type `verification_reminder` is created on first denial
 
-**A. Seller notifications surface** (closes the loop with Issue 2)
-- When inserting the seller notification in `send-seller-message`, change `type` from generic `transaction_update` to a new logical bucket `direct_message` so it shows in a "Messages" filter on the new seller notifications page (and on the buyer page when the seller eventually replies).
-- Notification deeplinks to `/seller/transactions/:id#messages`.
+### New Section K — Edge function health sweep
+For every edge function:
+- Smoke `OPTIONS` for CORS headers (must include `PATCH, DELETE` where applicable per memory)
+- `GET/POST` happy path (using current logged-in browser session token)
+- 401 without auth (where required)
+- Recent error log scan via `edge_function_errors` + `function_edge_logs`
 
-**B. Inline message thread on transaction detail pages**
-- New shared component `src/components/transactions/MessageThread.tsx`:
-  - Lists all `transaction_messages` for the transaction (oldest→newest)
-  - Reply textarea posts via `send-seller-message` (already supports both directions: `recipient = the other party`)
-  - Subscribes to Supabase Realtime for `transaction_messages` filtered by `transaction_id`
-- New edge function `transaction-messages` with two operations:
-  - `list`: returns messages + sender names; gated by `is_transaction_party`
-  - `mark_read`: marks recipient's messages as read
-- Mount the thread on **both** `BuyerTransactionDetail.tsx` and `SellerTransactionDetail.tsx`, anchored at `#messages`.
-- Enable realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE transaction_messages;`
+### New Section L — Database invariants (run as one SQL battery)
+- Every `published` product satisfies `stock - reserved > 0` OR has status `out_of_stock`
+- Every `payment_secured` transaction has matching `escrow_states.state IN (funds_held_in_escrow, funds_frozen, funds_releasing, funds_released)`
+- Every `agreement_locked_at IS NOT NULL` transaction has at least one `agreement_snapshots` row
+- Every `disputed` transaction has a `disputes` row with status `open` or `under_review`
+- No `dispute_responses` group exceeds 2 per dispute
+- Every `delivery_confirmation_tokens.used_at IS NOT NULL` token has a corresponding `delivery_confirmations.buyer_acknowledged_delivery_at`
+- Money status history is monotonically valid per `validate_money_transition`
 
-**C. Symmetrical sending**
-- Rename UX-facing labels from "Contact Seller" → reused as "Send message" on the seller side too (same modal, opposite direction). Backend `send-seller-message` already swaps recipient based on `userId`, so no edge change needed.
+## Execution & report
+
+I will run the automated battery and produce `/mnt/documents/safedeal-test-report.md` with:
+- Header: timestamp, accounts under test, environment
+- Per-section table: scenario, status (✅ pass / ❌ fail / ⚠️ requires manual), expected, actual, evidence (SQL row counts, edge function status code, log excerpt)
+- Issues summary at top (any failures elevated)
+- Manual checklist at the end for the items that require browser interaction (Paystack, OTP SMS, file uploads, receipt print)
+- Appendix: raw query outputs for dashboard reconciliations
+
+If during execution I find a real bug, I will pause, report it, and ask whether to fix or note it and continue.
 
 ## Files
-
-**New**
-- `src/pages/SellerNotifications.tsx`
-- `src/services/seller-notifications.service.ts`
-- `supabase/functions/seller-notifications/index.ts`
-- `supabase/functions/seller-notifications-read/index.ts`
-- `src/components/transactions/MessageThread.tsx`
-- `supabase/functions/transaction-messages/index.ts`
-- migration: enable realtime on `transaction_messages` + add `direct_message` to notification type enum (if enum-typed; otherwise no-op)
-
-**Modified**
-- `src/components/transactions/TransactionReceipt.tsx` — portal + print CSS fix
-- `src/App.tsx` — add `/seller/notifications` route
-- `supabase/functions/send-seller-message/index.ts` — use `type='direct_message'`, deeplink to seller route when recipient is seller
-- `src/pages/BuyerTransactionDetail.tsx` + `src/pages/SellerTransactionDetail.tsx` — mount `<MessageThread/>` and add `#messages` anchor
-- `src/components/transactions/ContactSellerModal.tsx` — make label/title prop-driven so seller side can reuse with "Reply to buyer"
+- Modify `.lovable/plan.md` (the test plan you're viewing) — append Sections E–L
+- New `/mnt/documents/safedeal-test-report.md` — full executed report
 
 ## Risk
-
-- **Receipt portal** changes mounting target; only print output is affected, screen UI stays identical.
-- **New `direct_message` notification type** — if the DB column is a Postgres enum, requires a migration; if it's `text`, no migration needed. Will check at implementation time and branch accordingly.
-- **Realtime on `transaction_messages`** — RLS on that table must already restrict by `is_transaction_party`; if missing, will add policy in same migration.
-- **No breaking API changes**: `buyer-notifications` and existing services untouched.
+- Tests run on **live data**. All assertions are read-only or use new test accounts you create. No destructive writes.
+- I cannot complete Paystack/OTP/email steps; those are clearly flagged as "manual" in the report rather than failed.
+- For verification gating tests that require specific pre-states, I can only assert against existing accounts in the DB; if no account exists at the needed tier, that scenario will be marked "needs manual setup".
 
