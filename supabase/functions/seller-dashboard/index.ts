@@ -6,6 +6,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const VERIFICATION_LABEL_MAP: Record<string, string> = {
+  unverified: "Unverified Seller",
+  basic_verified: "Verified Seller",
+  trusted_buyer: "Trusted Seller",
+  high_trust_buyer: "Premium Seller",
+};
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -89,7 +96,8 @@ Deno.serve(async (req) => {
       store_slug: string | null;
       created_at: string | null;
       verification_level: string;
-    } = { full_name: "User", avatar_url: null, store_slug: null, created_at: null, verification_level: "unverified" };
+      verification_label: string;
+    } = { full_name: "User", avatar_url: null, store_slug: null, created_at: null, verification_level: "unverified", verification_label: VERIFICATION_LABEL_MAP.unverified };
     if (profileResult.status === "fulfilled" && profileResult.value.data) {
       const p = profileResult.value.data as Record<string, unknown>;
       seller.full_name = (p.full_name as string) || "User";
@@ -106,11 +114,13 @@ Deno.serve(async (req) => {
       .single();
     if (verData) {
       seller.verification_level = (verData as Record<string, unknown>).verification_level as string || "unverified";
+      seller.verification_label = VERIFICATION_LABEL_MAP[seller.verification_level] ?? VERIFICATION_LABEL_MAP.unverified;
     }
 
     // Metrics from all transactions
     let transactionsCreatedCount = 0;
     let awaitingPaymentTxIds: string[] = [];
+    let awaitingBuyerReviewTxIds: string[] = [];
     let fundsHeldTxIds: string[] = [];
     let fundsReleasingTxIds: string[] = [];
     let fulfillmentNeededTxIds: string[] = [];
@@ -122,8 +132,11 @@ Deno.serve(async (req) => {
       transactionsCreatedCount = txRows.length;
 
       for (const tx of txRows) {
-        if (["awaiting_buyer", "awaiting_payment"].includes(tx.status)) {
+        if (tx.status === "awaiting_payment") {
           awaitingPaymentTxIds.push(tx.id);
+        }
+        if (tx.status === "awaiting_buyer") {
+          awaitingBuyerReviewTxIds.push(tx.id);
         }
         if (tx.money_status === "funds_held_in_escrow") {
           fundsHeldTxIds.push(tx.id);
@@ -161,12 +174,13 @@ Deno.serve(async (req) => {
 
     // Get amounts for metrics
     let awaitingBuyerPaymentAmount = 0;
+    let awaitingBuyerReviewAmount = 0;
     let fundsHeldInEscrowAmount = 0;
     let fundsPendingReleaseAmount = 0;
     let payoutsCompletedAmount = 0;
 
     const amountTxIds = [
-      ...new Set([...awaitingPaymentTxIds, ...fundsHeldTxIds, ...fundsReleasingTxIds]),
+      ...new Set([...awaitingPaymentTxIds, ...awaitingBuyerReviewTxIds, ...fundsHeldTxIds, ...fundsReleasingTxIds]),
     ];
 
     if (amountTxIds.length > 0) {
@@ -188,6 +202,9 @@ Deno.serve(async (req) => {
 
         for (const id of awaitingPaymentTxIds) {
           awaitingBuyerPaymentAmount += pricingMap.get(id)?.buyerTotal ?? 0;
+        }
+        for (const id of awaitingBuyerReviewTxIds) {
+          awaitingBuyerReviewAmount += pricingMap.get(id)?.buyerTotal ?? 0;
         }
         for (const id of fundsHeldTxIds) {
           fundsHeldInEscrowAmount += pricingMap.get(id)?.sellerNet ?? 0;
@@ -359,6 +376,7 @@ Deno.serve(async (req) => {
       metrics: {
         transactions_created_count: transactionsCreatedCount,
         awaiting_buyer_payment_amount: awaitingBuyerPaymentAmount,
+        awaiting_buyer_review_amount: awaitingBuyerReviewAmount,
         funds_held_in_escrow_amount: fundsHeldInEscrowAmount,
         funds_pending_release_amount: fundsPendingReleaseAmount,
         payouts_completed_amount: payoutsCompletedAmount,

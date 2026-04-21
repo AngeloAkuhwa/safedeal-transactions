@@ -22,6 +22,13 @@ const CONCURRENT_BY_LEVEL: Record<string, number> = {
   high_trust_buyer: 5,
 };
 
+const VERIFICATION_LABEL_MAP: Record<string, string> = {
+  unverified: "Unverified Seller",
+  basic_verified: "Verified Seller",
+  trusted_buyer: "Trusted Seller",
+  high_trust_buyer: "Premium Seller",
+};
+
 const ACTIVE_TX_STATUSES = [
   "awaiting_buyer",
   "awaiting_payment",
@@ -174,6 +181,7 @@ Deno.serve(async (req) => {
 
       const permissions = {
         verificationLevel: level,
+        verificationLabel: VERIFICATION_LABEL_MAP[level] ?? VERIFICATION_LABEL_MAP.unverified,
         transactionLimitNaira: LIMIT_BY_LEVEL[level] ?? 0,
         maxConcurrentActiveTransactions: CONCURRENT_BY_LEVEL[level] ?? 0,
         activeTransactionCount,
