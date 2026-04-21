@@ -1,126 +1,89 @@
 
 
-# Plan: Expanded test plan + automated execution + full report
+# Plan: Fix all dashboard data correctness issues (consolidated)
 
-## Goal
-1. Expand the test plans to cover **every buyer and seller dashboard tab/section** including data correctness checks against the underlying tables.
-2. **Execute the tests** that can be automated (DB queries, edge function curls, RLS checks, state machine validation, dashboard data integrity).
-3. Deliver a **full report** as `/mnt/documents/safedeal-test-report.md` listing pass/fail per scenario, expected vs actual, table snapshots, and a list of items requiring manual UI verification.
+## Issues to fix
 
-## Scope of automated execution
-What I CAN run for you (no UI clicks needed):
-- Direct DB integrity checks (RLS, triggers, state machine, FK guards)
-- Edge function smoke tests via `supabase--curl_edge_functions` (buyer-dashboard, seller-dashboard, buyer-notifications, seller-notifications, transaction-messages, marketplace, etc.)
-- Dashboard payload vs raw-table reconciliation (e.g. `metrics.active_purchases` vs actual `transactions` count for the buyer)
-- Verification level computation tests (call `compute_verification_level` for synthetic states)
-- Transaction state machine: attempt invalid transitions and assert rejection
-- Inventory math: `available = stock - reserved` invariant across all products
-- Escrow ledger balance vs `escrow_states` reconciliation
-- Notification routing: confirm `direct_message` rows deeplink to the seller route
-- Edge function logs scan for errors in last 24h
+### Bug B1 — Seller dashboard "Awaiting Buyer Payment" amount is wrong (HIGH)
+**Where:** `supabase/functions/seller-dashboard/index.ts` (~line 125)
+**Cause:** Sums `status IN ('awaiting_buyer','awaiting_payment')`. `awaiting_buyer` rows are pre-checkout drafts the buyer hasn't reviewed yet, so they shouldn't count under "Awaiting Buyer Payment". Inflated Chioma's number from ₦38,586 → ₦5,469,936.
+**Fix:** Restrict bucket to `status = 'awaiting_payment'`. Add a second bucket `awaiting_buyer_review_amount` (sum where `status='awaiting_buyer'`) so the data isn't lost — surfaced as its own metric.
 
-What requires **you in the browser** (I'll list these explicitly in the report):
-- Paystack popup payment (real card)
-- Phone OTP delivery (real SMS)
-- Email verification clicks
-- Cloudinary uploads
-- Visual receipt print preview
+### Bug B5 — Seller `verification_level` shows buyer-named badges
+**Where:** `supabase/functions/seller-profile/index.ts` lines 11–23, `seller-dashboard`, `SellerDashboardHero`
+**Cause:** Underlying enum (`unverified | basic_verified | trusted_buyer | high_trust_buyer`) is buyer-named. Sellers see "Trusted Buyer" on their own dashboard.
+**Fix:** Add a `verification_label` mapping returned alongside the raw enum:
+- `unverified` → "Unverified Seller"
+- `basic_verified` → "Verified Seller"
+- `trusted_buyer` → "Trusted Seller"
+- `high_trust_buyer` → "Premium Seller"
 
-## Expanded test plan additions
+Returned by both `seller-profile` and `seller-dashboard`. `SellerDashboardHero` and seller profile badge consume `verification_label`. Underlying enum unchanged → all gating logic unaffected.
 
-### New Section E — Buyer dashboard data correctness (`/dashboard`)
-For a chosen buyer account, assert each surface matches DB:
-| Surface | Field | Source of truth | Assertion |
-|---|---|---|---|
-| Hero | `buyer.full_name` | `profiles.full_name` | exact match |
-| Metrics | `active_purchases` | `transactions WHERE buyer_id=? AND status IN active_set` | count match |
-| Metrics | `awaiting_delivery` | `status IN (payment_secured, seller_preparing_delivery, seller_dispatched)` | count match |
-| Metrics | `awaiting_verification` | `status='delivered_awaiting_verification'` | count match |
-| Metrics | `open_disputes` | `disputes WHERE opened_by_user_id=? AND status NOT IN (resolved)` | count match |
-| Recent purchases | row order | `transactions ORDER BY created_at DESC LIMIT 5` | order + amount match |
-| Recent notifications | row order | `notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 5` | order + title match |
+### Bug B2 — Reclassified, NOT a bug
+`delivery-token-confirm` correctly writes `system_delivery_marked_at` (rider OTP path), not `buyer_acknowledged_delivery_at` (which is only set on buyer's manual confirm). Detail pages already branch on both. **Action:** correct test report invariant L6 to: *"Every used delivery-confirmation token has either `system_delivery_marked_at` OR `buyer_acknowledged_delivery_at` set."* No code change.
 
-### New Section F — Buyer page-level data correctness
-Per page: list expected DB source, run query, assert UI payload matches.
-- `/buyer/transactions` list + filters + counts → `transactions` filtered by buyer + RLS
-- `/buyer/transactions/:id` → joined view: `transactions, transaction_items, transaction_pricing, agreement_snapshots, transaction_delivery_terms, payments, escrow_states, escrow_ledger_entries, delivery_updates, transaction_messages`
-- `/buyer/disputes` list + summary cards → `disputes` + `dispute_responses` counts
-- `/buyer/disputes/:id` → `disputes, dispute_evidence, dispute_responses, dispute_outcomes, dispute_status_history`
-- `/buyer/notifications` filters + counts → `notifications` aggregated by `type` and `is_read`
-- `/buyer/saved` → `saved_products` join `products`
-- `/buyer/cart` → `cart_items` join `products` with availability re-check
-- `/buyer/profile` tabs → `profiles, account_verifications, identity_submissions, notification_preferences, devices`
+### Section K corrections (from previous plan, folded in)
+The test report's Section K (edge function health sweep) had three rows that were misclassified; folding the corrections in here so they ship with the same report update:
+- `buyer-dashboard` and `buyer-notifications` ⚠️ 403 → re-test using a real buyer JWT (Tunde's session); these aren't function defects, they're test-session role mismatches.
+- `marketplace` ⚠️ 405 on POST → reclassify ✅: GET-only by design; 405 is correct.
+- "OPTIONS preflight: n/a" → either run a real OPTIONS request per function or replace the column with "CORS headers present in 200 response".
 
-### New Section G — Seller dashboard data correctness (`/seller/dashboard`)
-| Surface | Field | Source of truth | Assertion |
-|---|---|---|---|
-| Hero | seller name + storefront slug + verification badge | `profiles, account_verifications` | match |
-| Alerts | each alert type | derived from `transactions, disputes, seller_payout_accounts` | count + amount match |
-| Metrics | `transactions_created_count` | `transactions WHERE seller_id=?` | count match |
-| Metrics | `awaiting_buyer_payment_amount` | sum where `status='awaiting_payment'` | sum match |
-| Metrics | `funds_held_in_escrow_amount` | sum from `escrow_states.held_amount` | sum match |
-| Metrics | `funds_pending_release_amount` | sum from `escrow_states` where `state='funds_releasing'` | sum match |
-| Metrics | `payouts_completed_amount` | sum from `escrow_ledger_entries` (release entries) | sum match |
-| Recent activity | order + amounts | `transactions ORDER BY created_at DESC LIMIT 5` | match |
-| Quick actions | `draft_count` | `transaction_drafts WHERE seller_id=?` | match |
+Expand Section K coverage from 4 functions to all ~50 grouped by surface (buyer / seller / transaction lifecycle / delivery / public / admin), with sub-tables K1 CORS preflight, K2 authenticated happy path, K3 unauthenticated calls, K4 error log scan.
 
-### New Section H — Seller page-level data correctness
-- `/seller/transactions` summary cards (total / in-progress / completed / earned) → reconciliation
-- `/seller/transactions/:id` → full join including rider link, delivery terms
-- `/seller/products` → `products WHERE seller_id` with status counts; `available = stock - reserved`
-- `/seller/products/:id` → join `product_media`, validates 3 images / 1 video constraint
-- `/seller/private-offers` → `buyer_specific_product_offers` with status grouping
-- `/seller/payouts` → `escrow_ledger_entries` release entries grouped by transaction
-- `/seller/disputes` summary → mirror of buyer side, reversed party
-- `/seller/notifications` → seller-scoped notifications with `direct_message` filter
-- `/seller/profile` tabs → `profiles, seller_payout_accounts, account_verifications`
-- `/seller/storefront` → seller catalog visibility logic
+## Audited surfaces — confirmed clean ✅
 
-### New Section I — Cross-account sync correctness
-For a buyer-seller transaction pair created via the parallel flow:
-- Buyer's `transactions` row id == Seller's `transactions` row id
-- Buyer's notification `payment_secured` event has corresponding seller notification with same `related_transaction_id`
-- A `transaction_messages` row from buyer surfaces in both `buyer-notifications` and `seller-notifications` payloads with appropriate `direct_message` type and correct deeplinks
-- Escrow ledger sums on both sides reflect same source rows (RLS scopes views identically)
+No bug, no change needed:
+- `buyer-dashboard` metrics (counts + joins all match DB)
+- `seller-payouts` (real `payouts` + `payout_accounts` rows, computed sums, no hardcoding)
+- `buyer-transactions` / `seller-transactions` (status enum maps exhaustive vs state machine)
+- `transaction-detail` / `seller-transaction-detail` (variant detection consistent)
+- `seller-profile` / `buyer-profile` permission engines (limits & tiers match policy memory)
+- All "hardcoded" string hits in the source were `placeholder=` props on form inputs — not data
+- `payout_accounts` table reference consistent across all three functions
 
-### New Section J — Verification permission engine deep dive
-- Run `compute_verification_level(user_id)` for 6 synthetic states; assert returned tier
-- Validate gating: insert a buyer + force pre-states; call `cart-checkout` edge function with amounts at boundaries (₦49,999 / ₦50,000 / ₦50,001 / ₦200,001) and assert allow/block
-- Confirm `notifications` row of type `verification_reminder` is created on first denial
+## Files to change
 
-### New Section K — Edge function health sweep
-For every edge function:
-- Smoke `OPTIONS` for CORS headers (must include `PATCH, DELETE` where applicable per memory)
-- `GET/POST` happy path (using current logged-in browser session token)
-- 401 without auth (where required)
-- Recent error log scan via `edge_function_errors` + `function_edge_logs`
+1. **`supabase/functions/seller-dashboard/index.ts`**
+   - Change `["awaiting_buyer", "awaiting_payment"]` → `["awaiting_payment"]` for `awaiting_buyer_payment_amount`
+   - Add derived `awaiting_buyer_review_amount` = sum of `buyer_total_amount` where `status='awaiting_buyer'`
+   - Compute and return `verification_label` on the `seller` block via shared helper
 
-### New Section L — Database invariants (run as one SQL battery)
-- Every `published` product satisfies `stock - reserved > 0` OR has status `out_of_stock`
-- Every `payment_secured` transaction has matching `escrow_states.state IN (funds_held_in_escrow, funds_frozen, funds_releasing, funds_released)`
-- Every `agreement_locked_at IS NOT NULL` transaction has at least one `agreement_snapshots` row
-- Every `disputed` transaction has a `disputes` row with status `open` or `under_review`
-- No `dispute_responses` group exceeds 2 per dispute
-- Every `delivery_confirmation_tokens.used_at IS NOT NULL` token has a corresponding `delivery_confirmations.buyer_acknowledged_delivery_at`
-- Money status history is monotonically valid per `validate_money_transition`
+2. **`supabase/functions/seller-profile/index.ts`**
+   - Return `verification_label` derived from the same enum→label map (so dashboard hero badge and profile page badge always match)
 
-## Execution & report
+3. **`src/services/seller-dashboard.service.ts`**
+   - Add `awaiting_buyer_review_amount: number` to `SellerMetrics`
+   - Add `verification_label: string` to the `seller` block of `SellerDashboardResponse`
 
-I will run the automated battery and produce `/mnt/documents/safedeal-test-report.md` with:
-- Header: timestamp, accounts under test, environment
-- Per-section table: scenario, status (✅ pass / ❌ fail / ⚠️ requires manual), expected, actual, evidence (SQL row counts, edge function status code, log excerpt)
-- Issues summary at top (any failures elevated)
-- Manual checklist at the end for the items that require browser interaction (Paystack, OTP SMS, file uploads, receipt print)
-- Appendix: raw query outputs for dashboard reconciliations
+4. **`src/components/seller/SellerMetricsCards.tsx`**
+   - Tighten "Awaiting Buyer Payment" card subtitle → "Buyer started checkout, payment not completed"
+   - Add a 6th card "Awaiting Buyer Review" wired to `awaiting_buyer_review_amount` (so the previously over-counted draft amount stays visible, just in the right bucket)
 
-If during execution I find a real bug, I will pause, report it, and ask whether to fix or note it and continue.
+5. **`src/components/seller/SellerDashboardHero.tsx`**
+   - Replace any "Trusted Buyer / Verified Buyer" badge text with `verification_label` from the API
 
-## Files
-- Modify `.lovable/plan.md` (the test plan you're viewing) — append Sections E–L
-- New `/mnt/documents/safedeal-test-report.md` — full executed report
+6. **Re-deploy** edge functions: `seller-dashboard`, `seller-profile`
+
+7. **`/mnt/documents/safedeal-test-report.md`** — append a "Re-test after fix" section:
+   - B1 → ✅ closed; recompute Chioma's `awaiting_buyer_payment_amount` (expect ₦38,586) and new `awaiting_buyer_review_amount` (expect ₦5,431,349.97)
+   - B5 → ✅ closed; verify `verification_label = "Trusted Seller"` for Chioma
+   - B2 → reclassified, invariant L6 reworded
+   - Replace Section K with corrected K1–K4 sub-tables and expanded function coverage
+   - Confirm buyer dashboard untouched — Tunde's 7 active / 2 awaiting delivery / 2 open disputes still match
+
+## Verification
+
+After deploy, re-run the targeted assertions from the test report:
+- `seller-dashboard.metrics.awaiting_buyer_payment_amount` = **₦38,586** (was ₦5,469,936)
+- `seller-dashboard.metrics.awaiting_buyer_review_amount` = **₦5,431,349.97** (new bucket)
+- `seller.verification_label` = "Trusted Seller" for Chioma (raw `verification_level` still `trusted_buyer`)
+- `transactions_created_count`, `funds_held_in_escrow_amount`, `funds_pending_release_amount`, `payouts_completed_amount` unchanged
+- Re-call `buyer-dashboard` with Tunde's session → 200 with correct counts
+- Re-call `marketplace` GET → 200; POST → 405 (now reclassified ✅ in K2)
 
 ## Risk
-- Tests run on **live data**. All assertions are read-only or use new test accounts you create. No destructive writes.
-- I cannot complete Paystack/OTP/email steps; those are clearly flagged as "manual" in the report rather than failed.
-- For verification gating tests that require specific pre-states, I can only assert against existing accounts in the DB; if no account exists at the needed tier, that scenario will be marked "needs manual setup".
+- All changes are read-side aggregation tweaks and additive label fields. No schema migration, no state machine impact.
+- New `awaiting_buyer_review_amount` field and 6th card are additive; will not break existing consumers.
+- `verification_label` is cosmetic — underlying `verification_level` enum is unchanged so all gating/permission logic continues to work identically.
 
