@@ -58,7 +58,7 @@ const SellerDashboard = () => {
 
       {/* Unified gradient section: hero + alerts + metrics */}
       <div className="bg-gradient-to-br from-sky-50 via-background to-green-50 dark:from-sky-950/20 dark:via-background dark:to-green-950/20">
-        <SellerDashboardHero sellerName={data.seller.full_name} />
+        <SellerDashboardHero sellerName={data.seller.full_name} verificationLabel={data.seller.verification_label} />
 
         {data.alerts.length > 0 && (
           <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6">
