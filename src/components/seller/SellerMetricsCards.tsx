@@ -1,4 +1,4 @@
-import { FileText, Clock, Shield, TrendingUp, CheckCircle } from "lucide-react";
+import { FileText, Clock, Shield, TrendingUp, CheckCircle, Eye } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { SellerMetrics } from "@/services/seller-dashboard.service";
 
@@ -28,9 +28,19 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       icon: Clock,
       iconBg: "bg-warning/10",
       iconColor: "text-warning",
-      subtitle: "Pending buyer action",
+      subtitle: "Buyer started checkout, payment not completed",
       badge: "Pending",
       badgeBg: "bg-warning/10 text-warning",
+    },
+    {
+      label: "Awaiting Buyer Review",
+      value: formatCurrency(metrics.awaiting_buyer_review_amount),
+      icon: Eye,
+      iconBg: "bg-muted",
+      iconColor: "text-muted-foreground",
+      subtitle: "Buyer hasn't reviewed agreement yet",
+      badge: "Review",
+      badgeBg: "bg-muted text-muted-foreground",
     },
     {
       label: "Funds Held in Escrow",
