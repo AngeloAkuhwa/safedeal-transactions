@@ -14,6 +14,7 @@ export interface SellerAlert {
 export interface SellerMetrics {
   transactions_created_count: number;
   awaiting_buyer_payment_amount: number;
+  awaiting_buyer_review_amount: number;
   funds_held_in_escrow_amount: number;
   funds_pending_release_amount: number;
   payouts_completed_amount: number;
@@ -40,6 +41,7 @@ export interface SellerDashboardResponse {
     store_slug: string | null;
     created_at: string | null;
     verification_level: string;
+    verification_label: string;
   };
   alerts: SellerAlert[];
   metrics: SellerMetrics;
