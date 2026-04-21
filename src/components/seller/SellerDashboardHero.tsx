@@ -1,12 +1,13 @@
-import { PlusCircle, Store } from "lucide-react";
+import { PlusCircle, Store, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 interface SellerDashboardHeroProps {
   sellerName: string;
+  verificationLabel?: string;
 }
 
-export function SellerDashboardHero({ sellerName }: SellerDashboardHeroProps) {
+export function SellerDashboardHero({ sellerName, verificationLabel }: SellerDashboardHeroProps) {
   const navigate = useNavigate();
   const firstName = sellerName.split(" ")[0] || "Seller";
 
@@ -22,6 +23,12 @@ export function SellerDashboardHero({ sellerName }: SellerDashboardHeroProps) {
             <div className="flex items-center gap-2 mb-2">
               <Store className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-semibold text-muted-foreground">Seller Dashboard</span>
+              {verificationLabel && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-success/10 text-success">
+                  <ShieldCheck className="h-3 w-3" />
+                  {verificationLabel}
+                </span>
+              )}
             </div>
             <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
               Welcome back, {firstName}
