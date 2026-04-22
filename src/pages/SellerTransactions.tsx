@@ -126,7 +126,14 @@ const SellerTransactions = () => {
 
   const transactions = data?.transactions ?? [];
   const pagination = data?.pagination ?? { page: 1, page_size: 10, total_count: 0, total_pages: 1 };
-  const summary = data?.summary ?? { total: 0, in_progress: 0, completed: 0, total_earned: 0 };
+  const summary = data?.summary ?? {
+    total: 0,
+    in_progress: 0,
+    awaiting_payment_count: 0,
+    in_fulfillment_count: 0,
+    completed: 0,
+    total_earned: 0,
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
