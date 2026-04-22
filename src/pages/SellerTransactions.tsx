@@ -206,7 +206,7 @@ const SellerTransactions = () => {
               <SelectItem value="payment-pending">Payment Pending</SelectItem>
               <SelectItem value="processing">Processing</SelectItem>
               <SelectItem value="awaiting-delivery">Awaiting Delivery</SelectItem>
-              <SelectItem value="buyer-verification">Buyer Verification</SelectItem>
+              <SelectItem value="buyer-verification">Awaiting Buyer Review</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="disputed">Disputed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
