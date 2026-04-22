@@ -1,89 +1,109 @@
 
 
-# Plan: Fix all dashboard data correctness issues (consolidated)
+# Plan: Fix seller transaction list & dashboard data inconsistencies
 
-## Issues to fix
+## What the screenshots reveal vs DB ground truth
 
-### Bug B1 — Seller dashboard "Awaiting Buyer Payment" amount is wrong (HIGH)
-**Where:** `supabase/functions/seller-dashboard/index.ts` (~line 125)
-**Cause:** Sums `status IN ('awaiting_buyer','awaiting_payment')`. `awaiting_buyer` rows are pre-checkout drafts the buyer hasn't reviewed yet, so they shouldn't count under "Awaiting Buyer Payment". Inflated Chioma's number from ₦38,586 → ₦5,469,936.
-**Fix:** Restrict bucket to `status = 'awaiting_payment'`. Add a second bucket `awaiting_buyer_review_amount` (sum where `status='awaiting_buyer'`) so the data isn't lost — surfaced as its own metric.
+I cross-checked Chioma's seller dashboard, transactions list, payouts, and disputes against the database. Real bugs found, listed in priority order.
 
-### Bug B5 — Seller `verification_level` shows buyer-named badges
-**Where:** `supabase/functions/seller-profile/index.ts` lines 11–23, `seller-dashboard`, `SellerDashboardHero`
-**Cause:** Underlying enum (`unverified | basic_verified | trusted_buyer | high_trust_buyer`) is buyer-named. Sellers see "Trusted Buyer" on their own dashboard.
-**Fix:** Add a `verification_label` mapping returned alongside the raw enum:
-- `unverified` → "Unverified Seller"
-- `basic_verified` → "Verified Seller"
-- `trusted_buyer` → "Trusted Seller"
-- `high_trust_buyer` → "Premium Seller"
+### Bug T1 (HIGH) — Revenue card shows ₦958.0K but is wrong
 
-Returned by both `seller-profile` and `seller-dashboard`. `SellerDashboardHero` and seller profile badge consume `verification_label`. Underlying enum unchanged → all gating logic unaffected.
+**Where:** `supabase/functions/seller-transactions/index.ts` line ~273
+**Cause:** `summary.total_earned` sums `transaction_pricing.seller_net_amount` for completed transactions. But the same edge function recomputes `seller_net = item_amount − min(platform_fee+processing_fee, 2000)` for the row display. The two formulas disagree:
+- Pricing-table `seller_net_amount` for the 3 completed = ₦957,965 (shown rounded to ₦958.0K)
+- Recomputed per-row caps fees at ₦2,000 → row shows e.g. `Net: ₦11,810` for SD-2026-000021 even though the underlying `seller_net_amount` is ₦12,095
 
-### Bug B2 — Reclassified, NOT a bug
-`delivery-token-confirm` correctly writes `system_delivery_marked_at` (rider OTP path), not `buyer_acknowledged_delivery_at` (which is only set on buyer's manual confirm). Detail pages already branch on both. **Action:** correct test report invariant L6 to: *"Every used delivery-confirmation token has either `system_delivery_marked_at` OR `buyer_acknowledged_delivery_at` set."* No code change.
+Two different "net" definitions are leaking into the same screen. Per the **transaction-fee-model** memory the canonical fee model already lives in DB — there should be ONE source of truth.
 
-### Section K corrections (from previous plan, folded in)
-The test report's Section K (edge function health sweep) had three rows that were misclassified; folding the corrections in here so they ship with the same report update:
-- `buyer-dashboard` and `buyer-notifications` ⚠️ 403 → re-test using a real buyer JWT (Tunde's session); these aren't function defects, they're test-session role mismatches.
-- `marketplace` ⚠️ 405 on POST → reclassify ✅: GET-only by design; 405 is correct.
-- "OPTIONS preflight: n/a" → either run a real OPTIONS request per function or replace the column with "CORS headers present in 200 response".
+**Fix:** Remove the recompute in `seller-transactions` (lines 227–229). Use `pricing.sellerNet` directly for the row's `seller_net`, and use `pricing.platform_fee_amount + pricing.processing_fee_amount` for `service_fee`. Drop the `Math.min(..., 2000)` cap entirely — the cap (if any) belongs in pricing computation, not in a read-side aggregator. Then `summary.total_earned` and per-row `seller_net` will reconcile.
 
-Expand Section K coverage from 4 functions to all ~50 grouped by surface (buyer / seller / transaction lifecycle / delivery / public / admin), with sub-tables K1 CORS preflight, K2 authenticated happy path, K3 unauthenticated calls, K4 error log scan.
+### Bug T2 (HIGH) — Drafts appear in seller transactions list & dashboard recent activity
 
-## Audited surfaces — confirmed clean ✅
+**Where:** screenshot row `SD-2026-000016` shows status **draft** in the seller transactions table; `seller-dashboard` recent_activity also surfaces it.
+**Cause:** `seller-transactions` returns ALL statuses (no draft exclusion). Drafts are incomplete pre-share records with no buyer commitment — they pollute the list and make `summary.total = 18` while only 17 are real.
+**Fix:**
+- In `seller-transactions/index.ts`, when `statusFilter === "all"`, filter out `status='draft'` from `allRows` before pagination AND from `summary.total` / `summary.in_progress`. Drafts remain reachable via `?status_filter=draft` and the dedicated Drafts tab.
+- In `seller-dashboard/index.ts` `recent_activity`, exclude `draft`.
+- In `seller-dashboard/index.ts` metrics: `transactions_created_count` (currently 18) should be "shared transactions" → exclude drafts → 17.
 
-No bug, no change needed:
-- `buyer-dashboard` metrics (counts + joins all match DB)
-- `seller-payouts` (real `payouts` + `payout_accounts` rows, computed sums, no hardcoding)
-- `buyer-transactions` / `seller-transactions` (status enum maps exhaustive vs state machine)
-- `transaction-detail` / `seller-transaction-detail` (variant detection consistent)
-- `seller-profile` / `buyer-profile` permission engines (limits & tiers match policy memory)
-- All "hardcoded" string hits in the source were `placeholder=` props on form inputs — not data
-- `payout_accounts` table reference consistent across all three functions
+### Bug T3 (MEDIUM) — "Active / In Progress" count includes pre-checkout drafts
+
+**Where:** `seller-transactions/index.ts` lines 251–254. `activeStatuses` includes `awaiting_buyer` and `awaiting_payment`.
+**Reality check:** `awaiting_buyer` = seller created and shared a link, buyer hasn't reviewed. `awaiting_payment` = buyer reviewed, payment not done. Counting them as "Active / In Progress" is debatable but the screenshot shows `ACTIVE 9` which equals `4 awaiting_buyer + 3 awaiting_payment + 2 seller_dispatched`. None of those have escrowed money yet for the first 7. Per the **state-machine** memory, "active fulfillment" should mean post-payment.
+**Fix:** Split into two clearly-labeled cards:
+- **Awaiting payment** = `awaiting_buyer + awaiting_payment` (currently `7`)
+- **In fulfillment** = `payment_secured + seller_preparing_delivery + seller_dispatched + delivered_awaiting_verification` (currently `2`)
+
+Update the Summary Cards section in `src/pages/SellerTransactions.tsx` (5 cards or replace the single "Active" card with these two).
+
+### Bug T4 (MEDIUM) — Buyer name shown as "Unknown Buyer" when participant data exists
+
+**Where:** screenshot SD-2026-000016 shows "Unknown Buyer" on dashboard recent activity, but on the transactions list the same row resolves correctly to "test / angeloakuhwa@gmail.com".
+**Cause:** `seller-transactions/index.ts` already has the participant fallback (lines 134–183). `seller-dashboard/index.ts` `recent_activity` does NOT — it only joins `profiles` for non-null `buyer_id`.
+**Fix:** Port the same participant fallback into `seller-dashboard/index.ts` recent_activity block: when `buyer_id` is null, look up `transaction_participants` (role='buyer') by `transaction_id` and use `display_name` / `email` / `phone` like seller-transactions does.
+
+### Bug T5 (LOW) — Inconsistent buyer display (same person, different label)
+
+**Reality:** Angelo Akuhwa appears as:
+- "Angelo Akuhwa / 08137778295" on SD-2026-000007
+- "test / angeloakuhwa@gmail.com" on SD-2026-000008/009/010
+- "Angelo Akuhwa / angeloakuhwak@gmail.com" on SD-2026-000019/021 (registered profile)
+
+This is data entry — seller typed `display_name="test"` when creating manual transactions. Not a code bug, but UX confusing.
+**Fix (optional, not in this plan unless approved):** Add a "Resolve participant" step in `create-transaction` that, before insert, checks if `buyer_email` matches an existing profile and pre-fills `display_name` from `profiles.full_name`. For this plan, just call it out in the report as a UX recommendation; no code change.
+
+### Bug T6 (LOW) — Rider link modal "BACKUP HANDOFF CODE: 129113" exposes OTP server-side
+
+**Where:** screenshot of "Send link to your rider" dialog. The OTP `129113` is shown plainly.
+**Reality check (per memory `phone-otp-security` and `delivery-token-system`):** OTPs are SHA-256 hashed in DB and only the seller can see the plaintext to share with the rider. This is **by design** — it's the seller's backup if the OTP-via-phone path fails. **Not a bug.** Just document it in the test report.
+
+### Bug T7 (LOW) — Disputes mismatch in screenshot
+
+Screenshot shows 2 disputed rows (SD-2026-000003, SD-2026-000004) — DB confirms 3 disputes total but only 2 transactions are in `disputed` state (the third dispute belongs to a transaction that was already resolved). This is correct.
 
 ## Files to change
 
-1. **`supabase/functions/seller-dashboard/index.ts`**
-   - Change `["awaiting_buyer", "awaiting_payment"]` → `["awaiting_payment"]` for `awaiting_buyer_payment_amount`
-   - Add derived `awaiting_buyer_review_amount` = sum of `buyer_total_amount` where `status='awaiting_buyer'`
-   - Compute and return `verification_label` on the `seller` block via shared helper
+1. **`supabase/functions/seller-transactions/index.ts`**
+   - Lines 227–229: drop `serviceFee = Math.min(rawServiceFee, 2000)` and `sellerNet = pricing.amount - serviceFee`. Use `pricing.sellerNet` and full `rawServiceFee` directly.
+   - Lines 71–77 & 257–262: filter out `status='draft'` from `allRows` when `statusFilter === 'all'`. Adjust `summary.total` and `summary.in_progress` accordingly.
+   - Lines 251–254: replace single `activeStatuses` with two buckets `awaitingPaymentStatuses` and `inFulfillmentStatuses`. Return both counts in summary.
 
-2. **`supabase/functions/seller-profile/index.ts`**
-   - Return `verification_label` derived from the same enum→label map (so dashboard hero badge and profile page badge always match)
+2. **`supabase/functions/seller-dashboard/index.ts`**
+   - In `recent_activity` block (~lines around `recent_activity` mapping): exclude rows with `status='draft'`.
+   - Same block: add `transaction_participants` fallback for null `buyer_id` (mirror the seller-transactions pattern).
+   - `transactions_created_count`: exclude drafts (`!== 'draft'`).
 
-3. **`src/services/seller-dashboard.service.ts`**
-   - Add `awaiting_buyer_review_amount: number` to `SellerMetrics`
-   - Add `verification_label: string` to the `seller` block of `SellerDashboardResponse`
+3. **`src/services/seller-transactions.service.ts`**
+   - Add `awaiting_payment_count: number` and `in_fulfillment_count: number` to `summary` interface. Keep `in_progress` for backward compatibility (sum of both) but mark as deprecated.
 
-4. **`src/components/seller/SellerMetricsCards.tsx`**
-   - Tighten "Awaiting Buyer Payment" card subtitle → "Buyer started checkout, payment not completed"
-   - Add a 6th card "Awaiting Buyer Review" wired to `awaiting_buyer_review_amount` (so the previously over-counted draft amount stays visible, just in the right bucket)
+4. **`src/pages/SellerTransactions.tsx`** (lines 371–402)
+   - Replace the "Active / In Progress" single card with two cards: "Awaiting Payment" and "In Fulfillment", driven by the new summary fields.
+   - Or keep 4-card grid: All Time | Awaiting Payment | In Fulfillment | Revenue (drop Completed, since it's also visible on the dashboard).
 
-5. **`src/components/seller/SellerDashboardHero.tsx`**
-   - Replace any "Trusted Buyer / Verified Buyer" badge text with `verification_label` from the API
+5. **Re-deploy** edge functions: `seller-transactions`, `seller-dashboard`.
 
-6. **Re-deploy** edge functions: `seller-dashboard`, `seller-profile`
+## Verification after fix (Chioma's data)
 
-7. **`/mnt/documents/safedeal-test-report.md`** — append a "Re-test after fix" section:
-   - B1 → ✅ closed; recompute Chioma's `awaiting_buyer_payment_amount` (expect ₦38,586) and new `awaiting_buyer_review_amount` (expect ₦5,431,349.97)
-   - B5 → ✅ closed; verify `verification_label = "Trusted Seller"` for Chioma
-   - B2 → reclassified, invariant L6 reworded
-   - Replace Section K with corrected K1–K4 sub-tables and expanded function coverage
-   - Confirm buyer dashboard untouched — Tunde's 7 active / 2 awaiting delivery / 2 open disputes still match
-
-## Verification
-
-After deploy, re-run the targeted assertions from the test report:
-- `seller-dashboard.metrics.awaiting_buyer_payment_amount` = **₦38,586** (was ₦5,469,936)
-- `seller-dashboard.metrics.awaiting_buyer_review_amount` = **₦5,431,349.97** (new bucket)
-- `seller.verification_label` = "Trusted Seller" for Chioma (raw `verification_level` still `trusted_buyer`)
-- `transactions_created_count`, `funds_held_in_escrow_amount`, `funds_pending_release_amount`, `payouts_completed_amount` unchanged
-- Re-call `buyer-dashboard` with Tunde's session → 200 with correct counts
-- Re-call `marketplace` GET → 200; POST → 405 (now reclassified ✅ in K2)
+| Metric | Before | After |
+|---|---|---|
+| Transactions list `summary.total` | 18 | 17 (drafts hidden) |
+| Transactions list `summary.in_progress` | 9 | replaced |
+| New `summary.awaiting_payment_count` | — | 7 |
+| New `summary.in_fulfillment_count` | — | 2 |
+| `summary.total_earned` | ₦957,965 (shown 958K) | ₦957,965 — now matches per-row Net values |
+| Per-row `Net` for SD-2026-000021 | ₦11,810 | ₦12,095 (= `seller_net_amount`) |
+| Dashboard `recent_activity` SD-2026-000016 buyer | "Unknown Buyer" | "test / angeloakuhwa@gmail.com" |
+| Dashboard `recent_activity` count | 6 (incl. draft) | 5 (no draft) or 6 if we backfill from non-drafts |
+| Dashboard `transactions_created_count` | 18 | 17 |
 
 ## Risk
-- All changes are read-side aggregation tweaks and additive label fields. No schema migration, no state machine impact.
-- New `awaiting_buyer_review_amount` field and 6th card are additive; will not break existing consumers.
-- `verification_label` is cosmetic — underlying `verification_level` enum is unchanged so all gating/permission logic continues to work identically.
+- All read-side aggregation tweaks. No schema migration. No state machine impact.
+- Removing the `Math.min(rawServiceFee, 2000)` cap is the only behavioral change to a displayed number — it's a correctness fix because the cap was producing a fake `Net` that contradicted the canonical `seller_net_amount`.
+- Drafts removed from default list are still accessible via the explicit `?status_filter=draft` filter and the existing draft-count quick action — no data lost.
+- Backward-compatible: `summary.in_progress` is still emitted (sum of new buckets) so any other consumer doesn't break.
+
+## Out of scope (noted but not changed)
+- T5 buyer-display normalization at create-transaction time (UX, not data integrity).
+- T6 rider OTP visibility — confirmed working as designed.
+- Buyer dashboard parity — last audit confirmed it's already clean; will re-verify post-fix.
 
