@@ -4,11 +4,17 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Loader2, RefreshCw, Plus, Search, Download, FileText,
   TrendingUp, CheckCircle, ArrowLeftRight, ChevronLeft, ChevronRight,
-  Shield, QrCode,
+  Shield, QrCode, Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -34,7 +40,7 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
   payment_secured: { label: "Payment Secured", variant: "default" },
   seller_preparing_delivery: { label: "Preparing", variant: "default" },
   seller_dispatched: { label: "Dispatched", variant: "default" },
-  delivered_awaiting_verification: { label: "Buyer Verification", variant: "secondary" },
+  delivered_awaiting_verification: { label: "Awaiting Buyer Review", variant: "secondary" },
   completed: { label: "Completed", variant: "default" },
   disputed: { label: "Disputed", variant: "destructive" },
   cancelled: { label: "Cancelled", variant: "secondary" },
@@ -54,14 +60,30 @@ const actionLabels: Record<string, { label: string; variant: "default" | "outlin
 };
 
 function formatCurrency(amount: number, currency: string) {
-  if (currency === "NGN") return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`;
-  return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  if (currency === "NGN") {
+    return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function formatCompact(amount: number) {
-  if (amount >= 1_000_000) return `₦${(amount / 1_000_000).toFixed(1)}M`;
-  if (amount >= 1_000) return `₦${(amount / 1_000).toFixed(1)}K`;
-  return `₦${amount.toLocaleString()}`;
+function InfoTip({ children }: { children: React.ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label="More info"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs text-xs">
+        {children}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 const SellerTransactions = () => {
@@ -136,6 +158,7 @@ const SellerTransactions = () => {
   };
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="min-h-screen bg-background flex flex-col">
       <SellerNav
         sellerName={navData?.seller.full_name ?? "Seller"}
@@ -183,7 +206,7 @@ const SellerTransactions = () => {
               <SelectItem value="payment-pending">Payment Pending</SelectItem>
               <SelectItem value="processing">Processing</SelectItem>
               <SelectItem value="awaiting-delivery">Awaiting Delivery</SelectItem>
-              <SelectItem value="buyer-verification">Buyer Verification</SelectItem>
+              <SelectItem value="buyer-verification">Awaiting Buyer Review</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="disputed">Disputed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
@@ -219,8 +242,24 @@ const SellerTransactions = () => {
                   <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">Transaction Code</TableHead>
                   <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Buyer</TableHead>
                   <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Item</TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">Amount</TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">Money Status</TableHead>
+                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">
+                    <span className="inline-flex items-center gap-1.5">
+                      Amount
+                      <InfoTip>
+                        <span className="block">
+                          <strong>Gross</strong>: total paid by the buyer before SafeDeal fees.
+                          <br />
+                          <strong>Net to seller</strong>: what you earn after SafeDeal fees.
+                        </span>
+                      </InfoTip>
+                    </span>
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">
+                    <span className="inline-flex items-center gap-1.5">
+                      Money Status
+                      <InfoTip>Where the buyer's money currently sits in the SafeDeal escrow flow.</InfoTip>
+                    </span>
+                  </TableHead>
                   <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">Status</TableHead>
                   <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider w-36">Action</TableHead>
                 </TableRow>
@@ -273,13 +312,19 @@ const SellerTransactions = () => {
                           </div>
                         </TableCell>
                         <TableCell className="px-6 py-4">
-                          <div>
-                            <p className="text-sm font-bold">{formatCurrency(tx.amount, tx.currency_code)}</p>
-                            {tx.seller_net > 0 && tx.seller_net !== tx.amount && (
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Net: {formatCurrency(tx.seller_net, tx.currency_code)}
-                              </p>
-                            )}
+                          <div className="space-y-0.5">
+                            <p className="text-sm">
+                              <span className="text-muted-foreground">Gross: </span>
+                              <span className="font-bold text-foreground">
+                                {formatCurrency(tx.amount, tx.currency_code)}
+                              </span>
+                            </p>
+                            <p className="text-xs">
+                              <span className="text-muted-foreground">Net to seller: </span>
+                              <span className="font-semibold text-foreground">
+                                {formatCurrency(tx.seller_net > 0 ? tx.seller_net : tx.amount, tx.currency_code)}
+                              </span>
+                            </p>
                           </div>
                         </TableCell>
                         <TableCell className="px-6 py-4">
@@ -380,14 +425,17 @@ const SellerTransactions = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="rounded-2xl shadow-md">
             <CardContent className="p-5">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">All Time</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Transactions</p>
               <p className="text-3xl font-bold text-foreground">{summary.total}</p>
-              <p className="text-sm text-muted-foreground">Total Transactions</p>
+              <p className="text-sm text-muted-foreground">All protected deals you've created</p>
             </CardContent>
           </Card>
           <Card className="rounded-2xl shadow-md">
             <CardContent className="p-5">
-              <p className="text-xs font-medium text-warning uppercase tracking-wider mb-1">Awaiting Payment</p>
+              <div className="flex items-center gap-1.5 mb-1">
+                <p className="text-xs font-medium text-warning uppercase tracking-wider">Awaiting Buyer Payment</p>
+                <InfoTip>Buyer started checkout but payment isn't complete yet.</InfoTip>
+              </div>
               <p className="text-3xl font-bold text-foreground">{summary.awaiting_payment_count ?? 0}</p>
               <p className="text-sm text-muted-foreground">Buyer hasn't paid yet</p>
             </CardContent>
@@ -401,9 +449,16 @@ const SellerTransactions = () => {
           </Card>
           <Card className="rounded-2xl shadow-md">
             <CardContent className="p-5">
-              <p className="text-xs font-medium text-success uppercase tracking-wider mb-1">Revenue</p>
-              <p className="text-3xl font-bold text-foreground">{formatCompact(summary.total_earned)}</p>
-              <p className="text-sm text-muted-foreground">{summary.completed} completed · total net</p>
+              <div className="flex items-center gap-1.5 mb-1">
+                <p className="text-xs font-medium text-success uppercase tracking-wider">Net Revenue Released</p>
+                <InfoTip>Total amount released to you from completed transactions, after SafeDeal fees.</InfoTip>
+              </div>
+              <p className="text-2xl font-bold text-foreground">
+                {formatCurrency(summary.total_earned, "NGN")}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {summary.completed} completed · after SafeDeal fees
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -423,6 +478,7 @@ const SellerTransactions = () => {
         initialDateFilter={dateFilter}
       />
     </div>
+    </TooltipProvider>
   );
 };
 

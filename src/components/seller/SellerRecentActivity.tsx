@@ -20,7 +20,7 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
   payment_secured: { label: "Payment Secured", variant: "default" },
   seller_preparing_delivery: { label: "Preparing Delivery", variant: "default" },
   seller_dispatched: { label: "Dispatched", variant: "default" },
-  delivered_awaiting_verification: { label: "Awaiting Verification", variant: "secondary" },
+  delivered_awaiting_verification: { label: "Awaiting Buyer Review", variant: "secondary" },
   completed: { label: "Completed", variant: "default" },
   disputed: { label: "Disputed", variant: "destructive" },
   cancelled: { label: "Cancelled", variant: "secondary" },
