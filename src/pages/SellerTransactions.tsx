@@ -425,14 +425,17 @@ const SellerTransactions = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="rounded-2xl shadow-md">
             <CardContent className="p-5">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">All Time</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Transactions</p>
               <p className="text-3xl font-bold text-foreground">{summary.total}</p>
-              <p className="text-sm text-muted-foreground">Total Transactions</p>
+              <p className="text-sm text-muted-foreground">All protected deals you've created</p>
             </CardContent>
           </Card>
           <Card className="rounded-2xl shadow-md">
             <CardContent className="p-5">
-              <p className="text-xs font-medium text-warning uppercase tracking-wider mb-1">Awaiting Payment</p>
+              <div className="flex items-center gap-1.5 mb-1">
+                <p className="text-xs font-medium text-warning uppercase tracking-wider">Awaiting Buyer Payment</p>
+                <InfoTip>Buyer started checkout but payment isn't complete yet.</InfoTip>
+              </div>
               <p className="text-3xl font-bold text-foreground">{summary.awaiting_payment_count ?? 0}</p>
               <p className="text-sm text-muted-foreground">Buyer hasn't paid yet</p>
             </CardContent>
@@ -446,9 +449,16 @@ const SellerTransactions = () => {
           </Card>
           <Card className="rounded-2xl shadow-md">
             <CardContent className="p-5">
-              <p className="text-xs font-medium text-success uppercase tracking-wider mb-1">Revenue</p>
-              <p className="text-3xl font-bold text-foreground">{formatCompact(summary.total_earned)}</p>
-              <p className="text-sm text-muted-foreground">{summary.completed} completed · total net</p>
+              <div className="flex items-center gap-1.5 mb-1">
+                <p className="text-xs font-medium text-success uppercase tracking-wider">Net Revenue Released</p>
+                <InfoTip>Total amount released to you from completed transactions, after SafeDeal fees.</InfoTip>
+              </div>
+              <p className="text-2xl font-bold text-foreground">
+                {formatCurrency(summary.total_earned, "NGN")}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {summary.completed} completed · after SafeDeal fees
+              </p>
             </CardContent>
           </Card>
         </div>
