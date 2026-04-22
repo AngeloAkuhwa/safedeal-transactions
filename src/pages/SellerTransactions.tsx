@@ -446,6 +446,7 @@ const SellerTransactions = () => {
         initialDateFilter={dateFilter}
       />
     </div>
+    </TooltipProvider>
   );
 };
 
