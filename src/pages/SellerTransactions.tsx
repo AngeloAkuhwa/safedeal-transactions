@@ -4,11 +4,17 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Loader2, RefreshCw, Plus, Search, Download, FileText,
   TrendingUp, CheckCircle, ArrowLeftRight, ChevronLeft, ChevronRight,
-  Shield, QrCode,
+  Shield, QrCode, Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -34,7 +40,7 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
   payment_secured: { label: "Payment Secured", variant: "default" },
   seller_preparing_delivery: { label: "Preparing", variant: "default" },
   seller_dispatched: { label: "Dispatched", variant: "default" },
-  delivered_awaiting_verification: { label: "Buyer Verification", variant: "secondary" },
+  delivered_awaiting_verification: { label: "Awaiting Buyer Review", variant: "secondary" },
   completed: { label: "Completed", variant: "default" },
   disputed: { label: "Disputed", variant: "destructive" },
   cancelled: { label: "Cancelled", variant: "secondary" },
@@ -54,14 +60,30 @@ const actionLabels: Record<string, { label: string; variant: "default" | "outlin
 };
 
 function formatCurrency(amount: number, currency: string) {
-  if (currency === "NGN") return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`;
-  return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  if (currency === "NGN") {
+    return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function formatCompact(amount: number) {
-  if (amount >= 1_000_000) return `₦${(amount / 1_000_000).toFixed(1)}M`;
-  if (amount >= 1_000) return `₦${(amount / 1_000).toFixed(1)}K`;
-  return `₦${amount.toLocaleString()}`;
+function InfoTip({ children }: { children: React.ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label="More info"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs text-xs">
+        {children}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 const SellerTransactions = () => {
