@@ -158,6 +158,7 @@ const SellerTransactions = () => {
   };
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="min-h-screen bg-background flex flex-col">
       <SellerNav
         sellerName={navData?.seller.full_name ?? "Seller"}
