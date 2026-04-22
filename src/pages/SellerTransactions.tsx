@@ -242,8 +242,24 @@ const SellerTransactions = () => {
                   <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">Transaction Code</TableHead>
                   <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Buyer</TableHead>
                   <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Item</TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">Amount</TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">Money Status</TableHead>
+                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">
+                    <span className="inline-flex items-center gap-1.5">
+                      Amount
+                      <InfoTip>
+                        <span className="block">
+                          <strong>Gross</strong>: total paid by the buyer before SafeDeal fees.
+                          <br />
+                          <strong>Net to seller</strong>: what you earn after SafeDeal fees.
+                        </span>
+                      </InfoTip>
+                    </span>
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">
+                    <span className="inline-flex items-center gap-1.5">
+                      Money Status
+                      <InfoTip>Where the buyer's money currently sits in the SafeDeal escrow flow.</InfoTip>
+                    </span>
+                  </TableHead>
                   <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">Status</TableHead>
                   <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider w-36">Action</TableHead>
                 </TableRow>
