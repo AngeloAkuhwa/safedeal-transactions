@@ -1,5 +1,11 @@
-import { FileText, Clock, Shield, TrendingUp, CheckCircle, Eye } from "lucide-react";
+import { FileText, Clock, Shield, TrendingUp, CheckCircle, Eye, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { SellerMetrics } from "@/services/seller-dashboard.service";
 
 interface SellerMetricsCardsProps {
@@ -18,7 +24,8 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       icon: FileText,
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
-      subtitle: "Total protected deals",
+      subtitle: "All protected deals you've created",
+      tooltip: "Count of every protected transaction you've created on SafeDeal.",
       badge: `${metrics.transactions_created_count} total`,
       badgeBg: "bg-primary/10 text-primary",
     },
@@ -28,7 +35,8 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       icon: Clock,
       iconBg: "bg-warning/10",
       iconColor: "text-warning",
-      subtitle: "Buyer started checkout, payment not completed",
+      subtitle: "Gross amount · buyer hasn't paid yet",
+      tooltip: "Buyer started checkout but payment isn't complete yet. Shown as gross buyer amount.",
       badge: "Pending",
       badgeBg: "bg-warning/10 text-warning",
     },
@@ -38,7 +46,8 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       icon: Eye,
       iconBg: "bg-muted",
       iconColor: "text-muted-foreground",
-      subtitle: "Buyer hasn't reviewed agreement yet",
+      subtitle: "Gross amount · buyer hasn't reviewed agreement",
+      tooltip: "Buyer needs to review the agreement or inspect the item before funds can be released.",
       badge: "Review",
       badgeBg: "bg-muted text-muted-foreground",
     },
@@ -48,7 +57,8 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       icon: Shield,
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
-      subtitle: "Securely held",
+      subtitle: "Your net earnings currently locked in escrow",
+      tooltip: "Your protected earnings currently held by SafeDeal until the transaction is confirmed.",
       badge: "Escrow",
       badgeBg: "bg-primary/10 text-primary",
     },
@@ -58,43 +68,63 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       icon: TrendingUp,
       iconBg: "bg-warning/10",
       iconColor: "text-warning",
-      subtitle: "Processing release",
+      subtitle: "Net approved · not yet paid out",
+      tooltip: "Money approved for payout but not yet sent to your account.",
       badge: "Releasing",
       badgeBg: "bg-warning/10 text-warning",
     },
     {
-      label: "Payouts Completed",
+      label: "Net Revenue Released",
       value: formatCurrency(metrics.payouts_completed_amount),
       icon: CheckCircle,
       iconBg: "bg-success/10",
       iconColor: "text-success",
-      subtitle: "Total received",
+      subtitle: "Net released to you after SafeDeal fees",
+      tooltip: "Total amount released to you from completed transactions, after SafeDeal fees.",
       badge: "Paid",
       badgeBg: "bg-success/10 text-success",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {cards.map((card) => (
-        <Card key={card.label} className="rounded-2xl shadow-md hover:shadow-lg transition-all">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div className={`h-11 w-11 rounded-xl ${card.iconBg} flex items-center justify-center`}>
-                <card.icon className={`h-5 w-5 ${card.iconColor}`} />
+    <TooltipProvider delayDuration={150}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {cards.map((card) => (
+          <Card key={card.label} className="rounded-2xl shadow-md hover:shadow-lg transition-all">
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between mb-3">
+                <div className={`h-11 w-11 rounded-xl ${card.iconBg} flex items-center justify-center`}>
+                  <card.icon className={`h-5 w-5 ${card.iconColor}`} />
+                </div>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${card.badgeBg}`}>
+                  {card.badge}
+                </span>
               </div>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${card.badgeBg}`}>
-                {card.badge}
-              </span>
-            </div>
-            <div className="space-y-0.5">
-              <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
-              <p className="text-2xl font-bold text-foreground">{card.value}</p>
-              <p className="text-xs text-muted-foreground">{card.subtitle}</p>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={`More info about ${card.label}`}
+                        className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      {card.tooltip}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <p className="text-2xl font-bold text-foreground">{card.value}</p>
+                <p className="text-xs text-muted-foreground">{card.subtitle}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </TooltipProvider>
   );
 }
