@@ -80,6 +80,7 @@ Deno.serve(async (req) => {
         .from("transactions")
         .select("id, transaction_code, status, money_status, created_at, buyer_id")
         .eq("seller_id", userId)
+        .neq("status", "draft")
         .order("created_at", { ascending: false })
         .limit(6),
 
@@ -128,7 +129,9 @@ Deno.serve(async (req) => {
     let buyerVerificationTxIds: string[] = [];
 
     if (allTxResult.status === "fulfilled" && allTxResult.value.data) {
-      const txRows = allTxResult.value.data as Array<{ id: string; status: string; money_status: string }>;
+      const txRowsAll = allTxResult.value.data as Array<{ id: string; status: string; money_status: string }>;
+      // Drafts are not "shared" transactions — exclude them from the headline count.
+      const txRows = txRowsAll.filter((t) => t.status !== "draft");
       transactionsCreatedCount = txRows.length;
 
       for (const tx of txRows) {
@@ -300,6 +303,8 @@ Deno.serve(async (req) => {
       const txRows = recentTxResult.value.data as Array<Record<string, unknown>>;
       const txIds = txRows.map((t) => t.id as string);
       const buyerIds = [...new Set(txRows.map((t) => t.buyer_id as string).filter(Boolean))];
+      // Transactions without a registered buyer use `transaction_participants`.
+      const nullBuyerTxIds = txRows.filter((t) => !t.buyer_id).map((t) => t.id as string);
 
       if (txIds.length > 0) {
         const batchQueries = [
@@ -310,6 +315,15 @@ Deno.serve(async (req) => {
         if (buyerIds.length > 0) {
           batchQueries.push(
             adminClient.from("profiles").select("id, full_name, email").in("id", buyerIds) as any
+          );
+        }
+        if (nullBuyerTxIds.length > 0) {
+          batchQueries.push(
+            adminClient
+              .from("transaction_participants")
+              .select("transaction_id, display_name, email, phone")
+              .in("transaction_id", nullBuyerTxIds)
+              .eq("role", "buyer") as any
           );
         }
 
@@ -340,25 +354,43 @@ Deno.serve(async (req) => {
         }
 
         const buyerMap = new Map<string, { name: string; email: string }>();
-        if (batchResults.length > 3 && batchResults[3].status === "fulfilled" && batchResults[3].value.data) {
-          for (const b of batchResults[3].value.data as Array<Record<string, unknown>>) {
+        // The profiles batch is at index 3 only when buyerIds was non-empty.
+        const profilesIdx = buyerIds.length > 0 ? 3 : -1;
+        if (profilesIdx >= 0 && batchResults[profilesIdx]?.status === "fulfilled" && batchResults[profilesIdx].value.data) {
+          for (const b of batchResults[profilesIdx].value.data as Array<Record<string, unknown>>) {
             buyerMap.set(b.id as string, { name: b.full_name as string, email: b.email as string });
           }
         }
+        // Participant fallback for transactions without a registered buyer.
+        const participantsIdx = nullBuyerTxIds.length > 0 ? (buyerIds.length > 0 ? 4 : 3) : -1;
+        if (participantsIdx >= 0 && batchResults[participantsIdx]?.status === "fulfilled" && batchResults[participantsIdx].value.data) {
+          for (const p of batchResults[participantsIdx].value.data as Array<Record<string, unknown>>) {
+            const txId = p.transaction_id as string;
+            buyerMap.set(`participant:${txId}`, {
+              name: (p.display_name as string) ?? "Unknown",
+              email: (p.email as string) ?? (p.phone as string) ?? "",
+            });
+          }
+        }
 
-        recentActivity = txRows.map((tx) => ({
-          transaction_id: tx.id as string,
-          transaction_code: tx.transaction_code as string,
-          buyer_name: buyerMap.get(tx.buyer_id as string)?.name ?? "Unknown Buyer",
-          buyer_email: buyerMap.get(tx.buyer_id as string)?.email ?? "",
-          item_title: itemMap.get(tx.id as string) ?? "Untitled Item",
-          amount: pricingMap.get(tx.id as string)?.amount ?? 0,
-          currency_code: pricingMap.get(tx.id as string)?.currency ?? "NGN",
-          transaction_status: tx.status as string,
-          money_status: tx.money_status as string,
-          created_at: tx.created_at as string,
-          has_active_rider_token: activeTokenSet.has(tx.id as string),
-        }));
+        recentActivity = txRows.map((tx) => {
+          const buyer = tx.buyer_id
+            ? buyerMap.get(tx.buyer_id as string)
+            : buyerMap.get(`participant:${tx.id as string}`);
+          return {
+            transaction_id: tx.id as string,
+            transaction_code: tx.transaction_code as string,
+            buyer_name: buyer?.name ?? "Unknown Buyer",
+            buyer_email: buyer?.email ?? "",
+            item_title: itemMap.get(tx.id as string) ?? "Untitled Item",
+            amount: pricingMap.get(tx.id as string)?.amount ?? 0,
+            currency_code: pricingMap.get(tx.id as string)?.currency ?? "NGN",
+            transaction_status: tx.status as string,
+            money_status: tx.money_status as string,
+            created_at: tx.created_at as string,
+            has_active_rider_token: activeTokenSet.has(tx.id as string),
+          };
+        });
       }
     }
 

@@ -380,23 +380,23 @@ const SellerTransactions = () => {
           </Card>
           <Card className="rounded-2xl shadow-md">
             <CardContent className="p-5">
-              <p className="text-xs font-medium text-primary uppercase tracking-wider mb-1">Active</p>
-              <p className="text-3xl font-bold text-foreground">{summary.in_progress}</p>
-              <p className="text-sm text-muted-foreground">In Progress</p>
+              <p className="text-xs font-medium text-warning uppercase tracking-wider mb-1">Awaiting Payment</p>
+              <p className="text-3xl font-bold text-foreground">{summary.awaiting_payment_count ?? 0}</p>
+              <p className="text-sm text-muted-foreground">Buyer hasn't paid yet</p>
             </CardContent>
           </Card>
           <Card className="rounded-2xl shadow-md">
             <CardContent className="p-5">
-              <p className="text-xs font-medium text-success uppercase tracking-wider mb-1">Completed</p>
-              <p className="text-3xl font-bold text-foreground">{summary.completed}</p>
-              <p className="text-sm text-muted-foreground">Successfully Closed</p>
+              <p className="text-xs font-medium text-primary uppercase tracking-wider mb-1">In Fulfillment</p>
+              <p className="text-3xl font-bold text-foreground">{summary.in_fulfillment_count ?? 0}</p>
+              <p className="text-sm text-muted-foreground">Paid · being delivered</p>
             </CardContent>
           </Card>
           <Card className="rounded-2xl shadow-md">
             <CardContent className="p-5">
-              <p className="text-xs font-medium text-warning uppercase tracking-wider mb-1">Revenue</p>
+              <p className="text-xs font-medium text-success uppercase tracking-wider mb-1">Revenue</p>
               <p className="text-3xl font-bold text-foreground">{formatCompact(summary.total_earned)}</p>
-              <p className="text-sm text-muted-foreground">Total Earned</p>
+              <p className="text-sm text-muted-foreground">{summary.completed} completed · total net</p>
             </CardContent>
           </Card>
         </div>

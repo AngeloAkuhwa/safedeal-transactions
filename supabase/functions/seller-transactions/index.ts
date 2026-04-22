@@ -74,7 +74,12 @@ Deno.serve(async (req) => {
       .select("id, status, money_status, created_at, buyer_id, transaction_code")
       .eq("seller_id", userId);
 
-    const allRows = allTx ?? [];
+    // Drafts are pre-share/incomplete records and should not appear in the
+    // default "all" list or in the summary counts. They remain reachable via
+    // the explicit `?status_filter=draft` filter and the dedicated Drafts tab.
+    const allRowsRaw = allTx ?? [];
+    const allRows =
+      statusFilter === "draft" ? allRowsRaw : allRowsRaw.filter((t) => t.status !== "draft");
 
     // Date filtering
     const now = new Date();
@@ -217,16 +222,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Build response rows
+    // Build response rows. Use the canonical seller_net_amount and fee values
+    // from `transaction_pricing` directly — do NOT recompute or cap fees here.
+    // The pricing computation already handles tier rates and the buyer-friendly
+    // service-fee cap; recomputing on read produces inconsistent numbers between
+    // per-row "Net" and the aggregated `total_earned` summary value.
     const transactions = paginatedRows.map((tx) => {
       const buyer = tx.buyer_id
         ? buyerMap.get(tx.buyer_id)
         : buyerMap.get(`participant:${tx.id}`);
       const item = itemMap.get(tx.id);
       const pricing = pricingMap.get(tx.id);
-      const rawServiceFee = (pricing?.platformFee ?? 0) + (pricing?.processingFee ?? 0);
-      const serviceFee = Math.min(rawServiceFee, 2000);
-      const sellerNet = (pricing?.amount ?? 0) - serviceFee;
+      const serviceFee = (pricing?.platformFee ?? 0) + (pricing?.processingFee ?? 0);
+      const sellerNet = pricing?.sellerNet ?? 0;
       return {
         transaction_id: tx.id,
         transaction_code: tx.transaction_code,
@@ -247,16 +255,27 @@ Deno.serve(async (req) => {
       };
     });
 
-    // Summary counts (from all transactions, ignoring filters)
-    const activeStatuses = [
-      "awaiting_buyer", "awaiting_payment", "payment_secured",
-      "seller_preparing_delivery", "seller_dispatched", "delivered_awaiting_verification",
+    // Summary counts (from all non-draft transactions, ignoring user filters).
+    // Split the prior single "active / in progress" bucket into two clearer
+    // buckets so the UI can distinguish pre-payment from post-payment fulfillment.
+    const awaitingPaymentStatuses = ["awaiting_buyer", "awaiting_payment"];
+    const inFulfillmentStatuses = [
+      "payment_secured",
+      "seller_preparing_delivery",
+      "seller_dispatched",
+      "delivered_awaiting_verification",
     ];
     const completedStatuses = ["completed"];
 
+    const awaitingPaymentCount = allRows.filter((t) => awaitingPaymentStatuses.includes(t.status)).length;
+    const inFulfillmentCount = allRows.filter((t) => inFulfillmentStatuses.includes(t.status)).length;
+
     const summary = {
       total: allRows.length,
-      in_progress: allRows.filter((t) => activeStatuses.includes(t.status)).length,
+      // `in_progress` retained for backward compatibility (= awaiting + fulfillment).
+      in_progress: awaitingPaymentCount + inFulfillmentCount,
+      awaiting_payment_count: awaitingPaymentCount,
+      in_fulfillment_count: inFulfillmentCount,
       completed: allRows.filter((t) => completedStatuses.includes(t.status)).length,
       total_earned: 0,
     };

@@ -28,7 +28,10 @@ export interface SellerTransactionsPagination {
 
 export interface SellerTransactionsSummary {
   total: number;
+  /** @deprecated use `awaiting_payment_count + in_fulfillment_count` */
   in_progress: number;
+  awaiting_payment_count: number;
+  in_fulfillment_count: number;
   completed: number;
   total_earned: number;
 }
