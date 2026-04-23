@@ -376,6 +376,42 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── Stuck Payouts (pending + never initiated + > 24h old) ──
+    const stuckCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+    const stuckPayoutsRaw = allPayouts.filter((p) => {
+      const status = p.status as string;
+      const initiatedAt = p.initiated_at as string | null;
+      const createdAt = p.created_at as string | null;
+      return status === "pending" && !initiatedAt && createdAt && createdAt < stuckCutoff;
+    });
+
+    let stuckPayouts: Array<Record<string, unknown>> = [];
+    if (stuckPayoutsRaw.length > 0) {
+      const stuckTxIds = [...new Set(stuckPayoutsRaw.map((p) => p.transaction_id as string))];
+      const { data: stuckTxData } = await adminClient
+        .from("transactions")
+        .select("id, transaction_code")
+        .in("id", stuckTxIds);
+      const stuckTxMap = new Map<string, string>();
+      if (stuckTxData) {
+        for (const t of stuckTxData as Array<Record<string, unknown>>) {
+          stuckTxMap.set(t.id as string, t.transaction_code as string);
+        }
+      }
+      stuckPayouts = stuckPayoutsRaw.map((p) => ({
+        payout_id: (p.id as string).slice(0, 8).toUpperCase(),
+        payout_id_full: p.id,
+        transaction_id: p.transaction_id,
+        transaction_code: stuckTxMap.get(p.transaction_id as string) ?? "—",
+        amount: p.amount as number,
+        currency_code: (p.currency_code as string) ?? "NGN",
+        created_at: p.created_at,
+        hours_pending: Math.round(
+          (now.getTime() - new Date(p.created_at as string).getTime()) / (1000 * 60 * 60)
+        ),
+      }));
+    }
+
     return jsonResponse({
       seller,
       summary: {
@@ -395,6 +431,7 @@ Deno.serve(async (req) => {
       },
       upcoming_releases: upcomingReleases,
       blocked_funds: blockedFunds,
+      stuck_payouts: stuckPayouts,
       payout_account: (() => {
         const pa = (payoutAccountResult.status === "fulfilled" && payoutAccountResult.value.data)
           ? payoutAccountResult.value.data as Record<string, unknown>

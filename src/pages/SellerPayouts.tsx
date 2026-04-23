@@ -148,6 +148,7 @@ const SellerPayouts = () => {
   }
 
   const { seller, summary, payout_history, pagination, upcoming_releases, blocked_funds, payout_account } = data;
+  const stuckPayouts = data.stuck_payouts ?? [];
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -168,22 +169,24 @@ const SellerPayouts = () => {
           <SummaryCard
             label="Total Released"
             value={formatCurrency(summary.total_released)}
-            subtitle={`₦${summary.total_released_last_30.toLocaleString("en-NG")} in last 30 days`}
+            subtitle={`Paid into your bank account · ₦${summary.total_released_last_30.toLocaleString("en-NG")} in last 30 days`}
             icon={CheckCircle2}
             iconBg="bg-success/10"
             iconColor="text-success"
             badgeLabel="Released"
             badgeBg="bg-success/10 text-success"
+            tooltip="Money already deposited to your bank account. Earnings from completed deals that haven't been transferred yet appear under Pending Release."
           />
           <SummaryCard
             label="Pending Release"
             value={formatCurrency(summary.pending_release)}
-            subtitle="Awaiting confirmation or processing"
+            subtitle="Earned · awaiting bank transfer"
             icon={Clock}
             iconBg="bg-warning/10"
             iconColor="text-warning"
             badgeLabel="Pending"
             badgeBg="bg-warning/10 text-warning"
+            tooltip="Money the buyer has released to you but that hasn't been deposited to your bank account yet. Usually settles in 1-3 business days."
           />
           <SummaryCard
             label="Held in Escrow"
@@ -358,6 +361,33 @@ const SellerPayouts = () => {
 
           {/* Right Sidebar */}
           <div className="space-y-5">
+            {/* Stuck Payouts Alert */}
+            {stuckPayouts.length > 0 && (
+              <Card className="rounded-2xl border-warning/40 bg-warning/[0.04]">
+                <CardContent className="p-4 flex items-start gap-2.5">
+                  <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-warning">
+                      {stuckPayouts.length} payout{stuckPayouts.length > 1 ? "s" : ""} pending bank transfer for over 24 hours
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Contact support if not received in 1-3 business days.
+                    </p>
+                    <ul className="text-xs text-muted-foreground space-y-0.5 mt-1.5">
+                      {stuckPayouts.slice(0, 3).map((sp) => (
+                        <li key={sp.payout_id_full} className="flex items-center justify-between gap-2">
+                          <Link to={`/seller/transactions/${sp.transaction_id}`} className="font-mono text-primary hover:underline">
+                            {sp.transaction_code}
+                          </Link>
+                          <span>{formatCurrency(sp.amount)} · {sp.hours_pending}h</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Upcoming Releases */}
             <Card className="rounded-2xl">
               <CardHeader className="pb-3">
