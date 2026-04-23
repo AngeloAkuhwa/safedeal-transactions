@@ -277,6 +277,10 @@ Deno.serve(async (req) => {
       awaiting_payment_count: awaitingPaymentCount,
       in_fulfillment_count: inFulfillmentCount,
       completed: allRows.filter((t) => completedStatuses.includes(t.status)).length,
+      disputed_count: allRows.filter((t) => t.status === "disputed").length,
+      cancelled_count: allRows.filter((t) => t.status === "cancelled").length,
+      timed_out_count: allRows.filter((t) => t.status === "timed_out").length,
+      refunded_count: allRows.filter((t) => t.status === "refunded").length,
       total_earned: 0,
     };
 

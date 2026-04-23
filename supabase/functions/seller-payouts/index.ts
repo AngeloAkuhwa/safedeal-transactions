@@ -383,7 +383,7 @@ Deno.serve(async (req) => {
         total_released_last_30: totalReleasedLast30,
         pending_release: pendingReleaseAmount,
         held_in_escrow: heldInEscrow,
-        on_hold_failed: failedAmount,
+        on_hold_failed: onHoldFailed,
         currency_code: "NGN",
       },
       payout_history: filteredHistory,
