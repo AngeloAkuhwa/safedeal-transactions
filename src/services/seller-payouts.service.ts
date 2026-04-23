@@ -48,6 +48,17 @@ export interface BlockedFund {
   status: string;
 }
 
+export interface StuckPayout {
+  payout_id: string;
+  payout_id_full: string;
+  transaction_id: string;
+  transaction_code: string;
+  amount: number;
+  currency_code: string;
+  created_at: string;
+  hours_pending: number;
+}
+
 export interface PayoutAccount {
   verified: boolean;
   last_payout_date: string | null;
@@ -65,6 +76,7 @@ export interface SellerPayoutsResponse {
   pagination: { page: number; limit: number; total_count: number; total_pages: number };
   upcoming_releases: UpcomingRelease[];
   blocked_funds: BlockedFund[];
+  stuck_payouts: StuckPayout[];
   payout_account: PayoutAccount;
 }
 

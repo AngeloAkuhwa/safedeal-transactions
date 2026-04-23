@@ -32,6 +32,7 @@ import {
   getSellerTransactions,
   type SellerTransactionsFilters,
 } from "@/services/seller-transactions.service";
+import { getSellerPayouts } from "@/services/seller-payouts.service";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   draft: { label: "Draft", variant: "secondary" },
@@ -118,6 +119,13 @@ const SellerTransactions = () => {
     queryKey: ["seller-dashboard"],
     queryFn: getSellerDashboard,
     staleTime: 60_000,
+  });
+
+  // For the "Net Earned" card breakdown (paid-to-bank vs pending-bank-transfer)
+  const { data: payoutsData } = useQuery({
+    queryKey: ["seller-payouts", 1, "", ""],
+    queryFn: () => getSellerPayouts(1, 10, "", ""),
+    staleTime: 30_000,
   });
 
   const { data, isLoading, isError, error, refetch } = useQuery({
