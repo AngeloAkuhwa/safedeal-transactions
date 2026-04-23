@@ -465,15 +465,24 @@ const SellerTransactions = () => {
           <Card className="rounded-2xl shadow-md">
             <CardContent className="p-5">
               <div className="flex items-center gap-1.5 mb-1">
-                <p className="text-xs font-medium text-success uppercase tracking-wider">Net Revenue Released</p>
-                <InfoTip>Total amount released to you from completed transactions, after SafeDeal fees.</InfoTip>
+                <p className="text-xs font-medium text-success uppercase tracking-wider">Net Earned (Completed)</p>
+                <InfoTip>
+                  Total amount you've earned from completed deals after SafeDeal fees.
+                  Some may still be queued for bank transfer — see the Payouts tab for actual deposit status.
+                </InfoTip>
               </div>
               <p className="text-2xl font-bold text-foreground">
                 {formatCurrency(summary.total_earned, "NGN")}
               </p>
               <p className="text-sm text-muted-foreground">
-                {summary.completed} completed · after SafeDeal fees
+                {summary.completed} completed · escrow released, payout in progress
               </p>
+              {payoutsData && (
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  {formatCurrency(payoutsData.summary.total_released, "NGN")} paid to bank ·{" "}
+                  {formatCurrency(payoutsData.summary.pending_release, "NGN")} pending bank transfer
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

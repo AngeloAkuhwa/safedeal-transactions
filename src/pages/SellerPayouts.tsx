@@ -148,6 +148,7 @@ const SellerPayouts = () => {
   }
 
   const { seller, summary, payout_history, pagination, upcoming_releases, blocked_funds, payout_account } = data;
+  const stuckPayouts = data.stuck_payouts ?? [];
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -168,22 +169,24 @@ const SellerPayouts = () => {
           <SummaryCard
             label="Total Released"
             value={formatCurrency(summary.total_released)}
-            subtitle={`₦${summary.total_released_last_30.toLocaleString("en-NG")} in last 30 days`}
+            subtitle={`Paid into your bank account · ₦${summary.total_released_last_30.toLocaleString("en-NG")} in last 30 days`}
             icon={CheckCircle2}
             iconBg="bg-success/10"
             iconColor="text-success"
             badgeLabel="Released"
             badgeBg="bg-success/10 text-success"
+            tooltip="Money already deposited to your bank account. Earnings from completed deals that haven't been transferred yet appear under Pending Release."
           />
           <SummaryCard
             label="Pending Release"
             value={formatCurrency(summary.pending_release)}
-            subtitle="Awaiting confirmation or processing"
+            subtitle="Earned · awaiting bank transfer"
             icon={Clock}
             iconBg="bg-warning/10"
             iconColor="text-warning"
             badgeLabel="Pending"
             badgeBg="bg-warning/10 text-warning"
+            tooltip="Money the buyer has released to you but that hasn't been deposited to your bank account yet. Usually settles in 1-3 business days."
           />
           <SummaryCard
             label="Held in Escrow"
