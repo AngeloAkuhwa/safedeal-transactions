@@ -33,6 +33,10 @@ export interface SellerTransactionsSummary {
   awaiting_payment_count: number;
   in_fulfillment_count: number;
   completed: number;
+  disputed_count?: number;
+  cancelled_count?: number;
+  timed_out_count?: number;
+  refunded_count?: number;
   total_earned: number;
 }
 

@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 import { DisputeStatusBadge } from "@/components/disputes/DisputeStatusBadge";
 import { cn } from "@/lib/utils";
 import type { SellerDisputeItem } from "@/services/seller-disputes.service";
@@ -33,6 +35,11 @@ function formatDeadline(dateStr: string | null) {
   return `${diffD}d left`;
 }
 
+function formatNaira(amount: number | null) {
+  if (amount == null) return "—";
+  return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 interface Props {
   items: SellerDisputeItem[];
 }
@@ -49,6 +56,21 @@ export function SellerDisputeTable({ items }: Props) {
               <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Txn Code</TableHead>
               <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Buyer</TableHead>
               <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Item</TableHead>
+              <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider hidden md:table-cell">
+                <span className="inline-flex items-center gap-1.5">
+                  Net at Risk
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" aria-label="More info" onClick={(e) => e.stopPropagation()} className="inline-flex text-muted-foreground/60 hover:text-muted-foreground">
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      The seller net amount currently held while this dispute is being reviewed.
+                    </TooltipContent>
+                  </Tooltip>
+                </span>
+              </TableHead>
               <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Reason</TableHead>
               <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Status</TableHead>
               <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Money Impact</TableHead>
@@ -105,6 +127,11 @@ export function SellerDisputeTable({ items }: Props) {
                   <TableCell className="px-4 py-3 hidden lg:table-cell">
                     <span className="text-sm text-foreground truncate max-w-[140px] block">
                       {d.item_title ?? "—"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 hidden md:table-cell">
+                    <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+                      {formatNaira(d.seller_net_amount)}
                     </span>
                   </TableCell>
                   <TableCell className="px-4 py-3">

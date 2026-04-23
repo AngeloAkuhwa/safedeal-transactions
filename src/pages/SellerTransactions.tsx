@@ -428,6 +428,13 @@ const SellerTransactions = () => {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Transactions</p>
               <p className="text-3xl font-bold text-foreground">{summary.total}</p>
               <p className="text-sm text-muted-foreground">All protected deals you've created</p>
+              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                {summary.total} total · {summary.awaiting_payment_count ?? 0} awaiting · {summary.in_fulfillment_count ?? 0} in fulfillment · {summary.completed} completed
+                {(summary.disputed_count ?? 0) > 0 && ` · ${summary.disputed_count} disputed`}
+                {(summary.cancelled_count ?? 0) > 0 && ` · ${summary.cancelled_count} cancelled`}
+                {(summary.timed_out_count ?? 0) > 0 && ` · ${summary.timed_out_count} timed out`}
+                {(summary.refunded_count ?? 0) > 0 && ` · ${summary.refunded_count} refunded`}
+              </p>
             </CardContent>
           </Card>
           <Card className="rounded-2xl shadow-md">

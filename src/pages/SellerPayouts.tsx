@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -31,6 +32,19 @@ function formatCurrency(amount: number) {
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function CardInfoTip({ children }: { children: React.ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button type="button" aria-label="More info" className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground">
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs text-xs">{children}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 function PayoutStatusBadge({ status }: { status: string }) {
@@ -136,6 +150,7 @@ const SellerPayouts = () => {
   const { seller, summary, payout_history, pagination, upcoming_releases, blocked_funds, payout_account } = data;
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="min-h-screen bg-background">
       <SellerNav sellerName={seller.full_name} avatarUrl={seller.avatar_url} />
 
@@ -179,16 +194,18 @@ const SellerPayouts = () => {
             iconColor="text-primary"
             badgeLabel="Escrow"
             badgeBg="bg-primary/10 text-primary"
+            tooltip="Your protected earnings currently locked in escrow, awaiting buyer confirmation. Disputed/frozen amounts appear under On Hold / Failed."
           />
           <SummaryCard
             label="On Hold / Failed"
             value={formatCurrency(summary.on_hold_failed)}
-            subtitle="Delayed by disputes or issues"
+            subtitle="Failed payouts + funds frozen by disputes"
             icon={AlertTriangle}
             iconBg="bg-destructive/10"
             iconColor="text-destructive"
             badgeLabel="Action Needed"
             badgeBg="bg-destructive/10 text-destructive"
+            tooltip="Includes failed payouts and disputed funds frozen in escrow. Sum of seller-net at risk."
           />
         </div>
 
@@ -485,17 +502,18 @@ const SellerPayouts = () => {
         currentSearch={search}
       />
     </div>
+    </TooltipProvider>
   );
 };
 
 /* ── Helper sub-components ── */
 
 function SummaryCard({
-  label, value, subtitle, icon: Icon, iconBg, iconColor, badgeLabel, badgeBg,
+  label, value, subtitle, icon: Icon, iconBg, iconColor, badgeLabel, badgeBg, tooltip,
 }: {
   label: string; value: string; subtitle: string;
   icon: React.ElementType; iconBg: string; iconColor: string;
-  badgeLabel: string; badgeBg: string;
+  badgeLabel: string; badgeBg: string; tooltip?: React.ReactNode;
 }) {
   return (
     <Card className="rounded-2xl shadow-md hover:shadow-lg transition-all">
@@ -509,7 +527,10 @@ function SummaryCard({
           </span>
         </div>
         <div className="space-y-0.5">
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          <p className="text-sm font-medium text-muted-foreground inline-flex items-center gap-1.5">
+            {label}
+            {tooltip && <CardInfoTip>{tooltip}</CardInfoTip>}
+          </p>
           <p className="text-2xl font-bold text-foreground">{value}</p>
           <p className="text-xs text-muted-foreground">{subtitle}</p>
         </div>

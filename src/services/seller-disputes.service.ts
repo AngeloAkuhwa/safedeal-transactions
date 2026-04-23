@@ -25,7 +25,7 @@ export interface SellerDisputeItem {
   transaction_id: string;
   transaction_code: string | null;
   item_title: string | null;
-  buyer_total_amount: number | null;
+  seller_net_amount: number | null;
   reason: string;
   reason_label: string;
   status: string;

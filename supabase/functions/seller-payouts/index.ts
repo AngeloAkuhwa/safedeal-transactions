@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
     let totalReleased = 0;
     let totalReleasedLast30 = 0;
     let pendingReleaseAmount = 0;
-    let failedAmount = 0;
+    let onHoldFailed = 0;
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
     let lastPayoutDate: string | null = null;
@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
       } else if (status === "pending" || status === "processing") {
         pendingReleaseAmount += amount;
       } else if (status === "failed") {
-        failedAmount += amount;
+        onHoldFailed += amount;
       }
     }
 
@@ -141,6 +141,9 @@ Deno.serve(async (req) => {
 
     // Fetch pricing for held transactions
     const allNeededTxIds = [...new Set([...heldTxIds, ...allBlockedTxIds])];
+    // Track seller-net per tx so we can both compute heldInEscrow AND fold
+    // disputed/frozen seller-net into onHoldFailed for the headline KPI.
+    let frozenSellerNetTotal = 0;
     if (allNeededTxIds.length > 0) {
       const { data: pricingData } = await adminClient
         .from("transaction_pricing")
@@ -154,8 +157,15 @@ Deno.serve(async (req) => {
         for (const id of heldTxIds) {
           heldInEscrow += pricingMap.get(id) ?? 0;
         }
+        // blockedTxIds = disputed transactions (money_status often funds_frozen).
+        // Add their seller-net to the on-hold KPI so disputed funds are visible
+        // in the headline card, not only in the side panel.
+        for (const id of blockedTxIds) {
+          frozenSellerNetTotal += pricingMap.get(id) ?? 0;
+        }
       }
     }
+    onHoldFailed += frozenSellerNetTotal;
 
     // ── Payout History (paginated) ──
     let filteredPayouts = [...allPayouts];
@@ -181,7 +191,7 @@ Deno.serve(async (req) => {
     if (payoutTxIdsUnique.length > 0) {
       const [itemsResult, pricingResult, txDetailsResult] = await Promise.allSettled([
         adminClient.from("transaction_items").select("transaction_id, title").in("transaction_id", payoutTxIdsUnique),
-        adminClient.from("transaction_pricing").select("transaction_id, item_amount, service_fee_amount, seller_net_amount, currency_code").in("transaction_id", payoutTxIdsUnique),
+        adminClient.from("transaction_pricing").select("transaction_id, item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, currency_code").in("transaction_id", payoutTxIdsUnique),
         adminClient.from("transactions").select("id, transaction_code, buyer_id").in("id", payoutTxIdsUnique),
       ]);
 
@@ -232,7 +242,9 @@ Deno.serve(async (req) => {
           buyer_name: buyerMap.get(tx?.buyer_id as string) ?? "Unknown",
           item_title: itemMap.get(txId) ?? "Untitled",
           gross_amount: (pricing?.item_amount as number) ?? 0,
-          fees: (pricing?.service_fee_amount as number) ?? 0,
+          fees:
+            ((pricing?.platform_fee_amount as number) ?? 0) +
+            ((pricing?.processing_fee_amount as number) ?? 0),
           net_payout: p.amount as number,
           currency_code: (pricing?.currency_code as string) ?? "NGN",
           release_date: (p.completed_at ?? p.initiated_at ?? p.created_at) as string,
@@ -371,7 +383,7 @@ Deno.serve(async (req) => {
         total_released_last_30: totalReleasedLast30,
         pending_release: pendingReleaseAmount,
         held_in_escrow: heldInEscrow,
-        on_hold_failed: failedAmount,
+        on_hold_failed: onHoldFailed,
         currency_code: "NGN",
       },
       payout_history: filteredHistory,
