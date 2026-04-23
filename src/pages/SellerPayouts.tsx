@@ -502,6 +502,7 @@ const SellerPayouts = () => {
         currentSearch={search}
       />
     </div>
+    </TooltipProvider>
   );
 };
 
