@@ -361,6 +361,33 @@ const SellerPayouts = () => {
 
           {/* Right Sidebar */}
           <div className="space-y-5">
+            {/* Stuck Payouts Alert */}
+            {stuckPayouts.length > 0 && (
+              <Card className="rounded-2xl border-warning/40 bg-warning/[0.04]">
+                <CardContent className="p-4 flex items-start gap-2.5">
+                  <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-warning">
+                      {stuckPayouts.length} payout{stuckPayouts.length > 1 ? "s" : ""} pending bank transfer for over 24 hours
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Contact support if not received in 1-3 business days.
+                    </p>
+                    <ul className="text-xs text-muted-foreground space-y-0.5 mt-1.5">
+                      {stuckPayouts.slice(0, 3).map((sp) => (
+                        <li key={sp.payout_id_full} className="flex items-center justify-between gap-2">
+                          <Link to={`/seller/transactions/${sp.transaction_id}`} className="font-mono text-primary hover:underline">
+                            {sp.transaction_code}
+                          </Link>
+                          <span>{formatCurrency(sp.amount)} · {sp.hours_pending}h</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Upcoming Releases */}
             <Card className="rounded-2xl">
               <CardHeader className="pb-3">
