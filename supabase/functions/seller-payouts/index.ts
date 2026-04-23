@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
     if (payoutTxIdsUnique.length > 0) {
       const [itemsResult, pricingResult, txDetailsResult] = await Promise.allSettled([
         adminClient.from("transaction_items").select("transaction_id, title").in("transaction_id", payoutTxIdsUnique),
-        adminClient.from("transaction_pricing").select("transaction_id, item_amount, service_fee_amount, seller_net_amount, currency_code").in("transaction_id", payoutTxIdsUnique),
+        adminClient.from("transaction_pricing").select("transaction_id, item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, currency_code").in("transaction_id", payoutTxIdsUnique),
         adminClient.from("transactions").select("id, transaction_code, buyer_id").in("id", payoutTxIdsUnique),
       ]);
 
@@ -242,7 +242,9 @@ Deno.serve(async (req) => {
           buyer_name: buyerMap.get(tx?.buyer_id as string) ?? "Unknown",
           item_title: itemMap.get(txId) ?? "Untitled",
           gross_amount: (pricing?.item_amount as number) ?? 0,
-          fees: (pricing?.service_fee_amount as number) ?? 0,
+          fees:
+            ((pricing?.platform_fee_amount as number) ?? 0) +
+            ((pricing?.processing_fee_amount as number) ?? 0),
           net_payout: p.amount as number,
           currency_code: (pricing?.currency_code as string) ?? "NGN",
           release_date: (p.completed_at ?? p.initiated_at ?? p.created_at) as string,
