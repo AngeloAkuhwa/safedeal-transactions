@@ -17,6 +17,9 @@ function formatCurrency(amount: number) {
 }
 
 export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
+  const netPaidToBank = metrics.net_paid_to_bank ?? 0;
+  const netPendingBankTransfer = metrics.net_pending_bank_transfer ?? 0;
+
   const cards = [
     {
       label: "Transactions Created",
@@ -28,6 +31,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       tooltip: "Count of every protected transaction you've created on SafeDeal.",
       badge: `${metrics.transactions_created_count} total`,
       badgeBg: "bg-primary/10 text-primary",
+      breakdown: null as string | null,
     },
     {
       label: "Awaiting Buyer Payment",
@@ -39,17 +43,20 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       tooltip: "Buyer started checkout but payment isn't complete yet. Shown as gross buyer amount.",
       badge: "Pending",
       badgeBg: "bg-warning/10 text-warning",
+      breakdown: null as string | null,
     },
     {
-      label: "Awaiting Buyer Review",
+      label: "Awaiting Buyer to Open Link",
       value: formatCurrency(metrics.awaiting_buyer_review_amount),
       icon: Eye,
       iconBg: "bg-muted",
       iconColor: "text-muted-foreground",
-      subtitle: "Gross amount · buyer hasn't reviewed agreement",
-      tooltip: "Buyer needs to review the agreement or inspect the item before funds can be released.",
+      subtitle: "Gross amount · share link not opened/agreement not reviewed yet",
+      tooltip:
+        "Buyers you've sent a transaction link to, but they haven't opened or reviewed the agreement yet. Send them a reminder if it's been more than a day.",
       badge: "Review",
       badgeBg: "bg-muted text-muted-foreground",
+      breakdown: null as string | null,
     },
     {
       label: "Funds Held in Escrow",
@@ -61,6 +68,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       tooltip: "Your protected earnings currently held by SafeDeal until the transaction is confirmed.",
       badge: "Escrow",
       badgeBg: "bg-primary/10 text-primary",
+      breakdown: null as string | null,
     },
     {
       label: "Funds Pending Release",
@@ -72,17 +80,23 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       tooltip: "Money approved for payout but not yet sent to your account.",
       badge: "Releasing",
       badgeBg: "bg-warning/10 text-warning",
+      breakdown: null as string | null,
     },
     {
-      label: "Net Revenue Released",
+      label: "Net Earned (Completed)",
       value: formatCurrency(metrics.payouts_completed_amount),
       icon: CheckCircle,
       iconBg: "bg-success/10",
       iconColor: "text-success",
-      subtitle: "Net released to you after SafeDeal fees",
-      tooltip: "Total amount released to you from completed transactions, after SafeDeal fees.",
+      subtitle: "Net released to you · payout in progress for some",
+      tooltip:
+        "Total amount you've earned from completed deals after SafeDeal fees. Some may still be queued for bank transfer — see the Payouts tab for actual deposit status.",
       badge: "Paid",
       badgeBg: "bg-success/10 text-success",
+      breakdown:
+        netPendingBankTransfer > 0
+          ? `${formatCurrency(netPaidToBank)} paid to bank · ${formatCurrency(netPendingBankTransfer)} pending bank transfer`
+          : null,
     },
   ];
 
@@ -120,6 +134,11 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
                 </div>
                 <p className="text-2xl font-bold text-foreground">{card.value}</p>
                 <p className="text-xs text-muted-foreground">{card.subtitle}</p>
+                {card.breakdown && (
+                  <p className="text-[11px] text-muted-foreground/80 pt-1 leading-snug">
+                    {card.breakdown}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
