@@ -24,9 +24,11 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input as PriceInput } from "@/components/ui/input";
 import { getMarketplaceProducts } from "@/services/marketplace.service";
+import { useAuthState } from "@/hooks/useSavedProducts";
 
 export default function BuyerMarketplace() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthState();
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -102,7 +104,7 @@ export default function BuyerMarketplace() {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <BuyerSidebar />
+      {isAuthenticated && <BuyerSidebar />}
 
       <main className="flex-1 overflow-y-auto relative">
         {/* Background glows */}

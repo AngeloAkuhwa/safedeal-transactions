@@ -76,6 +76,7 @@ const App = () => (
             <Route path="/store/:sellerSlug/:productSlug" element={<PublicProductDetail />} />
             <Route path="/offer/:offerToken" element={<OfferClaimLanding />} />
             <Route path="/delivery/confirm/:token" element={<DeliveryConfirm />} />
+            <Route path="/marketplace" element={<BuyerMarketplace />} />
 
             {/* Protected: requires session */}
             <Route element={<ProtectedRoute />}>

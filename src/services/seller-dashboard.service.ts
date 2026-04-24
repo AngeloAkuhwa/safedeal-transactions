@@ -18,6 +18,10 @@ export interface SellerMetrics {
   funds_held_in_escrow_amount: number;
   funds_pending_release_amount: number;
   payouts_completed_amount: number;
+  /** Sum of payouts.amount where status='completed' — money actually deposited to bank */
+  net_paid_to_bank?: number;
+  /** payouts_completed_amount − net_paid_to_bank — earned but still queued for transfer */
+  net_pending_bank_transfer?: number;
 }
 
 export interface SellerActivity {

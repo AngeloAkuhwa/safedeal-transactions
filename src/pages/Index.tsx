@@ -4,6 +4,7 @@ import { FraudPrevention } from "@/components/landing/FraudPrevention";
 import { BestForSection } from "@/components/landing/BestForSection";
 import { TrustBanner } from "@/components/landing/TrustBanner";
 import { HowItWorks } from "@/components/landing/HowItWorks";
+import { MarketplacePreview } from "@/components/landing/MarketplacePreview";
 import { ProtectionSection } from "@/components/landing/ProtectionSection";
 import { TrustSection } from "@/components/landing/TrustSection";
 import { FeaturesGrid } from "@/components/landing/FeaturesGrid";
@@ -20,6 +21,7 @@ const Index = () => {
         <FraudPrevention />
         <BestForSection />
         <TrustBanner />
+        <MarketplacePreview />
         <HowItWorks />
         <ProtectionSection />
         <TrustSection />

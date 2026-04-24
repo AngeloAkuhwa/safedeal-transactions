@@ -23,6 +23,8 @@ export function SellerDisputeSummaryCards({ summary }: Props) {
       iconColor: "text-destructive",
       badgeLabel: "Active",
       badgeBg: "bg-destructive/10 text-destructive",
+      tooltip:
+        "Active dispute cases not yet resolved. Includes both cases where you need to respond and cases SafeDeal is reviewing.",
     },
     {
       label: "Awaiting Your Response",
@@ -33,6 +35,8 @@ export function SellerDisputeSummaryCards({ summary }: Props) {
       iconColor: "text-warning",
       badgeLabel: "Urgent",
       badgeBg: "bg-warning/10 text-warning",
+      tooltip:
+        "Cases where SafeDeal needs your evidence or rebuttal. Always respond before the deadline shown on each case.",
     },
     {
       label: "Under Review",
@@ -43,6 +47,8 @@ export function SellerDisputeSummaryCards({ summary }: Props) {
       iconColor: "text-primary",
       badgeLabel: "In Review",
       badgeBg: "bg-primary/10 text-primary",
+      tooltip:
+        "SafeDeal is weighing both sides. No action needed from you right now — we'll notify you when there's an update.",
     },
     {
       label: "Resolved",
@@ -53,6 +59,8 @@ export function SellerDisputeSummaryCards({ summary }: Props) {
       iconColor: "text-success",
       badgeLabel: "Closed",
       badgeBg: "bg-success/10 text-success",
+      tooltip:
+        "Cases with a final outcome — funds released, refunded, or partially refunded.",
     },
     {
       label: "Payouts Blocked",

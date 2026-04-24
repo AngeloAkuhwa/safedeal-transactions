@@ -127,6 +127,7 @@ Deno.serve(async (req) => {
     let fulfillmentNeededTxIds: string[] = [];
     let dispatchedTxIds: string[] = [];
     let buyerVerificationTxIds: string[] = [];
+    let completedTxIds: string[] = [];
 
     if (allTxResult.status === "fulfilled" && allTxResult.value.data) {
       const txRowsAll = allTxResult.value.data as Array<{ id: string; status: string; money_status: string }>;
@@ -158,6 +159,9 @@ Deno.serve(async (req) => {
         if (tx.status === "delivered_awaiting_verification") {
           buyerVerificationTxIds.push(tx.id);
         }
+        if (tx.status === "completed") {
+          completedTxIds.push(tx.id);
+        }
       }
     }
 
@@ -181,9 +185,17 @@ Deno.serve(async (req) => {
     let fundsHeldInEscrowAmount = 0;
     let fundsPendingReleaseAmount = 0;
     let payoutsCompletedAmount = 0;
+    let netPaidToBank = 0;
+    let netPendingBankTransfer = 0;
 
     const amountTxIds = [
-      ...new Set([...awaitingPaymentTxIds, ...awaitingBuyerReviewTxIds, ...fundsHeldTxIds, ...fundsReleasingTxIds]),
+      ...new Set([
+        ...awaitingPaymentTxIds,
+        ...awaitingBuyerReviewTxIds,
+        ...fundsHeldTxIds,
+        ...fundsReleasingTxIds,
+        ...completedTxIds,
+      ]),
     ];
 
     if (amountTxIds.length > 0) {
@@ -215,17 +227,26 @@ Deno.serve(async (req) => {
         for (const id of fundsReleasingTxIds) {
           fundsPendingReleaseAmount += pricingMap.get(id)?.sellerNet ?? 0;
         }
-      }
-    }
-
-    // Payouts completed
-    if (payoutsResult.status === "fulfilled" && payoutsResult.value.data) {
-      for (const p of payoutsResult.value.data as Array<{ amount: number; status: string }>) {
-        if (p.status === "completed") {
-          payoutsCompletedAmount += p.amount;
+        // Net Earned (Completed) — sum seller_net of all completed transactions.
+        // This matches the "Net Earned (Completed)" card on the Transactions tab,
+        // and represents money released from escrow to the seller (regardless of
+        // whether the bank payout has actually been processed yet).
+        for (const id of completedTxIds) {
+          payoutsCompletedAmount += pricingMap.get(id)?.sellerNet ?? 0;
         }
       }
     }
+
+    // Net actually paid to bank — sum payouts.amount where status='completed'
+    if (payoutsResult.status === "fulfilled" && payoutsResult.value.data) {
+      for (const p of payoutsResult.value.data as Array<{ amount: number; status: string }>) {
+        if (p.status === "completed") {
+          netPaidToBank += p.amount;
+        }
+      }
+    }
+    // What's earned but still queued for bank transfer.
+    netPendingBankTransfer = Math.max(0, payoutsCompletedAmount - netPaidToBank);
 
     // Alerts
     const alerts: Array<{
@@ -412,6 +433,8 @@ Deno.serve(async (req) => {
         funds_held_in_escrow_amount: fundsHeldInEscrowAmount,
         funds_pending_release_amount: fundsPendingReleaseAmount,
         payouts_completed_amount: payoutsCompletedAmount,
+        net_paid_to_bank: netPaidToBank,
+        net_pending_bank_transfer: netPendingBankTransfer,
       },
       recent_activity: recentActivity,
       quick_actions: {
