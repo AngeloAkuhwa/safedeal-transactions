@@ -18,45 +18,66 @@ async function getAuthHeaders() {
   };
 }
 
+async function clearLocalSession() {
+  await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+}
+
+async function safeJson<T>(res: Response, fallback: T): Promise<T> {
+  try {
+    return (await res.json()) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 // Fetch all saved products (enriched)
 export function useSavedProducts() {
-  const { isAuthenticated } = useAuthState();
+  const { isAuthenticated, loading } = useAuthState();
   return useQuery({
     queryKey: ["saved-products"],
     queryFn: async () => {
       const headers = await getAuthHeaders();
       if (!headers) return { items: [], count: 0 };
       const res = await fetch(baseUrl, { headers });
-      if (res.status === 401) return { items: [], count: 0 };
+      if (res.status === 401 || res.status === 403) {
+        await clearLocalSession();
+        return { items: [], count: 0 };
+      }
       if (!res.ok) throw new Error("Failed to load saved products");
-      return res.json() as Promise<{ items: any[]; count: number }>;
+      return safeJson(res, { items: [], count: 0 });
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !loading,
     staleTime: 30_000,
+    retry: false,
   });
 }
 
 // Fetch saved product IDs for heart rendering
 export function useSavedProductIds() {
-  const { isAuthenticated } = useAuthState();
+  const { isAuthenticated, loading } = useAuthState();
   return useQuery({
     queryKey: ["saved-product-ids"],
     queryFn: async () => {
       const headers = await getAuthHeaders();
       if (!headers) return [] as string[];
       const res = await fetch(`${baseUrl}?ids_only=true`, { headers });
+      if (res.status === 401 || res.status === 403) {
+        await clearLocalSession();
+        return [] as string[];
+      }
       if (!res.ok) return [] as string[];
-      const data = await res.json();
+      const data = await safeJson<{ product_ids?: string[] }>(res, { product_ids: [] });
       return (data.product_ids || []) as string[];
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !loading,
     staleTime: 30_000,
+    retry: false,
   });
 }
 
 // Check if a single product is saved
 export function useIsProductSaved(productId: string | undefined) {
-  const { isAuthenticated } = useAuthState();
+  const { isAuthenticated, loading } = useAuthState();
   return useQuery({
     queryKey: ["saved-product-check", productId],
     queryFn: async () => {
@@ -64,12 +85,17 @@ export function useIsProductSaved(productId: string | undefined) {
       const headers = await getAuthHeaders();
       if (!headers) return false;
       const res = await fetch(`${baseUrl}?check=${productId}`, { headers });
+      if (res.status === 401 || res.status === 403) {
+        await clearLocalSession();
+        return false;
+      }
       if (!res.ok) return false;
-      const data = await res.json();
+      const data = await safeJson<{ saved?: boolean }>(res, { saved: false });
       return data.saved as boolean;
     },
-    enabled: !!productId && isAuthenticated,
+    enabled: !!productId && isAuthenticated && !loading,
     staleTime: 30_000,
+    retry: false,
   });
 }
 
@@ -86,8 +112,12 @@ export function useToggleSave() {
         headers,
         body: JSON.stringify({ product_id: productId }),
       });
+      if (res.status === 401 || res.status === 403) {
+        await clearLocalSession();
+        throw new Error("Not authenticated");
+      }
       if (!res.ok) throw new Error("Failed to toggle save");
-      return res.json();
+      return safeJson(res, { saved: !saved });
     },
     onMutate: async ({ productId, saved }) => {
       // Optimistic update for ids list
