@@ -11,6 +11,7 @@ import { toast } from "@/components/ui/sonner";
 import type { User } from "@supabase/supabase-js";
 
 const navLinks = [
+  { label: "Marketplace", href: "/marketplace" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "Protection", href: "#protection" },
   { label: "Trust & Safety", href: "#trust" },
