@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
+import { useAuthState } from "@/hooks/useAuthState";
+
+export { useAuthState } from "@/hooks/useAuthState";
 
 const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const baseUrl = `https://${projectId}.supabase.co/functions/v1/saved-products`;
@@ -112,23 +114,4 @@ export function useToggleSave() {
   });
 }
 
-// Hook to check auth state for gating
-export function useAuthState() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  return { isAuthenticated, loading };
-}
