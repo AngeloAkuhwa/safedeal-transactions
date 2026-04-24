@@ -18,21 +18,25 @@ async function getAuthHeaders() {
 
 // Fetch all saved products (enriched)
 export function useSavedProducts() {
+  const { isAuthenticated } = useAuthState();
   return useQuery({
     queryKey: ["saved-products"],
     queryFn: async () => {
       const headers = await getAuthHeaders();
       if (!headers) return { items: [], count: 0 };
       const res = await fetch(baseUrl, { headers });
+      if (res.status === 401) return { items: [], count: 0 };
       if (!res.ok) throw new Error("Failed to load saved products");
       return res.json() as Promise<{ items: any[]; count: number }>;
     },
+    enabled: isAuthenticated,
     staleTime: 30_000,
   });
 }
 
 // Fetch saved product IDs for heart rendering
 export function useSavedProductIds() {
+  const { isAuthenticated } = useAuthState();
   return useQuery({
     queryKey: ["saved-product-ids"],
     queryFn: async () => {
@@ -43,12 +47,14 @@ export function useSavedProductIds() {
       const data = await res.json();
       return (data.product_ids || []) as string[];
     },
+    enabled: isAuthenticated,
     staleTime: 30_000,
   });
 }
 
 // Check if a single product is saved
 export function useIsProductSaved(productId: string | undefined) {
+  const { isAuthenticated } = useAuthState();
   return useQuery({
     queryKey: ["saved-product-check", productId],
     queryFn: async () => {
@@ -60,7 +66,7 @@ export function useIsProductSaved(productId: string | undefined) {
       const data = await res.json();
       return data.saved as boolean;
     },
-    enabled: !!productId,
+    enabled: !!productId && isAuthenticated,
     staleTime: 30_000,
   });
 }
