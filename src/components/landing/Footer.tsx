@@ -1,46 +1,86 @@
-import { Shield, MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Shield, MapPin, Twitter, Facebook, Linkedin, Instagram } from "lucide-react";
+
+const productLinks = [
+  { label: "How It Works", href: "#how-it-works" },
+  { label: "Marketplace", href: "/marketplace" },
+  { label: "Protection", href: "#protection" },
+  { label: "Trust & Safety", href: "#trust" },
+];
+
+const companyLinks = ["About Us", "Careers", "Blog", "Press Kit"];
+const supportLinks = ["Help Center", "Contact Us", "Terms of Service", "Privacy Policy"];
+const socials = [
+  { icon: Twitter, label: "Twitter" },
+  { icon: Facebook, label: "Facebook" },
+  { icon: Linkedin, label: "LinkedIn" },
+  { icon: Instagram, label: "Instagram" },
+];
 
 export function Footer() {
   return (
-    <footer className="border-t bg-foreground py-10">
+    <footer className="border-t bg-foreground pb-8 pt-14 text-background">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           {/* Brand */}
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <Shield className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold text-background">SafeDeal</span>
+          <div className="lg:col-span-2">
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+                <Shield className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="text-xl font-bold text-background">SafeDeal</span>
             </div>
-            <p className="text-sm text-background/60">
-              Protecting buyers and sellers in online transactions with secure escrow payments and transparent verification.
+            <p className="mb-5 max-w-sm text-sm text-background/60">
+              Protecting buyers and sellers in online transactions with secure escrow payments and
+              transparent verification.
             </p>
-            <div className="mt-3 flex items-center gap-1.5 text-xs text-background/50">
+            <div className="mb-5 inline-flex items-center gap-1.5 text-xs text-background/50">
               <MapPin className="h-3.5 w-3.5" />
               Currently available in Lagos, Nigeria — expanding soon
             </div>
+            <div className="flex gap-3">
+              {socials.map((s) => (
+                <a
+                  key={s.label}
+                  href="#"
+                  aria-label={s.label}
+                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-background/10 text-background/80 transition-colors hover:bg-primary hover:text-primary-foreground"
+                >
+                  <s.icon className="h-4 w-4" />
+                </a>
+              ))}
+            </div>
           </div>
 
-          {/* How It Works */}
+          {/* Product */}
           <div>
-            <h4 className="mb-3 text-sm font-semibold text-background">How It Works</h4>
-            <ul className="space-y-2">
-              {["Create Transaction", "Secure Payment", "Track Delivery", "Verify & Release"].map((item) => (
-                <li key={item}>
-                  <a href="#how-it-works" className="text-sm text-background/60 transition-colors hover:text-background/90">
-                    {item}
-                  </a>
-                </li>
-              ))}
+            <h4 className="mb-4 text-sm font-semibold text-background">Product</h4>
+            <ul className="space-y-3">
+              {productLinks.map((item) =>
+                item.href.startsWith("#") ? (
+                  <li key={item.label}>
+                    <a href={item.href} className="text-sm text-background/60 transition-colors hover:text-background">
+                      {item.label}
+                    </a>
+                  </li>
+                ) : (
+                  <li key={item.label}>
+                    <Link to={item.href} className="text-sm text-background/60 transition-colors hover:text-background">
+                      {item.label}
+                    </Link>
+                  </li>
+                )
+              )}
             </ul>
           </div>
 
           {/* Company */}
           <div>
-            <h4 className="mb-3 text-sm font-semibold text-background">Company</h4>
-            <ul className="space-y-2">
-              {["About Us", "Careers", "Blog", "Press Kit"].map((item) => (
+            <h4 className="mb-4 text-sm font-semibold text-background">Company</h4>
+            <ul className="space-y-3">
+              {companyLinks.map((item) => (
                 <li key={item}>
-                  <a href="#" className="text-sm text-background/60 transition-colors hover:text-background/90">
+                  <a href="#" className="text-sm text-background/60 transition-colors hover:text-background">
                     {item}
                   </a>
                 </li>
@@ -50,11 +90,11 @@ export function Footer() {
 
           {/* Support */}
           <div>
-            <h4 className="mb-3 text-sm font-semibold text-background">Support</h4>
-            <ul className="space-y-2">
-              {["Help Center", "Contact Us", "Terms of Service", "Privacy Policy"].map((item) => (
+            <h4 className="mb-4 text-sm font-semibold text-background">Support</h4>
+            <ul className="space-y-3">
+              {supportLinks.map((item) => (
                 <li key={item}>
-                  <a href="#" className="text-sm text-background/60 transition-colors hover:text-background/90">
+                  <a href="#" className="text-sm text-background/60 transition-colors hover:text-background">
                     {item}
                   </a>
                 </li>
@@ -63,10 +103,17 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 border-t border-background/10 pt-6 text-center">
-          <p className="text-xs text-background/50">
-            © {new Date().getFullYear()} SafeDeal. All rights reserved.
-          </p>
+        <div className="border-t border-background/10 pt-6">
+          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+            <p className="text-xs text-background/50">
+              © {new Date().getFullYear()} SafeDeal. All rights reserved.
+            </p>
+            <div className="flex items-center gap-6 text-xs text-background/50">
+              <a href="#" className="hover:text-background">Terms</a>
+              <a href="#" className="hover:text-background">Privacy</a>
+              <a href="#" className="hover:text-background">Cookies</a>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
