@@ -43,14 +43,30 @@ export interface MarketplaceFilters {
   page?: number;
   price_min?: number;
   price_max?: number;
+  include?: string;
 }
 
 export interface MarketplaceResponse {
   products: MarketplaceProduct[];
   categories: MarketplaceCategory[];
+  featured_sellers?: FeaturedSeller[];
   total: number;
   page: number;
   page_size: number;
+}
+
+export interface FeaturedSeller {
+  id: string;
+  full_name: string;
+  store_slug: string;
+  avatar_url: string | null;
+  city_name: string | null;
+  state_name: string | null;
+  product_count: number;
+  verification_level: string;
+  email_verified: boolean;
+  phone_verified: boolean;
+  identity_verified: boolean;
 }
 
 export async function getMarketplaceProducts(
@@ -63,6 +79,7 @@ export async function getMarketplaceProducts(
   if (filters.page) params.page = String(filters.page);
   if (filters.price_min != null) params.price_min = String(filters.price_min);
   if (filters.price_max != null) params.price_max = String(filters.price_max);
+  if (filters.include) params.include = filters.include;
 
   const queryString = new URLSearchParams(params).toString();
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;

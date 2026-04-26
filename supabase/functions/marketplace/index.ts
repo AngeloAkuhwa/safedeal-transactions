@@ -29,6 +29,10 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const search = url.searchParams.get("search")?.trim() || "";
+    const include = (url.searchParams.get("include") || "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
     const category = url.searchParams.get("category") || "";
     const sort = url.searchParams.get("sort") || "newest";
     const priceMinRaw = url.searchParams.get("price_min");
@@ -190,9 +194,67 @@ Deno.serve(async (req) => {
       };
     });
 
+    // Optionally include featured sellers (top sellers by published, public, in-stock products)
+    let featured_sellers: any[] = [];
+    if (include.includes("sellers")) {
+      const { data: counts } = await adminClient
+        .from("products")
+        .select("seller_id")
+        .eq("status", "published")
+        .eq("visibility_type", "public")
+        .eq("is_active", true)
+        .gt("stock_quantity", 0);
+
+      const tally: Record<string, number> = {};
+      (counts || []).forEach((r: any) => {
+        if (!r.seller_id) return;
+        tally[r.seller_id] = (tally[r.seller_id] || 0) + 1;
+      });
+
+      const topSellerIds = Object.entries(tally)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 4)
+        .map(([id]) => id);
+
+      if (topSellerIds.length > 0) {
+        const { data: sellers } = await adminClient
+          .from("profiles")
+          .select("id, full_name, store_slug, avatar_url, city_name, state_name")
+          .in("id", topSellerIds)
+          .not("store_slug", "is", null);
+
+        const { data: verifications } = await adminClient
+          .from("account_verifications")
+          .select("user_id, verification_level, email_verified, phone_verified, identity_verified")
+          .in("user_id", topSellerIds);
+
+        const vMap: Record<string, any> = {};
+        (verifications || []).forEach((v: any) => (vMap[v.user_id] = v));
+
+        featured_sellers = (sellers || [])
+          .filter((s: any) => s.store_slug)
+          .map((s: any) => ({
+            id: s.id,
+            full_name: s.full_name,
+            store_slug: s.store_slug,
+            avatar_url: s.avatar_url,
+            city_name: s.city_name,
+            state_name: s.state_name,
+            product_count: tally[s.id] || 0,
+            verification_level: vMap[s.id]?.verification_level || "unverified",
+            email_verified: vMap[s.id]?.email_verified || false,
+            phone_verified: vMap[s.id]?.phone_verified || false,
+            identity_verified: vMap[s.id]?.identity_verified || false,
+          }))
+          // Re-sort to preserve top-N ordering after filtering
+          .sort((a, b) => b.product_count - a.product_count);
+      }
+    }
+
     return jsonResponse({
       products: shaped,
       categories,
+      featured_sellers,
       total: count || 0,
       page,
       page_size: pageSize,

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ShoppingBag, Shield } from "lucide-react";
+import { ArrowRight, ShoppingBag, Shield, Search, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MarketplaceProductCard } from "@/components/marketplace/MarketplaceProductCard";
 import { getMarketplaceProducts } from "@/services/marketplace.service";
@@ -28,6 +28,14 @@ export function MarketplacePreview() {
   const products = (data?.products ?? []).slice(0, PREVIEW_LIMIT);
   const categoryMap: Record<string, string> = {};
   for (const c of data?.categories ?? []) categoryMap[c.id] = c.name;
+  const topCategories = useMemo(() => (data?.categories ?? []).slice(0, 6), [data]);
+  const [searchValue, setSearchValue] = useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchValue.trim();
+    navigate(q ? `/marketplace?search=${encodeURIComponent(q)}` : "/marketplace");
+  };
 
   return (
     <section
@@ -53,14 +61,55 @@ export function MarketplacePreview() {
               Real listings from verified sellers on SafeDeal. Browse freely — sign up only when you're ready to buy.
             </p>
           </div>
-          <div className="hidden sm:flex items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1.5">
+          <div className="hidden items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1.5 sm:flex">
             <Shield className="h-4 w-4 text-success" />
             <span className="text-xs font-medium text-success">All purchases protected by escrow</span>
           </div>
         </div>
 
+        {/* Search + chips */}
+        <form onSubmit={handleSearch} className="mx-auto mt-8 max-w-2xl">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              placeholder="Search phones, laptops, fashion, electronics…"
+              className="w-full rounded-xl border-2 border-border bg-card px-5 py-3.5 pr-14 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none sm:text-base"
+              aria-label="Search marketplace"
+            />
+            <button
+              type="submit"
+              aria-label="Search"
+              className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          </div>
+        </form>
+
+        {topCategories.length > 0 && (
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <Link
+              to="/marketplace"
+              className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 sm:text-sm"
+            >
+              All
+            </Link>
+            {topCategories.map((c) => (
+              <Link
+                key={c.id}
+                to={`/marketplace?category=${c.id}`}
+                className="rounded-full bg-muted px-4 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent sm:text-sm"
+              >
+                {c.name}
+              </Link>
+            ))}
+          </div>
+        )}
+
         {/* Grid */}
-        <div className="mt-8">
+        <div className="mt-10">
           {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {Array.from({ length: PREVIEW_LIMIT }).map((_, i) => (
@@ -101,9 +150,10 @@ export function MarketplacePreview() {
         </div>
 
         {/* CTA */}
-        <div className="mt-8 flex justify-center">
-          <Button asChild size="lg" variant="outline" className="gap-2">
+        <div className="mt-10 flex justify-center">
+          <Button asChild size="lg" className="gap-2">
             <Link to={browseHref}>
+              <Store className="h-4 w-4" />
               Browse all listings
               <ArrowRight className="h-4 w-4" />
             </Link>

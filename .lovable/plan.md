@@ -1,155 +1,136 @@
+## Goal
 
-# Plan: Fix dashboard data accuracy, add Disputes tooltips, add public marketplace to landing
+Rework the public landing page (`/`) to match the new uploaded SafeDeal marketplace design. Page must clearly position SafeDeal as a public marketplace + protected-transaction layer, work flawlessly on every viewport (PWA-ready), and use the existing design tokens (no hard-coded hex). All existing routes / auth / marketplace data wiring stays intact.
 
-Two workstreams. No DB migrations, no state-machine changes. Info-tip icon placement stays exactly as it is today (inline next to label) — only **adding missing tooltips** to the Disputes cards.
+## Final Section Order
 
----
+```text
+Header (sticky)
+1. Hero                              (rewritten — 3 CTAs, location pill, transaction-preview card)
+2. Marketplace Preview               (existing component — light polish, search + category chips on top)
+3. Browse by Category                (NEW)
+4. Verified Sellers                  (NEW — top sellers cards)
+5. Fraud Prevention strip            (existing — keep as-is)
+6. Best For (social channels)        (existing — keep)
+7. Trust Banner (blue strip)         (existing — keep)
+8. How SafeDeal Works                (rewritten — tabs: Marketplace flow / Direct flow, dual columns)
+9. Buyer Trust (Why buyers trust…)   (NEW)
+10. Protection (Your money stays safe) (rewritten — 2-col with mockup card)
+11. Trust & Safety + stats + testimonials (existing — keep)
+12. Powerful Features grid           (existing — keep)
+13. Status Badges showcase           (NEW)
+14. Final CTA                        (rewritten — new title/subtitle, 3 CTAs, 3 trust stats)
+15. FAQ                              (existing — keep)
+Footer                               (rewritten — 5-col, social icons, brand block)
+```
 
-## Part 1 — Add missing info-tips to Disputes summary cards
+Sections marked NEW are added; "rewritten" means content/layout overhaul of the existing component; "keep" means no changes beyond minor spacing/responsive tweaks.
 
-**Problem:** On the Seller Disputes page, only the "Payouts Blocked" card currently has an ⓘ tooltip. The other 4 cards (Open Disputes, Awaiting Your Response, Under Review, Resolved) have no explanation, so sellers can't tell exactly what each count includes.
+## Detailed Changes
 
-**Fix:** Keep the existing inline ⓘ pattern (icon next to the label). Just add `tooltip` copy to the other 4 cards so all 5 cards have one.
+### Header (`src/components/landing/Header.tsx`)
+- Logo: shield in a filled rounded primary square + "SafeDeal" wordmark.
+- Desktop nav: Marketplace, How It Works, Protection, Trust & Safety, Support (links to FAQ).
+- Sticky w/ subtle border, mobile sheet menu unchanged in behaviour.
 
-**File to change:**
+### Hero (`HeroSection.tsx` — rewrite)
+- Trust pill: "Trusted by 50,000+ users".
+- Headline: "Buy safely. Sell confidently." (primary accent on second line).
+- Sub-copy unchanged.
+- Location row: "Currently available in Lagos, Nigeria — expanding soon".
+- **Three CTAs** (stack on mobile, wrap on tablet, inline on desktop):
+  1. `Browse Marketplace` → `/marketplace` (primary)
+  2. `Start Selling` → `/auth?role=seller` (success/green variant)
+  3. `Create Protected Transaction` → `/auth?role=seller&intent=create-transaction` (outline)
+- Trust check row: "No setup fees · Instant protection".
+- Right column: existing transaction preview card, polished (timeline rows: Payment Received → In Transit → Buyer Verification, FUNDS HELD pill, protection note).
 
-- **`src/components/seller-disputes/SellerDisputeSummaryCards.tsx`** — add `tooltip` field to each of the first 4 cards. Render the same inline ⓘ button next to the label that "Payouts Blocked" already uses.
+### Marketplace Preview (`MarketplacePreview.tsx`)
+- Keep existing live data fetch.
+- Add a non-functional decorative search row + category chips above the grid (chips link to `/marketplace?category=<id>`).
+- Section badge "Public Marketplace" + heading "Browse protected deals".
+- Grid stays 2/3/4 cols based on viewport.
 
-**Tooltip copy:**
-- Open Disputes: "Active dispute cases not yet resolved. Includes both cases where you need to respond and cases SafeDeal is reviewing."
-- Awaiting Your Response: "Cases where SafeDeal needs your evidence or rebuttal. Always respond before the deadline shown on each case."
-- Under Review: "SafeDeal is weighing both sides. No action needed from you right now — we'll notify you when there's an update."
-- Resolved: "Cases with a final outcome — funds released, refunded, or partially refunded."
-- Payouts Blocked: existing copy stays.
+### NEW — Categories (`src/components/landing/CategoriesSection.tsx`)
+- Pulls the 8 fixed taxonomy categories (Electronics, Phones & Tablets, Computing, Fashion, Home, Beauty, Sports, Other) from existing `getMarketplaceProducts` response (already returns categories with counts).
+- Cards: icon tile, title, description, "{n} protected listings", arrow. Each card links to `/marketplace?category=<slug>`.
+- Grid: 1 / 2 / 4 columns.
 
-No layout changes, no badge changes, no card restructuring.
+### NEW — Verified Sellers (`src/components/landing/VerifiedSellersSection.tsx`)
+- Server data: add a small public edge function `featured-sellers` (or extend `marketplace`) returning top 4 sellers (most published products) with `full_name`, `store_slug`, `avatar_url`, basic counts. If extending `marketplace` is cheaper we'll do that.
+- Cards: gradient header, avatar, name + verified check, "Trusted Seller" pill, stats (Products / Transactions / Rating / Location), "View Store" button → `/store/{slug}`.
 
----
+### How It Works (`HowItWorks.tsx` — rewrite)
+- Tabs (shadcn `Tabs`): "Buying from Marketplace" (default) and "Direct Transaction".
+- Each tab renders a 6-step numbered list inside a soft gradient card.
+- Below tabs: warning-styled callout "SafeDeal holds the money until buyer verification is complete".
 
-## Part 2 — Fix dashboard data accuracy & wording inconsistencies
+### NEW — Buyer Trust (`src/components/landing/BuyerTrustSection.tsx`)
+- "Why buyers trust SafeDeal Marketplace".
+- 4 cards: Verified Sellers, Locked Agreement, Escrow Protection, Evidence-Based Disputes.
+- 1 / 2 / 4 column grid.
 
-Verified against the database for Chioma. Two real bugs and one semantic ambiguity:
+### Protection (`ProtectionSection.tsx` — rewrite)
+- 2-column layout. Left: heading + 3 feature rows (Bank-Level Security, Immutable Agreement, Dispute Resolution).
+- Right: mockup card with three coloured strip rows + a small "$XXM+ protected" gradient block.
 
-### Bug 2A — "Net Revenue Released" disagrees between Dashboard and Transactions tabs
+### NEW — Status Badges (`src/components/landing/StatusBadgesSection.tsx`)
+- 8 badge tiles: DRAFT, AWAITING PAYMENT, FUNDS HELD, IN TRANSIT, AWAITING VERIFICATION, COMPLETED, DISPUTED, CANCELLED with one-line subcaption each.
+- 2 / 4 column grid.
 
-| Page | Card | Source | Value |
-|---|---|---|---|
-| Dashboard | "Net Revenue Released" | sum of `payouts.amount` where `status='completed'` | ₦926,250.00 |
-| Transactions | "Net Earned (Completed)" | sum of `seller_net_amount` where `tx.status='completed'` | ₦957,965.00 |
+### Final CTA (`CTASection.tsx` — rewrite)
+- Blue gradient bg (primary → primary-darker), decorative blurs.
+- Pill: "Get Started Today".
+- Heading: "Ready to shop or sell with protection?"
+- Sub: "Browse public listings, buy from verified sellers, or create your own protected transaction in minutes."
+- Three CTAs: `Browse Marketplace`, `Start Selling`, `Create Protected Transaction`.
+- 3 trust stats row: Escrow protected payments · Verified seller storefronts · Evidence-backed dispute support.
 
-Same word ("released" / "completed") covers two different concepts (escrow released vs. bank transfer completed). We already fixed this on the Transactions page in the previous loop. Apply the same fix on Dashboard:
+### Footer (`Footer.tsx` — rewrite)
+- 5-column grid (brand 2-cols + Product / Company / Support).
+- Brand block: logo + tagline + 4 social icon buttons (Twitter, Facebook, LinkedIn, Instagram).
+- Bottom bar: copyright left, Terms / Privacy / Cookies right.
 
-- **`supabase/functions/seller-dashboard/index.ts`**: change `payouts_completed_amount` to sum `seller_net_amount` for transactions with `status='completed'` (matches Transactions tab). Also expose two new fields:
-  - `net_paid_to_bank` — sum of `payouts.amount WHERE status='completed'` (currently ₦926,250)
-  - `net_pending_bank_transfer` — `payouts_completed_amount - net_paid_to_bank` (currently ₦31,715)
-- **`src/services/seller-dashboard.service.ts`**: extend `SellerMetrics` with the two new fields.
-- **`src/components/seller/SellerMetricsCards.tsx`**: rename "Net Revenue Released" → **"Net Earned (Completed)"**, subtitle becomes "Net released to you · payout in progress for some", and show breakdown line "₦X paid to bank · ₦Y pending bank transfer" if `net_pending_bank_transfer > 0`. Update the existing tooltip to explain both numbers.
+### `src/pages/Index.tsx`
+- Re-order to the final list above; insert the 4 new components.
 
-### Bug 2B — "Awaiting Buyer Review" card on Dashboard means a different thing than the Transactions tab uses it
+## Responsiveness / PWA Readiness
 
-Current Dashboard logic sums `awaiting_buyer` (4 tx, ₦5,431,349.97 — buyer hasn't even opened the share link yet). But sellers reading "Awaiting Buyer Review" expect the transaction status `delivered_awaiting_verification` (item delivered, buyer reviewing item before releasing funds), which is exactly what the Transactions table uses the same label for. Two different things, identical labels.
+- All sections use `max-w-7xl`, `px-4 sm:px-6 lg:px-8`.
+- Breakpoints used consistently: `sm` (640), `md` (768), `lg` (1024).
+- Hero CTAs: `flex-col sm:flex-row sm:flex-wrap` so 3 buttons wrap cleanly on tablet.
+- Grids: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3/4` patterns, no horizontal overflow.
+- Touch targets ≥ 44px (button `lg` size).
+- Sticky header + mobile sheet menu retained.
+- Use only design tokens from `index.css` / Tailwind config (`bg-primary`, `text-foreground`, `bg-success`, `bg-warning`, `bg-muted`, etc.) — no raw hex.
+- Images use `loading="lazy"` and aspect ratios to avoid CLS.
 
-- **`src/components/seller/SellerMetricsCards.tsx`**: rename the card "Awaiting Buyer Review" → **"Awaiting Buyer to Open Link"**.
-  - Subtitle: "Gross amount · share link not opened/agreement not reviewed yet"
-  - Tooltip: "Buyers you've sent a transaction link to, but they haven't opened or reviewed the agreement yet. Send them a reminder if it's been more than a day."
+## Backend Touch (small)
 
-This makes the card semantically distinct from the table's "Awaiting Buyer Review" status (post-delivery).
+- Extend `supabase/functions/marketplace/index.ts` to optionally include `featured_sellers` (top 4 by published-product count) when a `?include=sellers` query param is present, OR add a tiny new public function `featured-sellers`. We'll add the param to the existing function to avoid a new function. No DB schema changes.
 
-### Verification 2C — other Dashboard cards (no fixes needed)
+## Out of Scope
 
-- Transactions Created: 17 ✅
-- Awaiting Buyer Payment: ₦38,586 ✅ (3 × buyer_total)
-- Funds Held in Escrow: ₦1,998,750 ✅ (seller_net of `funds_held_in_escrow`)
-- Funds Pending Release: ₦0.00 ✅
+- No PWA manifest / service-worker work in this pass (per system PWA guidance — only add when explicitly requested for offline). User mentioned PWA only as a responsiveness requirement.
+- No changes to dashboard, marketplace, storefront, or auth pages.
+- No new routes.
 
-### Verification 2D — Payouts page
+## Files
 
-All four cards already correct after the previous loop's fixes. **No changes** beyond the tooltip copy that's already there.
+**Edit**
+- `src/pages/Index.tsx`
+- `src/components/landing/Header.tsx` (minor — logo polish)
+- `src/components/landing/HeroSection.tsx`
+- `src/components/landing/MarketplacePreview.tsx` (add search + chips)
+- `src/components/landing/HowItWorks.tsx`
+- `src/components/landing/ProtectionSection.tsx`
+- `src/components/landing/CTASection.tsx`
+- `src/components/landing/Footer.tsx`
+- `src/services/marketplace.service.ts` (pass `include=sellers`)
+- `supabase/functions/marketplace/index.ts` (add `featured_sellers`)
 
-### Verification 2E — Disputes page numbers
-
-- Open Disputes: 1 ✅
-- Awaiting Your Response: 0 ✅
-- Under Review: 1 ✅
-- Resolved: 1 ✅
-- Payouts Blocked: ₦906,750 ✅ (2 disputed × seller_net)
-
-Disputes data is correct — only the **missing tooltips** (Part 1) need fixing.
-
----
-
-## Part 3 — Add public marketplace to the landing page
-
-### Goal
-Let public visitors browse the marketplace from the landing page without disturbing the carefully tuned landing rhythm. Authentication still required to add to cart / pay (the existing `PurchaseAuthModal` already handles this — `MarketplaceProductCard` triggers it when `!isAuthenticated`).
-
-### Where it goes on the landing page
-Insert a new section **between `<TrustBanner />` and `<HowItWorks />`** in `src/pages/Index.tsx`. This slot works because:
-- TrustBanner ends the "why SafeDeal" upper section with a confident note.
-- A live product preview here gives visitors something concrete to look at before they're asked to read "How it works".
-- HowItWorks then naturally follows by explaining what they just saw.
-
-### What the section looks like (compact, doesn't disturb landing rhythm)
-
-**`src/components/landing/MarketplacePreview.tsx`** (new file):
-- Section header: "Browse the marketplace" + subtitle "Real listings from verified sellers on SafeDeal. Browse freely — sign up only when you're ready to buy."
-- A grid of 8 product cards (responsive: 2 cols mobile, 3 tablet, 4 desktop) showing newest published, public, in-stock products.
-- Reuse the existing `MarketplaceProductCard` (already shows seller, price, trust badge, in/out of stock, and triggers `PurchaseAuthModal` for cart actions when logged-out).
-- Bottom CTA: "Browse all listings →" linking to `/marketplace` (a new public route — see below) for visitors, or `/dashboard/marketplace` for buyers.
-- Empty / loading state matches landing page tone (skeleton cards + soft fallback "More listings coming soon — sellers are joining daily").
-
-### New public marketplace route
-
-The full `BuyerMarketplace` page is currently locked behind `/dashboard/marketplace` (auth-protected). The marketplace edge function has `verify_jwt = false` and already returns data without auth, so no backend changes needed.
-
-- Add a new public route `/marketplace` in `src/App.tsx` rendering the same `BuyerMarketplace` component. The component already uses `useAuthState()` and `PurchaseAuthModal`, so unauthenticated users can browse, search, filter, view detail, save heart (gated), add to cart (gated by modal).
-- For the public version, the existing `BuyerSidebar` has buyer-dashboard links — wrap it conditionally so it only shows when authenticated; logged-out visitors see just the catalog grid + filters in full width.
-
-### Header / nav update
-
-- **`src/components/landing/Header.tsx`**: add "Marketplace" as the first link (before "How It Works"), pointing to `/marketplace`. Keep all other links unchanged.
-
-### Auth-gated actions remain enforced
-
-No changes needed to:
-- `MarketplaceProductCard` — already shows `PurchaseAuthModal` when logged-out user clicks add-to-cart or save.
-- Cart / checkout flow — already requires auth.
-- Product detail (`PublicProductDetail`) — already exists and already shows the same purchase-auth modal.
-
----
-
-## Files changed
-
-**Part 1 (Disputes tooltips):**
-- `src/components/seller-disputes/SellerDisputeSummaryCards.tsx`
-
-**Part 2 (data + labels):**
-- `supabase/functions/seller-dashboard/index.ts`
-- `src/services/seller-dashboard.service.ts`
-- `src/components/seller/SellerMetricsCards.tsx`
-
-**Part 3 (public marketplace):**
-- `src/components/landing/MarketplacePreview.tsx` (new)
-- `src/pages/Index.tsx` (insert section)
-- `src/components/landing/Header.tsx` (add "Marketplace" nav link)
-- `src/App.tsx` (add public `/marketplace` route)
-- `src/pages/BuyerMarketplace.tsx` (conditionally hide sidebar when logged-out; rest unchanged)
-
-## What stays the same
-- Existing inline ⓘ icon placement on every card across Dashboard, Transactions, Payouts, Disputes — **not touched**.
-- All money formatting (₦ with 2 decimals, no K/M).
-- Money state machine, RLS policies, payout pipeline.
-- The Transactions tab "Net Earned (Completed)" card (already fixed last loop).
-- Authentication guards on cart, checkout, save-product.
-- Hero, FraudPrevention, BestForSection, HowItWorks, FAQ — landing layout and rhythm preserved.
-
-## Verification after implementation
-- Each of the 5 Disputes cards now shows an ⓘ icon next to the label with plain-language meaning on hover.
-- Dashboard "Net Earned (Completed)" reads ₦957,965.00 with breakdown line "₦926,250.00 paid to bank · ₦31,715.00 pending bank transfer" — matches the Transactions tab exactly.
-- Dashboard "Awaiting Buyer to Open Link" replaces the ambiguous "Awaiting Buyer Review" card with a clearer label.
-- Visiting `/` shows a "Browse the marketplace" section with 8 live product cards before "How It Works".
-- Visiting `/marketplace` while logged out shows the full marketplace; clicking add-to-cart or heart opens the auth modal.
-- Logged-in visitor sees "Marketplace" link in the landing header and lands on the same public page.
-
-## Risk
-Low. All changes are additive UI/copy or label corrections, plus one edge-function field addition (already-correct math, just exposed). No state-machine, no RLS, no DB schema, no money movement.
+**Create**
+- `src/components/landing/CategoriesSection.tsx`
+- `src/components/landing/VerifiedSellersSection.tsx`
+- `src/components/landing/BuyerTrustSection.tsx`
+- `src/components/landing/StatusBadgesSection.tsx`
