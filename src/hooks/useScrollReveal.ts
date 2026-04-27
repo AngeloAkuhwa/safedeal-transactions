@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Adds the `animate-fade-in` class to the element once it scrolls into view.
- * Element starts FULLY VISIBLE so a missing IntersectionObserver, disabled JS,
- * or `prefers-reduced-motion` never leaves content invisible.
+ * Adds a one-shot `animate-fade-in` class when the element enters view.
+ * Elements ALWAYS stay visible (never opacity:0) so failure to attach an
+ * observer or disabled JS never leaves content invisible.
  */
 export function useScrollReveal<T extends HTMLElement = HTMLDivElement>() {
   const ref = useRef<T | null>(null);
@@ -14,21 +14,16 @@ export function useScrollReveal<T extends HTMLElement = HTMLDivElement>() {
     if (typeof window === "undefined" || !("IntersectionObserver" in window)) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
-    // Prepare for animation only when JS+IO are available
-    el.style.opacity = "0";
-    el.style.willChange = "opacity, transform";
-
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
             el.classList.add("animate-fade-in");
-            el.style.opacity = "";
             io.unobserve(el);
           }
         }
       },
-      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
+      { threshold: 0.05, rootMargin: "0px 0px -40px 0px" },
     );
     io.observe(el);
     return () => io.disconnect();
