@@ -1,14 +1,24 @@
 import { Link } from "react-router-dom";
 import {
   Shield,
-  CheckCircle,
+  ShoppingBag,
   Store,
-  Handshake,
+  Link2,
   MapPin,
+  CheckCircle,
   Truck,
   CircleCheck,
+  ShieldCheck,
+  ArrowRightLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const bullets = [
+  "Verified sellers",
+  "Funds held securely",
+  "Buyer confirms before release",
+  "Evidence-backed disputes",
+];
 
 export function HeroSection() {
   return (
@@ -23,125 +33,125 @@ export function HeroSection() {
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
           {/* Left */}
           <div className="text-center lg:text-left">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/80 px-4 py-1.5 shadow-sm backdrop-blur">
-              <Shield className="h-4 w-4 text-success" />
+            <div className="mb-5 inline-flex animate-fade-in items-center gap-2 rounded-full border bg-card px-4 py-1.5 shadow-sm">
+              <MapPin className="h-4 w-4 text-success" />
               <span className="text-xs font-semibold text-foreground sm:text-sm">
-                Trusted by 50,000+ users
+                Available in Lagos, Nigeria — expanding soon
               </span>
             </div>
 
-            <h1 className="mb-5 text-4xl font-extrabold leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+            <h1 className="mb-5 animate-fade-in text-4xl font-extrabold leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl xl:text-7xl">
               Buy safely.
               <br />
               <span className="text-primary">Sell confidently.</span>
             </h1>
 
-            <p className="mx-auto mb-5 max-w-xl text-base text-muted-foreground sm:text-lg lg:mx-0">
-              SafeDeal protects buyers and sellers from "what I ordered versus what I got"
-              disputes. Funds are held until the buyer confirms the item matches the agreement.
+            <p className="mx-auto mb-7 max-w-xl animate-fade-in text-base text-muted-foreground sm:text-lg lg:mx-0">
+              Shop protected deals, buy from verified sellers, and pay with confidence. SafeDeal
+              holds your money until you confirm the item matches what was agreed.
             </p>
-
-            <div className="mb-7 flex items-center justify-center gap-2 text-sm text-muted-foreground lg:justify-start">
-              <MapPin className="h-4 w-4 text-primary" />
-              <span>Currently available in Lagos, Nigeria — expanding soon</span>
-            </div>
 
             {/* Three CTAs */}
             <div className="flex flex-col flex-wrap items-stretch justify-center gap-3 sm:flex-row sm:items-center lg:justify-start">
-              <Button size="lg" asChild className="gap-2">
+              <Button size="lg" asChild className="gap-2 shadow-lg">
                 <Link to="/marketplace">
-                  <Store className="h-4 w-4" />
+                  <ShoppingBag className="h-4 w-4" />
                   Browse Marketplace
                 </Link>
               </Button>
               <Button
                 size="lg"
                 asChild
-                className="gap-2 bg-success text-success-foreground hover:bg-success/90"
+                className="gap-2 bg-success text-success-foreground shadow-lg hover:bg-success/90"
               >
                 <Link to="/auth?role=seller">
-                  <Shield className="h-4 w-4" />
+                  <Store className="h-4 w-4" />
                   Start Selling
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild className="gap-2 border-primary/40 text-primary hover:bg-primary/5">
+              <Button
+                size="lg"
+                asChild
+                className="gap-2 bg-foreground text-background shadow-lg hover:bg-foreground/90"
+              >
                 <Link to="/auth?role=seller&intent=create-transaction">
-                  <Handshake className="h-4 w-4" />
-                  Create Protected Transaction
+                  <Link2 className="h-4 w-4" />
+                  Create Protected Deal
                 </Link>
               </Button>
             </div>
 
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground lg:justify-start">
-              <span className="inline-flex items-center gap-1.5">
-                <CheckCircle className="h-4 w-4 text-success" />
-                No setup fees
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <CheckCircle className="h-4 w-4 text-success" />
-                Instant protection
-              </span>
+            <div className="mt-7 grid grid-cols-1 gap-2.5 text-sm text-foreground sm:grid-cols-2">
+              {bullets.map((b) => (
+                <div key={b} className="flex items-center justify-center gap-2 lg:justify-start">
+                  <CheckCircle className="h-4 w-4 text-success" />
+                  <span className="font-medium">{b}</span>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Right — Transaction preview card */}
-          <div className="relative mx-auto w-full max-w-md lg:mx-0 lg:ml-auto">
-            <div className="absolute -left-4 -top-4 h-20 w-20 rounded-2xl bg-success/15 lg:-left-6 lg:-top-6 lg:h-24 lg:w-24" />
-            <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-2xl bg-primary/15 lg:-bottom-6 lg:-right-6 lg:h-28 lg:w-28" />
+          <div className="relative mx-auto hidden w-full max-w-md animate-fade-in lg:block lg:mx-0 lg:ml-auto">
+            <div className="absolute -left-6 -top-6 h-24 w-24 rounded-2xl bg-success/15" />
+            <div className="absolute -bottom-6 -right-6 h-28 w-28 rounded-2xl bg-primary/15" />
 
-            <div className="relative rounded-2xl border bg-card p-5 shadow-2xl sm:p-6">
-              <div className="mb-5 flex items-center justify-between">
+            <div className="relative rounded-3xl border bg-card p-6 shadow-2xl">
+              <div className="mb-5 flex items-center justify-between border-b pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
                     <Shield className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Transaction #SD-4829</p>
+                    <p className="text-base font-bold text-foreground">Transaction #SD-4829</p>
                     <p className="text-xs text-muted-foreground">Protected by SafeDeal</p>
                   </div>
                 </div>
-                <span className="rounded-full bg-warning/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-warning">
-                  Funds held
+                <span className="rounded-full border border-success/30 bg-success/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-success">
+                  Protected
                 </span>
               </div>
 
               <ul className="mb-5 space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success">
-                    <CheckCircle className="h-3.5 w-3.5 text-success-foreground" />
-                  </span>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">Payment Received</p>
-                    <p className="text-xs text-muted-foreground">₦850,000 held securely</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary">
-                    <Truck className="h-3.5 w-3.5 text-primary-foreground" />
-                  </span>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">In Transit</p>
-                    <p className="text-xs text-muted-foreground">Expected delivery: Dec 24</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted">
-                    <CircleCheck className="h-3.5 w-3.5 text-muted-foreground" />
-                  </span>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-muted-foreground">Buyer Verification</p>
-                    <p className="text-xs text-muted-foreground/70">Awaiting confirmation</p>
-                  </div>
-                </li>
+                <StatusRow
+                  tone="success"
+                  icon={CheckCircle}
+                  title="Payment Received"
+                  subtitle="₦1,450,000 secured"
+                />
+                <StatusRow
+                  tone="warning"
+                  icon={ShieldCheck}
+                  title="Funds Held"
+                  subtitle="Protected in escrow"
+                />
+                <StatusRow
+                  tone="primary"
+                  icon={Truck}
+                  title="Seller Delivers"
+                  subtitle="Expected: Dec 24"
+                />
+                <StatusRow
+                  tone="muted"
+                  icon={CircleCheck}
+                  title="Buyer Verifies"
+                  subtitle="Confirm item matches"
+                />
+                <StatusRow
+                  tone="muted"
+                  icon={ArrowRightLeft}
+                  title="Funds Released"
+                  subtitle="Payment to seller"
+                />
               </ul>
 
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3.5">
+              <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-4">
                 <div className="flex items-start gap-3">
                   <Shield className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Your payment is protected</p>
+                    <p className="text-sm font-bold text-foreground">Your payment is protected</p>
                     <p className="text-xs text-muted-foreground">
-                      Funds will only be released after you confirm the item matches what was agreed.
+                      Funds released only when you confirm.
                     </p>
                   </div>
                 </div>
@@ -151,5 +161,59 @@ export function HeroSection() {
         </div>
       </div>
     </section>
+  );
+}
+
+function StatusRow({
+  tone,
+  icon: Icon,
+  title,
+  subtitle,
+}: {
+  tone: "success" | "warning" | "primary" | "muted";
+  icon: typeof Shield;
+  title: string;
+  subtitle: string;
+}) {
+  const styles = {
+    success: {
+      wrap: "border-success/30 bg-success/10",
+      iconWrap: "bg-success text-success-foreground",
+      title: "text-foreground",
+      sub: "text-muted-foreground",
+    },
+    warning: {
+      wrap: "border-warning/30 bg-warning/10",
+      iconWrap: "bg-warning text-warning-foreground",
+      title: "text-foreground",
+      sub: "text-muted-foreground",
+    },
+    primary: {
+      wrap: "border-primary/30 bg-primary/10",
+      iconWrap: "bg-primary text-primary-foreground",
+      title: "text-foreground",
+      sub: "text-muted-foreground",
+    },
+    muted: {
+      wrap: "border bg-muted/40",
+      iconWrap: "bg-muted text-muted-foreground",
+      title: "text-muted-foreground",
+      sub: "text-muted-foreground/80",
+    },
+  }[tone];
+  return (
+    <li
+      className={`flex items-start gap-3 rounded-xl border-2 p-3 transition-all hover:shadow-sm ${styles.wrap}`}
+    >
+      <span
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${styles.iconWrap}`}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="flex-1">
+        <p className={`text-sm font-bold ${styles.title}`}>{title}</p>
+        <p className={`text-xs font-medium ${styles.sub}`}>{subtitle}</p>
+      </div>
+    </li>
   );
 }

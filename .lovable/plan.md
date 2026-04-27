@@ -1,136 +1,88 @@
 ## Goal
 
-Rework the public landing page (`/`) to match the new uploaded SafeDeal marketplace design. Page must clearly position SafeDeal as a public marketplace + protected-transaction layer, work flawlessly on every viewport (PWA-ready), and use the existing design tokens (no hard-coded hex). All existing routes / auth / marketplace data wiring stays intact.
+Replicate the shared UX Pilot SafeDeal landing page (`main_19.html` + screenshot) inside the existing Lovable project as a close, production-polished match — same section order, visual direction, brand, and marketplace + escrow message — adjusted for spacing/responsiveness so it fits the real app.
 
-## Final Section Order
+## Section order (final)
 
-```text
-Header (sticky)
-1. Hero                              (rewritten — 3 CTAs, location pill, transaction-preview card)
-2. Marketplace Preview               (existing component — light polish, search + category chips on top)
-3. Browse by Category                (NEW)
-4. Verified Sellers                  (NEW — top sellers cards)
-5. Fraud Prevention strip            (existing — keep as-is)
-6. Best For (social channels)        (existing — keep)
-7. Trust Banner (blue strip)         (existing — keep)
-8. How SafeDeal Works                (rewritten — tabs: Marketplace flow / Direct flow, dual columns)
-9. Buyer Trust (Why buyers trust…)   (NEW)
-10. Protection (Your money stays safe) (rewritten — 2-col with mockup card)
-11. Trust & Safety + stats + testimonials (existing — keep)
-12. Powerful Features grid           (existing — keep)
-13. Status Badges showcase           (NEW)
-14. Final CTA                        (rewritten — new title/subtitle, 3 CTAs, 3 trust stats)
-15. FAQ                              (existing — keep)
-Footer                               (rewritten — 5-col, social icons, brand block)
-```
+1. Header / Navigation
+2. Hero (with right-side transaction status card)
+3. Featured protected deals (3 product cards)
+4. Shop by category (8 category tiles)
+5. Shop from verified sellers (4 seller cards)
+6. Why SafeDeal feels safer (3 reasons)
+7. Built for marketplace and direct deals (2-column comparison)
+8. How SafeDeal Works (tabs: Marketplace Purchase / Direct Protected Deal, 6 step cards)
+9. Your money stays protected until you're satisfied (4-step left + animated escrow card right)
+10. Built on transparency and trust (6 trust pillars + Lagos launch stats strip)
+11. Powerful features for secure transactions (9 SafeDeal-specific feature cards)
+12. Trust & Safety (3 cards: escrow / verified / 24-7 support)
+13. Need Help? (3 support channels: FAQ, live chat, email)
+14. Frequently Asked Questions (accordion, 6 questions from existing copy)
+15. Final CTA (gradient — "Ready to shop or sell with protection?")
+16. Footer (5-column with brand, marketplace, sellers, support, social)
 
-Sections marked NEW are added; "rewritten" means content/layout overhaul of the existing component; "keep" means no changes beyond minor spacing/responsive tweaks.
+## Files to create
 
-## Detailed Changes
+- `src/components/landing/FeaturedDealsSection.tsx` — 3 hardcoded demo product cards (iPhone 15 Pro Max, MacBook Pro 16 M3, Nike Air Max 90) with PROTECTED badge, In Stock pill, seller chip with rating, View Product button → `/marketplace`. Images sourced from the UX Pilot URLs in the HTML; on error fall back to a clean SVG placeholder so nothing renders broken.
+- `src/components/landing/WhySaferSection.tsx` — 3 reasons (Funds held in escrow, Verified sellers, Evidence-backed disputes).
+- `src/components/landing/MarketplaceVsDirectSection.tsx` — 2-column compare card: Marketplace Purchase vs Direct Protected Deal.
+- `src/components/landing/TransparencyTrustSection.tsx` — 6 pillars (timeline, identity verification, locked agreement, delivery evidence, dispute handling, storefront reputation) + Lagos launch stats strip (5 stat tiles).
+- `src/components/landing/PowerfulFeaturesSection.tsx` — 9 SafeDeal-specific cards: Protected Marketplace, Direct Deal Links, Funds Held Securely, Verified Seller Storefronts, Locked Agreement, Delivery Tracking, Buyer Confirmation, Evidence Uploads, Dispute Resolution.
+- `src/components/landing/TrustSafetySection.tsx` — 3 cards (Secure Escrow, Verified Sellers, 24/7 Support).
+- `src/components/landing/NeedHelpSection.tsx` — FAQ link, Live Chat, Email Support.
+- `src/components/landing/demo-data.ts` — Single source for demo products and seller cards (4 sellers: Chioma Electronics, TechHub Lagos, GameZone Nigeria, StylePlug Lagos with the exact stats requested).
+- `src/hooks/useScrollReveal.ts` — small IntersectionObserver hook used by sections to add `animate-fade-in` once visible. Default state must be visible (no `opacity-0`) when `prefers-reduced-motion` or when JS hasn't run, so content never stays invisible if animation fails.
 
-### Header (`src/components/landing/Header.tsx`)
-- Logo: shield in a filled rounded primary square + "SafeDeal" wordmark.
-- Desktop nav: Marketplace, How It Works, Protection, Trust & Safety, Support (links to FAQ).
-- Sticky w/ subtle border, mobile sheet menu unchanged in behaviour.
+## Files to edit
 
-### Hero (`HeroSection.tsx` — rewrite)
-- Trust pill: "Trusted by 50,000+ users".
-- Headline: "Buy safely. Sell confidently." (primary accent on second line).
-- Sub-copy unchanged.
-- Location row: "Currently available in Lagos, Nigeria — expanding soon".
-- **Three CTAs** (stack on mobile, wrap on tablet, inline on desktop):
-  1. `Browse Marketplace` → `/marketplace` (primary)
-  2. `Start Selling` → `/auth?role=seller` (success/green variant)
-  3. `Create Protected Transaction` → `/auth?role=seller&intent=create-transaction` (outline)
-- Trust check row: "No setup fees · Instant protection".
-- Right column: existing transaction preview card, polished (timeline rows: Payment Received → In Transit → Buyer Verification, FUNDS HELD pill, protection note).
+- `src/pages/Index.tsx` — Re-order the section list to match the 16 sections above; swap in the new components; remove now-superseded sections (`FraudPrevention`, `BestForSection`, `TrustBanner`, `BuyerTrustSection`, `ProtectionSection`, `TrustSection`, `FeaturesGrid`, `StatusBadgesSection`, `MarketplacePreview`) — they are absorbed into the new components.
+- `src/components/landing/HeroSection.tsx` — Match the design: location pill on top, "Buy safely. / Sell confidently." headline, three vertical-on-mobile / horizontal-on-desktop CTAs (Browse Marketplace → `/marketplace`, Start Selling → `/auth?role=seller`, Create Protected Deal → `/auth?role=seller&intent=create-transaction`), 4 check-bullets in a 2-col grid, and the right-side Transaction #SD-4829 card with the 5 status rows + "Your payment is protected" footer (keep existing structure but expand to 5 rows + PROTECTED green pill).
+- `src/components/landing/CategoriesSection.tsx` — Replace data-driven 8-category fetch with the 8 fixed UX Pilot categories (Phones & Tablets, Laptops, Fashion & Sneakers, Electronics, Home & Living, Gaming, Beauty & Accessories, Services) using approximate listing counts; link each to `/marketplace?category=<slug>`. Keeps server-free reliable rendering.
+- `src/components/landing/VerifiedSellersSection.tsx` — Replace the edge-function fetch with the 4 demo sellers from the request; cards show colored gradient banner, avatar with verified check, rating/completed/products/location rows, View Store button linking to `/store/<slug>` (placeholder slug — uses existing `PublicStorefront` route shape).
+- `src/components/landing/HowItWorks.tsx` — Switch to a tabs UI (Marketplace Purchase / Direct Protected Deal) using `@/components/ui/tabs`; 6 numbered/icon step cards in a 3-column responsive grid; bottom info banner about funds held until verification.
+- `src/components/landing/CTASection.tsx` — Keep existing copy; ensure 3-CTA layout matches the design and stays responsive.
+- `src/components/landing/Footer.tsx` — Confirm 5-column responsive grid (collapses to 2 cols on tablet, 1 on mobile) matches the design.
+- `src/components/landing/FAQSection.tsx` — Switch from accordion-only to the 2-column card grid pattern from the design while preserving the existing 6 Q&A entries; expand on click with the existing `Accordion` from shadcn so it still animates smoothly.
 
-### Marketplace Preview (`MarketplacePreview.tsx`)
-- Keep existing live data fetch.
-- Add a non-functional decorative search row + category chips above the grid (chips link to `/marketplace?category=<id>`).
-- Section badge "Public Marketplace" + heading "Browse protected deals".
-- Grid stays 2/3/4 cols based on viewport.
+## Routing wiring
 
-### NEW — Categories (`src/components/landing/CategoriesSection.tsx`)
-- Pulls the 8 fixed taxonomy categories (Electronics, Phones & Tablets, Computing, Fashion, Home, Beauty, Sports, Other) from existing `getMarketplaceProducts` response (already returns categories with counts).
-- Cards: icon tile, title, description, "{n} protected listings", arrow. Each card links to `/marketplace?category=<slug>`.
-- Grid: 1 / 2 / 4 columns.
+- Browse Marketplace → `/marketplace`
+- Start Selling → `/auth?role=seller`
+- Create Protected Deal → `/auth?role=seller&intent=create-transaction`
+- View Product → `/marketplace` (no detail demo IDs — safer than fake `/products/:id`)
+- View Store → `/store/<demo-slug>` for the seller card; gracefully renders the existing storefront 404 if slug not found (acceptable for demo).
 
-### NEW — Verified Sellers (`src/components/landing/VerifiedSellersSection.tsx`)
-- Server data: add a small public edge function `featured-sellers` (or extend `marketplace`) returning top 4 sellers (most published products) with `full_name`, `store_slug`, `avatar_url`, basic counts. If extending `marketplace` is cheaper we'll do that.
-- Cards: gradient header, avatar, name + verified check, "Trusted Seller" pill, stats (Products / Transactions / Rating / Location), "View Store" button → `/store/{slug}`.
+## Demo data (frontend only, in `demo-data.ts`)
 
-### How It Works (`HowItWorks.tsx` — rewrite)
-- Tabs (shadcn `Tabs`): "Buying from Marketplace" (default) and "Direct Transaction".
-- Each tab renders a 6-step numbered list inside a soft gradient card.
-- Below tabs: warning-styled callout "SafeDeal holds the money until buyer verification is complete".
+Products: iPhone 15 Pro Max 256GB ₦1,850,000 (TechHub Lagos, 4.9) · MacBook Pro 16-inch M3 ₦3,200,000 (Premium Tech NG, 4.8) · Nike Air Max 90 ₦185,000 (SneakerHub, 4.7).
+Sellers: Chioma Electronics (4.9 / 1,832 / 247 / Lagos) · TechHub Lagos (4.9 / 3,456 / 1,203 / Lagos) · GameZone Nigeria (4.8 / 2,145 / 892 / Lagos) · StylePlug Lagos (4.7 / 4,823 / 1,567 / Lagos).
 
-### NEW — Buyer Trust (`src/components/landing/BuyerTrustSection.tsx`)
-- "Why buyers trust SafeDeal Marketplace".
-- 4 cards: Verified Sellers, Locked Agreement, Escrow Protection, Evidence-Based Disputes.
-- 1 / 2 / 4 column grid.
+## Image strategy
 
-### Protection (`ProtectionSection.tsx` — rewrite)
-- 2-column layout. Left: heading + 3 feature rows (Bank-Level Security, Immutable Agreement, Dispute Resolution).
-- Right: mockup card with three coloured strip rows + a small "$XXM+ protected" gradient block.
+- Try the UX Pilot CDN URLs first (`storage.googleapis.com/uxpilot-auth.appspot.com/...`).
+- Each `<img>` uses an `onError` handler that swaps to a clean local SVG placeholder (gradient + Shield icon) so no broken image boxes ever show.
+- Seller avatars use initials in a colored gradient tile when no image is provided.
 
-### NEW — Status Badges (`src/components/landing/StatusBadgesSection.tsx`)
-- 8 badge tiles: DRAFT, AWAITING PAYMENT, FUNDS HELD, IN TRANSIT, AWAITING VERIFICATION, COMPLETED, DISPUTED, CANCELLED with one-line subcaption each.
-- 2 / 4 column grid.
+## Animation
 
-### Final CTA (`CTASection.tsx` — rewrite)
-- Blue gradient bg (primary → primary-darker), decorative blurs.
-- Pill: "Get Started Today".
-- Heading: "Ready to shop or sell with protection?"
-- Sub: "Browse public listings, buy from verified sellers, or create your own protected transaction in minutes."
-- Three CTAs: `Browse Marketplace`, `Start Selling`, `Create Protected Transaction`.
-- 3 trust stats row: Escrow protected payments · Verified seller storefronts · Evidence-backed dispute support.
+- Use a small `useScrollReveal` hook with `IntersectionObserver` to add `animate-fade-in` once visible. Tailwind already defines `fade-in`, `slide-in-right`, and hover utilities (per project animations doc).
+- Hero: title/subtitle/CTAs/bullets fade-up on mount; transaction card slides in from right; the 5 status rows highlight in sequence with small delays.
+- Cards (product/category/seller/feature): fade-up on first scroll into view; subtle `hover:-translate-y-1 hover:shadow-xl` lift.
+- Final CTA: gentle fade-in.
+- FAQ: existing shadcn accordion handles smooth open.
+- Respect `prefers-reduced-motion` — skip animations and render at full opacity.
+- All elements default to `opacity-100` in their inline styles so failure to attach the observer never leaves content invisible.
 
-### Footer (`Footer.tsx` — rewrite)
-- 5-column grid (brand 2-cols + Product / Company / Support).
-- Brand block: logo + tagline + 4 social icon buttons (Twitter, Facebook, LinkedIn, Instagram).
-- Bottom bar: copyright left, Terms / Privacy / Cookies right.
+## Responsiveness
 
-### `src/pages/Index.tsx`
-- Re-order to the final list above; insert the 4 new components.
+- Use the project's existing Tailwind breakpoints: `sm` (≥640) 2-col, `lg` (≥1024) 3 or 4-col where appropriate.
+- Hero stacks single-column under `lg`; transaction card hidden on small screens (matches design's `hidden lg:block`).
+- All section containers use `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`.
+- Buttons stack on mobile (`flex-col sm:flex-row`); category and seller grids: 1 → 2 → 3/4 columns.
+- No fixed pixel widths — all images use `w-full h-auto object-cover` inside aspect-ratio containers to prevent overflow.
+- Section paddings tuned down from the UX Pilot defaults (28→16/20) to feel native in the app.
 
-## Responsiveness / PWA Readiness
+## Out of scope
 
-- All sections use `max-w-7xl`, `px-4 sm:px-6 lg:px-8`.
-- Breakpoints used consistently: `sm` (640), `md` (768), `lg` (1024).
-- Hero CTAs: `flex-col sm:flex-row sm:flex-wrap` so 3 buttons wrap cleanly on tablet.
-- Grids: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3/4` patterns, no horizontal overflow.
-- Touch targets ≥ 44px (button `lg` size).
-- Sticky header + mobile sheet menu retained.
-- Use only design tokens from `index.css` / Tailwind config (`bg-primary`, `text-foreground`, `bg-success`, `bg-warning`, `bg-muted`, etc.) — no raw hex.
-- Images use `loading="lazy"` and aspect ratios to avoid CLS.
-
-## Backend Touch (small)
-
-- Extend `supabase/functions/marketplace/index.ts` to optionally include `featured_sellers` (top 4 by published-product count) when a `?include=sellers` query param is present, OR add a tiny new public function `featured-sellers`. We'll add the param to the existing function to avoid a new function. No DB schema changes.
-
-## Out of Scope
-
-- No PWA manifest / service-worker work in this pass (per system PWA guidance — only add when explicitly requested for offline). User mentioned PWA only as a responsiveness requirement.
-- No changes to dashboard, marketplace, storefront, or auth pages.
-- No new routes.
-
-## Files
-
-**Edit**
-- `src/pages/Index.tsx`
-- `src/components/landing/Header.tsx` (minor — logo polish)
-- `src/components/landing/HeroSection.tsx`
-- `src/components/landing/MarketplacePreview.tsx` (add search + chips)
-- `src/components/landing/HowItWorks.tsx`
-- `src/components/landing/ProtectionSection.tsx`
-- `src/components/landing/CTASection.tsx`
-- `src/components/landing/Footer.tsx`
-- `src/services/marketplace.service.ts` (pass `include=sellers`)
-- `supabase/functions/marketplace/index.ts` (add `featured_sellers`)
-
-**Create**
-- `src/components/landing/CategoriesSection.tsx`
-- `src/components/landing/VerifiedSellersSection.tsx`
-- `src/components/landing/BuyerTrustSection.tsx`
-- `src/components/landing/StatusBadgesSection.tsx`
+- No backend/edge-function changes. No DB migrations. The marketplace/seller fetch logic stays untouched; this page becomes self-contained with demo data so it always renders.
+- No new dependencies.
