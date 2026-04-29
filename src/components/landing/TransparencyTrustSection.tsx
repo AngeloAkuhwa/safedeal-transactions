@@ -61,13 +61,13 @@ function PillarCard({ p }: { p: (typeof pillars)[number] }) {
   return (
     <div
       ref={ref}
-      className="rounded-2xl border bg-card p-6 transition-all hover:-translate-y-0.5 hover:shadow-xl sm:p-8"
+      className="rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:shadow-xl sm:p-6"
     >
-      <div className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${t.wrap}`}>
-        <p.icon className={`h-7 w-7 ${t.icon}`} />
+      <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${t.wrap}`}>
+        <p.icon className={`h-6 w-6 ${t.icon}`} />
       </div>
-      <h3 className="mb-2 text-lg font-bold text-foreground sm:text-xl">{p.title}</h3>
-      <p className="text-sm text-muted-foreground sm:text-base">{p.desc}</p>
+      <h3 className="mb-1.5 text-base font-bold text-foreground sm:text-lg">{p.title}</h3>
+      <p className="text-sm text-muted-foreground">{p.desc}</p>
     </div>
   );
 }
@@ -76,7 +76,7 @@ export function TransparencyTrustSection() {
   return (
     <section id="transparency" className="section-y bg-muted/30">
       <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-10 text-center sm:mb-14">
+        <div className="mb-8 text-center sm:mb-12">
           <h2 className="h-section mb-3 font-bold text-foreground">
             Built on transparency and trust
           </h2>
@@ -85,29 +85,29 @@ export function TransparencyTrustSection() {
           </p>
         </div>
 
-        <div className="mb-10 grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-8">
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
           {pillars.map((p) => (
             <PillarCard key={p.title} p={p} />
           ))}
         </div>
 
-        <div className="rounded-2xl border-2 border-primary/20 bg-card p-6 shadow-sm sm:p-10">
-          <div className="mb-6 text-center sm:mb-8">
-            <h3 className="mb-1.5 text-xl font-bold text-foreground sm:text-2xl">
+        <div className="rounded-2xl border-2 border-primary/20 bg-card p-5 shadow-sm sm:p-7">
+          <div className="mb-5 text-center sm:mb-6">
+            <h3 className="mb-1 text-lg font-bold text-foreground sm:text-xl">
               SafeDeal Lagos Launch
             </h3>
-            <p className="text-sm text-muted-foreground sm:text-base">
+            <p className="text-sm text-muted-foreground">
               Building trust in online transactions, one protected deal at a time.
             </p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {stats.map((s) => (
               <div
                 key={s.label}
-                className="rounded-xl bg-muted/60 p-5 text-center"
+                className="rounded-xl bg-muted/60 p-4 text-center"
               >
-                <div className={`mb-1 text-2xl font-bold sm:text-3xl ${s.color}`}>{s.value}</div>
-                <div className="text-xs text-muted-foreground sm:text-sm">{s.label}</div>
+                <div className={`mb-1 text-xl font-bold sm:text-2xl ${s.color}`}>{s.value}</div>
+                <div className="text-xs text-muted-foreground">{s.label}</div>
               </div>
             ))}
           </div>

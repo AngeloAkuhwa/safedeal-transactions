@@ -89,7 +89,7 @@ function StepRow({
   return (
     <div ref={ref} className="flex items-start gap-3.5 sm:gap-4">
       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${wrap}`}>
-        <step.icon className="h-4.5 w-4.5" />
+        <step.icon className="h-5 w-5" />
       </div>
       <div>
         <h4 className="mb-0.5 text-base font-bold text-foreground sm:text-lg">{step.title}</h4>

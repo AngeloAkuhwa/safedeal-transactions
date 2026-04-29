@@ -26,17 +26,17 @@ function HelpCard({
   return (
     <div
       ref={ref}
-      className={`group rounded-2xl border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl sm:p-8 ${
+      className={`group rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl sm:p-6 ${
         full ? "lg:col-span-2" : ""
       }`}
     >
-      <div className={`mb-5 flex h-14 w-14 items-center justify-center rounded-2xl ${wrap}`}>
-        <Icon className={`h-7 w-7 ${color}`} />
+      <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${wrap}`}>
+        <Icon className={`h-6 w-6 ${color}`} />
       </div>
-      <h3 className="mb-2 text-xl font-bold text-foreground">{title}</h3>
-      <p className="mb-4 text-sm text-muted-foreground sm:text-base">{desc}</p>
-      <div className="flex items-center justify-between border-t pt-4">
-        <span className="text-sm font-semibold text-muted-foreground">{note}</span>
+      <h3 className="mb-1.5 text-lg font-bold text-foreground">{title}</h3>
+      <p className="mb-3.5 text-sm text-muted-foreground">{desc}</p>
+      <div className="flex items-center justify-between border-t pt-3">
+        <span className="text-xs font-semibold text-muted-foreground">{note}</span>
         <RightIcon className={`h-4 w-4 ${color}`} />
       </div>
     </div>
@@ -47,7 +47,7 @@ export function NeedHelpSection() {
   return (
     <section id="support" className="section-y bg-background">
       <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-10 text-center sm:mb-14">
+        <div className="mb-8 text-center sm:mb-12">
           <h2 className="h-section mb-3 font-bold text-foreground">
             Need help?
           </h2>
@@ -56,7 +56,7 @@ export function NeedHelpSection() {
           </p>
         </div>
 
-        <div className="grid gap-5 sm:gap-6 lg:grid-cols-2 lg:gap-8">
+        <div className="grid gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-6">
           <HelpCard
             icon={HelpCircle}
             title="Frequently Asked Questions"

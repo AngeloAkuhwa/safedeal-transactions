@@ -19,9 +19,9 @@ const socials = [
 
 export function Footer() {
   return (
-    <footer className="safe-bottom border-t bg-foreground pb-8 pt-14 text-background">
+    <footer className="safe-bottom border-t bg-foreground pb-6 pt-10 text-background sm:pt-12">
       <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mb-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
           {/* Brand */}
           <div className="lg:col-span-2">
             <div className="mb-4 flex items-center gap-2">
@@ -55,7 +55,7 @@ export function Footer() {
           {/* Product */}
           <div>
             <h4 className="mb-4 text-sm font-semibold text-background">Product</h4>
-            <ul className="space-y-3">
+            <ul className="space-y-2.5">
               {productLinks.map((item) =>
                 item.href.startsWith("#") ? (
                   <li key={item.label}>
@@ -77,7 +77,7 @@ export function Footer() {
           {/* Company */}
           <div>
             <h4 className="mb-4 text-sm font-semibold text-background">Company</h4>
-            <ul className="space-y-3">
+            <ul className="space-y-2.5">
               {companyLinks.map((item) => (
                 <li key={item}>
                   <a href="#" className="text-sm text-background/60 transition-colors hover:text-background">
@@ -91,7 +91,7 @@ export function Footer() {
           {/* Support */}
           <div>
             <h4 className="mb-4 text-sm font-semibold text-background">Support</h4>
-            <ul className="space-y-3">
+            <ul className="space-y-2.5">
               {supportLinks.map((item) => (
                 <li key={item}>
                   <a href="#" className="text-sm text-background/60 transition-colors hover:text-background">
