@@ -37,13 +37,13 @@ function ReasonCard({ r }: { r: (typeof reasons)[number] }) {
   return (
     <div
       ref={ref}
-      className="rounded-2xl border bg-card p-6 transition-all hover:-translate-y-0.5 hover:shadow-lg sm:p-8"
+      className="rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg sm:p-6"
     >
-      <div className={`mb-5 flex h-14 w-14 items-center justify-center rounded-2xl ${t.wrap}`}>
-        <r.icon className={`h-7 w-7 ${t.icon}`} />
+      <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${t.wrap}`}>
+        <r.icon className={`h-6 w-6 ${t.icon}`} />
       </div>
-      <h3 className="mb-2 text-xl font-bold text-foreground">{r.title}</h3>
-      <p className="text-sm text-muted-foreground sm:text-base">{r.description}</p>
+      <h3 className="mb-1.5 text-lg font-bold text-foreground sm:text-xl">{r.title}</h3>
+      <p className="text-sm text-muted-foreground">{r.description}</p>
     </div>
   );
 }
@@ -52,7 +52,7 @@ export function WhySaferSection() {
   return (
     <section id="why-safer" className="section-y bg-muted/30">
       <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-10 text-center sm:mb-14">
+        <div className="mb-8 text-center sm:mb-12">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5">
             <ShieldCheck className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-semibold text-primary">Why SafeDeal</span>
@@ -65,7 +65,7 @@ export function WhySaferSection() {
           </p>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-8">
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
           {reasons.map((r) => (
             <ReasonCard key={r.title} r={r} />
           ))}

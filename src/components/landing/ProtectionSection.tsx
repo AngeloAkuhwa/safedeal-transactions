@@ -36,7 +36,7 @@ export function ProtectionSection() {
   return (
     <section id="protection" className="section-y bg-muted/30">
       <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-10 text-center sm:mb-14">
+        <div className="mb-8 text-center sm:mb-12">
           <h2 className="h-section mb-3 font-bold text-foreground">
             Your money stays protected until you're satisfied
           </h2>
@@ -46,21 +46,21 @@ export function ProtectionSection() {
           </p>
         </div>
 
-        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
+        <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
           {/* Left — 4 steps + warning */}
-          <div className="space-y-6">
+          <div className="space-y-5">
             {steps.map((s, i) => (
               <StepRow key={s.title} step={s} index={i} />
             ))}
 
-            <div className="rounded-2xl border-2 border-destructive/30 bg-destructive/5 p-5">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-destructive" />
+            <div className="rounded-2xl border-2 border-destructive/30 bg-destructive/5 p-4">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
                 <div>
-                  <p className="mb-1 text-base font-bold text-foreground">
+                  <p className="mb-0.5 text-sm font-bold text-foreground">
                     Do not pay outside SafeDeal
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Outside payments are not protected by escrow.
                   </p>
                 </div>
@@ -87,13 +87,13 @@ function StepRow({
   const isLast = index === steps.length - 1;
   const wrap = isLast ? "bg-success text-success-foreground" : "bg-primary text-primary-foreground";
   return (
-    <div ref={ref} className="flex items-start gap-4 sm:gap-5">
-      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${wrap}`}>
+    <div ref={ref} className="flex items-start gap-3.5 sm:gap-4">
+      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${wrap}`}>
         <step.icon className="h-5 w-5" />
       </div>
       <div>
-        <h4 className="mb-1 text-lg font-bold text-foreground sm:text-xl">{step.title}</h4>
-        <p className="text-sm text-muted-foreground sm:text-base">{step.desc}</p>
+        <h4 className="mb-0.5 text-base font-bold text-foreground sm:text-lg">{step.title}</h4>
+        <p className="text-sm text-muted-foreground">{step.desc}</p>
       </div>
     </div>
   );
@@ -102,18 +102,18 @@ function StepRow({
 function ProtectedTransactionCard() {
   const ref = useScrollReveal<HTMLDivElement>();
   return (
-    <div ref={ref} className="rounded-3xl border-2 bg-card p-6 shadow-2xl sm:p-8">
-      <div className="mb-6 flex items-center justify-between border-b pb-5">
+    <div ref={ref} className="rounded-3xl border-2 bg-card p-5 shadow-xl sm:p-6">
+      <div className="mb-5 flex items-center justify-between border-b pb-4">
         <div>
-          <p className="text-base font-bold text-foreground">Transaction #SD-8472</p>
-          <p className="text-sm text-muted-foreground">iPhone 15 Pro Max</p>
+          <p className="text-sm font-bold text-foreground">Transaction #SD-8472</p>
+          <p className="text-xs text-muted-foreground">iPhone 15 Pro Max</p>
         </div>
-        <span className="rounded-full bg-success/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-success">
+        <span className="rounded-full bg-success/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-success">
           Protected
         </span>
       </div>
 
-      <div className="mb-5 space-y-3">
+      <div className="mb-4 space-y-2.5">
         <EscrowRow tone="success" icon={CheckCircle} title="Payment Secured" subtitle="₦1,850,000" />
         <EscrowRow
           tone="warning"
@@ -142,9 +142,9 @@ function ProtectedTransactionCard() {
         />
       </div>
 
-      <div className="rounded-2xl bg-primary p-5 text-center">
-        <p className="text-2xl font-bold text-primary-foreground sm:text-3xl">₦1,850,000</p>
-        <p className="text-sm font-medium text-primary-foreground/80">Protected in Escrow</p>
+      <div className="rounded-2xl bg-primary p-4 text-center">
+        <p className="text-xl font-bold text-primary-foreground sm:text-2xl">₦1,850,000</p>
+        <p className="text-xs font-medium text-primary-foreground/80">Protected in Escrow</p>
       </div>
     </div>
   );
@@ -171,14 +171,14 @@ function EscrowRow({
   }[tone];
   return (
     <div
-      className={`flex items-center gap-4 rounded-xl border-2 p-4 transition-all hover:shadow-sm ${styles.wrap} ${
+      className={`flex items-center gap-3 rounded-xl border-2 p-3 transition-all hover:shadow-sm ${styles.wrap} ${
         dimmed ? "opacity-60" : ""
       }`}
     >
-      <Icon className={`h-6 w-6 shrink-0 ${styles.icon}`} />
+      <Icon className={`h-5 w-5 shrink-0 ${styles.icon}`} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-bold text-foreground">{title}</p>
-        <p className="truncate text-sm text-muted-foreground">{subtitle}</p>
+        <p className="truncate text-sm font-bold text-foreground">{title}</p>
+        <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
       </div>
     </div>
   );

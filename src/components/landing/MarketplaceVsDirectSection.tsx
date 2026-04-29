@@ -47,18 +47,18 @@ function FlowCard({
   return (
     <div
       ref={ref}
-      className={`flex flex-col rounded-2xl border-2 p-6 sm:p-8 ${wrap}`}
+      className={`flex flex-col rounded-2xl border-2 p-5 sm:p-6 ${wrap}`}
     >
-      <div className="mb-5 flex items-center gap-3">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${iconWrap}`}>
-          <Icon className="h-6 w-6" />
+      <div className="mb-4 flex items-center gap-3">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconWrap}`}>
+          <Icon className="h-5 w-5" />
         </div>
-        <h3 className="text-xl font-bold text-foreground sm:text-2xl">{title}</h3>
+        <h3 className="text-lg font-bold text-foreground sm:text-xl">{title}</h3>
       </div>
-      <p className="mb-5 text-sm text-muted-foreground sm:text-base">{desc}</p>
-      <ul className="mb-7 space-y-2.5">
+      <p className="mb-4 text-sm text-muted-foreground">{desc}</p>
+      <ul className="mb-6 space-y-2">
         {perks.map((p) => (
-          <li key={p} className="flex items-start gap-2.5 text-sm text-foreground sm:text-base">
+          <li key={p} className="flex items-start gap-2.5 text-sm text-foreground">
             <Check className={`mt-0.5 h-4 w-4 shrink-0 ${checkColor}`} />
             <span>{p}</span>
           </li>
@@ -66,12 +66,11 @@ function FlowCard({
       </ul>
       <Button
         asChild
-        className={`mt-auto w-full ${
+        className={`mt-auto w-full text-sm ${
           variant === "primary"
             ? ""
             : "bg-success text-success-foreground hover:bg-success/90"
         }`}
-        size="lg"
       >
         <Link to={href}>{cta}</Link>
       </Button>
@@ -83,7 +82,7 @@ export function MarketplaceVsDirectSection() {
   return (
     <section className="section-y bg-background">
       <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-10 text-center sm:mb-14">
+        <div className="mb-8 text-center sm:mb-12">
           <h2 className="h-section mb-3 font-bold text-foreground">
             Built for marketplace and direct deals
           </h2>
@@ -92,7 +91,7 @@ export function MarketplaceVsDirectSection() {
           </p>
         </div>
 
-        <div className="mx-auto grid max-w-5xl gap-5 sm:gap-6 lg:grid-cols-2 lg:gap-8">
+        <div className="mx-auto grid max-w-5xl gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-6">
           <FlowCard
             variant="primary"
             icon={Store}

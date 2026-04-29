@@ -40,15 +40,15 @@ function TrustCard({ item }: { item: (typeof items)[number] }) {
   return (
     <div
       ref={ref}
-      className="group rounded-2xl border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl sm:p-8"
+      className="group rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl sm:p-6"
     >
-      <div className={`mb-5 flex h-14 w-14 items-center justify-center rounded-2xl ${t.wrap}`}>
-        <item.icon className={`h-7 w-7 ${t.icon}`} />
+      <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${t.wrap}`}>
+        <item.icon className={`h-6 w-6 ${t.icon}`} />
       </div>
-      <h3 className="mb-2 text-xl font-bold text-foreground">{item.title}</h3>
-      <p className="mb-4 text-sm text-muted-foreground sm:text-base">{item.desc}</p>
-      <div className="flex items-center justify-between border-t pt-4">
-        <span className="text-sm font-semibold text-muted-foreground">{item.note}</span>
+      <h3 className="mb-1.5 text-lg font-bold text-foreground">{item.title}</h3>
+      <p className="mb-3.5 text-sm text-muted-foreground">{item.desc}</p>
+      <div className="flex items-center justify-between border-t pt-3">
+        <span className="text-xs font-semibold text-muted-foreground">{item.note}</span>
         <item.rightIcon className={`h-4 w-4 ${t.icon}`} />
       </div>
     </div>
@@ -59,7 +59,7 @@ export function TrustSafetySection() {
   return (
     <section id="trust" className="section-y bg-muted/30">
       <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-10 text-center sm:mb-14">
+        <div className="mb-8 text-center sm:mb-12">
           <h2 className="h-section mb-3 font-bold text-foreground">
             Trust & Safety
           </h2>
@@ -68,7 +68,7 @@ export function TrustSafetySection() {
           </p>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-8">
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
           {items.map((item) => (
             <TrustCard key={item.title} item={item} />
           ))}
