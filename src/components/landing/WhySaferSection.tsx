@@ -1,4 +1,4 @@
-import { ShieldCheck, Lock, BadgeCheck, Camera, Receipt, Truck } from "lucide-react";
+import { ShieldCheck, Lock, BadgeCheck, Camera, Receipt, Truck, Coins, FileText, User, Check } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 type Tone = "primary" | "success" | "warning";
@@ -32,7 +32,7 @@ function ProofShell({
     >
       {/* Visual */}
       <div
-        className={`relative mb-3 flex h-24 items-center justify-center overflow-hidden rounded-xl ring-1 ${t.wrap} ${t.ring}`}
+        className={`relative mb-3 flex h-28 items-center justify-center overflow-hidden rounded-xl ring-1 ${t.wrap} ${t.ring}`}
       >
         {children}
       </div>
@@ -42,31 +42,109 @@ function ProofShell({
   );
 }
 
-/* Visual 1 — Funds held in escrow */
-function EscrowVisual() {
+/**
+ * Visual 1 — Funds moving into an escrow safe.
+ * Two coin pucks slide rightward into a shield/safe; safe scales softly on arrival.
+ */
+function EscrowSafeVisual() {
   return (
-    <div className="relative">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-success text-success-foreground shadow-lg ring-4 ring-success/20 transition-transform duration-500 group-hover:scale-110">
-        <ShieldCheck className="h-6 w-6" />
+    <>
+      <style>{`
+        @keyframes sd-coin-flow {
+          0%   { transform: translateX(-44px) translateY(0) scale(0.85); opacity: 0; }
+          15%  { opacity: 1; }
+          70%  { transform: translateX(28px) translateY(0) scale(0.9); opacity: 1; }
+          85%  { transform: translateX(36px) translateY(0) scale(0.4); opacity: 0; }
+          100% { transform: translateX(36px) translateY(0) scale(0.4); opacity: 0; }
+        }
+        @keyframes sd-safe-pulse {
+          0%, 60%, 100% { transform: scale(1); }
+          75%           { transform: scale(1.08); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .sd-coin, .sd-safe { animation: none !important; }
+        }
+      `}</style>
+      <div className="relative flex h-full w-full items-center justify-center">
+        {/* Coin 1 */}
+        <span
+          className="sd-coin absolute left-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full bg-warning text-warning-foreground shadow-md ring-2 ring-warning/30"
+          style={{ animation: "sd-coin-flow 2.6s cubic-bezier(.4,0,.2,1) infinite" }}
+        >
+          <Coins className="h-3.5 w-3.5" />
+        </span>
+        {/* Coin 2 — staggered */}
+        <span
+          className="sd-coin absolute left-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full bg-warning text-warning-foreground shadow-md ring-2 ring-warning/30"
+          style={{ animation: "sd-coin-flow 2.6s cubic-bezier(.4,0,.2,1) infinite", animationDelay: "1.3s" }}
+        >
+          <Coins className="h-3.5 w-3.5" />
+        </span>
+
+        {/* Safe / shield */}
+        <span
+          className="sd-safe relative ml-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-success text-success-foreground shadow-lg ring-4 ring-success/20"
+          style={{ animation: "sd-safe-pulse 2.6s ease-in-out infinite" }}
+        >
+          <ShieldCheck className="h-6 w-6" />
+          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-card text-primary shadow ring-2 ring-primary/30">
+            <Lock className="h-2.5 w-2.5" />
+          </span>
+        </span>
       </div>
-      <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-card text-primary shadow ring-2 ring-primary/30 transition-transform duration-500 group-hover:rotate-12">
-        <Lock className="h-3 w-3" />
-      </span>
-    </div>
+    </>
   );
 }
 
-/* Visual 2 — Verified sellers only */
-function VerifiedVisual() {
+/**
+ * Visual 2 — Seller submitting verification documents.
+ * Person icon slides a document toward a verification badge that ticks.
+ */
+function VerificationVisual() {
   return (
-    <div className="relative">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg ring-4 ring-primary/20 transition-transform duration-500 group-hover:scale-110">
-        <BadgeCheck className="h-7 w-7" />
+    <>
+      <style>{`
+        @keyframes sd-doc-slide {
+          0%   { transform: translateX(0) rotate(-4deg); opacity: 0; }
+          15%  { opacity: 1; }
+          60%  { transform: translateX(28px) rotate(2deg); opacity: 1; }
+          80%  { transform: translateX(36px) rotate(0deg); opacity: 0; }
+          100% { transform: translateX(36px) rotate(0deg); opacity: 0; }
+        }
+        @keyframes sd-check-pop {
+          0%, 60%, 100% { transform: scale(1); }
+          75%           { transform: scale(1.18); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .sd-doc, .sd-check { animation: none !important; }
+        }
+      `}</style>
+      <div className="relative flex h-full w-full items-center justify-center gap-2">
+        {/* Seller */}
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-2 ring-primary/20">
+          <User className="h-5 w-5" />
+        </span>
+
+        {/* Animated document in flight */}
+        <span
+          className="sd-doc absolute left-[52px] top-1/2 -translate-y-1/2 flex h-7 w-6 items-center justify-center rounded-md border border-border bg-card text-primary shadow"
+          style={{ animation: "sd-doc-slide 2.4s ease-in-out infinite" }}
+        >
+          <FileText className="h-3.5 w-3.5" />
+        </span>
+
+        {/* Verification badge */}
+        <span
+          className="sd-check ml-2 relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg ring-4 ring-primary/20"
+          style={{ animation: "sd-check-pop 2.4s ease-in-out infinite" }}
+        >
+          <BadgeCheck className="h-6 w-6" />
+          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-success text-success-foreground shadow ring-2 ring-card">
+            <Check className="h-2.5 w-2.5" />
+          </span>
+        </span>
       </div>
-      <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-success text-success-foreground shadow ring-2 ring-card">
-        <BadgeCheck className="h-3 w-3" />
-      </span>
-    </div>
+    </>
   );
 }
 
@@ -97,13 +175,13 @@ const proofs: {
     tone: "success",
     title: "Funds held in escrow",
     caption: "SafeDeal holds payment until the buyer confirms the item matches the agreement.",
-    Visual: EscrowVisual,
+    Visual: EscrowSafeVisual,
   },
   {
     tone: "primary",
     title: "Verified sellers only",
     caption: "Sellers pass key verification checks before listing protected products.",
-    Visual: VerifiedVisual,
+    Visual: VerificationVisual,
   },
   {
     tone: "warning",
