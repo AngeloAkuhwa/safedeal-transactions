@@ -126,21 +126,21 @@ function CategoryCard({ cat }: { cat: Category }) {
     <Link
       ref={ref}
       to={`/marketplace?category=${cat.slug}`}
-      className="group rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg sm:p-6"
+      className="group rounded-2xl border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg sm:p-5"
     >
-      <div className="mb-4 flex items-start justify-between">
+      <div className="mb-3 flex items-start justify-between">
         <div
-          className={`flex h-12 w-12 items-center justify-center rounded-xl transition-colors ${t.wrap} ${t.hover}`}
+          className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${t.wrap} ${t.hover}`}
         >
-          <cat.icon className={`h-6 w-6 transition-colors ${t.icon} group-hover:text-current`} />
+          <cat.icon className={`h-5 w-5 transition-colors ${t.icon} group-hover:text-current`} />
         </div>
         <ArrowRight
           className={`h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-1 ${t.arrow}`}
         />
       </div>
-      <h3 className="mb-1.5 text-base font-bold text-foreground sm:text-lg">{cat.name}</h3>
-      <p className="mb-3 text-sm text-muted-foreground">{cat.desc}</p>
-      <p className="text-xs font-semibold text-muted-foreground">{cat.count}</p>
+      <h3 className="mb-1 text-sm font-bold text-foreground sm:text-base">{cat.name}</h3>
+      <p className="mb-2 text-xs text-muted-foreground">{cat.desc}</p>
+      <p className="text-[11px] font-semibold text-muted-foreground">{cat.count}</p>
     </Link>
   );
 }
@@ -149,7 +149,7 @@ export function CategoriesSection() {
   return (
     <section id="categories" className="section-y bg-muted/30">
       <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-10 text-center sm:mb-14">
+        <div className="mb-8 text-center sm:mb-12">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5">
             <Grid2x2 className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-semibold text-primary">Browse Categories</span>
@@ -162,7 +162,7 @@ export function CategoriesSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
           {categories.map((c) => (
             <CategoryCard key={c.slug} cat={c} />
           ))}
