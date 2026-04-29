@@ -195,11 +195,7 @@ export function WhySaferSection() {
   return (
     <section id="why-safer" className="section-y bg-muted/30">
       <div className="container-x mx-auto max-w-6xl">
-        <div className="mb-5 text-center sm:mb-7">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
-            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-            <span className="text-xs font-semibold text-primary">Why SafeDeal</span>
-          </div>
+        <div className="mb-6 text-center sm:mb-8">
           <h2 className="h-section mb-2 font-bold text-foreground">Why SafeDeal feels safer</h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             Trust, locked into every step.

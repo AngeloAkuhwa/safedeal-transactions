@@ -58,8 +58,8 @@ export function HeroSection() {
     <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-success/5 py-8 sm:py-10 lg:py-12">
       {/* Decorative blobs */}
       <div aria-hidden className="pointer-events-none absolute inset-0 opacity-40">
-        <div className="animate-pulse absolute -top-10 left-0 h-44 w-44 rounded-full bg-primary/15 blur-3xl" />
-        <div className="animate-pulse absolute -bottom-10 right-0 h-56 w-56 rounded-full bg-success/15 blur-3xl [animation-delay:1s]" />
+        <div className="absolute -top-10 left-0 h-44 w-44 rounded-full bg-primary/15 blur-3xl" />
+        <div className="absolute -bottom-10 right-0 h-56 w-56 rounded-full bg-success/15 blur-3xl" />
       </div>
 
       <div className="container-x relative mx-auto max-w-6xl">
@@ -80,8 +80,7 @@ export function HeroSection() {
             </h1>
 
             <p className="animate-fade-in mx-auto mb-5 max-w-lg text-[15px] leading-relaxed text-muted-foreground lg:mx-0 [animation-delay:80ms]">
-              Shop protected deals and pay with confidence. SafeDeal holds your money until the
-              item matches what was agreed.
+              Pay safely. We hold the money until the item matches.
             </p>
 
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2 lg:justify-start">
@@ -240,7 +239,7 @@ function StepRow({
         {isDone ? (
           <Check className="h-3.5 w-3.5 text-success" />
         ) : isActive ? (
-          <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+          <span className="sd-soft-glow h-2 w-2 rounded-full bg-primary" />
         ) : null}
       </span>
     </li>

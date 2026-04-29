@@ -1,8 +1,45 @@
 import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import { Shield, Star, MapPin, ArrowRight, BadgeCheck, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { DEMO_SELLERS, formatCount, type DemoSeller } from "./demo-data";
+
+function RevealPulse({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || shown) return;
+    if (typeof window === "undefined" || !("IntersectionObserver" in window)) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            setShown(true);
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [shown]);
+  return (
+    <span ref={ref} className={`${className ?? ""} ${shown ? "sd-pulse-once" : ""}`}>
+      {children}
+    </span>
+  );
+}
 
 function SellerCard({ seller, index }: { seller: DemoSeller; index: number }) {
   const ref = useScrollReveal<HTMLDivElement>();
