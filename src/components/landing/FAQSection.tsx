@@ -50,7 +50,7 @@ function FaqItem({ faq, index }: { faq: { q: string; a: string }; index: number 
       className="rounded-2xl border border-border bg-card p-1.5 transition-all hover:border-primary/30 hover:shadow-md"
     >
       <AccordionItem value={`faq-${index}`} className="border-none">
-        <AccordionTrigger className="px-3.5 py-3 text-left text-sm font-bold text-foreground hover:no-underline sm:px-4 sm:text-base">
+        <AccordionTrigger className="px-3.5 py-2.5 text-left text-sm font-bold text-foreground hover:no-underline sm:px-4 sm:text-[15px]">
           <span className="flex items-start gap-2.5">
             <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <HelpCircle className="h-4 w-4" />
@@ -58,7 +58,7 @@ function FaqItem({ faq, index }: { faq: { q: string; a: string }; index: number 
             <span className="flex-1">{faq.q}</span>
           </span>
         </AccordionTrigger>
-        <AccordionContent className="px-3.5 pb-3.5 pl-[52px] text-sm leading-relaxed text-muted-foreground sm:px-4 sm:pb-4 sm:pl-[58px]">
+        <AccordionContent className="px-3.5 pb-3 pl-[52px] text-sm leading-relaxed text-muted-foreground sm:px-4 sm:pb-3.5 sm:pl-[58px]">
           {faq.a}
         </AccordionContent>
       </AccordionItem>
@@ -72,12 +72,12 @@ export function FAQSection() {
   const right = faqs.slice(half);
   return (
     <section id="faq" className="section-y bg-background">
-      <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-8 text-center sm:mb-12">
-          <h2 className="h-section mb-3 font-bold text-foreground">
+      <div className="container-x mx-auto max-w-6xl">
+        <div className="mb-6 text-center sm:mb-10">
+          <h2 className="h-section mb-2 font-bold text-foreground">
             Frequently Asked Questions
           </h2>
-          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
+          <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             Everything you need to know about SafeDeal marketplace and protected transactions.
           </p>
         </div>

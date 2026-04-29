@@ -11,9 +11,9 @@ function SellerCard({ seller }: { seller: DemoSeller }) {
       ref={ref}
       className="group flex flex-col overflow-hidden rounded-2xl border-2 bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-2xl"
     >
-      <div className={`h-16 bg-gradient-to-br sm:h-20 ${seller.bannerGradient}`} />
-      <div className="-mt-9 px-5 pb-5">
-        <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-card bg-card shadow-md">
+      <div className={`h-14 bg-gradient-to-br sm:h-16 ${seller.bannerGradient}`} />
+      <div className="-mt-8 px-4 pb-4">
+        <div className="relative mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border-4 border-card bg-card shadow-md">
           <div
             className={`flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br text-base font-bold text-primary-foreground ${seller.initialsGradient}`}
           >
@@ -24,7 +24,7 @@ function SellerCard({ seller }: { seller: DemoSeller }) {
           </span>
         </div>
 
-        <div className="mb-4 text-center">
+        <div className="mb-3 text-center">
           <h3 className="mb-1.5 text-sm font-bold text-foreground sm:text-base">{seller.name}</h3>
           <span className="inline-flex items-center gap-1.5 rounded-xl border border-success/30 bg-success/10 px-2.5 py-0.5 text-[11px] font-semibold text-success">
             <Shield className="h-3 w-3" />
@@ -32,7 +32,7 @@ function SellerCard({ seller }: { seller: DemoSeller }) {
           </span>
         </div>
 
-        <div className="mb-4 space-y-2 border-t pt-3 text-[13px]">
+        <div className="mb-3 space-y-2 border-t pt-3 text-[13px]">
           <Row label="Rating">
             <div className="flex items-center gap-1.5">
               <Star className="h-3.5 w-3.5 fill-warning text-warning" />
@@ -73,27 +73,27 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export function VerifiedSellersSection() {
   return (
     <section id="verified-sellers" className="section-y bg-background">
-      <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-8 text-center sm:mb-12">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-4 py-1.5">
+      <div className="container-x mx-auto max-w-6xl">
+        <div className="mb-6 text-center sm:mb-10">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1">
             <Shield className="h-3.5 w-3.5 text-success" />
             <span className="text-xs font-semibold text-success">Trusted Sellers</span>
           </div>
-          <h2 className="h-section mb-3 font-bold text-foreground">
+          <h2 className="h-section mb-2 font-bold text-foreground">
             Shop from verified sellers
           </h2>
-          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
+          <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             Buy from sellers with verified profiles, strong ratings, and completed deals.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-4">
           {DEMO_SELLERS.map((s) => (
             <SellerCard key={s.id} seller={s} />
           ))}
         </div>
 
-        <div className="mt-8 text-center sm:mt-10">
+        <div className="mt-6 text-center sm:mt-8">
           <Button asChild variant="outline" className="tap-target gap-2 rounded-xl border-2 px-7 text-sm font-semibold">
             <Link to="/marketplace">
               View all verified sellers

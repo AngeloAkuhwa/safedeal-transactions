@@ -40,12 +40,12 @@ function TrustCard({ item }: { item: (typeof items)[number] }) {
   return (
     <div
       ref={ref}
-      className="group rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl sm:p-6"
+      className="group rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl"
     >
-      <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${t.wrap}`}>
-        <item.icon className={`h-6 w-6 ${t.icon}`} />
+      <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-2xl ${t.wrap}`}>
+        <item.icon className={`h-5 w-5 ${t.icon}`} />
       </div>
-      <h3 className="mb-1.5 text-lg font-bold text-foreground">{item.title}</h3>
+      <h3 className="mb-1.5 text-base font-bold text-foreground sm:text-lg">{item.title}</h3>
       <p className="mb-3.5 text-sm text-muted-foreground">{item.desc}</p>
       <div className="flex items-center justify-between border-t pt-3">
         <span className="text-xs font-semibold text-muted-foreground">{item.note}</span>
@@ -58,17 +58,17 @@ function TrustCard({ item }: { item: (typeof items)[number] }) {
 export function TrustSafetySection() {
   return (
     <section id="trust" className="section-y bg-muted/30">
-      <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-8 text-center sm:mb-12">
-          <h2 className="h-section mb-3 font-bold text-foreground">
+      <div className="container-x mx-auto max-w-6xl">
+        <div className="mb-6 text-center sm:mb-10">
+          <h2 className="h-section mb-2 font-bold text-foreground">
             Trust & Safety
           </h2>
-          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
+          <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             Your safety is our priority — at every step of the transaction.
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-5">
           {items.map((item) => (
             <TrustCard key={item.title} item={item} />
           ))}

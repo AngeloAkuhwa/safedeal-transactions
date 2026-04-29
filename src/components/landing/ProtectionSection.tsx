@@ -35,18 +35,18 @@ const steps = [
 export function ProtectionSection() {
   return (
     <section id="protection" className="section-y bg-muted/30">
-      <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-8 text-center sm:mb-12">
-          <h2 className="h-section mb-3 font-bold text-foreground">
+      <div className="container-x mx-auto max-w-6xl">
+        <div className="mb-6 text-center sm:mb-10">
+          <h2 className="h-section mb-2 font-bold text-foreground">
             Your money stays protected until you're satisfied
           </h2>
-          <p className="body-lead mx-auto max-w-3xl text-muted-foreground">
+          <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             SafeDeal holds payment securely and releases it only after buyer verification or a
             valid resolution.
           </p>
         </div>
 
-        <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
+        <div className="grid items-start gap-6 lg:grid-cols-2 lg:gap-10">
           {/* Left — 4 steps + warning */}
           <div className="space-y-5">
             {steps.map((s, i) => (
@@ -102,8 +102,8 @@ function StepRow({
 function ProtectedTransactionCard() {
   const ref = useScrollReveal<HTMLDivElement>();
   return (
-    <div ref={ref} className="rounded-3xl border-2 bg-card p-5 shadow-xl sm:p-6">
-      <div className="mb-5 flex items-center justify-between border-b pb-4">
+    <div ref={ref} className="rounded-3xl border-2 bg-card p-5 shadow-xl">
+      <div className="mb-4 flex items-center justify-between border-b pb-4">
         <div>
           <p className="text-sm font-bold text-foreground">Transaction #SD-8472</p>
           <p className="text-xs text-muted-foreground">iPhone 15 Pro Max</p>

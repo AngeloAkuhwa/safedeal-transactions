@@ -47,13 +47,13 @@ function FlowCard({
   return (
     <div
       ref={ref}
-      className={`flex flex-col rounded-2xl border-2 p-5 sm:p-6 ${wrap}`}
+      className={`flex flex-col rounded-2xl border-2 p-5 ${wrap}`}
     >
       <div className="mb-4 flex items-center gap-3">
         <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconWrap}`}>
           <Icon className="h-5 w-5" />
         </div>
-        <h3 className="text-lg font-bold text-foreground sm:text-xl">{title}</h3>
+        <h3 className="text-base font-bold text-foreground sm:text-lg">{title}</h3>
       </div>
       <p className="mb-4 text-sm text-muted-foreground">{desc}</p>
       <ul className="mb-6 space-y-2">
@@ -81,17 +81,17 @@ function FlowCard({
 export function MarketplaceVsDirectSection() {
   return (
     <section className="section-y bg-background">
-      <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-8 text-center sm:mb-12">
-          <h2 className="h-section mb-3 font-bold text-foreground">
+      <div className="container-x mx-auto max-w-6xl">
+        <div className="mb-6 text-center sm:mb-10">
+          <h2 className="h-section mb-2 font-bold text-foreground">
             Built for marketplace and direct deals
           </h2>
-          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
+          <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             Whether you shop publicly or close deals privately, every transaction is protected.
           </p>
         </div>
 
-        <div className="mx-auto grid max-w-5xl gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-6">
+        <div className="mx-auto grid max-w-5xl gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-5">
           <FlowCard
             variant="primary"
             icon={Store}

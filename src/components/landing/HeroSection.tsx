@@ -21,7 +21,7 @@ const bullets = [
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-success/5 py-12 sm:py-16 lg:py-20">
+    <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-success/5 py-10 sm:py-14 lg:py-16">
       {/* Decorative blobs */}
       <div aria-hidden className="pointer-events-none absolute inset-0 opacity-40">
         <div className="animate-pulse absolute -top-10 left-0 h-56 w-56 rounded-full bg-primary/15 blur-3xl" />
