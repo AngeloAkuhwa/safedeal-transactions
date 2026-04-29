@@ -78,7 +78,7 @@ export function FAQSection() {
           </div>
           <h2 className="h-section mb-2 font-bold text-foreground">Frequently asked questions</h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
-            Quick answers. Tap to open.
+            Tap to expand.
           </p>
         </div>
         <Accordion type="single" collapsible className="grid gap-2">

@@ -34,7 +34,7 @@ const ESCROW_STATES: {
 
 export function ProtectionSection() {
   return (
-    <section id="protection" className="section-y bg-muted/30 !py-10 sm:!py-12 lg:!py-14">
+    <section id="protection" className="section-y bg-background">
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-5 text-center sm:mb-7">
           <h2 className="h-section mb-2 font-bold text-foreground">
@@ -223,7 +223,7 @@ function EscrowRow({
         {isDone ? (
           <Check className="h-3.5 w-3.5 text-success" />
         ) : isCurrent ? (
-          <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+          <span className="sd-soft-glow h-2 w-2 rounded-full bg-primary" />
         ) : null}
       </span>
     </div>

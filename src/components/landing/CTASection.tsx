@@ -27,7 +27,7 @@ export function CTASection() {
           .sd-cta-blur { animation: none !important; }
         }
       `}</style>
-      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-15">
+      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.12]">
         <div
           className="sd-cta-blur absolute left-0 top-0 h-56 w-56 rounded-full bg-primary-foreground blur-3xl"
           style={{ animation: "sd-cta-drift 14s ease-in-out infinite" }}
@@ -50,8 +50,7 @@ export function CTASection() {
           Ready to shop or sell with protection?
         </h2>
         <p className="body-lead mx-auto mb-5 max-w-xl text-primary-foreground/90">
-          Browse protected listings, buy from verified sellers, or create your own protected
-          transaction in minutes.
+          Browse protected listings or create your own deal in minutes.
         </p>
 
         <div className="mb-6 grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">

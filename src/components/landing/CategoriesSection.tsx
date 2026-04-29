@@ -83,7 +83,7 @@ function CategoryCard({ cat, index }: { cat: Category; index: number }) {
             {cat.name}
           </h3>
           <ArrowRight
-            className={`h-4 w-4 shrink-0 text-muted-foreground transition-all duration-300 group-hover:translate-x-1.5 ${t.arrow}`}
+            className={`h-4 w-4 shrink-0 text-muted-foreground transition-all duration-300 group-hover:translate-x-1 ${t.arrow}`}
           />
         </div>
         <p className="mt-0.5 text-xs font-semibold text-muted-foreground">{cat.count}</p>
@@ -96,11 +96,7 @@ export function CategoriesSection() {
   return (
     <section id="categories" className="bg-muted/30 py-10 sm:py-12">
       <div className="container-x mx-auto max-w-6xl">
-        <div className="mb-6 text-center sm:mb-10">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
-            <Grid2x2 className="h-3.5 w-3.5 text-primary" />
-            <span className="text-xs font-semibold text-primary">Browse Categories</span>
-          </div>
+        <div className="mb-6 text-center sm:mb-8">
           <h2 className="h-section mb-2 font-bold text-foreground">Shop by category</h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             Find protected deals across popular categories.
