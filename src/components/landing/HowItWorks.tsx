@@ -70,35 +70,35 @@ function FlowCard({
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="bg-background py-16 sm:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 text-center sm:mb-12">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5">
+    <section id="how-it-works" className="section-y bg-background">
+      <div className="container-x mx-auto max-w-7xl">
+        <div className="mb-10 text-center sm:mb-14">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5">
             <Lightbulb className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-semibold text-primary">Simple & Secure</span>
           </div>
-          <h2 className="mb-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+          <h2 className="h-section mb-3 font-bold text-foreground">
             How SafeDeal Works
           </h2>
-          <p className="mx-auto max-w-2xl text-base text-muted-foreground">
+          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
             A transparent escrow process that protects both buyers and sellers throughout the transaction.
           </p>
         </div>
 
         <Tabs defaultValue="marketplace" className="w-full">
-          <TabsList className="mx-auto mb-10 flex h-auto w-full max-w-xl flex-col gap-1 bg-muted p-1 sm:flex-row">
-            <TabsTrigger value="marketplace" className="w-full gap-2 py-3 text-sm font-semibold">
+          <TabsList className="mx-auto mb-10 flex h-auto w-full max-w-xl flex-col gap-1 rounded-2xl bg-muted/60 p-1.5 sm:flex-row">
+            <TabsTrigger value="marketplace" className="tap-target w-full gap-2 rounded-xl py-3 text-sm font-semibold">
               <Store className="h-4 w-4" />
               Buying from Marketplace
             </TabsTrigger>
-            <TabsTrigger value="direct" className="w-full gap-2 py-3 text-sm font-semibold">
+            <TabsTrigger value="direct" className="tap-target w-full gap-2 rounded-xl py-3 text-sm font-semibold">
               <Handshake className="h-4 w-4" />
               Direct Transaction
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="marketplace" className="mt-0">
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-5 sm:gap-6 lg:grid-cols-2 lg:gap-8">
               <FlowCard
                 icon={Store}
                 title="Marketplace Buyer Flow"
@@ -122,7 +122,7 @@ export function HowItWorks() {
           </TabsContent>
 
           <TabsContent value="direct" className="mt-0">
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-5 sm:gap-6 lg:grid-cols-2 lg:gap-8">
               <FlowCard
                 icon={Handshake}
                 title="Direct Transaction Flow"
@@ -146,17 +146,21 @@ export function HowItWorks() {
           </TabsContent>
         </Tabs>
 
-        <div className="mt-10 mx-auto max-w-3xl rounded-2xl border-2 border-warning/30 bg-warning/5 p-6 text-center sm:p-8">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-warning text-warning-foreground">
-            <Shield className="h-7 w-7" />
+        <div className="mx-auto mt-10 max-w-3xl rounded-2xl border-2 border-primary/20 bg-primary/5 p-6 sm:mt-12 sm:p-8">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground sm:h-14 sm:w-14">
+              <Shield className="h-6 w-6 sm:h-7 sm:w-7" />
+            </div>
+            <div>
+              <h4 className="mb-1.5 text-base font-bold text-foreground sm:text-lg">
+                SafeDeal holds the money until buyer verification is complete
+              </h4>
+              <p className="text-sm text-muted-foreground sm:text-base">
+                Your payment stays in our secure escrow account. Funds are only released after you
+                confirm the item matches, or after the verification window expires without a dispute.
+              </p>
+            </div>
           </div>
-          <h4 className="mb-2 text-lg font-bold text-foreground sm:text-xl">
-            SafeDeal holds the money until buyer verification is complete
-          </h4>
-          <p className="text-sm text-muted-foreground sm:text-base">
-            Your payment stays in our secure escrow account. Funds are only released after you
-            confirm the item matches, or after the verification window expires without a dispute.
-          </p>
         </div>
       </div>
     </section>

@@ -120,18 +120,18 @@ function FeatureCard({ f }: { f: (typeof features)[number] }) {
 
 export function PowerfulFeaturesSection() {
   return (
-    <section id="features" className="bg-background py-16 sm:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 text-center sm:mb-12">
-          <h2 className="mb-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+    <section id="features" className="section-y bg-background">
+      <div className="container-x mx-auto max-w-7xl">
+        <div className="mb-10 text-center sm:mb-14">
+          <h2 className="h-section mb-3 font-bold text-foreground">
             Powerful features for secure transactions
           </h2>
-          <p className="mx-auto max-w-2xl text-base text-muted-foreground">
+          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
             Everything buyers and sellers need to transact with confidence.
           </p>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-8">
           {features.map((f) => (
             <FeatureCard key={f.title} f={f} />
           ))}
