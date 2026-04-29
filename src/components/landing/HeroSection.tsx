@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Shield,
@@ -10,14 +11,47 @@ import {
   CircleCheck,
   ShieldCheck,
   ArrowRightLeft,
+  Check,
+  type LucideIcon,
 } from "lucide-react";
 
 const bullets = [
   "Verified sellers",
-  "Funds held securely",
-  "Buyer confirms before release",
+  "Escrow-protected funds",
+  "Buyer confirms first",
   "Evidence-backed disputes",
 ];
+
+type Tone = "primary" | "success" | "warning";
+
+const STEPS: {
+  title: string;
+  subtitle: string;
+  icon: LucideIcon;
+  tone: Tone;
+}[] = [
+  { title: "Product selected", subtitle: "iPhone 15 Pro · ₦1,450,000", icon: ShoppingBag, tone: "primary" },
+  { title: "Payment received", subtitle: "₦1,450,000 secured", icon: CheckCircle, tone: "success" },
+  { title: "Funds held", subtitle: "Protected in escrow", icon: ShieldCheck, tone: "warning" },
+  { title: "Seller dispatches", subtitle: "Courier picked up", icon: Truck, tone: "primary" },
+  { title: "Buyer verifies", subtitle: "Confirm item matches", icon: CircleCheck, tone: "primary" },
+  { title: "Funds released", subtitle: "Paid to seller", icon: ArrowRightLeft, tone: "success" },
+];
+
+const TONE_STYLES: Record<Tone, { activeWrap: string; activeIcon: string }> = {
+  primary: {
+    activeWrap: "border-primary/40 bg-primary/10 ring-2 ring-primary/30",
+    activeIcon: "bg-primary text-primary-foreground",
+  },
+  success: {
+    activeWrap: "border-success/40 bg-success/10 ring-2 ring-success/30",
+    activeIcon: "bg-success text-success-foreground",
+  },
+  warning: {
+    activeWrap: "border-warning/40 bg-warning/10 ring-2 ring-warning/30",
+    activeIcon: "bg-warning text-warning-foreground",
+  },
+};
 
 export function HeroSection() {
   return (
@@ -46,40 +80,28 @@ export function HeroSection() {
             </h1>
 
             <p className="animate-fade-in mx-auto mb-5 max-w-lg text-[15px] leading-relaxed text-muted-foreground lg:mx-0 [animation-delay:80ms]">
-              Shop protected deals, buy from verified sellers, and pay with confidence. SafeDeal
-              holds your money until you confirm the item matches what was agreed.
+              Shop protected deals and pay with confidence. SafeDeal holds your money until the
+              item matches what was agreed.
             </p>
 
-            {/* Three CTAs — 2-up + full-width on mobile, inline on desktop */}
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2 lg:justify-start">
-              <CTA
-                to="/marketplace"
-                icon={ShoppingBag}
-                label="Browse Marketplace"
-                variant="primary"
-                delay="120ms"
-              />
-              <CTA
-                to="/auth?role=seller"
-                icon={Store}
-                label="Start Selling"
-                variant="success"
-                delay="180ms"
-              />
+              <CTA to="/marketplace" icon={ShoppingBag} label="Browse Marketplace" variant="primary" delay="120ms" />
+              <CTA to="/auth?role=seller" icon={Store} label="Start Selling" variant="success" delay="180ms" />
               <CTA
                 to="/auth?role=seller&intent=create-transaction"
                 icon={Link2}
                 label="Create Protected Deal"
                 variant="dark"
                 delay="240ms"
-                  />
+              />
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px] text-foreground sm:text-[13px]">
-              {bullets.map((b) => (
+              {bullets.map((b, i) => (
                 <div
                   key={b}
-                  className="animate-fade-in flex items-center gap-2 [animation-delay:320ms]"
+                  className="animate-fade-in flex items-center gap-2"
+                  style={{ animationDelay: `${320 + i * 60}ms` }}
                 >
                   <CheckCircle className="h-3.5 w-3.5 shrink-0 text-success" />
                   <span className="font-medium leading-tight">{b}</span>
@@ -88,76 +110,140 @@ export function HeroSection() {
             </div>
           </div>
 
-          {/* Right — Transaction preview card */}
+          {/* Right — Animated transaction demo */}
           <div className="relative mx-auto hidden w-full max-w-sm animate-slide-in-right lg:block lg:mx-0 lg:ml-auto">
             <div aria-hidden className="absolute -left-4 -top-4 h-16 w-16 rounded-2xl bg-success/15" />
             <div aria-hidden className="absolute -bottom-4 -right-4 h-20 w-20 rounded-2xl bg-primary/15" />
-
-            <div className="relative rounded-2xl border border-border bg-card p-4 shadow-2xl sm:p-5">
-              <div className="mb-3 flex items-center justify-between border-b border-border pb-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-                    <Shield className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-bold text-foreground">Transaction #SD-4829</p>
-                    <p className="text-[10px] text-muted-foreground">Protected by SafeDeal</p>
-                  </div>
-                </div>
-                <span className="rounded-full border border-success/30 bg-success/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-success">
-                  Protected
-                </span>
-              </div>
-
-              <ul className="mb-3 space-y-1.5">
-                <StatusRow
-                  tone="success"
-                  icon={CheckCircle}
-                  title="Payment Received"
-                  subtitle="₦1,450,000 secured"
-                />
-                <StatusRow
-                  tone="warning"
-                  icon={ShieldCheck}
-                  title="Funds Held"
-                  subtitle="Protected in escrow"
-                />
-                <StatusRow
-                  tone="primary"
-                  icon={Truck}
-                  title="Seller Delivers"
-                  subtitle="Expected: Dec 24"
-                />
-                <StatusRow
-                  tone="muted"
-                  icon={CircleCheck}
-                  title="Buyer Verifies"
-                  subtitle="Confirm item matches"
-                />
-                <StatusRow
-                  tone="muted"
-                  icon={ArrowRightLeft}
-                  title="Funds Released"
-                  subtitle="Payment to seller"
-                />
-              </ul>
-
-              <div className="rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-2.5">
-                <div className="flex items-start gap-2">
-                  <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <div>
-                    <p className="text-[12px] font-bold text-foreground">Your payment is protected</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Funds released only when you confirm.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <AnimatedTransactionCard />
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function AnimatedTransactionCard() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      setActive(2); // show an in-progress snapshot for reduced-motion users
+      return;
+    }
+    const id = window.setInterval(() => {
+      setActive((prev) => (prev + 1) % STEPS.length);
+    }, 1600);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return (
+    <div className="relative rounded-2xl border border-border bg-card p-4 shadow-2xl sm:p-5">
+      {/* Header */}
+      <div className="mb-3 flex items-center justify-between border-b border-border pb-2.5">
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+            <Shield className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-[13px] font-bold text-foreground">Transaction #SD-4829</p>
+            <p className="text-[10px] text-muted-foreground">Protected by SafeDeal</p>
+          </div>
+        </div>
+        <span className="rounded-full border border-success/30 bg-success/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-success">
+          Protected
+        </span>
+      </div>
+
+      {/* Step rows */}
+      <ul className="mb-3 space-y-1.5">
+        {STEPS.map((step, i) => (
+          <StepRow key={step.title} step={step} index={i} active={active} />
+        ))}
+      </ul>
+
+      {/* Progress bar */}
+      <div className="flex items-center gap-2">
+        <div className="flex h-1.5 flex-1 gap-0.5 overflow-hidden rounded-full bg-muted">
+          {STEPS.map((_, i) => {
+            const done = i < active;
+            const current = i === active;
+            return (
+              <div
+                key={i}
+                className={`h-full flex-1 rounded-full transition-all duration-700 ease-out ${
+                  done
+                    ? "bg-success"
+                    : current
+                      ? "bg-gradient-to-r from-primary to-success"
+                      : "bg-transparent"
+                }`}
+              />
+            );
+          })}
+        </div>
+        <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
+          Step {active + 1}/{STEPS.length}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function StepRow({
+  step,
+  index,
+  active,
+}: {
+  step: (typeof STEPS)[number];
+  index: number;
+  active: number;
+}) {
+  const Icon = step.icon;
+  const isDone = index < active;
+  const isActive = index === active;
+  const tone = TONE_STYLES[step.tone];
+
+  let wrapClass = "border bg-muted/30 opacity-50";
+  let iconWrapClass = "bg-muted text-muted-foreground";
+  let titleClass = "text-muted-foreground";
+
+  if (isDone) {
+    wrapClass = "border-success/30 bg-success/10";
+    iconWrapClass = "bg-success text-success-foreground";
+    titleClass = "text-foreground";
+  } else if (isActive) {
+    wrapClass = `${tone.activeWrap} scale-[1.02] shadow-sm`;
+    iconWrapClass = tone.activeIcon;
+    titleClass = "text-foreground";
+  }
+
+  return (
+    <li
+      className={`flex items-center gap-2 rounded-lg p-2 transition-all duration-500 ease-out ${wrapClass}`}
+    >
+      <span
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors duration-500 ${iconWrapClass}`}
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className={`text-[12px] font-bold leading-tight transition-colors duration-500 ${titleClass}`}>
+          {step.title}
+        </p>
+        <p className="text-[10px] font-medium leading-tight text-muted-foreground">
+          {step.subtitle}
+        </p>
+      </div>
+      <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+        {isDone ? (
+          <Check className="h-3.5 w-3.5 text-success" />
+        ) : isActive ? (
+          <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+        ) : null}
+      </span>
+    </li>
   );
 }
 
@@ -170,7 +256,7 @@ function CTA({
   className = "",
 }: {
   to: string;
-  icon: typeof Shield;
+  icon: LucideIcon;
   label: string;
   variant: "primary" | "success" | "dark";
   delay: string;
@@ -190,59 +276,5 @@ function CTA({
       <Icon className="h-4 w-4" />
       <span>{label}</span>
     </Link>
-  );
-}
-
-function StatusRow({
-  tone,
-  icon: Icon,
-  title,
-  subtitle,
-}: {
-  tone: "success" | "warning" | "primary" | "muted";
-  icon: typeof Shield;
-  title: string;
-  subtitle: string;
-}) {
-  const styles = {
-    success: {
-      wrap: "border-success/30 bg-success/10",
-      iconWrap: "bg-success text-success-foreground",
-      title: "text-foreground",
-      sub: "text-muted-foreground",
-    },
-    warning: {
-      wrap: "border-warning/30 bg-warning/10",
-      iconWrap: "bg-warning text-warning-foreground",
-      title: "text-foreground",
-      sub: "text-muted-foreground",
-    },
-    primary: {
-      wrap: "border-primary/30 bg-primary/10",
-      iconWrap: "bg-primary text-primary-foreground",
-      title: "text-foreground",
-      sub: "text-muted-foreground",
-    },
-    muted: {
-      wrap: "border bg-muted/40",
-      iconWrap: "bg-muted text-muted-foreground",
-      title: "text-muted-foreground",
-      sub: "text-muted-foreground/80",
-    },
-  }[tone];
-  return (
-    <li
-      className={`flex items-center gap-2 rounded-lg border p-2 transition-all hover:shadow-sm ${styles.wrap}`}
-    >
-      <span
-        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${styles.iconWrap}`}
-      >
-        <Icon className="h-3.5 w-3.5" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className={`text-[12px] font-bold leading-tight ${styles.title}`}>{title}</p>
-        <p className={`text-[10px] font-medium leading-tight ${styles.sub}`}>{subtitle}</p>
-      </div>
-    </li>
   );
 }
