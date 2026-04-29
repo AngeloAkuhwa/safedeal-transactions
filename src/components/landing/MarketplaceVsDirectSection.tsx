@@ -47,26 +47,26 @@ function FlowCard({
   return (
     <div
       ref={ref}
-      className={`flex flex-col rounded-2xl border-2 p-5 ${wrap}`}
+      className={`flex flex-col rounded-2xl border-2 p-4 sm:p-5 ${wrap}`}
     >
-      <div className="mb-4 flex items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconWrap}`}>
-          <Icon className="h-5 w-5" />
+      <div className="mb-3 flex items-center gap-3">
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${iconWrap}`}>
+          <Icon className="h-[18px] w-[18px]" />
         </div>
         <h3 className="text-base font-bold text-foreground sm:text-lg">{title}</h3>
       </div>
-      <p className="mb-4 text-sm text-muted-foreground">{desc}</p>
-      <ul className="mb-6 space-y-2">
+      <p className="mb-3 text-[13px] leading-relaxed text-muted-foreground">{desc}</p>
+      <ul className="mb-4 space-y-1.5">
         {perks.map((p) => (
-          <li key={p} className="flex items-start gap-2.5 text-sm text-foreground">
-            <Check className={`mt-0.5 h-4 w-4 shrink-0 ${checkColor}`} />
+          <li key={p} className="flex items-start gap-2.5 text-[13px] text-foreground">
+            <Check className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${checkColor}`} />
             <span>{p}</span>
           </li>
         ))}
       </ul>
       <Button
         asChild
-        className={`mt-auto w-full text-sm ${
+        className={`mt-auto h-9 w-full text-sm ${
           variant === "primary"
             ? ""
             : "bg-success text-success-foreground hover:bg-success/90"
@@ -82,7 +82,7 @@ export function MarketplaceVsDirectSection() {
   return (
     <section className="section-y bg-background">
       <div className="container-x mx-auto max-w-6xl">
-        <div className="mb-6 text-center sm:mb-10">
+        <div className="mb-5 text-center sm:mb-7">
           <h2 className="h-section mb-2 font-bold text-foreground">
             Built for marketplace and direct deals
           </h2>
@@ -91,7 +91,7 @@ export function MarketplaceVsDirectSection() {
           </p>
         </div>
 
-        <div className="mx-auto grid max-w-5xl gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-5">
+        <div className="mx-auto grid max-w-5xl gap-4 lg:grid-cols-2">
           <FlowCard
             variant="primary"
             icon={Store}
