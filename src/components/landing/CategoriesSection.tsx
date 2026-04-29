@@ -70,23 +70,23 @@ function CategoryCard({ cat, index }: { cat: Category; index: number }) {
       ref={ref}
       to={`/marketplace?category=${cat.slug}`}
       style={{ transitionDelay: `${index * 50}ms` }}
-      className="group flex items-center gap-3 rounded-xl border bg-card p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg sm:flex-col sm:items-start sm:gap-2.5 sm:p-4"
+      className="group flex items-center gap-3 rounded-xl border bg-card p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"
     >
       <div
-        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-all duration-300 group-hover:scale-110 group-hover:rotate-[-4deg] ${t.wrap} ${t.hover} sm:h-12 sm:w-12`}
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-all duration-300 group-hover:scale-110 ${t.wrap} ${t.hover}`}
       >
-        <cat.icon className={`h-5 w-5 transition-colors ${t.icon} group-hover:text-current sm:h-[22px] sm:w-[22px]`} />
+        <cat.icon className={`h-5 w-5 transition-colors ${t.icon} group-hover:text-current`} />
       </div>
-      <div className="min-w-0 flex-1 sm:w-full">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="truncate text-[14px] font-bold text-foreground sm:text-[15px]">
+          <h3 className="truncate text-sm font-bold text-foreground">
             {cat.name}
           </h3>
           <ArrowRight
             className={`h-4 w-4 shrink-0 text-muted-foreground transition-all duration-300 group-hover:translate-x-1.5 ${t.arrow}`}
           />
         </div>
-        <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">{cat.count}</p>
+        <p className="mt-0.5 text-xs font-semibold text-muted-foreground">{cat.count}</p>
       </div>
     </Link>
   );
@@ -94,7 +94,7 @@ function CategoryCard({ cat, index }: { cat: Category; index: number }) {
 
 export function CategoriesSection() {
   return (
-    <section id="categories" className="bg-muted/30 py-10 sm:py-12 lg:py-14">
+    <section id="categories" className="bg-muted/30 py-10 sm:py-12">
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-6 text-center sm:mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
