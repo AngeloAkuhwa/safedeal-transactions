@@ -47,18 +47,18 @@ function FaqItem({ faq, index }: { faq: { q: string; a: string }; index: number 
   return (
     <div
       ref={ref}
-      className="rounded-2xl border border-border bg-card p-1.5 transition-all hover:border-primary/30 hover:shadow-md"
+      className="rounded-2xl border border-border bg-card p-1 transition-all hover:border-primary/30 hover:shadow-md"
     >
       <AccordionItem value={`faq-${index}`} className="border-none">
-        <AccordionTrigger className="px-3.5 py-2.5 text-left text-sm font-bold text-foreground hover:no-underline sm:px-4 sm:text-[15px]">
+        <AccordionTrigger className="px-3 py-2 text-left text-[13px] font-bold text-foreground hover:no-underline sm:px-3.5 sm:text-sm">
           <span className="flex items-start gap-2.5">
-            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <HelpCircle className="h-4 w-4" />
+            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <HelpCircle className="h-3.5 w-3.5" />
             </span>
             <span className="flex-1">{faq.q}</span>
           </span>
         </AccordionTrigger>
-        <AccordionContent className="px-3.5 pb-3 pl-[52px] text-sm leading-relaxed text-muted-foreground sm:px-4 sm:pb-3.5 sm:pl-[58px]">
+        <AccordionContent className="px-3 pb-2.5 pl-[44px] text-[13px] leading-relaxed text-muted-foreground sm:px-3.5 sm:pb-3 sm:pl-[48px]">
           {faq.a}
         </AccordionContent>
       </AccordionItem>
@@ -73,7 +73,7 @@ export function FAQSection() {
   return (
     <section id="faq" className="section-y bg-background">
       <div className="container-x mx-auto max-w-6xl">
-        <div className="mb-6 text-center sm:mb-10">
+        <div className="mb-5 text-center sm:mb-7">
           <h2 className="h-section mb-2 font-bold text-foreground">
             Frequently Asked Questions
           </h2>
@@ -81,7 +81,7 @@ export function FAQSection() {
             Everything you need to know about SafeDeal marketplace and protected transactions.
           </p>
         </div>
-        <Accordion type="single" collapsible className="grid gap-3 lg:grid-cols-2 lg:gap-4">
+        <Accordion type="single" collapsible className="grid gap-2.5 lg:grid-cols-2 lg:gap-3">
           {left.map((faq, i) => (
             <FaqItem key={i} faq={faq} index={i} />
           ))}
