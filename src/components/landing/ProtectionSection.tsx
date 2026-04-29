@@ -34,19 +34,19 @@ const steps = [
 
 export function ProtectionSection() {
   return (
-    <section id="protection" className="bg-background py-16 sm:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 text-center sm:mb-12">
-          <h2 className="mb-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+    <section id="protection" className="section-y bg-muted/30">
+      <div className="container-x mx-auto max-w-7xl">
+        <div className="mb-10 text-center sm:mb-14">
+          <h2 className="h-section mb-3 font-bold text-foreground">
             Your money stays protected until you're satisfied
           </h2>
-          <p className="mx-auto max-w-3xl text-base text-muted-foreground sm:text-lg">
+          <p className="body-lead mx-auto max-w-3xl text-muted-foreground">
             SafeDeal holds payment securely and releases it only after buyer verification or a
             valid resolution.
           </p>
         </div>
 
-        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-12">
+        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
           {/* Left — 4 steps + warning */}
           <div className="space-y-6">
             {steps.map((s, i) => (

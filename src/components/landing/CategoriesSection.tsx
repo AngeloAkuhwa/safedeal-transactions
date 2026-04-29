@@ -147,22 +147,22 @@ function CategoryCard({ cat }: { cat: Category }) {
 
 export function CategoriesSection() {
   return (
-    <section id="categories" className="bg-muted/40 py-16 sm:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 text-center sm:mb-12">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5">
+    <section id="categories" className="section-y bg-muted/30">
+      <div className="container-x mx-auto max-w-7xl">
+        <div className="mb-10 text-center sm:mb-14">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5">
             <Grid2x2 className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-semibold text-primary">Browse Categories</span>
           </div>
-          <h2 className="mb-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+          <h2 className="h-section mb-3 font-bold text-foreground">
             Shop by category
           </h2>
-          <p className="mx-auto max-w-2xl text-base text-muted-foreground">
+          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
             Find protected deals across popular categories.
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
           {categories.map((c) => (
             <CategoryCard key={c.slug} cat={c} />
           ))}

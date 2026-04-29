@@ -72,29 +72,29 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 export function VerifiedSellersSection() {
   return (
-    <section id="verified-sellers" className="bg-background py-16 sm:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 text-center sm:mb-12">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-success/10 px-4 py-1.5">
+    <section id="verified-sellers" className="section-y bg-background">
+      <div className="container-x mx-auto max-w-7xl">
+        <div className="mb-10 text-center sm:mb-14">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-4 py-1.5">
             <Shield className="h-3.5 w-3.5 text-success" />
             <span className="text-xs font-semibold text-success">Trusted Sellers</span>
           </div>
-          <h2 className="mb-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+          <h2 className="h-section mb-3 font-bold text-foreground">
             Shop from verified sellers
           </h2>
-          <p className="mx-auto max-w-2xl text-base text-muted-foreground">
+          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
             Buy from sellers with verified profiles, strong ratings, and completed deals.
           </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4 lg:gap-8">
           {DEMO_SELLERS.map((s) => (
             <SellerCard key={s.id} seller={s} />
           ))}
         </div>
 
-        <div className="mt-10 text-center">
-          <Button asChild variant="outline" size="lg" className="gap-2">
+        <div className="mt-10 text-center sm:mt-12">
+          <Button asChild variant="outline" size="lg" className="tap-target gap-2 rounded-xl border-2 px-8 font-semibold">
             <Link to="/marketplace">
               View all verified sellers
               <ArrowRight className="h-4 w-4" />
