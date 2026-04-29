@@ -19,77 +19,20 @@ type Tone = "primary" | "success" | "warning" | "danger";
 interface Category {
   slug: string;
   name: string;
-  desc: string;
   count: string;
   icon: LucideIcon;
   tone: Tone;
 }
 
 const categories: Category[] = [
-  {
-    slug: "phones-tablets",
-    name: "Phones & Tablets",
-    desc: "Latest smartphones and tablets",
-    count: "2,847 active listings",
-    icon: Smartphone,
-    tone: "primary",
-  },
-  {
-    slug: "computing",
-    name: "Laptops",
-    desc: "MacBooks and PCs",
-    count: "1,523 active listings",
-    icon: Laptop,
-    tone: "success",
-  },
-  {
-    slug: "fashion",
-    name: "Fashion & Sneakers",
-    desc: "Clothing, shoes and accessories",
-    count: "3,142 active listings",
-    icon: Shirt,
-    tone: "warning",
-  },
-  {
-    slug: "electronics",
-    name: "Electronics",
-    desc: "Audio, cameras and gadgets",
-    count: "1,967 active listings",
-    icon: Headphones,
-    tone: "primary",
-  },
-  {
-    slug: "home",
-    name: "Home & Living",
-    desc: "Furniture and home essentials",
-    count: "892 active listings",
-    icon: Sofa,
-    tone: "success",
-  },
-  {
-    slug: "gaming",
-    name: "Gaming",
-    desc: "Consoles, games and accessories",
-    count: "1,234 active listings",
-    icon: Gamepad2,
-    tone: "danger",
-  },
-  {
-    slug: "beauty",
-    name: "Beauty & Accessories",
-    desc: "Cosmetics and personal care",
-    count: "2,156 active listings",
-    icon: SprayCan,
-    tone: "warning",
-  },
-  {
-    slug: "services",
-    name: "Services",
-    desc: "Professional services and repairs",
-    count: "567 active listings",
-    icon: Wrench,
-    tone: "primary",
-  },
+  { slug: "phones-tablets", name: "Phones & Tablets", count: "2,847 listings", icon: Smartphone, tone: "primary" },
+  { slug: "computing", name: "Laptops", count: "1,523 listings", icon: Laptop, tone: "success" },
+  { slug: "fashion", name: "Fashion & Sneakers", count: "3,142 listings", icon: Shirt, tone: "warning" },
+  { slug: "electronics", name: "Electronics", count: "1,967 listings", icon: Headphones, tone: "primary" },
+  { slug: "home", name: "Home & Living", count: "892 listings", icon: Sofa, tone: "success" },
+  { slug: "gaming", name: "Gaming", count: "1,234 listings", icon: Gamepad2, tone: "danger" },
+  { slug: "beauty", name: "Beauty & Accessories", count: "2,156 listings", icon: SprayCan, tone: "warning" },
+  { slug: "services", name: "Services", count: "567 listings", icon: Wrench, tone: "primary" },
 ];
 
 const toneMap: Record<Tone, { wrap: string; icon: string; hover: string; arrow: string }> = {
@@ -119,28 +62,32 @@ const toneMap: Record<Tone, { wrap: string; icon: string; hover: string; arrow: 
   },
 };
 
-function CategoryCard({ cat }: { cat: Category }) {
+function CategoryCard({ cat, index }: { cat: Category; index: number }) {
   const ref = useScrollReveal<HTMLAnchorElement>();
   const t = toneMap[cat.tone];
   return (
     <Link
       ref={ref}
       to={`/marketplace?category=${cat.slug}`}
-      className="group rounded-xl border bg-card p-3.5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg sm:p-4"
+      style={{ transitionDelay: `${index * 50}ms` }}
+      className="group flex items-center gap-3 rounded-xl border bg-card p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg sm:flex-col sm:items-start sm:gap-2.5 sm:p-4"
     >
-      <div className="mb-2.5 flex items-start justify-between">
-        <div
-          className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${t.wrap} ${t.hover} sm:h-11 sm:w-11`}
-        >
-          <cat.icon className={`h-5 w-5 transition-colors ${t.icon} group-hover:text-current`} />
-        </div>
-        <ArrowRight
-          className={`h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-1 ${t.arrow}`}
-        />
+      <div
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-all duration-300 group-hover:scale-110 group-hover:rotate-[-4deg] ${t.wrap} ${t.hover} sm:h-12 sm:w-12`}
+      >
+        <cat.icon className={`h-5 w-5 transition-colors ${t.icon} group-hover:text-current sm:h-[22px] sm:w-[22px]`} />
       </div>
-      <h3 className="mb-0.5 text-sm font-bold text-foreground sm:text-[15px]">{cat.name}</h3>
-      <p className="mb-1.5 text-[11px] leading-snug text-muted-foreground sm:text-xs">{cat.desc}</p>
-      <p className="text-[11px] font-semibold text-muted-foreground">{cat.count}</p>
+      <div className="min-w-0 flex-1 sm:w-full">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="truncate text-[14px] font-bold text-foreground sm:text-[15px]">
+            {cat.name}
+          </h3>
+          <ArrowRight
+            className={`h-4 w-4 shrink-0 text-muted-foreground transition-all duration-300 group-hover:translate-x-1.5 ${t.arrow}`}
+          />
+        </div>
+        <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">{cat.count}</p>
+      </div>
     </Link>
   );
 }
@@ -154,17 +101,15 @@ export function CategoriesSection() {
             <Grid2x2 className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-semibold text-primary">Browse Categories</span>
           </div>
-          <h2 className="h-section mb-2 font-bold text-foreground">
-            Shop by category
-          </h2>
+          <h2 className="h-section mb-2 font-bold text-foreground">Shop by category</h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             Find protected deals across popular categories.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-4">
-          {categories.map((c) => (
-            <CategoryCard key={c.slug} cat={c} />
+          {categories.map((c, i) => (
+            <CategoryCard key={c.slug} cat={c} index={i} />
           ))}
         </div>
       </div>
