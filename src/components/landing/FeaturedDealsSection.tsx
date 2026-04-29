@@ -32,7 +32,7 @@ function ProductCard({ product }: { product: DemoProduct }) {
       ref={ref}
       className="group flex flex-col overflow-hidden rounded-2xl border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl"
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-muted/40">
+      <div className="relative aspect-[4/3] overflow-hidden bg-muted/40 sm:aspect-square">
         <ProductImage product={product} />
         <span className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-lg bg-success px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-success-foreground shadow-md">
           <Shield className="h-3 w-3" />
@@ -42,12 +42,12 @@ function ProductCard({ product }: { product: DemoProduct }) {
           In Stock
         </span>
       </div>
-      <div className="flex flex-1 flex-col p-5">
-        <h3 className="mb-1.5 text-lg font-bold text-foreground sm:text-xl">{product.title}</h3>
+      <div className="flex flex-1 flex-col p-5 sm:p-6">
+        <h3 className="h-card mb-1.5 font-bold text-foreground">{product.title}</h3>
         <div className="mb-4 text-2xl font-bold text-primary sm:text-3xl">
           {formatNaira(product.price)}
         </div>
-        <div className="mb-5 flex items-center justify-between border-t pt-4">
+        <div className="mb-5 flex items-center justify-between border-t border-border pt-4">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
               {product.sellerName[0]}
@@ -61,7 +61,7 @@ function ProductCard({ product }: { product: DemoProduct }) {
             </div>
           </div>
         </div>
-        <Button asChild className="mt-auto w-full">
+        <Button asChild className="tap-target mt-auto w-full rounded-xl font-semibold shadow-md hover:shadow-lg">
           <Link to="/marketplace">View Product</Link>
         </Button>
       </div>
@@ -71,35 +71,39 @@ function ProductCard({ product }: { product: DemoProduct }) {
 
 export function FeaturedDealsSection() {
   return (
-    <section id="featured-deals" className="bg-background py-16 sm:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 text-center sm:mb-12">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-success/10 px-4 py-1.5">
+    <section id="featured-deals" className="section-y bg-background">
+      <div className="container-x mx-auto max-w-7xl">
+        <div className="mb-10 text-center sm:mb-14">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-4 py-1.5">
             <Shield className="h-3.5 w-3.5 text-success" />
             <span className="text-xs font-semibold text-success">Featured</span>
           </div>
-          <h2 className="mb-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+          <h2 className="h-section mb-3 font-bold text-foreground">
             Featured protected deals
           </h2>
-          <p className="mx-auto max-w-2xl text-base text-muted-foreground">
+          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
             Top picks from verified sellers, protected by SafeDeal escrow.
           </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-8">
           {DEMO_PRODUCTS.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
 
-        <div className="mt-12 text-center">
-          <p className="mb-4 text-sm text-muted-foreground sm:text-base">
+        <div className="mt-10 text-center sm:mt-12">
+          <p className="mb-5 text-sm text-muted-foreground sm:text-base">
             Explore the full marketplace with thousands of protected listings
           </p>
-          <Button asChild size="lg" className="gap-2">
+          <Button
+            asChild
+            size="lg"
+            className="tap-target rounded-xl px-8 py-6 text-base font-bold shadow-lg hover:shadow-xl"
+          >
             <Link to="/marketplace">
               Browse Full Marketplace
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="ml-1 h-5 w-5" />
             </Link>
           </Button>
         </div>
