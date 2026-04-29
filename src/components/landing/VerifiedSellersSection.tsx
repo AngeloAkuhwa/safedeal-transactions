@@ -11,28 +11,28 @@ function SellerCard({ seller }: { seller: DemoSeller }) {
       ref={ref}
       className="group flex flex-col overflow-hidden rounded-2xl border-2 bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-2xl"
     >
-      <div className={`h-14 bg-gradient-to-br sm:h-16 ${seller.bannerGradient}`} />
-      <div className="-mt-8 px-4 pb-4">
-        <div className="relative mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border-4 border-card bg-card shadow-md">
+      <div className={`h-12 bg-gradient-to-br sm:h-14 ${seller.bannerGradient}`} />
+      <div className="-mt-7 px-4 pb-4">
+        <div className="relative mx-auto mb-2.5 flex h-12 w-12 items-center justify-center rounded-2xl border-4 border-card bg-card shadow-md">
           <div
-            className={`flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br text-base font-bold text-primary-foreground ${seller.initialsGradient}`}
+            className={`flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br text-sm font-bold text-primary-foreground ${seller.initialsGradient}`}
           >
             {seller.initials}
           </div>
-          <span className="absolute -bottom-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-xl border-4 border-card bg-primary shadow-md">
+          <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-lg border-[3px] border-card bg-primary shadow-md">
             <CheckCircle className="h-3 w-3 text-primary-foreground" />
           </span>
         </div>
 
-        <div className="mb-3 text-center">
-          <h3 className="mb-1.5 text-sm font-bold text-foreground sm:text-base">{seller.name}</h3>
+        <div className="mb-2.5 text-center">
+          <h3 className="mb-1 text-sm font-bold text-foreground">{seller.name}</h3>
           <span className="inline-flex items-center gap-1.5 rounded-xl border border-success/30 bg-success/10 px-2.5 py-0.5 text-[11px] font-semibold text-success">
             <Shield className="h-3 w-3" />
             Verified Seller
           </span>
         </div>
 
-        <div className="mb-3 space-y-2 border-t pt-3 text-[13px]">
+        <div className="mb-3 space-y-1.5 border-t pt-2.5 text-[12px]">
           <Row label="Rating">
             <div className="flex items-center gap-1.5">
               <Star className="h-3.5 w-3.5 fill-warning text-warning" />
@@ -53,7 +53,7 @@ function SellerCard({ seller }: { seller: DemoSeller }) {
           </Row>
         </div>
 
-        <Button asChild className="w-full text-sm">
+        <Button asChild size="sm" className="h-9 w-full text-[13px]">
           <Link to={`/store/${seller.slug}`}>View Store</Link>
         </Button>
       </div>
@@ -72,7 +72,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 export function VerifiedSellersSection() {
   return (
-    <section id="verified-sellers" className="section-y bg-background">
+    <section id="verified-sellers" className="bg-background py-10 sm:py-12 lg:py-14">
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-6 text-center sm:mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1">
@@ -93,8 +93,8 @@ export function VerifiedSellersSection() {
           ))}
         </div>
 
-        <div className="mt-6 text-center sm:mt-8">
-          <Button asChild variant="outline" className="tap-target gap-2 rounded-xl border-2 px-7 text-sm font-semibold">
+        <div className="mt-6 text-center">
+          <Button asChild variant="outline" className="gap-2 rounded-xl border-2 px-5 py-2.5 text-sm font-semibold">
             <Link to="/marketplace">
               View all verified sellers
               <ArrowRight className="h-4 w-4" />

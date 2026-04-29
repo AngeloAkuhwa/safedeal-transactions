@@ -20,7 +20,7 @@ function ProductImage({ product }: { product: DemoProduct }) {
       alt={product.title}
       loading="lazy"
       onError={() => setErrored(true)}
-      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+      className="h-full w-full object-contain p-3 transition-transform duration-700 group-hover:scale-105"
     />
   );
 }
@@ -32,7 +32,7 @@ function ProductCard({ product }: { product: DemoProduct }) {
       ref={ref}
       className="group flex flex-col overflow-hidden rounded-2xl border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl"
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-muted/40">
+      <div className="relative h-44 overflow-hidden bg-muted/40 sm:h-48 lg:h-56">
         <ProductImage product={product} />
         <span className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-lg bg-success px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-success-foreground shadow-md">
           <Shield className="h-3 w-3" />
@@ -42,9 +42,9 @@ function ProductCard({ product }: { product: DemoProduct }) {
           In Stock
         </span>
       </div>
-      <div className="flex flex-1 flex-col p-4">
-        <h3 className="h-card mb-1 font-bold text-foreground">{product.title}</h3>
-        <div className="mb-3 text-xl font-bold text-primary sm:text-2xl">
+      <div className="flex flex-1 flex-col p-5">
+        <h3 className="mb-1 text-base font-bold text-foreground sm:text-lg">{product.title}</h3>
+        <div className="mb-3 text-2xl font-bold text-primary">
           {formatNaira(product.price)}
         </div>
         <div className="mb-4 flex items-center justify-between border-t border-border pt-3">
@@ -71,7 +71,7 @@ function ProductCard({ product }: { product: DemoProduct }) {
 
 export function FeaturedDealsSection() {
   return (
-    <section id="featured-deals" className="section-y bg-background">
+    <section id="featured-deals" className="bg-background py-10 sm:py-12 lg:py-14">
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-6 text-center sm:mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1">
@@ -92,13 +92,13 @@ export function FeaturedDealsSection() {
           ))}
         </div>
 
-        <div className="mt-6 text-center sm:mt-8">
+        <div className="mt-6 text-center">
           <p className="mb-4 text-sm text-muted-foreground">
             Explore the full marketplace with thousands of protected listings
           </p>
           <Button
             asChild
-            className="tap-target rounded-xl px-7 py-5 text-sm font-bold shadow-md hover:shadow-lg"
+            className="rounded-xl px-5 py-2.5 text-sm font-bold shadow-md hover:shadow-lg"
           >
             <Link to="/marketplace">
               Browse Full Marketplace
