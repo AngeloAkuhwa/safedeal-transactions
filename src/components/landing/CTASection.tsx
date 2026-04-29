@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { Rocket, Store, Shield, Handshake, Lock, BadgeCheck, Camera } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const trustStats = [
   { icon: Lock, label: "Escrow protected payments" },
