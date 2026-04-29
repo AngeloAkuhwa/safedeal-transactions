@@ -105,15 +105,15 @@ function FeatureCard({ f }: { f: (typeof features)[number] }) {
   return (
     <div
       ref={ref}
-      className="group rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl"
+      className="group rounded-2xl border bg-card p-4 sm:p-5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl"
     >
       <div
-        className={`mb-4 flex h-11 w-11 items-center justify-center rounded-2xl transition-colors ${t.wrap} ${t.hover}`}
+        className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${t.wrap} ${t.hover}`}
       >
-        <f.icon className={`h-5 w-5 transition-colors ${t.icon} group-hover:text-current`} />
+        <f.icon className={`h-[18px] w-[18px] transition-colors ${t.icon} group-hover:text-current`} />
       </div>
-      <h3 className="mb-1.5 text-base font-bold text-foreground sm:text-lg">{f.title}</h3>
-      <p className="text-sm text-muted-foreground">{f.desc}</p>
+      <h3 className="mb-1 text-base font-bold text-foreground sm:text-lg">{f.title}</h3>
+      <p className="text-[13px] leading-relaxed text-muted-foreground">{f.desc}</p>
     </div>
   );
 }
@@ -122,7 +122,7 @@ export function PowerfulFeaturesSection() {
   return (
     <section id="features" className="section-y bg-background">
       <div className="container-x mx-auto max-w-6xl">
-        <div className="mb-6 text-center sm:mb-10">
+        <div className="mb-5 text-center sm:mb-7">
           <h2 className="h-section mb-2 font-bold text-foreground">
             Powerful features for secure transactions
           </h2>
@@ -131,7 +131,7 @@ export function PowerfulFeaturesSection() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-5">
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           {features.map((f) => (
             <FeatureCard key={f.title} f={f} />
           ))}

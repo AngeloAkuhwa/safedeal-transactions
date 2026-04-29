@@ -1,82 +1,96 @@
 ## Goal
 
-Tighten 4 mid-page sections so they feel premium and content-driven on desktop. No copy changes (one duplicate removal in Protection), no design direction changes — only padding, sizing, gaps, and one animation refinement.
+Tighten the lower half of the landing page (7 sections) for density and consistency. No copy changes, no design redirection. All required SafeDeal-specific content was verified intact in this audit — no content restoration needed.
 
-## Shared spacing primitive
+## Content audit (verified, no changes required)
 
-`src/index.css` `.section-y` is currently `clamp(2.5rem, 3.5vw, 5.5rem)` (max 88px). That's already in range, so keep it. Per-section overrides via `!py-*` only where a section still feels too tall (Protection). All other tightening happens via internal paddings and gaps.
+- **Featured deals** (`demo-data.ts`): iPhone 15 Pro Max 256GB / ₦1,850,000 / TechHub Lagos / 4.9 ✓ · MacBook Pro 16-inch M3 / ₦3,200,000 / Premium Tech NG / 4.8 ✓ · Nike Air Max 90 / ₦185,000 / SneakerHub / 4.7 ✓
+- **Verified sellers**: Chioma Electronics, TechHub Lagos, GameZone Nigeria, StylePlug Lagos — each shows rating, completed count, products count, Lagos, and verified badge ✓
+- **Powerful features**: all 9 SafeDeal cards present (Protected Marketplace, Direct Deal Links, Funds Held Securely, Verified Seller Storefronts, Locked Agreement, Delivery Tracking, Buyer Confirmation, Evidence Uploads, Dispute Resolution) ✓
+- **SafeDeal messaging** (escrow / verified sellers / direct links / Lagos-first / evidence disputes) — present across Hero, WhySafer, Protection, Transparency, FAQ, Footer ✓
 
----
+## Shared targets (applied per section)
 
-## 1. `WhySaferSection.tsx` — "Why SafeDeal feels safer"
+- Card padding: `p-4 sm:p-5` (≈16–20 px). Larger composite cards: `p-5 sm:p-6`.
+- Icon boxes: `h-10 w-10` (40 px) for grid cards; `h-11 w-11` (44 px) max for emphasis tiles. Inner icon `h-5 w-5` or `h-[18px] w-[18px]`.
+- Headings inside cards: `text-base sm:text-lg`, with `mb-1` not `mb-1.5`.
+- Body inside cards: `text-[13px] leading-relaxed text-muted-foreground`.
+- Section header block: `mb-5 sm:mb-7` (was `mb-6 sm:mb-10`).
+- Grid gaps: `gap-3 sm:gap-4`.
 
-- Header block: `mb-6 sm:mb-10` → `mb-5 sm:mb-7`.
-- Card padding: `p-5` → `p-4 sm:p-5`.
-- Icon box: `h-12 w-12 rounded-2xl` → `h-10 w-10 rounded-xl`; icon `h-6 w-6` → `h-5 w-5`; `mb-4` → `mb-3`.
-- Title: keep `text-base sm:text-lg`, tighten `mb-1.5` → `mb-1`.
-- Body: `text-sm` → `text-[13px] leading-relaxed`.
-- Grid gap: `gap-4 lg:gap-5` → `gap-3 sm:gap-4`.
+## Per-section edits
 
-## 2. `MarketplaceVsDirectSection.tsx` — "Built for marketplace and direct deals"
+### 1. `TransparencyTrustSection.tsx` — Built on transparency and trust
 
-- Header block: `mb-6 sm:mb-10` → `mb-5 sm:mb-7`.
-- FlowCard padding: `p-5` → `p-4 sm:p-5`.
-- Header row `mb-4` → `mb-3`; icon box `h-10 w-10` → `h-9 w-9`, icon `h-5 w-5` → `h-[18px] w-[18px]`.
-- Description `mb-4 text-sm` → `mb-3 text-[13px] leading-relaxed`.
-- Bullets: `mb-6 space-y-2` → `mb-4 space-y-1.5`; bullet text `text-sm` → `text-[13px]`; check icon `h-4 w-4` → `h-3.5 w-3.5`.
-- CTA button: add `h-9 text-sm` (compact, not full default `h-10`).
-- Grid gaps `gap-4 sm:gap-5 lg:gap-5` → `gap-4`.
+- Header `mb-6 sm:mb-10` → `mb-5 sm:mb-7`.
+- `PillarCard`: padding `p-5` → `p-4 sm:p-5`, icon box `h-11 w-11 rounded-2xl` → `h-10 w-10 rounded-xl`, `mb-4` → `mb-3`, title `mb-1.5` → `mb-1`, body `text-sm` → `text-[13px] leading-relaxed`.
+- Pillars grid: `mb-6 gap-4 lg:gap-5` → `mb-5 gap-3 sm:gap-4`.
+- "SafeDeal Lagos Launch" stats card: `p-5 sm:p-6` → `p-4 sm:p-5`; inner header `mb-4 sm:mb-5` → `mb-3 sm:mb-4`, title `text-base sm:text-lg` (keep) `mb-1` (keep), subtitle `text-sm` → `text-[13px]`. Stat tiles `p-3` → `p-2.5`, value `text-lg sm:text-xl` → `text-base sm:text-lg`.
 
-## 3. `HowItWorks.tsx` — "How SafeDeal Works"
+### 2. `PowerfulFeaturesSection.tsx` — Powerful features for secure transactions (9 cards)
 
-- Header block: `mb-6 sm:mb-10` → `mb-5 sm:mb-7`.
-- TabsList: `mb-6` → `mb-5`, trigger `py-2.5 text-sm` → `py-2 text-[13px]`.
-- FlowCard padding: `p-5` → `p-4 sm:p-5`.
-- FlowCard header: `mb-4` → `mb-3`, icon box `h-10 w-10` → `h-9 w-9`.
-- Step list `space-y-3` → `space-y-2.5`.
-- Step number circle: `h-7 w-7` → `h-6 w-6 text-[11px]`.
-- Step row gap `gap-2.5` → `gap-2.5` (keep), title `text-sm` (keep), desc `text-xs leading-snug`.
-- Grid gaps `gap-4 sm:gap-5 lg:gap-5` → `gap-4`.
-- Bottom explanation card: `mt-6 sm:mt-8 p-5` → `mt-5 sm:mt-6 p-4`; icon box `h-11 w-11` → `h-10 w-10`; title `text-sm sm:text-base` (keep); body `text-xs sm:text-sm` → `text-xs sm:text-[13px] leading-relaxed`.
-- Animation: step rows currently render statically. Add a lightweight per-row reveal — wrap each `<li>` in a `useScrollReveal` ref with a staggered `transition-delay` based on index (e.g. `style={{ transitionDelay: ${i * 60}ms }}`). The existing reveal hook already starts in the visible state with `opacity-0 translate-y-2 → opacity-100 translate-y-0` and only animates after intersection — so no blank space is reserved during load (the list keeps its final height).
+- Header `mb-6 sm:mb-10` → `mb-5 sm:mb-7`.
+- `FeatureCard`: padding `p-5` → `p-4 sm:p-5`, icon box `h-11 w-11 rounded-2xl` → `h-10 w-10 rounded-xl`, `mb-4` → `mb-3`, title `mb-1.5` → `mb-1`, body `text-sm` → `text-[13px] leading-relaxed`.
+- Grid: `gap-4 lg:gap-5` → `gap-3 sm:gap-4`.
+- All 9 features remain unchanged (verified above).
 
-## 4. `ProtectionSection.tsx` — "Your money stays protected…"
+### 3. `TrustSafetySection.tsx` — Trust & Safety
 
-- Section padding override: add `!py-10 sm:!py-12 lg:!py-14` on the `<section>` (currently up to ~88px from `.section-y`).
-- Header block: `mb-6 sm:mb-10` → `mb-5 sm:mb-7`.
-- Heading: keep `.h-section` (already clamp-scaled).
-- Two-column grid: `gap-6 lg:gap-10` → `gap-5 lg:gap-8`.
-- Left column step list `space-y-5` → `space-y-3.5`.
-- StepRow:
-  - icon box `h-10 w-10 rounded-2xl` → `h-9 w-9 rounded-xl`, icon `h-5 w-5` → `h-[18px] w-[18px]`.
-  - title `text-base sm:text-lg mb-0.5` → `text-[15px] sm:text-base mb-0.5 font-semibold`.
-  - desc `text-sm` → `text-[13px] leading-snug`.
-- Warning box (duplicate fix):
-  - Current already shows ONE bold heading + one body line. Confirmed by reading file: only one `"Do not pay outside SafeDeal"` heading + `"Outside payments are not protected by escrow."` body. **No actual duplicate exists in code today** — leave copy as-is. (Note this in the user-facing summary so they know we verified.)
-  - Tighten box: `p-4` → `p-3.5`, body `text-xs` → `text-[12px]`.
-- Right card (`ProtectedTransactionCard`):
-  - Wrapper: `rounded-3xl p-5 shadow-xl` → `rounded-2xl p-4 shadow-lg`; add `lg:max-w-[420px] lg:ml-auto` to narrow the card on desktop.
-  - Header block: `mb-4 pb-4` → `mb-3 pb-3`.
-  - Status list spacing: `space-y-2.5` → `space-y-1.5`, wrapper `mb-4` → `mb-3`.
-  - EscrowRow: `p-3 gap-3 rounded-xl border-2` → `p-2.5 gap-2.5 rounded-lg border`; title `text-sm` → `text-[13px]`; subtitle `text-xs` → `text-[11px]`; icon `h-5 w-5` → `h-[18px] w-[18px]`.
-  - Escrow total tile: `p-4` → `p-3`; amount `text-xl sm:text-2xl` → `text-lg sm:text-xl`; caption `text-xs` (keep).
-- Animation: status rows already use a single reveal on the card. Improve to a staggered highlight by:
-  - Giving each `EscrowRow` an `index` prop and applying `style={{ transitionDelay: ${index * 90}ms }}` along with `useScrollReveal`.
-  - Order matches: Payment Secured → Funds Held → Delivery In Progress → Buyer Verification Pending → Funds Released. The list's final height is reserved by the natural flow, so no blank space appears during stagger.
+- Header `mb-6 sm:mb-10` → `mb-5 sm:mb-7`.
+- `TrustCard`: padding `p-5` → `p-4 sm:p-5`, icon box `h-11 w-11 rounded-2xl` → `h-10 w-10 rounded-xl`, `mb-4` → `mb-3`, title `mb-1.5` → `mb-1`, body `mb-3.5 text-sm` → `mb-3 text-[13px] leading-relaxed`, footer pill `pt-3` → `pt-2.5`.
+- Grid `gap-4 lg:gap-5` → `gap-3 sm:gap-4`.
 
----
+### 4. `NeedHelpSection.tsx` — Need help?
+
+- Header `mb-6 sm:mb-10` → `mb-5 sm:mb-7`.
+- `HelpCard`: same compact treatment as TrustCard (`p-4 sm:p-5`, icon `h-10 w-10 rounded-xl mb-3`, title `mb-1`, body `mb-3 text-[13px] leading-relaxed`, footer `pt-2.5`).
+- Grid `gap-4 lg:gap-5` → `gap-3 sm:gap-4`.
+
+### 5. `FAQSection.tsx` — Frequently Asked Questions
+
+- Already uses Accordion ✓ — keep structure.
+- Header `mb-6 sm:mb-10` → `mb-5 sm:mb-7`.
+- `FaqItem` wrapper padding `p-1.5` → `p-1`.
+- Trigger: `px-3.5 py-2.5 sm:px-4` → `px-3 py-2 sm:px-3.5`, font `text-sm sm:text-[15px]` → `text-[13px] sm:text-sm`.
+- Trigger icon tile `h-7 w-7` → `h-6 w-6`, icon `h-4 w-4` → `h-3.5 w-3.5`.
+- Content: `px-3.5 pb-3 pl-[52px] text-sm sm:px-4 sm:pb-3.5 sm:pl-[58px]` → `px-3 pb-2.5 pl-[44px] text-[13px] sm:px-3.5 sm:pb-3 sm:pl-[48px]`.
+- Grid `gap-3 lg:gap-4` → `gap-2.5 lg:gap-3`.
+
+### 6. `CTASection.tsx` — Final CTA
+
+- Section padding `py-12 sm:py-14` → `py-10 sm:py-12`.
+- Eyebrow chip: keep, `mb-4` → `mb-3`.
+- Heading `mb-3` → `mb-2`.
+- Subhead `mb-6` → `mb-5`.
+- Button group `mb-8` → `mb-6`. Buttons: padding `px-5 py-3` → `px-4 py-2.5`, font `text-sm sm:text-[15px]` → `text-[13px] sm:text-sm`, icon `h-4 w-4` (keep). Keep all 3 CTAs unchanged (Browse Marketplace · Start Selling · Create Protected Transaction).
+- Trust stat row tiles: `px-3.5 py-3` → `px-3 py-2.5`, label `text-xs sm:text-sm` → `text-[11px] sm:text-xs`.
+- Decorative blur sizes `h-72 w-72` → `h-56 w-56` (less heavy on shorter section).
+
+### 7. `Footer.tsx`
+
+- Footer wrapper: `pb-6 pt-10 sm:pt-12` → `pb-5 pt-8 sm:pt-10`.
+- Top grid wrapper `mb-10 gap-8` → `mb-8 gap-6`.
+- Brand: logo tile `h-10 w-10` → `h-9 w-9` icon `h-5 w-5` → `h-[18px] w-[18px]`; brand text `text-xl` → `text-lg`; tagline `mb-5 text-sm` → `mb-4 text-[13px]`; location row `mb-5` → `mb-4`.
+- Social icon tiles `h-10 w-10` → `h-9 w-9`, icon `h-4 w-4` (keep).
+- Column headings `mb-4 text-sm` → `mb-3 text-[13px]`.
+- Link lists `space-y-2.5 text-sm` → `space-y-2 text-[13px]`.
+- Bottom bar `pt-6` → `pt-5`, copyright/legal `text-xs` (keep).
 
 ## Files to edit
 
-- `src/components/landing/WhySaferSection.tsx`
-- `src/components/landing/MarketplaceVsDirectSection.tsx`
-- `src/components/landing/HowItWorks.tsx`
-- `src/components/landing/ProtectionSection.tsx`
+- `src/components/landing/TransparencyTrustSection.tsx`
+- `src/components/landing/PowerfulFeaturesSection.tsx`
+- `src/components/landing/TrustSafetySection.tsx`
+- `src/components/landing/NeedHelpSection.tsx`
+- `src/components/landing/FAQSection.tsx`
+- `src/components/landing/CTASection.tsx`
+- `src/components/landing/Footer.tsx`
 
-No changes to `src/index.css`, copy, color tokens, or component structure beyond what's listed.
+No changes to: copy, demo data, color tokens, structure, button counts, accordion logic, or `index.css`.
 
-## Verification (after implementation)
+## Verification after implementation
 
-- View `/` at the user's current 1246×890 viewport via the preview.
-- Confirm each section's vertical footprint shrinks ~20–30% and grids/cards remain aligned across sm / md / lg breakpoints.
-- Confirm animation stagger reveals smoothly without reserving extra space on initial paint.
+- View `/` at the user's 1246×890 viewport.
+- Confirm each lower section's vertical footprint shrinks ~20–30% with consistent card sizing across the 4 grid sections (Transparency / Features / Trust / Help).
+- Confirm FAQ rows are noticeably more compact while still using the accordion.
+- Confirm CTA still shows all 3 buttons and footer remains 4 columns at lg.
