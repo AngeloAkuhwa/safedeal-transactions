@@ -10,35 +10,35 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 const faqs = [
   {
     q: "How does SafeDeal protect my payment?",
-    a: "SafeDeal holds your payment in a secure escrow account. Funds are only released to the seller after you confirm the item matches what was agreed, or after the verification window expires without a dispute.",
+    a: "Your payment sits in escrow until you confirm the item matches — or the verification window closes without a dispute.",
   },
   {
-    q: "Can I browse products without signing up?",
-    a: "Yes! You can browse the SafeDeal marketplace, view products, and explore seller storefronts publicly. You only need to sign up when you're ready to make a purchase.",
+    q: "Can I browse without signing up?",
+    a: "Yes. Browsing is public. You only sign in when you're ready to buy.",
   },
   {
-    q: "When does the seller receive money?",
-    a: "Sellers receive payment only after you confirm the item matches the agreement or the verification window expires without dispute. Your funds are held securely in SafeDeal escrow until then.",
+    q: "When does the seller get paid?",
+    a: "After you confirm the item, or once the verification window expires with no dispute.",
   },
   {
-    q: "What happens if the item doesn't match?",
-    a: "You can raise a dispute with photo and video evidence. SafeDeal reviews both buyer and seller evidence fairly. Funds remain held in escrow until the dispute is resolved.",
+    q: "What if the item doesn't match?",
+    a: "Raise a dispute with photos or video. SafeDeal reviews evidence from both sides before releasing funds.",
   },
   {
-    q: "Can sellers create direct transaction links?",
-    a: "Yes! Sellers can create protected transaction links for specific buyers. This is perfect for deals that start on WhatsApp, Instagram, or other platforms outside the marketplace.",
+    q: "Can sellers create direct links?",
+    a: "Yes. Share a protected link for deals from WhatsApp, Instagram, or DMs.",
   },
   {
     q: "Are payments outside SafeDeal protected?",
-    a: "No. Only payments made through SafeDeal are protected by escrow. Never pay sellers directly outside the platform. SafeDeal cannot protect or recover payments made outside the system.",
+    a: "No. Only payments made through SafeDeal are protected. Never pay sellers directly.",
   },
   {
-    q: "What cities does SafeDeal support?",
-    a: "SafeDeal is currently available in Lagos, Nigeria. We're expanding to other Nigerian cities soon. All payments are in NGN.",
+    q: "Which cities do you support?",
+    a: "Lagos, Nigeria first — more cities coming. Payments in NGN.",
   },
   {
-    q: "What documents do sellers need for verification?",
-    a: "Sellers need to verify email, phone number, and identity. This helps buyers trust that they're dealing with real, verified sellers on SafeDeal.",
+    q: "What do sellers verify?",
+    a: "Email, phone, and identity — so buyers know they're real.",
   },
 ];
 
@@ -47,18 +47,19 @@ function FaqItem({ faq, index }: { faq: { q: string; a: string }; index: number 
   return (
     <div
       ref={ref}
-      className="rounded-2xl border border-border bg-card p-1 transition-all hover:border-primary/30 hover:shadow-md"
+      style={{ transitionDelay: `${index * 40}ms` }}
+      className="overflow-hidden rounded-xl border border-border bg-card transition-all hover:border-primary/30 hover:shadow-md"
     >
       <AccordionItem value={`faq-${index}`} className="border-none">
-        <AccordionTrigger className="px-3 py-2 text-left text-[13px] font-bold text-foreground hover:no-underline sm:px-3.5 sm:text-sm">
-          <span className="flex items-start gap-2.5">
-            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <AccordionTrigger className="group px-3.5 py-3 text-left text-[13px] font-semibold text-foreground hover:no-underline sm:text-[14px]">
+          <span className="flex items-center gap-2.5">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
               <HelpCircle className="h-3.5 w-3.5" />
             </span>
             <span className="flex-1">{faq.q}</span>
           </span>
         </AccordionTrigger>
-        <AccordionContent className="px-3 pb-2.5 pl-[44px] text-[13px] leading-relaxed text-muted-foreground sm:px-3.5 sm:pb-3 sm:pl-[48px]">
+        <AccordionContent className="px-3.5 pb-3 pl-[52px] text-[13px] leading-relaxed text-muted-foreground">
           {faq.a}
         </AccordionContent>
       </AccordionItem>
@@ -67,26 +68,22 @@ function FaqItem({ faq, index }: { faq: { q: string; a: string }; index: number 
 }
 
 export function FAQSection() {
-  const half = Math.ceil(faqs.length / 2);
-  const left = faqs.slice(0, half);
-  const right = faqs.slice(half);
   return (
     <section id="faq" className="section-y bg-background">
-      <div className="container-x mx-auto max-w-6xl">
+      <div className="container-x mx-auto max-w-4xl">
         <div className="mb-5 text-center sm:mb-7">
-          <h2 className="h-section mb-2 font-bold text-foreground">
-            Frequently Asked Questions
-          </h2>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
+            <HelpCircle className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-semibold text-primary">FAQ</span>
+          </div>
+          <h2 className="h-section mb-2 font-bold text-foreground">Frequently asked questions</h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
-            Everything you need to know about SafeDeal marketplace and protected transactions.
+            Quick answers. Tap to open.
           </p>
         </div>
-        <Accordion type="single" collapsible className="grid gap-2.5 lg:grid-cols-2 lg:gap-3">
-          {left.map((faq, i) => (
+        <Accordion type="single" collapsible className="grid gap-2">
+          {faqs.map((faq, i) => (
             <FaqItem key={i} faq={faq} index={i} />
-          ))}
-          {right.map((faq, i) => (
-            <FaqItem key={i + half} faq={faq} index={i + half} />
           ))}
         </Accordion>
       </div>
