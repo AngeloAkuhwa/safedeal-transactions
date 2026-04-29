@@ -24,7 +24,7 @@ function SellerCard({ seller, index }: { seller: DemoSeller; index: number }) {
             {seller.initials}
           </div>
           <span
-            className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-lg border-[3px] border-card bg-primary shadow-md animate-scale-in"
+            className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-lg border-[3px] border-card bg-primary shadow-md animate-fade-in"
             style={{ animationDelay: `${index * 90 + 250}ms`, animationFillMode: "both" }}
             title="Verified"
           >
