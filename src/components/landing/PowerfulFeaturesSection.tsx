@@ -8,72 +8,30 @@ import {
   CircleCheck,
   Camera,
   Gavel,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 type Tone = "primary" | "success" | "warning" | "danger";
 
-const features: {
+interface Feature {
   icon: LucideIcon;
   title: string;
-  desc: string;
+  line: string;
   tone: Tone;
-}[] = [
-  {
-    icon: ShoppingBag,
-    title: "Protected Marketplace",
-    desc: "Browse products from verified sellers with SafeDeal protection built in.",
-    tone: "primary",
-  },
-  {
-    icon: Link2,
-    title: "Direct Deal Links",
-    desc: "Create a protected transaction link for deals on WhatsApp, Instagram, or privately.",
-    tone: "success",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Funds Held Securely",
-    desc: "Buyer payment stays protected until verification or a valid resolution.",
-    tone: "primary",
-  },
-  {
-    icon: Store,
-    title: "Verified Seller Storefronts",
-    desc: "Sellers build trust with verified profiles, ratings, and completed deals.",
-    tone: "success",
-  },
-  {
-    icon: Lock,
-    title: "Locked Agreement",
-    desc: "Item details, price, delivery terms, and evidence are locked after payment.",
-    tone: "warning",
-  },
-  {
-    icon: Truck,
-    title: "Delivery Tracking",
-    desc: "Track seller dispatch, courier details, delivery proof, and verification windows.",
-    tone: "primary",
-  },
-  {
-    icon: CircleCheck,
-    title: "Buyer Confirmation",
-    desc: "Funds release only after the buyer confirms the item matches the agreement.",
-    tone: "success",
-  },
-  {
-    icon: Camera,
-    title: "Evidence Uploads",
-    desc: "Photos, videos, receipts, and delivery proof are stored for dispute review.",
-    tone: "warning",
-  },
-  {
-    icon: Gavel,
-    title: "Dispute Resolution",
-    desc: "If something goes wrong, SafeDeal reviews evidence before funds are released.",
-    tone: "danger",
-  },
+}
+
+const FEATURES: Feature[] = [
+  { icon: ShoppingBag, title: "Protected Marketplace", line: "Every listing is escrow-backed.", tone: "primary" },
+  { icon: Link2, title: "Direct Deal Links", line: "Share via WhatsApp or DMs.", tone: "success" },
+  { icon: ShieldCheck, title: "Funds Held Securely", line: "Money locked until verified.", tone: "primary" },
+  { icon: Store, title: "Verified Seller Storefronts", line: "Real, vetted sellers.", tone: "success" },
+  { icon: Lock, title: "Locked Agreement", line: "Terms can't change after pay.", tone: "warning" },
+  { icon: Truck, title: "Delivery Tracking", line: "Follow the item end-to-end.", tone: "primary" },
+  { icon: CircleCheck, title: "Buyer Confirmation", line: "Funds release on approval.", tone: "success" },
+  { icon: Camera, title: "Evidence Uploads", line: "Photos, receipts, proof.", tone: "warning" },
+  { icon: Gavel, title: "Dispute Resolution", line: "Reviewed by SafeDeal team.", tone: "danger" },
 ];
 
 const toneMap: Record<Tone, { wrap: string; icon: string; hover: string }> = {
@@ -99,41 +57,50 @@ const toneMap: Record<Tone, { wrap: string; icon: string; hover: string }> = {
   },
 };
 
-function FeatureCard({ f }: { f: (typeof features)[number] }) {
+function FeatureCard({ f, index }: { f: Feature; index: number }) {
   const ref = useScrollReveal<HTMLDivElement>();
   const t = toneMap[f.tone];
   return (
     <div
       ref={ref}
-      className="group rounded-2xl border bg-card p-4 sm:p-5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl"
+      style={{ transitionDelay: `${index * 50}ms` }}
+      className="group flex items-start gap-3 rounded-xl border bg-card p-3.5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg sm:p-4"
     >
       <div
-        className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${t.wrap} ${t.hover}`}
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-all duration-300 group-hover:scale-110 ${t.wrap} ${t.hover}`}
       >
-        <f.icon className={`h-[18px] w-[18px] transition-colors ${t.icon} group-hover:text-current`} />
+        <f.icon className={`h-5 w-5 transition-colors ${t.icon} group-hover:text-current`} />
       </div>
-      <h3 className="mb-1 text-base font-bold text-foreground sm:text-lg">{f.title}</h3>
-      <p className="text-[13px] leading-relaxed text-muted-foreground">{f.desc}</p>
+      <div className="min-w-0">
+        <h3 className="text-[14px] font-bold leading-tight text-foreground sm:text-[15px]">
+          {f.title}
+        </h3>
+        <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{f.line}</p>
+      </div>
     </div>
   );
 }
 
 export function PowerfulFeaturesSection() {
   return (
-    <section id="features" className="section-y bg-background">
+    <section id="features" className="section-y bg-muted/30">
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-5 text-center sm:mb-7">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-semibold text-primary">Features</span>
+          </div>
           <h2 className="h-section mb-2 font-bold text-foreground">
             Powerful features for secure transactions
           </h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
-            Everything buyers and sellers need to transact with confidence.
+            Nine guarantees. Built into every deal.
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-          {features.map((f) => (
-            <FeatureCard key={f.title} f={f} />
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-3">
+          {FEATURES.map((f, i) => (
+            <FeatureCard key={f.title} f={f} index={i} />
           ))}
         </div>
       </div>

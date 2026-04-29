@@ -7,7 +7,7 @@ import { WhySaferSection } from "@/components/landing/WhySaferSection";
 import { MarketplaceVsDirectSection } from "@/components/landing/MarketplaceVsDirectSection";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { ProtectionSection } from "@/components/landing/ProtectionSection";
-import { TransparencyTrustSection } from "@/components/landing/TransparencyTrustSection";
+import { PowerfulFeaturesSection } from "@/components/landing/PowerfulFeaturesSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { CTASection } from "@/components/landing/CTASection";
 import { Footer } from "@/components/landing/Footer";
@@ -25,8 +25,7 @@ const Index = () => {
         <MarketplaceVsDirectSection />
         <HowItWorks />
         <ProtectionSection />
-        {/* Consolidated: trust + safety + features merged into one compact grid */}
-        <TransparencyTrustSection />
+        <PowerfulFeaturesSection />
         <FAQSection />
         <CTASection />
       </main>
