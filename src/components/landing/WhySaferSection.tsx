@@ -1,23 +1,12 @@
-import {
-  Lock,
-  ShieldCheck,
-  FileCheck2,
-  Camera,
-  Receipt,
-  Truck,
-  Wallet,
-  ArrowDown,
-  Check,
-  type LucideIcon,
-} from "lucide-react";
+import { ShieldCheck, Lock, BadgeCheck, Camera, Receipt, Truck } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 type Tone = "primary" | "success" | "warning";
 
-const toneMap: Record<Tone, { wrap: string; ring: string; icon: string; bg: string }> = {
-  primary: { wrap: "bg-primary/10", ring: "ring-primary/20", icon: "text-primary", bg: "bg-primary" },
-  success: { wrap: "bg-success/10", ring: "ring-success/20", icon: "text-success", bg: "bg-success" },
-  warning: { wrap: "bg-warning/10", ring: "ring-warning/20", icon: "text-warning", bg: "bg-warning" },
+const toneMap: Record<Tone, { wrap: string; ring: string; icon: string }> = {
+  primary: { wrap: "bg-primary/10", ring: "ring-primary/20", icon: "text-primary" },
+  success: { wrap: "bg-success/10", ring: "ring-success/20", icon: "text-success" },
+  warning: { wrap: "bg-warning/10", ring: "ring-warning/20", icon: "text-warning" },
 };
 
 function ProofShell({
@@ -38,81 +27,61 @@ function ProofShell({
   return (
     <div
       ref={ref}
-      style={{ transitionDelay: `${index * 100}ms` }}
-      className="group flex flex-col rounded-2xl border bg-card p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-5"
+      style={{ transitionDelay: `${index * 90}ms` }}
+      className="group flex flex-col rounded-2xl border bg-card p-4 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"
     >
       {/* Visual */}
       <div
-        className={`relative mb-4 flex h-32 items-center justify-center overflow-hidden rounded-xl ring-1 ${t.wrap} ${t.ring}`}
+        className={`relative mb-3 flex h-24 items-center justify-center overflow-hidden rounded-xl ring-1 ${t.wrap} ${t.ring}`}
       >
         {children}
       </div>
-      <h3 className="mb-1 text-base font-bold text-foreground sm:text-[17px]">{title}</h3>
+      <h3 className="mb-1 text-base font-bold text-foreground">{title}</h3>
       <p className="text-[13px] leading-snug text-muted-foreground">{caption}</p>
     </div>
   );
 }
 
-/* Visual 1 — Locked Agreement */
-function LockedAgreementVisual() {
+/* Visual 1 — Funds held in escrow */
+function EscrowVisual() {
   return (
     <div className="relative">
-      <div className="relative h-24 w-20 rounded-md border border-border bg-card shadow-md transition-transform duration-500 group-hover:-rotate-2">
-        <div className="space-y-1 p-2">
-          <div className="h-1.5 w-12 rounded bg-muted-foreground/30" />
-          <div className="h-1 w-14 rounded bg-muted-foreground/20" />
-          <div className="h-1 w-10 rounded bg-muted-foreground/20" />
-          <div className="h-1 w-12 rounded bg-muted-foreground/20" />
-          <div className="h-1 w-8 rounded bg-muted-foreground/20" />
-        </div>
-        <FileCheck2 className="absolute right-1 top-1 h-3 w-3 text-primary" />
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-success text-success-foreground shadow-lg ring-4 ring-success/20 transition-transform duration-500 group-hover:scale-110">
+        <ShieldCheck className="h-6 w-6" />
       </div>
-      {/* Lock badge */}
-      <span className="absolute -bottom-1 -right-2 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-card transition-transform duration-500 group-hover:scale-110">
-        <Lock className="h-4 w-4 animate-pulse" />
+      <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-card text-primary shadow ring-2 ring-primary/30 transition-transform duration-500 group-hover:rotate-12">
+        <Lock className="h-3 w-3" />
       </span>
     </div>
   );
 }
 
-/* Visual 2 — Escrow Protection */
-function EscrowVisual() {
+/* Visual 2 — Verified sellers only */
+function VerifiedVisual() {
   return (
-    <div className="relative flex items-center gap-3">
-      {/* Coin */}
-      <div className="flex h-9 w-9 animate-bounce items-center justify-center rounded-full bg-warning text-warning-foreground shadow-md [animation-duration:2s]">
-        <Wallet className="h-4 w-4" />
+    <div className="relative">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg ring-4 ring-primary/20 transition-transform duration-500 group-hover:scale-110">
+        <BadgeCheck className="h-7 w-7" />
       </div>
-      {/* Arrow */}
-      <ArrowDown className="h-4 w-4 -rotate-90 text-success" />
-      {/* Vault / shield */}
-      <div className="relative">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-success text-success-foreground shadow-lg ring-4 ring-success/20 transition-transform duration-500 group-hover:scale-105">
-          <ShieldCheck className="h-7 w-7" />
-        </div>
-        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-card text-success shadow ring-2 ring-success/30">
-          <Check className="h-3 w-3" />
-        </span>
-      </div>
+      <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-success text-success-foreground shadow ring-2 ring-card">
+        <BadgeCheck className="h-3 w-3" />
+      </span>
     </div>
   );
 }
 
-/* Visual 3 — Evidence Review */
+/* Visual 3 — Evidence-backed disputes */
 function EvidenceVisual() {
   return (
-    <div className="relative h-20 w-24">
-      {/* Bottom card — receipt */}
-      <div className="absolute left-0 top-2 flex h-14 w-12 -rotate-6 items-center justify-center rounded-md border border-border bg-card shadow transition-transform duration-500 group-hover:-translate-x-1 group-hover:-rotate-12">
-        <Receipt className="h-5 w-5 text-warning" />
+    <div className="relative h-16 w-24">
+      <div className="absolute left-0 top-2 flex h-12 w-10 -rotate-6 items-center justify-center rounded-md border border-border bg-card shadow transition-transform duration-500 group-hover:-translate-x-1 group-hover:-rotate-12">
+        <Receipt className="h-4 w-4 text-warning" />
       </div>
-      {/* Middle card — delivery */}
-      <div className="absolute left-6 top-1 flex h-14 w-12 items-center justify-center rounded-md border border-border bg-card shadow-md">
-        <Truck className="h-5 w-5 text-primary" />
+      <div className="absolute left-7 top-1 flex h-12 w-10 items-center justify-center rounded-md border border-border bg-card shadow-md">
+        <Truck className="h-4 w-4 text-primary" />
       </div>
-      {/* Top card — photo */}
-      <div className="absolute left-12 top-0 flex h-14 w-12 rotate-6 items-center justify-center rounded-md border border-border bg-card shadow-lg transition-transform duration-500 group-hover:translate-x-1 group-hover:rotate-12">
-        <Camera className="h-5 w-5 text-success" />
+      <div className="absolute left-14 top-0 flex h-12 w-10 rotate-6 items-center justify-center rounded-md border border-border bg-card shadow-lg transition-transform duration-500 group-hover:translate-x-1 group-hover:rotate-12">
+        <Camera className="h-4 w-4 text-success" />
       </div>
     </div>
   );
@@ -124,9 +93,24 @@ const proofs: {
   caption: string;
   Visual: () => JSX.Element;
 }[] = [
-  { tone: "primary", title: "Locked Agreement", caption: "Terms cannot change after payment.", Visual: LockedAgreementVisual },
-  { tone: "success", title: "Escrow Protection", caption: "Funds stay held until buyer verification.", Visual: EscrowVisual },
-  { tone: "warning", title: "Evidence Review", caption: "Disputes are reviewed with evidence.", Visual: EvidenceVisual },
+  {
+    tone: "success",
+    title: "Funds held in escrow",
+    caption: "SafeDeal holds payment until the buyer confirms the item matches the agreement.",
+    Visual: EscrowVisual,
+  },
+  {
+    tone: "primary",
+    title: "Verified sellers only",
+    caption: "Sellers pass key verification checks before listing protected products.",
+    Visual: VerifiedVisual,
+  },
+  {
+    tone: "warning",
+    title: "Evidence-backed disputes",
+    caption: "Photos, videos, receipts, and delivery proof help resolve issues fairly.",
+    Visual: EvidenceVisual,
+  },
 ];
 
 export function WhySaferSection() {
