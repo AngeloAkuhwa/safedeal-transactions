@@ -15,7 +15,7 @@ import {
   Lightbulb,
   UserCheck,
   Check,
-  ArrowRight,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
@@ -45,7 +45,7 @@ const FEATURES: Feature[] = [
     tone: "primary",
     steps: [
       { icon: CircleCheck, label: "Listing verified" },
-      { icon: ShieldCheck, label: "Protection enabled" },
+      { icon: ShieldCheck, label: "Protection on" },
       { icon: ShoppingBag, label: "Checkout ready" },
     ],
   },
@@ -56,7 +56,7 @@ const FEATURES: Feature[] = [
     tone: "success",
     steps: [
       { icon: Link2, label: "Create link" },
-      { icon: ArrowRight, label: "Share privately" },
+      { icon: ChevronRight, label: "Share" },
       { icon: UserCheck, label: "Buyer opens" },
     ],
   },
@@ -66,9 +66,9 @@ const FEATURES: Feature[] = [
     line: "Buyer payment stays safely held until verification or resolution.",
     tone: "primary",
     steps: [
-      { icon: CircleCheck, label: "Payment received" },
-      { icon: Lock, label: "Held in escrow" },
-      { icon: Check, label: "Awaiting confirm" },
+      { icon: CircleCheck, label: "Payment in" },
+      { icon: Lock, label: "In escrow" },
+      { icon: Check, label: "Awaiting OK" },
     ],
   },
   {
@@ -77,9 +77,9 @@ const FEATURES: Feature[] = [
     line: "Buy from sellers with verified profiles, ratings, and completed deals.",
     tone: "success",
     steps: [
-      { icon: UserCheck, label: "Identity checked" },
+      { icon: UserCheck, label: "ID checked" },
       { icon: Store, label: "Store verified" },
-      { icon: ShieldCheck, label: "Buyer can trust" },
+      { icon: ShieldCheck, label: "Trusted" },
     ],
   },
   {
@@ -99,8 +99,8 @@ const FEATURES: Feature[] = [
     line: "Sellers upload courier details, tracking numbers, and delivery proof.",
     tone: "primary",
     steps: [
-      { icon: ShoppingBag, label: "Seller dispatches" },
-      { icon: Search, label: "Tracking added" },
+      { icon: ShoppingBag, label: "Dispatched" },
+      { icon: Search, label: "Tracking on" },
       { icon: Truck, label: "In transit" },
     ],
   },
@@ -110,8 +110,8 @@ const FEATURES: Feature[] = [
     line: "Funds release only after the buyer confirms the item matches.",
     tone: "success",
     steps: [
-      { icon: Truck, label: "Item received" },
-      { icon: Search, label: "Buyer reviews" },
+      { icon: Truck, label: "Received" },
+      { icon: Search, label: "Reviewed" },
       { icon: CircleCheck, label: "Confirmed" },
     ],
   },
@@ -121,8 +121,8 @@ const FEATURES: Feature[] = [
     line: "Photos, videos, receipts, and delivery proof support dispute reviews.",
     tone: "warning",
     steps: [
-      { icon: Camera, label: "Photos added" },
-      { icon: Check, label: "Receipt attached" },
+      { icon: Camera, label: "Photos" },
+      { icon: Check, label: "Receipt" },
       { icon: ShieldCheck, label: "Proof ready" },
     ],
   },
@@ -136,12 +136,12 @@ const FEATURES: Feature[] = [
       "Reviews evidence",
       "Flags missing proof",
       "Suggests next action",
-      "Escalates to human agent",
+      "Escalates to human",
     ],
     steps: [
-      { icon: AlertCircle, label: "Claim received" },
-      { icon: Search, label: "Evidence scanned" },
-      { icon: Lightbulb, label: "Recommendation" },
+      { icon: AlertCircle, label: "Claim" },
+      { icon: Search, label: "Scanned" },
+      { icon: Lightbulb, label: "Suggested" },
       { icon: UserCheck, label: "Human review" },
     ],
   },
@@ -155,57 +155,44 @@ const toneMap: Record<
     iconHover: string;
     chipActive: string;
     chipDone: string;
-    arrow: string;
     border: string;
-    glow: string;
   }
 > = {
   primary: {
     iconWrap: "bg-primary/10",
     iconColor: "text-primary",
     iconHover: "group-hover:bg-primary group-hover:text-primary-foreground",
-    chipActive: "border-primary/40 bg-primary/15 text-primary ring-2 ring-primary/25",
+    chipActive: "border-primary/40 bg-primary/15 text-primary ring-1 ring-primary/25",
     chipDone: "border-primary/20 bg-primary/5 text-primary",
-    arrow: "text-primary/50",
     border: "hover:border-primary/40",
-    glow: "hsl(var(--primary) / 0.35)",
   },
   success: {
     iconWrap: "bg-success/10",
     iconColor: "text-success",
     iconHover: "group-hover:bg-success group-hover:text-success-foreground",
-    chipActive: "border-success/40 bg-success/15 text-success ring-2 ring-success/25",
+    chipActive: "border-success/40 bg-success/15 text-success ring-1 ring-success/25",
     chipDone: "border-success/20 bg-success/5 text-success",
-    arrow: "text-success/50",
     border: "hover:border-success/40",
-    glow: "hsl(var(--success) / 0.35)",
   },
   warning: {
     iconWrap: "bg-warning/10",
     iconColor: "text-warning",
     iconHover: "group-hover:bg-warning group-hover:text-warning-foreground",
-    chipActive: "border-warning/40 bg-warning/15 text-warning ring-2 ring-warning/25",
+    chipActive: "border-warning/40 bg-warning/15 text-warning ring-1 ring-warning/25",
     chipDone: "border-warning/20 bg-warning/5 text-warning",
-    arrow: "text-warning/50",
     border: "hover:border-warning/40",
-    glow: "hsl(var(--warning) / 0.35)",
   },
   danger: {
     iconWrap: "bg-destructive/10",
     iconColor: "text-destructive",
     iconHover: "group-hover:bg-destructive group-hover:text-destructive-foreground",
-    chipActive: "border-destructive/40 bg-destructive/15 text-destructive ring-2 ring-destructive/25",
+    chipActive: "border-destructive/40 bg-destructive/15 text-destructive ring-1 ring-destructive/25",
     chipDone: "border-destructive/20 bg-destructive/5 text-destructive",
-    arrow: "text-destructive/50",
     border: "hover:border-destructive/40",
-    glow: "hsl(var(--destructive) / 0.35)",
   },
 };
 
-/**
- * One-shot reveal observer for cycling activation.
- * Returns whether the element has entered the viewport at least once.
- */
+/** One-shot in-view observer. */
 function useInView<T extends HTMLElement>(threshold = 0.3) {
   const ref = useRef<T | null>(null);
   const [seen, setSeen] = useState(false);
@@ -234,6 +221,62 @@ function useInView<T extends HTMLElement>(threshold = 0.3) {
   return { ref, seen };
 }
 
+function MiniFlow({
+  steps,
+  step,
+  shouldPlay,
+  tone,
+}: {
+  steps: MiniStep[];
+  step: number;
+  shouldPlay: boolean;
+  tone: ReturnType<typeof toneMapGetter>;
+}) {
+  // Use a CSS grid so columns share width evenly and content cannot overflow.
+  // Connectors are subtle dots between cells, not arrows that consume space.
+  return (
+    <div
+      className="grid items-stretch gap-1"
+      style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
+    >
+      {steps.map((s, i) => {
+        const done = i < step;
+        const current = i === step && shouldPlay;
+        const StepIcon = s.icon;
+        return (
+          <div
+            key={s.label}
+            className={`flex min-w-0 items-center justify-center gap-1 rounded-lg border px-1.5 py-1.5 transition-all duration-500 ${
+              done
+                ? tone.chipDone
+                : current
+                  ? `${tone.chipActive} scale-[1.02]`
+                  : "border-border bg-card/50 text-muted-foreground opacity-70"
+            }`}
+            title={s.label}
+          >
+            <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+              {done ? (
+                <Check className="h-3 w-3" />
+              ) : (
+                <StepIcon className="h-3 w-3" />
+              )}
+            </span>
+            <span className="min-w-0 truncate text-[10px] font-bold leading-tight">
+              {s.label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// helper for typing of toneMap tone object
+function toneMapGetter(tone: Tone) {
+  return toneMap[tone];
+}
+
 function FeatureCard({
   f,
   index,
@@ -251,12 +294,10 @@ function FeatureCard({
   const [step, setStep] = useState(0);
   const total = f.steps.length;
 
-  // Trigger conditions: globally cycled-in OR hovered OR (hero card on first reveal)
   const shouldPlay = isActive || hovered || (f.hero && forceHeroOnce && seen);
 
   useEffect(() => {
     if (!shouldPlay) {
-      // resting: clear to first step so the next play feels intentional
       setStep(0);
       return;
     }
@@ -269,13 +310,7 @@ function FeatureCard({
     setStep(0);
     const tick = f.hero ? 700 : 600;
     const id = window.setInterval(() => {
-      setStep((s) => {
-        if (s >= total - 1) {
-          // hold the final state — the parent cycler will move on
-          return s;
-        }
-        return s + 1;
-      });
+      setStep((s) => (s >= total - 1 ? s : s + 1));
     }, tick);
     return () => window.clearInterval(id);
   }, [shouldPlay, total, f.hero]);
@@ -294,17 +329,17 @@ function FeatureCard({
       onFocus={() => setHovered(true)}
       onBlur={() => setHovered(false)}
       tabIndex={0}
-      className={`group relative flex h-full flex-col rounded-2xl border bg-card p-4 outline-none transition-all duration-300 hover:-translate-y-1 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary/40 sm:p-5 ${
+      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card p-4 outline-none transition-all duration-300 hover:-translate-y-1 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary/40 ${
         f.hero
-          ? "sm:col-span-2 lg:col-span-3 border-2 border-destructive/30 bg-gradient-to-br from-destructive/5 via-card to-card overflow-hidden"
+          ? "border-2 border-destructive/30 bg-gradient-to-br from-destructive/5 via-card to-card shadow-md"
           : t.border
       }`}
     >
-      {/* Hero soft moving glow — restrained, professional */}
+      {/* Hero soft moving glow */}
       {f.hero && (
         <span
           aria-hidden
-          className="sd-hero-glow pointer-events-none absolute inset-0 rounded-2xl"
+          className="sd-hero-glow pointer-events-none absolute inset-0"
           style={{
             background:
               "radial-gradient(60% 80% at 20% 0%, hsl(var(--destructive)/0.12), transparent 60%), radial-gradient(50% 80% at 90% 100%, hsl(var(--primary)/0.10), transparent 60%)",
@@ -312,8 +347,8 @@ function FeatureCard({
         />
       )}
 
-      <div className="relative z-10 flex h-full flex-col">
-        {/* Header row */}
+      <div className="relative z-10 flex h-full min-w-0 flex-col">
+        {/* Header */}
         <div className="mb-3 flex items-start gap-3">
           <div
             className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-110 ${t.iconWrap} ${t.iconHover}`}
@@ -321,83 +356,54 @@ function FeatureCard({
             <f.icon className={`h-5 w-5 transition-colors ${t.iconColor} group-hover:text-current`} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="text-[14px] font-bold leading-tight text-foreground sm:text-[15px]">
+            <div className="flex items-center gap-1.5">
+              <h3 className="min-w-0 truncate text-[14px] font-bold leading-tight text-foreground sm:text-[15px]">
                 {f.title}
               </h3>
               {f.hero && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-destructive">
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-destructive">
                   <Sparkles className="h-2.5 w-2.5" />
-                  AI Agent
+                  AI
                 </span>
               )}
             </div>
-            <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground sm:text-[12.5px]">
+            <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-muted-foreground">
               {f.line}
             </p>
           </div>
         </div>
 
-        {/* Mini-flow */}
-        <div
-          className={`mt-auto rounded-xl border border-border/70 bg-muted/30 p-2 ${
-            f.hero ? "sm:p-2.5" : ""
-          }`}
-        >
-          <div className="flex items-stretch gap-1">
-            {f.steps.map((s, i) => {
-              const done = i < step;
-              const current = i === step && shouldPlay;
-              const StepIcon = s.icon;
-              return (
-                <div key={s.label} className="flex flex-1 items-center gap-1">
-                  <div
-                    className={`flex flex-1 items-center gap-1.5 rounded-lg border px-1.5 py-1.5 transition-all duration-500 ${
-                      done
-                        ? t.chipDone
-                        : current
-                          ? `${t.chipActive} scale-[1.02]`
-                          : "border-border bg-card/50 text-muted-foreground opacity-70"
-                    }`}
-                  >
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-                      {done ? (
-                        <Check className="h-3 w-3" />
-                      ) : (
-                        <StepIcon className="h-3 w-3" />
-                      )}
-                    </span>
-                    <span className="truncate text-[9.5px] font-bold leading-tight sm:text-[10px]">
-                      {s.label}
-                    </span>
-                  </div>
-                  {i < f.steps.length - 1 && (
-                    <ArrowRight className={`h-3 w-3 shrink-0 ${t.arrow}`} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Hero status chips */}
+        {/* Hero status chips — always visible (no sd-reveal opacity trap) */}
         {f.hero && f.chips && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <div className="mb-3 flex flex-wrap gap-1.5">
             {f.chips.map((c, i) => (
-              <span
-                key={c}
-                style={{ transitionDelay: `${i * 90}ms` }}
-                className="sd-reveal inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/5 px-2 py-0.5 text-[10px] font-semibold text-destructive"
-              >
-                <Check className="h-2.5 w-2.5" />
-                {c}
-              </span>
+              <ChipReveal key={c} delay={i * 90}>
+                <span className="inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/5 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                  <Check className="h-2.5 w-2.5" />
+                  {c}
+                </span>
+              </ChipReveal>
             ))}
           </div>
         )}
+
+        {/* Mini-flow */}
+        <div className="mt-auto rounded-xl border border-border/70 bg-muted/30 p-1.5">
+          <MiniFlow steps={f.steps} step={step} shouldPlay={shouldPlay} tone={t} />
+        </div>
       </div>
     </div>
   );
+}
+
+/**
+ * Small wrapper that applies a one-shot fade-up reveal and is GUARANTEED to
+ * end visible — uses the project's useScrollReveal hook, which falls back to
+ * immediately visible when IO/reduced-motion is unavailable.
+ */
+function ChipReveal({ children, delay }: { children: React.ReactNode; delay: number }) {
+  const ref = useScrollReveal<HTMLSpanElement>({ delay });
+  return <span ref={ref}>{children}</span>;
 }
 
 function ProtectionStrip() {
@@ -440,35 +446,30 @@ function ProtectionStrip() {
   return (
     <div
       ref={setRefs}
-      className="mx-auto mt-6 max-w-4xl rounded-2xl border bg-card/60 p-2 shadow-sm backdrop-blur sm:p-2.5"
+      className="mx-auto mt-6 max-w-4xl rounded-2xl border bg-card/60 p-2 shadow-sm backdrop-blur"
     >
-      <div className="flex items-stretch gap-1 sm:gap-1.5">
+      <div
+        className="grid items-stretch gap-1.5"
+        style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+      >
         {items.map((it, i) => {
           const reached = i <= step;
           const Icon = it.icon;
           return (
-            <div key={it.label} className="flex flex-1 items-center gap-1 sm:gap-1.5">
-              <div
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-2 py-2 transition-all duration-500 ${
-                  reached
-                    ? "border-success/30 bg-success/10 text-success"
-                    : "border-border bg-muted/30 text-muted-foreground opacity-70"
-                }`}
-              >
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-                  {reached ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
-                </span>
-                <span className="truncate text-[10px] font-bold sm:text-[11px]">
-                  {it.label}
-                </span>
-              </div>
-              {i < items.length - 1 && (
-                <ArrowRight
-                  className={`h-3 w-3 shrink-0 transition-colors duration-500 ${
-                    reached ? "text-success" : "text-muted-foreground/40"
-                  }`}
-                />
-              )}
+            <div
+              key={it.label}
+              className={`flex min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2 py-2 transition-all duration-500 ${
+                reached
+                  ? "border-success/30 bg-success/10 text-success"
+                  : "border-border bg-muted/30 text-muted-foreground opacity-70"
+              }`}
+            >
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                {reached ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
+              </span>
+              <span className="min-w-0 truncate text-[10px] font-bold sm:text-[11px]">
+                {it.label}
+              </span>
             </div>
           );
         })}
@@ -483,16 +484,12 @@ export function PowerfulFeaturesSection() {
   const [activeIndex, setActiveIndex] = useState(-1);
   const cardCount = FEATURES.length;
 
-  // Slow round-robin: only one non-hero card plays at a time after the
-  // initial reveal. The hero card animates once on first appearance and
-  // also when its turn comes up in the rotation.
   useEffect(() => {
     if (!seen) return;
     if (typeof window === "undefined") return;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reduce) return;
 
-    // Wait for initial card stagger to finish (~70ms * count + buffer)
     const startDelay = 70 * cardCount + 600;
     const startId = window.setTimeout(() => {
       setActiveIndex(0);
@@ -514,7 +511,6 @@ export function PowerfulFeaturesSection() {
 
   return (
     <section id="features" className="section-y bg-muted/30">
-      {/* Section-scoped motion */}
       <style>{`
         @keyframes sd-hero-glow-shift {
           0%, 100% { opacity: 0.85; transform: translate3d(0, 0, 0); }
