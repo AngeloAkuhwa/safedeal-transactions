@@ -1,5 +1,6 @@
 import { Store, Handshake, Shield, Lightbulb } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const marketplaceSteps = [
   { tone: "primary", title: "Browse products", desc: "Explore verified seller storefronts and protected listings" },
@@ -42,29 +43,40 @@ function FlowCard({
       : "bg-gradient-to-br from-success/5 via-card to-primary/5 border-success/20";
   const iconBg = variant === "primary" ? "bg-primary text-primary-foreground" : "bg-success text-success-foreground";
   return (
-    <div className={`rounded-2xl border-2 p-5 ${wrap}`}>
-      <div className="mb-4 flex items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconBg}`}>
-          <Icon className="h-5 w-5" />
+    <div className={`rounded-2xl border-2 p-4 sm:p-5 ${wrap}`}>
+      <div className="mb-3 flex items-center gap-3">
+        <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${iconBg}`}>
+          <Icon className="h-[18px] w-[18px]" />
         </div>
         <h3 className="text-base font-bold text-foreground sm:text-lg">{title}</h3>
       </div>
-      <ol className="space-y-3">
+      <ol className="space-y-2.5">
         {steps.map((step, i) => (
-          <li key={i} className="flex items-start gap-2.5">
-            <span
-              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${numTone[step.tone]}`}
-            >
-              {i + 1}
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-foreground">{step.title}</p>
-              <p className="text-xs text-muted-foreground">{step.desc}</p>
-            </div>
-          </li>
+          <StepRow key={i} step={step} index={i} />
         ))}
       </ol>
     </div>
+  );
+}
+
+function StepRow({ step, index }: { step: { tone: string; title: string; desc: string }; index: number }) {
+  const ref = useScrollReveal<HTMLLIElement>();
+  return (
+    <li
+      ref={ref}
+      className="flex items-start gap-2.5"
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      <span
+        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${numTone[step.tone]}`}
+      >
+        {index + 1}
+      </span>
+      <div>
+        <p className="text-sm font-semibold text-foreground">{step.title}</p>
+        <p className="text-xs leading-snug text-muted-foreground">{step.desc}</p>
+      </div>
+    </li>
   );
 }
 
@@ -72,7 +84,7 @@ export function HowItWorks() {
   return (
     <section id="how-it-works" className="section-y bg-background">
       <div className="container-x mx-auto max-w-6xl">
-        <div className="mb-6 text-center sm:mb-10">
+        <div className="mb-5 text-center sm:mb-7">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
             <Lightbulb className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-semibold text-primary">Simple & Secure</span>
@@ -86,19 +98,19 @@ export function HowItWorks() {
         </div>
 
         <Tabs defaultValue="marketplace" className="w-full">
-          <TabsList className="mx-auto mb-6 flex h-auto w-full max-w-xl flex-col gap-1 rounded-2xl bg-muted/60 p-1.5 sm:flex-row">
-            <TabsTrigger value="marketplace" className="tap-target w-full gap-2 rounded-xl py-2.5 text-sm font-semibold">
+          <TabsList className="mx-auto mb-5 flex h-auto w-full max-w-xl flex-col gap-1 rounded-2xl bg-muted/60 p-1.5 sm:flex-row">
+            <TabsTrigger value="marketplace" className="tap-target w-full gap-2 rounded-xl py-2 text-[13px] font-semibold">
               <Store className="h-4 w-4" />
               Buying from Marketplace
             </TabsTrigger>
-            <TabsTrigger value="direct" className="tap-target w-full gap-2 rounded-xl py-2.5 text-sm font-semibold">
+            <TabsTrigger value="direct" className="tap-target w-full gap-2 rounded-xl py-2 text-[13px] font-semibold">
               <Handshake className="h-4 w-4" />
               Direct Transaction
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="marketplace" className="mt-0">
-            <div className="grid gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-5">
+            <div className="grid gap-4 lg:grid-cols-2">
               <FlowCard
                 icon={Store}
                 title="Marketplace Buyer Flow"
@@ -122,7 +134,7 @@ export function HowItWorks() {
           </TabsContent>
 
           <TabsContent value="direct" className="mt-0">
-            <div className="grid gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-5">
+            <div className="grid gap-4 lg:grid-cols-2">
               <FlowCard
                 icon={Handshake}
                 title="Direct Transaction Flow"
@@ -146,16 +158,16 @@ export function HowItWorks() {
           </TabsContent>
         </Tabs>
 
-        <div className="mx-auto mt-6 max-w-3xl rounded-2xl border-2 border-primary/20 bg-primary/5 p-5 sm:mt-8">
-          <div className="flex items-start gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-              <Shield className="h-5 w-5" />
+        <div className="mx-auto mt-5 max-w-3xl rounded-2xl border-2 border-primary/20 bg-primary/5 p-4 sm:mt-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+              <Shield className="h-[18px] w-[18px]" />
             </div>
             <div>
               <h4 className="mb-1 text-sm font-bold text-foreground sm:text-base">
                 SafeDeal holds the money until buyer verification is complete
               </h4>
-              <p className="text-xs text-muted-foreground sm:text-sm">
+              <p className="text-xs leading-relaxed text-muted-foreground sm:text-[13px]">
                 Your payment stays in our secure escrow account. Funds are only released after you
                 confirm the item matches, or after the verification window expires without a dispute.
               </p>
