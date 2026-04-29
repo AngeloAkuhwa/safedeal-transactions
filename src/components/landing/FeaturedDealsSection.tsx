@@ -32,7 +32,7 @@ function ProductCard({ product }: { product: DemoProduct }) {
       ref={ref}
       className="group flex flex-col overflow-hidden rounded-2xl border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl"
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-muted/40 lg:aspect-[5/4]">
+      <div className="relative aspect-[4/3] overflow-hidden bg-muted/40">
         <ProductImage product={product} />
         <span className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-lg bg-success px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-success-foreground shadow-md">
           <Shield className="h-3 w-3" />
@@ -42,7 +42,7 @@ function ProductCard({ product }: { product: DemoProduct }) {
           In Stock
         </span>
       </div>
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
+      <div className="flex flex-1 flex-col p-4">
         <h3 className="h-card mb-1 font-bold text-foreground">{product.title}</h3>
         <div className="mb-3 text-xl font-bold text-primary sm:text-2xl">
           {formatNaira(product.price)}
@@ -72,27 +72,27 @@ function ProductCard({ product }: { product: DemoProduct }) {
 export function FeaturedDealsSection() {
   return (
     <section id="featured-deals" className="section-y bg-background">
-      <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-8 text-center sm:mb-12">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-4 py-1.5">
+      <div className="container-x mx-auto max-w-6xl">
+        <div className="mb-6 text-center sm:mb-10">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-1">
             <Shield className="h-3.5 w-3.5 text-success" />
             <span className="text-xs font-semibold text-success">Featured</span>
           </div>
-          <h2 className="h-section mb-3 font-bold text-foreground">
+          <h2 className="h-section mb-2 font-bold text-foreground">
             Featured protected deals
           </h2>
-          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
+          <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             Top picks from verified sellers, protected by SafeDeal escrow.
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-5">
           {DEMO_PRODUCTS.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
 
-        <div className="mt-8 text-center sm:mt-10">
+        <div className="mt-6 text-center sm:mt-8">
           <p className="mb-4 text-sm text-muted-foreground">
             Explore the full marketplace with thousands of protected listings
           </p>

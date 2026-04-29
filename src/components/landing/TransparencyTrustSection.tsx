@@ -61,10 +61,10 @@ function PillarCard({ p }: { p: (typeof pillars)[number] }) {
   return (
     <div
       ref={ref}
-      className="rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:shadow-xl sm:p-6"
+      className="rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:shadow-xl"
     >
-      <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${t.wrap}`}>
-        <p.icon className={`h-6 w-6 ${t.icon}`} />
+      <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-2xl ${t.wrap}`}>
+        <p.icon className={`h-5 w-5 ${t.icon}`} />
       </div>
       <h3 className="mb-1.5 text-base font-bold text-foreground sm:text-lg">{p.title}</h3>
       <p className="text-sm text-muted-foreground">{p.desc}</p>
@@ -75,25 +75,25 @@ function PillarCard({ p }: { p: (typeof pillars)[number] }) {
 export function TransparencyTrustSection() {
   return (
     <section id="transparency" className="section-y bg-muted/30">
-      <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-8 text-center sm:mb-12">
-          <h2 className="h-section mb-3 font-bold text-foreground">
+      <div className="container-x mx-auto max-w-6xl">
+        <div className="mb-6 text-center sm:mb-10">
+          <h2 className="h-section mb-2 font-bold text-foreground">
             Built on transparency and trust
           </h2>
-          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
+          <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             Why buyers and sellers can trust SafeDeal with every transaction.
           </p>
         </div>
 
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-5">
           {pillars.map((p) => (
             <PillarCard key={p.title} p={p} />
           ))}
         </div>
 
-        <div className="rounded-2xl border-2 border-primary/20 bg-card p-5 shadow-sm sm:p-7">
-          <div className="mb-5 text-center sm:mb-6">
-            <h3 className="mb-1 text-lg font-bold text-foreground sm:text-xl">
+        <div className="rounded-2xl border-2 border-primary/20 bg-card p-5 shadow-sm sm:p-6">
+          <div className="mb-4 text-center sm:mb-5">
+            <h3 className="mb-1 text-base font-bold text-foreground sm:text-lg">
               SafeDeal Lagos Launch
             </h3>
             <p className="text-sm text-muted-foreground">
@@ -104,9 +104,9 @@ export function TransparencyTrustSection() {
             {stats.map((s) => (
               <div
                 key={s.label}
-                className="rounded-xl bg-muted/60 p-4 text-center"
+                className="rounded-xl bg-muted/60 p-3 text-center"
               >
-                <div className={`mb-1 text-xl font-bold sm:text-2xl ${s.color}`}>{s.value}</div>
+                <div className={`mb-1 text-lg font-bold sm:text-xl ${s.color}`}>{s.value}</div>
                 <div className="text-xs text-muted-foreground">{s.label}</div>
               </div>
             ))}

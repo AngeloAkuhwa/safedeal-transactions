@@ -42,12 +42,12 @@ function FlowCard({
       : "bg-gradient-to-br from-success/5 via-card to-primary/5 border-success/20";
   const iconBg = variant === "primary" ? "bg-primary text-primary-foreground" : "bg-success text-success-foreground";
   return (
-    <div className={`rounded-2xl border-2 p-5 sm:p-6 ${wrap}`}>
-      <div className="mb-5 flex items-center gap-3">
+    <div className={`rounded-2xl border-2 p-5 ${wrap}`}>
+      <div className="mb-4 flex items-center gap-3">
         <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconBg}`}>
           <Icon className="h-5 w-5" />
         </div>
-        <h3 className="text-lg font-bold text-foreground">{title}</h3>
+        <h3 className="text-base font-bold text-foreground sm:text-lg">{title}</h3>
       </div>
       <ol className="space-y-3">
         {steps.map((step, i) => (
@@ -71,22 +71,22 @@ function FlowCard({
 export function HowItWorks() {
   return (
     <section id="how-it-works" className="section-y bg-background">
-      <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-8 text-center sm:mb-12">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5">
+      <div className="container-x mx-auto max-w-6xl">
+        <div className="mb-6 text-center sm:mb-10">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
             <Lightbulb className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-semibold text-primary">Simple & Secure</span>
           </div>
-          <h2 className="h-section mb-3 font-bold text-foreground">
+          <h2 className="h-section mb-2 font-bold text-foreground">
             How SafeDeal Works
           </h2>
-          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
+          <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             A transparent escrow process that protects both buyers and sellers throughout the transaction.
           </p>
         </div>
 
         <Tabs defaultValue="marketplace" className="w-full">
-          <TabsList className="mx-auto mb-8 flex h-auto w-full max-w-xl flex-col gap-1 rounded-2xl bg-muted/60 p-1.5 sm:flex-row">
+          <TabsList className="mx-auto mb-6 flex h-auto w-full max-w-xl flex-col gap-1 rounded-2xl bg-muted/60 p-1.5 sm:flex-row">
             <TabsTrigger value="marketplace" className="tap-target w-full gap-2 rounded-xl py-2.5 text-sm font-semibold">
               <Store className="h-4 w-4" />
               Buying from Marketplace
@@ -98,7 +98,7 @@ export function HowItWorks() {
           </TabsList>
 
           <TabsContent value="marketplace" className="mt-0">
-            <div className="grid gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-6">
+            <div className="grid gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-5">
               <FlowCard
                 icon={Store}
                 title="Marketplace Buyer Flow"
@@ -122,7 +122,7 @@ export function HowItWorks() {
           </TabsContent>
 
           <TabsContent value="direct" className="mt-0">
-            <div className="grid gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-6">
+            <div className="grid gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-5">
               <FlowCard
                 icon={Handshake}
                 title="Direct Transaction Flow"
@@ -146,10 +146,10 @@ export function HowItWorks() {
           </TabsContent>
         </Tabs>
 
-        <div className="mx-auto mt-8 max-w-3xl rounded-2xl border-2 border-primary/20 bg-primary/5 p-5 sm:mt-10 sm:p-6">
+        <div className="mx-auto mt-6 max-w-3xl rounded-2xl border-2 border-primary/20 bg-primary/5 p-5 sm:mt-8">
           <div className="flex items-start gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground sm:h-12 sm:w-12">
-              <Shield className="h-5 w-5 sm:h-6 sm:w-6" />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+              <Shield className="h-5 w-5" />
             </div>
             <div>
               <h4 className="mb-1 text-sm font-bold text-foreground sm:text-base">

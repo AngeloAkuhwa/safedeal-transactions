@@ -9,30 +9,30 @@ const trustStats = [
 
 export function CTASection() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-success py-12 sm:py-16">
+    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-success py-12 sm:py-14">
       {/* Decorative blurs */}
       <div aria-hidden className="pointer-events-none absolute inset-0 opacity-15">
         <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-primary-foreground blur-3xl" />
         <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-primary-foreground blur-3xl" />
       </div>
 
-      <div className="container-x relative mx-auto max-w-5xl text-center">
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 px-3.5 py-1.5 backdrop-blur">
+      <div className="container-x relative mx-auto max-w-4xl text-center">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 px-3 py-1 backdrop-blur">
           <Rocket className="h-3.5 w-3.5 text-primary-foreground" />
           <span className="text-[11px] font-semibold text-primary-foreground sm:text-xs">
             Get Started Today
           </span>
         </div>
 
-        <h2 className="h-section mb-4 font-bold text-primary-foreground">
+        <h2 className="h-section mb-3 font-bold text-primary-foreground">
           Ready to shop or sell with protection?
         </h2>
-        <p className="body-lead mx-auto mb-8 max-w-2xl text-primary-foreground/90">
+        <p className="body-lead mx-auto mb-6 max-w-xl text-primary-foreground/90">
           Browse public listings, buy from verified sellers, or create your own protected
           transaction in minutes.
         </p>
 
-        <div className="mb-10 grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
+        <div className="mb-8 grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:justify-center sm:gap-3">
           <Link
             to="/marketplace"
             className="tap-target inline-flex items-center justify-center gap-2 rounded-xl bg-background px-5 py-3 text-sm font-bold text-primary shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl sm:text-[15px]"

@@ -26,14 +26,14 @@ function HelpCard({
   return (
     <div
       ref={ref}
-      className={`group rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl sm:p-6 ${
+      className={`group rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl ${
         full ? "lg:col-span-2" : ""
       }`}
     >
-      <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${wrap}`}>
-        <Icon className={`h-6 w-6 ${color}`} />
+      <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-2xl ${wrap}`}>
+        <Icon className={`h-5 w-5 ${color}`} />
       </div>
-      <h3 className="mb-1.5 text-lg font-bold text-foreground">{title}</h3>
+      <h3 className="mb-1.5 text-base font-bold text-foreground sm:text-lg">{title}</h3>
       <p className="mb-3.5 text-sm text-muted-foreground">{desc}</p>
       <div className="flex items-center justify-between border-t pt-3">
         <span className="text-xs font-semibold text-muted-foreground">{note}</span>
@@ -46,17 +46,17 @@ function HelpCard({
 export function NeedHelpSection() {
   return (
     <section id="support" className="section-y bg-background">
-      <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-8 text-center sm:mb-12">
-          <h2 className="h-section mb-3 font-bold text-foreground">
+      <div className="container-x mx-auto max-w-6xl">
+        <div className="mb-6 text-center sm:mb-10">
+          <h2 className="h-section mb-2 font-bold text-foreground">
             Need help?
           </h2>
-          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
+          <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             We're here to assist with any questions about marketplace, transactions, or protection.
           </p>
         </div>
 
-        <div className="grid gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-6">
+        <div className="grid gap-4 sm:gap-4 lg:grid-cols-2 lg:gap-5">
           <HelpCard
             icon={HelpCircle}
             title="Frequently Asked Questions"

@@ -118,14 +118,14 @@
 }
 
 @layer utilities {
-  /* Fluid typography — tightened ceilings for production density */
-  .h-display    { font-size: clamp(2rem, 4vw + 1rem, 3.75rem); line-height: 1.05; letter-spacing: -0.025em; }
-  .h-section    { font-size: clamp(1.5rem, 2.2vw + 0.9rem, 2.5rem); line-height: 1.15; letter-spacing: -0.015em; }
+  /* Fluid typography — production density */
+  .h-display    { font-size: clamp(2rem, 3.6vw + 1rem, 3.5rem); line-height: 1.05; letter-spacing: -0.025em; }
+  .h-section    { font-size: clamp(1.5rem, 1.4vw + 1rem, 2.5rem); line-height: 1.15; letter-spacing: -0.015em; }
   .h-card       { font-size: clamp(0.95rem, 0.3vw + 0.9rem, 1.125rem); line-height: 1.3; }
-  .body-lead    { font-size: clamp(0.95rem, 0.3vw + 0.9rem, 1.125rem); line-height: 1.55; }
+  .body-lead    { font-size: clamp(0.9375rem, 0.25vw + 0.875rem, 1.0625rem); line-height: 1.55; }
 
-  /* Fluid section spacing — ~py-12 mobile → py-20 desktop */
-  .section-y    { padding-block: clamp(2.75rem, 4.5vw, 5rem); }
+  /* Fluid section spacing — ~64px mobile → 88px desktop */
+  .section-y    { padding-block: clamp(2.5rem, 3.5vw, 5.5rem); }
   .container-x  { padding-inline: clamp(1rem, 2.5vw, 1.75rem); }
 
   /* PWA-friendly tap targets and safe areas */

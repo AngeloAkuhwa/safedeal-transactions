@@ -105,7 +105,7 @@ function FeatureCard({ f }: { f: (typeof features)[number] }) {
   return (
     <div
       ref={ref}
-      className="group rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl sm:p-6"
+      className="group rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl"
     >
       <div
         className={`mb-4 flex h-11 w-11 items-center justify-center rounded-2xl transition-colors ${t.wrap} ${t.hover}`}
@@ -121,17 +121,17 @@ function FeatureCard({ f }: { f: (typeof features)[number] }) {
 export function PowerfulFeaturesSection() {
   return (
     <section id="features" className="section-y bg-background">
-      <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-8 text-center sm:mb-12">
-          <h2 className="h-section mb-3 font-bold text-foreground">
+      <div className="container-x mx-auto max-w-6xl">
+        <div className="mb-6 text-center sm:mb-10">
+          <h2 className="h-section mb-2 font-bold text-foreground">
             Powerful features for secure transactions
           </h2>
-          <p className="body-lead mx-auto max-w-2xl text-muted-foreground">
+          <p className="body-lead mx-auto max-w-xl text-muted-foreground">
             Everything buyers and sellers need to transact with confidence.
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-5">
           {features.map((f) => (
             <FeatureCard key={f.title} f={f} />
           ))}
