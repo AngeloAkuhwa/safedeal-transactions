@@ -1,128 +1,152 @@
-# Landing page — pixel-faithful replication + mobile-first responsiveness
+# Tighten & Normalize SafeDeal Landing Page
 
-## Goal
-Make `/` match the attached UX Pilot design exactly (spacing, typography scale, paddings, card sizing, color tone, badge shapes), while being **mobile-first** so it never breaks when wrapped as a PWA. Desktop must look like the screenshot; mobile must feel native (large tap targets ≥44px, fluid type, no horizontal overflow, safe-area aware).
+Goal: keep the approved design, sections, and content exactly as they are, but fix the oversized feel and the misaligned hero CTAs so the page reads as a polished production SaaS/marketplace landing — not a stretched mockup.
 
-## Scope
-Only `src/components/landing/*`, `src/pages/Index.tsx`, and small additions to `src/index.css` + `tailwind.config.ts`. No backend/route changes. All CTAs keep their current routes.
+No section will be removed, reordered, or restyled. This is a pure sizing, spacing, and layout-tightening pass.
 
-## Design tokens to align (`src/index.css` + `tailwind.config.ts`)
-The UX Pilot uses Tailwind's default `sky` (primary), `green` (success), `amber` (warning), `red` (danger), `neutral` palettes. Our HSL tokens are close but tone differs slightly. We will:
-- Keep current HSL CSS variables (don't break the rest of the app).
-- Add scoped utility classes for landing-only fine tuning (e.g. `.landing-section`, `.landing-h2`) so we don't pollute global tokens.
-- Add fluid typography helpers using `clamp()` for the hero title and section headings — this is the key to PWA-grade scaling without media-query jumps.
-- Add `safe-area-inset` padding helpers for sticky header / sticky CTA on iOS PWA.
-- Add `text-rendering: optimizeLegibility` and `-webkit-tap-highlight-color: transparent` globally on landing.
+---
 
-Add to `src/index.css`:
+## 1. Hero CTA arrangement (the specific complaint)
+
+In the reference, the three CTAs sit as a clean **2-up + 1 full-width row** on mobile (Browse + Start Selling on top, Create Protected Deal full-width below) and a **single tight row** on desktop. Currently they wrap awkwardly because all three are flex-wrap siblings of equal weight.
+
+Changes in `HeroSection.tsx`:
+- Restructure the CTA container into an explicit grid:
+  - Mobile: `grid grid-cols-2 gap-3` for Browse + Start Selling, then a second row with Create Protected Deal spanning `col-span-2`.
+  - `sm` and up: `flex flex-wrap` with consistent button widths (`min-w-[170px]`) so they line up neatly.
+- Reduce CTA padding from `px-6 py-3.5` → `px-5 py-3` and font from `text-base` → `text-sm sm:text-[15px]`.
+- Reduce icon size to `h-4 w-4`.
+- Keep the three color variants (primary / success / dark) and the tap-target minimum.
+
+Hero overall:
+- Reduce `.h-display` clamp ceiling: change from `clamp(2.25rem, 5.5vw + 1rem, 4.5rem)` → `clamp(2rem, 4vw + 1rem, 3.75rem)` (≈ text-5xl/6xl max instead of text-7xl).
+- Tighten section padding: hero uses `py-14 lg:py-20` instead of the global `.section-y`.
+- Reduce decorative blob sizes by ~25%.
+- Transaction card: reduce internal padding from `p-6 sm:p-7` → `p-5 sm:p-6`, status row icon wrap from `h-9 w-9` → `h-8 w-8`, gap `space-y-3.5` → `space-y-2.5`.
+- Bullet grid below CTAs: tighten to `mt-6` and `text-[13px]`.
+
+---
+
+## 2. Global spacing & typography utilities
+
+Edit `src/index.css` to bring everything down a notch (keeps fluid scaling, just lower ceilings):
+
 ```css
-@layer utilities {
-  .h-display    { font-size: clamp(2.25rem, 6vw + 1rem, 4.5rem); line-height: 1.05; letter-spacing: -0.02em; }
-  .h-section    { font-size: clamp(1.75rem, 3.2vw + 1rem, 3rem); line-height: 1.1; letter-spacing: -0.01em; }
-  .h-card       { font-size: clamp(1rem, 0.6vw + 0.9rem, 1.25rem); }
-  .body-lead    { font-size: clamp(1rem, 0.4vw + 0.95rem, 1.25rem); line-height: 1.6; }
-  .section-y    { padding-block: clamp(3.5rem, 6vw, 7rem); }
-  .container-x  { padding-inline: clamp(1rem, 3vw, 2rem); }
-  .tap-target   { min-height: 44px; min-width: 44px; }
-  .safe-bottom  { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
-  .safe-top     { padding-top: max(0.5rem, env(safe-area-inset-top)); }
-}
-html, body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+.h-display { font-size: clamp(2rem, 4vw + 1rem, 3.75rem); line-height: 1.05; }
+.h-section { font-size: clamp(1.5rem, 2.2vw + 0.9rem, 2.5rem); line-height: 1.1; }
+.h-card    { font-size: clamp(0.95rem, 0.3vw + 0.9rem, 1.125rem); }
+.body-lead { font-size: clamp(0.95rem, 0.3vw + 0.9rem, 1.125rem); line-height: 1.55; }
+.section-y { padding-block: clamp(2.75rem, 4.5vw, 5rem); }   /* ~py-12 → py-20 */
+.container-x { padding-inline: clamp(1rem, 2.5vw, 1.75rem); }
 ```
 
-## Section-by-section changes
+This single change cascades through every section without per-component edits, eliminating the “stretched mockup” feel.
 
-Each section will be rewritten to mirror the HTML structure, with mobile-first defaults, then `sm:` / `lg:` upgrades. Cards use `rounded-2xl`, `border-neutral-200` equivalent (`border-border`), `shadow-xl` only on hover, and consistent `p-6 sm:p-7`.
+---
 
-### Header (`Header.tsx`)
-- Sticky, h-16 on mobile / h-20 on lg, `safe-top`.
-- Logo: 11×11 sky tile, 24px wordmark.
-- Desktop nav links: Marketplace, How It Works, Protection, Trust & Safety, Support.
-- Mobile: hamburger opens a Sheet (shadcn) with the same links + Login / Sign Up buttons.
-- Right cluster: Log In (ghost, hidden <sm), Sign Up (filled primary), hamburger (<md).
+## 3. Section header blocks (every section)
 
-### Hero (`HeroSection.tsx`)
-- Padding `section-y` (smaller on mobile per design).
-- Title uses `h-display` (clamps 36px → 72px), no manual `text-7xl`.
-- Three CTAs: stack vertically on mobile (full width, `tap-target`), inline on `sm:`. Icons left, bold weight 700.
-- 4 bullets in a 2-col grid on all sizes (matches design).
-- Right transaction card: hidden <lg (matches design). Same status rows as today, but tighter spacing (p-3.5, gap-3, border-2 of step color), rounded-2xl footer protection panel.
-- Wrap each animated element in a CSS class that uses our existing `animate-fade-in` (already in tailwind config) with staggered `style={{ animationDelay: ... }}`.
+Reduce the bottom margin of section header blocks across components from `mb-10 sm:mb-14` → `mb-8 sm:mb-12`. Eyebrow chip stays the same; section title now reads ~text-3xl mobile / text-4xl-5xl desktop via the new `.h-section`.
 
-### Featured deals (`FeaturedDealsSection.tsx`)
-Already exists; tighten to match:
-- Heading `h-section`, subtitle `body-lead`.
-- 3-card grid: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8`.
-- Image area `aspect-[4/3]` (replaces fixed h-80 — fluid on mobile).
-- "PROTECTED" badge top-right (success-600, white text), "In Stock" pill bottom-left (white/95 backdrop-blur).
-- Price in primary 600, 28–30px.
-- Seller row with avatar 32px, star + rating.
-- Full-width "View Product" button → `/product/:id`.
-- "View All Marketplace" outline button below.
+---
 
-### Categories (`CategoriesSection.tsx`)
-- Section heading + subtitle.
-- 8 category cards in `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4`.
-- Each card: rounded-xl, soft tinted icon tile (h-12 w-12), name, "X listings". Hover: lift + border primary.
+## 4. Per-section sizing tweaks
 
-### Verified sellers (`VerifiedSellersSection.tsx`)
-Already close; align spacing:
-- 4 cards `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6`.
-- Banner h-24, gradient. Avatar 80px, white border 4px, verified check badge bottom-right.
-- Stats rows (Rating / Completed / Products / Location).
-- "View Store" full-width primary button.
+**FeaturedDealsSection.tsx**
+- Image aspect: keep `aspect-[4/3]` mobile but cap desktop with `lg:aspect-[5/4]` (was square) — gives the product image the h-56/h-60 feel requested.
+- Card padding `p-5 sm:p-6` → `p-4 sm:p-5`.
+- Price: `text-2xl sm:text-3xl` → `text-xl sm:text-2xl`.
+- Seller avatar `h-8 w-8` → `h-7 w-7`, footer divider margin tightened.
+- Bottom CTA: `py-6 text-base` → `py-5 text-sm`, `px-8` → `px-7`.
 
-### Why SafeDeal feels safer (`WhySaferSection.tsx`)
-- 3 trust cards in a row on lg, stacked on mobile.
-- Each: large icon tile, headline, paragraph.
-- Background tint: `bg-neutral-50` equivalent (we'll use `bg-muted/40`).
+**CategoriesSection.tsx**
+- Card padding: `p-5 sm:p-6` → `p-4 sm:p-5`.
+- Icon tile: `h-12 w-12` → `h-10 w-10`, icon `h-6 w-6` → `h-5 w-5`.
+- Title `text-base sm:text-lg` → `text-sm sm:text-base`.
+- Desc/count: drop one size to `text-xs` and `text-[11px]`.
+- Grid gap: `gap-3 sm:gap-5 lg:gap-6` → `gap-3 sm:gap-4 lg:gap-5`.
 
-### Marketplace vs direct deals (`MarketplaceVsDirectSection.tsx`)
-- Two-column comparison cards (1 col mobile, 2 col lg).
-- Each card has a colored top accent bar, icon, title, 4 bullet rows with check icons, CTA at bottom.
+**VerifiedSellersSection.tsx**
+- Banner height: `h-24` → `h-16 sm:h-20`.
+- Avatar wrap: `h-20 w-20` → `h-16 w-16`, negative margin `-mt-12` → `-mt-9`.
+- Card padding: `px-6 pb-6` → `px-5 pb-5`, internal `mb-5` blocks → `mb-4`.
+- Verified pill text size unchanged but row text from `text-sm` → `text-[13px]`.
+- Button: default size (no `size="lg"` upgrade).
 
-### How it works (`HowItWorks.tsx`)
-- Tabs (shadcn Tabs): "Marketplace flow" / "Direct deal flow".
-- Each tab: 4 numbered step cards in 2x2 grid on lg, single column on mobile.
-- Tip banner under tabs (info bg).
+**WhySaferSection.tsx**
+- Card padding `p-6 sm:p-8` → `p-5 sm:p-6`.
+- Icon tile `h-14 w-14` → `h-12 w-12`, icon `h-7 w-7` → `h-6 w-6`.
+- Title: `text-xl` → `text-lg sm:text-xl`.
 
-### Protection (`ProtectionSection.tsx`)
-- Two-column on lg: left = title + 4 step rows with colored tone (success → warning → primary → muted); right = transaction card #SD-8472 with progress.
-- Mobile: single column, card below copy.
+**MarketplaceVsDirectSection.tsx & HowItWorks.tsx (FlowCard)**
+- Card padding `p-6 sm:p-8` → `p-5 sm:p-6`.
+- Header icon tile `h-12 w-12` → `h-10 w-10`, title `text-xl` → `text-lg`.
+- Step number circle `h-8 w-8` → `h-7 w-7`, list `space-y-4` → `space-y-3`.
+- HowItWorks bottom callout: `p-6 sm:p-8` → `p-5 sm:p-6`, icon tile `h-12 w-12 sm:h-14 sm:w-14` → `h-11 w-11 sm:h-12 sm:w-12`.
 
-### Transparency & trust (`TransparencyTrustSection.tsx`)
-- 3 columns of trust pillars + a metrics strip below (4 stats: deals, sellers, payouts, disputes resolved).
+**ProtectionSection.tsx**
+- Reduce step row padding, escrow card padding by one tier (`p-6` → `p-5`), and icon sizes from `h-10 w-10` family → `h-9 w-9`. Keep two-column layout intact.
 
-### Powerful features (`PowerfulFeaturesSection.tsx`)
-Already 9 features; just align card paddings (`p-6 sm:p-7`), icon tile 56px, title `h-card`, body `text-sm sm:text-base`, grid `1/2/3` cols.
+**TransparencyTrustSection.tsx & TrustSafetySection.tsx**
+- Card padding `p-6 sm:p-8` → `p-5 sm:p-6`.
+- Oversized icon tiles (anything `w-16 h-16`+) → `w-12 h-12` to `w-14 h-14`.
+- Stat numbers: cap at `text-3xl sm:text-4xl` (down from text-5xl).
 
-### Trust & Safety (`TrustSafetySection.tsx`)
-- 3 cards (Identity verified, Secure payments, 24/7 monitoring).
+**PowerfulFeaturesSection.tsx**
+- 3-column grid retained. Card padding `p-6` → `p-5`. Icon `h-12 w-12` → `h-10 w-10`. Title `text-lg` → `text-base sm:text-lg`. Body `text-sm`.
 
-### Need help (`NeedHelpSection.tsx`)
-- 2-column card: support contact + help center link.
+**NeedHelpSection.tsx**
+- Card padding `p-6 sm:p-8` → `p-5 sm:p-6`.
 
-### FAQ (`FAQSection.tsx`)
-- shadcn Accordion, 2-column on lg (split list in half), 1 column on mobile. 6–8 questions from the HTML.
+**FAQSection.tsx**
+- AccordionItem padding/`text-` sizes reduced one tier; question `text-base` → `text-sm sm:text-base`; answer `text-sm`.
+- Icon tile per item `h-10 w-10` → `h-9 w-9`.
 
-### Final CTA (`CTASection.tsx`)
-- Already correct content; tighten to match: gradient background (sky → green diagonal), white text, three pill CTAs, three trust badges row.
+**CTASection.tsx**
+- Outer padding from `py-20`/`p-12` style → `py-14 sm:py-16`, inner card `p-8 sm:p-10`.
+- Button `size="lg"` `px-10 py-7` → `px-8 py-5`, `text-base` font-bold.
+- Heading uses `.h-section` (already shrunk via CSS).
 
-### Footer (`Footer.tsx`)
-- 5-col grid on lg → stacks on mobile. Brand + 4 link columns + bottom legal bar with `safe-bottom`.
+**Footer.tsx**
+- Top padding `pt-16` → `pt-12`, link list spacing `space-y-3` → `space-y-2.5`.
 
-## Mobile-first / PWA correctness
-- All sections use `container-x` and `section-y` so paddings scale with viewport.
-- Hero, FAQ, CTA: tested at 320px (smallest), 360px, 390px, 414px (common Android/iOS), 768px, 1024px, 1366px+.
-- Buttons: `tap-target` class everywhere.
-- Sticky header has `safe-top`; footer legal bar has `safe-bottom` so it clears the iOS home indicator when installed.
-- No fixed pixel widths inside flex/grid — everything uses `min-w-0`, `w-full`, or `max-w-*`.
-- All images have `loading="lazy"`, `decoding="async"`, explicit `width`/`height` ratios via `aspect-*` to prevent CLS.
-- Respect `prefers-reduced-motion`: animations only run when `(prefers-reduced-motion: no-preference)` (add a CSS guard).
+---
 
-## Verification
-After implementation, use the browser tool to screenshot `/` at 375×812, 414×896, 768×1024, 1280×720, 1536×864, and confirm: no horizontal scroll, hero readable on 360px, CTAs full-width on mobile and inline on ≥sm, transaction card hidden <lg, all 16 sections render in order.
+## 5. Responsive guarantees
 
-## Files
-**Edit:** `src/index.css`, `src/components/landing/Header.tsx`, `HeroSection.tsx`, `FeaturedDealsSection.tsx`, `CategoriesSection.tsx`, `VerifiedSellersSection.tsx`, `WhySaferSection.tsx`, `MarketplaceVsDirectSection.tsx`, `HowItWorks.tsx`, `ProtectionSection.tsx`, `TransparencyTrustSection.tsx`, `PowerfulFeaturesSection.tsx`, `TrustSafetySection.tsx`, `NeedHelpSection.tsx`, `FAQSection.tsx`, `CTASection.tsx`, `Footer.tsx`, `src/pages/Index.tsx` (no structural change, just confirm order).
-**No new files.** No PWA service worker added (per project policy — only landing is made *PWA-ready*; user can add manifest later if they want install).
+- All grids already collapse correctly; only sizing changes are made — no new breakpoints introduced.
+- `tap-target` (44px min) preserved on every interactive element.
+- `safe-bottom`/`safe-top` preserved on header/footer for PWA installability.
+- No `overflow-x` regressions: all width changes are in `max-w-*` and padding, not fixed widths.
+
+---
+
+## 6. QA after implementation
+
+After edits, screenshot `/` at 360, 390, 768, 1024, and 1280 widths to confirm:
+- Hero CTAs land as 2+1 on mobile and inline on desktop.
+- No section feels stretched; every section fits comfortably above the fold rhythm seen in the reference.
+- Product/seller/category cards no longer dominate the viewport.
+
+---
+
+## Files to edit
+
+- `src/index.css` — clamp ceilings for typography and section padding
+- `src/components/landing/HeroSection.tsx` — CTA grid + tighter card
+- `src/components/landing/FeaturedDealsSection.tsx`
+- `src/components/landing/CategoriesSection.tsx`
+- `src/components/landing/VerifiedSellersSection.tsx`
+- `src/components/landing/WhySaferSection.tsx`
+- `src/components/landing/MarketplaceVsDirectSection.tsx`
+- `src/components/landing/HowItWorks.tsx`
+- `src/components/landing/ProtectionSection.tsx`
+- `src/components/landing/TransparencyTrustSection.tsx`
+- `src/components/landing/PowerfulFeaturesSection.tsx`
+- `src/components/landing/TrustSafetySection.tsx`
+- `src/components/landing/NeedHelpSection.tsx`
+- `src/components/landing/FAQSection.tsx`
+- `src/components/landing/CTASection.tsx`
+- `src/components/landing/Footer.tsx`
+
+No new files, no dependency changes, no design changes — only sizing, spacing, and the hero CTA grid fix.
