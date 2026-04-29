@@ -42,24 +42,24 @@ function FlowCard({
       : "bg-gradient-to-br from-success/5 via-card to-primary/5 border-success/20";
   const iconBg = variant === "primary" ? "bg-primary text-primary-foreground" : "bg-success text-success-foreground";
   return (
-    <div className={`rounded-2xl border-2 p-6 sm:p-8 ${wrap}`}>
-      <div className="mb-6 flex items-center gap-3">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${iconBg}`}>
-          <Icon className="h-6 w-6" />
+    <div className={`rounded-2xl border-2 p-5 sm:p-6 ${wrap}`}>
+      <div className="mb-5 flex items-center gap-3">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconBg}`}>
+          <Icon className="h-5 w-5" />
         </div>
-        <h3 className="text-xl font-bold text-foreground">{title}</h3>
+        <h3 className="text-lg font-bold text-foreground">{title}</h3>
       </div>
-      <ol className="space-y-4">
+      <ol className="space-y-3">
         {steps.map((step, i) => (
-          <li key={i} className="flex items-start gap-3">
+          <li key={i} className="flex items-start gap-2.5">
             <span
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${numTone[step.tone]}`}
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${numTone[step.tone]}`}
             >
               {i + 1}
             </span>
             <div>
-              <p className="font-semibold text-foreground">{step.title}</p>
-              <p className="text-sm text-muted-foreground">{step.desc}</p>
+              <p className="text-sm font-semibold text-foreground">{step.title}</p>
+              <p className="text-xs text-muted-foreground">{step.desc}</p>
             </div>
           </li>
         ))}
@@ -72,7 +72,7 @@ export function HowItWorks() {
   return (
     <section id="how-it-works" className="section-y bg-background">
       <div className="container-x mx-auto max-w-7xl">
-        <div className="mb-10 text-center sm:mb-14">
+        <div className="mb-8 text-center sm:mb-12">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5">
             <Lightbulb className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-semibold text-primary">Simple & Secure</span>
@@ -86,19 +86,19 @@ export function HowItWorks() {
         </div>
 
         <Tabs defaultValue="marketplace" className="w-full">
-          <TabsList className="mx-auto mb-10 flex h-auto w-full max-w-xl flex-col gap-1 rounded-2xl bg-muted/60 p-1.5 sm:flex-row">
-            <TabsTrigger value="marketplace" className="tap-target w-full gap-2 rounded-xl py-3 text-sm font-semibold">
+          <TabsList className="mx-auto mb-8 flex h-auto w-full max-w-xl flex-col gap-1 rounded-2xl bg-muted/60 p-1.5 sm:flex-row">
+            <TabsTrigger value="marketplace" className="tap-target w-full gap-2 rounded-xl py-2.5 text-sm font-semibold">
               <Store className="h-4 w-4" />
               Buying from Marketplace
             </TabsTrigger>
-            <TabsTrigger value="direct" className="tap-target w-full gap-2 rounded-xl py-3 text-sm font-semibold">
+            <TabsTrigger value="direct" className="tap-target w-full gap-2 rounded-xl py-2.5 text-sm font-semibold">
               <Handshake className="h-4 w-4" />
               Direct Transaction
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="marketplace" className="mt-0">
-            <div className="grid gap-5 sm:gap-6 lg:grid-cols-2 lg:gap-8">
+            <div className="grid gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-6">
               <FlowCard
                 icon={Store}
                 title="Marketplace Buyer Flow"
@@ -122,7 +122,7 @@ export function HowItWorks() {
           </TabsContent>
 
           <TabsContent value="direct" className="mt-0">
-            <div className="grid gap-5 sm:gap-6 lg:grid-cols-2 lg:gap-8">
+            <div className="grid gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-6">
               <FlowCard
                 icon={Handshake}
                 title="Direct Transaction Flow"
@@ -146,16 +146,16 @@ export function HowItWorks() {
           </TabsContent>
         </Tabs>
 
-        <div className="mx-auto mt-10 max-w-3xl rounded-2xl border-2 border-primary/20 bg-primary/5 p-6 sm:mt-12 sm:p-8">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground sm:h-14 sm:w-14">
-              <Shield className="h-6 w-6 sm:h-7 sm:w-7" />
+        <div className="mx-auto mt-8 max-w-3xl rounded-2xl border-2 border-primary/20 bg-primary/5 p-5 sm:mt-10 sm:p-6">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground sm:h-12 sm:w-12">
+              <Shield className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div>
-              <h4 className="mb-1.5 text-base font-bold text-foreground sm:text-lg">
+              <h4 className="mb-1 text-sm font-bold text-foreground sm:text-base">
                 SafeDeal holds the money until buyer verification is complete
               </h4>
-              <p className="text-sm text-muted-foreground sm:text-base">
+              <p className="text-xs text-muted-foreground sm:text-sm">
                 Your payment stays in our secure escrow account. Funds are only released after you
                 confirm the item matches, or after the verification window expires without a dispute.
               </p>
