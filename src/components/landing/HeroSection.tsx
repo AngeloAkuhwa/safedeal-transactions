@@ -98,7 +98,7 @@ export function HeroSection() {
               <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                    <Shield className="h-4.5 w-4.5 text-primary" />
+                    <Shield className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <p className="text-sm font-bold text-foreground">Transaction #SD-4829</p>
