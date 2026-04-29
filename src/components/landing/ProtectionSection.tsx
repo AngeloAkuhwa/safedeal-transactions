@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   CreditCard,
   Truck,
@@ -6,30 +7,29 @@ import {
   AlertTriangle,
   ShieldCheck,
   CheckCircle,
+  Check,
+  type LucideIcon,
 } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
-const steps = [
-  {
-    icon: CreditCard,
-    title: "Pay through SafeDeal",
-    desc: "Your payment goes to SafeDeal's secure escrow, not directly to the seller.",
-  },
-  {
-    icon: Truck,
-    title: "Seller delivers the item",
-    desc: "Seller ships and provides delivery confirmation.",
-  },
-  {
-    icon: CircleCheck,
-    title: "Buyer confirms it matches",
-    desc: "You verify the received item matches the locked agreement.",
-  },
-  {
-    icon: ArrowRightLeft,
-    title: "Funds release to seller",
-    desc: "Payment released only after your confirmation.",
-  },
+const STEPS: { icon: LucideIcon; title: string; helper: string }[] = [
+  { icon: CreditCard, title: "Pay through SafeDeal", helper: "Money goes to escrow" },
+  { icon: Truck, title: "Seller delivers", helper: "Item shipped with proof" },
+  { icon: CircleCheck, title: "Buyer confirms", helper: "Verify item matches" },
+  { icon: ArrowRightLeft, title: "Funds release", helper: "Seller paid instantly" },
+];
+
+const ESCROW_STATES: {
+  title: string;
+  subtitle: string;
+  icon: LucideIcon;
+  tone: "success" | "warning" | "primary";
+}[] = [
+  { title: "Payment Secured", subtitle: "₦1,850,000 received", icon: CheckCircle, tone: "success" },
+  { title: "Funds Held", subtitle: "Locked in escrow", icon: ShieldCheck, tone: "warning" },
+  { title: "Delivery in Progress", subtitle: "Expected: Dec 28", icon: Truck, tone: "primary" },
+  { title: "Buyer Verification", subtitle: "Awaiting confirmation", icon: CircleCheck, tone: "primary" },
+  { title: "Funds Released", subtitle: "Paid to seller", icon: ArrowRightLeft, tone: "success" },
 ];
 
 export function ProtectionSection() {
@@ -41,35 +41,29 @@ export function ProtectionSection() {
             Your money stays protected until you're satisfied
           </h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
-            SafeDeal holds payment securely and releases it only after buyer verification or a
-            valid resolution.
+            See how escrow holds your payment, step by step.
           </p>
         </div>
 
         <div className="grid items-start gap-5 lg:grid-cols-2 lg:gap-8">
-          {/* Left — 4 steps + warning */}
-          <div className="space-y-3.5">
-            {steps.map((s, i) => (
+          {/* Left — 4 visual steps + warning */}
+          <div className="space-y-3">
+            {STEPS.map((s, i) => (
               <StepRow key={s.title} step={s} index={i} />
             ))}
 
             <div className="rounded-2xl border-2 border-destructive/30 bg-destructive/5 p-3.5">
               <div className="flex items-start gap-2.5">
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-                <div>
-                  <p className="mb-0.5 text-sm font-bold text-foreground">
-                    Do not pay outside SafeDeal
-                  </p>
-                  <p className="text-[12px] text-muted-foreground">
-                    Outside payments are not protected by escrow.
-                  </p>
-                </div>
+                <p className="text-[13px] font-semibold text-foreground">
+                  Do not pay outside SafeDeal. Outside payments are not protected.
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Right — Transaction card */}
-          <ProtectedTransactionCard />
+          {/* Right — Animated escrow demo */}
+          <AnimatedEscrowCard />
         </div>
       </div>
     </section>
@@ -80,29 +74,63 @@ function StepRow({
   step,
   index,
 }: {
-  step: (typeof steps)[number];
+  step: (typeof STEPS)[number];
   index: number;
 }) {
   const ref = useScrollReveal<HTMLDivElement>();
-  const isLast = index === steps.length - 1;
-  const wrap = isLast ? "bg-success text-success-foreground" : "bg-primary text-primary-foreground";
+  const isLast = index === STEPS.length - 1;
+  const wrap = isLast
+    ? "bg-success text-success-foreground"
+    : "bg-primary text-primary-foreground";
   return (
-    <div ref={ref} className="flex items-start gap-3" style={{ animationDelay: `${index * 80}ms` }}>
-      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${wrap}`}>
+    <div
+      ref={ref}
+      className="group flex items-center gap-3 rounded-xl border bg-card p-3 transition-all hover:-translate-y-0.5 hover:shadow-md"
+      style={{ animationDelay: `${index * 80}ms` }}
+    >
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm transition-transform group-hover:scale-110 ${wrap}`}
+      >
         <step.icon className="h-[18px] w-[18px]" />
       </div>
-      <div>
-        <h4 className="mb-0.5 text-[15px] font-semibold text-foreground sm:text-base">{step.title}</h4>
-        <p className="text-[13px] leading-snug text-muted-foreground">{step.desc}</p>
+      <div className="min-w-0">
+        <h4 className="text-[14px] font-bold leading-tight text-foreground sm:text-[15px]">
+          {step.title}
+        </h4>
+        <p className="text-[12px] leading-snug text-muted-foreground">{step.helper}</p>
       </div>
+      <span className="ml-auto text-[10px] font-bold text-muted-foreground">
+        {String(index + 1).padStart(2, "0")}
+      </span>
     </div>
   );
 }
 
-function ProtectedTransactionCard() {
+function AnimatedEscrowCard() {
   const ref = useScrollReveal<HTMLDivElement>();
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      setActive(2);
+      return;
+    }
+    const id = window.setInterval(() => {
+      setActive((p) => (p + 1) % ESCROW_STATES.length);
+    }, 1700);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const progress = ((active + 1) / ESCROW_STATES.length) * 100;
+
   return (
-    <div ref={ref} className="rounded-2xl border-2 bg-card p-4 shadow-lg lg:ml-auto lg:max-w-[420px]">
+    <div
+      ref={ref}
+      className="rounded-2xl border-2 bg-card p-4 shadow-lg lg:ml-auto lg:max-w-[420px]"
+    >
+      {/* Header */}
       <div className="mb-3 flex items-center justify-between border-b pb-3">
         <div>
           <p className="text-sm font-bold text-foreground">Transaction #SD-8472</p>
@@ -113,82 +141,91 @@ function ProtectedTransactionCard() {
         </span>
       </div>
 
+      {/* Status rows */}
       <div className="mb-3 space-y-1.5">
-        <EscrowRow index={0} tone="success" icon={CheckCircle} title="Payment Secured" subtitle="₦1,850,000" />
-        <EscrowRow
-          index={1}
-          tone="warning"
-          icon={ShieldCheck}
-          title="Funds Held in Escrow"
-          subtitle="Protected by SafeDeal"
-        />
-        <EscrowRow
-          index={2}
-          tone="primary"
-          icon={Truck}
-          title="Delivery In Progress"
-          subtitle="Expected: Dec 28"
-        />
-        <EscrowRow
-          index={3}
-          tone="muted"
-          icon={CircleCheck}
-          title="Buyer Verification Pending"
-          subtitle="Awaiting delivery"
-        />
-        <EscrowRow
-          index={4}
-          tone="success"
-          icon={CheckCircle}
-          title="Funds Released"
-          subtitle="₦1,850,000 to seller"
-          dimmed
-        />
+        {ESCROW_STATES.map((s, i) => (
+          <EscrowRow key={s.title} state={s} index={i} active={active} />
+        ))}
       </div>
 
+      {/* Progress bar */}
+      <div className="mb-3">
+        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-primary via-primary to-success transition-all duration-700 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <p className="mt-1 text-right text-[10px] font-semibold text-muted-foreground">
+          Step {active + 1} of {ESCROW_STATES.length}
+        </p>
+      </div>
+
+      {/* Protected amount */}
       <div className="rounded-2xl bg-primary p-3 text-center">
         <p className="text-lg font-bold text-primary-foreground sm:text-xl">₦1,850,000</p>
-        <p className="text-xs font-medium text-primary-foreground/80">Protected in Escrow</p>
+        <p className="text-[11px] font-medium text-primary-foreground/80">
+          Protected in Escrow
+        </p>
       </div>
     </div>
   );
 }
 
 function EscrowRow({
+  state,
   index,
-  tone,
-  icon: Icon,
-  title,
-  subtitle,
-  dimmed,
+  active,
 }: {
+  state: (typeof ESCROW_STATES)[number];
   index: number;
-  tone: "success" | "warning" | "primary" | "muted";
-  icon: typeof CheckCircle;
-  title: string;
-  subtitle: string;
-  dimmed?: boolean;
+  active: number;
 }) {
-  const ref = useScrollReveal<HTMLDivElement>();
-  const styles = {
-    success: { wrap: "border-success/30 bg-success/10", icon: "text-success" },
-    warning: { wrap: "border-warning/30 bg-warning/10", icon: "text-warning" },
-    primary: { wrap: "border-primary/30 bg-primary/10", icon: "text-primary" },
-    muted: { wrap: "border bg-muted/40", icon: "text-muted-foreground" },
-  }[tone];
+  const isDone = index < active;
+  const isCurrent = index === active;
+  const Icon = state.icon;
+
+  let wrap = "border bg-muted/30 opacity-50";
+  let iconColor = "text-muted-foreground";
+
+  if (isDone) {
+    wrap = "border-success/30 bg-success/10";
+    iconColor = "text-success";
+  } else if (isCurrent) {
+    const tone = {
+      success: "border-success/40 bg-success/15 ring-2 ring-success/30",
+      warning: "border-warning/40 bg-warning/15 ring-2 ring-warning/30",
+      primary: "border-primary/40 bg-primary/15 ring-2 ring-primary/30",
+    }[state.tone];
+    const ic = {
+      success: "text-success",
+      warning: "text-warning",
+      primary: "text-primary",
+    }[state.tone];
+    wrap = `${tone} scale-[1.02] shadow-sm`;
+    iconColor = ic;
+  }
+
   return (
     <div
-      ref={ref}
-      style={{ animationDelay: `${index * 90}ms` }}
-      className={`flex items-center gap-2.5 rounded-lg border p-2.5 transition-all hover:shadow-sm ${styles.wrap} ${
-        dimmed ? "opacity-60" : ""
-      }`}
+      className={`flex items-center gap-2.5 rounded-lg border p-2 transition-all duration-500 ${wrap}`}
     >
-      <Icon className={`h-[18px] w-[18px] shrink-0 ${styles.icon}`} />
+      <Icon className={`h-[18px] w-[18px] shrink-0 transition-colors duration-500 ${iconColor}`} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-bold text-foreground">{title}</p>
-        <p className="truncate text-[11px] text-muted-foreground">{subtitle}</p>
+        <p className="truncate text-[12px] font-bold leading-tight text-foreground">
+          {state.title}
+        </p>
+        <p className="truncate text-[11px] leading-tight text-muted-foreground">
+          {state.subtitle}
+        </p>
       </div>
+      <span className="flex h-4 w-4 items-center justify-center">
+        {isDone ? (
+          <Check className="h-3.5 w-3.5 text-success" />
+        ) : isCurrent ? (
+          <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+        ) : null}
+      </span>
     </div>
   );
 }

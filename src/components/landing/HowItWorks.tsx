@@ -1,180 +1,196 @@
-import { Store, Handshake, Shield, Lightbulb } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { useEffect, useRef, useState } from "react";
+import {
+  ShoppingBag,
+  CreditCard,
+  ShieldCheck,
+  Truck,
+  CircleCheck,
+  Wallet,
+  Check,
+  Lightbulb,
+  type LucideIcon,
+} from "lucide-react";
 
-const marketplaceSteps = [
-  { tone: "primary", title: "Browse products", desc: "Explore verified seller storefronts and protected listings" },
-  { tone: "primary", title: "Review seller and product details", desc: "Check seller ratings, product specs, and delivery terms" },
-  { tone: "warning", title: "Pay through SafeDeal", desc: "Money goes into a secure escrow account" },
-  { tone: "primary", title: "Seller delivers", desc: "Item shipped with tracking and delivery proof" },
-  { tone: "primary", title: "Buyer verifies item", desc: "Confirm the item matches what was ordered" },
-  { tone: "success", title: "Funds are released", desc: "Seller receives payment immediately" },
-];
-
-const directSteps = [
-  { tone: "success", title: "Seller creates protected transaction", desc: "Add item details, price, and delivery terms" },
-  { tone: "success", title: "Buyer reviews agreement link", desc: "Check all details before paying" },
-  { tone: "warning", title: "Buyer pays SafeDeal", desc: "Payment held securely in escrow" },
-  { tone: "success", title: "Seller delivers", desc: "Ships item and uploads proof" },
-  { tone: "success", title: "Buyer verifies", desc: "Confirms item matches agreement" },
-  { tone: "success", title: "Funds are released", desc: "Seller receives payment" },
-];
-
-const numTone: Record<string, string> = {
-  primary: "bg-primary text-primary-foreground",
-  success: "bg-success text-success-foreground",
-  warning: "bg-warning text-warning-foreground",
-};
-
-function FlowCard({
-  icon: Icon,
-  title,
-  steps,
-  variant,
-}: {
-  icon: typeof Store;
+interface Step {
+  icon: LucideIcon;
   title: string;
-  steps: { tone: string; title: string; desc: string }[];
-  variant: "primary" | "success";
-}) {
-  const wrap =
-    variant === "primary"
-      ? "bg-gradient-to-br from-primary/5 via-card to-success/5 border-primary/20"
-      : "bg-gradient-to-br from-success/5 via-card to-primary/5 border-success/20";
-  const iconBg = variant === "primary" ? "bg-primary text-primary-foreground" : "bg-success text-success-foreground";
-  return (
-    <div className={`rounded-2xl border-2 p-4 sm:p-5 ${wrap}`}>
-      <div className="mb-3 flex items-center gap-3">
-        <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${iconBg}`}>
-          <Icon className="h-[18px] w-[18px]" />
-        </div>
-        <h3 className="text-base font-bold text-foreground sm:text-lg">{title}</h3>
-      </div>
-      <ol className="space-y-2.5">
-        {steps.map((step, i) => (
-          <StepRow key={i} step={step} index={i} />
-        ))}
-      </ol>
-    </div>
-  );
+  helper: string;
 }
 
-function StepRow({ step, index }: { step: { tone: string; title: string; desc: string }; index: number }) {
-  const ref = useScrollReveal<HTMLLIElement>();
-  return (
-    <li
-      ref={ref}
-      className="flex items-start gap-2.5"
-      style={{ animationDelay: `${index * 60}ms` }}
-    >
-      <span
-        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${numTone[step.tone]}`}
-      >
-        {index + 1}
-      </span>
-      <div>
-        <p className="text-sm font-semibold text-foreground">{step.title}</p>
-        <p className="text-xs leading-snug text-muted-foreground">{step.desc}</p>
-      </div>
-    </li>
-  );
-}
+const STEPS: Step[] = [
+  { icon: ShoppingBag, title: "Choose or create deal", helper: "Pick a product or send a link" },
+  { icon: CreditCard, title: "Pay through SafeDeal", helper: "Secure escrow checkout" },
+  { icon: ShieldCheck, title: "Funds held securely", helper: "Money locked in escrow" },
+  { icon: Truck, title: "Seller delivers", helper: "Shipped with proof" },
+  { icon: CircleCheck, title: "Buyer verifies", helper: "Confirm item matches" },
+  { icon: Wallet, title: "Seller gets paid", helper: "Funds released" },
+];
 
 export function HowItWorks() {
+  const [active, setActive] = useState(0);
+  const sectionRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    if (typeof window === "undefined" || !("IntersectionObserver" in window)) {
+      setActive(STEPS.length - 1);
+      return;
+    }
+
+    const itemEls = Array.from(
+      el.querySelectorAll<HTMLElement>("[data-step-index]"),
+    );
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        let highest = -1;
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const idx = Number((entry.target as HTMLElement).dataset.stepIndex);
+            if (idx > highest) highest = idx;
+          }
+        });
+        if (highest >= 0) {
+          setActive((prev) => (highest > prev ? highest : prev));
+        }
+      },
+      { threshold: 0.5, rootMargin: "0px 0px -20% 0px" },
+    );
+
+    itemEls.forEach((node) => io.observe(node));
+    return () => io.disconnect();
+  }, []);
+
+  // Progress bar percentage
+  const progress = ((active + 1) / STEPS.length) * 100;
+
   return (
-    <section id="how-it-works" className="section-y bg-background">
+    <section
+      id="how-it-works"
+      ref={sectionRef}
+      className="section-y bg-background"
+    >
       <div className="container-x mx-auto max-w-6xl">
-        <div className="mb-5 text-center sm:mb-7">
+        <div className="mb-6 text-center sm:mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
             <Lightbulb className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-semibold text-primary">Simple & Secure</span>
           </div>
-          <h2 className="h-section mb-2 font-bold text-foreground">
-            How SafeDeal Works
-          </h2>
+          <h2 className="h-section mb-2 font-bold text-foreground">How SafeDeal Works</h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
-            A transparent escrow process that protects both buyers and sellers throughout the transaction.
+            Six steps. One protected deal.
           </p>
         </div>
 
-        <Tabs defaultValue="marketplace" className="w-full">
-          <TabsList className="mx-auto mb-5 flex h-auto w-full max-w-xl flex-col gap-1 rounded-2xl bg-muted/60 p-1.5 sm:flex-row">
-            <TabsTrigger value="marketplace" className="tap-target w-full gap-2 rounded-xl py-2 text-[13px] font-semibold">
-              <Store className="h-4 w-4" />
-              Buying from Marketplace
-            </TabsTrigger>
-            <TabsTrigger value="direct" className="tap-target w-full gap-2 rounded-xl py-2 text-[13px] font-semibold">
-              <Handshake className="h-4 w-4" />
-              Direct Transaction
-            </TabsTrigger>
-          </TabsList>
+        {/* Desktop horizontal timeline */}
+        <div className="relative hidden lg:block">
+          {/* Track */}
+          <div className="absolute left-0 right-0 top-7 h-1 rounded-full bg-muted" />
+          {/* Filled */}
+          <div
+            className="absolute left-0 top-7 h-1 rounded-full bg-gradient-to-r from-primary via-primary to-success transition-all duration-700 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+          <ol className="relative grid grid-cols-6 gap-2">
+            {STEPS.map((step, i) => (
+              <DesktopStep key={step.title} step={step} index={i} active={active} />
+            ))}
+          </ol>
+        </div>
 
-          <TabsContent value="marketplace" className="mt-0">
-            <div className="grid gap-4 lg:grid-cols-2">
-              <FlowCard
-                icon={Store}
-                title="Marketplace Buyer Flow"
-                steps={marketplaceSteps}
-                variant="primary"
-              />
-              <FlowCard
-                icon={Shield}
-                title="What we protect"
-                steps={[
-                  { tone: "primary", title: "Identity-verified sellers", desc: "Email, phone, and document checks" },
-                  { tone: "primary", title: "Locked agreements", desc: "Terms cannot change after payment" },
-                  { tone: "warning", title: "Funds held in escrow", desc: "No early release to the seller" },
-                  { tone: "primary", title: "Verification window", desc: "Time to inspect what you received" },
-                  { tone: "primary", title: "Evidence-based disputes", desc: "Photo and video proof from both sides" },
-                  { tone: "success", title: "Fair outcomes", desc: "Reviewed by SafeDeal's team" },
-                ]}
-                variant="success"
-              />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="direct" className="mt-0">
-            <div className="grid gap-4 lg:grid-cols-2">
-              <FlowCard
-                icon={Handshake}
-                title="Direct Transaction Flow"
-                steps={directSteps}
-                variant="success"
-              />
-              <FlowCard
-                icon={Shield}
-                title="Why use a protected link"
-                steps={[
-                  { tone: "primary", title: "Share via WhatsApp, Instagram, DMs", desc: "Anywhere you talk to your buyer" },
-                  { tone: "primary", title: "Buyer reviews terms first", desc: "No surprises, no pressure" },
-                  { tone: "warning", title: "Escrow holds the money", desc: "Until buyer confirms delivery" },
-                  { tone: "primary", title: "Auto-release window", desc: "Funds release if no dispute is raised" },
-                  { tone: "primary", title: "Immutable record", desc: "Both parties have proof of the deal" },
-                  { tone: "success", title: "Get paid safely", desc: "Without third-party marketplace fees" },
-                ]}
-                variant="primary"
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        <div className="mx-auto mt-5 max-w-3xl rounded-2xl border-2 border-primary/20 bg-primary/5 p-4 sm:mt-6">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-              <Shield className="h-[18px] w-[18px]" />
-            </div>
-            <div>
-              <h4 className="mb-1 text-sm font-bold text-foreground sm:text-base">
-                SafeDeal holds the money until buyer verification is complete
-              </h4>
-              <p className="text-xs leading-relaxed text-muted-foreground sm:text-[13px]">
-                Your payment stays in our secure escrow account. Funds are only released after you
-                confirm the item matches, or after the verification window expires without a dispute.
-              </p>
-            </div>
-          </div>
+        {/* Mobile/tablet vertical timeline */}
+        <div className="relative lg:hidden">
+          <div className="absolute bottom-0 left-[18px] top-0 w-0.5 rounded-full bg-muted" />
+          <div
+            className="absolute left-[18px] top-0 w-0.5 rounded-full bg-gradient-to-b from-primary to-success transition-all duration-700 ease-out"
+            style={{ height: `${progress}%` }}
+          />
+          <ol className="relative space-y-4">
+            {STEPS.map((step, i) => (
+              <MobileStep key={step.title} step={step} index={i} active={active} />
+            ))}
+          </ol>
         </div>
       </div>
     </section>
+  );
+}
+
+function stateOf(index: number, active: number): "done" | "current" | "pending" {
+  if (index < active) return "done";
+  if (index === active) return "current";
+  return "pending";
+}
+
+function DesktopStep({ step, index, active }: { step: Step; index: number; active: number }) {
+  const state = stateOf(index, active);
+  const Icon = step.icon;
+  return (
+    <li
+      data-step-index={index}
+      className="relative flex flex-col items-center text-center transition-all duration-500"
+    >
+      <span
+        className={`relative z-10 flex h-14 w-14 items-center justify-center rounded-full border-4 border-background shadow-md transition-all duration-500 ${
+          state === "done"
+            ? "bg-success text-success-foreground"
+            : state === "current"
+              ? "scale-110 bg-primary text-primary-foreground ring-4 ring-primary/25 animate-pulse"
+              : "bg-muted text-muted-foreground"
+        }`}
+      >
+        {state === "done" ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+      </span>
+      <span
+        className={`mt-1.5 text-[10px] font-bold uppercase tracking-wide transition-colors ${
+          state === "pending" ? "text-muted-foreground" : "text-primary"
+        }`}
+      >
+        Step {index + 1}
+      </span>
+      <h3
+        className={`mt-1 text-[13px] font-bold leading-tight transition-colors ${
+          state === "pending" ? "text-muted-foreground" : "text-foreground"
+        }`}
+      >
+        {step.title}
+      </h3>
+      <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground">{step.helper}</p>
+    </li>
+  );
+}
+
+function MobileStep({ step, index, active }: { step: Step; index: number; active: number }) {
+  const state = stateOf(index, active);
+  const Icon = step.icon;
+  return (
+    <li
+      data-step-index={index}
+      className="relative flex items-start gap-3 transition-all duration-500"
+    >
+      <span
+        className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[3px] border-background shadow-md transition-all duration-500 ${
+          state === "done"
+            ? "bg-success text-success-foreground"
+            : state === "current"
+              ? "scale-110 bg-primary text-primary-foreground ring-4 ring-primary/25 animate-pulse"
+              : "bg-muted text-muted-foreground"
+        }`}
+      >
+        {state === "done" ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+      </span>
+      <div
+        className={`min-w-0 flex-1 rounded-xl border bg-card p-3 transition-all duration-500 ${
+          state === "current" ? "border-primary/30 shadow-md" : "border-border"
+        } ${state === "pending" ? "opacity-70" : ""}`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-[14px] font-bold leading-tight text-foreground">{step.title}</h3>
+          <span className="text-[10px] font-bold text-muted-foreground">{index + 1}/6</span>
+        </div>
+        <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{step.helper}</p>
+      </div>
+    </li>
   );
 }

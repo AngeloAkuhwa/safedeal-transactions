@@ -1,73 +1,81 @@
-import { Activity, UserCheck, Lock, Camera, Gavel, Store } from "lucide-react";
+import {
+  Activity,
+  BadgeCheck,
+  Lock,
+  Camera,
+  Gavel,
+  Wallet,
+  CircleCheck,
+  Link2,
+  LifeBuoy,
+  type LucideIcon,
+} from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
-const pillars = [
-  {
-    icon: Activity,
-    title: "Complete transaction timeline",
-    desc: "Every step from payment to delivery is tracked and visible to both parties.",
-    tone: "primary" as const,
-  },
-  {
-    icon: UserCheck,
-    title: "Identity verification",
-    desc: "Sellers verify email, phone, and identity before listing products.",
-    tone: "success" as const,
-  },
-  {
-    icon: Lock,
-    title: "Locked agreement records",
-    desc: "Product details, price, and terms are locked after payment and cannot be changed.",
-    tone: "primary" as const,
-  },
-  {
-    icon: Camera,
-    title: "Delivery evidence",
-    desc: "Photos, videos, and receipts stored for transparency and verification.",
-    tone: "warning" as const,
-  },
-  {
-    icon: Gavel,
-    title: "Dispute handling",
-    desc: "Evidence-backed dispute resolution protects both buyers and sellers fairly.",
-    tone: "danger" as const,
-  },
-  {
-    icon: Store,
-    title: "Seller storefront reputation",
-    desc: "Transaction history and ratings build seller trust over time.",
-    tone: "success" as const,
-  },
+type Tone = "primary" | "success" | "warning" | "danger";
+
+interface Card {
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+  tone: Tone;
+}
+
+const CARDS: Card[] = [
+  { icon: Activity, title: "Transaction timeline", desc: "Every step tracked end-to-end.", tone: "primary" },
+  { icon: BadgeCheck, title: "Verified sellers", desc: "Email, phone, and ID checked.", tone: "success" },
+  { icon: Lock, title: "Locked agreement", desc: "Terms can't change after payment.", tone: "warning" },
+  { icon: Camera, title: "Delivery evidence", desc: "Photos and proof on file.", tone: "primary" },
+  { icon: Gavel, title: "Evidence-backed disputes", desc: "Reviewed by SafeDeal's team.", tone: "danger" },
+  { icon: Wallet, title: "Clear money status", desc: "Always know where funds sit.", tone: "warning" },
+  { icon: CircleCheck, title: "Buyer confirmation", desc: "Funds release only after approval.", tone: "success" },
+  { icon: Link2, title: "Direct deal links", desc: "Share via WhatsApp or DMs.", tone: "primary" },
+  { icon: LifeBuoy, title: "Support", desc: "Help when you need it.", tone: "success" },
 ];
 
-const toneMap = {
-  primary: { wrap: "bg-primary/10", icon: "text-primary" },
-  success: { wrap: "bg-success/10", icon: "text-success" },
-  warning: { wrap: "bg-warning/10", icon: "text-warning" },
-  danger: { wrap: "bg-destructive/10", icon: "text-destructive" },
+const toneMap: Record<Tone, { wrap: string; icon: string; hover: string }> = {
+  primary: {
+    wrap: "bg-primary/10",
+    icon: "text-primary",
+    hover: "group-hover:bg-primary group-hover:text-primary-foreground",
+  },
+  success: {
+    wrap: "bg-success/10",
+    icon: "text-success",
+    hover: "group-hover:bg-success group-hover:text-success-foreground",
+  },
+  warning: {
+    wrap: "bg-warning/10",
+    icon: "text-warning",
+    hover: "group-hover:bg-warning group-hover:text-warning-foreground",
+  },
+  danger: {
+    wrap: "bg-destructive/10",
+    icon: "text-destructive",
+    hover: "group-hover:bg-destructive group-hover:text-destructive-foreground",
+  },
 };
 
-const stats = [
-  { label: "First rollout", value: "Lagos", color: "text-primary" },
-  { label: "Payments supported", value: "NGN", color: "text-success" },
-  { label: "Seller storefronts", value: "Verified", color: "text-warning" },
-  { label: "Protected checkout", value: "Escrow", color: "text-primary" },
-  { label: "Backed disputes", value: "Evidence", color: "text-success" },
-];
-
-function PillarCard({ p }: { p: (typeof pillars)[number] }) {
+function CardTile({ c, index }: { c: Card; index: number }) {
   const ref = useScrollReveal<HTMLDivElement>();
-  const t = toneMap[p.tone];
+  const t = toneMap[c.tone];
   return (
     <div
       ref={ref}
-      className="rounded-2xl border bg-card p-4 sm:p-5 transition-all hover:-translate-y-0.5 hover:shadow-xl"
+      style={{ transitionDelay: `${index * 50}ms` }}
+      className="group flex items-start gap-3 rounded-xl border bg-card p-3.5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg sm:p-4"
     >
-      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${t.wrap}`}>
-        <p.icon className={`h-[18px] w-[18px] ${t.icon}`} />
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-all duration-300 group-hover:scale-110 ${t.wrap} ${t.hover}`}
+      >
+        <c.icon className={`h-5 w-5 transition-colors ${t.icon} group-hover:text-current`} />
       </div>
-      <h3 className="mb-1 text-base font-bold text-foreground sm:text-lg">{p.title}</h3>
-      <p className="text-[13px] leading-relaxed text-muted-foreground">{p.desc}</p>
+      <div className="min-w-0">
+        <h3 className="text-[14px] font-bold leading-tight text-foreground sm:text-[15px]">
+          {c.title}
+        </h3>
+        <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{c.desc}</p>
+      </div>
     </div>
   );
 }
@@ -78,39 +86,17 @@ export function TransparencyTrustSection() {
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-5 text-center sm:mb-7">
           <h2 className="h-section mb-2 font-bold text-foreground">
-            Built on transparency and trust
+            What protects every deal
           </h2>
           <p className="body-lead mx-auto max-w-xl text-muted-foreground">
-            Why buyers and sellers can trust SafeDeal with every transaction.
+            Nine guarantees. Built into every transaction.
           </p>
         </div>
 
-        <div className="mb-5 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-          {pillars.map((p) => (
-            <PillarCard key={p.title} p={p} />
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+          {CARDS.map((c, i) => (
+            <CardTile key={c.title} c={c} index={i} />
           ))}
-        </div>
-
-        <div className="rounded-2xl border-2 border-primary/20 bg-card p-4 shadow-sm sm:p-5">
-          <div className="mb-3 text-center sm:mb-4">
-            <h3 className="mb-1 text-base font-bold text-foreground sm:text-lg">
-              SafeDeal Lagos Launch
-            </h3>
-            <p className="text-[13px] text-muted-foreground">
-              Building trust in online transactions, one protected deal at a time.
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {stats.map((s) => (
-              <div
-                key={s.label}
-                className="rounded-xl bg-muted/60 p-2.5 text-center"
-              >
-                <div className={`mb-1 text-base font-bold sm:text-lg ${s.color}`}>{s.value}</div>
-                <div className="text-xs text-muted-foreground">{s.label}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </section>
