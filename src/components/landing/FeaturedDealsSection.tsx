@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Shield, Star, ArrowRight, BadgeCheck, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,18 +27,58 @@ function ProductImage({ product }: { product: DemoProduct }) {
 
 function ProductCard({ product, index }: { product: DemoProduct; index: number }) {
   const ref = useScrollReveal<HTMLDivElement>();
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [glowed, setGlowed] = useState(false);
+
+  // Attach the scroll-reveal ref AND keep our own ref to drive a one-time badge glow.
+  const setRefs = (node: HTMLDivElement | null) => {
+    (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    cardRef.current = node;
+  };
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || glowed) return;
+    if (typeof window === "undefined" || !("IntersectionObserver" in window)) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            setGlowed(true);
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { threshold: 0.3 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [glowed]);
+
   return (
     <div
-      ref={ref}
+      ref={setRefs}
       style={{ transitionDelay: `${index * 80}ms` }}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border bg-card transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl"
+      className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl"
     >
       {/* Image area */}
-      <div className="relative h-44 overflow-hidden bg-muted/40 sm:h-48 lg:h-56">
+      <div className="relative h-40 overflow-hidden bg-muted/40 sm:h-44 lg:h-48">
         <ProductImage product={product} />
 
-        {/* Protected badge — gets bolder on hover */}
-        <span className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-lg bg-success px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-success-foreground shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:ring-2 group-hover:ring-success/40">
+        {/* Protected badge — soft one-time glow on reveal, bolder on hover */}
+        <span
+          style={
+            glowed
+              ? {
+                  animation: "pulse 1.4s ease-out 1",
+                  boxShadow: "0 0 0 0 hsl(var(--success) / 0.0)",
+                }
+              : undefined
+          }
+          className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-lg bg-success px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-success-foreground shadow-[0_0_0_4px_hsl(var(--success)/0.15)] transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:ring-2 group-hover:ring-success/40"
+        >
           <Shield className="h-3 w-3" />
           Protected
         </span>
@@ -51,14 +91,14 @@ function ProductCard({ product, index }: { product: DemoProduct; index: number }
       </div>
 
       {/* Body */}
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <h3 className="mb-1 line-clamp-1 text-base font-bold text-foreground sm:text-lg">
+      <div className="flex flex-1 flex-col p-4">
+        <h3 className="mb-1 line-clamp-1 text-base font-bold text-foreground">
           {product.title}
         </h3>
-        <div className="mb-3 text-2xl font-bold text-primary">{formatNaira(product.price)}</div>
+        <div className="mb-2.5 text-xl font-bold text-primary">{formatNaira(product.price)}</div>
 
         {/* Seller row */}
-        <div className="mb-3 flex items-center justify-between border-t border-border pt-3">
+        <div className="mb-2.5 flex items-center justify-between border-t border-border pt-2.5">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
               {product.sellerName[0]}
@@ -83,7 +123,7 @@ function ProductCard({ product, index }: { product: DemoProduct; index: number }
         >
           <Link to="/marketplace">
             View Product
-            <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
         </Button>
       </div>
