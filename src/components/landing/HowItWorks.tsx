@@ -69,7 +69,7 @@ export function HowItWorks() {
     <section
       id="how-it-works"
       ref={sectionRef}
-      className="section-y bg-background"
+      className="section-y bg-muted/30"
     >
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-6 text-center sm:mb-10">
@@ -136,7 +136,7 @@ function DesktopStep({ step, index, active }: { step: Step; index: number; activ
           state === "done"
             ? "bg-success text-success-foreground"
             : state === "current"
-              ? "scale-110 bg-primary text-primary-foreground ring-4 ring-primary/25 animate-pulse"
+              ? "scale-110 bg-primary text-primary-foreground ring-4 ring-primary/25"
               : "bg-muted text-muted-foreground"
         }`}
       >
@@ -174,7 +174,7 @@ function MobileStep({ step, index, active }: { step: Step; index: number; active
           state === "done"
             ? "bg-success text-success-foreground"
             : state === "current"
-              ? "scale-110 bg-primary text-primary-foreground ring-4 ring-primary/25 animate-pulse"
+              ? "scale-110 bg-primary text-primary-foreground ring-4 ring-primary/25"
               : "bg-muted text-muted-foreground"
         }`}
       >
