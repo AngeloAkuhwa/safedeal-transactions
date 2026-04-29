@@ -126,11 +126,11 @@ function CategoryCard({ cat }: { cat: Category }) {
     <Link
       ref={ref}
       to={`/marketplace?category=${cat.slug}`}
-      className="group rounded-2xl border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"
+      className="group rounded-xl border bg-card p-3.5 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg sm:p-4"
     >
-      <div className="mb-3 flex items-start justify-between">
+      <div className="mb-2.5 flex items-start justify-between">
         <div
-          className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${t.wrap} ${t.hover}`}
+          className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${t.wrap} ${t.hover} sm:h-11 sm:w-11`}
         >
           <cat.icon className={`h-5 w-5 transition-colors ${t.icon} group-hover:text-current`} />
         </div>
@@ -138,8 +138,8 @@ function CategoryCard({ cat }: { cat: Category }) {
           className={`h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-1 ${t.arrow}`}
         />
       </div>
-      <h3 className="mb-1 text-sm font-bold text-foreground sm:text-base">{cat.name}</h3>
-      <p className="mb-2 text-xs text-muted-foreground">{cat.desc}</p>
+      <h3 className="mb-0.5 text-sm font-bold text-foreground sm:text-[15px]">{cat.name}</h3>
+      <p className="mb-1.5 text-[11px] leading-snug text-muted-foreground sm:text-xs">{cat.desc}</p>
       <p className="text-[11px] font-semibold text-muted-foreground">{cat.count}</p>
     </Link>
   );
@@ -147,7 +147,7 @@ function CategoryCard({ cat }: { cat: Category }) {
 
 export function CategoriesSection() {
   return (
-    <section id="categories" className="section-y bg-muted/30">
+    <section id="categories" className="bg-muted/30 py-10 sm:py-12 lg:py-14">
       <div className="container-x mx-auto max-w-6xl">
         <div className="mb-6 text-center sm:mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
