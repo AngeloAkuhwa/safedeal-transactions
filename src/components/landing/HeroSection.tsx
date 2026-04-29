@@ -51,7 +51,7 @@ export function HeroSection() {
             </p>
 
             {/* Three CTAs — 2-up + full-width on mobile, inline on desktop */}
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-center sm:gap-2.5 lg:justify-start">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 lg:justify-start">
               <CTA
                 to="/marketplace"
                 icon={ShoppingBag}
@@ -72,8 +72,7 @@ export function HeroSection() {
                 label="Create Protected Deal"
                 variant="dark"
                 delay="240ms"
-                className="col-span-2 sm:col-span-1"
-              />
+                  />
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px] text-foreground sm:text-[13px]">
@@ -186,7 +185,7 @@ function CTA({
     <Link
       to={to}
       style={{ animationDelay: delay, minHeight: "44px" }}
-      className={`animate-fade-in inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-bold shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg sm:text-sm ${styles} ${className}`}
+      className={`animate-fade-in inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2.5 text-center text-[11px] font-bold leading-tight shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg sm:gap-2 sm:px-3 sm:text-[13px] lg:px-4 ${styles} ${className}`}
     >
       <Icon className="h-4 w-4" />
       <span>{label}</span>
