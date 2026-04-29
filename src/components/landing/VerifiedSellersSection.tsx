@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Shield, Star, MapPin, CheckCircle, ArrowRight, BadgeCheck, ShoppingBag } from "lucide-react";
+import { Shield, Star, MapPin, ArrowRight, BadgeCheck, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { DEMO_SELLERS, formatCount, type DemoSeller } from "./demo-data";
@@ -17,31 +17,22 @@ function SellerCard({ seller, index }: { seller: DemoSeller; index: number }) {
 
       {/* Body */}
       <div className="-mt-6 flex flex-1 flex-col px-4 pb-4">
-        {/* Avatar with verified check */}
+        {/* Avatar */}
         <div className="relative mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl border-4 border-card bg-card shadow-md">
           <div
             className={`flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br text-base font-bold text-primary-foreground ${seller.initialsGradient}`}
           >
             {seller.initials}
           </div>
-          <span
-            className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-md border-2 border-card bg-primary shadow"
-            title="Verified"
-          >
-            <CheckCircle className="h-2.5 w-2.5 text-primary-foreground" />
-          </span>
         </div>
 
-        {/* Name + verified pill (subtle, one-time pulse on reveal) */}
+        {/* Name + verified pill */}
         <div className="mb-2.5 text-center">
           <h3 className="mb-1 truncate text-sm font-bold text-foreground">{seller.name}</h3>
-          <span
-            style={{ animation: "pulse 1.4s ease-out 1" }}
-            className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success"
-          >
+          <RevealPulse className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">
             <BadgeCheck className="h-3 w-3" />
             Verified Seller
-          </span>
+          </RevealPulse>
         </div>
 
         {/* Compact stats row — rating · deals · location */}

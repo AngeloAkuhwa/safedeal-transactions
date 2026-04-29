@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Shield, Star, ArrowRight, BadgeCheck, ShieldCheck } from "lucide-react";
+import { Shield, Star, ArrowRight, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { DEMO_PRODUCTS, formatNaira, type DemoProduct } from "./demo-data";
@@ -152,15 +152,7 @@ export function FeaturedDealsSection() {
           ))}
         </div>
 
-        {/* Animated micro-note */}
-        <div className="mt-6 flex justify-center">
-          <div className="animate-fade-in inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/5 px-3 py-1.5 text-[12px] font-medium text-foreground">
-            <ShieldCheck className="h-3.5 w-3.5 animate-pulse text-success" />
-            Every featured deal is protected by SafeDeal escrow.
-          </div>
-        </div>
-
-        <div className="mt-5 text-center">
+        <div className="mt-6 text-center">
           <Button
             asChild
             className="rounded-xl px-5 py-2.5 text-sm font-bold shadow-md hover:shadow-lg"
