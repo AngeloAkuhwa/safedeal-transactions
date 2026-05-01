@@ -206,6 +206,8 @@ Deno.serve(async (req) => {
         })
         .eq("id", transactionId);
 
+      // Idempotent: partial unique index rrq_unique_open_per_type
+      // prevents duplicate open rows per (transaction_id, queue_type).
       await admin.from("release_review_queue").insert({
         transaction_id: transactionId,
         payout_id: null,
@@ -215,6 +217,10 @@ Deno.serve(async (req) => {
         queue_type: "pricing_missing",
         status: "pending",
         notes: "Seller confirmed but pricing row missing or invalid.",
+      }).then(({ error }) => {
+        if (error && !/duplicate|unique/i.test(error.message ?? "")) {
+          console.error("queue insert (pricing_missing) failed:", error);
+        }
       });
 
       await admin.from("notifications").insert({
@@ -278,6 +284,10 @@ Deno.serve(async (req) => {
         queue_type: "payout_account_missing",
         status: "pending",
         notes: "Seller has no verified default payout account.",
+      }).then(({ error }) => {
+        if (error && !/duplicate|unique/i.test(error.message ?? "")) {
+          console.error("queue insert (payout_account_missing) failed:", error);
+        }
       });
 
       await admin.from("escrow_ledger_entries").insert({
@@ -358,6 +368,10 @@ Deno.serve(async (req) => {
         queue_type: "ready_for_release",
         status: "pending",
         notes: "Both parties confirmed. Ready for release review.",
+      }).then(({ error }) => {
+        if (error && !/duplicate|unique/i.test(error.message ?? "")) {
+          console.error("queue insert (ready_for_release) failed:", error);
+        }
       }),
       admin.from("notifications").insert({
         user_id: tx.seller_id,
