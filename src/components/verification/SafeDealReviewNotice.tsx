@@ -1,12 +1,12 @@
 import { Clock } from "lucide-react";
 import { format } from "date-fns";
 
-interface AutoReleaseWarningProps {
+interface SafeDealReviewNoticeProps {
   deadlineAt: string;
   windowHours: number;
 }
 
-export function AutoReleaseWarning({ deadlineAt, windowHours }: AutoReleaseWarningProps) {
+export function SafeDealReviewNotice({ deadlineAt, windowHours }: SafeDealReviewNoticeProps) {
   const deadline = new Date(deadlineAt);
   const now = Date.now();
   const totalMs = windowHours * 3_600_000;
