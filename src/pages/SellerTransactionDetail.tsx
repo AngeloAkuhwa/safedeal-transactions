@@ -20,6 +20,7 @@ import { DeliveryTermsCard } from "@/components/transactions/DeliveryTermsCard";
 import { TransactionCompletionBanner } from "@/components/transactions/TransactionCompletionBanner";
 import { TransactionConfirmationProgress } from "@/components/transactions/TransactionConfirmationProgress";
 import { SellerConfirmCompletionCard } from "@/components/seller/SellerConfirmCompletionCard";
+import { ReleaseReviewBanner } from "@/components/seller/ReleaseReviewBanner";
 import { RiderLinkCard } from "@/components/seller/RiderLinkCard";
 import { MessageThread } from "@/components/transactions/MessageThread";
 
@@ -214,6 +215,12 @@ const SellerTransactionDetail = () => {
           sellerConfirmedAt={tx.seller_confirmed_at}
           moneyStatus={tx.money_status}
         />
+
+        {/* Phase A: surface release-review reason (e.g. missing payout account)
+            so the seller knows why their confirmed funds aren't moving yet. */}
+        {tx.needs_release_review === true && (
+          <ReleaseReviewBanner reason={tx.release_review_reason ?? null} />
+        )}
 
         {tx.status === "completed" &&
           tx.buyer_confirmed_at &&

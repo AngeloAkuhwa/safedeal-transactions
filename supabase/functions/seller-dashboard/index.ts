@@ -123,6 +123,7 @@ Deno.serve(async (req) => {
     let awaitingPaymentTxIds: string[] = [];
     let awaitingBuyerReviewTxIds: string[] = [];
     let fundsHeldTxIds: string[] = [];
+    let fundsPendingReleaseTxIds: string[] = [];
     let fundsReleasingTxIds: string[] = [];
     let fulfillmentNeededTxIds: string[] = [];
     let dispatchedTxIds: string[] = [];
@@ -144,6 +145,11 @@ Deno.serve(async (req) => {
         }
         if (tx.money_status === "funds_held_in_escrow") {
           fundsHeldTxIds.push(tx.id);
+        }
+        // Phase A: dual-confirmation handshake — money sits in
+        // funds_pending_release until SafeDeal review releases it.
+        if (tx.money_status === "funds_pending_release") {
+          fundsPendingReleaseTxIds.push(tx.id);
         }
         if (tx.money_status === "funds_releasing") {
           fundsReleasingTxIds.push(tx.id);
@@ -193,6 +199,7 @@ Deno.serve(async (req) => {
         ...awaitingPaymentTxIds,
         ...awaitingBuyerReviewTxIds,
         ...fundsHeldTxIds,
+        ...fundsPendingReleaseTxIds,
         ...fundsReleasingTxIds,
         ...completedTxIds,
       ]),
@@ -223,6 +230,12 @@ Deno.serve(async (req) => {
         }
         for (const id of fundsHeldTxIds) {
           fundsHeldInEscrowAmount += pricingMap.get(id)?.sellerNet ?? 0;
+        }
+        // Phase A KPI: "Funds Pending Release" = SafeDeal review queue
+        // (funds_pending_release) PLUS the brief in-flight transfer state
+        // (funds_releasing). Both are seller-net amounts.
+        for (const id of fundsPendingReleaseTxIds) {
+          fundsPendingReleaseAmount += pricingMap.get(id)?.sellerNet ?? 0;
         }
         for (const id of fundsReleasingTxIds) {
           fundsPendingReleaseAmount += pricingMap.get(id)?.sellerNet ?? 0;
@@ -298,8 +311,8 @@ Deno.serve(async (req) => {
         type: "payout_releasing",
         amount: fundsPendingReleaseAmount,
         currency_code: "NGN",
-        title: "Payout releasing soon",
-        message: `₦${fundsPendingReleaseAmount.toLocaleString()} will be released to your account`,
+        title: "Awaiting release review",
+        message: `₦${fundsPendingReleaseAmount.toLocaleString()} is awaiting SafeDeal release review.`,
         action_label: "Details",
         action_url: "/seller/payouts",
       });
