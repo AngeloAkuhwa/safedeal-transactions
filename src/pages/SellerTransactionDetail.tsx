@@ -18,6 +18,8 @@ import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { BuyerTrustBadges } from "@/components/trust/BuyerTrustBadges";
 import { DeliveryTermsCard } from "@/components/transactions/DeliveryTermsCard";
 import { TransactionCompletionBanner } from "@/components/transactions/TransactionCompletionBanner";
+import { TransactionConfirmationProgress } from "@/components/transactions/TransactionConfirmationProgress";
+import { SellerConfirmCompletionCard } from "@/components/seller/SellerConfirmCompletionCard";
 import { RiderLinkCard } from "@/components/seller/RiderLinkCard";
 import { MessageThread } from "@/components/transactions/MessageThread";
 
@@ -39,6 +41,7 @@ const moneyLabels: Record<string, { label: string; color: string }> = {
   payment_pending: { label: "Payment Pending", color: "text-yellow-600" },
   funds_held_in_escrow: { label: "Funds Held Securely", color: "text-green-600" },
   funds_frozen: { label: "Funds Frozen", color: "text-blue-600" },
+  funds_pending_release: { label: "Awaiting Release", color: "text-primary" },
   funds_releasing: { label: "Releasing Funds", color: "text-green-600" },
   funds_released: { label: "Funds Released", color: "text-green-700" },
   refund_pending: { label: "Refund Pending", color: "text-yellow-600" },
@@ -206,7 +209,24 @@ const SellerTransactionDetail = () => {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {tx.status === "completed" && completion_event && (
+        <TransactionConfirmationProgress
+          buyerConfirmedAt={tx.buyer_confirmed_at}
+          sellerConfirmedAt={tx.seller_confirmed_at}
+          moneyStatus={tx.money_status}
+        />
+
+        {tx.status === "completed" &&
+          tx.buyer_confirmed_at &&
+          !tx.seller_confirmed_at &&
+          (tx.dispute_status ?? "none") === "none" && (
+            <SellerConfirmCompletionCard
+              transactionId={transactionId!}
+              transactionCode={tx.transaction_code}
+              buyerConfirmedAt={tx.buyer_confirmed_at}
+            />
+          )}
+
+        {tx.status === "completed" && tx.money_status === "funds_released" && completion_event && (
           <TransactionCompletionBanner
             variant={completion_event.variant}
             completedAt={completion_event.completed_at}
