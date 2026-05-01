@@ -145,8 +145,16 @@ Deno.serve(async (req) => {
     transaction_id,
     event_type: "refund_issued",
     actor_user_id: ctx.userId,
-    description: `SafeDeal initiated a refund of ${tx.currency_code} ${refundAmount.toLocaleString()} (${reason})`,
-    metadata: { refund_id: refundId, provider_reference: providerRef, partial: isPartial, amount: refundAmount },
+    actor_role: "admin",
+    event_data: {
+      reason,
+      notes: notes ?? null,
+      refund_id: refundId,
+      provider_reference: providerRef,
+      partial: isPartial,
+      amount: refundAmount,
+      currency_code: tx.currency_code,
+    },
   });
 
   await notifyUser(admin, {
