@@ -243,3 +243,27 @@ BEGIN
   RETURN jsonb_build_object('ok', true);
 END;
 $$;
+
+-- Expand the release_review_queue.status check to cover all states the
+-- atomic helpers actually write (processing/released/failed/refunded).
+ALTER TABLE public.release_review_queue DROP CONSTRAINT IF EXISTS rrq_status_check;
+ALTER TABLE public.release_review_queue
+  ADD CONSTRAINT rrq_status_check CHECK (
+    status = ANY (ARRAY[
+      'pending'::text,
+      'claimed'::text,
+      'processing'::text,
+      'released'::text,
+      'failed'::text,
+      'refunded'::text,
+      'resolved'::text,
+      'cancelled'::text
+    ])
+  );
+
+-- And the partial unique index that prevents two open queue rows per tx/type
+-- needs to consider the new in-flight states too.
+DROP INDEX IF EXISTS public.rrq_unique_open_per_type;
+CREATE UNIQUE INDEX rrq_unique_open_per_type
+  ON public.release_review_queue (transaction_id, queue_type)
+  WHERE status IN ('pending','claimed','processing');
