@@ -1818,6 +1818,7 @@ export type Database = {
           processed_at: string | null
           processed_successfully: boolean
           provider: Database["public"]["Enums"]["payment_provider"]
+          provider_event_id: string | null
           provider_reference: string | null
         }
         Insert: {
@@ -1829,6 +1830,7 @@ export type Database = {
           processed_at?: string | null
           processed_successfully?: boolean
           provider: Database["public"]["Enums"]["payment_provider"]
+          provider_event_id?: string | null
           provider_reference?: string | null
         }
         Update: {
@@ -1840,6 +1842,7 @@ export type Database = {
           processed_at?: string | null
           processed_successfully?: boolean
           provider?: Database["public"]["Enums"]["payment_provider"]
+          provider_event_id?: string | null
           provider_reference?: string | null
         }
         Relationships: []
@@ -1940,9 +1943,13 @@ export type Database = {
           bank_name: string
           created_at: string
           id: string
+          last_verification_error: string | null
           last_verified_at: string | null
           masked_account_number: string
+          provider: string | null
           provider_recipient_code: string | null
+          provider_recipient_id: string | null
+          provider_response: Json | null
           updated_at: string
           user_id: string
           verification_status: string
@@ -1953,9 +1960,13 @@ export type Database = {
           bank_name: string
           created_at?: string
           id?: string
+          last_verification_error?: string | null
           last_verified_at?: string | null
           masked_account_number: string
+          provider?: string | null
           provider_recipient_code?: string | null
+          provider_recipient_id?: string | null
+          provider_response?: Json | null
           updated_at?: string
           user_id: string
           verification_status?: string
@@ -1966,9 +1977,13 @@ export type Database = {
           bank_name?: string
           created_at?: string
           id?: string
+          last_verification_error?: string | null
           last_verified_at?: string | null
           masked_account_number?: string
+          provider?: string | null
           provider_recipient_code?: string | null
+          provider_recipient_id?: string | null
+          provider_response?: Json | null
           updated_at?: string
           user_id?: string
           verification_status?: string
@@ -1986,12 +2001,15 @@ export type Database = {
           failure_reason: string | null
           id: string
           initiated_at: string | null
+          last_release_attempt_at: string | null
+          last_release_error: string | null
           notes: string | null
           payout_blocked_reason: string | null
           provider_reference: string | null
           release_approved_by_user_id: string | null
           release_blocked: boolean
           released_at: string | null
+          retry_allowed: boolean
           seller_id: string
           status: Database["public"]["Enums"]["payout_status"]
           transaction_id: string
@@ -2007,12 +2025,15 @@ export type Database = {
           failure_reason?: string | null
           id?: string
           initiated_at?: string | null
+          last_release_attempt_at?: string | null
+          last_release_error?: string | null
           notes?: string | null
           payout_blocked_reason?: string | null
           provider_reference?: string | null
           release_approved_by_user_id?: string | null
           release_blocked?: boolean
           released_at?: string | null
+          retry_allowed?: boolean
           seller_id: string
           status?: Database["public"]["Enums"]["payout_status"]
           transaction_id: string
@@ -2028,12 +2049,15 @@ export type Database = {
           failure_reason?: string | null
           id?: string
           initiated_at?: string | null
+          last_release_attempt_at?: string | null
+          last_release_error?: string | null
           notes?: string | null
           payout_blocked_reason?: string | null
           provider_reference?: string | null
           release_approved_by_user_id?: string | null
           release_blocked?: boolean
           released_at?: string | null
+          retry_allowed?: boolean
           seller_id?: string
           status?: Database["public"]["Enums"]["payout_status"]
           transaction_id?: string
@@ -3520,6 +3544,7 @@ export type Database = {
           region_id: string | null
           release_approved_at: string | null
           release_approved_by: string | null
+          release_completed_at: string | null
           release_review_reason: string | null
           seller_confirmed_at: string | null
           seller_id: string
@@ -3553,6 +3578,7 @@ export type Database = {
           region_id?: string | null
           release_approved_at?: string | null
           release_approved_by?: string | null
+          release_completed_at?: string | null
           release_review_reason?: string | null
           seller_confirmed_at?: string | null
           seller_id: string
@@ -3586,6 +3612,7 @@ export type Database = {
           region_id?: string | null
           release_approved_at?: string | null
           release_approved_by?: string | null
+          release_completed_at?: string | null
           release_review_reason?: string | null
           seller_confirmed_at?: string | null
           seller_id?: string
@@ -3854,11 +3881,33 @@ export type Database = {
       }
     }
     Functions: {
+      complete_payout_atomic: {
+        Args: { p_amount: number; p_payout_id: string }
+        Returns: Json
+      }
+      complete_refund_atomic: { Args: { p_refund_id: string }; Returns: Json }
       compute_verification_level: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["verification_level_type"]
       }
       expire_stale_offers: { Args: never; Returns: number }
+      fail_payout_atomic: {
+        Args: { p_max_retries?: number; p_payout_id: string; p_reason: string }
+        Returns: Json
+      }
+      fail_refund_atomic: {
+        Args: { p_reason: string; p_refund_id: string }
+        Returns: Json
+      }
+      flag_for_release_review: {
+        Args: {
+          p_actor_user_id: string
+          p_notes: string
+          p_reason: string
+          p_transaction_id: string
+        }
+        Returns: string
+      }
       generate_transaction_code: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -3876,6 +3925,29 @@ export type Database = {
         Returns: boolean
       }
       is_user_region_allowed: { Args: { _user_id: string }; Returns: boolean }
+      release_payout_atomic: {
+        Args: {
+          p_actor_user_id: string
+          p_notes: string
+          p_payout_id: string
+          p_transaction_id: string
+        }
+        Returns: Json
+      }
+      reverse_payout_atomic: {
+        Args: { p_amount: number; p_payout_id: string; p_reason: string }
+        Returns: Json
+      }
+      start_refund_atomic: {
+        Args: {
+          p_actor_user_id: string
+          p_amount: number
+          p_notes: string
+          p_reason: string
+          p_transaction_id: string
+        }
+        Returns: string
+      }
       validate_money_transition: {
         Args: {
           _new_status: Database["public"]["Enums"]["money_status"]
