@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch related data in parallel
-    const [itemRes, deliveryTermsRes, linkRes, buyerProfileRes, buyerVerifRes, participantRes, escrowRes, pricingRes, snapshotRes, statusHistoryRes, deliveryTrackingRes, deliveryConfRes, riderTokenRes] = await Promise.all([
+    const [itemRes, deliveryTermsRes, linkRes, buyerProfileRes, buyerVerifRes, participantRes, escrowRes, pricingRes, snapshotRes, statusHistoryRes, deliveryTrackingRes, deliveryConfRes, riderTokenRes, moneyHistoryRes] = await Promise.all([
       adminClient
         .from("transaction_items")
         .select("title, description, quantity, condition_label, brand, model")
@@ -142,6 +142,11 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      adminClient
+        .from("money_status_history")
+        .select("old_status, new_status, changed_at, reason")
+        .eq("transaction_id", transactionId)
+        .order("changed_at", { ascending: true }),
     ]);
 
     const item = itemRes.data;
@@ -156,6 +161,7 @@ Deno.serve(async (req) => {
     const deliveryTracking = deliveryTrackingRes.data;
     const deliveryConf = deliveryConfRes.data as Record<string, unknown> | null;
     const riderTokenRow = riderTokenRes.data as Record<string, unknown> | null;
+    const moneyHistory = (moneyHistoryRes.data ?? []) as Array<Record<string, unknown>>;
 
     // Derive completion event — ONLY when money has actually been released.
     // Phase A: status === 'completed' no longer implies funds released; we wait
@@ -163,7 +169,7 @@ Deno.serve(async (req) => {
     let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown"; funds_released_at: string | null } | null = null;
     if (tx.status === "completed" && tx.money_status === "funds_released") {
       const completedRow = [...statusHistory].reverse().find((h: Record<string, unknown>) => h.new_status === "completed");
-      const fundsReleasedAt = null;
+      const fundsReleasedAt = ([...moneyHistory].reverse().find((h) => h.new_status === "funds_released")?.changed_at as string | undefined) ?? null;
       if (completedRow) {
         const prev = ((completedRow as Record<string, unknown>).old_status as string | null) ?? null;
         let variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" = "unknown";
