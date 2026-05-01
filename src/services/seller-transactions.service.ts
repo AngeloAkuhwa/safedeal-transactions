@@ -17,6 +17,9 @@ export interface SellerTransaction {
   money_status: string;
   created_at: string;
   has_active_rider_token?: boolean;
+  unread_message_count?: number;
+  last_message_at?: string | null;
+  last_message_preview?: string | null;
 }
 
 export interface SellerTransactionsPagination {
