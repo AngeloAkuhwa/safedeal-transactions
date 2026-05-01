@@ -18,7 +18,7 @@ import { VerificationChecklist } from "@/components/verification/VerificationChe
 import { VerificationActions } from "@/components/verification/VerificationActions";
 import { VerificationSidebar } from "@/components/verification/VerificationSidebar";
 import { WhatHappensCard } from "@/components/verification/WhatHappensCard";
-import { AutoReleaseWarning } from "@/components/verification/AutoReleaseWarning";
+import { SafeDealReviewNotice } from "@/components/verification/SafeDealReviewNotice";
 import { getVerificationData } from "@/services/verification.service";
 import { getBuyerProfile } from "@/services/profile.service";
 
@@ -234,7 +234,7 @@ const BuyerTransactionVerify = () => {
             />
             <WhatHappensCard windowHours={windowHours} />
             {transaction.verification_deadline_at && (
-              <AutoReleaseWarning
+              <SafeDealReviewNotice
                 deadlineAt={transaction.verification_deadline_at}
                 windowHours={windowHours}
               />

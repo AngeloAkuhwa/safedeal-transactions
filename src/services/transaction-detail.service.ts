@@ -108,7 +108,7 @@ export interface TransactionCompletionEvent {
   completed_at: string;
   previous_status: string | null;
   reason: string | null;
-  variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown";
+  variant: "buyer_confirmed" | "dispute_resolved" | "unknown";
   /** Phase A: timestamp money_status reached funds_released. Banner only renders when set. */
   funds_released_at: string | null;
 }

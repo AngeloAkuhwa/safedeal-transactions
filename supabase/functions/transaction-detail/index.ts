@@ -159,13 +159,13 @@ Deno.serve(async (req) => {
     // Phase A: tx.status === 'completed' is now reached at buyer-confirm time, but
     // funds remain in escrow until SafeDeal review. The completion banner must wait
     // for money_status === 'funds_released'.
-    let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown"; funds_released_at: string | null } | null = null;
+    let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "dispute_resolved" | "unknown"; funds_released_at: string | null } | null = null;
     if (tx.status === "completed" && tx.money_status === "funds_released") {
       const completedRow = [...statusHistory].reverse().find((h: Record<string, unknown>) => h.new_status === "completed");
       const fundsReleasedAt = ([...moneyHistory].reverse().find((h: Record<string, unknown>) => h.new_status === "funds_released") as Record<string, unknown> | undefined)?.changed_at as string | null ?? null;
       if (completedRow) {
         const prev = (completedRow.old_status as string | null) ?? null;
-        let variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" = "unknown";
+        let variant: "buyer_confirmed" | "dispute_resolved" | "unknown" = "unknown";
         if (prev === "delivered_awaiting_verification") {
           variant = "buyer_confirmed";
         } else if (prev === "resolved" || prev === "disputed") {
