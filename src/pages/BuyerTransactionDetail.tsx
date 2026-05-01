@@ -880,14 +880,23 @@ function TransactionTimeline({
         {timelineSteps.map((step, i) => {
           const entry = historyMap.get(step.status);
           const stepIdx = getStatusIndex(step.status);
-          const isReached = step.status === "buyer_verification"
-            ? currentStatus === "completed"
-            : step.status === "completed"
-              ? currentStatus === "completed"
-              : stepIdx <= currentStatusIndex;
-          const isCurrent = step.status === "buyer_verification"
-            ? currentStatus === "delivered_awaiting_verification"
-            : step.status === currentStatus;
+          // Phase A: synthetic steps for verification/completion/release.
+          const isReached =
+            step.status === "buyer_verification"
+              ? currentStatus === "completed" || currentMoneyStatus === "funds_released"
+              : step.status === "completed"
+                ? currentStatus === "completed" || currentMoneyStatus === "funds_released"
+                : step.status === "funds_released"
+                  ? currentMoneyStatus === "funds_released"
+                  : stepIdx <= currentStatusIndex;
+          const isCurrent =
+            step.status === "buyer_verification"
+              ? currentStatus === "delivered_awaiting_verification"
+              : step.status === "completed"
+                ? currentStatus === "completed" && currentMoneyStatus !== "funds_released"
+                : step.status === "funds_released"
+                  ? false
+                  : step.status === currentStatus;
 
           let subtitle = "";
           if (entry) {
@@ -906,6 +915,12 @@ function TransactionTimeline({
           }
           if (step.status === "completed" && !isReached) {
             extraInfo = "Pending buyer verification";
+          }
+          if (step.status === "completed" && isCurrent) {
+            extraInfo = "SafeDeal is reviewing — funds will release shortly";
+          }
+          if (step.status === "funds_released" && !isReached) {
+            extraInfo = "Awaiting SafeDeal release";
           }
 
           const isLast = i === timelineSteps.length - 1;
