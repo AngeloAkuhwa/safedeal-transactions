@@ -182,6 +182,17 @@ export async function releasePayoutCore(
     related_transaction_id: transaction_id,
   });
 
+  // Buyer-side update: keep mental model consistent — funds released, not "completed".
+  if ((tx as any).buyer_id) {
+    await notifyUser(admin, {
+      user_id: (tx as any).buyer_id,
+      type: "transaction_update",
+      title: "Funds released to seller",
+      message: `SafeDeal has approved the release for ${(tx as any).transaction_code}.`,
+      related_transaction_id: transaction_id,
+    });
+  }
+
   return {
     ok: true,
     status: 200,
