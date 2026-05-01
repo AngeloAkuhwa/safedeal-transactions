@@ -311,8 +311,8 @@ Deno.serve(async (req) => {
         type: "payout_releasing",
         amount: fundsPendingReleaseAmount,
         currency_code: "NGN",
-        title: "Payout releasing soon",
-        message: `₦${fundsPendingReleaseAmount.toLocaleString()} will be released to your account`,
+        title: "Awaiting release review",
+        message: `₦${fundsPendingReleaseAmount.toLocaleString()} is awaiting SafeDeal release review.`,
         action_label: "Details",
         action_url: "/seller/payouts",
       });
