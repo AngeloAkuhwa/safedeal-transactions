@@ -13,6 +13,22 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+// Phase B7 contract: server-rendered, seller-friendly labels.
+// Sellers NEVER see "admin" wording and NEVER trigger retries themselves.
+function sellerStatusLabel(dbStatus: string): string {
+  switch (dbStatus) {
+    case "awaiting_release": return "Awaiting Release";
+    case "pending":          return "Release Approved";
+    case "processing":       return "Payment Processing";
+    case "completed":        return "Paid Out";
+    case "failed":           return "Release Failed";
+    case "reversed":         return "Reversed";
+    case "cancelled":        return "Cancelled";
+    case "blocked":          return "Action Required";
+    default:                 return "Pending";
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
