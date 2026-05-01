@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, Scale, Download } from "lucide-react";
+import { CheckCircle, Clock, Scale, Download, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,22 +9,24 @@ export type CompletionVariant = "buyer_confirmed" | "auto_released" | "dispute_r
 export interface TransactionCompletionBannerProps {
   variant: CompletionVariant;
   completedAt: string;
-  /** Optional secondary timestamp (e.g. when funds released) */
+  /** When funds actually released. If null/undefined, banner shows the
+   * "Awaiting Release" pre-release state and ignores the released copy. */
   fundsReleasedAt?: string | null;
-  /** Audience perspective — affects copy */
   perspective: "buyer" | "seller";
   onViewReceipt?: () => void;
   className?: string;
 }
 
-const VARIANT_META: Record<CompletionVariant, {
+type Meta = {
   icon: typeof CheckCircle;
   iconBg: string;
   iconColor: string;
   border: string;
   bg: string;
   badge: string;
-}> = {
+};
+
+const VARIANT_META: Record<CompletionVariant, Meta> = {
   buyer_confirmed: {
     icon: CheckCircle,
     iconBg: "bg-success/15",
@@ -59,7 +61,21 @@ const VARIANT_META: Record<CompletionVariant, {
   },
 };
 
-function buildCopy(variant: CompletionVariant, perspective: "buyer" | "seller", completedAt: string) {
+// Pre-release calm-primary state shown whenever funds have NOT been released yet.
+const AWAITING_RELEASE_META: Meta = {
+  icon: ShieldCheck,
+  iconBg: "bg-primary/15",
+  iconColor: "text-primary",
+  border: "border-primary/30",
+  bg: "bg-primary/5",
+  badge: "In SafeDeal Review",
+};
+
+function buildReleasedCopy(
+  variant: CompletionVariant,
+  perspective: "buyer" | "seller",
+  completedAt: string,
+) {
   const date = format(new Date(completedAt), "MMMM d, yyyy");
   if (variant === "buyer_confirmed") {
     return perspective === "seller"
@@ -70,17 +86,6 @@ function buildCopy(variant: CompletionVariant, perspective: "buyer" | "seller", 
       : {
           title: "You Confirmed Receipt",
           body: `You confirmed receipt on ${date} and funds were released to the seller. This transaction is now complete.`,
-        };
-  }
-  if (variant === "auto_released") {
-    return perspective === "seller"
-      ? {
-          title: "Funds Auto-Released",
-          body: `The verification window ended on ${date} without a dispute. Funds were automatically released to your account.`,
-        }
-      : {
-          title: "Verification Window Ended",
-          body: `The verification window ended on ${date} without a dispute, and funds were automatically released to the seller.`,
         };
   }
   if (variant === "dispute_resolved") {
@@ -94,10 +99,29 @@ function buildCopy(variant: CompletionVariant, perspective: "buyer" | "seller", 
           body: `The dispute was resolved by the SafeDeal team on ${date}. Funds were released according to the resolution.`,
         };
   }
+  // auto_released variant is retired in the new model — fall through to a
+  // generic completed message if a back-end ever still emits it WITH a
+  // funds_released timestamp.
   return {
     title: "Transaction Completed",
     body: `This transaction was completed on ${date}.`,
   };
+}
+
+function buildAwaitingCopy(
+  perspective: "buyer" | "seller",
+  completedAt: string,
+) {
+  const date = format(new Date(completedAt), "MMMM d, yyyy");
+  return perspective === "buyer"
+    ? {
+        title: "You Confirmed Receipt",
+        body: `You confirmed receipt on ${date}. SafeDeal is reviewing and will release funds to the seller shortly.`,
+      }
+    : {
+        title: "Buyer Confirmed Receipt",
+        body: `The buyer confirmed receipt on ${date}. SafeDeal will release your funds after review — typically within 1 business day.`,
+      };
 }
 
 export function TransactionCompletionBanner({
@@ -108,9 +132,13 @@ export function TransactionCompletionBanner({
   onViewReceipt,
   className,
 }: TransactionCompletionBannerProps) {
-  const meta = VARIANT_META[variant];
+  const isReleased = !!fundsReleasedAt;
+
+  const meta = isReleased ? VARIANT_META[variant] : AWAITING_RELEASE_META;
+  const copy = isReleased
+    ? buildReleasedCopy(variant, perspective, completedAt)
+    : buildAwaitingCopy(perspective, completedAt);
   const Icon = meta.icon;
-  const copy = buildCopy(variant, perspective, completedAt);
 
   return (
     <Card className={cn("rounded-2xl shadow-sm border-2 overflow-hidden", meta.border, meta.bg, className)}>
@@ -129,14 +157,14 @@ export function TransactionCompletionBanner({
 
           <p className="text-sm text-muted-foreground leading-relaxed">{copy.body}</p>
 
-          {fundsReleasedAt && (
+          {isReleased && fundsReleasedAt && (
             <p className="text-xs text-muted-foreground mt-2">
               <span className="font-semibold">Funds released:</span>{" "}
               {format(new Date(fundsReleasedAt), "MMM d, yyyy 'at' h:mm a")}
             </p>
           )}
 
-          {onViewReceipt && (
+          {onViewReceipt && isReleased && (
             <Button
               variant="outline"
               size="sm"
