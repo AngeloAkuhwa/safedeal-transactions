@@ -22,7 +22,7 @@ export async function releasePayoutCore(
   // 1. Load tx
   const { data: tx, error: txErr } = await admin
     .from("transactions")
-    .select("id, money_status, seller_id, currency_code, transaction_code")
+    .select("id, money_status, seller_id, buyer_id, currency_code, transaction_code")
     .eq("id", transaction_id)
     .maybeSingle();
   if (txErr) return { ok: false, status: 500, body: { error: "tx_fetch_failed" } };
