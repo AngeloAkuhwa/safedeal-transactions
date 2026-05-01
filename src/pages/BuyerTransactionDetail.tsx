@@ -52,6 +52,7 @@ import { InTransitBlock } from "@/components/transactions/InTransitBlock";
 import { VerifyReceiptCTA } from "@/components/transactions/VerifyReceiptCTA";
 import { DeliveryTermsCard } from "@/components/transactions/DeliveryTermsCard";
 import { TransactionCompletionBanner } from "@/components/transactions/TransactionCompletionBanner";
+import { TransactionConfirmationProgress } from "@/components/transactions/TransactionConfirmationProgress";
 import { MessageThread } from "@/components/transactions/MessageThread";
 
 /* ───── Status badge config ───── */
@@ -96,7 +97,9 @@ const timelineSteps = [
   { status: "seller_dispatched", label: "Seller Dispatched Item", icon: Truck },
   { status: "delivered_awaiting_verification", label: "Delivered", icon: MapPin },
   { status: "buyer_verification", label: "Buyer Verification", icon: CheckCircle },
-  { status: "completed", label: "Transaction Completed", icon: CheckCircle },
+  { status: "completed", label: "Confirmed — In SafeDeal Review", icon: CheckCircle },
+  // Phase A: lights up only when money_status === 'funds_released'.
+  { status: "funds_released", label: "Funds Released", icon: Shield },
 ];
 
 const statusOrder = [
@@ -392,11 +395,20 @@ const BuyerTransactionDetail = () => {
               </div>
             )}
 
-            {tx.status === "completed" && completion_event && (
+            {/* Phase A: handshake & awaiting-release progress.
+                Renders during the buyer-confirmed → seller-confirmed → SafeDeal-release window. */}
+            <TransactionConfirmationProgress
+              buyerConfirmedAt={tx.buyer_confirmed_at ?? null}
+              sellerConfirmedAt={tx.seller_confirmed_at ?? null}
+              moneyStatus={tx.money_status}
+            />
+
+            {/* Completion banner — only after funds actually released. */}
+            {tx.status === "completed" && tx.money_status === "funds_released" && completion_event && (
               <TransactionCompletionBanner
                 variant={completion_event.variant}
                 completedAt={completion_event.completed_at}
-                fundsReleasedAt={status_history.find((h) => h.new_status === "completed")?.changed_at ?? null}
+                fundsReleasedAt={completion_event.funds_released_at}
                 perspective="buyer"
                 onViewReceipt={handlePrint}
               />
