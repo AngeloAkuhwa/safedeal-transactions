@@ -222,6 +222,28 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Per-row unread message counts for the seller (uses idx_transaction_messages_unread)
+    const unreadByTx = new Map<string, { count: number; last_at: string | null; last_preview: string | null }>();
+    if (paginatedIds.length > 0) {
+      const { data: msgRows } = await adminClient
+        .from("transaction_messages")
+        .select("transaction_id,message_text,created_at")
+        .eq("recipient_user_id", userId)
+        .eq("is_read", false)
+        .in("transaction_id", paginatedIds)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      for (const r of (msgRows ?? []) as Array<{ transaction_id: string; message_text: string | null; created_at: string }>) {
+        const cur = unreadByTx.get(r.transaction_id);
+        if (!cur) {
+          const preview = (r.message_text ?? "").slice(0, 80);
+          unreadByTx.set(r.transaction_id, { count: 1, last_at: r.created_at, last_preview: preview || null });
+        } else {
+          cur.count += 1;
+        }
+      }
+    }
+
     // Build response rows. Use the canonical seller_net_amount and fee values
     // from `transaction_pricing` directly — do NOT recompute or cap fees here.
     // The pricing computation already handles tier rates and the buyer-friendly
@@ -235,6 +257,7 @@ Deno.serve(async (req) => {
       const pricing = pricingMap.get(tx.id);
       const serviceFee = (pricing?.platformFee ?? 0) + (pricing?.processingFee ?? 0);
       const sellerNet = pricing?.sellerNet ?? 0;
+      const unread = unreadByTx.get(tx.id);
       return {
         transaction_id: tx.id,
         transaction_code: tx.transaction_code,
@@ -252,6 +275,9 @@ Deno.serve(async (req) => {
         money_status: tx.money_status,
         created_at: tx.created_at,
         has_active_rider_token: activeTokenIds.has(tx.id),
+        unread_message_count: unread?.count ?? 0,
+        last_message_at: unread?.last_at ?? null,
+        last_message_preview: unread?.last_preview ?? null,
       };
     });
 
