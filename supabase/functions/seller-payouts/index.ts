@@ -284,6 +284,8 @@ Deno.serve(async (req) => {
         const txId = p.transaction_id as string;
         const tx = txMap.get(txId);
         const pricing = pricingMap.get(txId);
+        const dbStatus = p.status as string;
+        const blockReasonCode = (p.payout_blocked_reason as string | null) ?? null;
         return {
           payout_id: (p.id as string).slice(0, 8).toUpperCase(),
           payout_id_full: p.id,
@@ -298,7 +300,10 @@ Deno.serve(async (req) => {
           net_payout: p.amount as number,
           currency_code: (pricing?.currency_code as string) ?? "NGN",
           release_date: (p.completed_at ?? p.initiated_at ?? p.created_at) as string,
-          status: p.status as string,
+          status: dbStatus,
+          status_label: sellerStatusLabel(dbStatus),
+          block_reason_code: blockReasonCode,
+          retry_eligible: false,
           failure_reason: p.failure_reason as string | null,
           payout_blocked_reason: p.payout_blocked_reason as string | null ?? null,
           release_blocked: (p.release_blocked as boolean) ?? false,
