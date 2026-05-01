@@ -1,4 +1,5 @@
-import { FileText, Clock, Shield, TrendingUp, CheckCircle, Eye, Info } from "lucide-react";
+import { FileText, Clock, Shield, TrendingUp, CheckCircle, Eye, Info, CheckCircle2, Scale, AlertOctagon } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Tooltip,
@@ -100,6 +101,45 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
     },
   ];
 
+  const chips = [
+    {
+      key: "awaiting_seller_confirmation",
+      label: "Awaiting your confirmation",
+      value: metrics.awaiting_seller_confirmation_count ?? 0,
+      icon: CheckCircle2,
+      href: "/seller/transactions?filter=awaiting_seller_confirmation",
+      tone: "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-100 dark:border-amber-800",
+      iconClass: "text-amber-600 dark:text-amber-400",
+    },
+    {
+      key: "awaiting_release",
+      label: "Awaiting Release",
+      value: metrics.awaiting_release_count ?? 0,
+      icon: Clock,
+      href: "/seller/payouts?filter=awaiting_release",
+      tone: "bg-sky-50 text-sky-900 border-sky-300 hover:bg-sky-100 dark:bg-sky-950/30 dark:text-sky-100 dark:border-sky-800",
+      iconClass: "text-primary",
+    },
+    {
+      key: "open_disputes",
+      label: "Open disputes",
+      value: metrics.open_disputes_count ?? 0,
+      icon: Scale,
+      href: "/seller/disputes",
+      tone: "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-100 dark:border-amber-800",
+      iconClass: "text-amber-600 dark:text-amber-400",
+    },
+    {
+      key: "payout_failed",
+      label: "Releases failed",
+      value: metrics.payout_failed_count ?? 0,
+      icon: AlertOctagon,
+      href: "/seller/payouts?filter=failed",
+      tone: "bg-destructive/5 text-foreground border-destructive/40 hover:bg-destructive/10",
+      iconClass: "text-destructive",
+    },
+  ];
+
   return (
     <TooltipProvider delayDuration={150}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -143,6 +183,27 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="mt-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+          Activity at a glance
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {chips.map((chip) => (
+            <Link
+              key={chip.key}
+              to={chip.href}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${chip.tone}`}
+            >
+              <chip.icon className={`h-3.5 w-3.5 ${chip.iconClass}`} />
+              <span>{chip.label}</span>
+              <span className="inline-flex items-center justify-center rounded-full bg-background/70 px-1.5 py-0.5 text-[11px] font-bold">
+                {chip.value}
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
     </TooltipProvider>
   );

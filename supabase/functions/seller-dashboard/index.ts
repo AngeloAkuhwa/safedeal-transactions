@@ -238,7 +238,7 @@ Deno.serve(async (req) => {
     // ==================== Products ====================
     type ProductRow = { id: string; status: string; stock_quantity: number; reserved_quantity: number; updated_at: string };
     const productRows: ProductRow[] = (productsResult.status === "fulfilled" && productsResult.value.data) ? (productsResult.value.data as ProductRow[]) : [];
-    seller.has_published_products = productRows.some((p) => p.status === "published" || p.status === "out_of_stock");
+    seller.has_published_products = productRows.some((p) => p.status === "published");
     const lowStockProducts = productRows.filter((p) => {
       if (p.status !== "published") return false;
       const avail = (p.stock_quantity ?? 0) - (p.reserved_quantity ?? 0);
