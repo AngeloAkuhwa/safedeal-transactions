@@ -364,7 +364,7 @@ Deno.serve(async (req) => {
       const [blItemsRes, blPricingRes, blTxRes] = await Promise.allSettled([
         adminClient.from("transaction_items").select("transaction_id, title").in("transaction_id", allBlockedTxIds),
         adminClient.from("transaction_pricing").select("transaction_id, seller_net_amount, currency_code").in("transaction_id", allBlockedTxIds),
-        adminClient.from("transactions").select("id, transaction_code, status, buyer_id").in("id", allBlockedTxIds),
+        adminClient.from("transactions").select("id, transaction_code, status, buyer_id, needs_release_review, release_review_reason").in("id", allBlockedTxIds),
       ]);
 
       const itemMap = new Map<string, string>();
@@ -392,9 +392,13 @@ Deno.serve(async (req) => {
         const txId = tx.id as string;
         const pricing = pricingMap.get(txId);
         const txStatus = tx.status as string;
+        const reviewReason = tx.release_review_reason as string | null;
         let blockerReason = "Manual review in progress";
         if (txStatus === "disputed") blockerReason = "Dispute in review";
         else if (failedPayoutTxSet.has(txId)) blockerReason = "Payout failed — retry needed";
+        else if (reviewReason === "payout_account_missing") blockerReason = "Add a verified payout account to receive funds";
+        else if (reviewReason === "pricing_missing") blockerReason = "SafeDeal is reviewing this transaction";
+        else if (tx.needs_release_review === true) blockerReason = "SafeDeal review in progress";
         else if (!payoutVerified) blockerReason = "Seller payout verification needed";
 
         return {
@@ -452,6 +456,8 @@ Deno.serve(async (req) => {
         total_released: totalReleased,
         total_released_last_30: totalReleasedLast30,
         pending_release: pendingReleaseAmount,
+        awaiting_release: awaitingReleaseAmount,
+        blocked_payouts: blockedPayoutAmount,
         held_in_escrow: heldInEscrow,
         on_hold_failed: onHoldFailed,
         currency_code: "NGN",
