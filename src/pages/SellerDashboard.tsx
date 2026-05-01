@@ -1,15 +1,20 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, RefreshCw, Store } from "lucide-react";
+import { Loader2, RefreshCw, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { SellerNav } from "@/components/seller/SellerNav";
 import { SellerAlertBanners } from "@/components/seller/SellerAlertBanners";
+import { SellerAlertsDrawer } from "@/components/seller/SellerAlertsDrawer";
+import { SellerOnboardingChecklist } from "@/components/seller/SellerOnboardingChecklist";
+import { SellerDashboardEmptyState } from "@/components/seller/SellerDashboardEmptyState";
 import { SellerDashboardHero } from "@/components/seller/SellerDashboardHero";
 import { SellerMetricsCards } from "@/components/seller/SellerMetricsCards";
 import { SellerRecentActivity } from "@/components/seller/SellerRecentActivity";
 import { SellerQuickActions } from "@/components/seller/SellerQuickActions";
 import { SellerTrustBanner } from "@/components/seller/SellerTrustBanner";
 import { Footer } from "@/components/landing/Footer";
+import { supabase } from "@/integrations/supabase/client";
 
 const SellerDashboard = () => {
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -18,6 +23,18 @@ const SellerDashboard = () => {
     retry: 1,
     staleTime: 30_000,
   });
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
+      setUserId(data.session?.user.id ?? null);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   if (isLoading) {
     return (
@@ -45,9 +62,11 @@ const SellerDashboard = () => {
     );
   }
 
-  const hasNoTransactions =
-    data.metrics.transactions_created_count === 0 &&
-    data.recent_activity.length === 0;
+  const totalAlerts = data.alerts.length;
+  const showDrawerTrigger = totalAlerts > 3;
+  const remaining = Math.max(0, totalAlerts - 3);
+  const showOnboarding = data.onboarding?.show === true;
+  const showEmptyState = data.recent_activity.length === 0;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -60,9 +79,18 @@ const SellerDashboard = () => {
       <div className="bg-gradient-to-br from-sky-50 via-background to-green-50 dark:from-sky-950/20 dark:via-background dark:to-green-950/20">
         <SellerDashboardHero sellerName={data.seller.full_name} verificationLabel={data.seller.verification_label} />
 
-        {data.alerts.length > 0 && (
-          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6">
-            <SellerAlertBanners alerts={data.alerts} />
+        {totalAlerts > 0 && (
+          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6 space-y-3">
+            <SellerAlertBanners alerts={data.alerts} maxVisible={3} />
+            {showDrawerTrigger && (
+              <button
+                onClick={() => setDrawerOpen(true)}
+                className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5 transition-colors"
+              >
+                View all alerts ({remaining} more)
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            )}
           </section>
         )}
 
@@ -72,17 +100,15 @@ const SellerDashboard = () => {
       </div>
 
       <main className="flex-1 bg-muted/30">
-        {hasNoTransactions ? (
-          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-            <div className="rounded-2xl border bg-card p-12 text-center">
-              <Store className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-foreground mb-2">
-                No transactions yet
-              </h2>
-              <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                Create your first protected transaction to start selling securely through SafeDeal.
-              </p>
-            </div>
+        {showOnboarding && (
+          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            <SellerOnboardingChecklist onboarding={data.onboarding} />
+          </section>
+        )}
+
+        {showEmptyState ? (
+          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            <SellerDashboardEmptyState seller={data.seller} metrics={data.metrics} />
           </section>
         ) : (
           <>
@@ -100,6 +126,13 @@ const SellerDashboard = () => {
           </>
         )}
       </main>
+
+      <SellerAlertsDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        alerts={data.alerts}
+        userId={userId}
+      />
 
       <Footer />
     </div>

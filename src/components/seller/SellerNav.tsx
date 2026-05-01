@@ -10,6 +10,7 @@ import { toast } from "@/components/ui/sonner";
 import { signOut, getSession } from "@/services/auth.service";
 import { invalidateOldSessions } from "@/services/session.service";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useSellerUnreadCounts } from "@/hooks/useSellerUnreadCounts";
 
 interface SellerNavProps {
   sellerName: string;
@@ -30,6 +31,8 @@ export function SellerNav({ sellerName, avatarUrl }: SellerNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { total: unreadTotal } = useSellerUnreadCounts();
+  const badgeText = unreadTotal > 9 ? "9+" : String(unreadTotal);
 
   const handleLogout = async () => {
     try {
@@ -86,9 +89,16 @@ export function SellerNav({ sellerName, avatarUrl }: SellerNavProps) {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <Button variant="ghost" size="icon" className="relative" asChild>
-            <Link to="/seller/notifications">
+            <Link
+              to="/seller/notifications"
+              aria-label={`${unreadTotal} unread notifications and messages`}
+            >
               <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
+              {unreadTotal > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                  {badgeText}
+                </span>
+              )}
             </Link>
           </Button>
 
