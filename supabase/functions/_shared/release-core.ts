@@ -337,7 +337,6 @@ export async function refundBuyerCore(
       provider_reference: providerRef,
       partial: false,
       amount: refundAmount,
-      currency_code: (tx as any).currency_code,
     },
   });
 
@@ -345,7 +344,7 @@ export async function refundBuyerCore(
     user_id: (tx as any).buyer_id,
     type: "payment_update",
     title: "Refund on the way",
-    message: `SafeDeal has initiated a refund of ${(tx as any).currency_code} ${refundAmount.toLocaleString()} for ${(tx as any).transaction_code}.`,
+    message: `SafeDeal has initiated a refund of ₦${refundAmount.toLocaleString()} for ${(tx as any).transaction_code}.`,
     related_transaction_id: transaction_id,
   });
   await notifyUser(admin, {
