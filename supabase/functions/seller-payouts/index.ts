@@ -485,6 +485,12 @@ Deno.serve(async (req) => {
         on_hold_failed: onHoldFailed,
         currency_code: "NGN",
       },
+      // Phase B7 aggregates by raw DB status (sellers see counts, not actions).
+      counts: {
+        awaiting_release: allPayouts.filter((p) => (p.status as string) === "awaiting_release").length,
+        processing:       allPayouts.filter((p) => (p.status as string) === "processing").length,
+        failed:           allPayouts.filter((p) => (p.status as string) === "failed").length,
+      },
       payout_history: filteredHistory,
       pagination: {
         page,
@@ -499,13 +505,17 @@ Deno.serve(async (req) => {
         const pa = (payoutAccountResult.status === "fulfilled" && payoutAccountResult.value.data)
           ? payoutAccountResult.value.data as Record<string, unknown>
           : null;
+        const verificationStatus = (pa?.verification_status as string) ?? "pending";
+        const recipientCodePresent = Boolean(pa?.provider_recipient_code);
         return {
           verified: payoutVerified,
           last_payout_date: lastPayoutDate,
           bank_name: pa?.bank_name as string | null ?? null,
           account_name: pa?.account_name as string ?? seller.full_name,
           masked_account_number: pa?.masked_account_number as string | null ?? null,
-          verification_status: pa?.verification_status as string ?? "pending",
+          verification_status: verificationStatus,
+          status: verificationStatus,
+          recipient_code_present: recipientCodePresent,
           typical_processing_time: "1-3 business days",
         };
       })(),
