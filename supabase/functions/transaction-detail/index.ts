@@ -155,18 +155,19 @@ Deno.serve(async (req) => {
 
     const nextAction = deriveNextAction(tx.status, dispute?.id ?? null);
 
-    // Derive completion event (reason-aware): the status_history row whose new_status === 'completed'
-    let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" } | null = null;
-    if (tx.status === "completed") {
+    // Derive completion event — ONLY when funds have actually been released.
+    // Phase A: tx.status === 'completed' is now reached at buyer-confirm time, but
+    // funds remain in escrow until SafeDeal review. The completion banner must wait
+    // for money_status === 'funds_released'.
+    let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown"; funds_released_at: string | null } | null = null;
+    if (tx.status === "completed" && tx.money_status === "funds_released") {
       const completedRow = [...statusHistory].reverse().find((h: Record<string, unknown>) => h.new_status === "completed");
+      const fundsReleasedAt = ([...moneyHistory].reverse().find((h: Record<string, unknown>) => h.new_status === "funds_released") as Record<string, unknown> | undefined)?.changed_at as string | null ?? null;
       if (completedRow) {
         const prev = (completedRow.old_status as string | null) ?? null;
         let variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" = "unknown";
         if (prev === "delivered_awaiting_verification") {
-          // Buyer confirmed OR auto-release — distinguish via delivery_confirmations
-          if (deliveryConf?.buyer_acknowledged_delivery_at) variant = "buyer_confirmed";
-          else if (deliveryConf?.system_delivery_marked_at) variant = "auto_released";
-          else variant = "buyer_confirmed";
+          variant = "buyer_confirmed";
         } else if (prev === "resolved" || prev === "disputed") {
           variant = "dispute_resolved";
         }
@@ -175,6 +176,7 @@ Deno.serve(async (req) => {
           previous_status: prev,
           reason: (completedRow.reason as string | null) ?? null,
           variant,
+          funds_released_at: fundsReleasedAt,
         };
       }
     }
