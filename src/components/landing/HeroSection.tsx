@@ -15,13 +15,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-const bullets = [
-  "Verified sellers",
-  "Escrow-protected funds",
-  "Buyer confirms first",
-  "Evidence-backed disputes",
-];
-
 type Tone = "primary" | "success" | "warning";
 
 const STEPS: {
