@@ -120,6 +120,7 @@ Deno.serve(async (req) => {
 
     // Held in escrow from transactions
     let heldInEscrow = 0;
+    let pendingReleaseFromTxAmount = 0;
     const allTx = (allTxResult.status === "fulfilled" && allTxResult.value.data)
       ? allTxResult.value.data as Array<Record<string, unknown>>
       : [];
@@ -161,8 +162,12 @@ Deno.serve(async (req) => {
       .map((p) => p.transaction_id as string);
     const allBlockedTxIds = [...new Set([...blockedTxIds, ...failedPayoutTxIds])];
 
-    // Fetch pricing for held transactions
-    const allNeededTxIds = [...new Set([...heldTxIds, ...allBlockedTxIds])];
+    // Fetch pricing for held + pending-release + blocked transactions
+    const allNeededTxIds = [...new Set([
+      ...heldTxIds,
+      ...pendingReleaseTxIds,
+      ...allBlockedTxIds,
+    ])];
     // Track seller-net per tx so we can both compute heldInEscrow AND fold
     // disputed/frozen seller-net into onHoldFailed for the headline KPI.
     let frozenSellerNetTotal = 0;
@@ -179,6 +184,9 @@ Deno.serve(async (req) => {
         for (const id of heldTxIds) {
           heldInEscrow += pricingMap.get(id) ?? 0;
         }
+        for (const id of pendingReleaseTxIds) {
+          pendingReleaseFromTxAmount += pricingMap.get(id) ?? 0;
+        }
         // blockedTxIds = disputed transactions (money_status often funds_frozen).
         // Add their seller-net to the on-hold KPI so disputed funds are visible
         // in the headline card, not only in the side panel.
@@ -188,6 +196,10 @@ Deno.serve(async (req) => {
       }
     }
     onHoldFailed += frozenSellerNetTotal;
+
+    // Fold transaction-side pending-release into the headline pending KPI
+    // so the number reflects funds that have left escrow but aren't paid yet.
+    pendingReleaseAmount += pendingReleaseFromTxAmount;
 
     // ── Payout History (paginated) ──
     let filteredPayouts = [...allPayouts];
