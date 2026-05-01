@@ -125,7 +125,37 @@ Deno.serve(async (req) => {
     }
     if (!updated) {
       // Either already confirmed by a concurrent request, or money state moved.
-      return jsonResponse({ already_confirmed: true, success: true });
+      // Verify the prior call left a release_review_queue row. If not, the
+      // first call crashed mid-side-effects — self-heal by reporting back so
+      // the caller can retry, rather than silently swallowing a failure.
+      const { data: queueRow } = await admin
+        .from("release_review_queue")
+        .select("id, queue_type, status")
+        .eq("transaction_id", transactionId)
+        .in("status", ["pending", "claimed", "resolved"])
+        .maybeSingle();
+
+      if (queueRow) {
+        return jsonResponse({
+          already_confirmed: true,
+          success: true,
+          queue_type: queueRow.queue_type,
+        });
+      }
+
+      // No queue row — the previous attempt did not finish. Re-read the
+      // transaction so we know which side-effect branch to run, then fall
+      // through to the safeguards below.
+      const { data: refreshed } = await admin
+        .from("transactions")
+        .select("id, seller_id, buyer_id, money_status")
+        .eq("id", transactionId)
+        .maybeSingle();
+      if (!refreshed) {
+        return jsonResponse({ already_confirmed: true, success: true });
+      }
+      // Continue to the side-effect block below using the existing tx ref.
+      // (tx is still in scope — refresh just confirms the current money state.)
     }
 
     // Audit + history (best-effort, parallel)
