@@ -225,7 +225,7 @@ export async function refundBuyerCore(
 
   const { data: tx, error: txErr } = await admin
     .from("transactions")
-    .select("id, money_status, buyer_id, seller_id, currency_code, transaction_code, total_amount")
+    .select("id, money_status, buyer_id, seller_id, transaction_code")
     .eq("id", transaction_id)
     .maybeSingle();
   if (txErr) return { ok: false, status: 500, body: { error: "tx_fetch_failed" } };
