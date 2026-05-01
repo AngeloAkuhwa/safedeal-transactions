@@ -342,7 +342,7 @@ Deno.serve(async (req) => {
         if (txStatus === "delivered_awaiting_verification" && tx.verification_deadline_at) {
           const deadline = new Date(tx.verification_deadline_at as string);
           const hoursLeft = Math.max(0, Math.round((deadline.getTime() - now.getTime()) / (1000 * 60 * 60)));
-          releaseTrigger = hoursLeft > 0 ? `Auto-release in ${hoursLeft}h` : "Auto-release imminent";
+          releaseTrigger = hoursLeft > 0 ? `SafeDeal review in ${hoursLeft}h` : "SafeDeal review imminent";
         } else if (txStatus === "seller_dispatched") {
           releaseTrigger = "Awaiting delivery confirmation";
         }
