@@ -206,11 +206,10 @@ Deno.serve(async (req) => {
 
     // ── Payout account safeguard ──────────────────────────────────────────
     const { data: payoutAccount } = await admin
-      .from("seller_payout_accounts")
-      .select("id, verified_at")
-      .eq("seller_id", tx.seller_id)
-      .eq("is_default", true)
-      .not("verified_at", "is", null)
+      .from("payout_accounts")
+      .select("id, verification_status, last_verified_at")
+      .eq("user_id", tx.seller_id)
+      .eq("verification_status", "verified")
       .maybeSingle();
 
     if (!payoutAccount) {
