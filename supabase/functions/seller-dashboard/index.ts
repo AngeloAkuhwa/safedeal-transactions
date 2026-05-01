@@ -145,6 +145,11 @@ Deno.serve(async (req) => {
         if (tx.money_status === "funds_held_in_escrow") {
           fundsHeldTxIds.push(tx.id);
         }
+        // Phase A: dual-confirmation handshake — money sits in
+        // funds_pending_release until SafeDeal review releases it.
+        if (tx.money_status === "funds_pending_release") {
+          fundsPendingReleaseTxIds.push(tx.id);
+        }
         if (tx.money_status === "funds_releasing") {
           fundsReleasingTxIds.push(tx.id);
         }
