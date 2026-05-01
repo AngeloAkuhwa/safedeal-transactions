@@ -76,18 +76,9 @@ Deno.serve(async (req) => {
     return json(409, { error: "flag_failed", detail: rpcErr.message });
   }
 
-  await admin.from("transaction_events").insert({
-    transaction_id,
-    event_type: "auto_cancelled", // closest neutral event in the enum; carries event_data
-    actor_user_id: ctx.userId,
-    actor_role: "admin",
-    event_data: {
-      action: "flagged_for_release_review",
-      reason,
-      notes,
-      queue_id: queueId,
-    },
-  });
+  // Note: we intentionally do NOT write a transaction_events row here — none
+  // of the enum labels describe an admin-flag action. The admin_actions row
+  // inserted by flag_for_release_review() is the canonical audit record.
 
   await notifyOpsTeam(admin, {
     type: "security_alert",
