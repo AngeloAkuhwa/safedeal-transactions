@@ -85,6 +85,26 @@ Deno.serve(async (req) => {
     const cleanNumber = account_number.trim();
     const maskedAccountNumber = `****** ${cleanNumber.slice(-4)}`;
 
+    // Phase B7: if seller is editing an already-verified account, immediately
+    // park it in `requires_update` and unverify so any in-flight release calls
+    // see the account as not-ready. The new verification below will flip it
+    // back to `verified` on success.
+    const { data: existing } = await adminClient
+      .from("payout_accounts")
+      .select("id, verification_status")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (existing && (existing as any).verification_status === "verified") {
+      await adminClient
+        .from("payout_accounts")
+        .update({ verification_status: "requires_update" })
+        .eq("user_id", userId);
+      await adminClient
+        .from("account_verifications")
+        .update({ payout_verified: false })
+        .eq("user_id", userId);
+    }
+
     // 1) Verify with Paystack FIRST. The plaintext account number never
     //    touches our database — only Paystack receives it for recipient
     //    creation, and we persist the masked form.
