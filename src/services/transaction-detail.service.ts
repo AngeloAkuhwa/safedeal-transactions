@@ -109,6 +109,8 @@ export interface TransactionCompletionEvent {
   previous_status: string | null;
   reason: string | null;
   variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown";
+  /** Phase A: timestamp money_status reached funds_released. Banner only renders when set. */
+  funds_released_at: string | null;
 }
 
 export interface TransactionDetailResponse {
@@ -122,6 +124,8 @@ export interface TransactionDetailResponse {
     verification_deadline_at: string | null;
     share_token: string | null;
     agreement_locked_at: string | null;
+    buyer_confirmed_at?: string | null;
+    seller_confirmed_at?: string | null;
   };
   item: TransactionDetailItem;
   pricing: TransactionDetailPricing;
