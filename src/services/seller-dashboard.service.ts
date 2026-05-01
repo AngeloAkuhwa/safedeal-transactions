@@ -78,7 +78,18 @@ export interface SellerActivity {
 }
 
 export interface SellerDashboardResponse {
-  seller: {
+  seller: SellerSummary;
+  alerts: SellerAlert[];
+  alerts_summary: SellerAlertsSummary;
+  onboarding: SellerOnboarding;
+  metrics: SellerMetrics;
+  recent_activity: SellerActivity[];
+  quick_actions: {
+    draft_count: number;
+  };
+}
+
+export interface SellerSummary {
     full_name: string;
     avatar_url: string | null;
     store_slug: string | null;
@@ -89,15 +100,6 @@ export interface SellerDashboardResponse {
     payout_account_present: boolean;
     payout_account_verified: boolean;
     has_published_products: boolean;
-  };
-  alerts: SellerAlert[];
-  alerts_summary: SellerAlertsSummary;
-  onboarding: SellerOnboarding;
-  metrics: SellerMetrics;
-  recent_activity: SellerActivity[];
-  quick_actions: {
-    draft_count: number;
-  };
 }
 
 export const getSellerDashboard = async (): Promise<SellerDashboardResponse> => {
