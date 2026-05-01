@@ -123,3 +123,31 @@ export const getSellerTransactionDetail = async (
 
   return data as SellerTransactionDetailResponse;
 };
+
+export interface SellerConfirmCompletionResult {
+  success: boolean;
+  payout_id?: string;
+  blocked?: boolean;
+  reason?: "pricing_missing" | "payout_account_missing";
+  already_confirmed?: boolean;
+  money_status?: string;
+  warning?: string;
+}
+
+export const sellerConfirmCompletion = async (
+  transactionId: string,
+  notes?: string,
+): Promise<SellerConfirmCompletionResult> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
+
+  const { data, error } = await supabase.functions.invoke("seller-confirm-completion", {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+    body: { transaction_id: transactionId, notes },
+  });
+
+  if (error) throw new Error(error.message || "Failed to confirm completion");
+  if (!data || data.error) throw new Error(data?.error || "Failed to confirm completion");
+
+  return data as SellerConfirmCompletionResult;
+};
