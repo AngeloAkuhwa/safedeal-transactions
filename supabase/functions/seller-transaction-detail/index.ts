@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch related data in parallel
-    const [itemRes, deliveryTermsRes, linkRes, buyerProfileRes, buyerVerifRes, participantRes, escrowRes, pricingRes, snapshotRes, statusHistoryRes, deliveryTrackingRes, deliveryConfRes, riderTokenRes] = await Promise.all([
+    const [itemRes, deliveryTermsRes, linkRes, buyerProfileRes, buyerVerifRes, participantRes, escrowRes, pricingRes, snapshotRes, statusHistoryRes, deliveryTrackingRes, deliveryConfRes, riderTokenRes, moneyHistoryRes] = await Promise.all([
       adminClient
         .from("transaction_items")
         .select("title, description, quantity, condition_label, brand, model")
@@ -142,6 +142,11 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      adminClient
+        .from("money_status_history")
+        .select("old_status, new_status, changed_at, reason")
+        .eq("transaction_id", transactionId)
+        .order("changed_at", { ascending: true }),
     ]);
 
     const item = itemRes.data;
@@ -156,18 +161,20 @@ Deno.serve(async (req) => {
     const deliveryTracking = deliveryTrackingRes.data;
     const deliveryConf = deliveryConfRes.data as Record<string, unknown> | null;
     const riderTokenRow = riderTokenRes.data as Record<string, unknown> | null;
+    const moneyHistory = (moneyHistoryRes.data ?? []) as Array<Record<string, unknown>>;
 
-    // Derive completion event (reason-aware)
-    let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" } | null = null;
-    if (tx.status === "completed") {
+    // Derive completion event — ONLY when money has actually been released.
+    // Phase A: status === 'completed' no longer implies funds released; we wait
+    // for money_status === 'funds_released' (post SafeDeal review release).
+    let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown"; funds_released_at: string | null } | null = null;
+    if (tx.status === "completed" && tx.money_status === "funds_released") {
       const completedRow = [...statusHistory].reverse().find((h: Record<string, unknown>) => h.new_status === "completed");
+      const fundsReleasedAt = ([...moneyHistory].reverse().find((h) => h.new_status === "funds_released")?.changed_at as string | undefined) ?? null;
       if (completedRow) {
         const prev = ((completedRow as Record<string, unknown>).old_status as string | null) ?? null;
         let variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" = "unknown";
         if (prev === "delivered_awaiting_verification") {
-          if (deliveryConf?.buyer_acknowledged_delivery_at) variant = "buyer_confirmed";
-          else if (deliveryConf?.system_delivery_marked_at) variant = "auto_released";
-          else variant = "buyer_confirmed";
+          variant = "buyer_confirmed";
         } else if (prev === "resolved" || prev === "disputed") {
           variant = "dispute_resolved";
         }
@@ -176,6 +183,7 @@ Deno.serve(async (req) => {
           previous_status: prev,
           reason: ((completedRow as Record<string, unknown>).reason as string | null) ?? null,
           variant,
+          funds_released_at: fundsReleasedAt,
         };
       }
     }
@@ -244,6 +252,8 @@ Deno.serve(async (req) => {
     }
 
     // Build timeline
+    // Phase A: timeline split — "completed" no longer claims funds released.
+    // Final "funds_released" step lights up only when money_status reaches that state.
     const timelineSteps = [
       { key: "draft", label: "Transaction Created", description: "Secure transaction link generated and ready to share with buyer." },
       { key: "awaiting_buyer", label: "Awaiting Buyer Payment", description: "Buyer received transaction link and reviewed agreement." },
@@ -251,21 +261,41 @@ Deno.serve(async (req) => {
       { key: "seller_preparing_delivery", label: "Seller Preparing Shipment", description: "Prepare the item and update delivery information when shipped." },
       { key: "seller_dispatched", label: "Seller Dispatched", description: "Item has been shipped to the buyer." },
       { key: "delivered_awaiting_verification", label: "Buyer Verification", description: "Buyer is verifying the received item." },
-      { key: "completed", label: "Completed", description: "Transaction completed successfully. Funds released to seller." },
+      { key: "completed", label: "Confirmed — In SafeDeal Review", description: "Both parties confirmed. SafeDeal is finalising the release." },
+      { key: "funds_released", label: "Funds Released", description: "Funds have been released to your payout account." },
     ];
 
-    const statusOrder = timelineSteps.map((s) => s.key);
+    const moneyStatus = tx.money_status as string;
+    const fundsReleased = moneyStatus === "funds_released";
+    const statusOrder = timelineSteps.filter((s) => s.key !== "funds_released").map((s) => s.key);
     const currentIndex = statusOrder.indexOf(tx.status);
+
+    const fundsReleasedAt = fundsReleased
+      ? statusHistory.find(
+          (h: Record<string, unknown>) =>
+            (h.field as string | undefined) === "money_status" && (h.new_status as string | undefined) === "funds_released"
+        )
+      : null;
 
     const timeline = timelineSteps.map((step, i) => {
       const historyEntry = statusHistory.find(
         (h: Record<string, unknown>) => h.new_status === step.key || (step.key === "draft" && i === 0)
       );
-      return {
-        ...step,
-        status: i < currentIndex ? "completed" : i === currentIndex ? "current" : "pending",
-        timestamp: historyEntry ? (historyEntry as Record<string, unknown>).changed_at : (i === 0 ? tx.created_at : null),
-      };
+
+      let status: "completed" | "current" | "pending";
+      let timestamp: unknown = historyEntry ? (historyEntry as Record<string, unknown>).changed_at : (i === 0 ? tx.created_at : null);
+
+      if (step.key === "funds_released") {
+        status = fundsReleased ? "completed" : "pending";
+        timestamp = fundsReleasedAt ? (fundsReleasedAt as Record<string, unknown>).changed_at : null;
+      } else if (step.key === "completed") {
+        // "Confirmed — In SafeDeal Review" stays current until funds release.
+        status = fundsReleased ? "completed" : tx.status === "completed" ? "current" : i < currentIndex ? "completed" : "pending";
+      } else {
+        status = i < currentIndex ? "completed" : i === currentIndex ? "current" : "pending";
+      }
+
+      return { ...step, status, timestamp };
     });
 
     // Derive next action

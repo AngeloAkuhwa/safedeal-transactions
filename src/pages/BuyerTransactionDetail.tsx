@@ -52,6 +52,7 @@ import { InTransitBlock } from "@/components/transactions/InTransitBlock";
 import { VerifyReceiptCTA } from "@/components/transactions/VerifyReceiptCTA";
 import { DeliveryTermsCard } from "@/components/transactions/DeliveryTermsCard";
 import { TransactionCompletionBanner } from "@/components/transactions/TransactionCompletionBanner";
+import { TransactionConfirmationProgress } from "@/components/transactions/TransactionConfirmationProgress";
 import { MessageThread } from "@/components/transactions/MessageThread";
 
 /* ───── Status badge config ───── */
@@ -96,7 +97,9 @@ const timelineSteps = [
   { status: "seller_dispatched", label: "Seller Dispatched Item", icon: Truck },
   { status: "delivered_awaiting_verification", label: "Delivered", icon: MapPin },
   { status: "buyer_verification", label: "Buyer Verification", icon: CheckCircle },
-  { status: "completed", label: "Transaction Completed", icon: CheckCircle },
+  { status: "completed", label: "Confirmed — In SafeDeal Review", icon: CheckCircle },
+  // Phase A: lights up only when money_status === 'funds_released'.
+  { status: "funds_released", label: "Funds Released", icon: Shield },
 ];
 
 const statusOrder = [
@@ -392,11 +395,20 @@ const BuyerTransactionDetail = () => {
               </div>
             )}
 
-            {tx.status === "completed" && completion_event && (
+            {/* Phase A: handshake & awaiting-release progress.
+                Renders during the buyer-confirmed → seller-confirmed → SafeDeal-release window. */}
+            <TransactionConfirmationProgress
+              buyerConfirmedAt={tx.buyer_confirmed_at ?? null}
+              sellerConfirmedAt={tx.seller_confirmed_at ?? null}
+              moneyStatus={tx.money_status}
+            />
+
+            {/* Completion banner — only after funds actually released. */}
+            {tx.status === "completed" && tx.money_status === "funds_released" && completion_event && (
               <TransactionCompletionBanner
                 variant={completion_event.variant}
                 completedAt={completion_event.completed_at}
-                fundsReleasedAt={status_history.find((h) => h.new_status === "completed")?.changed_at ?? null}
+                fundsReleasedAt={completion_event.funds_released_at}
                 perspective="buyer"
                 onViewReceipt={handlePrint}
               />
@@ -527,6 +539,7 @@ const BuyerTransactionDetail = () => {
                 statusHistory={status_history}
                 currentStatus={tx.status}
                 currentStatusIndex={currentStatusIndex}
+                currentMoneyStatus={tx.money_status}
                 pricing={pricing}
                 deliveryTracking={delivery_tracking}
               />
@@ -845,12 +858,14 @@ function TransactionTimeline({
   statusHistory,
   currentStatus,
   currentStatusIndex,
+  currentMoneyStatus,
   pricing,
   deliveryTracking,
 }: {
   statusHistory: TransactionStatusEntry[];
   currentStatus: string;
   currentStatusIndex: number;
+  currentMoneyStatus: string;
   pricing: TransactionDetailResponse["pricing"];
   deliveryTracking: TransactionDetailResponse["delivery_tracking"];
 }) {
@@ -868,14 +883,23 @@ function TransactionTimeline({
         {timelineSteps.map((step, i) => {
           const entry = historyMap.get(step.status);
           const stepIdx = getStatusIndex(step.status);
-          const isReached = step.status === "buyer_verification"
-            ? currentStatus === "completed"
-            : step.status === "completed"
-              ? currentStatus === "completed"
-              : stepIdx <= currentStatusIndex;
-          const isCurrent = step.status === "buyer_verification"
-            ? currentStatus === "delivered_awaiting_verification"
-            : step.status === currentStatus;
+          // Phase A: synthetic steps for verification/completion/release.
+          const isReached =
+            step.status === "buyer_verification"
+              ? currentStatus === "completed" || currentMoneyStatus === "funds_released"
+              : step.status === "completed"
+                ? currentStatus === "completed" || currentMoneyStatus === "funds_released"
+                : step.status === "funds_released"
+                  ? currentMoneyStatus === "funds_released"
+                  : stepIdx <= currentStatusIndex;
+          const isCurrent =
+            step.status === "buyer_verification"
+              ? currentStatus === "delivered_awaiting_verification"
+              : step.status === "completed"
+                ? currentStatus === "completed" && currentMoneyStatus !== "funds_released"
+                : step.status === "funds_released"
+                  ? false
+                  : step.status === currentStatus;
 
           let subtitle = "";
           if (entry) {
@@ -894,6 +918,12 @@ function TransactionTimeline({
           }
           if (step.status === "completed" && !isReached) {
             extraInfo = "Pending buyer verification";
+          }
+          if (step.status === "completed" && isCurrent) {
+            extraInfo = "SafeDeal is reviewing — funds will release shortly";
+          }
+          if (step.status === "funds_released" && !isReached) {
+            extraInfo = "Awaiting SafeDeal release";
           }
 
           const isLast = i === timelineSteps.length - 1;

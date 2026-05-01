@@ -237,6 +237,7 @@ const SellerTransactionDetail = () => {
           <TransactionCompletionBanner
             variant={completion_event.variant}
             completedAt={completion_event.completed_at}
+            fundsReleasedAt={completion_event.funds_released_at}
             perspective="seller"
           />
         )}
