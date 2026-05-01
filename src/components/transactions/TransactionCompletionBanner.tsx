@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type CompletionVariant = "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown";
+export type CompletionVariant = "buyer_confirmed" | "dispute_resolved" | "unknown";
 
 export interface TransactionCompletionBannerProps {
   variant: CompletionVariant;
