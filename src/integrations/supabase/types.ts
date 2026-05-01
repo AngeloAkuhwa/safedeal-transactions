@@ -3971,6 +3971,7 @@ export type Database = {
         }
         Returns: string
       }
+      timeout_transaction_atomic: { Args: { p_tx_id: string }; Returns: Json }
       validate_money_transition: {
         Args: {
           _new_status: Database["public"]["Enums"]["money_status"]
