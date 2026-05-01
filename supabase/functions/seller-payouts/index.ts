@@ -59,8 +59,8 @@ Deno.serve(async (req) => {
       payoutAccountResult,
     ] = await Promise.allSettled([
       adminClient.from("profiles").select("full_name, avatar_url").eq("id", userId).single(),
-      adminClient.from("payouts").select("id, amount, status, currency_code, completed_at, failed_at, failure_reason, transaction_id, initiated_at, created_at").eq("seller_id", userId),
-      adminClient.from("transactions").select("id, transaction_code, status, money_status, buyer_id, verification_deadline_at, created_at").eq("seller_id", userId),
+      adminClient.from("payouts").select("id, amount, status, currency_code, completed_at, failed_at, failure_reason, transaction_id, initiated_at, created_at, payout_blocked_reason, release_blocked").eq("seller_id", userId),
+      adminClient.from("transactions").select("id, transaction_code, status, money_status, buyer_id, verification_deadline_at, created_at, needs_release_review, release_review_reason").eq("seller_id", userId),
       adminClient.from("account_verifications").select("payout_verified").eq("user_id", userId).single(),
       adminClient.from("payout_accounts").select("bank_name, account_name, masked_account_number, verification_status, last_verified_at").eq("user_id", userId).single(),
     ]);
@@ -81,6 +81,8 @@ Deno.serve(async (req) => {
     let totalReleased = 0;
     let totalReleasedLast30 = 0;
     let pendingReleaseAmount = 0;
+    let awaitingReleaseAmount = 0;
+    let blockedPayoutAmount = 0;
     let onHoldFailed = 0;
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -101,6 +103,14 @@ Deno.serve(async (req) => {
         if (!lastPayoutDate || (p.completed_at as string) > lastPayoutDate) {
           lastPayoutDate = p.completed_at as string;
         }
+      } else if (status === "awaiting_release") {
+        // Phase A: both parties confirmed, in SafeDeal release queue.
+        awaitingReleaseAmount += amount;
+        pendingReleaseAmount += amount;
+      } else if (status === "blocked") {
+        // Phase A: confirmed but blocked (e.g. payout_account_missing).
+        blockedPayoutAmount += amount;
+        onHoldFailed += amount;
       } else if (status === "pending" || status === "processing") {
         pendingReleaseAmount += amount;
       } else if (status === "failed") {
@@ -115,6 +125,7 @@ Deno.serve(async (req) => {
       : [];
 
     const heldTxIds: string[] = [];
+    const pendingReleaseTxIds: string[] = [];
     const upcomingTxIds: string[] = [];
     const blockedTxIds: string[] = [];
 
@@ -128,7 +139,18 @@ Deno.serve(async (req) => {
           upcomingTxIds.push(tx.id as string);
         }
       }
+      if (moneyStatus === "funds_pending_release") {
+        // Phase A: both parties confirmed, awaiting SafeDeal release review.
+        // Surface in the upcoming-releases panel.
+        pendingReleaseTxIds.push(tx.id as string);
+        upcomingTxIds.push(tx.id as string);
+      }
       if (txStatus === "disputed") {
+        blockedTxIds.push(tx.id as string);
+      }
+      // Surface needs_release_review transactions in the blocked panel
+      // so the seller knows why their funds are stuck.
+      if (tx.needs_release_review === true) {
         blockedTxIds.push(tx.id as string);
       }
     }
