@@ -1982,10 +1982,16 @@ export type Database = {
           created_at: string
           currency_code: string
           failed_at: string | null
+          failed_attempt_count: number
           failure_reason: string | null
           id: string
           initiated_at: string | null
+          notes: string | null
+          payout_blocked_reason: string | null
           provider_reference: string | null
+          release_approved_by_user_id: string | null
+          release_blocked: boolean
+          released_at: string | null
           seller_id: string
           status: Database["public"]["Enums"]["payout_status"]
           transaction_id: string
@@ -1997,10 +2003,16 @@ export type Database = {
           created_at?: string
           currency_code: string
           failed_at?: string | null
+          failed_attempt_count?: number
           failure_reason?: string | null
           id?: string
           initiated_at?: string | null
+          notes?: string | null
+          payout_blocked_reason?: string | null
           provider_reference?: string | null
+          release_approved_by_user_id?: string | null
+          release_blocked?: boolean
+          released_at?: string | null
           seller_id: string
           status?: Database["public"]["Enums"]["payout_status"]
           transaction_id: string
@@ -2012,16 +2024,29 @@ export type Database = {
           created_at?: string
           currency_code?: string
           failed_at?: string | null
+          failed_attempt_count?: number
           failure_reason?: string | null
           id?: string
           initiated_at?: string | null
+          notes?: string | null
+          payout_blocked_reason?: string | null
           provider_reference?: string | null
+          release_approved_by_user_id?: string | null
+          release_blocked?: boolean
+          released_at?: string | null
           seller_id?: string
           status?: Database["public"]["Enums"]["payout_status"]
           transaction_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payouts_release_approved_by_user_id_fkey"
+            columns: ["release_approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payouts_seller_id_fkey"
             columns: ["seller_id"]
@@ -2496,6 +2521,103 @@ export type Database = {
           },
         ]
       }
+      release_review_queue: {
+        Row: {
+          amount: number | null
+          claimed_at: string | null
+          claimed_by_user_id: string | null
+          created_at: string
+          currency_code: string | null
+          entered_queue_at: string
+          id: string
+          notes: string | null
+          payout_id: string | null
+          queue_type: string
+          resolved_at: string | null
+          seller_id: string
+          status: string
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          claimed_at?: string | null
+          claimed_by_user_id?: string | null
+          created_at?: string
+          currency_code?: string | null
+          entered_queue_at?: string
+          id?: string
+          notes?: string | null
+          payout_id?: string | null
+          queue_type: string
+          resolved_at?: string | null
+          seller_id: string
+          status?: string
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          claimed_at?: string | null
+          claimed_by_user_id?: string | null
+          created_at?: string
+          currency_code?: string | null
+          entered_queue_at?: string
+          id?: string
+          notes?: string | null
+          payout_id?: string | null
+          queue_type?: string
+          resolved_at?: string | null
+          seller_id?: string
+          status?: string
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "release_review_queue_claimed_by_user_id_fkey"
+            columns: ["claimed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "release_review_queue_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "payouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "release_review_queue_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "release_review_queue_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "release_review_queue_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "release_review_queue_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_products: {
         Row: {
           buyer_id: string
@@ -2690,6 +2812,65 @@ export type Database = {
             foreignKeyName: "transaction_agreement_snapshots_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transaction_completion_confirmations: {
+        Row: {
+          confirmed_at: string
+          confirmed_by_role: Database["public"]["Enums"]["user_role_type"]
+          confirmed_by_user_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          transaction_id: string
+        }
+        Insert: {
+          confirmed_at?: string
+          confirmed_by_role: Database["public"]["Enums"]["user_role_type"]
+          confirmed_by_user_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          transaction_id: string
+        }
+        Update: {
+          confirmed_at?: string
+          confirmed_by_role?: Database["public"]["Enums"]["user_role_type"]
+          confirmed_by_user_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_completion_confirmations_confirmed_by_user_id_fkey"
+            columns: ["confirmed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_completion_confirmations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_completion_confirmations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_completion_confirmations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
@@ -3320,6 +3501,7 @@ export type Database = {
       transactions: {
         Row: {
           agreement_locked_at: string | null
+          buyer_confirmed_at: string | null
           buyer_contact_email: string | null
           buyer_contact_phone: string | null
           buyer_id: string | null
@@ -3333,8 +3515,13 @@ export type Database = {
           dispute_status: Database["public"]["Enums"]["dispute_status"]
           id: string
           money_status: Database["public"]["Enums"]["money_status"]
+          needs_release_review: boolean
           payment_received_at: string | null
           region_id: string | null
+          release_approved_at: string | null
+          release_approved_by: string | null
+          release_review_reason: string | null
+          seller_confirmed_at: string | null
           seller_id: string
           share_link_expires_at: string | null
           share_token: string
@@ -3347,6 +3534,7 @@ export type Database = {
         }
         Insert: {
           agreement_locked_at?: string | null
+          buyer_confirmed_at?: string | null
           buyer_contact_email?: string | null
           buyer_contact_phone?: string | null
           buyer_id?: string | null
@@ -3360,8 +3548,13 @@ export type Database = {
           dispute_status?: Database["public"]["Enums"]["dispute_status"]
           id?: string
           money_status?: Database["public"]["Enums"]["money_status"]
+          needs_release_review?: boolean
           payment_received_at?: string | null
           region_id?: string | null
+          release_approved_at?: string | null
+          release_approved_by?: string | null
+          release_review_reason?: string | null
+          seller_confirmed_at?: string | null
           seller_id: string
           share_link_expires_at?: string | null
           share_token: string
@@ -3374,6 +3567,7 @@ export type Database = {
         }
         Update: {
           agreement_locked_at?: string | null
+          buyer_confirmed_at?: string | null
           buyer_contact_email?: string | null
           buyer_contact_phone?: string | null
           buyer_id?: string | null
@@ -3387,8 +3581,13 @@ export type Database = {
           dispute_status?: Database["public"]["Enums"]["dispute_status"]
           id?: string
           money_status?: Database["public"]["Enums"]["money_status"]
+          needs_release_review?: boolean
           payment_received_at?: string | null
           region_id?: string | null
+          release_approved_at?: string | null
+          release_approved_by?: string | null
+          release_review_reason?: string | null
+          seller_confirmed_at?: string | null
           seller_id?: string
           share_link_expires_at?: string | null
           share_token?: string
@@ -3419,6 +3618,13 @@ export type Database = {
             columns: ["region_id"]
             isOneToOne: false
             referencedRelation: "serviceable_regions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_release_approved_by_fkey"
+            columns: ["release_approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -3774,6 +3980,7 @@ export type Database = {
         | "refund_debit"
         | "fee_record"
         | "adjustment"
+        | "payout_awaiting_release"
       escrow_state:
         | "awaiting_payment"
         | "held"
@@ -3817,6 +4024,7 @@ export type Database = {
         | "payment_pending"
         | "funds_held_in_escrow"
         | "funds_frozen"
+        | "funds_pending_release"
         | "funds_releasing"
         | "funds_released"
         | "refund_pending"
@@ -3841,11 +4049,13 @@ export type Database = {
         | "failed"
         | "refunded"
       payout_status:
+        | "awaiting_release"
         | "pending"
         | "processing"
         | "completed"
         | "failed"
         | "cancelled"
+        | "blocked"
       product_inventory_change_type:
         | "restock"
         | "reserve"
@@ -4132,6 +4342,7 @@ export const Constants = {
         "refund_debit",
         "fee_record",
         "adjustment",
+        "payout_awaiting_release",
       ],
       escrow_state: [
         "awaiting_payment",
@@ -4181,6 +4392,7 @@ export const Constants = {
         "payment_pending",
         "funds_held_in_escrow",
         "funds_frozen",
+        "funds_pending_release",
         "funds_releasing",
         "funds_released",
         "refund_pending",
@@ -4208,11 +4420,13 @@ export const Constants = {
         "refunded",
       ],
       payout_status: [
+        "awaiting_release",
         "pending",
         "processing",
         "completed",
         "failed",
         "cancelled",
+        "blocked",
       ],
       product_inventory_change_type: [
         "restock",
