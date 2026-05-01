@@ -4128,6 +4128,7 @@ export type Database = {
         | "failed"
         | "cancelled"
         | "blocked"
+        | "reversed"
       product_inventory_change_type:
         | "restock"
         | "reserve"
@@ -4499,6 +4500,7 @@ export const Constants = {
         "failed",
         "cancelled",
         "blocked",
+        "reversed",
       ],
       product_inventory_change_type: [
         "restock",

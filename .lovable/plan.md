@@ -1,95 +1,92 @@
+# Phase B — Gap-Closure Plan
 
-# Phase B4 — `release-funds` edge function
+## Audit summary
 
-## Goal
+What's already shipped end-to-end:
+- B0 migration: `payout_accounts` extras + CHECK, `payouts` extras, `transactions` release columns, `refunds` table with proper indexes, `payment_webhook_logs` UNIQUE `(provider, event_type, provider_reference)`, system_settings seeds, all atomic SQL helpers (`release_payout_atomic`, `complete_payout_atomic`, `fail_payout_atomic`, `reverse_payout_atomic`, `start_refund_atomic`, `complete_refund_atomic`, `fail_refund_atomic`, `flag_for_release_review`, plus `retry_payout_atomic` from B5).
+- `_shared`: `auth.ts`, `paystack.ts`, `money.ts`, `notify.ts`, `log-error.ts`, `pricing.ts`.
+- B1 `update-payout-account`: Paystack-first ordering, masked-only persistence, fail-path logged. ✅
+- B2 `release-funds`: admin-gated, atomic, stable reference, Paystack call, rollback on failure. ✅ (one gap, see below)
+- B3 `paystack-webhook`: handles `transfer.success`, `transfer.failed`, `transfer.reversed`, `refund.processed`, `refund.failed`, with the UNIQUE event-key dedupe. ✅
+- B4 `refund-buyer`: admin-gated, uses `start_refund_atomic`, hits Paystack `/refund`. ✅ (one tightening, see below)
+- B5 `retry-payout`: shipped.
+- B7 piece 1 `flag-for-release-review`: shipped.
 
-Build a single admin-callable endpoint that takes a transaction in `funds_pending_release` and initiates the Paystack Transfer to the seller. The function flips the DB into `funds_releasing` **before** calling Paystack, so a duplicate click cannot trigger two transfers. The terminal `funds_released` flip happens later in `paystack-webhook` (already built in B3).
+What's missing or wrong:
 
-## Contract
+## Gap 1 — `release-funds` is missing the idempotency short-circuit
 
-Endpoint: `POST /functions/v1/release-funds`
+Spec requires: if `payout.status IN ('processing','completed')` AND `provider_reference IS NOT NULL`, return current state without calling Paystack again. Today the function rejects with `409 payout_not_awaiting`, which forces the caller to treat a normal in-flight retry as an error.
 
-Auth: `requireAdmin` (Bearer token; 401/403 on failure).
+**Fix:** before the "must be `awaiting_release`" guard, add an early return: if `status` is `processing` or `completed` and `provider_reference` is set, respond `200 { ok: true, idempotent: true, status, provider_reference }`. No state mutation, no Paystack call.
 
-Request body (validated with zod):
-```
-{
-  "transaction_id": "uuid",        // required
-  "payout_id": "uuid" (optional),  // disambiguates if multiple payouts exist
-  "notes": "string" (optional, max 500)
-}
-```
+## Gap 2 — `payout_status` enum has no `reversed` label
 
-Response:
-- `200 { ok: true, payout_id, transfer_reference, transfer_code, status }`
-- `400` validation / business-rule rejection (with `code`)
-- `401` / `403` auth
-- `409` state conflict (e.g. `not_in_pending_release`, `payout_blocked`, `recipient_missing`)
-- `502` Paystack error (state already rolled back to `funds_pending_release`)
-- `500` unexpected (logged via `log-error`)
+`reverse_payout_atomic` currently writes `status = 'failed'` with `failure_reason = 'reversed: …'` because the enum lacks a `reversed` label. This loses the high-severity signal the spec calls for and conflates true Paystack failures with reversals.
 
-## Flow (in order, with safety stops)
+**Fix (migration):**
+1. `ALTER TYPE payout_status ADD VALUE 'reversed'` (must run outside a transaction — use a standalone migration with no `BEGIN`).
+2. Follow-up migration that updates `reverse_payout_atomic` to write `status = 'reversed'` instead of `'failed'`, and updates the seller-payouts label map (Gap 5) to translate `reversed → "Reversed"`.
 
-1. **Auth**: `requireAdmin(req)` → `{ adminClient, userId }`.
-2. **Validate body** with zod. Reject on bad input.
-3. **Load transaction** (`id, money_status, seller_id, currency_code, transaction_code`). Reject if not `funds_pending_release` → 409 `not_in_pending_release`.
-4. **Resolve payout**:
-   - If `payout_id` provided, fetch and confirm it belongs to this transaction and is in `awaiting_release`.
-   - Otherwise, find the single `awaiting_release` payout for the transaction. If 0 → 409 `no_awaiting_payout`. If >1 → 409 `ambiguous_payout` (force the caller to pass `payout_id`).
-   - Reject if `release_blocked = true` → 409 `payout_blocked` (return `payout_blocked_reason`).
-5. **Resolve seller payout account**: fetch `payout_accounts` row for seller where `is_active = true` AND `recipient_code IS NOT NULL`. If missing → 409 `recipient_missing` (and call `flag_for_release_review` with reason `missing_recipient` so it lands back in the queue with the right banner).
-6. **Atomic state flip — `release_payout_atomic`** (RPC already exists):
-   - Asserts `funds_pending_release` and `payout.status = awaiting_release` under row locks.
-   - Flips payout → `pending`, sets `release_approved_by_user_id`, `released_at`, `last_release_attempt_at`.
-   - Flips transaction → `funds_releasing` and writes `money_status_history`.
-   - Inserts `admin_actions` row (`action_type = release_funds`).
-   - Marks `release_review_queue` row → `processing`, claims it for this admin.
-   - On RPC failure (e.g. someone else already advanced it), return 409 with the Postgres error code.
-7. **Build deterministic Paystack reference**: `payout_${payout.id}` (matches what `paystack-webhook` looks up — see `findPayoutByReference`).
-8. **Call Paystack Transfer** via `_shared/paystack.createTransfer`:
-   - `source: "balance"`, `amount: nairaToKobo(payout.amount)`, `recipient: recipient_code`, `reason: "SafeDeal release for ${transaction_code}"`, `reference: payout_${payout.id}`.
-9. **Persist provider result** on the payout row: `provider_reference = reference`, `initiated_at = now()`, append the transfer code into `notes` (audit only — webhook is the source of truth for completion).
-10. **On Paystack non-OK** (network, 4xx, `status: false`):
-    - Call `fail_payout_atomic(payout_id, reason, max_retries)` so:
-      - payout → `failed` with `last_release_error`,
-      - transaction rolls back `funds_releasing → funds_pending_release`,
-      - queue row → `failed`.
-    - Notify ops via `notifyOpsTeam` (severity `high`).
-    - Return `502 { error: "paystack_transfer_failed", message }`.
-11. **On Paystack OK**:
-    - Insert a `transaction_event` row (`type: release_initiated`, actor = admin).
-    - Notify the seller (`notifyUser`, type `payment_update`, "We're releasing your funds…").
-    - Return `200`.
-    - **Do not** mark `funds_released` here. That happens in `paystack-webhook` on `transfer.success` (already wired in B3) — guarantees we only confirm once Paystack confirms.
+## Gap 3 — `refund-buyer` accepts partial amounts; spec is full-only for Phase B
 
-## Files
+Today the function accepts an optional `amount` and computes `isPartial`. Phase B is explicitly "full refund only".
 
-- **New**: `supabase/functions/release-funds/index.ts`
-- **No DB migration needed** — `release_payout_atomic`, `fail_payout_atomic`, and `flag_for_release_review` already exist; `payouts` already has `provider_reference`, `initiated_at`, `notes`.
-- **No client/UI changes in B4** — endpoint will be consumed later by the admin console (Phase C+). For now, it's exercised via `supabase--curl_edge_functions`.
+**Fix:** drop the `amount` field from the zod schema; always use `payments.amount` (or `transactions.total_amount` if that's what `start_refund_atomic` expects today). Remove `isPartial` branch and the partial-amount kobo path. Add the spec's hard guard: reject if any payout exists with `status IN ('processing','completed')` → `409 payout_already_completed`.
 
-## Idempotency & race safety
+## Gap 4 — B6 `resolve-release-review` function does not exist
 
-- Two simultaneous calls: only one wins `release_payout_atomic` (row lock + status guard); the other gets `payout_not_in_awaiting_release` → 409.
-- Webhook arrives before our `provider_reference` write completes: webhook lookup falls back to `payout_${payout_id}` in the reference convention, then to `provider_reference` — both resolve. The atomic completer in `complete_payout_atomic` is idempotent.
-- Caller retries after a 502: payout is already `failed` with `retry_allowed` set per `payout_max_retry_attempts`. Retry path will be its own endpoint in B-later (`retry-payout`); B4 does not auto-retry.
+The spec's resolution endpoint is missing. It's the operator's single entry point for closing a queued case.
 
-## Tests (Deno, `index_test.ts`)
+**Fix:** create `supabase/functions/resolve-release-review/index.ts`:
+- `requireAdmin`, CORS, zod input `{ transaction_id, resolution: 'release'|'refund'|'hold'|'dismiss'|'request_more_info', notes: string (≥10 chars) }`.
+- Verify an open queue row exists for the tx; 409 if not.
+- Branch:
+  - `release` → call the same internals as `release-funds` by importing a shared `releasePayoutCore(supabase, tx_id, admin_id, notes)` helper extracted from `release-funds/index.ts`. No HTTP self-call.
+  - `refund` → call extracted `refundBuyerCore(...)` from `refund-buyer`.
+  - `hold` → set `transactions.needs_release_review = true`, `release_review_reason = 'manual_hold'`; `release_review_queue.status = 'held'`; do not transition money (money state machine doesn't permit free `* → funds_frozen`; this is a flag-only hold).
+  - `dismiss` → block (409) if any blocker is still active: pricing missing, payout account unverified, open dispute, or `release_review_reason IN ('payout_account_missing','pricing_missing','silent_dispute','transfer_reversed')`. Otherwise clear `needs_release_review`, `release_review_reason = NULL`, queue → `dismissed`.
+  - `request_more_info` → queue → `awaiting_info`, leave open, fan-out notification to the relevant party.
+- Always insert `admin_actions(action_type='escalate_case' | 'release_funds' | 'refund_buyer')` and a `case_reviews` row with the notes.
 
-1. Rejects unauthenticated / non-admin (`401` / `403`).
-2. Rejects invalid body (`400`).
-3. Rejects when transaction not in `funds_pending_release` (`409 not_in_pending_release`).
-4. Rejects when no active recipient on payout account (`409 recipient_missing`) and verifies a queue row was flagged.
-5. Happy path with a mocked Paystack OK: asserts payout flipped to `pending`, transaction to `funds_releasing`, `provider_reference = payout_<id>`, queue row claimed, `admin_actions` row written, seller notification queued.
-6. Paystack failure path: asserts rollback to `funds_pending_release`, payout `failed`, queue `failed`, ops notification, 502 response.
+This requires a tiny refactor of `release-funds/index.ts` and `refund-buyer/index.ts` to extract their core into reusable functions while keeping the existing HTTP handlers as thin wrappers. No behavior change to the existing endpoints.
 
-## Out of scope for B4
+## Gap 5 — B7 `seller-payouts` contract not updated
 
-- Retry endpoint (`retry-payout`) — B5.
-- Manual refund endpoint (`refund-buyer`) — B6.
-- Admin UI — comes after the backend pipeline is fully tested.
+The function still returns raw enum strings (`status`, `payout_verified` boolean only) — none of the spec's seller-friendly fields.
 
-## Acceptance
+**Fix to `supabase/functions/seller-payouts/index.ts`:**
+- Add `payout_account` block: `{ verified, recipient_code_present, status }` derived from `payout_accounts.verification_status` and `provider_recipient_code IS NOT NULL`.
+- Per payout row, attach:
+  - `status_label` from the spec map: `awaiting_release → "Awaiting Release"`, `pending → "Release Approved"`, `processing → "Payment Processing"`, `completed → "Paid Out"`, `failed → "Release Failed"`, `reversed → "Reversed"`, `cancelled → "Cancelled"`, `blocked → "Action Required"`.
+  - `block_reason_code` = `payout_blocked_reason` (already in DB).
+  - `retry_eligible: false` always (sellers never retry; internal-only).
+- Aggregates: `awaiting_release_count`, `processing_count`, `failed_count` (a couple of these already exist; align names).
+- Mirror this in `src/services/seller-payouts.service.ts` types so the UI consumes the new shape. No UI changes in this phase — the service contract update is purely additive aside from the renames.
 
-- `curl POST /release-funds` against a seeded `funds_pending_release` transaction, with admin token, drives it to `funds_releasing` and produces a real Paystack `transfer.success` webhook that the existing `paystack-webhook` handler closes out to `funds_released`.
-- All non-happy paths leave the system in a consistent state (no transaction stuck in `funds_releasing` without either a webhook resolution or a `failed` payout + rollback).
+## Gap 6 — Webhook `transfer.failed` should not say "calm copy" only; ops severity for `reversed` must be `high`
+
+Quick audit confirmed `transfer.reversed` handler runs but doesn't emit an ops `security_alert` with `severity: 'high'`. Spec requires paging ops immediately.
+
+**Fix:** in `paystack-webhook/index.ts` `transfer.reversed` branch, after `reverse_payout_atomic` succeeds, call `notifyOpsTeam` (already in `_shared/notify.ts`) with `severity: 'high'`, message including the tx code and Paystack reason. Same pattern already used in `release-funds` failure path.
+
+---
+
+## Out of scope (deferred, as per Phase B spec)
+- `release-payout-exception` (override seller confirmation) — future phase.
+- Partial refunds — dispute resolution phase.
+- Refund-after-payout — ops runbook phase.
+- Cron stuck-tx watchdog — Phase E.
+- Seller UI changes consuming the new contract — Phase D.
+- Admin queue UI shell — separate plan.
+
+## Implementation order
+1. Migration: add `reversed` to `payout_status` (standalone, no-tx).
+2. Migration: rewrite `reverse_payout_atomic` to use `'reversed'`.
+3. Edit `release-funds` for idempotency short-circuit + extract `releasePayoutCore`.
+4. Edit `refund-buyer` to drop partial amounts + add post-payout guard + extract `refundBuyerCore`.
+5. Add `resolve-release-review` function.
+6. Patch `paystack-webhook` `transfer.reversed` to page ops with `severity: 'high'`.
+7. Update `seller-payouts` function + service types with the new contract.
+
+After this lands, Phase B is 100% per the approved spec.
