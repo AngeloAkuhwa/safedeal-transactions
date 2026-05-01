@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
       adminClient.from("payouts").select("id, amount, status, currency_code, completed_at, failed_at, failure_reason, transaction_id, initiated_at, created_at, payout_blocked_reason, release_blocked").eq("seller_id", userId),
       adminClient.from("transactions").select("id, transaction_code, status, money_status, buyer_id, verification_deadline_at, created_at, needs_release_review, release_review_reason").eq("seller_id", userId),
       adminClient.from("account_verifications").select("payout_verified").eq("user_id", userId).single(),
-      adminClient.from("payout_accounts").select("bank_name, account_name, masked_account_number, verification_status, last_verified_at").eq("user_id", userId).single(),
+      adminClient.from("payout_accounts").select("bank_name, account_name, masked_account_number, verification_status, last_verified_at, provider_recipient_code").eq("user_id", userId).single(),
     ]);
 
     // Profile
