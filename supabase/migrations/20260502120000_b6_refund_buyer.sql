@@ -164,7 +164,7 @@ BEGIN
   UPDATE public.escrow_states
   SET refunded_amount = refunded_amount + v_amount,
       held_amount = GREATEST(0, held_amount - v_amount),
-      state = 'refunded_to_buyer'::escrow_state,
+      state = 'refunded'::escrow_state,
       last_changed_at = now(),
       updated_at = now()
   WHERE transaction_id = v_tx_id;
@@ -175,6 +175,70 @@ BEGIN
     v_tx_id, 'refund_debit', v_amount, COALESCE(v_currency,'NGN'),
     'refund', p_refund_id, 'refund.processed'
   );
+
+  RETURN jsonb_build_object('ok', true);
+END;
+$$;
+
+-- Also patch complete_payout_atomic which referenced a non-existent enum label.
+CREATE OR REPLACE FUNCTION public.complete_payout_atomic(p_payout_id uuid, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $$
+DECLARE
+  v_tx_id uuid;
+  v_currency text;
+  v_old_money money_status;
+BEGIN
+  SELECT transaction_id, currency_code INTO v_tx_id, v_currency
+  FROM public.payouts WHERE id = p_payout_id FOR UPDATE;
+
+  IF v_tx_id IS NULL THEN RAISE EXCEPTION 'payout_not_found'; END IF;
+
+  IF EXISTS (SELECT 1 FROM public.payouts WHERE id = p_payout_id AND status = 'completed') THEN
+    RETURN jsonb_build_object('ok', true, 'idempotent', true);
+  END IF;
+
+  UPDATE public.payouts
+  SET status = 'completed',
+      completed_at = now(),
+      updated_at = now()
+  WHERE id = p_payout_id;
+
+  SELECT money_status INTO v_old_money FROM public.transactions WHERE id = v_tx_id FOR UPDATE;
+
+  IF v_old_money = 'funds_releasing'::money_status THEN
+    UPDATE public.transactions
+    SET money_status = 'funds_released',
+        release_completed_at = now(),
+        updated_at = now()
+    WHERE id = v_tx_id;
+    INSERT INTO public.money_status_history(transaction_id, old_status, new_status, reason)
+    VALUES (v_tx_id, v_old_money, 'funds_released', 'transfer_success_webhook');
+  END IF;
+
+  UPDATE public.escrow_states
+  SET released_amount = released_amount + p_amount,
+      held_amount = GREATEST(0, held_amount - p_amount),
+      state = 'released'::escrow_state,
+      last_changed_at = now(),
+      updated_at = now()
+  WHERE transaction_id = v_tx_id;
+
+  INSERT INTO public.escrow_ledger_entries(
+    transaction_id, entry_type, amount, currency_code, reference_type, reference_id, notes
+  ) VALUES (
+    v_tx_id, 'payout_debit', p_amount, COALESCE(v_currency, 'NGN'),
+    'payout', p_payout_id, 'transfer.success'
+  );
+
+  UPDATE public.release_review_queue
+  SET status = 'released',
+      resolved_at = now(),
+      updated_at = now()
+  WHERE transaction_id = v_tx_id AND status IN ('processing','claimed','pending');
 
   RETURN jsonb_build_object('ok', true);
 END;
