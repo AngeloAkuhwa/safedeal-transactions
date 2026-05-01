@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     // Fetch transaction (only columns that exist on the transactions table)
     const { data: tx, error: txError } = await adminClient
       .from("transactions")
-      .select("id, transaction_code, status, money_status, created_at, buyer_id, seller_id, agreement_locked_at")
+      .select("id, transaction_code, status, money_status, dispute_status, created_at, buyer_id, seller_id, agreement_locked_at, buyer_confirmed_at, seller_confirmed_at, needs_release_review, release_review_reason")
       .eq("id", transactionId)
       .single();
 
@@ -327,6 +327,11 @@ Deno.serve(async (req) => {
         transaction_code: tx.transaction_code,
         status: tx.status,
         money_status: tx.money_status,
+        dispute_status: tx.dispute_status,
+        buyer_confirmed_at: tx.buyer_confirmed_at,
+        seller_confirmed_at: tx.seller_confirmed_at,
+        needs_release_review: tx.needs_release_review,
+        release_review_reason: tx.release_review_reason,
         share_token: shareToken,
         share_url: shareUrl,
         created_at: tx.created_at,

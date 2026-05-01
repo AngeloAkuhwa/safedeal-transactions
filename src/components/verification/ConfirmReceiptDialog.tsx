@@ -36,7 +36,7 @@ export function ConfirmReceiptDialog({
       if (data.already_confirmed) {
         toast.info("This transaction was already confirmed.");
       } else {
-        toast.success("Item confirmed! Funds released to seller.");
+        toast.success("Receipt confirmed. SafeDeal will review and release funds after the seller confirms.");
       }
       navigate(data.redirect || "/dashboard/transactions");
     },
@@ -49,7 +49,6 @@ export function ConfirmReceiptDialog({
     "The item matches the agreement description",
     "The quantity and condition are correct",
     "There are no defects or damage",
-    `You authorize release of ${amount} to the seller`,
   ];
 
   return (
@@ -83,10 +82,10 @@ export function ConfirmReceiptDialog({
             <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <div>
               <p className="text-xs text-destructive font-semibold mb-1">
-                Once you confirm, funds will be immediately released to the seller
+                Once you confirm, you cannot raise a dispute on this transaction
               </p>
               <p className="text-xs text-destructive/80 font-semibold">
-                You will not be able to raise a dispute for this transaction
+                Your seller will then confirm, and SafeDeal will review and process the release.
               </p>
             </div>
           </div>

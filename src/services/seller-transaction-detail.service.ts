@@ -56,6 +56,11 @@ export interface SellerTransactionDetailResponse {
     transaction_code: string;
     status: string;
     money_status: string;
+    dispute_status?: string;
+    buyer_confirmed_at?: string | null;
+    seller_confirmed_at?: string | null;
+    needs_release_review?: boolean;
+    release_review_reason?: string | null;
     share_token: string | null;
     share_url: string | null;
     created_at: string;
@@ -122,4 +127,32 @@ export const getSellerTransactionDetail = async (
   if (!data || data.error) throw new Error(data?.error || "Failed to load transaction");
 
   return data as SellerTransactionDetailResponse;
+};
+
+export interface SellerConfirmCompletionResult {
+  success: boolean;
+  payout_id?: string;
+  blocked?: boolean;
+  reason?: "pricing_missing" | "payout_account_missing";
+  already_confirmed?: boolean;
+  money_status?: string;
+  warning?: string;
+}
+
+export const sellerConfirmCompletion = async (
+  transactionId: string,
+  notes?: string,
+): Promise<SellerConfirmCompletionResult> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
+
+  const { data, error } = await supabase.functions.invoke("seller-confirm-completion", {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+    body: { transaction_id: transactionId, notes },
+  });
+
+  if (error) throw new Error(error.message || "Failed to confirm completion");
+  if (!data || data.error) throw new Error(data?.error || "Failed to confirm completion");
+
+  return data as SellerConfirmCompletionResult;
 };

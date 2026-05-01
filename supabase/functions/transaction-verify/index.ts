@@ -263,22 +263,21 @@ async function getVerificationData(
 }
 
 // ════════════════════════════════════════════
-// CONFIRM RECEIPT — two-step money transition
-// funds_held_in_escrow → funds_releasing → funds_released
+// CONFIRM RECEIPT — buyer side only.
+// Phase A: Money does NOT move on buyer confirmation. Funds stay in escrow
+// until the seller also confirms, after which the SafeDeal release team
+// reviews and releases the payout.
 // ════════════════════════════════════════════
 async function confirmReceipt(
   admin: ReturnType<typeof createClient>,
   userId: string,
   transactionId: string,
 ) {
-  // Fetch transaction + escrow in parallel
-  const [txRes, escrowRes] = await Promise.all([
-    admin.from("transactions").select("*").eq("id", transactionId).single(),
-    admin.from("escrow_states").select("*").eq("transaction_id", transactionId).single(),
-  ]);
-
-  const tx = txRes.data;
-  const escrow = escrowRes.data;
+  const { data: tx } = await admin
+    .from("transactions")
+    .select("*")
+    .eq("id", transactionId)
+    .single();
 
   if (!tx) return jsonResponse({ error: "Transaction not found" }, 404);
 
@@ -287,8 +286,8 @@ async function confirmReceipt(
     return jsonResponse({ error: "You do not own this transaction" }, 403);
   }
 
-  // Idempotency
-  if (tx.status === "completed" && tx.money_status === "funds_released") {
+  // Idempotency — buyer already confirmed (regardless of seller / money state)
+  if (tx.buyer_confirmed_at) {
     return jsonResponse({ already_confirmed: true, success: true });
   }
 
@@ -306,46 +305,10 @@ async function confirmReceipt(
     return jsonResponse({ error: "Verification window has expired" }, 410);
   }
 
-  // Self-heal: backfill escrow_states row if missing (legacy data gap)
-  let escrowRow = escrow;
-  if (!escrowRow) {
-    const { data: pricingForBackfill } = await admin
-      .from("transaction_pricing")
-      .select("buyer_total_amount")
-      .eq("transaction_id", transactionId)
-      .single();
-    const heldAmount = pricingForBackfill?.buyer_total_amount ?? 0;
-    const { data: inserted, error: insertErr } = await admin
-      .from("escrow_states")
-      .insert({
-        transaction_id: transactionId,
-        state: "held",
-        held_amount: heldAmount,
-      })
-      .select("*")
-      .single();
-    if (insertErr || !inserted) {
-      console.error("Failed to backfill escrow_states:", insertErr);
-      return jsonResponse({ error: "Escrow record missing and could not be created" }, 500);
-    }
-    escrowRow = inserted;
-  } else if (escrowRow.state !== "held") {
-    return jsonResponse({ error: "Escrow not in held state" }, 409);
-  }
-
-  // Get pricing for payout
-  const { data: pricing } = await admin
-    .from("transaction_pricing")
-    .select("seller_net_amount, buyer_total_amount, currency_code")
-    .eq("transaction_id", transactionId)
-    .single();
-
-  if (!pricing) {
-    return jsonResponse({ error: "Pricing data not found" }, 500);
-  }
-
-  // Step 1: delivered_awaiting_verification → completed + funds_held_in_escrow → funds_releasing
-  const step1 = await transitionTransaction({
+  // Single status transition: delivered_awaiting_verification → completed.
+  // Money status stays funds_held_in_escrow.
+  const now = new Date().toISOString();
+  const step = await transitionTransaction({
     admin,
     transactionId,
     userId,
@@ -353,97 +316,40 @@ async function confirmReceipt(
     fromStatus: "delivered_awaiting_verification",
     toStatus: "completed",
     fromMoney: "funds_held_in_escrow",
-    toMoney: "funds_releasing",
-    reason: "Buyer confirmed receipt — initiating fund release",
-    eventType: "buyer_confirmed",
+    toMoney: "funds_held_in_escrow",
+    reason: "Buyer confirmed receipt — awaiting seller confirmation",
+    eventType: "buyer_confirmed_receipt",
     eventData: { action: "confirm_receipt" },
     additionalUpdates: {
-      completed_at: new Date().toISOString(),
+      completed_at: now,
+      buyer_confirmed_at: now,
     },
   });
 
-  if (!step1.success) {
-    if (step1.alreadyProcessed) {
+  if (!step.success) {
+    if (step.alreadyProcessed) {
       return jsonResponse({ already_confirmed: true, success: true });
     }
-    return jsonResponse({ error: step1.error }, step1.status || 500);
+    return jsonResponse({ error: step.error }, step.status || 500);
   }
 
-  // Step 2: funds_releasing → funds_released (status stays completed)
-  const now2 = new Date().toISOString();
-  const { error: step2Err } = await admin
-    .from("transactions")
-    .update({ money_status: "funds_released" })
-    .eq("id", transactionId)
-    .eq("status", "completed")
-    .eq("money_status", "funds_releasing");
-
-  if (step2Err) {
-    console.error("Step 2 money release failed:", step2Err);
-    // Step 1 succeeded, log the second money transition anyway
-  }
-
-  // Log second money transition
+  // Side-effects: confirmation audit row + seller notification.
   await Promise.all([
-    admin.from("money_status_history").insert({
-      transaction_id: transactionId,
-      old_status: "funds_releasing",
-      new_status: "funds_released",
-      changed_by_user_id: userId,
-      changed_at: now2,
-      reason: "Funds released to seller",
-    }),
-    admin.from("transaction_events").insert({
-      transaction_id: transactionId,
-      event_type: "funds_released",
-      actor_user_id: userId,
-      actor_role: "buyer",
-      event_data: { action: "funds_released", amount: pricing.buyer_total_amount },
-      occurred_at: now2,
-    }),
-  ]);
-
-  // Parallel side-effect writes
-  await Promise.all([
-    // Update escrow
-    admin
-      .from("escrow_states")
-      .update({
-        state: "released",
-        released_amount: escrowRow.held_amount,
-        held_amount: 0,
-        last_changed_at: now2,
-      })
-      .eq("transaction_id", transactionId)
-      .eq("state", "held"),
-
-    // Escrow ledger entry
-    admin.from("escrow_ledger_entries").insert({
-      transaction_id: transactionId,
-      entry_type: "payout_debit",
-      amount: pricing.buyer_total_amount,
-      currency_code: pricing.currency_code,
-      balance_after: 0,
-      created_by_user_id: userId,
-      notes: "Buyer confirmed receipt — escrow released for payout",
-    }),
-
-    // Create payout record
-    admin.from("payouts").insert({
-      transaction_id: transactionId,
-      seller_id: tx.seller_id,
-      amount: pricing.seller_net_amount,
-      currency_code: pricing.currency_code,
-      status: "pending",
-    }),
-
-    // Notify seller
+    admin.from("transaction_completion_confirmations").upsert(
+      {
+        transaction_id: transactionId,
+        confirmed_by_role: "buyer",
+        confirmed_by_user_id: userId,
+        confirmed_at: now,
+      },
+      { onConflict: "transaction_id,confirmed_by_role", ignoreDuplicates: true },
+    ),
     admin.from("notifications").insert({
       user_id: tx.seller_id,
       type: "payment_update",
       channel: "in_app",
-      title: "Buyer Confirmed Receipt",
-      message: `The buyer has confirmed receipt for transaction ${tx.transaction_code}. Funds have been released for payout.`,
+      title: "Buyer confirmed receipt",
+      message: `The buyer confirmed receipt for transaction ${tx.transaction_code}. Confirm on your end so SafeDeal can review and process the release of your funds.`,
       related_transaction_id: transactionId,
       status: "pending",
     }),
@@ -451,6 +357,7 @@ async function confirmReceipt(
 
   return jsonResponse({
     success: true,
+    buyer_confirmed_at: now,
     redirect: "/dashboard/transactions",
   });
 }
