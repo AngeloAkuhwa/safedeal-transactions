@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Loader2, RefreshCw, Plus, Search, Download, FileText,
   TrendingUp, CheckCircle, ArrowLeftRight, ChevronLeft, ChevronRight,
-  Shield, QrCode, Info,
+  Shield, QrCode, Info, MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -309,6 +309,36 @@ const SellerTransactions = () => {
                               <p className="text-sm font-medium text-foreground">{tx.buyer_name}</p>
                               <p className="text-xs text-muted-foreground">{tx.buyer_email}</p>
                             </div>
+                            {(tx.unread_message_count ?? 0) > 0 && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/seller/transactions/${tx.transaction_id}?tab=messages`);
+                                      }}
+                                      aria-label={`${tx.unread_message_count} unread messages`}
+                                      className="relative ml-1 inline-flex items-center justify-center h-7 w-7 rounded-full hover:bg-primary/10 transition-colors"
+                                    >
+                                      <MessageCircle className="h-4 w-4 text-primary" />
+                                      <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                                        {(tx.unread_message_count ?? 0) > 9 ? "9+" : tx.unread_message_count}
+                                      </span>
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-[260px]">
+                                    <p className="text-xs font-medium">New message{(tx.unread_message_count ?? 0) > 1 ? "s" : ""}</p>
+                                    {tx.last_message_preview && (
+                                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                        {tx.last_message_preview}
+                                      </p>
+                                    )}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="px-6 py-4 hidden md:table-cell">
