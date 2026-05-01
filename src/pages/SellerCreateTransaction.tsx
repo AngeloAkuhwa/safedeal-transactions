@@ -787,10 +787,10 @@ const SellerCreateTransaction = () => {
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-center gap-2">
                     <Clock className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold text-foreground text-sm">Auto-Release Protection</h3>
+                    <h3 className="font-semibold text-foreground text-sm">SafeDeal-Mediated Release</h3>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    If the buyer doesn't respond within the verification window after delivery, funds will be automatically released to you.
+                    If the buyer doesn't respond within the verification window after delivery, SafeDeal will review the transaction and release funds to you.
                   </p>
                 </CardContent>
               </Card>

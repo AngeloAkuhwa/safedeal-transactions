@@ -20,15 +20,15 @@ export function AutoReleaseWarning({ deadlineAt, windowHours }: AutoReleaseWarni
           <Clock className="h-5 w-5 text-warning" />
         </div>
         <div className="flex-1">
-          <h3 className="text-base font-bold text-foreground mb-1.5">Automatic Release Notice</h3>
+          <h3 className="text-base font-bold text-foreground mb-1.5">SafeDeal Review Notice</h3>
           <p className="text-sm text-muted-foreground mb-4">
             If you do not confirm receipt or raise a dispute within the {windowHours}-hour verification window,
-            the funds will automatically be released to the seller. This protects both parties and
-            ensures transactions are completed in a timely manner.
+            SafeDeal will review the transaction on your behalf before releasing funds to the seller.
+            This protects both parties and keeps deals moving in a timely manner.
           </p>
           <div className="bg-card rounded-lg p-4 border border-warning/20">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-foreground">Auto-release scheduled:</span>
+              <span className="text-sm font-semibold text-foreground">SafeDeal review scheduled:</span>
               <span className="text-sm font-bold text-warning">
                 {format(deadline, "MMM dd, yyyy 'at' h:mm a")}
               </span>

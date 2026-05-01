@@ -176,7 +176,7 @@ const RoleSelection = () => {
                 <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 mb-6">
                   <p className="text-xs font-semibold text-primary mb-1">Your Responsibility</p>
                   <p className="text-xs text-muted-foreground">
-                    You must verify the received item before funds are released. If you don't act within the verification window, funds auto-release to the seller.
+                    You must verify the received item before funds are released. If you don't act within the verification window, SafeDeal will review the transaction on your behalf.
                   </p>
                 </div>
                 <Button className="w-full" size="lg" disabled={!!submitting} onClick={() => handleSelectRole("buyer")}>

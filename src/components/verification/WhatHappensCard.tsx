@@ -19,12 +19,12 @@ export function WhatHappensCard({ windowHours }: WhatHappensCardProps) {
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-1">
-              Funds will auto-release when timer expires
+              SafeDeal reviews if you don't act in time
             </h3>
             <p className="text-sm text-muted-foreground">
-              If you take no action within the {windowHours}-hour verification window, the funds will
-              automatically be released to the seller. This protects both parties and ensures
-              transactions are completed in a timely manner.
+              If you take no action within the {windowHours}-hour verification window, SafeDeal
+              will review the transaction on your behalf before releasing funds to the seller.
+              This protects both parties and keeps deals moving in a timely manner.
             </p>
           </div>
         </div>

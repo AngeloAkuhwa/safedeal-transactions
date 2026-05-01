@@ -25,7 +25,7 @@ export function VerifyReceiptCTA({ transactionId, deadlineAt, deliveredAt }: Ver
             <h2 className="text-base sm:text-lg font-bold text-foreground mb-1">Did you get what you ordered?</h2>
             <p className="text-sm text-muted-foreground">
               Your item is marked as delivered. Confirm to release the seller's payment, or open a dispute if something is
-              wrong. If you take no action, funds will auto-release once the verification window ends.
+              wrong. If you take no action, SafeDeal will review the transaction once the verification window ends.
             </p>
           </div>
         </div>

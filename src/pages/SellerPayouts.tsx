@@ -220,13 +220,13 @@ const SellerPayouts = () => {
               <h3 className="font-semibold text-foreground">How Payouts Work</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-5">
-              SafeDeal holds funds securely until the buyer confirms receipt or the auto-release window expires, then processes your payout.
+              SafeDeal holds funds securely until both you and the buyer confirm, then SafeDeal reviews and releases your payout.
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { icon: Shield, label: "Payment Held", desc: "Funds secured in escrow" },
-                { icon: CheckCircle2, label: "Buyer Confirms", desc: "Or auto-release / admin decision" },
-                { icon: CreditCard, label: "Payout Processing", desc: "Funds being transferred" },
+                { icon: Shield, label: "Funds Held", desc: "Payment secured in escrow" },
+                { icon: CheckCircle2, label: "Both Confirm", desc: "Buyer and seller both confirm receipt" },
+                { icon: CreditCard, label: "SafeDeal Releases", desc: "SafeDeal reviews and releases" },
                 { icon: Send, label: "Funds Sent", desc: "Deposited to your account" },
               ].map((step, i) => (
                 <div key={i} className="flex flex-col items-center text-center gap-2">
@@ -287,7 +287,7 @@ const SellerPayouts = () => {
                     </div>
                     <h3 className="font-semibold text-foreground mb-1">No payouts yet</h3>
                     <p className="text-sm text-muted-foreground max-w-sm">
-                      Once buyers confirm delivery or auto-release triggers, your payouts will appear here.
+                      Once both parties confirm and SafeDeal releases, your payouts will appear here.
                     </p>
                   </div>
                 ) : (
