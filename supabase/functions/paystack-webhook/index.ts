@@ -427,9 +427,12 @@ async function findPayoutByReference(
   supabase: ReturnType<typeof createClient>,
   reference: string,
 ) {
-  // Our outbound reference convention: "payout_{payout_id}"
+  // Our outbound reference convention: "payout_{payout_id}".
+  // Retries append "_r{attempt}", e.g. "payout_{id}_r2".
   let payoutId: string | null = null;
-  if (reference.startsWith("payout_")) payoutId = reference.replace("payout_", "");
+  if (reference.startsWith("payout_")) {
+    payoutId = reference.replace(/^payout_/, "").replace(/_r\d+$/, "");
+  }
 
   if (payoutId) {
     const { data } = await supabase
