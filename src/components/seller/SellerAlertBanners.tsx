@@ -1,132 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  AlertOctagon, AlertTriangle, BadgeCheck, CheckCircle2, Clock, PackageCheck,
-  PackageX, Scale, ShieldAlert, Wallet, X, ArrowRight,
-} from "lucide-react";
+import { AlertTriangle, X, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { SellerAlert, AlertSeverity } from "@/services/seller-dashboard.service";
+import {
+  iconByType, resolveTone, toneClasses,
+  readDismissed, writeDismissed, isDismissed, formatDueChip,
+} from "./alertConfig";
 
 interface SellerAlertBannersProps {
   alerts: SellerAlert[];
-  /** Maximum visible at once (defaults to 3). Set to alerts.length to show all (used in drawer). */
+  /** Maximum visible at once (defaults to 3). Set to alerts.length to show all. */
   maxVisible?: number;
-  /** Optional: override icon/tone resolution e.g. for drawer compact mode */
   compact?: boolean;
-}
-
-type Tone = "destructive" | "amber" | "sky";
-
-const baseToneByType: Record<string, Tone> = {
-  payout_failed: "destructive",
-  dispute_response_required: "amber",
-  payout_account_required: "destructive",
-  payout_account_unverified: "amber",
-  delivery_proof_required: "amber",
-  awaiting_seller_confirmation: "amber",
-  identity_verification_required: "amber",
-  low_stock_warning: "amber",
-  out_of_stock_published: "sky",
-  awaiting_release: "sky",
-};
-
-const iconByType: Record<string, typeof AlertTriangle> = {
-  payout_failed: AlertOctagon,
-  dispute_response_required: Scale,
-  payout_account_required: Wallet,
-  payout_account_unverified: ShieldAlert,
-  delivery_proof_required: PackageCheck,
-  awaiting_seller_confirmation: CheckCircle2,
-  identity_verification_required: BadgeCheck,
-  low_stock_warning: AlertTriangle,
-  out_of_stock_published: PackageX,
-  awaiting_release: Clock,
-};
-
-function resolveTone(alert: SellerAlert): Tone {
-  // Critical severity always wins → destructive tokens.
-  if (alert.severity === "critical") return "destructive";
-  return baseToneByType[alert.type] ?? "amber";
-}
-
-const toneClasses: Record<Tone, {
-  container: string;
-  icon: string;
-  title: string;
-  body: string;
-  primaryBtn: string;
-  secondaryBtn: string;
-  countBadge: string;
-  dueChip: string;
-}> = {
-  destructive: {
-    container: "bg-destructive/5 border-destructive/40",
-    icon: "text-destructive",
-    title: "text-foreground",
-    body: "text-muted-foreground",
-    primaryBtn: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-    secondaryBtn: "border border-destructive/40 text-destructive hover:bg-destructive/10",
-    countBadge: "bg-destructive text-destructive-foreground",
-    dueChip: "bg-destructive/10 text-destructive border border-destructive/30",
-  },
-  amber: {
-    container: "bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800",
-    icon: "text-amber-600 dark:text-amber-400",
-    title: "text-amber-900 dark:text-amber-100",
-    body: "text-amber-800/90 dark:text-amber-200/80",
-    primaryBtn: "bg-amber-600 text-white hover:bg-amber-700",
-    secondaryBtn: "border border-amber-400 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/30",
-    countBadge: "bg-amber-600 text-white",
-    dueChip: "bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-100",
-  },
-  sky: {
-    container: "bg-sky-50 dark:bg-sky-950/20 border-sky-300 dark:border-sky-800",
-    icon: "text-primary",
-    title: "text-sky-900 dark:text-sky-100",
-    body: "text-sky-800/90 dark:text-sky-200/80",
-    primaryBtn: "bg-primary text-primary-foreground hover:bg-primary/90",
-    secondaryBtn: "border border-sky-300 text-sky-800 dark:text-sky-200 hover:bg-sky-100 dark:hover:bg-sky-900/30",
-    countBadge: "bg-primary text-primary-foreground",
-    dueChip: "bg-sky-100 text-sky-900 border border-sky-300 dark:bg-sky-900/40 dark:text-sky-100",
-  },
-};
-
-const DISMISS_KEY_PREFIX = "safedeal:seller_alerts_dismissed:";
-const DISMISS_TTL_MS = 24 * 60 * 60 * 1000;
-
-function readDismissed(userId: string | null): Record<string, string> {
-  if (!userId || typeof window === "undefined") return {};
-  try {
-    const raw = localStorage.getItem(DISMISS_KEY_PREFIX + userId);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeDismissed(userId: string | null, map: Record<string, string>) {
-  if (!userId || typeof window === "undefined") return;
-  try {
-    localStorage.setItem(DISMISS_KEY_PREFIX + userId, JSON.stringify(map));
-  } catch {
-    /* ignore */
-  }
-}
-
-function formatDueChip(metadata: Record<string, unknown> | undefined): string | null {
-  if (!metadata) return null;
-  const dueAtRaw = metadata.due_at as string | undefined;
-  if (!dueAtRaw) return null;
-  const dueAt = new Date(dueAtRaw).getTime();
-  if (Number.isNaN(dueAt)) return null;
-  const diffMs = dueAt - Date.now();
-  const absHours = Math.floor(Math.abs(diffMs) / 3_600_000);
-  const absMins = Math.floor((Math.abs(diffMs) % 3_600_000) / 60_000);
-  if (diffMs < 0) {
-    return `Overdue by ${absHours}h`;
-  }
-  if (absHours <= 0) return `${absMins}m left`;
-  return `${absHours}h ${absMins}m left`;
 }
 
 export function SellerAlertBanners({ alerts, maxVisible = 3, compact = false }: SellerAlertBannersProps) {
@@ -146,23 +32,14 @@ export function SellerAlertBanners({ alerts, maxVisible = 3, compact = false }: 
     return () => { cancelled = true; };
   }, []);
 
-  // Re-tick once a minute so the countdown chip stays fresh while mounted.
   useEffect(() => {
     const id = window.setInterval(() => setTick((t) => t + 1), 60_000);
     return () => window.clearInterval(id);
   }, []);
 
   const visible = useMemo(() => {
-    const now = Date.now();
-    const filtered = alerts.filter((a) => {
-      if (a.blocking || !a.dismissible) return true;
-      const ts = dismissed[a.type];
-      if (!ts) return true;
-      const t = new Date(ts).getTime();
-      if (Number.isNaN(t)) return true;
-      return now - t > DISMISS_TTL_MS;
-    });
-    return filtered.slice(0, maxVisible);
+    return alerts.filter((a) => !isDismissed(a, dismissed)).slice(0, maxVisible);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alerts, dismissed, maxVisible, tick]);
 
   if (visible.length === 0) return null;
