@@ -3917,11 +3917,15 @@ export type Database = {
       flag_for_release_review: {
         Args: {
           p_actor_user_id: string
-          p_notes: string
+          p_notes?: string
           p_reason: string
           p_transaction_id: string
         }
         Returns: string
+      }
+      freeze_funds_atomic: {
+        Args: { p_actor: string; p_reason: string; p_transaction_id: string }
+        Returns: Database["public"]["Enums"]["money_status"]
       }
       generate_transaction_code: { Args: never; Returns: string }
       has_role: {
