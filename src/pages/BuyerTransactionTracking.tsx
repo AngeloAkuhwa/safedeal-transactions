@@ -36,6 +36,7 @@ import { InTransitBlock } from "@/components/transactions/InTransitBlock";
 import { VerifyReceiptCTA } from "@/components/transactions/VerifyReceiptCTA";
 import { DeliveryTermsCard } from "@/components/transactions/DeliveryTermsCard";
 import { TransactionCompletionBanner } from "@/components/transactions/TransactionCompletionBanner";
+import { TransactionConfirmationProgress } from "@/components/transactions/TransactionConfirmationProgress";
 import { cn } from "@/lib/utils";
 
 /* ─── Helpers ─── */
@@ -305,11 +306,19 @@ const BuyerTransactionTracking = () => {
           {/* ═══ LEFT (2/3) ═══ */}
           <div className="lg:col-span-2 space-y-5 sm:space-y-6">
 
-            {tx.status === "completed" && completion_event && (
+            {/* Phase A: handshake / awaiting-release progress. */}
+            <TransactionConfirmationProgress
+              buyerConfirmedAt={tx.buyer_confirmed_at ?? null}
+              sellerConfirmedAt={tx.seller_confirmed_at ?? null}
+              moneyStatus={tx.money_status}
+            />
+
+            {/* Completion banner — only after funds actually released. */}
+            {tx.status === "completed" && tx.money_status === "funds_released" && completion_event && (
               <TransactionCompletionBanner
                 variant={completion_event.variant}
                 completedAt={completion_event.completed_at}
-                fundsReleasedAt={status_history.find((h) => h.new_status === "completed")?.changed_at ?? null}
+                fundsReleasedAt={completion_event.funds_released_at}
                 perspective="buyer"
               />
             )}
