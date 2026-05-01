@@ -539,6 +539,7 @@ const BuyerTransactionDetail = () => {
                 statusHistory={status_history}
                 currentStatus={tx.status}
                 currentStatusIndex={currentStatusIndex}
+                currentMoneyStatus={tx.money_status}
                 pricing={pricing}
                 deliveryTracking={delivery_tracking}
               />
@@ -857,12 +858,14 @@ function TransactionTimeline({
   statusHistory,
   currentStatus,
   currentStatusIndex,
+  currentMoneyStatus,
   pricing,
   deliveryTracking,
 }: {
   statusHistory: TransactionStatusEntry[];
   currentStatus: string;
   currentStatusIndex: number;
+  currentMoneyStatus: string;
   pricing: TransactionDetailResponse["pricing"];
   deliveryTracking: TransactionDetailResponse["delivery_tracking"];
 }) {
