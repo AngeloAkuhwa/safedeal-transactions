@@ -71,12 +71,10 @@ function RowAction({ row, onFixPayout }: { row: PayoutHistoryItem; onFixPayout: 
   }
   if (row.status === "failed") {
     return (
-      <Button
-        variant="ghost" size="sm"
-        className="h-7 text-xs text-destructive"
-        onClick={() => toast({ title: "Retry queued", description: "Payout retry has been queued. Please check back shortly." })}
-      >
-        <RotateCcw className="h-3 w-3 mr-1" /> Retry
+      <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive" asChild>
+        <Link to="/seller/profile?section=payout">
+          <RotateCcw className="h-3 w-3 mr-1" /> Fix payout account
+        </Link>
       </Button>
     );
   }
