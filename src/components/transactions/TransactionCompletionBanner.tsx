@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, Scale, Download, ShieldCheck } from "lucide-react";
+import { CheckCircle, Scale, Download, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,14 +34,6 @@ const VARIANT_META: Record<CompletionVariant, Meta> = {
     border: "border-success/30",
     bg: "bg-success/5",
     badge: "Confirmed by Buyer",
-  },
-  auto_released: {
-    icon: Clock,
-    iconBg: "bg-warning/15",
-    iconColor: "text-warning",
-    border: "border-warning/30",
-    bg: "bg-warning/5",
-    badge: "Auto-Released",
   },
   dispute_resolved: {
     icon: Scale,
@@ -99,9 +91,7 @@ function buildReleasedCopy(
           body: `The dispute was resolved by the SafeDeal team on ${date}. Funds were released according to the resolution.`,
         };
   }
-  // auto_released variant is retired in the new model — fall through to a
-  // generic completed message if a back-end ever still emits it WITH a
-  // funds_released timestamp.
+  // Defensive fallback for the "unknown" variant.
   return {
     title: "Transaction Completed",
     body: `This transaction was completed on ${date}.`,
