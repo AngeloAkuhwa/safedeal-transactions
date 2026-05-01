@@ -1,27 +1,66 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export type AlertSeverity = "critical" | "action_required" | "informational";
+
 export interface SellerAlert {
   type: string;
-  count?: number;
-  amount?: number;
-  currency_code?: string;
+  severity: AlertSeverity;
   title: string;
   message: string;
   action_label: string;
-  action_url: string;
+  action_href: string;
+  secondary_action?: { label: string; href: string };
+  count?: number;
+  blocking: boolean;
+  dismissible: boolean;
+  metadata?: Record<string, unknown>;
+  priority: number;
+}
+
+export interface SellerAlertsSummary {
+  total: number;
+  by_severity: { critical: number; action_required: number; informational: number };
+  visible_count: number;
+}
+
+export interface SellerOnboardingStep {
+  key: "identity" | "payout" | "product" | "transaction";
+  title: string;
+  description: string;
+  action_label: string;
+  action_href: string;
+  completed: boolean;
+  blocking: boolean;
+}
+
+export interface SellerOnboarding {
+  show: boolean;
+  completed_steps: number;
+  total_steps: number;
+  steps: SellerOnboardingStep[];
 }
 
 export interface SellerMetrics {
   transactions_created_count: number;
+  active_transactions_count: number;
+  completed_transactions_count: number;
+  awaiting_buyer_payment_count: number;
+  awaiting_buyer_confirmation_count: number;
+  awaiting_seller_confirmation_count: number;
+  awaiting_release_count: number;
+  open_disputes_count: number;
+  payout_failed_count: number;
+  products_low_stock_count: number;
+  products_out_of_stock_count: number;
+  unread_notifications_count: number;
+  unread_messages_count: number;
   awaiting_buyer_payment_amount: number;
   awaiting_buyer_review_amount: number;
   funds_held_in_escrow_amount: number;
   funds_pending_release_amount: number;
   payouts_completed_amount: number;
-  /** Sum of payouts.amount where status='completed' — money actually deposited to bank */
-  net_paid_to_bank?: number;
-  /** payouts_completed_amount − net_paid_to_bank — earned but still queued for transfer */
-  net_pending_bank_transfer?: number;
+  net_paid_to_bank: number;
+  net_pending_bank_transfer: number;
 }
 
 export interface SellerActivity {
@@ -46,8 +85,14 @@ export interface SellerDashboardResponse {
     created_at: string | null;
     verification_level: string;
     verification_label: string;
+    identity_verified: boolean;
+    payout_account_present: boolean;
+    payout_account_verified: boolean;
+    has_published_products: boolean;
   };
   alerts: SellerAlert[];
+  alerts_summary: SellerAlertsSummary;
+  onboarding: SellerOnboarding;
   metrics: SellerMetrics;
   recent_activity: SellerActivity[];
   quick_actions: {
