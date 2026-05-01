@@ -170,8 +170,14 @@ export async function releasePayoutCore(
     transaction_id,
     event_type: "payout_released",
     actor_user_id: actor_user_id,
-    description: `SafeDeal initiated payout transfer of ${(tx as any).currency_code} ${Number((payout as any).amount).toLocaleString()}`,
-    metadata: { payout_id: (payout as any).id, reference, transfer_code: transferCode, status: providerStatus },
+    actor_role: "admin",
+    event_data: {
+      description: `SafeDeal initiated payout transfer of ${(tx as any).currency_code} ${Number((payout as any).amount).toLocaleString()}`,
+      payout_id: (payout as any).id,
+      reference,
+      transfer_code: transferCode,
+      status: providerStatus,
+    },
   });
 
   await notifyUser(admin, {
@@ -219,7 +225,7 @@ export async function refundBuyerCore(
 
   const { data: tx, error: txErr } = await admin
     .from("transactions")
-    .select("id, money_status, buyer_id, seller_id, currency_code, transaction_code, total_amount")
+    .select("id, money_status, buyer_id, seller_id, transaction_code")
     .eq("id", transaction_id)
     .maybeSingle();
   if (txErr) return { ok: false, status: 500, body: { error: "tx_fetch_failed" } };
@@ -255,7 +261,7 @@ export async function refundBuyerCore(
 
   const { data: payment, error: payErr } = await admin
     .from("payments")
-    .select("id, provider_reference")
+    .select("id, provider_reference, amount")
     .eq("transaction_id", transaction_id)
     .eq("status", "succeeded")
     .order("created_at", { ascending: false })
@@ -266,8 +272,11 @@ export async function refundBuyerCore(
     return { ok: false, status: 409, body: { error: "no_successful_payment" } };
   }
 
-  // Phase B = full refund only.
-  const refundAmount = Number((tx as any).total_amount);
+  // Phase B = full refund only — refund the full captured payment amount.
+  const refundAmount = Number((payment as any).amount);
+  if (!Number.isFinite(refundAmount) || refundAmount <= 0) {
+    return { ok: false, status: 409, body: { error: "invalid_refund_amount" } };
+  }
 
   const { data: refundIdRaw, error: rpcErr } = await admin.rpc("start_refund_atomic", {
     p_transaction_id: transaction_id,
@@ -328,7 +337,6 @@ export async function refundBuyerCore(
       provider_reference: providerRef,
       partial: false,
       amount: refundAmount,
-      currency_code: (tx as any).currency_code,
     },
   });
 
@@ -336,7 +344,7 @@ export async function refundBuyerCore(
     user_id: (tx as any).buyer_id,
     type: "payment_update",
     title: "Refund on the way",
-    message: `SafeDeal has initiated a refund of ${(tx as any).currency_code} ${refundAmount.toLocaleString()} for ${(tx as any).transaction_code}.`,
+    message: `SafeDeal has initiated a refund of ₦${refundAmount.toLocaleString()} for ${(tx as any).transaction_code}.`,
     related_transaction_id: transaction_id,
   });
   await notifyUser(admin, {

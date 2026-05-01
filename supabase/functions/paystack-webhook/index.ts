@@ -277,8 +277,13 @@ Deno.serve(async (req) => {
           transaction_id: txId,
           event_type: "payment_received",
           actor_user_id: tx.buyer_id,
-          description: `Payment of ${pricing.currency_code} ${pricing.total_amount} verified via webhook`,
-          metadata: { reference: providerReference, amount: pricing.total_amount, source: "webhook" },
+          actor_role: "buyer",
+          event_data: {
+            description: `Payment of ${pricing.currency_code} ${pricing.total_amount} verified via webhook`,
+            reference: providerReference,
+            amount: pricing.total_amount,
+            source: "webhook",
+          },
         });
 
         // Notify seller

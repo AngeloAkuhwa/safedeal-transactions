@@ -80,12 +80,8 @@ Deno.serve(async (req) => {
       notes,
     });
     if (!result.ok) return json(result.status, result.body);
-    await admin.from("case_reviews").insert({
-      transaction_id,
-      reviewed_by_user_id: ctx.userId,
-      resolution: "release",
-      notes,
-    } as any).then(() => undefined).catch(() => undefined);
+    // Canonical audit lives in admin_actions (written by releasePayoutCore).
+    // case_reviews is a dispute-review table — not a release-review table.
     return json(200, { ok: true, resolution: "release", ...result.body });
   }
 
@@ -98,27 +94,24 @@ Deno.serve(async (req) => {
       actor_user_id: ctx.userId,
     });
     if (!result.ok) return json(result.status, result.body);
-    await admin.from("case_reviews").insert({
-      transaction_id,
-      reviewed_by_user_id: ctx.userId,
-      resolution: "refund",
-      notes,
-    } as any).then(() => undefined).catch(() => undefined);
+    // Canonical audit lives in admin_actions (written by refundBuyerCore).
     return json(200, { ok: true, resolution: "refund", ...result.body });
   }
 
   if (resolution === "hold") {
-    // Flag-only hold. We do NOT mutate money_status here — the money state
-    // machine doesn't permit a free `* → funds_frozen` transition, and
-    // freezing funds is its own ops decision (covered by start_refund_atomic
-    // bridge in B4 if needed).
-    await admin
-      .from("transactions")
-      .update({
-        needs_release_review: true,
-        release_review_reason: "manual_hold",
-      })
-      .eq("id", transaction_id);
+    // Spec: hold must actually freeze the funds via the money state machine.
+    const { error: freezeErr } = await admin.rpc("freeze_funds_atomic", {
+      p_transaction_id: transaction_id,
+      p_actor: ctx.userId,
+      p_reason: "manual_hold",
+    });
+    if (freezeErr) {
+      const detail = freezeErr.message ?? "freeze_failed";
+      const code = detail.startsWith("transition_not_allowed")
+        ? "transition_not_allowed"
+        : "freeze_failed";
+      return json(409, { error: code, detail });
+    }
     await admin
       .from("release_review_queue")
       .update({
