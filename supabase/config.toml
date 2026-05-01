@@ -86,3 +86,15 @@ verify_jwt = false
 
 [functions.saved-products]
 verify_jwt = false
+
+[functions.seller-analytics]
+verify_jwt = false
+
+[functions.auto-timeout-payments]
+verify_jwt = false
+
+[functions.flag-stuck-confirmations]
+verify_jwt = false
+
+[functions.auto-escalate-silent-disputes]
+verify_jwt = false
