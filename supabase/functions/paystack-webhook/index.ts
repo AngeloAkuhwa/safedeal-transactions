@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
+import { notifyUser, notifyOpsTeam } from "../_shared/notify.ts";
+import { koboToNaira } from "../_shared/money.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,21 +57,38 @@ Deno.serve(async (req) => {
 
     const payload = JSON.parse(rawBody);
     const eventType = payload.event || "unknown";
-    const providerReference = payload.data?.reference || null;
+    // Reference field varies by event type:
+    //   charge.success   -> data.reference
+    //   transfer.*       -> data.reference
+    //   refund.processed -> data.transaction_reference (Paystack's docs)
+    const providerReference =
+      payload.data?.reference ||
+      payload.data?.transaction_reference ||
+      payload.data?.transfer?.reference ||
+      null;
+    const providerEventId = payload.data?.id ? String(payload.data.id) : null;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 2. Log ALL webhook events
-    await supabase.from("payment_webhook_logs").insert({
-      provider: "paystack",
-      event_type: eventType,
-      provider_reference: providerReference,
-      payload,
-      processed_successfully: false,
-    });
+    // 2. Idempotently log this event. The UNIQUE (provider, event_type,
+    //    provider_reference) index lets a duplicate webhook short-circuit.
+    const { error: logInsertErr } = await supabase
+      .from("payment_webhook_logs")
+      .insert({
+        provider: "paystack",
+        event_type: eventType,
+        provider_reference: providerReference,
+        provider_event_id: providerEventId,
+        payload,
+        processed_successfully: false,
+      });
+    if (logInsertErr && (logInsertErr as any).code === "23505") {
+      // Duplicate event — already processed (or in flight). No-op.
+      return new Response("OK", { status: 200 });
+    }
 
     // 3. Process charge.success
     if (eventType === "charge.success" && providerReference) {
@@ -357,6 +376,16 @@ Deno.serve(async (req) => {
         console.error("Webhook processing error:", processErr);
         await updateWebhookLog(supabase, providerReference, false, processErr.message);
       }
+    } else if (eventType === "transfer.success" && providerReference) {
+      await handleTransferSuccess(supabase, payload, providerReference);
+    } else if (eventType === "transfer.failed" && providerReference) {
+      await handleTransferFailed(supabase, payload, providerReference);
+    } else if (eventType === "transfer.reversed" && providerReference) {
+      await handleTransferReversed(supabase, payload, providerReference);
+    } else if (eventType === "refund.processed" && providerReference) {
+      await handleRefundProcessed(supabase, payload, providerReference);
+    } else if (eventType === "refund.failed" && providerReference) {
+      await handleRefundFailed(supabase, payload, providerReference);
     } else {
       // Non-charge.success events — just log
       await updateWebhookLog(supabase, providerReference, true, `Event ${eventType} logged (no action needed)`);
@@ -388,4 +417,269 @@ async function updateWebhookLog(
     .eq("provider_reference", providerReference)
     .order("created_at", { ascending: false })
     .limit(1);
+}
+
+// ============================================================
+// Transfer + refund handlers (Phase B)
+// ============================================================
+
+async function findPayoutByReference(
+  supabase: ReturnType<typeof createClient>,
+  reference: string,
+) {
+  // Our outbound reference convention: "payout_{payout_id}"
+  let payoutId: string | null = null;
+  if (reference.startsWith("payout_")) payoutId = reference.replace("payout_", "");
+
+  if (payoutId) {
+    const { data } = await supabase
+      .from("payouts")
+      .select("id, transaction_id, seller_id, amount, status, currency_code")
+      .eq("id", payoutId)
+      .maybeSingle();
+    if (data) return data;
+  }
+  // Fallback: lookup by stored provider_reference
+  const { data } = await supabase
+    .from("payouts")
+    .select("id, transaction_id, seller_id, amount, status, currency_code")
+    .eq("provider_reference", reference)
+    .maybeSingle();
+  return data;
+}
+
+async function handleTransferSuccess(
+  supabase: ReturnType<typeof createClient>,
+  payload: any,
+  reference: string,
+) {
+  try {
+    const payout = await findPayoutByReference(supabase, reference);
+    if (!payout) {
+      await updateWebhookLog(supabase, reference, true, "transfer.success: no matching payout — ignored");
+      return;
+    }
+    if (payout.status === "completed") {
+      await updateWebhookLog(supabase, reference, true, "transfer.success: already completed");
+      return;
+    }
+    const amount = Number(payout.amount);
+    const { error } = await supabase.rpc("complete_payout_atomic", {
+      p_payout_id: payout.id,
+      p_amount: amount,
+    });
+    if (error) {
+      await updateWebhookLog(supabase, reference, false, `complete_payout_atomic: ${error.message}`);
+      return;
+    }
+    await notifyUser(supabase, {
+      user_id: payout.seller_id,
+      type: "payment_update",
+      title: "Paid out successfully",
+      message: `₦${amount.toLocaleString()} has been paid to your bank account.`,
+      related_transaction_id: payout.transaction_id,
+    });
+    const { data: tx } = await supabase
+      .from("transactions")
+      .select("buyer_id")
+      .eq("id", payout.transaction_id)
+      .maybeSingle();
+    if (tx?.buyer_id) {
+      await notifyUser(supabase, {
+        user_id: tx.buyer_id,
+        type: "transaction_update",
+        title: "Funds released to seller",
+        message: "SafeDeal has released the funds for this transaction.",
+        related_transaction_id: payout.transaction_id,
+      });
+    }
+    await updateWebhookLog(supabase, reference, true, "transfer.success processed");
+  } catch (e) {
+    console.error("transfer.success handler error:", e);
+    await updateWebhookLog(supabase, reference, false, String(e));
+  }
+}
+
+async function handleTransferFailed(
+  supabase: ReturnType<typeof createClient>,
+  payload: any,
+  reference: string,
+) {
+  try {
+    const payout = await findPayoutByReference(supabase, reference);
+    if (!payout) {
+      await updateWebhookLog(supabase, reference, true, "transfer.failed: no matching payout");
+      return;
+    }
+    const reason = payload.data?.failures?.[0]?.message ||
+      payload.data?.reason ||
+      payload.data?.message ||
+      "transfer failed";
+    const { data: maxRetriesSetting } = await supabase
+      .from("system_settings")
+      .select("setting_value")
+      .eq("setting_key", "payout_max_retry_attempts")
+      .maybeSingle();
+    const maxRetries = Number(maxRetriesSetting?.setting_value ?? 3);
+    const { error } = await supabase.rpc("fail_payout_atomic", {
+      p_payout_id: payout.id,
+      p_reason: reason,
+      p_max_retries: maxRetries,
+    });
+    if (error) {
+      await updateWebhookLog(supabase, reference, false, `fail_payout_atomic: ${error.message}`);
+      return;
+    }
+    await notifyUser(supabase, {
+      user_id: payout.seller_id,
+      type: "payment_update",
+      title: "Payment release failed",
+      message: "SafeDeal is reviewing the issue. You may need to update your payout account.",
+      related_transaction_id: payout.transaction_id,
+    });
+    await notifyOpsTeam(supabase, {
+      type: "system_message",
+      title: "Payout failed — review needed",
+      message: `Payout ${payout.id} failed: ${reason}`,
+      related_transaction_id: payout.transaction_id,
+      metadata: { severity: "high", payout_id: payout.id },
+    });
+    await updateWebhookLog(supabase, reference, true, "transfer.failed processed");
+  } catch (e) {
+    console.error("transfer.failed handler error:", e);
+    await updateWebhookLog(supabase, reference, false, String(e));
+  }
+}
+
+async function handleTransferReversed(
+  supabase: ReturnType<typeof createClient>,
+  payload: any,
+  reference: string,
+) {
+  try {
+    const payout = await findPayoutByReference(supabase, reference);
+    if (!payout) {
+      await updateWebhookLog(supabase, reference, true, "transfer.reversed: no matching payout");
+      return;
+    }
+    const reason = payload.data?.reason || payload.data?.message || "reversed by Paystack";
+    const { error } = await supabase.rpc("reverse_payout_atomic", {
+      p_payout_id: payout.id,
+      p_amount: Number(payout.amount),
+      p_reason: reason,
+    });
+    if (error) {
+      await updateWebhookLog(supabase, reference, false, `reverse_payout_atomic: ${error.message}`);
+      return;
+    }
+    await notifyOpsTeam(supabase, {
+      type: "security_alert",
+      title: "Payout reversed — high severity",
+      message: `Payout ${payout.id} reversed by Paystack: ${reason}`,
+      related_transaction_id: payout.transaction_id,
+      metadata: { severity: "high", payout_id: payout.id, reason },
+    });
+    await updateWebhookLog(supabase, reference, true, "transfer.reversed processed");
+  } catch (e) {
+    console.error("transfer.reversed handler error:", e);
+    await updateWebhookLog(supabase, reference, false, String(e));
+  }
+}
+
+async function handleRefundProcessed(
+  supabase: ReturnType<typeof createClient>,
+  payload: any,
+  reference: string,
+) {
+  try {
+    // Find refund by either provider_reference or originating transaction reference
+    let { data: refund } = await supabase
+      .from("refunds")
+      .select("id, transaction_id")
+      .eq("provider_reference", reference)
+      .maybeSingle();
+    if (!refund) {
+      // Fallback: find via the originating payment reference
+      const { data: payment } = await supabase
+        .from("payments")
+        .select("transaction_id")
+        .eq("provider_reference", reference)
+        .maybeSingle();
+      if (payment?.transaction_id) {
+        const { data } = await supabase
+          .from("refunds")
+          .select("id, transaction_id")
+          .eq("transaction_id", payment.transaction_id)
+          .in("status", ["pending", "processing"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        refund = data ?? null;
+      }
+    }
+    if (!refund) {
+      await updateWebhookLog(supabase, reference, true, "refund.processed: no matching refund");
+      return;
+    }
+    const { error } = await supabase.rpc("complete_refund_atomic", { p_refund_id: refund.id });
+    if (error) {
+      await updateWebhookLog(supabase, reference, false, `complete_refund_atomic: ${error.message}`);
+      return;
+    }
+    const { data: tx } = await supabase
+      .from("transactions")
+      .select("buyer_id, seller_id")
+      .eq("id", refund.transaction_id)
+      .maybeSingle();
+    if (tx?.buyer_id) {
+      await notifyUser(supabase, {
+        user_id: tx.buyer_id,
+        type: "transaction_update",
+        title: "Refund processed",
+        message: "Your refund has been processed and should appear in your account shortly.",
+        related_transaction_id: refund.transaction_id,
+      });
+    }
+    if (tx?.seller_id) {
+      await notifyUser(supabase, {
+        user_id: tx.seller_id,
+        type: "transaction_update",
+        title: "Buyer refunded",
+        message: "SafeDeal has refunded the buyer for this transaction.",
+        related_transaction_id: refund.transaction_id,
+      });
+    }
+    await updateWebhookLog(supabase, reference, true, "refund.processed");
+  } catch (e) {
+    console.error("refund.processed handler error:", e);
+    await updateWebhookLog(supabase, reference, false, String(e));
+  }
+}
+
+async function handleRefundFailed(
+  supabase: ReturnType<typeof createClient>,
+  payload: any,
+  reference: string,
+) {
+  try {
+    const reason = payload.data?.reason || "refund failed";
+    const { data: refund } = await supabase
+      .from("refunds")
+      .select("id")
+      .eq("provider_reference", reference)
+      .maybeSingle();
+    if (refund) {
+      await supabase.rpc("fail_refund_atomic", { p_refund_id: refund.id, p_reason: reason });
+    }
+    await notifyOpsTeam(supabase, {
+      type: "security_alert",
+      title: "Refund failed",
+      message: `Refund failed: ${reason}`,
+      metadata: { severity: "high", reference },
+    });
+    await updateWebhookLog(supabase, reference, true, "refund.failed logged");
+  } catch (e) {
+    console.error("refund.failed handler error:", e);
+    await updateWebhookLog(supabase, reference, false, String(e));
+  }
 }
