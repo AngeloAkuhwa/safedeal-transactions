@@ -252,6 +252,8 @@ Deno.serve(async (req) => {
     }
 
     // Build timeline
+    // Phase A: timeline split — "completed" no longer claims funds released.
+    // Final "funds_released" step lights up only when money_status reaches that state.
     const timelineSteps = [
       { key: "draft", label: "Transaction Created", description: "Secure transaction link generated and ready to share with buyer." },
       { key: "awaiting_buyer", label: "Awaiting Buyer Payment", description: "Buyer received transaction link and reviewed agreement." },
@@ -259,21 +261,41 @@ Deno.serve(async (req) => {
       { key: "seller_preparing_delivery", label: "Seller Preparing Shipment", description: "Prepare the item and update delivery information when shipped." },
       { key: "seller_dispatched", label: "Seller Dispatched", description: "Item has been shipped to the buyer." },
       { key: "delivered_awaiting_verification", label: "Buyer Verification", description: "Buyer is verifying the received item." },
-      { key: "completed", label: "Completed", description: "Transaction completed successfully. Funds released to seller." },
+      { key: "completed", label: "Confirmed — In SafeDeal Review", description: "Both parties confirmed. SafeDeal is finalising the release." },
+      { key: "funds_released", label: "Funds Released", description: "Funds have been released to your payout account." },
     ];
 
-    const statusOrder = timelineSteps.map((s) => s.key);
+    const moneyStatus = tx.money_status as string;
+    const fundsReleased = moneyStatus === "funds_released";
+    const statusOrder = timelineSteps.filter((s) => s.key !== "funds_released").map((s) => s.key);
     const currentIndex = statusOrder.indexOf(tx.status);
+
+    const fundsReleasedAt = fundsReleased
+      ? statusHistory.find(
+          (h: Record<string, unknown>) =>
+            (h.field as string | undefined) === "money_status" && (h.new_status as string | undefined) === "funds_released"
+        )
+      : null;
 
     const timeline = timelineSteps.map((step, i) => {
       const historyEntry = statusHistory.find(
         (h: Record<string, unknown>) => h.new_status === step.key || (step.key === "draft" && i === 0)
       );
-      return {
-        ...step,
-        status: i < currentIndex ? "completed" : i === currentIndex ? "current" : "pending",
-        timestamp: historyEntry ? (historyEntry as Record<string, unknown>).changed_at : (i === 0 ? tx.created_at : null),
-      };
+
+      let status: "completed" | "current" | "pending";
+      let timestamp: unknown = historyEntry ? (historyEntry as Record<string, unknown>).changed_at : (i === 0 ? tx.created_at : null);
+
+      if (step.key === "funds_released") {
+        status = fundsReleased ? "completed" : "pending";
+        timestamp = fundsReleasedAt ? (fundsReleasedAt as Record<string, unknown>).changed_at : null;
+      } else if (step.key === "completed") {
+        // "Confirmed — In SafeDeal Review" stays current until funds release.
+        status = fundsReleased ? "completed" : tx.status === "completed" ? "current" : i < currentIndex ? "completed" : "pending";
+      } else {
+        status = i < currentIndex ? "completed" : i === currentIndex ? "current" : "pending";
+      }
+
+      return { ...step, status, timestamp };
     });
 
     // Derive next action
