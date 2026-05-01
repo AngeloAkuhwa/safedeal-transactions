@@ -56,6 +56,11 @@ export interface SellerTransactionDetailResponse {
     transaction_code: string;
     status: string;
     money_status: string;
+    dispute_status?: string;
+    buyer_confirmed_at?: string | null;
+    seller_confirmed_at?: string | null;
+    needs_release_review?: boolean;
+    release_review_reason?: string | null;
     share_token: string | null;
     share_url: string | null;
     created_at: string;
