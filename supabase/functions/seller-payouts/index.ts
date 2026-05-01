@@ -284,6 +284,8 @@ Deno.serve(async (req) => {
           release_date: (p.completed_at ?? p.initiated_at ?? p.created_at) as string,
           status: p.status as string,
           failure_reason: p.failure_reason as string | null,
+          payout_blocked_reason: p.payout_blocked_reason as string | null ?? null,
+          release_blocked: (p.release_blocked as boolean) ?? false,
         };
       });
     }
