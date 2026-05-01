@@ -38,6 +38,7 @@ import SellerStorefront from "./pages/SellerStorefront";
 import SellerPrivateOffers from "./pages/SellerPrivateOffers";
 import SellerOfferDetail from "./pages/SellerOfferDetail";
 import SellerNotifications from "./pages/SellerNotifications";
+import SellerAnalytics from "./pages/SellerAnalytics";
 import SellerProductCreate from "./pages/SellerProductCreate";
 import SellerProductDetail from "./pages/SellerProductDetail";
 import SellerProductPreview from "./pages/SellerProductPreview";
@@ -130,6 +131,7 @@ const App = () => (
               <Route path="/seller/offers" element={<SellerPrivateOffers />} />
               <Route path="/seller/offers/:offerId" element={<SellerOfferDetail />} />
               <Route path="/seller/notifications" element={<SellerNotifications />} />
+              <Route path="/seller/analytics" element={<SellerAnalytics />} />
             </Route>
 
             {/* Catch-all */}
