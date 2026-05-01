@@ -157,17 +157,18 @@ Deno.serve(async (req) => {
     const deliveryConf = deliveryConfRes.data as Record<string, unknown> | null;
     const riderTokenRow = riderTokenRes.data as Record<string, unknown> | null;
 
-    // Derive completion event (reason-aware)
-    let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" } | null = null;
-    if (tx.status === "completed") {
+    // Derive completion event — ONLY when money has actually been released.
+    // Phase A: status === 'completed' no longer implies funds released; we wait
+    // for money_status === 'funds_released' (post SafeDeal review release).
+    let completionEvent: { completed_at: string; previous_status: string | null; reason: string | null; variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown"; funds_released_at: string | null } | null = null;
+    if (tx.status === "completed" && tx.money_status === "funds_released") {
       const completedRow = [...statusHistory].reverse().find((h: Record<string, unknown>) => h.new_status === "completed");
+      const fundsReleasedAt = null;
       if (completedRow) {
         const prev = ((completedRow as Record<string, unknown>).old_status as string | null) ?? null;
         let variant: "buyer_confirmed" | "auto_released" | "dispute_resolved" | "unknown" = "unknown";
         if (prev === "delivered_awaiting_verification") {
-          if (deliveryConf?.buyer_acknowledged_delivery_at) variant = "buyer_confirmed";
-          else if (deliveryConf?.system_delivery_marked_at) variant = "auto_released";
-          else variant = "buyer_confirmed";
+          variant = "buyer_confirmed";
         } else if (prev === "resolved" || prev === "disputed") {
           variant = "dispute_resolved";
         }
@@ -176,6 +177,7 @@ Deno.serve(async (req) => {
           previous_status: prev,
           reason: ((completedRow as Record<string, unknown>).reason as string | null) ?? null,
           variant,
+          funds_released_at: fundsReleasedAt,
         };
       }
     }
