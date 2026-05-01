@@ -9,22 +9,30 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Reasons map 1:1 to release_review_queue.queue_type (plus a free-form fallback).
+// Reasons map to release_review_queue.queue_type inside flag_for_release_review SQL
+// helper. The two missing-confirmation reasons collapse to queue_type='stuck'.
 const ReasonEnum = z.enum([
   "payout_account_missing",
   "pricing_missing",
   "stuck_confirmation",
+  "missing_seller_confirmation",
+  "missing_buyer_confirmation",
   "silent_dispute",
   "failed_payout",
   "refund_request",
   "transfer_reversed",
   "manual_hold",
+  "delivery_proof_missing",
+  "suspicious_activity",
 ]);
+
+const SeverityEnum = z.enum(["low", "medium", "high"]);
 
 const BodySchema = z.object({
   transaction_id: z.string().uuid(),
   reason: ReasonEnum,
   notes: z.string().trim().min(3).max(500),
+  severity: SeverityEnum.optional(),
 });
 
 function json(status: number, body: Record<string, unknown>): Response {
@@ -53,7 +61,8 @@ Deno.serve(async (req) => {
   if (!parsed.success) {
     return json(400, { error: "invalid_body", issues: parsed.error.flatten().fieldErrors });
   }
-  const { transaction_id, reason, notes } = parsed.data;
+  const { transaction_id, reason, notes, severity } = parsed.data;
+  const effectiveSeverity = severity ?? "medium";
   const admin = ctx.adminClient;
 
   // Confirm the tx exists and load identifiers for the ops fanout
@@ -85,13 +94,14 @@ Deno.serve(async (req) => {
     title: "Transaction flagged for release review",
     message: `${tx.transaction_code} flagged: ${reason}`,
     related_transaction_id: transaction_id,
-    metadata: { reason, queue_id: queueId, money_status: tx.money_status },
+    metadata: { reason, queue_id: queueId, money_status: tx.money_status, severity: effectiveSeverity },
   });
 
   return json(200, {
     ok: true,
     queue_id: queueId,
     reason,
+    severity: effectiveSeverity,
     transaction_code: tx.transaction_code,
   });
 });
