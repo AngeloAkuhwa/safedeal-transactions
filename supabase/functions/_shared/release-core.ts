@@ -22,7 +22,7 @@ export async function releasePayoutCore(
   // 1. Load tx
   const { data: tx, error: txErr } = await admin
     .from("transactions")
-    .select("id, money_status, seller_id, currency_code, transaction_code")
+    .select("id, money_status, seller_id, buyer_id, currency_code, transaction_code")
     .eq("id", transaction_id)
     .maybeSingle();
   if (txErr) return { ok: false, status: 500, body: { error: "tx_fetch_failed" } };
@@ -181,6 +181,17 @@ export async function releasePayoutCore(
     message: `SafeDeal has approved your payout for ${(tx as any).transaction_code}. The transfer is on the way to your bank.`,
     related_transaction_id: transaction_id,
   });
+
+  // Buyer-side update: keep mental model consistent — funds released, not "completed".
+  if ((tx as any).buyer_id) {
+    await notifyUser(admin, {
+      user_id: (tx as any).buyer_id,
+      type: "transaction_update",
+      title: "Funds released to seller",
+      message: `SafeDeal has approved the release for ${(tx as any).transaction_code}.`,
+      related_transaction_id: transaction_id,
+    });
+  }
 
   return {
     ok: true,

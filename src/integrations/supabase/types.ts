@@ -2457,52 +2457,67 @@ export type Database = {
       }
       refunds: {
         Row: {
-          amount: number
           buyer_id: string
           completed_at: string | null
           created_at: string
           currency_code: string
           failed_at: string | null
+          failed_attempt_count: number
           failure_reason: string | null
           id: string
           initiated_at: string | null
+          initiated_by_user_id: string | null
+          notes: string | null
           payment_id: string | null
+          provider: string
           provider_reference: string | null
+          provider_response: Json | null
           reason: string | null
+          refund_amount: number
           status: Database["public"]["Enums"]["refund_status"]
           transaction_id: string
           updated_at: string
         }
         Insert: {
-          amount: number
           buyer_id: string
           completed_at?: string | null
           created_at?: string
           currency_code: string
           failed_at?: string | null
+          failed_attempt_count?: number
           failure_reason?: string | null
           id?: string
           initiated_at?: string | null
+          initiated_by_user_id?: string | null
+          notes?: string | null
           payment_id?: string | null
+          provider?: string
           provider_reference?: string | null
+          provider_response?: Json | null
           reason?: string | null
+          refund_amount: number
           status?: Database["public"]["Enums"]["refund_status"]
           transaction_id: string
           updated_at?: string
         }
         Update: {
-          amount?: number
           buyer_id?: string
           completed_at?: string | null
           created_at?: string
           currency_code?: string
           failed_at?: string | null
+          failed_attempt_count?: number
           failure_reason?: string | null
           id?: string
           initiated_at?: string | null
+          initiated_by_user_id?: string | null
+          notes?: string | null
           payment_id?: string | null
+          provider?: string
           provider_reference?: string | null
+          provider_response?: Json | null
           reason?: string | null
+          refund_amount?: number
           status?: Database["public"]["Enums"]["refund_status"]
           transaction_id?: string
           updated_at?: string
@@ -3932,6 +3947,10 @@ export type Database = {
           p_payout_id: string
           p_transaction_id: string
         }
+        Returns: Json
+      }
+      retry_payout_atomic: {
+        Args: { p_actor_user_id: string; p_notes: string; p_payout_id: string }
         Returns: Json
       }
       reverse_payout_atomic: {

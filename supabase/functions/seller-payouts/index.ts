@@ -13,6 +13,22 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+// Phase B7 contract: server-rendered, seller-friendly labels.
+// Sellers NEVER see "admin" wording and NEVER trigger retries themselves.
+function sellerStatusLabel(dbStatus: string): string {
+  switch (dbStatus) {
+    case "awaiting_release": return "Awaiting Release";
+    case "pending":          return "Release Approved";
+    case "processing":       return "Payment Processing";
+    case "completed":        return "Paid Out";
+    case "failed":           return "Release Failed";
+    case "reversed":         return "Reversed";
+    case "cancelled":        return "Cancelled";
+    case "blocked":          return "Action Required";
+    default:                 return "Pending";
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -62,7 +78,7 @@ Deno.serve(async (req) => {
       adminClient.from("payouts").select("id, amount, status, currency_code, completed_at, failed_at, failure_reason, transaction_id, initiated_at, created_at, payout_blocked_reason, release_blocked").eq("seller_id", userId),
       adminClient.from("transactions").select("id, transaction_code, status, money_status, buyer_id, verification_deadline_at, created_at, needs_release_review, release_review_reason").eq("seller_id", userId),
       adminClient.from("account_verifications").select("payout_verified").eq("user_id", userId).single(),
-      adminClient.from("payout_accounts").select("bank_name, account_name, masked_account_number, verification_status, last_verified_at").eq("user_id", userId).single(),
+      adminClient.from("payout_accounts").select("bank_name, account_name, masked_account_number, verification_status, last_verified_at, provider_recipient_code").eq("user_id", userId).single(),
     ]);
 
     // Profile
@@ -268,6 +284,8 @@ Deno.serve(async (req) => {
         const txId = p.transaction_id as string;
         const tx = txMap.get(txId);
         const pricing = pricingMap.get(txId);
+        const dbStatus = p.status as string;
+        const blockReasonCode = (p.payout_blocked_reason as string | null) ?? null;
         return {
           payout_id: (p.id as string).slice(0, 8).toUpperCase(),
           payout_id_full: p.id,
@@ -282,7 +300,10 @@ Deno.serve(async (req) => {
           net_payout: p.amount as number,
           currency_code: (pricing?.currency_code as string) ?? "NGN",
           release_date: (p.completed_at ?? p.initiated_at ?? p.created_at) as string,
-          status: p.status as string,
+          status: dbStatus,
+          status_label: sellerStatusLabel(dbStatus),
+          block_reason_code: blockReasonCode,
+          retry_eligible: false,
           failure_reason: p.failure_reason as string | null,
           payout_blocked_reason: p.payout_blocked_reason as string | null ?? null,
           release_blocked: (p.release_blocked as boolean) ?? false,
@@ -464,6 +485,12 @@ Deno.serve(async (req) => {
         on_hold_failed: onHoldFailed,
         currency_code: "NGN",
       },
+      // Phase B7 aggregates by raw DB status (sellers see counts, not actions).
+      counts: {
+        awaiting_release: allPayouts.filter((p) => (p.status as string) === "awaiting_release").length,
+        processing:       allPayouts.filter((p) => (p.status as string) === "processing").length,
+        failed:           allPayouts.filter((p) => (p.status as string) === "failed").length,
+      },
       payout_history: filteredHistory,
       pagination: {
         page,
@@ -478,13 +505,17 @@ Deno.serve(async (req) => {
         const pa = (payoutAccountResult.status === "fulfilled" && payoutAccountResult.value.data)
           ? payoutAccountResult.value.data as Record<string, unknown>
           : null;
+        const verificationStatus = (pa?.verification_status as string) ?? "pending";
+        const recipientCodePresent = Boolean(pa?.provider_recipient_code);
         return {
           verified: payoutVerified,
           last_payout_date: lastPayoutDate,
           bank_name: pa?.bank_name as string | null ?? null,
           account_name: pa?.account_name as string ?? seller.full_name,
           masked_account_number: pa?.masked_account_number as string | null ?? null,
-          verification_status: pa?.verification_status as string ?? "pending",
+          verification_status: verificationStatus,
+          status: verificationStatus,
+          recipient_code_present: recipientCodePresent,
           typical_processing_time: "1-3 business days",
         };
       })(),
