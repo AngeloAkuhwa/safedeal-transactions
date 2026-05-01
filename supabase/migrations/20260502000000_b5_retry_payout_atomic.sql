@@ -1,6 +1,8 @@
--- Phase B5: atomic helper to re-arm a failed payout for retry.
--- Money status is already funds_pending_release (set by fail_payout_atomic),
--- so we only need to flip the payout row + audit + re-open the queue.
+-- Phase B5: enum + atomic helper for retrying a failed payout.
+ALTER TYPE public.admin_action_type ADD VALUE IF NOT EXISTS 'retry_payout';
+
+COMMIT;
+
 CREATE OR REPLACE FUNCTION public.retry_payout_atomic(
   p_payout_id uuid,
   p_actor_user_id uuid,
@@ -44,7 +46,6 @@ BEGIN
       updated_at = now()
   WHERE id = p_payout_id;
 
-  -- Re-open queue row (or create one if missing)
   UPDATE public.release_review_queue
   SET status = 'pending',
       claimed_by_user_id = NULL,
@@ -58,7 +59,7 @@ BEGIN
   VALUES (
     p_actor_user_id,
     v_tx_id,
-    'retry_payout',
+    'retry_payout'::admin_action_type,
     concat('attempt #', v_attempts + 1, ' / ', COALESCE(p_notes, ''))
   );
 
