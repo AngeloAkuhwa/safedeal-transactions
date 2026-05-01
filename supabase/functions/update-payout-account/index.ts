@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createTransferRecipient } from "../_shared/paystack.ts";
+import { logEdgeError } from "../_shared/log-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -83,7 +85,86 @@ Deno.serve(async (req) => {
     const cleanNumber = account_number.trim();
     const maskedAccountNumber = `****** ${cleanNumber.slice(-4)}`;
 
-    // Upsert payout account
+    // 1) Verify with Paystack FIRST. The plaintext account number never
+    //    touches our database — only Paystack receives it for recipient
+    //    creation, and we persist the masked form.
+    const paystackResult = await createTransferRecipient({
+      type: "nuban",
+      name: account_name.trim(),
+      account_number: cleanNumber,
+      bank_code: bank_code.trim(),
+      currency: "NGN",
+    }).catch((e) => ({ ok: false, status: 0, message: String(e?.message ?? e), raw: null }) as any);
+
+    if (!paystackResult.ok) {
+      // Network / 5xx — do NOT persist anything, surface a 502 so the
+      // seller can retry. We still record the attempt for ops.
+      if (!paystackResult.status || paystackResult.status >= 500) {
+        await logEdgeError(adminClient, {
+          function_name: "update-payout-account",
+          user_id: userId,
+          error_code: "paystack_unavailable",
+          message: paystackResult.message ?? "paystack unreachable",
+          http_status: paystackResult.status || 502,
+          request_context: { bank_code, last4: cleanNumber.slice(-4) },
+        });
+        return jsonResponse({ error: "verification_unavailable" }, 502);
+      }
+
+      // 4xx — persist a failed verification so the UI can show the reason.
+      const failMessage = paystackResult.message ?? "Bank account could not be verified";
+      const { data: failed } = await adminClient
+        .from("payout_accounts")
+        .upsert(
+          {
+            user_id: userId,
+            bank_code: bank_code.trim(),
+            bank_name: bank_name.trim(),
+            account_name: account_name.trim(),
+            masked_account_number: maskedAccountNumber,
+            provider: "paystack",
+            provider_recipient_code: null,
+            provider_recipient_id: null,
+            verification_status: "failed",
+            last_verification_error: failMessage,
+            provider_response: paystackResult.raw as any,
+          },
+          { onConflict: "user_id" },
+        )
+        .select()
+        .single();
+
+      await adminClient
+        .from("account_verifications")
+        .update({ payout_verified: false })
+        .eq("user_id", userId);
+
+      await logEdgeError(adminClient, {
+        function_name: "update-payout-account",
+        user_id: userId,
+        error_code: "paystack_4xx",
+        message: failMessage,
+        http_status: paystackResult.status,
+        request_context: { bank_code, last4: cleanNumber.slice(-4) },
+      });
+
+      return jsonResponse({
+        error: "verification_failed",
+        paystack_error_message: failMessage,
+        payout_account: {
+          bank_name: failed?.bank_name,
+          account_name: failed?.account_name,
+          masked_account_number: failed?.masked_account_number,
+          verification_status: "failed",
+          last_verification_error: failMessage,
+        },
+      }, 400);
+    }
+
+    // 2) Paystack accepted — persist verified account.
+    const recipientCode = paystackResult.data?.recipient_code ?? null;
+    const recipientId = paystackResult.data?.id ? String(paystackResult.data.id) : null;
+
     const { data, error } = await adminClient
       .from("payout_accounts")
       .upsert(
@@ -93,10 +174,15 @@ Deno.serve(async (req) => {
           bank_name: bank_name.trim(),
           account_name: account_name.trim(),
           masked_account_number: maskedAccountNumber,
+          provider: "paystack",
+          provider_recipient_code: recipientCode,
+          provider_recipient_id: recipientId,
           verification_status: "verified",
           last_verified_at: new Date().toISOString(),
+          last_verification_error: null,
+          provider_response: paystackResult.raw as any,
         },
-        { onConflict: "user_id" }
+        { onConflict: "user_id" },
       )
       .select()
       .single();
@@ -106,11 +192,23 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Failed to save payout account" }, 500);
     }
 
-    // Also mark payout_verified in account_verifications
     await adminClient
       .from("account_verifications")
       .update({ payout_verified: true })
       .eq("user_id", userId);
+
+    // 3) Auto-unblock any payouts that were blocked solely because the
+    //    seller had no verified payout account.
+    await adminClient
+      .from("payouts")
+      .update({
+        status: "awaiting_release",
+        release_blocked: false,
+        payout_blocked_reason: null,
+      })
+      .eq("seller_id", userId)
+      .eq("status", "blocked")
+      .eq("payout_blocked_reason", "payout_account_unverified");
 
     return jsonResponse({
       success: true,
@@ -120,6 +218,7 @@ Deno.serve(async (req) => {
         masked_account_number: data.masked_account_number,
         verification_status: data.verification_status,
         last_verified_at: data.last_verified_at,
+        recipient_code_present: !!recipientCode,
       },
     });
   } catch (err) {
