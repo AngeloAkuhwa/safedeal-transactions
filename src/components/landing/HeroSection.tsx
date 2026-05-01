@@ -88,18 +88,6 @@ export function HeroSection() {
               />
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px] text-foreground sm:text-[13px]">
-              {bullets.map((b, i) => (
-                <div
-                  key={b}
-                  className="animate-fade-in flex items-center gap-2"
-                  style={{ animationDelay: `${320 + i * 60}ms` }}
-                >
-                  <CheckCircle className="h-3.5 w-3.5 shrink-0 text-success" />
-                  <span className="font-medium leading-tight">{b}</span>
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* Right — Animated transaction demo */}
