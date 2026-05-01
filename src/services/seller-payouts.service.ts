@@ -4,6 +4,10 @@ export interface PayoutSummary {
   total_released: number;
   total_released_last_30: number;
   pending_release: number;
+  /** Phase A: payouts in 'awaiting_release' status (in SafeDeal review queue). */
+  awaiting_release?: number;
+  /** Phase A: payouts in 'blocked' status (e.g. missing payout account). */
+  blocked_payouts?: number;
   held_in_escrow: number;
   on_hold_failed: number;
   currency_code: string;
@@ -23,6 +27,8 @@ export interface PayoutHistoryItem {
   release_date: string;
   status: string;
   failure_reason: string | null;
+  payout_blocked_reason?: string | null;
+  release_blocked?: boolean;
 }
 
 export interface UpcomingRelease {
