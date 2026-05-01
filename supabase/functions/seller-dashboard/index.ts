@@ -123,6 +123,7 @@ Deno.serve(async (req) => {
     let awaitingPaymentTxIds: string[] = [];
     let awaitingBuyerReviewTxIds: string[] = [];
     let fundsHeldTxIds: string[] = [];
+    let fundsPendingReleaseTxIds: string[] = [];
     let fundsReleasingTxIds: string[] = [];
     let fulfillmentNeededTxIds: string[] = [];
     let dispatchedTxIds: string[] = [];
@@ -198,6 +199,7 @@ Deno.serve(async (req) => {
         ...awaitingPaymentTxIds,
         ...awaitingBuyerReviewTxIds,
         ...fundsHeldTxIds,
+        ...fundsPendingReleaseTxIds,
         ...fundsReleasingTxIds,
         ...completedTxIds,
       ]),
@@ -228,6 +230,12 @@ Deno.serve(async (req) => {
         }
         for (const id of fundsHeldTxIds) {
           fundsHeldInEscrowAmount += pricingMap.get(id)?.sellerNet ?? 0;
+        }
+        // Phase A KPI: "Funds Pending Release" = SafeDeal review queue
+        // (funds_pending_release) PLUS the brief in-flight transfer state
+        // (funds_releasing). Both are seller-net amounts.
+        for (const id of fundsPendingReleaseTxIds) {
+          fundsPendingReleaseAmount += pricingMap.get(id)?.sellerNet ?? 0;
         }
         for (const id of fundsReleasingTxIds) {
           fundsPendingReleaseAmount += pricingMap.get(id)?.sellerNet ?? 0;
