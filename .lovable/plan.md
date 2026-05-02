@@ -1,67 +1,44 @@
-# Phase M — True 100% Production Closure
+# Phase N — Final Drift Cleanup
 
-Honest status: **not yet 100%**. Phases K and L closed the high-traffic transaction pages, but a final grep revealed remaining drift on agreement, verification, storefront, dispute, and seller-create surfaces that buyers and sellers actually see. This phase closes them with no new features and no schema changes.
+## Honest answer: Not 100% yet.
 
-## What's still wrong
+The end-to-end flow itself (state machine, escrow, dispute, delivery, payouts, courier validation, agreement lock, notifications) is structurally complete and was already covered in Phases A–M. A focused audit just now found **3 concrete drift points** on user-facing surfaces that violate the centralized `formatMoney` rule established in Phase M. These are small but real — they are exactly the kind of inconsistency the audit asks us to eliminate.
 
-### M1 — Money formatting drift (still using `toLocaleString` without 2-decimal contract)
+Everything else flagged in a fresh `rg` sweep is correctly scoped (admin pages, chart tooltips, date strings, or landing-page demo data).
 
-User-facing files that bypass `formatMoney`:
+---
 
-- `src/components/agreement/LockedSnapshotCard.tsx` — buyer sees the locked agreement here; line items, item amount, service fee, total all rendered as `toLocaleString()` (no decimals).
-- `src/components/agreement/AgreementTrustIndicators.tsx` — total amount on trust banner.
-- `src/components/verification/VerificationSidebar.tsx` — buyer total during verification step.
-- `src/components/storefront/ProductCard.tsx`, `SellerProductCard.tsx`, `UpdateStockModal.tsx`, `ManageVisibilityModal.tsx`, `PublishSuccessModal.tsx`, `PurchaseAuthModal.tsx` — public storefront prices.
-- `src/pages/PublicProductDetail.tsx` — public product page price.
-- `src/pages/SellerCreateTransaction.tsx` (lines 696, 700, 705) — seller pricing preview still mixes `toLocaleString` with manual `minimumFractionDigits`.
-- `src/components/seller/ExportPreviewDialog.tsx` (line 129) and `src/components/seller/ExportPayoutsDialog.tsx` — local `formatCurrency` helpers instead of shared `formatMoney`.
-- `src/components/seller/TransactionSuccess.tsx` — local fmt helper.
-- `src/components/profile/SellerVerificationSection.tsx`, `AccountVerificationSection.tsx` — verification limit amounts.
-- `src/components/disputes/AgreementSnapshotSection.tsx` — snapshot amounts in dispute view.
+## Gaps to fix
 
-Fix: replace each with `formatMoney(amount, currency)` from `@/lib/format`. Remove the local `formatCurrency` helpers in storefront/seller dialogs.
+### 1. `src/components/disputes/AgreementSnapshotSection.tsx` (line 34)
+The dispute agreement snapshot — shown to **both buyer and seller** during a dispute — uses `value.toLocaleString()` for money. This violates the 2-decimal rule on one of the most trust-critical surfaces in the product (the locked agreement seen during a dispute).
 
-Out of scope (correctly excluded): `src/pages/AdminOffers.tsx`, `AdminOfferDetail.tsx`, `components/landing/demo-data.ts`, `components/ui/chart.tsx`, `SellerConfirmCompletionCard.tsx` (date formatting, not money).
+**Fix:** Replace the local money formatter with `formatMoney(amount, currencyCode)` from `@/lib/format`.
 
-### M2 — Admin language leaking into buyer/seller copy
+### 2. `src/components/landing/demo-data.ts` (lines 119, 123)
+Demo helpers use `toLocaleString("en-NG")` with no decimals. These render in landing-page demo cards. Buyers/sellers landing here see money formatted differently from the rest of the app.
 
-- `src/pages/BuyerPaymentSummary.tsx` line 511: "resolved by SafeDeal administration" → change to "resolved by SafeDeal review".
-- `src/components/verification/VerificationActions.tsx` line 98: "an admin will review the case" → "the SafeDeal review team will review the case".
+**Fix:** Route through `formatMoney` (with currency `"NGN"`) so the demo matches production formatting (₦12,500.00, not ₦12,500).
 
-### M3 — Inline status maps still in place
+### 3. `src/pages/SellerOfferDetail.tsx` (lines 154–159) — date consistency
+Uses raw `new Date(...).toLocaleString()` for timestamps while the rest of the app uses `formatDateTime`/`formatDate` from `@/lib/format`. Not a money issue, but causes locale-dependent date drift between this page and SellerTransactionDetail.
 
-- `src/components/disputes/DisputeStatusBadge.tsx` and `DisputeMoneyStatusBadge.tsx` — replace local `statusConfig` / `moneyConfig` with `resolveDisputeLabel` / `resolveDisputeMoneyLabel` from `src/lib/status-labels.ts`. If the registry doesn't yet have dispute entries, add `DISPUTE_STATUS_LABELS` and `DISPUTE_MONEY_STATUS_LABELS` and a resolver alongside the existing transaction/money/product/payout entries.
-- `src/components/disputes/DisputeTimeline.tsx` — swap local `STATUS_LABELS` for the centralized transaction-label resolver (it's just rendering transaction statuses).
-- `src/components/storefront/ProductStatusBadge.tsx`, `SellerProductCard.tsx`, `UpdateStockModal.tsx` — replace inline maps with `PRODUCT_STATUS_LABELS` already added in Phase L.
-- `src/pages/BuyerVerification.tsx` — local `statusConfig` for verification submission status; introduce `VERIFICATION_STATUS_LABELS` in the registry and use it.
+**Fix:** Replace with the shared `formatDateTime` helper.
 
-### M4 — Verification
+---
 
-After edits:
+## What is explicitly NOT in scope (already verified clean)
 
-1. `rg -n "toLocaleString\(" src/pages src/components` should return only: admin pages, `landing/demo-data.ts`, `ui/chart.tsx`, and date-formatting calls (`Date(...).toLocaleString`).
-2. `rg -n "admin" src/pages src/components -i` filtered for non-admin paths should return zero user-facing strings containing the word "admin".
-3. `rg -n "statusConfig|moneyConfig" src/pages src/components` should return zero hits outside `src/lib/status-labels.ts`.
+- **Courier dispatch enforcement** — `DispatchForm` + `SellerUpdateDelivery` already require courier name + tracking number before allowing transition to `seller_dispatched`. ✅
+- **Status label registry** — `src/lib/status-labels.ts` covers transaction, money, escrow, payout, product, visibility, dispute, and verification labels. All major UI consumers refactored in Phases L–M. ✅
+- **"Admin" terminology on user surfaces** — only remaining matches are inside `/admin/**` pages (correctly internal). ✅
+- **State transitions** — happy path, dispute path, timeout path, and auto-transitions all wired through edge functions and history tables (Phases B–F). ✅
+- **Dashboard ↔ transaction list reconciliation** — server-side aggregation via edge function (Phase G). ✅
 
-## Files touched (estimate)
+---
 
-Edits only, ~18 files:
+## After Phase N
 
-- Registry: `src/lib/status-labels.ts` (add dispute + verification label maps and resolvers).
-- Agreement: `LockedSnapshotCard.tsx`, `AgreementTrustIndicators.tsx`.
-- Verification: `VerificationSidebar.tsx`, `VerificationActions.tsx`, `BuyerVerification.tsx`, `SellerVerificationSection.tsx`, `AccountVerificationSection.tsx`.
-- Storefront: `ProductCard.tsx`, `SellerProductCard.tsx`, `UpdateStockModal.tsx`, `ManageVisibilityModal.tsx`, `PublishSuccessModal.tsx`, `PurchaseAuthModal.tsx`, `ProductStatusBadge.tsx`, `PublicProductDetail.tsx`.
-- Seller: `SellerCreateTransaction.tsx`, `ExportPreviewDialog.tsx`, `ExportPayoutsDialog.tsx`, `TransactionSuccess.tsx`.
-- Disputes: `DisputeStatusBadge.tsx`, `DisputeMoneyStatusBadge.tsx`, `DisputeTimeline.tsx`, `AgreementSnapshotSection.tsx`.
-- Buyer: `BuyerPaymentSummary.tsx` (single string).
+With these 3 edits applied, every user-facing money value in the app routes through `formatMoney` (2-decimal, currency-aware), every status label routes through the central registry, and every date on offer/transaction detail pages routes through `formatDateTime`. At that point the system is genuinely production-ready against the audit checklist — no remaining drift, no surface where buyer and seller see conflicting truth.
 
-No SQL migrations. No RLS changes. No new tables. No edge function changes.
-
-## Definition of done
-
-- All three grep checks in M4 return clean.
-- Buyer sees `₦12,345.00` formatting on the locked agreement, verification sidebar, dispute snapshots, and storefront — never `₦12,345`.
-- Buyer never sees the word "admin" or "administration"; seller never sees "admin release".
-- Every dispute, product, and verification status badge resolves through the central registry, matching the Phase K/L pattern already used for transaction and money badges.
-
-After this phase, SafeDeal is genuinely production-ready end-to-end across seller and buyer surfaces.
+Approve to apply Phase N.
