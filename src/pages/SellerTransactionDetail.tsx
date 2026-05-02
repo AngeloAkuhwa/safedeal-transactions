@@ -109,8 +109,26 @@ const SellerTransactionDetail = () => {
 
   const { transaction: tx, buyer, item, pricing, escrow, agreement, delivery_tracking, delivery_terms, timeline, next_action, completion_event, rider_link } = data;
   const currency = pricing?.currency_code ?? "NGN";
-  const statusInfo = statusLabels[tx.status] ?? { label: tx.status, variant: "secondary" as const };
-  const moneyInfo = moneyLabels[tx.money_status] ?? { label: tx.money_status, color: "text-muted-foreground" };
+  const sEntry = resolveTransactionLabel(tx.status, "seller");
+  const mEntry = resolveMoneyLabel(tx.money_status, "seller", {
+    sellerConfirmed: tx.seller_confirmed_at ? true : false,
+  });
+  const tonalVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+    muted: "secondary",
+    info: "default",
+    warning: "outline",
+    success: "default",
+    destructive: "destructive",
+  };
+  const tonalText: Record<string, string> = {
+    muted: "text-muted-foreground",
+    info: "text-primary",
+    warning: "text-warning",
+    success: "text-success",
+    destructive: "text-destructive",
+  };
+  const statusInfo = { label: sEntry.label, variant: tonalVariant[sEntry.tone] };
+  const moneyInfo = { label: mEntry.label, color: tonalText[mEntry.tone] };
 
   const fullShareUrl = tx.share_url ? `${window.location.origin}${tx.share_url}` : null;
 
