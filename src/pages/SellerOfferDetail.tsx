@@ -20,6 +20,7 @@ import {
   getSellerOfferDetail, cancelSellerOffer, reactivateSellerOffer, canModifyOffer,
 } from "@/services/seller-offers.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
+import { formatMoney } from "@/lib/format";
 
 const statusStyle: Record<string, string> = {
   pending_claim: "bg-muted text-muted-foreground border-border",
@@ -179,7 +180,7 @@ export default function SellerOfferDetail() {
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-foreground">Bundle items ({offer.items.length})</h3>
-              <p className="text-sm font-bold text-foreground">Total: {currency} {total.toLocaleString()}</p>
+              <p className="text-sm font-bold text-foreground">Total: {formatMoney(total, currency)}</p>
             </div>
             <div className="space-y-3">
               {offer.items.map((it) => (
@@ -197,7 +198,7 @@ export default function SellerOfferDetail() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold text-foreground">
-                      {it.currency_code} {Number(it.unit_price_snapshot).toLocaleString()}
+                      {formatMoney(Number(it.unit_price_snapshot), it.currency_code)}
                     </p>
                     <p className="text-xs text-muted-foreground">× {it.quantity}</p>
                   </div>

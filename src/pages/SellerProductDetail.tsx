@@ -237,7 +237,7 @@ const SellerProductDetail = () => {
               <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border">
                 <div>
                   <p className="text-xs text-muted-foreground">Price</p>
-                  <p className="text-lg font-semibold text-foreground">{product.currency_code} {Number(product.unit_price).toLocaleString()}</p>
+                  <p className="text-lg font-semibold text-foreground">{formatMoney(Number(product.unit_price), product.currency_code)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Stock</p>
