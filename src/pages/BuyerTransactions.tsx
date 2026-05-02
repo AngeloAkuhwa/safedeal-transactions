@@ -122,7 +122,7 @@ const BuyerTransactions = () => {
                 onClearFilters={clearFilters}
                 hasActiveFilters={hasActiveFilters}
               />
-              <TransactionTable transactions={[]} isLoading />
+              <TransactionTable transactions={[]} isLoading audience="buyer" />
             </>
           )}
 
@@ -176,7 +176,7 @@ const BuyerTransactions = () => {
 
               {data.transactions.length > 0 && (
                 <div className="sd-fade-in-stagger sd-delay-2 space-y-4">
-                  <TransactionTable transactions={data.transactions} />
+                  <TransactionTable transactions={data.transactions} audience="buyer" />
                   <TransactionPagination
                     page={data.pagination.page}
                     pageSize={data.pagination.page_size}
