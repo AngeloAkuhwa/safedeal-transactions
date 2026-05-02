@@ -19,7 +19,7 @@ export function SellerOnboardingChecklist({ onboarding }: Props) {
   const firstIncompleteIdx = onboarding.steps.findIndex((s) => !s.completed);
 
   return (
-    <div className="rounded-2xl border bg-card p-6 shadow-sm">
+    <div className="rounded-2xl border bg-card p-5 shadow-sm">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-bold text-foreground">Set up your SafeDeal seller account</h2>
@@ -33,16 +33,16 @@ export function SellerOnboardingChecklist({ onboarding }: Props) {
       </div>
 
       <div className="mt-4">
-        <Progress value={pct} className="h-2" />
+        <Progress value={pct} className="h-2 transition-[width] duration-700 ease-out" />
       </div>
 
-      <ol className="mt-6 space-y-3">
+      <ol className="mt-5 space-y-2.5">
         {onboarding.steps.map((step, idx) => {
           const isPrimary = idx === firstIncompleteIdx;
           return (
             <li
               key={step.key}
-              className="flex items-start gap-3 rounded-lg border bg-background p-3 sm:items-center"
+              className="flex items-start gap-3 rounded-lg border bg-background px-3 py-2.5 sm:items-center"
             >
               <div
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${

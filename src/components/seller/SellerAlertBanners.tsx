@@ -52,7 +52,7 @@ export function SellerAlertBanners({ alerts, maxVisible = 3, compact = false }: 
 
   return (
     <div className={compact ? "space-y-2" : "space-y-3"}>
-      {visible.map((alert) => {
+      {visible.map((alert, idx) => {
         const tone = resolveTone(alert);
         const c = toneClasses[tone];
         const Icon = iconByType[alert.type] ?? AlertTriangle;
@@ -60,7 +60,7 @@ export function SellerAlertBanners({ alerts, maxVisible = 3, compact = false }: 
         return (
           <div
             key={`${alert.type}-${alert.priority}`}
-            className={`flex flex-col gap-3 rounded-lg border-l-4 p-4 shadow-sm sm:flex-row sm:items-start ${c.container}`}
+            className={`sd-alert sd-fade-in-stagger sd-delay-${Math.min(idx + 1, 6)} flex flex-col gap-2.5 rounded-lg border-l-4 px-4 py-3 shadow-sm sm:flex-row sm:items-start ${c.container}`}
             role="alert"
           >
             <Icon className={`h-5 w-5 shrink-0 ${c.icon}`} aria-hidden="true" />

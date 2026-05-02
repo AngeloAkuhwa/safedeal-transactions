@@ -53,22 +53,22 @@ export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-foreground mb-4">Quick Actions</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        {actions.map((action) => (
+      <h2 className="text-base font-semibold text-foreground mb-3">Quick Actions</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+        {actions.map((action, idx) => (
           <Card
             key={action.title}
-            className="rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer group h-full"
+            className={`sd-card sd-action cursor-pointer group h-full hover:-translate-y-0.5 transition-transform sd-fade-in-stagger sd-delay-${Math.min(idx + 1, 6)}`}
             onClick={() => navigate(action.href)}
           >
-            <CardContent className="p-5">
-              <div className={`h-11 w-11 rounded-xl ${action.iconBg} flex items-center justify-center mb-3 transition-colors`}>
-                <action.icon className={`h-5 w-5 ${action.iconColor} transition-colors`} />
+            <CardContent className="p-4">
+              <div className={`h-9 w-9 rounded-lg ${action.iconBg} flex items-center justify-center mb-2.5 transition-colors`}>
+                <action.icon className={`h-[18px] w-[18px] ${action.iconColor} transition-colors`} />
               </div>
-              <h3 className="text-base font-bold text-foreground group-hover:text-success transition-colors mb-1">
+              <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors mb-0.5">
                 {action.title}
               </h3>
-              <p className="text-sm text-muted-foreground">{action.description}</p>
+              <p className="text-xs text-muted-foreground leading-snug">{action.description}</p>
             </CardContent>
           </Card>
         ))}

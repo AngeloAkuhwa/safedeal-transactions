@@ -142,29 +142,32 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {cards.map((card) => (
-          <Card key={card.label} className="rounded-2xl shadow-md hover:shadow-lg transition-all">
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div className={`h-11 w-11 rounded-xl ${card.iconBg} flex items-center justify-center`}>
-                  <card.icon className={`h-5 w-5 ${card.iconColor}`} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        {cards.map((card, idx) => (
+          <Card
+            key={card.label}
+            className={`sd-card sd-metric h-full sd-fade-in-stagger sd-delay-${Math.min(idx + 1, 6)}`}
+          >
+            <CardContent className="p-4 flex flex-col h-full">
+              <div className="flex items-start justify-between mb-2.5">
+                <div className={`h-9 w-9 rounded-lg ${card.iconBg} flex items-center justify-center`}>
+                  <card.icon className={`h-[18px] w-[18px] ${card.iconColor}`} />
                 </div>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${card.badgeBg}`}>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${card.badgeBg}`}>
                   {card.badge}
                 </span>
               </div>
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
+              <div className="space-y-0.5 flex-1">
+                <div className="flex items-center gap-1">
+                  <p className="text-xs font-medium text-muted-foreground truncate">{card.label}</p>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         type="button"
                         aria-label={`More info about ${card.label}`}
-                        className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                        className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-muted-foreground transition-colors shrink-0"
                       >
-                        <Info className="h-3.5 w-3.5" />
+                        <Info className="h-3 w-3" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs text-xs">
@@ -172,10 +175,10 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <p className="text-2xl font-bold text-foreground">{card.value}</p>
-                <p className="text-xs text-muted-foreground">{card.subtitle}</p>
+                <p className="sd-kpi-value tabular-nums">{card.value}</p>
+                <p className="sd-kpi-helper">{card.subtitle}</p>
                 {card.breakdown && (
-                  <p className="text-[11px] text-muted-foreground/80 pt-1 leading-snug">
+                  <p className="text-[10px] text-muted-foreground/80 pt-1 leading-snug">
                     {card.breakdown}
                   </p>
                 )}
@@ -186,7 +189,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       </div>
 
       <div className="mt-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+        <p className="sd-eyebrow mb-2">
           Activity at a glance
         </p>
         <div className="flex flex-wrap gap-2">
@@ -194,11 +197,13 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
             <Link
               key={chip.key}
               to={chip.href}
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${chip.tone}`}
+              className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all hover:-translate-y-0.5 min-w-[170px] justify-between ${chip.tone}`}
             >
-              <chip.icon className={`h-3.5 w-3.5 ${chip.iconClass}`} />
-              <span>{chip.label}</span>
-              <span className="inline-flex items-center justify-center rounded-full bg-background/70 px-1.5 py-0.5 text-[11px] font-bold">
+              <span className="inline-flex items-center gap-1.5">
+                <chip.icon className={`h-3.5 w-3.5 ${chip.iconClass}`} />
+                <span>{chip.label}</span>
+              </span>
+              <span className="inline-flex items-center justify-center rounded-full bg-background/70 px-1.5 py-0.5 text-[10px] font-bold">
                 {chip.value}
               </span>
             </Link>
