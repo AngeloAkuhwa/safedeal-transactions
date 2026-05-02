@@ -301,27 +301,35 @@ export function resolveProductVisibilityLabel(visibility: string): LabelEntry {
 }
 
 /* ============================================================
- * ESCROW STATE  (held / frozen / released / refunded aggregate)
+ * ESCROW STATE  (DB enum: escrow_state)
+ *
+ * DB values: awaiting_payment | held | frozen | releasing | released | refunded
  * ============================================================ */
 
 export type EscrowState =
+  | "awaiting_payment"
   | "held"
   | "frozen"
-  | "released_to_seller"
-  | "refunded_to_buyer";
+  | "releasing"
+  | "released"
+  | "refunded";
 
 export const ESCROW_STATE_LABELS: Record<Audience, Record<EscrowState, LabelEntry>> = {
   seller: {
+    awaiting_payment: { label: "Awaiting Payment", tone: "muted" },
     held: { label: "Held in Escrow", tone: "info" },
     frozen: { label: "Funds Frozen", tone: "destructive" },
-    released_to_seller: { label: "Released To You", tone: "success" },
-    refunded_to_buyer: { label: "Refunded To Buyer", tone: "muted" },
+    releasing: { label: "Releasing", tone: "info" },
+    released: { label: "Released To You", tone: "success" },
+    refunded: { label: "Refunded To Buyer", tone: "muted" },
   },
   buyer: {
+    awaiting_payment: { label: "Awaiting Payment", tone: "warning" },
     held: { label: "Held in Escrow", tone: "success" },
     frozen: { label: "Funds Frozen", tone: "warning" },
-    released_to_seller: { label: "Released To Seller", tone: "muted" },
-    refunded_to_buyer: { label: "Refunded To You", tone: "success" },
+    releasing: { label: "Releasing To Seller", tone: "muted" },
+    released: { label: "Released To Seller", tone: "muted" },
+    refunded: { label: "Refunded To You", tone: "success" },
   },
 };
 
