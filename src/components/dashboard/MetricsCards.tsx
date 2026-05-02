@@ -51,22 +51,25 @@ const cards = [
 
 export function MetricsCards({ metrics }: MetricsCardsProps) {
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-      {cards.map((card) => (
-        <Card key={card.key} className="shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className={`h-12 w-12 rounded-xl ${card.iconBg} flex items-center justify-center`}>
-                <card.icon className={`h-5 w-5 ${card.iconColor}`} />
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {cards.map((card, idx) => (
+        <Card
+          key={card.key}
+          className={`sd-card sd-metric sd-fade-in-stagger sd-delay-${Math.min(idx + 1, 6)}`}
+        >
+          <CardContent className="p-3">
+            <div className="flex items-start justify-between mb-2">
+              <div className={`h-8 w-8 rounded-lg ${card.iconBg} flex items-center justify-center`}>
+                <card.icon className={`h-4 w-4 ${card.iconColor}`} />
               </div>
-              <span className={`text-xs font-semibold ${card.badgeColor} ${card.badgeBg} px-3 py-1 rounded-full`}>
+              <span className={`text-[10px] font-semibold ${card.badgeColor} ${card.badgeBg} px-1.5 py-0.5 rounded-full`}>
                 {card.badge}
               </span>
             </div>
-            <div className="text-3xl font-bold text-foreground mb-1">
+            <div className="sd-kpi-value tabular-nums">
               {metrics[card.key]}
             </div>
-            <div className="text-sm text-muted-foreground font-medium">{card.label}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{card.label}</div>
           </CardContent>
         </Card>
       ))}

@@ -12,18 +12,18 @@ export function BuyerDisputeEmptyState({ variant, onClearFilters }: BuyerDispute
 
   if (variant === "no-filter-match") {
     return (
-      <div className="rounded-2xl border bg-card p-12 text-center">
-        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-          <Search className="h-7 w-7 text-muted-foreground" />
+      <div className="sd-card p-8 text-center">
+        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+          <Search className="h-5 w-5 text-muted-foreground" />
         </div>
-        <h2 className="text-xl font-bold text-foreground mb-2">
+        <h2 className="text-base font-semibold text-foreground mb-1">
           No disputes match your filters
         </h2>
-        <p className="text-muted-foreground text-sm max-w-md mx-auto mb-4">
+        <p className="text-xs text-muted-foreground max-w-md mx-auto mb-3">
           Try adjusting your search terms or clearing the filters.
         </p>
         {onClearFilters && (
-          <Button variant="outline" onClick={onClearFilters}>
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onClearFilters}>
             Clear Filters
           </Button>
         )}
@@ -32,21 +32,21 @@ export function BuyerDisputeEmptyState({ variant, onClearFilters }: BuyerDispute
   }
 
   return (
-    <div className="rounded-2xl border bg-card p-12 text-center">
-      <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
-        <Scale className="h-7 w-7 text-success" />
+    <div className="sd-card p-8 text-center">
+      <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-3">
+        <Scale className="h-5 w-5 text-success" />
       </div>
-      <h2 className="text-xl font-bold text-foreground mb-2">
+      <h2 className="text-base font-semibold text-foreground mb-1">
         No Disputes Yet
       </h2>
-      <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
+      <p className="text-xs text-muted-foreground max-w-md mx-auto mb-4">
         If there is ever a problem with a delivered transaction, your dispute cases will appear here.
       </p>
-      <div className="flex items-center justify-center gap-3">
-        <Button variant="outline" onClick={() => navigate("/dashboard")}>
+      <div className="flex items-center justify-center gap-2">
+        <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => navigate("/dashboard")}>
           Back to Dashboard
         </Button>
-        <Button onClick={() => navigate("/dashboard/transactions")}>
+        <Button size="sm" className="h-8 text-xs" onClick={() => navigate("/dashboard/transactions")}>
           Go to My Purchases
         </Button>
       </div>

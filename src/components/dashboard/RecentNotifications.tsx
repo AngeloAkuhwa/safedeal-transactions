@@ -75,24 +75,24 @@ export function RecentNotifications({ notifications }: RecentNotificationsProps)
   const navigate = useNavigate();
 
   return (
-    <Card className="shadow-md">
-      <CardHeader className="flex flex-row items-center justify-between pb-4">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Bell className="h-5 w-5 text-primary" />
+    <Card className="sd-card">
+      <CardHeader className="flex flex-row items-center justify-between py-2.5 px-3 border-b">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Bell className="h-3.5 w-3.5 text-primary" />
           </div>
-          <CardTitle className="text-xl">Recent Notifications</CardTitle>
+          <CardTitle className="text-sm font-semibold uppercase tracking-wide">Recent Notifications</CardTitle>
         </div>
         <Link
           to="/dashboard/notifications"
-          className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+          className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
         >
           View All
         </Link>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="p-3 space-y-2.5">
         {notifications.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-6">
+          <p className="text-xs text-muted-foreground text-center py-6">
             No recent notifications
           </p>
         ) : (
@@ -103,36 +103,36 @@ export function RecentNotifications({ notifications }: RecentNotificationsProps)
             return (
               <div
                 key={notif.id}
-                className={`rounded-xl border p-4 ${style.bg} transition-colors`}
+                className={`rounded-lg border p-3 ${style.bg} transition-colors`}
               >
-                <div className="flex items-start gap-4">
-                  <div className={`h-10 w-10 rounded-lg ${style.iconBg} flex items-center justify-center shrink-0 mt-0.5`}>
-                    <Icon className={`h-5 w-5 ${style.iconColor}`} />
+                <div className="flex items-start gap-3">
+                  <div className={`h-8 w-8 rounded-lg ${style.iconBg} flex items-center justify-center shrink-0`}>
+                    <Icon className={`h-4 w-4 ${style.iconColor}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <h4 className="font-semibold text-foreground text-sm">{notif.title}</h4>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    <div className="flex items-start justify-between gap-2 mb-0.5">
+                      <h4 className="font-semibold text-foreground text-xs">{notif.title}</h4>
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">
                         {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">{notif.message}</p>
+                    <p className="text-xs text-muted-foreground mb-2">{notif.message}</p>
                     <div className="flex items-center gap-2 flex-wrap">
                       {route ? (
                         <Button
                           size="sm"
-                          className={style.buttonClass}
+                          className={`${style.buttonClass} h-7 text-xs`}
                           onClick={() => navigate(route)}
                         >
                           {style.actionLabel}
                         </Button>
                       ) : (
-                        <Button size="sm" className={style.buttonClass} disabled>
+                        <Button size="sm" className={`${style.buttonClass} h-7 text-xs`} disabled>
                           {style.actionLabel}
                         </Button>
                       )}
                       {notif.transaction_id && (
-                        <span className="text-xs font-semibold text-muted-foreground">
+                        <span className="text-[10px] font-semibold text-muted-foreground">
                           Transaction linked
                         </span>
                       )}

@@ -35,16 +35,16 @@ export function BuyerDisputeList({ items, isLoading }: BuyerDisputeListProps) {
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border bg-card shadow-lg overflow-hidden">
-        <div className="p-6 lg:p-8 border-b border-border">
-          <div className="flex items-center gap-3">
-            <Skeleton className="w-10 h-10 rounded-lg" />
-            <Skeleton className="h-6 w-32" />
+      <div className="sd-card overflow-hidden">
+        <div className="px-3 py-2.5 border-b border-border">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-7 w-7 rounded-lg" />
+            <Skeleton className="h-4 w-28" />
           </div>
         </div>
-        <div className="p-6 space-y-4">
+        <div className="p-3 space-y-2">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full" />
+            <Skeleton key={i} className="h-12 w-full" />
           ))}
         </div>
       </div>
@@ -52,14 +52,14 @@ export function BuyerDisputeList({ items, isLoading }: BuyerDisputeListProps) {
   }
 
   return (
-    <div className="rounded-2xl border bg-card shadow-lg overflow-hidden">
+    <div className="sd-card overflow-hidden">
       {/* Header */}
-      <div className="p-6 lg:p-8 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-destructive/10 rounded-lg flex items-center justify-center">
-            <List className="h-5 w-5 text-destructive" />
+      <div className="px-3 py-2.5 border-b border-border">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 bg-destructive/10 rounded-lg flex items-center justify-center">
+            <List className="h-3.5 w-3.5 text-destructive" />
           </div>
-          <h2 className="text-xl font-bold text-foreground">All Disputes</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">All Disputes</h2>
         </div>
       </div>
 

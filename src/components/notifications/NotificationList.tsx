@@ -94,7 +94,7 @@ export function NotificationList({ items, onMarkRead }: NotificationListProps) {
   const navigate = useNavigate();
 
   return (
-    <Card className="rounded-2xl shadow-lg overflow-hidden">
+    <Card className="sd-card overflow-hidden">
       <div className="divide-y divide-border">
         {items.map((item) => {
           const style = UI_TYPE_STYLES[item.ui_type] || UI_TYPE_STYLES.system_alerts;
@@ -104,7 +104,7 @@ export function NotificationList({ items, onMarkRead }: NotificationListProps) {
           return (
             <div
               key={item.id}
-              className={`p-6 hover:bg-accent/50 transition-colors cursor-pointer border-l-4 ${style.borderColor} ${
+              className={`p-3 hover:bg-accent/50 transition-colors cursor-pointer border-l-4 ${style.borderColor} ${
                 isUnread ? "bg-primary/[0.02]" : ""
               }`}
               onClick={() => {
@@ -112,39 +112,39 @@ export function NotificationList({ items, onMarkRead }: NotificationListProps) {
                 if (item.primary_action?.route) navigate(item.primary_action.route);
               }}
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3">
                 <div
-                  className={`w-12 h-12 ${style.iconBg} rounded-xl flex items-center justify-center shrink-0`}
+                  className={`h-9 w-9 ${style.iconBg} rounded-lg flex items-center justify-center shrink-0`}
                 >
-                  <Icon className={`h-5 w-5 ${style.iconColor}`} />
+                  <Icon className={`h-4 w-4 ${style.iconColor}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h4 className={`text-foreground ${isUnread ? "font-bold" : "font-semibold"}`}>
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className={`text-sm text-foreground ${isUnread ? "font-bold" : "font-semibold"}`}>
                         {item.title}
                       </h4>
                       {isUnread && item.ui_type === "verification_reminders" && (
-                        <Badge className="bg-warning/10 text-warning border-warning/20 text-xs font-bold">
+                        <Badge className="bg-warning/10 text-warning border-warning/20 text-[10px] font-bold px-1.5 py-0">
                           Urgent
                         </Badge>
                       )}
                       {isUnread && item.ui_type !== "verification_reminders" && (
-                        <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-bold">
+                        <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold px-1.5 py-0">
                           Unread
                         </Badge>
                       )}
                     </div>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-3">
                       {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-3">{item.message}</p>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <p className="text-xs text-muted-foreground mb-2">{item.message}</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                     {item.primary_action && (
                       <Button
                         size="sm"
-                        className={style.actionClass}
+                        className={`${style.actionClass} h-7 text-xs`}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (isUnread) onMarkRead(item.id);
@@ -156,7 +156,7 @@ export function NotificationList({ items, onMarkRead }: NotificationListProps) {
                     )}
                     {item.transaction?.code && (
                       <span
-                        className={`text-xs font-bold ${
+                        className={`text-[11px] font-bold ${
                           item.ui_type === "disputes"
                             ? "text-destructive"
                             : item.ui_type === "verification_reminders"
@@ -171,8 +171,8 @@ export function NotificationList({ items, onMarkRead }: NotificationListProps) {
                         #{item.transaction.code}
                       </span>
                     )}
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground">
-                      <Tag className="h-3 w-3 mr-1.5" />
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground">
+                      <Tag className="h-2.5 w-2.5 mr-1" />
                       {UI_TYPE_LABELS[item.ui_type] || "Notification"}
                     </span>
                   </div>

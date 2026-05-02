@@ -38,77 +38,42 @@ export function BuyerDisputeFilters({
   hasActiveFilters,
 }: BuyerDisputeFiltersProps) {
   return (
-    <Card className="p-6 lg:p-8 shadow-lg">
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Search */}
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-2">Search</label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Transaction code or description"
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+    <Card className="p-2.5 shadow-sm">
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search by code or description..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-8 h-8 text-xs"
+          />
         </div>
 
-        {/* Status */}
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-2">Status</label>
-          <Select value={status} onValueChange={onStatusChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              {statusOptions.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={status} onValueChange={onStatusChange}>
+          <SelectTrigger className="h-8 text-xs sm:w-52">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            {statusOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        {/* Date Range - coming soon */}
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-2">Date Range</label>
-          <Select disabled value="all_time">
-            <SelectTrigger className="w-full opacity-50">
-              <SelectValue placeholder="All Time" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all_time">All Time</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Outcome - coming soon */}
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-2">Outcome</label>
-          <Select disabled value="all_outcomes">
-            <SelectTrigger className="w-full opacity-50">
-              <SelectValue placeholder="All Outcomes" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all_outcomes">All Outcomes</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {hasActiveFilters && (
+          <Button variant="ghost" size="sm" onClick={onClearFilters} className="h-8 text-xs text-muted-foreground">
+            Reset
+          </Button>
+        )}
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center justify-between mt-6 pt-6 border-t border-border">
-        <div className="text-sm text-muted-foreground mb-4 sm:mb-0">
+      <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+        <span className="text-xs text-muted-foreground">
           Showing <span className="font-semibold text-foreground">{totalCount}</span> disputes
-        </div>
-        <div className="flex gap-3">
-          {hasActiveFilters && (
-            <Button variant="secondary" size="sm" onClick={onClearFilters}>
-              Reset Filters
-            </Button>
-          )}
-        </div>
+        </span>
       </div>
     </Card>
   );

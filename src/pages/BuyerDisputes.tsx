@@ -93,7 +93,7 @@ const BuyerDisputes = () => {
 
       <main className="flex-1">
         {/* Summary Cards */}
-        <section className="sd-page mt-4 mb-4">
+        <section className="sd-page mt-4 mb-4 sd-fade-in-stagger sd-delay-1">
           <BuyerDisputeSummaryCards
             summary={
               data?.summary ?? {
@@ -107,7 +107,7 @@ const BuyerDisputes = () => {
         </section>
 
         {/* Trust Banner */}
-        <section className="sd-page mb-4">
+        <section className="sd-page mb-4 sd-fade-in-stagger sd-delay-2">
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
             <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:gap-4">
               <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
@@ -187,7 +187,7 @@ const BuyerDisputes = () => {
 
           {/* Disputes list */}
           {!isLoading && !isError && hasItems && (
-            <>
+            <div className="sd-fade-in-stagger sd-delay-3 space-y-4">
               <BuyerDisputeList items={data!.items} />
               <TransactionPagination
                 page={data!.pagination.page}
@@ -196,7 +196,7 @@ const BuyerDisputes = () => {
                 totalPages={data!.pagination.total_pages}
                 onPageChange={setPage}
               />
-            </>
+            </div>
           )}
         </div>
       </main>

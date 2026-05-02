@@ -82,28 +82,28 @@ export function RecentPurchases({ purchases }: RecentPurchasesProps) {
   const navigate = useNavigate();
 
   return (
-    <Card className="shadow-md overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between border-b">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Receipt className="h-5 w-5 text-primary" />
+    <Card className="sd-card overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between border-b py-2.5 px-3">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Receipt className="h-3.5 w-3.5 text-primary" />
           </div>
-          <CardTitle className="text-xl">Recent Purchases</CardTitle>
+          <CardTitle className="text-sm font-semibold uppercase tracking-wide">Recent Purchases</CardTitle>
         </div>
         <Link
           to="/dashboard/transactions"
-          className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+          className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
         >
-          View All Transactions
-          <ArrowRight className="h-3.5 w-3.5" />
+          View All
+          <ArrowRight className="h-3 w-3" />
         </Link>
       </CardHeader>
       <CardContent className="p-0">
         {purchases.length === 0 ? (
-          <div className="text-center py-12 px-4">
-            <Package className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-muted-foreground font-medium">No purchases yet</p>
-            <p className="text-sm text-muted-foreground mt-1">
+          <div className="text-center py-10 px-4">
+            <Package className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-sm font-medium text-muted-foreground">No purchases yet</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
               Your protected purchases will appear here
             </p>
           </div>
