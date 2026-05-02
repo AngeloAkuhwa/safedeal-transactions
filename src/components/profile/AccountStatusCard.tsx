@@ -13,7 +13,15 @@ export function AccountStatusCard({ accountMeta, verification }: Props) {
   const isActive = accountMeta.account_status === "active";
 
   const alerts: string[] = [];
-  if (!verification.payout_verified) alerts.push("Payout verification pending — set up a verified bank account.");
+  if (!verification.payout_verified) {
+    if (verification.payout_blocker_reason === "no_recipient_code") {
+      alerts.push("Bank verified — finish the secure payout link to receive payouts.");
+    } else if (verification.payout_blocker_reason === "unverified") {
+      alerts.push("Bank account added but not verified — re-enter your details to verify.");
+    } else {
+      alerts.push("Payout verification pending — set up a verified bank account.");
+    }
+  }
   if (!verification.is_region_eligible) alerts.push("Your region is not yet eligible for payouts.");
   if (!verification.identity_verified) alerts.push("Identity verification incomplete.");
 
