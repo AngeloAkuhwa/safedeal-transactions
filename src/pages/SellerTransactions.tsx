@@ -371,16 +371,16 @@ const SellerTransactions = () => {
                     return (
                       <TableRow
                         key={tx.transaction_id}
-                        className="hover:bg-muted/30 cursor-pointer"
+                        className="sd-row-hover cursor-pointer"
                         onClick={() => navigate(`/seller/transactions/${tx.transaction_id}`)}
                       >
-                        <TableCell className="px-6 py-4">
+                        <TableCell className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <Shield className="h-4 w-4 text-primary shrink-0" />
                             <span className="font-mono text-sm font-medium">{tx.transaction_code}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="px-6 py-4 hidden sm:table-cell">
+                        <TableCell className="px-4 py-3 hidden sm:table-cell">
                           <div className="flex items-center gap-2.5">
                             <Avatar className="h-8 w-8">
                               <AvatarImage src={tx.buyer_avatar ?? undefined} />
@@ -422,7 +422,7 @@ const SellerTransactions = () => {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="px-6 py-4 hidden md:table-cell">
+                        <TableCell className="px-4 py-3 hidden md:table-cell">
                           <div>
                             <p className="text-sm text-foreground truncate max-w-[200px]">{tx.item_title}</p>
                             <p className="text-xs text-muted-foreground">
@@ -430,7 +430,7 @@ const SellerTransactions = () => {
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell className="px-6 py-4">
+                        <TableCell className="px-4 py-3">
                           <div className="space-y-0.5">
                             <p className="text-sm">
                               <span className="text-muted-foreground">Gross: </span>
@@ -446,13 +446,13 @@ const SellerTransactions = () => {
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell className="px-6 py-4">
+                        <TableCell className="px-4 py-3">
                           <MoneyStatusBadge status={tx.money_status} />
                         </TableCell>
-                        <TableCell className="px-6 py-4">
+                        <TableCell className="px-4 py-3">
                           <Badge variant={status.variant}>{status.label}</Badge>
                         </TableCell>
-                        <TableCell className="px-6 py-4">
+                        <TableCell className="px-4 py-3">
                           <div className="flex items-center gap-1.5">
                             {tx.has_active_rider_token && (
                               <Button
