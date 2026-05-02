@@ -67,80 +67,60 @@ export function TransactionFilters({
   hasActiveFilters,
 }: TransactionFiltersProps) {
   return (
-    <div className="rounded-xl border bg-card p-5 sm:p-6 space-y-4">
-      {/* Search + dropdowns grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-        {/* Search */}
-        <div className="sm:col-span-5">
-          <label className="block text-sm font-medium text-foreground mb-1.5">
-            Search Transactions
-          </label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by ID, item name, or seller..."
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+    <div className="rounded-lg border bg-card p-2.5 space-y-2.5">
+      {/* Search + dropdowns row */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search by ID, item, or seller..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-8 h-8 text-xs"
+          />
         </div>
 
-        {/* Transaction Status */}
-        <div className="sm:col-span-3">
-          <label className="block text-sm font-medium text-foreground mb-1.5">
-            Transaction Status
-          </label>
-          <Select value={transactionStatus} onValueChange={onTransactionStatusChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              {transactionStatusOptions.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={transactionStatus} onValueChange={onTransactionStatusChange}>
+          <SelectTrigger className="h-8 text-xs sm:w-44">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            {transactionStatusOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        {/* Money Status */}
-        <div className="sm:col-span-3">
-          <label className="block text-sm font-medium text-foreground mb-1.5">
-            Money Status
-          </label>
-          <Select value={moneyStatus} onValueChange={onMoneyStatusChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="All Money Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              {moneyStatusOptions.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={moneyStatus} onValueChange={onMoneyStatusChange}>
+          <SelectTrigger className="h-8 text-xs sm:w-48">
+            <SelectValue placeholder="All Money Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            {moneyStatusOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        {/* Clear */}
-        <div className="sm:col-span-1 flex items-end">
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClearFilters}
-              className="h-10 w-10"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClearFilters}
+            className="h-8 text-xs gap-1.5 text-muted-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+            Clear
+          </Button>
+        )}
       </div>
 
-      {/* Status tabs */}
-      <div className="flex flex-wrap gap-2 pt-1">
+      {/* Status chips */}
+      <div className="flex flex-wrap gap-1.5">
         {statusTabs.map((tab) => {
           const count = statusCounts
             ? statusCounts[tab.key as keyof StatusCounts]
@@ -152,7 +132,7 @@ export function TransactionFilters({
               key={tab.key}
               onClick={() => onTransactionStatusChange(tab.key)}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
                 isActive
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -161,7 +141,7 @@ export function TransactionFilters({
               {tab.label}
               <span
                 className={cn(
-                  "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs",
+                  "inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px]",
                   isActive
                     ? "bg-primary-foreground/20 text-primary-foreground"
                     : "bg-background text-muted-foreground"

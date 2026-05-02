@@ -38,40 +38,39 @@ export function NotificationFilters({
   onUnreadOnlyChange,
 }: NotificationFiltersProps) {
   return (
-    <Card className="p-4 shadow-lg">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="flex flex-col sm:flex-row gap-3 flex-1">
-          <div className="relative flex-1 sm:max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search notifications..."
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={type} onValueChange={onTypeChange}>
-            <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="All Types" />
-            </SelectTrigger>
-            <SelectContent>
-              {typeOptions.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <Card className="p-2.5 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search notifications..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-8 h-8 text-xs"
+          />
         </div>
-        <div className="flex items-center space-x-2">
+        <Select value={type} onValueChange={onTypeChange}>
+          <SelectTrigger className="h-8 text-xs sm:w-48">
+            <SelectValue placeholder="All Types" />
+          </SelectTrigger>
+          <SelectContent>
+            {typeOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex items-center gap-1.5 sm:pl-2 sm:border-l sm:border-border">
           <Checkbox
             id="unread-only"
             checked={unreadOnly}
             onCheckedChange={(checked) => onUnreadOnlyChange(checked === true)}
+            className="h-3.5 w-3.5"
           />
           <label
             htmlFor="unread-only"
-            className="text-sm font-medium text-foreground cursor-pointer select-none"
+            className="text-xs font-medium text-foreground cursor-pointer select-none"
           >
             Unread only
           </label>
