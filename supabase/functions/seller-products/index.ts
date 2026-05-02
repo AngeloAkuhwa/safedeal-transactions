@@ -52,7 +52,14 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === "POST") {
-      return await handleCreate(adminClient, userId, req);
+      // Peek at body to route between create and duplicate
+      const cloned = req.clone();
+      const peek = await cloned.json().catch(() => null);
+      if (peek && peek.action === "duplicate") {
+        return await handleDuplicate(adminClient, userId, peek);
+      }
+      // Replay original handler with the parsed body
+      return await handleCreate(adminClient, userId, peek);
     }
 
     if (req.method === "GET") {
@@ -66,8 +73,7 @@ Deno.serve(async (req) => {
   }
 });
 
-async function handleCreate(adminClient: any, userId: string, req: Request) {
-  const body = await req.json().catch(() => null);
+async function handleCreate(adminClient: any, userId: string, body: any) {
   if (!body) return jsonResponse({ error: "Invalid request body" }, 400);
 
   const {
@@ -350,4 +356,109 @@ async function handleList(adminClient: any, userId: string, req: Request) {
     store_slug: profileResult.data?.store_slug || null,
     trust_summary: trustSummary,
   });
+}
+
+async function handleDuplicate(adminClient: any, userId: string, body: any) {
+  const productId = body.product_id;
+  if (!productId || typeof productId !== "string") {
+    return jsonResponse({ error: "product_id is required" }, 400);
+  }
+
+  // Load source product, scoped to seller
+  const { data: src, error: srcErr } = await adminClient
+    .from("products")
+    .select("*")
+    .eq("id", productId)
+    .eq("seller_id", userId)
+    .maybeSingle();
+  if (srcErr || !src) {
+    return jsonResponse({ error: "Product not found" }, 404);
+  }
+
+  // Generate unique slug honouring UNIQUE(seller_id, slug)
+  const baseSlug = `${src.slug ?? slugify(src.title ?? "product")}-copy`.substring(0, 80);
+  let slug = baseSlug;
+  let attempt = 0;
+  while (true) {
+    const { data: existing } = await adminClient
+      .from("products")
+      .select("id")
+      .eq("seller_id", userId)
+      .eq("slug", slug)
+      .maybeSingle();
+    if (!existing) break;
+    attempt++;
+    slug = `${baseSlug}-${attempt + 1}`.substring(0, 80);
+    if (attempt > 50) {
+      slug = `${baseSlug}-${Date.now()}`.substring(0, 80);
+      break;
+    }
+  }
+
+  // Build new product row by copying safe fields and resetting lifecycle ones
+  const carryFields = [
+    "category_id", "short_description", "description", "currency_code",
+    "unit_price", "original_price", "stock_quantity",
+    "condition_label", "sku", "brand", "model",
+    "seller_notes", "agreement_terms",
+    "delivery_method", "delivery_scope", "estimated_delivery_days",
+    "verification_window_hours", "visibility_type", "feature_highlights",
+  ];
+  const newRow: Record<string, unknown> = {
+    seller_id: userId,
+    title: `${src.title ?? "Untitled"} Copy`,
+    slug,
+    status: "draft",
+    is_active: false,
+    reserved_quantity: 0,
+    published_at: null,
+    archived_at: null,
+  };
+  for (const f of carryFields) {
+    if (src[f] !== undefined && src[f] !== null) newRow[f] = src[f];
+  }
+
+  const { data: created, error: insErr } = await adminClient
+    .from("products")
+    .insert(newRow)
+    .select("id, slug")
+    .single();
+  if (insErr) {
+    console.error("Duplicate insert error:", insErr);
+    return jsonResponse({ error: "Failed to duplicate product" }, 500);
+  }
+
+  // Clone product_media (point new rows at the same file_id — files are immutable)
+  const { data: mediaRows } = await adminClient
+    .from("product_media")
+    .select("file_id, media_type, sort_order, is_primary")
+    .eq("product_id", productId);
+  if (mediaRows && mediaRows.length > 0) {
+    const cloned = mediaRows.map((m: any) => ({
+      product_id: created.id,
+      file_id: m.file_id,
+      media_type: m.media_type,
+      sort_order: m.sort_order,
+      is_primary: m.is_primary,
+    }));
+    const { error: mediaErr } = await adminClient.from("product_media").insert(cloned);
+    if (mediaErr) console.error("Duplicate media insert error:", mediaErr);
+  }
+
+  // Clone product_serviceable_regions if any
+  const { data: regionRows } = await adminClient
+    .from("product_serviceable_regions")
+    .select("region_id, region_type")
+    .eq("product_id", productId);
+  if (regionRows && regionRows.length > 0) {
+    const cloned = regionRows.map((r: any) => ({
+      product_id: created.id,
+      region_id: r.region_id,
+      region_type: r.region_type,
+    }));
+    const { error: regErr } = await adminClient.from("product_serviceable_regions").insert(cloned);
+    if (regErr) console.error("Duplicate regions insert error:", regErr);
+  }
+
+  return jsonResponse({ id: created.id, slug: created.slug }, 201);
 }
