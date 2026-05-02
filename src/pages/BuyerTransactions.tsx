@@ -112,7 +112,6 @@ const BuyerTransactions = () => {
           {isLoading && (
             <>
               <TransactionFilters
-                audience="buyer"
                 search={search}
                 onSearchChange={setSearch}
                 transactionStatus={transactionStatus}
@@ -152,7 +151,6 @@ const BuyerTransactions = () => {
             <>
               <div className="sd-fade-in-stagger sd-delay-1">
               <TransactionFilters
-                audience="buyer"
                 search={search}
                 onSearchChange={setSearch}
                 transactionStatus={transactionStatus}
