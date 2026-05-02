@@ -1,4 +1,4 @@
-import { FileText, Clock, Shield, TrendingUp, CheckCircle, Eye, Info, CheckCircle2, Scale, AlertOctagon } from "lucide-react";
+import { FileText, Clock, Shield, TrendingUp, CheckCircle, Eye, Info, CheckCircle2, Scale, AlertOctagon, ShieldAlert } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +17,8 @@ interface SellerMetricsCardsProps {
 export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
   const netPaidToBank = metrics.net_paid_to_bank ?? 0;
   const netPendingBankTransfer = metrics.net_pending_bank_transfer ?? 0;
+  const fundsFrozenAmount = metrics.funds_frozen_amount ?? 0;
+  const fundsFrozenCount = metrics.funds_frozen_count ?? 0;
 
   const cards = [
     {
@@ -68,6 +70,20 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       badgeBg: "bg-primary/10 text-primary",
       breakdown: null as string | null,
     },
+    ...(fundsFrozenAmount > 0
+      ? [{
+          label: "Funds Frozen",
+          value: formatMoney(fundsFrozenAmount),
+          icon: ShieldAlert,
+          iconBg: "bg-destructive/10",
+          iconColor: "text-destructive",
+          subtitle: `${fundsFrozenCount} transaction${fundsFrozenCount === 1 ? "" : "s"} under dispute`,
+          tooltip: "Your net earnings frozen because a buyer raised a dispute. Funds will be released once the dispute is resolved in your favour.",
+          badge: "Frozen",
+          badgeBg: "bg-destructive/10 text-destructive",
+          breakdown: null as string | null,
+        }]
+      : []),
     {
       label: "Funds Pending Release",
       value: formatMoney(metrics.funds_pending_release_amount),
