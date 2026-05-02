@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
             .single(),
           adminClient
             .from("payout_accounts")
-            .select("bank_name, account_name, masked_account_number, verification_status, last_verified_at, updated_at")
+            .select("bank_name, account_name, masked_account_number, verification_status, last_verified_at, updated_at, provider_recipient_code")
             .eq("user_id", userId)
             .single(),
         ]);
@@ -154,8 +154,35 @@ Deno.serve(async (req) => {
         created_at: profileData.created_at,
       };
 
+      // ── Compute payout readiness from strict definition ──
+      // payout_ready = account exists AND verification_status='verified' AND provider_recipient_code present
+      const recipientCode =
+        payoutAccount && typeof (payoutAccount as { provider_recipient_code?: string | null }).provider_recipient_code === "string"
+          ? ((payoutAccount as { provider_recipient_code?: string | null }).provider_recipient_code ?? "").trim()
+          : "";
+      const accountVerified = !!payoutAccount && (payoutAccount as { verification_status?: string }).verification_status === "verified";
+      const payoutReady = !!payoutAccount && accountVerified && recipientCode.length > 0;
+      let payoutBlockerReason: "missing" | "unverified" | "no_recipient_code" | null = null;
+      if (!payoutAccount) payoutBlockerReason = "missing";
+      else if (!accountVerified) payoutBlockerReason = "unverified";
+      else if (recipientCode.length === 0) payoutBlockerReason = "no_recipient_code";
+
+      // Strip recipient code from outbound payload (internal field)
+      const payoutAccountSafe = payoutAccount
+        ? (() => {
+            const { provider_recipient_code: _omit, ...rest } = payoutAccount as Record<string, unknown> & {
+              provider_recipient_code?: string | null;
+            };
+            return { ...rest, payout_ready: payoutReady, payout_blocker_reason: payoutBlockerReason };
+          })()
+        : null;
+
       const verification = {
         ...verificationData,
+        // Override cached flag with the strict, derived value — single source of truth
+        payout_verified: payoutReady,
+        payout_ready: payoutReady,
+        payout_blocker_reason: payoutBlockerReason,
         is_region_eligible: profileData.is_region_eligible,
       };
 
@@ -190,7 +217,7 @@ Deno.serve(async (req) => {
         requiresIdentityVerification: level !== "trusted_buyer" && level !== "high_trust_buyer",
       };
 
-      return jsonResponse({ profile, verification, preferences, payout_account: payoutAccount, account_meta, permissions });
+      return jsonResponse({ profile, verification, preferences, payout_account: payoutAccountSafe, account_meta, permissions });
     }
 
     // ── PATCH: Update profile data ──

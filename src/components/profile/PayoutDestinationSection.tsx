@@ -29,6 +29,13 @@ export function PayoutDestinationSection({ payoutAccount, onSaved }: Props) {
 
   const hasAccount = !!payoutAccount?.bank_name;
   const status = payoutAccount?.verification_status ?? "pending";
+  // Strict, single source of truth (matches dashboard + edge function logic).
+  // Bank verified by Paystack alone is NOT enough — we also need the secure
+  // payout link (provider_recipient_code) to be present for SafeDeal to actually
+  // transfer funds. Edge function emits payout_ready/payout_blocker_reason.
+  const payoutReady = payoutAccount?.payout_ready ?? (status === "verified");
+  const blocker = payoutAccount?.payout_blocker_reason ?? null;
+  const showLinkIssue = status === "verified" && blocker === "no_recipient_code";
 
   return (
     <>
@@ -66,10 +73,15 @@ export function PayoutDestinationSection({ payoutAccount, onSaved }: Props) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Status:</span>
-                  {status === "verified" ? (
+                  {payoutReady ? (
                     <Badge className="bg-success/10 text-success border-success/20 hover:bg-success/10">
                       <CheckCircle2 className="h-3 w-3 mr-1" />
                       Verified
+                    </Badge>
+                  ) : showLinkIssue ? (
+                    <Badge variant="outline" className="text-warning border-warning/30">
+                      <Clock className="h-3 w-3 mr-1" />
+                      Action needed — finish bank link
                     </Badge>
                   ) : status === "failed" ? (
                     <Badge variant="destructive">
@@ -90,14 +102,27 @@ export function PayoutDestinationSection({ payoutAccount, onSaved }: Props) {
                 )}
               </div>
 
+              {showLinkIssue && (
+                <div className="flex items-start gap-2 text-xs rounded-md border border-warning/30 bg-warning/5 p-3">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-warning" />
+                  <div className="space-y-1">
+                    <p className="font-medium text-foreground">Finish linking your bank to receive payouts</p>
+                    <p className="text-muted-foreground">
+                      Your bank details are verified, but the secure payout link with our payment processor isn't complete yet.
+                      Re-enter your account number below to finish the link — you won't be charged.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <Separator />
 
               <Button
-                variant="outline"
+                variant={showLinkIssue ? "default" : "outline"}
                 className="w-full"
                 onClick={() => setModalOpen(true)}
               >
-                Edit Payout Details
+                {showLinkIssue ? "Finish Bank Link" : "Edit Payout Details"}
               </Button>
             </>
           ) : (

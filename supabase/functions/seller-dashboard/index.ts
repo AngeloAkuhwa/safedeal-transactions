@@ -114,6 +114,8 @@ Deno.serve(async (req) => {
       identity_verified: false,
       payout_account_present: false,
       payout_account_verified: false,
+      payout_ready: false,
+      payout_blocker_reason: "missing" as "missing" | "unverified" | "no_recipient_code" | null,
       has_published_products: false,
     };
     if (profileResult.status === "fulfilled" && profileResult.value.data) {
@@ -134,6 +136,17 @@ Deno.serve(async (req) => {
       payoutAccountRow = payoutAccountResult.value.data as any;
       seller.payout_account_present = true;
       seller.payout_account_verified = payoutAccountRow!.verification_status === "verified" && !!payoutAccountRow!.provider_recipient_code;
+      seller.payout_ready = seller.payout_account_verified;
+      if (seller.payout_ready) {
+        seller.payout_blocker_reason = null;
+      } else if (payoutAccountRow!.verification_status !== "verified") {
+        seller.payout_blocker_reason = "unverified";
+      } else {
+        seller.payout_blocker_reason = "no_recipient_code";
+      }
+    } else {
+      seller.payout_ready = false;
+      seller.payout_blocker_reason = "missing";
     }
 
     // ==================== Bucket transactions ====================
@@ -325,17 +338,20 @@ Deno.serve(async (req) => {
     } else if (!seller.payout_account_verified) {
       // Pri 4 — payout_account_unverified
       const fundsAtStake = fundsPendingReleaseAmount > 0 || payoutsAwaitingRelease.length > 0 || payoutsProcessing.length > 0;
+      const isLinkIssue = seller.payout_blocker_reason === "no_recipient_code";
       alerts.push({
         type: "payout_account_unverified",
         severity: fundsAtStake ? "critical" : "action_required",
         priority: 4,
-        title: "Verify payout account",
-        message: "Your payout account has not been verified yet. Update your bank details to avoid payout delays.",
-        action_label: "Fix payout account",
+        title: isLinkIssue ? "Finish linking your bank" : "Verify payout account",
+        message: isLinkIssue
+          ? "Your bank is verified but the secure payout link with our payment processor is not complete. Finish linking to receive payouts."
+          : "Your payout account has not been verified yet. Update your bank details to avoid payout delays.",
+        action_label: isLinkIssue ? "Finish bank link" : "Fix payout account",
         action_href: "/seller/profile?section=payout",
         blocking: true,
         dismissible: false,
-        metadata: { funds_at_stake: fundsAtStake },
+        metadata: { funds_at_stake: fundsAtStake, blocker_reason: seller.payout_blocker_reason },
       });
     }
 

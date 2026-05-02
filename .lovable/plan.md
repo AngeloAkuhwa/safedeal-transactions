@@ -1,67 +1,119 @@
-## Honest verdict — is SafeDeal 100%?
+# Phase R — Payout Verification Single Source of Truth
 
-I ran a forensic audit comparing the registry, edge functions, RLS, dispute flow, payout flow, money-state machine, and dashboard math against the **real** Postgres enums and behaviour. Here is what is actually true today:
+## The bug you spotted
 
-### What IS correct end-to-end (verified against DB ground truth)
+The **Seller Dashboard** says "Verify your payout account" while the **Seller Profile** shows "Payout Verified ✓". Both are reading different fields, and one of them is wrong.
 
-- **Status registry matches DB enums exactly** — `transaction_status` (incl. `resolved`), `money_status`, `payout_status`, `dispute_case_status`, `escrow_state`, `delivery_method_type`, `item_condition`, `product_status`. No drift.
-- **Money state machine** (`validate_money_transition`) correctly allows `funds_held_in_escrow → funds_frozen` (dispute path) and rejects everything illegal. Trigger `enforce_transaction_transitions` is wired.
-- **Dispute opens correctly freeze funds**: `transaction-verify` → `raiseDispute` performs an atomic transition to `tx.status='disputed'`, `money_status='funds_frozen'`, `dispute_status='open'`, with evidence linking, response deadline (48 h) and notification fan-out. Duplicate-dispute guard present.
-- **Payout-during-dispute is implicitly blocked**: `release-core.ts` requires `money_status='funds_pending_release'`. A frozen tx can't pass, so disputes block release.
-- **Payout idempotency**: short-circuits when `status IN (processing, completed)` and a `provider_reference` exists — no duplicate Paystack transfers.
-- **Courier dispatch guard**: `tracking_number` + `courier_name` enforced before `seller_dispatched`.
-- **Money formatting**: every monetary surface uses `formatMoney` (2 dp, no rounding to thousands). Kobo conversion uses `Math.round(n*100)` only — safe.
-- **Audience-aware labels**: buyers see "Confirm Item Received", sellers see "Delivered", etc. No "admin release" leakage to buyer/seller surfaces.
-- **Auto-release safety**: `auto-timeout-payments` only times out **unpaid** transactions; it never auto-releases funds.
+### Verified against your live DB
 
-### What is NOT 100% — one real gap
+For the seller `a1b2c3d4-...0002`:
 
-**The seller dashboard does not surface a "Frozen / Disputed Funds" amount.**
+| Field | Value | Used by |
+|---|---|---|
+| `payout_accounts.verification_status` | `verified` | Profile |
+| `payout_accounts.provider_recipient_code` | **NULL** | Dashboard |
+| `account_verifications.payout_verified` | `true` | Profile badge |
 
-The user's audit explicitly asked for this:
-> *"Disputed/Frozen funds = transactions under active dispute."*
+The dashboard is **technically right**: without a Paystack `provider_recipient_code`, SafeDeal physically cannot transfer money to the seller's bank — so payout is not truly verified. The profile and `account_verifications.payout_verified` flag are showing a stale/optimistic value that doesn't reflect payout readiness.
 
-Today `seller-dashboard` returns `open_disputes_count` (a number) but no `frozen_funds_amount`. The seller can see *that* a dispute exists but not *how much money* is frozen. This is the only material logic/data gap remaining.
+This means a seller could happily keep selling, then have payouts silently fail at release time. That is exactly the kind of production gap your audit is asking us to close.
 
-Everything else the audit lists (state transitions, dispute freeze, payout guards, dual-audience labels, money precision, taxonomy, notifications, ledger writes) is already correct.
+## Fix strategy — one definition, applied everywhere
 
----
+Define payout readiness in **one place** and reuse it:
 
-## Phase Q — Surface frozen-funds on the seller dashboard
+```text
+payout_ready = (
+  payout_accounts row exists
+  AND verification_status = 'verified'
+  AND provider_recipient_code IS NOT NULL
+)
+```
 
-### Backend (`supabase/functions/seller-dashboard/index.ts`)
+### R1. Backend — fix `seller-profile` edge function
 
-1. Add a new bucket in the per-tx loop:
-   - `if (tx.money_status === "funds_frozen") fundsFrozenTxIds.push(tx.id);`
-2. Sum `seller_net_amount` from `transaction_pricing` for those tx ids → `fundsFrozenAmount`.
-3. Add to the response payload:
-   ```ts
-   funds_frozen_amount: fundsFrozenAmount,
-   funds_frozen_count: fundsFrozenTxIds.length,
-   ```
+In `supabase/functions/seller-profile/index.ts`:
 
-### Service type (`src/services/seller-dashboard.service.ts`)
+- Also select `provider_recipient_code` from `payout_accounts`.
+- Compute `payout_ready` using the formula above.
+- **Override** `verification.payout_verified` with the computed `payout_ready` (do not trust the cached `account_verifications.payout_verified` flag for this surface).
+- Add `payout_ready: boolean` and `payout_blocker_reason: 'missing' | 'unverified' | 'no_recipient_code' | null` to the response so the UI can show specific guidance.
 
-Add the two new fields to the `SellerDashboardData` shape next to `funds_held_in_escrow_amount`.
+### R2. Backend — `seller-dashboard` already correct
 
-### UI (`src/pages/SellerDashboard.tsx`)
+`seller-dashboard/index.ts` line 136 already uses the strict definition. Leave logic as-is, but rename the emitted field to `payout_ready` (keep `payout_account_verified` as alias for one release) so terminology is uniform.
 
-Add a new metric tile in the existing `sd-metric` grid, only when `funds_frozen_amount > 0`:
-- Label: "Frozen Funds"
-- Value: `formatMoney(funds_frozen_amount, "NGN")`
-- Sub: `${funds_frozen_count} transaction(s) under dispute`
-- Tone: `destructive` (matches `MONEY_LABELS.seller.funds_frozen`)
-- Click target: `/seller/disputes`
+### R3. Service layer
 
-No registry changes needed — `MONEY_LABELS.seller.funds_frozen = { label: "Funds Frozen", tone: "destructive" }` already exists.
+- `src/services/seller-profile.service.ts`: extend `PayoutAccountSummary` and `SellerVerification` with `payout_ready` + `payout_blocker_reason`.
+- `src/services/seller-dashboard.service.ts`: expose `payout_ready` alongside existing flag.
 
-### Acceptance
+### R4. UI — Profile (`SellerProfileSettings.tsx` / `VerificationSidebar.tsx` / `SellerVerificationSection.tsx`)
 
-- A seller with a tx in dispute sees the frozen-amount tile with the exact NGN figure to 2 dp.
-- A seller with no disputes does not see the tile (no zero-state noise).
-- Tile click navigates to the disputes page where the same amounts reconcile.
-- Sum of `funds_held_in_escrow_amount + funds_frozen_amount + funds_pending_release_amount` equals total seller-net currently held by SafeDeal — the seller can reconcile.
+- The "Payout Account" verification row must read `payout_ready`, not `payout_verified`.
+- When `verification_status = 'verified'` but `provider_recipient_code` is missing, show an amber "Action needed — finish bank setup" state with a CTA pointing to the payout setup flow (instead of a green check).
+- Microcopy: "Bank verified. We're finalising the secure payout link with your bank — complete this to receive payouts."
 
----
+### R5. UI — Dashboard alert (`alertConfig.ts`, `ReleaseReviewBanner.tsx`)
 
-After Phase Q lands, SafeDeal is genuinely production-ready end-to-end: every status, money figure, transition guard, and audience label is consistent with the database, and the seller can fully account for held / frozen / pending-release / released funds without leaving the dashboard.
+- Use the new `payout_blocker_reason` to show the right message:
+  - `missing` → "Add a payout bank account"
+  - `unverified` → "Verify your payout bank account"
+  - `no_recipient_code` → "Finish linking your bank with our payment processor" + Retry button (calls existing `payout-account-link` function, if present, else falls back to re-running verification).
+
+### R6. UI — Payouts page (`SellerPayouts.tsx`)
+
+- Same readiness check before allowing manual payout actions.
+- Banner at top when not `payout_ready`, blocking confusion about why funds aren't moving.
+
+### R7. Self-healing — backfill `provider_recipient_code`
+
+Add a small "Retry payout link" action in profile + dashboard that calls a new edge function `seller-payout-relink`:
+
+- Re-runs Paystack `transferrecipient` create using the stored bank details.
+- Writes `provider_recipient_code` back to `payout_accounts`.
+- Sets `account_verifications.payout_verified = (verification_status='verified' AND recipient_code IS NOT NULL)` so the cached flag is also corrected going forward.
+
+This means existing affected sellers (like the demo seller in your DB) can self-recover with one click instead of being permanently stuck.
+
+### R8. DB trigger — keep cached flag honest
+
+Add a trigger on `payout_accounts` (AFTER INSERT/UPDATE) that recomputes `account_verifications.payout_verified` from the strict definition, so the two never drift again.
+
+```sql
+-- pseudo
+CREATE FUNCTION sync_payout_verified() ...
+  payout_verified := NEW.verification_status='verified' AND NEW.provider_recipient_code IS NOT NULL
+```
+
+## Acceptance criteria
+
+1. Seller Profile and Seller Dashboard show the **same** payout status for the same account, always.
+2. A seller whose bank is verified by Paystack but missing a `provider_recipient_code` sees a clear "finish linking" prompt on both surfaces, with a working retry button.
+3. After the retry succeeds, both surfaces flip to "Verified" without a manual refresh of cached flags.
+4. The `seller-payouts` page blocks payout-dependent actions whenever `payout_ready` is false, with a single consistent banner.
+5. `account_verifications.payout_verified` automatically tracks the strict definition via DB trigger — no future drift possible.
+6. Existing demo seller (`...0002`) recovers via the new "Retry payout link" action.
+
+## Files touched
+
+- `supabase/functions/seller-profile/index.ts` (compute + emit `payout_ready`)
+- `supabase/functions/seller-dashboard/index.ts` (rename for consistency)
+- `supabase/functions/seller-payout-relink/index.ts` (new)
+- `supabase/migrations/<new>_payout_verified_sync.sql` (trigger + one-time backfill)
+- `src/services/seller-profile.service.ts`
+- `src/services/seller-dashboard.service.ts`
+- `src/pages/SellerProfileSettings.tsx`
+- `src/components/seller/VerificationSidebar.tsx`
+- `src/components/seller/SellerVerificationSection.tsx`
+- `src/components/seller/alertConfig.ts`
+- `src/components/seller/ReleaseReviewBanner.tsx`
+- `src/pages/SellerPayouts.tsx`
+
+## Out of scope (deliberately)
+
+- Buyer side payout displays (none exist — payouts are seller-only).
+- Re-architecting `account_verifications`; we keep the flag but make it derived/synced rather than independently writable for payouts.
+- A broader rerun of the full Phase Q audit — that already passed; this is a targeted fix for the specific drift you identified.
+
+Approve this and I'll switch to build mode and implement R1–R8 in order.
