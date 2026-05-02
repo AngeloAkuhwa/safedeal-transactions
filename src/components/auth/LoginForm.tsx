@@ -77,7 +77,10 @@ const LoginForm = ({ onEmailNotVerified }: LoginFormProps) => {
             sessionStorage.removeItem("safedeal_redirect");
             navigate(storedRedirect, { replace: true });
           } else {
-            const destination = roles.some((r: any) => r.role === "seller") && !roles.some((r: any) => r.role === "buyer")
+            const roleNames = roles.map((r: any) => r.role);
+            const destination = roleNames.includes("admin")
+              ? "/admin/dashboard"
+              : roleNames.includes("seller") && !roleNames.includes("buyer")
               ? "/seller"
               : "/dashboard";
             navigate(destination, { replace: true });
