@@ -34,21 +34,7 @@ import {
   type SellerTransactionsFilters,
 } from "@/services/seller-transactions.service";
 import { getSellerPayouts } from "@/services/seller-payouts.service";
-
-const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  draft: { label: "Draft", variant: "secondary" },
-  awaiting_buyer: { label: "Awaiting Buyer", variant: "outline" },
-  awaiting_payment: { label: "Awaiting Payment", variant: "outline" },
-  payment_secured: { label: "Payment Secured", variant: "default" },
-  seller_preparing_delivery: { label: "Preparing", variant: "default" },
-  seller_dispatched: { label: "Dispatched", variant: "default" },
-  delivered_awaiting_verification: { label: "Awaiting Buyer Review", variant: "secondary" },
-  completed: { label: "Completed", variant: "default" },
-  disputed: { label: "Disputed", variant: "destructive" },
-  cancelled: { label: "Cancelled", variant: "secondary" },
-  timed_out: { label: "Timed Out", variant: "secondary" },
-  refunded: { label: "Refunded", variant: "secondary" },
-};
+import { resolveTransactionLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 
 const actionLabels: Record<string, { label: string; variant: "default" | "outline" }> = {
   payment_secured: { label: "Start Fulfillment", variant: "default" },
@@ -356,7 +342,7 @@ const SellerTransactions = () => {
                   </TableRow>
                 ) : (
                   transactions.map((tx) => {
-                    const status = statusLabels[tx.transaction_status] ?? { label: tx.transaction_status, variant: "secondary" as const };
+                    const status = resolveTransactionLabel(tx.transaction_status, "seller");
                     const action = actionLabels[tx.transaction_status] ?? { label: "View Details", variant: "outline" as const };
                     const initials = tx.buyer_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
@@ -439,10 +425,10 @@ const SellerTransactions = () => {
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-3">
-                          <MoneyStatusBadge status={tx.money_status} />
+                          <MoneyStatusBadge status={tx.money_status} audience="seller" />
                         </TableCell>
                         <TableCell className="px-4 py-3">
-                          <Badge variant={status.variant}>{status.label}</Badge>
+                          <Badge variant="outline" className={TONE_CLASSNAMES[status.tone]}>{status.label}</Badge>
                         </TableCell>
                         <TableCell className="px-4 py-3">
                           <div className="flex items-center gap-1.5">
