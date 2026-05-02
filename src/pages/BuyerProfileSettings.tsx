@@ -123,15 +123,15 @@ const BuyerProfileSettings = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <BuyerNav buyerName={data.profile.full_name} avatarUrl={data.profile.avatar_url} />
 
-      {/* Hero */}
-      <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl flex items-center gap-4">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <UserCog className="h-5 w-5 text-primary" />
+      {/* Compact header */}
+      <section className="border-b bg-card/50">
+        <div className="sd-page sd-page-y flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <UserCog className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Profile & Settings</h1>
-            <p className="text-muted-foreground text-sm">
+            <h1 className="sd-page-title">Profile & Settings</h1>
+            <p className="sd-page-sub">
               Manage your account, verification details, security, and transaction preferences
             </p>
           </div>
@@ -139,8 +139,8 @@ const BuyerProfileSettings = () => {
       </section>
 
       {/* Main content */}
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <main className="flex-1 sd-page sd-page-y">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Left column */}
           <div className="lg:col-span-2 space-y-6">
             <PersonalInfoSection

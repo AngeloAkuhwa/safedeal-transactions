@@ -47,26 +47,26 @@ const cards = [
 
 export function BuyerDisputeSummaryCards({ summary }: BuyerDisputeSummaryCardsProps) {
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
       {cards.map((card) => {
         const Icon = card.icon;
         return (
           <Card
             key={card.key}
-            className="p-6 shadow-lg hover:shadow-xl transition-all"
+            className="sd-metric p-3 hover:shadow-md transition-all"
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className={`w-12 h-12 ${card.iconBg} rounded-xl flex items-center justify-center`}>
-                <Icon className={`h-5 w-5 ${card.iconColor}`} />
+            <div className="flex items-start justify-between mb-2">
+              <div className={`w-8 h-8 ${card.iconBg} rounded-lg flex items-center justify-center`}>
+                <Icon className={`h-4 w-4 ${card.iconColor}`} />
               </div>
-              <span className={`text-xs font-semibold px-3 py-1 rounded-full ${card.badgeBg}`}>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${card.badgeBg}`}>
                 {card.badge}
               </span>
             </div>
-            <div className="text-3xl font-bold text-foreground mb-1">
+            <div className="sd-kpi-value tabular-nums">
               {summary[card.key]}
             </div>
-            <div className="text-sm text-muted-foreground font-medium">
+            <div className="text-xs text-muted-foreground font-medium mt-0.5">
               {card.label}
             </div>
           </Card>

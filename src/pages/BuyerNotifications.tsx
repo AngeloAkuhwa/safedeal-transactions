@@ -165,25 +165,24 @@ const BuyerNotifications = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
 
-      {/* Hero */}
-      <section className="bg-primary py-10 sm:py-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+      {/* Compact header */}
+      <section className="border-b bg-card/50">
+        <div className="sd-page sd-page-y">
+          <div className="flex items-center justify-between gap-3 border-l-4 border-primary pl-3">
             <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary-foreground mb-2">
-                Notifications
-              </h1>
-              <p className="text-primary-foreground/80 text-base sm:text-lg">
+              <h1 className="sd-page-title">Notifications</h1>
+              <p className="sd-page-sub">
                 Stay updated on your transactions, disputes, and important SafeDeal activity.
               </p>
             </div>
             <Button
-              variant="secondary"
-              className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-semibold"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-8 text-xs"
               onClick={() => markAllReadMutation.mutate()}
               disabled={markAllReadMutation.isPending || (data?.summary.unread_count === 0)}
             >
-              <CheckCheck className="h-4 w-4" />
+              <CheckCheck className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Mark all as read</span>
               <span className="sm:hidden">Mark read</span>
             </Button>
@@ -193,7 +192,7 @@ const BuyerNotifications = () => {
 
       <main className="flex-1">
         {/* Summary Cards */}
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 -mt-6 mb-8">
+        <section className="sd-page mt-4 mb-4">
           {data ? (
             <NotificationSummaryCards summary={data.summary} />
           ) : (
@@ -208,7 +207,7 @@ const BuyerNotifications = () => {
           )}
         </section>
 
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12 space-y-6">
+        <div className="sd-page pb-8 space-y-4">
           {/* Filters */}
           <NotificationFilters
             search={search}
@@ -221,18 +220,18 @@ const BuyerNotifications = () => {
 
           {/* Loading */}
           {isLoading && (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-7 w-7 animate-spin text-primary" />
             </div>
           )}
 
           {/* Error */}
           {isError && !isLoading && (
-            <div className="rounded-2xl border bg-card p-12 text-center">
-              <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
-                <RefreshCw className="h-7 w-7 text-destructive" />
+            <div className="rounded-xl border bg-card p-8 text-center">
+              <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-3">
+                <RefreshCw className="h-5 w-5 text-destructive" />
               </div>
-              <h2 className="text-xl font-bold text-foreground mb-2">
+              <h2 className="text-base font-semibold text-foreground mb-1">
                 Unable to load notifications
               </h2>
               <p className="text-muted-foreground text-sm max-w-md mx-auto mb-4">

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { Footer } from "@/components/landing/Footer";
@@ -86,13 +86,11 @@ const BuyerTransactions = () => {
       <main className="flex-1">
         {/* Header */}
         <section className="border-b bg-card/50">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <div className="sd-page sd-page-y">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-                  My Purchases
-                </h1>
-                <p className="text-muted-foreground text-base mt-1">
+                <h1 className="sd-page-title">My Purchases</h1>
+                <p className="sd-page-sub">
                   Track and manage all your SafeDeal transactions
                 </p>
               </div>
@@ -100,16 +98,16 @@ const BuyerTransactions = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => refetch()}
-                className="gap-1.5"
+                className="gap-1.5 h-8 text-xs"
               >
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Refresh</span>
               </Button>
             </div>
           </div>
         </section>
 
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="sd-page sd-page-y space-y-4">
           {/* Loading */}
           {isLoading && (
             <>
@@ -130,11 +128,11 @@ const BuyerTransactions = () => {
 
           {/* Error */}
           {isError && !isLoading && (
-            <div className="rounded-2xl border bg-card p-12 text-center">
-              <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
-                <RefreshCw className="h-7 w-7 text-destructive" />
+            <div className="rounded-xl border bg-card p-8 text-center">
+              <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-3">
+                <RefreshCw className="h-5 w-5 text-destructive" />
               </div>
-              <h2 className="text-xl font-bold text-foreground mb-2">
+              <h2 className="text-base font-semibold text-foreground mb-1">
                 Could not load your purchases
               </h2>
               <p className="text-muted-foreground text-sm max-w-md mx-auto mb-4">

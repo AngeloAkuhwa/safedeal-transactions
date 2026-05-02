@@ -111,21 +111,21 @@ export default function BuyerMarketplace() {
         <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
         <div className="pointer-events-none absolute top-1/2 -left-24 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
 
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6 relative z-10">
+        <div className="sd-page sd-page-y space-y-4 relative z-10">
           {/* Header */}
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start justify-between gap-3">
             <div className="pl-10 lg:pl-0">
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <ShoppingBag className="h-6 w-6 text-primary" />
+              <h1 className="sd-page-title flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5 text-primary" />
                 Marketplace
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="sd-page-sub">
                 Browse products from verified sellers across SafeDeal
               </p>
             </div>
-            <div className="hidden sm:flex items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1.5">
-              <Shield className="h-4 w-4 text-success" />
-              <span className="text-xs font-medium text-success">All purchases protected by SafeDeal escrow</span>
+            <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1">
+              <Shield className="h-3.5 w-3.5 text-success" />
+              <span className="text-[11px] font-medium text-success">All purchases protected by SafeDeal escrow</span>
             </div>
           </div>
 

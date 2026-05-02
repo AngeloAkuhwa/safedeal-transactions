@@ -1,118 +1,89 @@
-# Phase H — Seller Tabs Polish Parity (match SellerAnalytics)
+# Phase I — Buyer Section Polish Parity
 
-Bring the other seller pages up to the same visual density, polish, and motion language already proven on **Seller Analytics**. Storefront and storefront sub-views are explicitly out of scope.
+## Audit Findings
 
-## Pages affected
-- `SellerDashboard.tsx`
-- `SellerTransactions.tsx`
-- `SellerPayouts.tsx`
-- `SellerDisputes.tsx`
-- `SellerPrivateOffers.tsx`
-- `SellerProfileSettings.tsx`
+The seller polish (Phase G + Phase H) introduced a shared design language via `sd-*` tokens in `src/index.css` (sd-page = `max-w-[1400px]`, sd-page-y = `py-3 sm:py-4`, sd-metric min-height 96px, sd-kpi-value text-base→xl, etc.). Every seller page now uses these tokens.
 
-Plus shared components used by these pages:
-- `components/seller/SellerMetricsCards.tsx`
-- `components/seller/SellerQuickActions.tsx`
-- `components/seller/SellerAlertBanners.tsx`
-- `components/seller/SellerRecentActivity.tsx`
-- `components/seller-disputes/SellerDisputeSummaryCards.tsx`
+**Buyer pages use ZERO of these tokens.** They still carry the old, looser style:
 
-Excluded: `SellerStorefront.tsx`, `SellerProductCreate.tsx`, `SellerProductDetail.tsx`, `SellerProductPreview.tsx`, `PublicStorefront.tsx`, `PublicProductDetail.tsx`.
+| Page | Current State | Problem |
+|---|---|---|
+| `Dashboard.tsx` (buyer home) | `max-w-7xl`, big section gaps `mb-12` | Looser than seller dashboard |
+| `BuyerTransactions.tsx` | `max-w-7xl`, `py-6 sm:py-8`, `text-2xl sm:text-3xl` H1 | Oversized header, narrower than seller |
+| `BuyerDisputes.tsx` | Full-width `bg-destructive py-10 sm:py-12` hero, `text-3xl lg:text-4xl` H1 | Gigantic red hero — much heavier than seller equivalent |
+| `BuyerNotifications.tsx` | Same heavy `bg-primary py-10 sm:py-12` hero pattern | Same bloat |
+| `BuyerPrivateOffers.tsx` | `max-w-6xl`, `py-8`, `text-3xl` H1 | Inconsistent width + oversized title |
+| `BuyerProfileSettings.tsx` | `bg-gradient-to-r ... py-8` hero, `max-w-7xl py-8` body | Same gradient hero already removed on seller side |
+| `BuyerCart.tsx` | `max-w-5xl`, `text-2xl lg:text-3xl` H1, `text-2xl` KPI values | Narrow + KPI font too large vs sd-kpi-value |
+| `BuyerSavedProducts.tsx` | Already `max-w-[1400px]` ✓ but `text-2xl md:text-3xl lg:text-4xl` H1 + `text-2xl` price | Header & prices oversized |
+| `BuyerDisputeSummaryCards` | `text-3xl` numbers, `px-3 py-1` chips | Heavier than `SellerDisputeSummaryCards` (which now uses sd-metric grid) |
+| `BuyerMarketplace.tsx` | needs verification | likely same pattern |
 
-## The "Analytics language" we are propagating
+## Scope
 
-1. **Container & rhythm**
-   - `max-w-[1400px]` (not `max-w-7xl`)
-   - `px-4 sm:px-6 lg:px-8`
-   - `py-3 sm:py-4` page padding (down from `py-8`)
-   - `space-y-3 sm:space-y-3.5` section spacing
+Apply identical polish to buyer-facing pages **only**. Storefront-facing pages (`SellerStorefront`, `BuyerMarketplace` product browsing experience) are excluded from density tightening — they're consumer browsing surfaces, not dashboards. We will only touch the dashboard chrome of `BuyerMarketplace` (header strip), not the product grid.
 
-2. **Headers**
-   - Title: `text-lg sm:text-xl font-bold tracking-tight`
-   - Subtitle: `text-xs text-muted-foreground` with `Last updated` chip + `Clock` icon when relevant
-   - Right-side controls: 32px high (`h-8 text-xs`) selects/buttons
+## Changes
 
-3. **KPI cards** (reusable pattern from Analytics `KpiCard`)
-   - `rounded-lg`, `p-2.5 sm:p-3`
-   - Title: `text-[10px] uppercase tracking-wide font-semibold text-muted-foreground`
-   - Value: `text-base sm:text-lg lg:text-xl font-bold tabular-nums`
-   - Right-aligned `Info` tooltip (12px) + hover `ChevronRight` affordance
-   - Whole card is a `Link` with hover lift (`-translate-y-0.5`) and ring focus
-   - Optional `TrendChip` (success/warning/danger/info/muted tones) under value
+### 1. Page Shell Standardization
+Replace in every buyer dashboard page:
+- `mx-auto max-w-7xl px-4 sm:px-6 lg:px-8` → `sd-page`
+- `py-6 sm:py-8` / `py-8` → `sd-page-y`
+- `text-2xl sm:text-3xl font-bold` H1 → `sd-page-title`
+- Subtitle paragraph → `sd-page-sub`
 
-4. **Tonal chip system** (export the `chipToneClass` map from a shared util)
-   - Add `src/lib/seller-ui.ts` exporting `chipToneClass`, `TrendChip`, `ChipTone` so all pages share one source
+Affected: `Dashboard.tsx`, `BuyerTransactions.tsx`, `BuyerDisputes.tsx`, `BuyerNotifications.tsx`, `BuyerPrivateOffers.tsx`, `BuyerProfileSettings.tsx`, `BuyerCart.tsx`, `BuyerSavedProducts.tsx`, `BuyerVerification.tsx`.
 
-5. **Tables → mobile card stacks**
-   - On `< sm`, replace `<Table>` with stacked compact cards (already partly done in `SellerRecentActivity`); apply same to `SellerTransactions` and `SellerPayouts` history table
+### 2. Remove Heavy Hero Bands
+- `BuyerDisputes.tsx`: replace full-width `bg-destructive py-10 sm:py-12` hero with compact title strip + a slim `border-l-4 border-destructive` accent bar (mirrors the pattern used in `SellerDisputes.tsx`).
+- `BuyerNotifications.tsx`: same — replace `bg-primary py-10 sm:py-12` hero with compact header.
+- `BuyerProfileSettings.tsx`: remove `bg-gradient-to-r from-primary/10 ...` hero (matches seller change).
 
-6. **Motion**
-   - `animate-fade-in` on header
-   - Staggered `animationDelay: index * 50–70ms` on KPI grids and list rows
-   - Respect `prefers-reduced-motion` via the same `useReducedMotion` hook (extract to `src/hooks/use-reduced-motion.ts`)
+### 3. Buyer KPI / Summary Cards
+- `BuyerDisputeSummaryCards.tsx`: rebuild with `sd-metric` grid, `sd-kpi-label` for label, `sd-kpi-value` for number, replace bespoke chip padding with the standard chip tone classes already in use on seller side.
+- `BuyerCart.tsx` summary tiles (items / selected / needs attention): drop `text-2xl` → `sd-kpi-value`, tighten card padding to `p-3`.
+- `BuyerSavedProducts.tsx` price `text-2xl` → `text-lg font-bold tabular-nums` to align with seller listings.
 
-7. **Footer / Nav** — already updated in Phase G; no further changes.
+### 4. Filters / Toolbars
+- Standardize search inputs and select triggers to `h-8 text-xs` (matches `SellerTransactions` toolbar).
+- Affected: `BuyerTransactions.tsx`, `BuyerDisputes.tsx`, `BuyerNotifications.tsx`, `BuyerSavedProducts.tsx`.
 
-## Per-page changes
+### 5. Empty States
+- Reduce `py-16` / `py-20` → `py-10`.
+- H2 in empty state `text-xl font-bold` → `text-base font-semibold`.
+- Body copy already `text-sm` ✓.
 
-### SellerDashboard
-- Wrap all `<section>`s in single `max-w-[1400px]` container with `space-y-3.5`
-- `SellerMetricsCards`: drop oversized hero variants, switch to the compact `KpiCard` (Info tooltip + ChevronRight). Keep the existing 6-col responsive grid but with the analytics density.
-- `SellerQuickActions`: tighten to `p-2.5`, add hover-lift + `ChevronRight`.
-- `SellerAlertBanners`: 12px icons, `text-xs`, denser padding `p-2.5`.
-- `SellerRecentActivity`: align row chrome (badges, hover ring) with analytics `ReleaseRow`.
+### 6. Buyer Marketplace (dashboard chrome only)
+- Update only the page header / KPI strip area to `sd-page` + `sd-page-title`.
+- **Do not touch** product grid, search bar styling, category pills, or product cards — those are storefront UX.
 
-### SellerTransactions
-- Header row matches analytics (title `text-xl`, period/filter selects `h-8 text-xs`).
-- Move existing 4 KPIs into the analytics `KpiCard` shell.
-- Filter chip rail: convert to `TrendChip` tones from the shared util.
-- Table: `text-xs` headers (already), but tighten cell padding `py-2.5`; mobile breakpoint shows stacked cards (status/amount/buyer/CTA).
-- Pagination footer: 32px controls.
+### 7. Motion Parity
+- Reuse `useReducedMotion` hook + the staggered fade-in pattern already imported on seller pages for the buyer transaction list, dispute list, and notification list.
 
-### SellerPayouts
-- Header and metric strip use `KpiCard` (Net released, Awaiting release, Held in escrow, Failed payouts).
-- "Auto-release queue" + "Failed payouts" cards: rebuild rows with `ReleaseRow` pattern (tonal background + ChevronRight).
-- Payout History table: tighter cells, mobile card stack. Status pill uses tonal chip.
-- Right rail: payout destination card uses analytics's compact `Card` with `p-3` and `text-[13px]` rows.
+## Files to Edit (all reads only — no token additions needed; sd-* already exist in `src/index.css`)
+- `src/pages/Dashboard.tsx`
+- `src/pages/BuyerTransactions.tsx`
+- `src/pages/BuyerDisputes.tsx`
+- `src/pages/BuyerNotifications.tsx`
+- `src/pages/BuyerPrivateOffers.tsx`
+- `src/pages/BuyerProfileSettings.tsx`
+- `src/pages/BuyerCart.tsx`
+- `src/pages/BuyerSavedProducts.tsx`
+- `src/pages/BuyerVerification.tsx`
+- `src/pages/BuyerMarketplace.tsx` (header strip only)
+- `src/components/disputes/BuyerDisputeSummaryCards.tsx`
+- (possibly) `src/components/disputes/BuyerDisputeFilters.tsx`, `BuyerDisputeList.tsx`, `BuyerDisputeEmptyState.tsx` for empty-state + filter-control alignment
 
-### SellerDisputes
-- Header `text-xl`, container `max-w-[1400px]`, `py-4`.
-- `SellerDisputeSummaryCards`: replace with analytics `KpiCard` (Total, Open, Awaiting Buyer, Resolved) + Info tooltips.
-- Trust banner: 3 mini cards using `HealthCard` pattern (icon + value + 1px progress bar).
-- Dispute table: same density treatment as transactions.
+## Out of Scope
+- Storefront product grid & product detail pages.
+- `BuyerTransactionDetail`, `BuyerTransactionAgreement`, `BuyerTransactionVerify`, `BuyerTransactionTracking`, `BuyerTransactionReview`, `BuyerDisputeDetail`, `BuyerPaymentSummary` — these are deep transactional flows; density polish would risk breaking signed-agreement layouts. Can be a follow-up Phase J if you want.
+- No backend / RLS / edge-function changes.
+- No new design tokens — reusing the ones Phase H already shipped.
 
-### SellerPrivateOffers
-- Header `text-xl` + `Last updated` chip.
-- Three summary KPIs (Total / Claimed / Expired) as `KpiCard`s with tonal chips (success / muted / warning).
-- Table rows: tighter `py-2.5`, status badge from shared chip tones (`claimed → success`, `expired → muted`, `pending → info`).
-- Mobile: stacked cards.
-
-### SellerProfileSettings
-- Drop the gradient hero (`py-8`) → compact header strip `py-4` matching analytics.
-- Container `max-w-[1400px]`, `py-4`.
-- Right rail sticky cards: `rounded-lg`, `p-3`, denser typography.
-- Section cards (`SellerVerificationSection`, payout destinations, notification toggles): use `text-[13px]` row labels and 32px-high controls.
-
-## Shared utilities to add
-
-```
-src/hooks/use-reduced-motion.ts        // extracted from SellerAnalytics
-src/lib/seller-ui.ts                   // ChipTone, chipToneClass, TrendChip,
-                                       // KpiCard, HealthCard, ReleaseRow
-```
-
-All six pages then import from `@/lib/seller-ui` to guarantee parity. SellerAnalytics is refactored to consume the same shared exports (drop its local copies) so future drift is impossible.
-
-## Out of scope
-- No business-logic changes, no new edge functions, no DB migrations.
-- No copy changes beyond what's needed to fit the denser layout.
-- Storefront and product-builder pages remain untouched.
-
-## Acceptance criteria
-- All six listed pages share the analytics container width, header sizing, KPI card density, tonal chip palette, and stagger animations.
-- No `max-w-7xl` or `py-8` hero patterns remain on these six pages.
-- `text-2xl`/`text-3xl` H1s on these pages are gone.
-- KPI cards across pages are visually identical in size, padding, and hover behavior.
-- Mobile (≤ sm) shows card stacks instead of horizontally-overflowing tables on Transactions, Payouts, Disputes, Private Offers.
-- Storefront pages untouched (`git diff` shows no changes under Storefront/Product files).
-- Reduced-motion users see no fade-in/stagger animations.
+## Acceptance
+- Every buyer dashboard page uses `sd-page` + `sd-page-y` (1400px container, py-3/4).
+- No `bg-gradient-to-r` or `bg-destructive py-10+` heroes remain on buyer dashboard pages.
+- Buyer KPI cards visually match seller KPI cards in size, font weight, and chip tone.
+- Toolbars at `h-8 text-xs`.
+- No horizontal overflow at 1246px viewport (current user viewport).
+- Storefront and deep transactional flows untouched.

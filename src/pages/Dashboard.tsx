@@ -62,15 +62,15 @@ const Dashboard = () => {
 
       <main className="flex-1">
         {/* Metrics — overlapping hero */}
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 -mt-6 mb-8">
+        <section className="sd-page -mt-6 mb-4">
           <MetricsCards metrics={data.metrics} />
         </section>
 
         {hasNoPurchases ? (
-          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-12">
-            <div className="rounded-2xl border bg-card p-12 text-center">
-              <ShoppingBag className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-foreground mb-2">
+          <section className="sd-page mb-8">
+            <div className="rounded-xl border bg-card p-8 text-center">
+              <ShoppingBag className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+              <h2 className="text-base font-semibold text-foreground mb-1">
                 You don't have any protected purchases yet
               </h2>
               <p className="text-muted-foreground text-sm max-w-md mx-auto">
@@ -80,15 +80,15 @@ const Dashboard = () => {
           </section>
         ) : (
           <>
-            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-8">
+            <section className="sd-page mb-4">
               <RecentNotifications notifications={data.recent_notifications} />
             </section>
 
-            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-8">
+            <section className="sd-page mb-4">
               <RecentPurchases purchases={data.recent_purchases} />
             </section>
 
-            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-12">
+            <section className="sd-page mb-8">
               <QuickAccess metrics={data.metrics} />
             </section>
           </>
