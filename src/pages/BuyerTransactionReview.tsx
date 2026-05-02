@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { getTransactionReview, type ReviewData } from "@/services/review.service";
 import { getBuyerProfile } from "@/services/profile.service";
+import { formatMoney } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
@@ -174,12 +175,12 @@ export default function BuyerTransactionReview() {
     );
   }
 
-  const currencySymbol = data.pricing?.currency_code === "NGN" ? "₦" : "$";
+  const currencyCode = data.pricing?.currency_code || "NGN";
   const totalAmount = data.pricing?.total_amount ?? 0;
   const itemAmount = data.pricing?.item_amount ?? 0;
   const feeAmount = data.pricing?.service_fee_amount ?? 0;
   const feeRate = data.pricing?.service_fee_rate ?? 0;
-  const payButtonLabel = authState === "anonymous" ? "Sign Up to Pay" : `Pay ${currencySymbol}${totalAmount.toLocaleString()}`;
+  const payButtonLabel = authState === "anonymous" ? "Sign Up to Pay" : `Pay ${formatMoney(totalAmount, currencyCode)}`;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

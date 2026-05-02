@@ -19,6 +19,7 @@ import { getBuyerProfile } from "@/services/profile.service";
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
+import { formatMoney } from "@/lib/format";
 
 declare global {
   interface Window {
