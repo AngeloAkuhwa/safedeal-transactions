@@ -1,5 +1,6 @@
 import { Menu, ShieldCheck, Download } from "lucide-react";
 import { useAdminNav } from "./useAdminNav";
+import { AdminReadingModeControl } from "./AdminReadingModeControl";
 
 interface AdminMobileHeaderProps {
   onOpenMenu: () => void;
@@ -29,14 +30,17 @@ export function AdminMobileHeader({ onOpenMenu }: AdminMobileHeaderProps) {
             </div>
           </div>
         </div>
-        <button
+        <div className="flex items-center gap-2">
+          <AdminReadingModeControl variant="mobile-trigger" />
+          <button
           type="button"
           onClick={() => go("/admin/exports", "Exports")}
           aria-label="Export"
           className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700"
         >
           <Download className="h-4 w-4" />
-        </button>
+          </button>
+        </div>
       </div>
     </header>
   );
