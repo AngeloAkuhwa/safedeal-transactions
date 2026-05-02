@@ -146,6 +146,7 @@ Deno.serve(async (req) => {
     const fundsHeldTxIds: string[] = [];
     const fundsPendingReleaseTxIds: string[] = [];
     const fundsReleasingTxIds: string[] = [];
+    const fundsFrozenTxIds: string[] = [];
     const fulfillmentNeededTxIds: string[] = [];
     const dispatchedTxIds: string[] = [];
     const buyerVerificationTxIds: string[] = [];
@@ -158,6 +159,7 @@ Deno.serve(async (req) => {
       if (tx.money_status === "funds_held_in_escrow") fundsHeldTxIds.push(tx.id);
       if (tx.money_status === "funds_pending_release") fundsPendingReleaseTxIds.push(tx.id);
       if (tx.money_status === "funds_releasing") fundsReleasingTxIds.push(tx.id);
+      if (tx.money_status === "funds_frozen") fundsFrozenTxIds.push(tx.id);
       if (["payment_secured", "seller_preparing_delivery"].includes(tx.status)) fulfillmentNeededTxIds.push(tx.id);
       if (tx.status === "seller_dispatched") dispatchedTxIds.push(tx.id);
       if (tx.status === "delivered_awaiting_verification") buyerVerificationTxIds.push(tx.id);
@@ -196,12 +198,13 @@ Deno.serve(async (req) => {
     let awaitingBuyerReviewAmount = 0;
     let fundsHeldInEscrowAmount = 0;
     let fundsPendingReleaseAmount = 0;
+    let fundsFrozenAmount = 0;
     let payoutsCompletedAmount = 0;
     let netPaidToBank = 0;
 
     const amountTxIds = [...new Set([
       ...awaitingPaymentTxIds, ...awaitingBuyerReviewTxIds, ...fundsHeldTxIds,
-      ...fundsPendingReleaseTxIds, ...fundsReleasingTxIds, ...completedTxIds,
+      ...fundsPendingReleaseTxIds, ...fundsReleasingTxIds, ...fundsFrozenTxIds, ...completedTxIds,
     ])];
     if (amountTxIds.length > 0) {
       const { data: pricingData } = await adminClient
@@ -220,6 +223,7 @@ Deno.serve(async (req) => {
         for (const id of fundsHeldTxIds) fundsHeldInEscrowAmount += pricingMap.get(id)?.sellerNet ?? 0;
         for (const id of fundsPendingReleaseTxIds) fundsPendingReleaseAmount += pricingMap.get(id)?.sellerNet ?? 0;
         for (const id of fundsReleasingTxIds) fundsPendingReleaseAmount += pricingMap.get(id)?.sellerNet ?? 0;
+        for (const id of fundsFrozenTxIds) fundsFrozenAmount += pricingMap.get(id)?.sellerNet ?? 0;
         for (const id of completedTxIds) payoutsCompletedAmount += pricingMap.get(id)?.sellerNet ?? 0;
       }
     }
@@ -599,6 +603,8 @@ Deno.serve(async (req) => {
       awaiting_buyer_review_amount: awaitingBuyerReviewAmount,
       funds_held_in_escrow_amount: fundsHeldInEscrowAmount,
       funds_pending_release_amount: fundsPendingReleaseAmount,
+      funds_frozen_amount: fundsFrozenAmount,
+      funds_frozen_count: fundsFrozenTxIds.length,
       payouts_completed_amount: payoutsCompletedAmount,
       net_paid_to_bank: netPaidToBank,
       net_pending_bank_transfer: netPendingBankTransfer,
