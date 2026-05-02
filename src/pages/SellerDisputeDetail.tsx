@@ -18,6 +18,7 @@ import { SellerViewBuyerClaim } from "@/components/seller-disputes/SellerViewBuy
 import { SellerDisputeResponseSection } from "@/components/seller-disputes/SellerDisputeResponseSection";
 import { SellerEvidenceSection } from "@/components/seller-disputes/SellerEvidenceSection";
 import { getSellerDisputeDetail } from "@/services/seller-dispute-detail.service";
+import { formatMoney } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -237,11 +238,7 @@ const SellerDisputeDetail = () => {
                           <p className="text-xs text-muted-foreground mb-1">Total Amount</p>
                           <p className="text-base font-bold text-foreground">
                             {data.pricing
-                              ? new Intl.NumberFormat("en-NG", {
-                                  style: "currency",
-                                  currency: data.pricing.currency_code,
-                                  minimumFractionDigits: 0,
-                                }).format(data.pricing.buyer_total_amount)
+                              ? formatMoney(data.pricing.buyer_total_amount, data.pricing.currency_code)
                               : "—"}
                           </p>
                         </div>
@@ -330,21 +327,13 @@ const SellerDisputeDetail = () => {
                           <div>
                             <p className="text-xs text-muted-foreground mb-1">Released to You</p>
                             <p className="text-lg font-bold text-success">
-                              {new Intl.NumberFormat("en-NG", {
-                                style: "currency",
-                                currency: data.pricing?.currency_code ?? "NGN",
-                                minimumFractionDigits: 0,
-                              }).format(data.outcome.release_amount)}
+                              {formatMoney(data.outcome.release_amount, data.pricing?.currency_code ?? "NGN")}
                             </p>
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground mb-1">Refunded to Buyer</p>
                             <p className="text-lg font-bold text-foreground">
-                              {new Intl.NumberFormat("en-NG", {
-                                style: "currency",
-                                currency: data.pricing?.currency_code ?? "NGN",
-                                minimumFractionDigits: 0,
-                              }).format(data.outcome.refund_amount)}
+                              {formatMoney(data.outcome.refund_amount, data.pricing?.currency_code ?? "NGN")}
                             </p>
                           </div>
                         </div>
