@@ -162,72 +162,72 @@ const BuyerCart = () => {
     <div className="flex min-h-screen bg-background">
       <BuyerSidebar />
       <main className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="sd-page sd-page-y space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-3">
-                <ShoppingCart className="h-7 w-7 text-primary" />
+              <h1 className="sd-page-title flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 text-primary" />
                 My Cart
                 {items.length > 0 && (
-                  <Badge variant="outline" className="text-sm">{items.length} item{items.length !== 1 ? "s" : ""}</Badge>
+                  <Badge variant="outline" className="text-xs">{items.length} item{items.length !== 1 ? "s" : ""}</Badge>
                 )}
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">Review your saved items and proceed to checkout</p>
+              <p className="sd-page-sub">Review your saved items and proceed to checkout</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/marketplace")} className="gap-2">
-              <ShoppingBag className="h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/marketplace")} className="gap-1.5 h-8 text-xs">
+              <ShoppingBag className="h-3.5 w-3.5" />
               Continue Shopping
             </Button>
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-7 w-7 animate-spin text-primary" />
             </div>
           ) : items.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card p-12 text-center space-y-4">
-              <ShoppingCart className="h-16 w-16 text-muted-foreground/30 mx-auto" />
-              <h2 className="text-xl font-semibold text-foreground">Your cart is empty</h2>
-              <p className="text-muted-foreground">Browse the marketplace to find products</p>
-              <Button onClick={() => navigate("/dashboard/marketplace")} className="gap-2">
-                <ShoppingBag className="h-4 w-4" /> Browse Marketplace
+            <div className="rounded-xl border border-border bg-card p-8 text-center space-y-3">
+              <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+              <h2 className="text-base font-semibold text-foreground">Your cart is empty</h2>
+              <p className="text-sm text-muted-foreground">Browse the marketplace to find products</p>
+              <Button size="sm" onClick={() => navigate("/dashboard/marketplace")} className="gap-1.5 h-8 text-xs">
+                <ShoppingBag className="h-3.5 w-3.5" /> Browse Marketplace
               </Button>
             </div>
           ) : (
             <>
               {/* Summary stat cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <ShoppingCart className="h-5 w-5 text-primary" />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sd-metric rounded-xl border border-border bg-card p-3 flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <ShoppingCart className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Items</p>
-                    <p className="text-2xl font-bold text-foreground">{items.length}</p>
+                    <p className="text-xs text-muted-foreground">Total Items</p>
+                    <p className="sd-kpi-value tabular-nums">{items.length}</p>
                   </div>
                 </div>
-                <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                <div className="sd-metric rounded-xl border border-border bg-card p-3 flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Selected for Checkout</p>
-                    <p className="text-2xl font-bold text-emerald-600">{selected.size}</p>
+                    <p className="text-xs text-muted-foreground">Selected for Checkout</p>
+                    <p className="sd-kpi-value tabular-nums text-emerald-600">{selected.size}</p>
                   </div>
                 </div>
-                <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                <div className="sd-metric rounded-xl border border-border bg-card p-3 flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Needs Attention</p>
-                    <p className="text-2xl font-bold text-destructive">{needsAttentionCount}</p>
+                    <p className="text-xs text-muted-foreground">Needs Attention</p>
+                    <p className="sd-kpi-value tabular-nums text-destructive">{needsAttentionCount}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Cart items — 2/3 */}
                 <div className="lg:col-span-2 space-y-3">
                   {/* Select all bar */}
