@@ -22,11 +22,7 @@ import { WhatHappensCard } from "@/components/verification/WhatHappensCard";
 import { SafeDealReviewNotice } from "@/components/verification/SafeDealReviewNotice";
 import { getVerificationData } from "@/services/verification.service";
 import { getBuyerProfile } from "@/services/profile.service";
-
-const STATUS_LABELS: Record<string, string> = {
-  delivered_awaiting_verification: "Awaiting Verification",
-  funds_held_in_escrow: "Funds Held in Escrow",
-};
+import { resolveTransactionLabel, resolveMoneyLabel } from "@/lib/status-labels";
 
 const BuyerTransactionVerify = () => {
   const { transactionId } = useParams<{ transactionId: string }>();
