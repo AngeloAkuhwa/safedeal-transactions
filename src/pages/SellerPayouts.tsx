@@ -23,6 +23,7 @@ import { SellerNav } from "@/components/seller/SellerNav";
 import { Footer } from "@/components/landing/Footer";
 import { EditPayoutDetailsModal } from "@/components/seller/EditPayoutDetailsModal";
 import { ExportPayoutsDialog } from "@/components/seller/ExportPayoutsDialog";
+import { resolvePayoutStatusLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 import { getSellerPayouts, updatePayoutAccount } from "@/services/seller-payouts.service";
 import { toast } from "@/hooks/use-toast";
 import type { PayoutHistoryItem, UpcomingRelease, BlockedFund } from "@/services/seller-payouts.service";
@@ -45,15 +46,8 @@ function CardInfoTip({ children }: { children: React.ReactNode }) {
 }
 
 function PayoutStatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; className: string }> = {
-    completed: { label: "Released", className: "bg-success/10 text-success border-success/20" },
-    processing: { label: "Processing", className: "bg-primary/10 text-primary border-primary/20" },
-    pending: { label: "Scheduled", className: "bg-warning/10 text-warning border-warning/20" },
-    failed: { label: "Failed", className: "bg-destructive/10 text-destructive border-destructive/20" },
-    cancelled: { label: "Cancelled", className: "bg-muted text-muted-foreground border-border" },
-  };
-  const cfg = map[status] ?? map.cancelled;
-  return <Badge variant="outline" className={cfg.className}>{cfg.label}</Badge>;
+  const cfg = resolvePayoutStatusLabel(status);
+  return <Badge variant="outline" className={TONE_CLASSNAMES[cfg.tone]}>{cfg.label}</Badge>;
 }
 
 function RowAction({ row, onFixPayout }: { row: PayoutHistoryItem; onFixPayout: () => void }) {

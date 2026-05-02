@@ -11,15 +11,8 @@ import { Info } from "lucide-react";
 import { DisputeStatusBadge } from "@/components/disputes/DisputeStatusBadge";
 import { cn } from "@/lib/utils";
 import type { SellerDisputeItem } from "@/services/seller-disputes.service";
-
-const moneyImpactConfig: Record<string, { label: string; className: string }> = {
-  funds_frozen: { label: "Funds Frozen", className: "bg-destructive/10 text-destructive border-destructive/20" },
-  payout_blocked: { label: "Payout Blocked", className: "bg-warning/10 text-warning border-warning/20" },
-  refund_pending: { label: "Refund Pending", className: "bg-warning/10 text-warning border-warning/20" },
-  no_impact: { label: "No Impact", className: "bg-muted text-muted-foreground border-border" },
-};
-
 import { formatMoney } from "@/lib/format";
+import { resolveDisputeMoneyImpact, TONE_CLASSNAMES } from "@/lib/status-labels";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" });
@@ -90,7 +83,7 @@ export function SellerDisputeTable({ items }: Props) {
                 .slice(0, 2)
                 .toUpperCase() ?? "?";
 
-              const impact = moneyImpactConfig[d.money_impact] ?? moneyImpactConfig.no_impact;
+              const impact = resolveDisputeMoneyImpact(d.money_impact);
 
               const deadlineText = d.seller_response_status !== "responded"
                 ? formatDeadline(d.seller_response_due_at)
@@ -143,7 +136,7 @@ export function SellerDisputeTable({ items }: Props) {
                     <DisputeStatusBadge status={d.status} />
                   </TableCell>
                   <TableCell className="px-4 py-3 hidden md:table-cell">
-                    <Badge variant="outline" className={cn("text-xs font-medium whitespace-nowrap", impact.className)}>
+                    <Badge variant="outline" className={cn("text-xs font-medium whitespace-nowrap", TONE_CLASSNAMES[impact.tone])}>
                       {impact.label}
                     </Badge>
                   </TableCell>

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { getSellerDisputes, type SellerDisputeItem } from "@/services/seller-disputes.service";
+import { resolveDisputeLabel, resolveDisputeMoneyImpact } from "@/lib/status-labels";
 
 interface ExportDisputesDialogProps {
   open: boolean;
@@ -20,21 +21,6 @@ interface ExportDisputesDialogProps {
   currentReasonFilter: string;
   currentSearch: string;
 }
-
-const statusLabel: Record<string, string> = {
-  open: "Open",
-  seller_response_pending: "Awaiting Response",
-  under_review: "Under Review",
-  resolved: "Resolved",
-};
-
-const moneyImpactLabel: Record<string, string> = {
-  payout_blocked: "Payout Blocked",
-  payout_on_hold: "Payout On Hold",
-  no_impact: "No Impact",
-  refunded: "Refunded",
-  released: "Released",
-};
 
 function esc(v: string | null | undefined) {
   if (!v) return "";
@@ -54,8 +40,8 @@ function buildCsv(rows: SellerDisputeItem[]): string {
     esc(d.buyer?.name),
     esc(d.item_title),
     esc(d.reason_label),
-    esc(statusLabel[d.status] ?? d.status),
-    esc(moneyImpactLabel[d.money_impact] ?? d.money_impact),
+    esc(resolveDisputeLabel(d.status, "seller").label),
+    esc(resolveDisputeMoneyImpact(d.money_impact).label),
     d.seller_response_due_at ? format(new Date(d.seller_response_due_at), "yyyy-MM-dd") : "",
     format(new Date(d.opened_at), "yyyy-MM-dd"),
     "",
@@ -222,11 +208,11 @@ export function ExportDisputesDialog({
                       <td className="py-2.5 pr-3 text-xs">{d.reason_label}</td>
                       <td className="py-2.5 pr-3">
                         <Badge variant="outline" className="text-[10px]">
-                          {statusLabel[d.status] ?? d.status}
+                          {resolveDisputeLabel(d.status, "seller").label}
                         </Badge>
                       </td>
                       <td className="py-2.5 pr-3 hidden sm:table-cell text-xs">
-                        {moneyImpactLabel[d.money_impact] ?? d.money_impact}
+                        {resolveDisputeMoneyImpact(d.money_impact).label}
                       </td>
                       <td className="py-2.5 hidden sm:table-cell text-xs text-muted-foreground">
                         {format(new Date(d.opened_at), "MMM d, yyyy")}

@@ -21,25 +21,9 @@ import { PurchaseAuthModal } from "@/components/storefront/PurchaseAuthModal";
 import { useLocation } from "react-router-dom";
 import { useIsProductSaved, useToggleSave } from "@/hooks/useSavedProducts";
 import { formatMoney } from "@/lib/format";
+import { resolveDeliveryMethod, resolveItemCondition } from "@/lib/status-labels";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
-
-const conditionLabels: Record<string, string> = {
-  brand_new: "Brand New",
-  like_new: "Like New",
-  used_good: "Used - Good",
-  used_fair: "Used - Fair",
-  refurbished: "Refurbished",
-};
-
-const deliveryMethodLabels: Record<string, string> = {
-  pickup: "Pickup",
-  delivery: "Delivery",
-  courier_shipping: "Courier / Shipping",
-  digital: "Digital / Instant",
-  hand_delivery: "Hand Delivery",
-  meetup: "Meetup",
-};
 
 // Placeholder reviews data matching reference
 const placeholderReviews = [
@@ -291,7 +275,7 @@ const PublicProductDetail = () => {
             )}
             {product.condition_label && (
               <Badge variant="outline" className="rounded-full text-xs">
-                {conditionLabels[product.condition_label] || product.condition_label}
+                {resolveItemCondition(product.condition_label)}
               </Badge>
             )}
             <Badge variant="outline" className={`rounded-full text-xs ${stockStatus.cls} gap-1.5`}>
@@ -541,7 +525,7 @@ const PublicProductDetail = () => {
                     </div>
                   )}
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{deliveryMethodLabels[method] || method}</p>
+                    <p className="text-sm font-semibold text-foreground">{resolveDeliveryMethod(method)}</p>
                     <p className="text-xs text-muted-foreground">Tracked & supported by SafeDeal</p>
                   </div>
                 </div>

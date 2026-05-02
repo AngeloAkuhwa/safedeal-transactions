@@ -14,17 +14,9 @@ import { getPublicProductDetail } from "@/services/public-storefront.service";
 import { createStorefrontTransaction } from "@/services/storefront-checkout.service";
 import { computePricing } from "@/lib/pricing";
 import { formatMoney } from "@/lib/format";
+import { resolveDeliveryMethod } from "@/lib/status-labels";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
-
-const deliveryMethodLabels: Record<string, string> = {
-  pickup: "Pickup",
-  delivery: "Delivery",
-  courier_shipping: "Courier / Shipping",
-  digital: "Digital / Instant",
-  hand_delivery: "Hand Delivery",
-  meetup: "Meetup",
-};
 
 const StorefrontCheckout = () => {
   const { sellerSlug, productSlug } = useParams<{ sellerSlug: string; productSlug: string }>();
@@ -230,7 +222,7 @@ const StorefrontCheckout = () => {
                   </div>
                   <div>
                     <p className="font-semibold text-foreground">
-                      {deliveryMethodLabels[primaryDelivery] || primaryDelivery}
+                      {resolveDeliveryMethod(primaryDelivery)}
                     </p>
                     {product.estimated_delivery_days && (
                       <p className="text-sm text-muted-foreground">

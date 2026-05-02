@@ -179,42 +179,33 @@ export function resolveTransactionLabel(
 }
 
 /* ============================================================
- * DISPUTE STATUS
+ * DISPUTE STATUS  (DB enum: dispute_case_status)
+ *
+ * DB values: open | seller_response_pending | under_review | resolved
+ * (The legacy `dispute_status` enum also includes `none`.)
  * ============================================================ */
 
 export type DisputeStatus =
+  | "none"
   | "open"
-  | "awaiting_seller_response"
-  | "awaiting_buyer_response"
+  | "seller_response_pending"
   | "under_review"
-  | "resolved_buyer_refund"
-  | "resolved_seller_release"
-  | "resolved_partial"
-  | "withdrawn"
-  | "closed";
+  | "resolved";
 
 export const DISPUTE_LABELS: Record<Audience, Record<DisputeStatus, LabelEntry>> = {
   seller: {
+    none: { label: "No Dispute", tone: "muted" },
     open: { label: "Open", tone: "warning" },
-    awaiting_seller_response: { label: "Your Response Needed", tone: "warning" },
-    awaiting_buyer_response: { label: "Awaiting Buyer", tone: "info" },
+    seller_response_pending: { label: "Your Response Needed", tone: "warning" },
     under_review: { label: "SafeDeal Review", tone: "info" },
-    resolved_buyer_refund: { label: "Resolved · Refunded", tone: "muted" },
-    resolved_seller_release: { label: "Resolved · Released", tone: "success" },
-    resolved_partial: { label: "Resolved · Partial", tone: "muted" },
-    withdrawn: { label: "Withdrawn", tone: "muted" },
-    closed: { label: "Closed", tone: "muted" },
+    resolved: { label: "Resolved", tone: "success" },
   },
   buyer: {
+    none: { label: "No Dispute", tone: "muted" },
     open: { label: "Open", tone: "warning" },
-    awaiting_seller_response: { label: "Awaiting Seller", tone: "info" },
-    awaiting_buyer_response: { label: "Your Response Needed", tone: "warning" },
+    seller_response_pending: { label: "Awaiting Seller", tone: "info" },
     under_review: { label: "SafeDeal Review", tone: "info" },
-    resolved_buyer_refund: { label: "Resolved · Refunded", tone: "success" },
-    resolved_seller_release: { label: "Resolved · Released to Seller", tone: "muted" },
-    resolved_partial: { label: "Resolved · Partial", tone: "muted" },
-    withdrawn: { label: "Withdrawn", tone: "muted" },
-    closed: { label: "Closed", tone: "muted" },
+    resolved: { label: "Resolved", tone: "success" },
   },
 };
 
@@ -228,6 +219,31 @@ export function resolveDisputeLabel(
       label: String(status).replace(/_/g, " "),
       tone: "muted",
     } satisfies LabelEntry)
+  );
+}
+
+/* ============================================================
+ * DISPUTE MONEY IMPACT  (computed by `seller-disputes` edge fn)
+ *
+ * Values: no_impact | funds_frozen | payout_blocked | refund_pending
+ * Plus tolerated aliases used in legacy CSV exports.
+ * ============================================================ */
+
+export const DISPUTE_MONEY_IMPACT_LABELS: Record<string, LabelEntry> = {
+  no_impact: { label: "No Impact", tone: "muted" },
+  funds_frozen: { label: "Funds Frozen", tone: "destructive" },
+  payout_blocked: { label: "Payout Blocked", tone: "warning" },
+  payout_on_hold: { label: "Payout On Hold", tone: "warning" },
+  refund_pending: { label: "Refund Pending", tone: "warning" },
+  refunded: { label: "Refunded", tone: "muted" },
+  released: { label: "Released", tone: "success" },
+};
+
+export function resolveDisputeMoneyImpact(value: string | null | undefined): LabelEntry {
+  if (!value) return { label: "No Impact", tone: "muted" };
+  return (
+    DISPUTE_MONEY_IMPACT_LABELS[value] ??
+    ({ label: String(value).replace(/_/g, " "), tone: "muted" } satisfies LabelEntry)
   );
 }
 
@@ -301,27 +317,35 @@ export function resolveProductVisibilityLabel(visibility: string): LabelEntry {
 }
 
 /* ============================================================
- * ESCROW STATE  (held / frozen / released / refunded aggregate)
+ * ESCROW STATE  (DB enum: escrow_state)
+ *
+ * DB values: awaiting_payment | held | frozen | releasing | released | refunded
  * ============================================================ */
 
 export type EscrowState =
+  | "awaiting_payment"
   | "held"
   | "frozen"
-  | "released_to_seller"
-  | "refunded_to_buyer";
+  | "releasing"
+  | "released"
+  | "refunded";
 
 export const ESCROW_STATE_LABELS: Record<Audience, Record<EscrowState, LabelEntry>> = {
   seller: {
+    awaiting_payment: { label: "Awaiting Payment", tone: "muted" },
     held: { label: "Held in Escrow", tone: "info" },
     frozen: { label: "Funds Frozen", tone: "destructive" },
-    released_to_seller: { label: "Released To You", tone: "success" },
-    refunded_to_buyer: { label: "Refunded To Buyer", tone: "muted" },
+    releasing: { label: "Releasing", tone: "info" },
+    released: { label: "Released To You", tone: "success" },
+    refunded: { label: "Refunded To Buyer", tone: "muted" },
   },
   buyer: {
+    awaiting_payment: { label: "Awaiting Payment", tone: "warning" },
     held: { label: "Held in Escrow", tone: "success" },
     frozen: { label: "Funds Frozen", tone: "warning" },
-    released_to_seller: { label: "Released To Seller", tone: "muted" },
-    refunded_to_buyer: { label: "Refunded To You", tone: "success" },
+    releasing: { label: "Releasing To Seller", tone: "muted" },
+    released: { label: "Released To Seller", tone: "muted" },
+    refunded: { label: "Refunded To You", tone: "success" },
   },
 };
 
@@ -408,4 +432,58 @@ export function resolveVerificationStatusLabel(status: string): LabelEntry {
     VERIFICATION_STATUS_LABELS[status as VerificationSubmissionStatus] ??
     ({ label: String(status).replace(/_/g, " "), tone: "muted" } satisfies LabelEntry)
   );
+}
+
+/* ============================================================
+ * TAXONOMY: DELIVERY METHOD  (DB enum: delivery_method_type)
+ *
+ * The DB only knows these four values. Any UI that renders a
+ * delivery method MUST go through `resolveDeliveryMethod` so a
+ * future enum addition cannot silently render as raw snake_case.
+ * ============================================================ */
+
+export type DeliveryMethod = "courier" | "pickup" | "meetup" | "hand_delivery";
+
+export const DELIVERY_METHOD_LABELS: Record<DeliveryMethod, string> = {
+  courier: "Courier / Shipping",
+  pickup: "Pickup",
+  meetup: "Meetup",
+  hand_delivery: "Hand Delivery",
+};
+
+function titleCaseFromToken(token: string): string {
+  return token
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export function resolveDeliveryMethod(value: string | null | undefined): string {
+  if (!value) return "—";
+  return DELIVERY_METHOD_LABELS[value as DeliveryMethod] ?? titleCaseFromToken(value);
+}
+
+/* ============================================================
+ * TAXONOMY: ITEM CONDITION  (DB enum: item_condition)
+ * ============================================================ */
+
+export type ItemCondition =
+  | "brand_new"
+  | "like_new"
+  | "excellent"
+  | "good"
+  | "fair"
+  | "used";
+
+export const ITEM_CONDITION_LABELS: Record<ItemCondition, string> = {
+  brand_new: "Brand New",
+  like_new: "Like New",
+  excellent: "Excellent",
+  good: "Good",
+  fair: "Fair",
+  used: "Used",
+};
+
+export function resolveItemCondition(value: string | null | undefined): string {
+  if (!value) return "—";
+  return ITEM_CONDITION_LABELS[value as ItemCondition] ?? titleCaseFromToken(value);
 }
