@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatMoney } from "@/lib/format";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,11 +36,6 @@ const actionLabels: Record<string, { label: string; variant: "default" | "outlin
   awaiting_payment: { label: "View Details", variant: "outline" },
   payment_secured: { label: "Update Status", variant: "default" },
 };
-
-function formatCurrency(amount: number, currency: string) {
-  if (currency === "NGN") return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`;
-  return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-}
 
 export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
   const [search, setSearch] = useState("");
@@ -144,7 +140,7 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                        <p className="text-sm text-foreground truncate max-w-[180px]">{row.item_title}</p>
                      </TableCell>
                      <TableCell className="px-4 py-3 text-sm font-bold tabular-nums">
-                       {formatCurrency(row.amount, row.currency_code)}
+                       {formatMoney(row.amount, row.currency_code)}
                      </TableCell>
                      <TableCell className="px-4 py-3">
                        <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
@@ -214,7 +210,7 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                     <p className="text-[11px] text-muted-foreground truncate">{row.item_title}</p>
                   </div>
                   <p className="text-sm font-bold text-foreground tabular-nums shrink-0">
-                    {formatCurrency(row.amount, row.currency_code)}
+                    {formatMoney(row.amount, row.currency_code)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

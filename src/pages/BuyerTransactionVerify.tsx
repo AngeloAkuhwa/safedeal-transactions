@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatMoney } from "@/lib/format";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -21,18 +22,6 @@ import { WhatHappensCard } from "@/components/verification/WhatHappensCard";
 import { SafeDealReviewNotice } from "@/components/verification/SafeDealReviewNotice";
 import { getVerificationData } from "@/services/verification.service";
 import { getBuyerProfile } from "@/services/profile.service";
-
-function formatCurrency(amount: number, currency: string) {
-  try {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toLocaleString()}`;
-  }
-}
 
 const STATUS_LABELS: Record<string, string> = {
   delivered_awaiting_verification: "Awaiting Verification",
@@ -172,7 +161,7 @@ const BuyerTransactionVerify = () => {
                 <div className="text-right">
                   <div className="text-sm text-muted-foreground mb-1">Transaction Amount</div>
                   <div className="text-xl font-bold text-primary">
-                    {formatCurrency(Number(pricing.buyer_total_amount), pricing.currency_code)}
+                    {formatMoney(Number(pricing.buyer_total_amount), pricing.currency_code)}
                   </div>
                 </div>
               )}

@@ -28,6 +28,7 @@ import { TransactionConfirmationProgress } from "@/components/transactions/Trans
 import { SellerConfirmCompletionCard } from "@/components/seller/SellerConfirmCompletionCard";
 import { ReleaseReviewBanner } from "@/components/seller/ReleaseReviewBanner";
 import { RiderLinkCard } from "@/components/seller/RiderLinkCard";
+import { formatMoney } from "@/lib/format";
 import { MessageThread } from "@/components/transactions/MessageThread";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -71,11 +72,8 @@ const deliveryLabels: Record<string, string> = {
   courier: "Courier",
 };
 
-function fmt(amount: number | undefined | null, currency: string) {
-  const val = amount ?? 0;
-  const sym = currency === "NGN" ? "₦" : currency === "USD" ? "$" : `${currency} `;
-  return `${sym}${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+const fmt = (amount: number | undefined | null, currency: string) =>
+  formatMoney(amount ?? 0, currency);
 
 const SellerTransactionDetail = () => {
   const { transactionId } = useParams<{ transactionId: string }>();

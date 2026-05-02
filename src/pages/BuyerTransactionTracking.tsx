@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatMoney } from "@/lib/format";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -40,14 +41,6 @@ import { TransactionConfirmationProgress } from "@/components/transactions/Trans
 import { cn } from "@/lib/utils";
 
 /* ─── Helpers ─── */
-function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: currency || "NGN",
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
-
 const statusConfig: Record<string, { label: string; className: string }> = {
   draft: { label: "Draft", className: "bg-muted text-muted-foreground border-border" },
   awaiting_buyer: { label: "Awaiting Buyer", className: "bg-muted text-muted-foreground border-border" },
@@ -219,7 +212,7 @@ const BuyerTransactionTracking = () => {
           <Shield className="h-4 w-4 text-primary shrink-0" />
           <p className="text-xs sm:text-sm text-primary font-medium">
             {escrow?.state === "held"
-              ? `Your payment of ${formatCurrency(escrow.held_amount, pricing.currency_code)} is securely held in escrow — funds will only release once you verify receipt.`
+              ? `Your payment of ${formatMoney(escrow.held_amount, pricing.currency_code)} is securely held in escrow — funds will only release once you verify receipt.`
               : escrow?.state === "released"
                 ? "Transaction completed. Funds have been released to the seller."
                 : "SafeDeal Escrow Protection is active on this transaction."}
@@ -577,7 +570,7 @@ const BuyerTransactionTracking = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Item Price</span>
-                  <span className="font-semibold text-foreground">{formatCurrency(pricing.item_amount, pricing.currency_code)}</span>
+                  <span className="font-semibold text-foreground">{formatMoney(pricing.item_amount, pricing.currency_code)}</span>
                 </div>
                 {(pricing.service_fee_amount || 0) > 0 && (
                   <div className="flex justify-between text-xs text-muted-foreground border-b border-border pb-2">
@@ -585,12 +578,12 @@ const BuyerTransactionTracking = () => {
                       <span>Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
                       <p className="text-[10px] text-muted-foreground mt-0.5">Includes payment processing</p>
                     </div>
-                    <span className="font-semibold text-foreground">{formatCurrency(pricing.service_fee_amount, pricing.currency_code)}</span>
+                    <span className="font-semibold text-foreground">{formatMoney(pricing.service_fee_amount, pricing.currency_code)}</span>
                   </div>
                 )}
                 <div className="flex justify-between pt-1">
                   <span className="text-sm font-bold text-foreground">Total</span>
-                  <span className="text-sm font-bold text-primary">{formatCurrency(pricing.total_amount, pricing.currency_code)}</span>
+                  <span className="text-sm font-bold text-primary">{formatMoney(pricing.total_amount, pricing.currency_code)}</span>
                 </div>
               </div>
               <div className={`mt-3 text-xs font-semibold px-3 py-2 rounded-lg text-center ${mBadge.className}`}>

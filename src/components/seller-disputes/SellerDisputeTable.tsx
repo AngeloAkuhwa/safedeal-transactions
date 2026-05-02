@@ -19,6 +19,8 @@ const moneyImpactConfig: Record<string, { label: string; className: string }> = 
   no_impact: { label: "No Impact", className: "bg-muted text-muted-foreground border-border" },
 };
 
+import { formatMoney } from "@/lib/format";
+
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" });
 }
@@ -37,7 +39,7 @@ function formatDeadline(dateStr: string | null) {
 
 function formatNaira(amount: number | null) {
   if (amount == null) return "—";
-  return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return formatMoney(amount, "NGN");
 }
 
 interface Props {

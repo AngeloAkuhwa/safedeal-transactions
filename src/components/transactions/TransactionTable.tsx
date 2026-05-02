@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { formatMoney } from "@/lib/format";
 import { format } from "date-fns";
 import { Package } from "lucide-react";
 import {
@@ -16,18 +17,6 @@ import type { BuyerTransactionRow } from "@/services/transactions.service";
 interface TransactionTableProps {
   transactions: BuyerTransactionRow[];
   isLoading?: boolean;
-}
-
-function formatCurrency(amount: number, currency: string) {
-  try {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toLocaleString()}`;
-  }
 }
 
 function getInitials(name: string) {
@@ -128,7 +117,7 @@ export function TransactionTable({ transactions, isLoading }: TransactionTablePr
                 <TableCell className="py-4 px-4 text-right">
                   <div className="space-y-0.5">
                     <p className="text-sm font-semibold text-foreground">
-                      {formatCurrency(tx.amount, tx.currency_code)}
+                      {formatMoney(tx.amount, tx.currency_code)}
                     </p>
                     <p className="text-xs text-muted-foreground">{tx.currency_code}</p>
                   </div>
@@ -162,7 +151,7 @@ export function TransactionTable({ transactions, isLoading }: TransactionTablePr
                 <p className="text-xs text-muted-foreground">{tx.transaction_code}</p>
               </div>
               <span className="text-sm font-semibold text-foreground whitespace-nowrap">
-                {formatCurrency(tx.amount, tx.currency_code)}
+                {formatMoney(tx.amount, tx.currency_code)}
               </span>
             </div>
 

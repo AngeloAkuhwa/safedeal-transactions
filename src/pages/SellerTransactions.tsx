@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatMoney } from "@/lib/format";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -59,13 +60,6 @@ const actionLabels: Record<string, { label: string; variant: "default" | "outlin
   awaiting_payment: { label: "View Details", variant: "outline" },
   draft: { label: "Edit Draft", variant: "outline" },
 };
-
-function formatCurrency(amount: number, currency: string) {
-  if (currency === "NGN") {
-    return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }
-  return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
 
 function InfoTip({ children }: { children: React.ReactNode }) {
   return (
@@ -231,11 +225,11 @@ const SellerTransactions = () => {
                   Some may still be queued for bank transfer — see the Payouts tab for actual deposit status.
                 </InfoTip>
               </div>
-              <p className="sd-kpi-value tabular-nums">{formatCurrency(summary.total_earned, "NGN")}</p>
+              <p className="sd-kpi-value tabular-nums">{formatMoney(summary.total_earned, "NGN")}</p>
               <p className="sd-kpi-helper">Includes paid to bank and pending bank transfer.</p>
               {payoutsData && (
                 <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
-                  {formatCurrency(payoutsData.summary.total_released, "NGN")} paid · {formatCurrency(payoutsData.summary.pending_release, "NGN")} pending
+                  {formatMoney(payoutsData.summary.total_released, "NGN")} paid · {formatMoney(payoutsData.summary.pending_release, "NGN")} pending
                 </p>
               )}
             </CardContent>
@@ -433,13 +427,13 @@ const SellerTransactions = () => {
                             <p className="text-sm">
                               <span className="text-muted-foreground">Gross: </span>
                               <span className="font-bold text-foreground">
-                                {formatCurrency(tx.amount, tx.currency_code)}
+                                {formatMoney(tx.amount, tx.currency_code)}
                               </span>
                             </p>
                             <p className="text-xs">
                               <span className="text-muted-foreground">Net to seller: </span>
                               <span className="font-semibold text-foreground">
-                                {formatCurrency(tx.seller_net > 0 ? tx.seller_net : tx.amount, tx.currency_code)}
+                                {formatMoney(tx.seller_net > 0 ? tx.seller_net : tx.amount, tx.currency_code)}
                               </span>
                             </p>
                           </div>

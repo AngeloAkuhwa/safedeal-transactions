@@ -29,16 +29,12 @@ import {
   type SellerAnalyticsData,
 } from "@/services/seller-analytics.service";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/format";
 
 /* ---------- Helpers ---------- */
 
 const NGN = (v: number | null) =>
-  v === null || v === undefined
-    ? "—"
-    : new Intl.NumberFormat("en-NG", {
-        style: "currency", currency: "NGN",
-        minimumFractionDigits: 2, maximumFractionDigits: 2,
-      }).format(v);
+  v === null || v === undefined ? "—" : formatMoney(v, "NGN");
 
 const PCT = (v: number | null, d = 1) =>
   v === null || v === undefined ? "—" : `${v.toFixed(d)}%`;

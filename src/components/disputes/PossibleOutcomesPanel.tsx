@@ -1,5 +1,6 @@
 import { Gavel, ArrowLeft, ArrowRight, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatMoney } from "@/lib/format";
 
 interface PossibleOutcomesPanelProps {
   status: string;
@@ -7,13 +8,8 @@ interface PossibleOutcomesPanelProps {
   currencyCode: string;
 }
 
-function formatAmount(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-  }).format(amount);
-}
+const formatAmount = (amount: number, currency: string) =>
+  formatMoney(amount, currency);
 
 export function PossibleOutcomesPanel({ status, amount, currencyCode }: PossibleOutcomesPanelProps) {
   if (status === "resolved") return null;

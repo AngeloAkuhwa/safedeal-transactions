@@ -1,5 +1,6 @@
 import { FileText, Package } from "lucide-react";
 import { format } from "date-fns";
+import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,13 +13,8 @@ interface DisputeCaseSummaryProps {
   seller: DisputeDetailResponse["seller"];
 }
 
-function formatAmount(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-  }).format(amount);
-}
+const formatAmount = (amount: number, currency: string) =>
+  formatMoney(amount, currency);
 
 export function DisputeCaseSummary({ transaction, item, pricing, seller }: DisputeCaseSummaryProps) {
   const sellerInitials = seller?.name

@@ -24,12 +24,10 @@ import { FulfillmentGuidance } from "@/components/seller/FulfillmentGuidance";
 import { DispatchForm, emptyDispatchState, resolveCourierName, type DispatchFormState } from "@/components/seller/DispatchForm";
 import { RiderConfirmationDialog } from "@/components/seller/RiderConfirmationDialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { formatMoney } from "@/lib/format";
 
-function fmt(amount: number | undefined | null, currency: string) {
-  const val = amount ?? 0;
-  const sym = currency === "NGN" ? "₦" : currency === "USD" ? "$" : `${currency} `;
-  return `${sym}${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+const fmt = (amount: number | undefined | null, currency: string) =>
+  formatMoney(amount ?? 0, currency);
 
 const timelineSteps = [
   { key: "payment_secured", label: "Payment Secured", sub: "Funds received", icon: CheckCircle },

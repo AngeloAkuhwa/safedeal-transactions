@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CheckCircle, AlertTriangle, ShieldCheck, ArrowRight, Pause } from "lucide-react";
+import { formatMoney } from "@/lib/format";
 import { ConfirmReceiptDialog } from "./ConfirmReceiptDialog";
 import { DisputeForm } from "./DisputeForm";
 
@@ -19,11 +20,7 @@ export function VerificationActions({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [disputeOpen, setDisputeOpen] = useState(false);
 
-  const formatted = new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
+  const formatted = formatMoney(amount, currency);
 
   return (
     <div className="bg-card rounded-2xl shadow-lg border border-border p-6 lg:p-8">

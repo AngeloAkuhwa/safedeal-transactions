@@ -1,15 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { formatMoney } from "@/lib/format";
 import { createPortal } from "react-dom";
 import { format } from "date-fns";
 import type { TransactionDetailResponse } from "@/services/transaction-detail.service";
-
-function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: currency || "NGN",
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
 
 interface TransactionReceiptProps {
   data: TransactionDetailResponse;
@@ -154,12 +147,12 @@ export const TransactionReceipt = React.forwardRef<HTMLDivElement, TransactionRe
                 <tbody>
                   <tr>
                     <td style={{ color: "#64748b", paddingBottom: "6px" }}>Item Price</td>
-                    <td style={{ textAlign: "right", paddingBottom: "6px" }}>{formatCurrency(pricing.item_amount, pricing.currency_code)}</td>
+                    <td style={{ textAlign: "right", paddingBottom: "6px" }}>{formatMoney(pricing.item_amount, pricing.currency_code)}</td>
                   </tr>
                   {(pricing.service_fee_amount || 0) > 0 && (
                     <tr>
                       <td style={{ color: "#64748b", paddingBottom: "2px" }}>Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</td>
-                      <td style={{ textAlign: "right", paddingBottom: "2px" }}>{formatCurrency(pricing.service_fee_amount, pricing.currency_code)}</td>
+                      <td style={{ textAlign: "right", paddingBottom: "2px" }}>{formatMoney(pricing.service_fee_amount, pricing.currency_code)}</td>
                     </tr>
                   )}
                   {(pricing.service_fee_amount || 0) > 0 && (
@@ -169,7 +162,7 @@ export const TransactionReceipt = React.forwardRef<HTMLDivElement, TransactionRe
                   )}
                   <tr>
                     <td style={{ fontWeight: 800, paddingTop: "8px", fontSize: "14px" }}>Total Paid</td>
-                    <td style={{ textAlign: "right", fontWeight: 800, paddingTop: "8px", fontSize: "14px", color: "#2563eb" }}>{formatCurrency(pricing.total_amount, pricing.currency_code)}</td>
+                    <td style={{ textAlign: "right", fontWeight: 800, paddingTop: "8px", fontSize: "14px", color: "#2563eb" }}>{formatMoney(pricing.total_amount, pricing.currency_code)}</td>
                   </tr>
                   <tr>
                     <td style={{ color: "#94a3b8", fontSize: "11px" }}>Currency</td>

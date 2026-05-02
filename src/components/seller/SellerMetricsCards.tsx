@@ -1,4 +1,5 @@
 import { FileText, Clock, Shield, TrendingUp, CheckCircle, Eye, Info, CheckCircle2, Scale, AlertOctagon } from "lucide-react";
+import { formatMoney } from "@/lib/format";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -11,10 +12,6 @@ import type { SellerMetrics } from "@/services/seller-dashboard.service";
 
 interface SellerMetricsCardsProps {
   metrics: SellerMetrics;
-}
-
-function formatCurrency(amount: number) {
-  return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
@@ -36,7 +33,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
     },
     {
       label: "Awaiting Buyer Payment",
-      value: formatCurrency(metrics.awaiting_buyer_payment_amount),
+      value: formatMoney(metrics.awaiting_buyer_payment_amount),
       icon: Clock,
       iconBg: "bg-warning/10",
       iconColor: "text-warning",
@@ -48,7 +45,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
     },
     {
       label: "Awaiting Buyer to Open Link",
-      value: formatCurrency(metrics.awaiting_buyer_review_amount),
+      value: formatMoney(metrics.awaiting_buyer_review_amount),
       icon: Eye,
       iconBg: "bg-muted",
       iconColor: "text-muted-foreground",
@@ -61,7 +58,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
     },
     {
       label: "Funds Held in Escrow",
-      value: formatCurrency(metrics.funds_held_in_escrow_amount),
+      value: formatMoney(metrics.funds_held_in_escrow_amount),
       icon: Shield,
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
@@ -73,7 +70,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
     },
     {
       label: "Funds Pending Release",
-      value: formatCurrency(metrics.funds_pending_release_amount),
+      value: formatMoney(metrics.funds_pending_release_amount),
       icon: TrendingUp,
       iconBg: "bg-warning/10",
       iconColor: "text-warning",
@@ -85,7 +82,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
     },
     {
       label: "Net Earned (Completed)",
-      value: formatCurrency(metrics.payouts_completed_amount),
+      value: formatMoney(metrics.payouts_completed_amount),
       icon: CheckCircle,
       iconBg: "bg-success/10",
       iconColor: "text-success",
@@ -96,7 +93,7 @@ export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
       badgeBg: "bg-success/10 text-success",
       breakdown:
         netPendingBankTransfer > 0
-          ? `${formatCurrency(netPaidToBank)} paid to bank · ${formatCurrency(netPendingBankTransfer)} pending bank transfer`
+          ? `${formatMoney(netPaidToBank)} paid to bank · ${formatMoney(netPendingBankTransfer)} pending bank transfer`
           : null,
     },
   ];

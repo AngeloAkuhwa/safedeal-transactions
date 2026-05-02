@@ -1,5 +1,6 @@
 import { CheckCircle, Scale } from "lucide-react";
 import { format } from "date-fns";
+import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { DisputeDetailResponse } from "@/services/disputes.service";
@@ -24,13 +25,8 @@ const OUTCOME_LABELS: Record<string, { label: string; className: string }> = {
   },
 };
 
-function formatAmount(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-  }).format(amount);
-}
+const formatAmount = (amount: number, currency: string) =>
+  formatMoney(amount, currency);
 
 export function DisputeResolutionSection({ outcome, currencyCode }: DisputeResolutionSectionProps) {
   const outcomeConfig = OUTCOME_LABELS[outcome.outcome_type] ?? {
