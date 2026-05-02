@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { getSession } from "@/services/auth.service";
+import { getUserRoles } from "@/services/role.service";
 import { Shield, ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AuthInfoPanel from "@/components/auth/AuthInfoPanel";
@@ -8,6 +9,7 @@ import LoginForm from "@/components/auth/LoginForm";
 import SignupForm from "@/components/auth/SignupForm";
 import SecurityReassurance from "@/components/auth/SecurityReassurance";
 import EmailVerificationPending from "@/components/auth/EmailVerificationPending";
+import BrandedAuthSplash from "@/components/auth/BrandedAuthSplash";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -19,6 +21,7 @@ const Auth = () => {
   const defaultTab = mode === "login" ? "login" : "signup";
 
   const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   // Persist redirect URL so it survives auth + role selection
   useEffect(() => {
@@ -28,16 +31,33 @@ const Auth = () => {
   }, [redirectParam]);
 
   useEffect(() => {
-    getSession().then(({ data: { session } }) => {
-      if (session) {
-        const storedRedirect = sessionStorage.getItem("safedeal_redirect");
-        if (storedRedirect) {
-          navigate(storedRedirect, { replace: true });
-        } else {
-          navigate("/role-selection", { replace: true });
-        }
+    let mounted = true;
+    (async () => {
+      const { data: { session } } = await getSession();
+      if (!mounted) return;
+      if (!session) {
+        setCheckingSession(false);
+        return;
       }
-    });
+      const storedRedirect = sessionStorage.getItem("safedeal_redirect");
+      if (storedRedirect) {
+        sessionStorage.removeItem("safedeal_redirect");
+        navigate(storedRedirect, { replace: true });
+        return;
+      }
+      const { data: roles } = await getUserRoles(session.user.id);
+      const roleNames = (roles ?? []).map((r: any) => r.role as string);
+      if (roleNames.includes("admin")) {
+        navigate("/admin/dashboard", { replace: true });
+      } else if (roleNames.includes("buyer")) {
+        navigate("/dashboard", { replace: true });
+      } else if (roleNames.includes("seller")) {
+        navigate("/seller", { replace: true });
+      } else {
+        navigate("/role-selection", { replace: true });
+      }
+    })();
+    return () => { mounted = false; };
   }, [navigate]);
 
   const subtitleMap: Record<string, string> = {
@@ -52,6 +72,10 @@ const Auth = () => {
   const handleGoToLogin = () => {
     setVerificationEmail(null);
   };
+
+  if (checkingSession) {
+    return <BrandedAuthSplash />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-success/5">

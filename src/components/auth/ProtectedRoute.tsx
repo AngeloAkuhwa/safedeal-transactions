@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Outlet, Navigate, useLocation } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import { getSession, onAuthStateChange } from "@/services/auth.service";
 import { getUserRoles } from "@/services/role.service";
+import BrandedAuthSplash from "./BrandedAuthSplash";
 
 interface ProtectedRouteProps {
   requireRole?: string | boolean;
@@ -65,11 +65,7 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
   }, [requireRole]);
 
   if (status === "loading") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <BrandedAuthSplash />;
   }
 
   const currentPath = encodeURIComponent(location.pathname + location.search);
@@ -83,7 +79,10 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
   }
 
   if (status === "wrong-role") {
-    // Redirect to user's available dashboard instead of role-selection
+    // Admins always go to admin dashboard, regardless of which non-admin route they tried.
+    if (userRoles.includes("admin")) {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
     if (userRoles.includes("buyer")) {
       return <Navigate to="/dashboard" replace />;
     }
