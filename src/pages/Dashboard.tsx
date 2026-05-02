@@ -60,9 +60,8 @@ const Dashboard = () => {
 
       <DashboardHero buyerName={data.buyer.full_name} />
 
-      <main className="flex-1">
-        {/* Metrics — overlapping hero */}
-        <section className="sd-page -mt-6 mb-4">
+      <main className="flex-1 sd-page-y">
+        <section className="sd-page mb-4 sd-fade-in-stagger sd-delay-1">
           <MetricsCards metrics={data.metrics} />
         </section>
 
@@ -80,15 +79,15 @@ const Dashboard = () => {
           </section>
         ) : (
           <>
-            <section className="sd-page mb-4">
+            <section className="sd-page mb-4 sd-fade-in-stagger sd-delay-2">
               <RecentNotifications notifications={data.recent_notifications} />
             </section>
 
-            <section className="sd-page mb-4">
+            <section className="sd-page mb-4 sd-fade-in-stagger sd-delay-3">
               <RecentPurchases purchases={data.recent_purchases} />
             </section>
 
-            <section className="sd-page mb-8">
+            <section className="sd-page mb-8 sd-fade-in-stagger sd-delay-4">
               <QuickAccess metrics={data.metrics} />
             </section>
           </>
