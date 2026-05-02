@@ -1,5 +1,6 @@
 import { Filter, Download } from "lucide-react";
 import { useAdminNav } from "./useAdminNav";
+import { AdminReadingModeControl } from "./AdminReadingModeControl";
 
 interface AdminHeaderProps {
   title: string;
@@ -16,6 +17,7 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
           {subtitle && <p className="mt-1 text-sm text-slate-400">{subtitle}</p>}
         </div>
         <div className="flex items-center gap-2">
+          <AdminReadingModeControl variant="desktop" />
           <button
             type="button"
             onClick={() => go(null, "Filters")}
