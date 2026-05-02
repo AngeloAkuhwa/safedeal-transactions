@@ -9,23 +9,23 @@ import {
 } from "@/components/ui/table";
 import { ArrowLeftRight, Shield, Search, SlidersHorizontal, ChevronLeft, ChevronRight, QrCode } from "lucide-react";
 import type { SellerActivity } from "@/services/seller-dashboard.service";
+import { resolveTransactionLabel } from "@/lib/status-labels";
 
 interface SellerRecentActivityProps {
   activity: SellerActivity[];
 }
 
-const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  draft: { label: "Draft", variant: "secondary" },
-  awaiting_buyer: { label: "Awaiting Buyer", variant: "outline" },
-  awaiting_payment: { label: "Awaiting Payment", variant: "outline" },
-  payment_secured: { label: "Payment Secured", variant: "default" },
-  seller_preparing_delivery: { label: "Preparing Delivery", variant: "default" },
-  seller_dispatched: { label: "Dispatched", variant: "default" },
-  delivered_awaiting_verification: { label: "Awaiting Buyer Review", variant: "secondary" },
-  completed: { label: "Completed", variant: "default" },
-  disputed: { label: "Disputed", variant: "destructive" },
-  cancelled: { label: "Cancelled", variant: "secondary" },
+const TONE_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+  muted: "secondary",
+  info: "default",
+  warning: "outline",
+  success: "default",
+  destructive: "destructive",
 };
+function statusLabelFor(status: string) {
+  const e = resolveTransactionLabel(status, "seller");
+  return { label: e.label, variant: TONE_VARIANT[e.tone] };
+}
 
 const actionLabels: Record<string, { label: string; variant: "default" | "outline" }> = {
   seller_preparing_delivery: { label: "Update Delivery", variant: "default" },
@@ -116,7 +116,7 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
             </TableHeader>
             <TableBody>
               {filtered.map((row) => {
-                const statusInfo = statusLabels[row.transaction_status] ?? { label: row.transaction_status, variant: "secondary" as const };
+                const statusInfo = statusLabelFor(row.transaction_status);
                 const actionInfo = actionLabels[row.transaction_status] ?? { label: "View Details", variant: "outline" as const };
                 return (
                   <TableRow
@@ -189,7 +189,7 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
         {/* Mobile / small-tablet stacked cards */}
         <div className="md:hidden divide-y">
           {filtered.map((row) => {
-            const statusInfo = statusLabels[row.transaction_status] ?? { label: row.transaction_status, variant: "secondary" as const };
+            const statusInfo = statusLabelFor(row.transaction_status);
             const actionInfo = actionLabels[row.transaction_status] ?? { label: "View Details", variant: "outline" as const };
             return (
               <div

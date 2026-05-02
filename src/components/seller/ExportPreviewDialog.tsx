@@ -23,20 +23,6 @@ interface ExportPreviewDialogProps {
   initialDateFilter: string;
 }
 
-const statusLabel: Record<string, string> = {
-  draft: "Draft",
-  awaiting_buyer: "Awaiting Buyer",
-  awaiting_payment: "Payment Pending",
-  payment_secured: "Payment Secured",
-  seller_preparing_delivery: "Preparing",
-  seller_dispatched: "Dispatched",
-  delivered_awaiting_verification: "Buyer Verification",
-  completed: "Completed",
-  disputed: "Disputed",
-  cancelled: "Cancelled",
-  timed_out: "Timed Out",
-  refunded: "Refunded",
-};
 
 function fmtCurrency(amount: number, currency: string) {
   if (currency === "NGN") return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`;
