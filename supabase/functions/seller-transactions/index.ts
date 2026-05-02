@@ -62,6 +62,7 @@ Deno.serve(async (req) => {
       "delivery-proof-needed": ["seller_dispatched"],
       "buyer-verification": ["delivered_awaiting_verification"],
       "awaiting-buyer-verification": ["delivered_awaiting_verification"],
+      "awaiting-buyer-review": ["delivered_awaiting_verification"],
       "completed": ["completed"],
       "disputed": ["disputed"],
       "cancelled": ["cancelled", "timed_out", "refunded"],
