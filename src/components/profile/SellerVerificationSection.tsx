@@ -46,9 +46,11 @@ const getItems = (v: SellerVerification) => [
   },
   {
     key: "is_region_eligible",
-    label: "Region Eligibility",
+    label: "Payout Region Support",
     icon: MapPin,
-    description: v.is_region_eligible ? "Your region is supported" : "Your region is not yet supported for payouts",
+    description: v.is_region_eligible
+      ? "Region eligible for protected transactions and payouts."
+      : "Buying and selling are available, but payouts are not yet supported in your region.",
     verified: v.is_region_eligible,
   },
 ];
