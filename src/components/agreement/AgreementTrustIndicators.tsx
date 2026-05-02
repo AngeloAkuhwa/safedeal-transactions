@@ -1,5 +1,6 @@
 import { Lock, FileText, ShieldCheck } from "lucide-react";
 import type { AgreementData } from "@/services/agreement.service";
+import { formatMoney } from "@/lib/format";
 
 interface AgreementTrustIndicatorsProps {
   pricing: AgreementData["pricing"];
@@ -7,7 +8,7 @@ interface AgreementTrustIndicatorsProps {
 
 export function AgreementTrustIndicators({ pricing }: AgreementTrustIndicatorsProps) {
   const totalAmount = pricing
-    ? `${pricing.currency_code} ${Number(pricing.total_amount).toLocaleString()}`
+    ? formatMoney(Number(pricing.total_amount), pricing.currency_code)
     : "Your funds";
 
   const indicators = [

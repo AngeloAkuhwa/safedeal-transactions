@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { VerificationData } from "@/services/verification.service";
+import { formatMoney } from "@/lib/format";
 
 interface VerificationSidebarProps {
   data: VerificationData;
@@ -107,8 +108,7 @@ export function VerificationSidebar({ data }: VerificationSidebarProps) {
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Price</span>
               <span className="text-sm font-semibold text-foreground">
-                {pricing.currency_code}{" "}
-                {Number(pricing.buyer_total_amount).toLocaleString()}
+                {formatMoney(Number(pricing.buyer_total_amount), pricing.currency_code)}
               </span>
             </div>
           </div>
