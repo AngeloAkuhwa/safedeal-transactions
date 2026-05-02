@@ -105,18 +105,18 @@ const SellerDisputes = () => {
         avatarUrl={navData?.seller.avatar_url ?? null}
       />
 
-      {/* Hero */}
-      <div className="bg-gradient-to-br from-sky-50 via-background to-amber-50 dark:from-sky-950/20 dark:via-background dark:to-amber-950/20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-          <p className="text-sm font-medium text-primary mb-1">Dispute Management</p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground animate-fade-in">Disputes</h1>
-          <p className="text-muted-foreground text-sm mt-1 max-w-2xl">
+      {/* Compact header */}
+      <div className="bg-gradient-to-br from-sky-50/60 via-background to-amber-50/60 dark:from-sky-950/15 dark:via-background dark:to-amber-950/15 border-b border-border/60">
+        <div className="sd-page py-3 sm:py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-primary mb-0.5">Dispute Management</p>
+          <h1 className="sd-page-title animate-fade-in">Disputes</h1>
+          <p className="sd-page-sub max-w-2xl">
             Track buyer claims, submit your evidence, and follow dispute outcomes tied to your transactions and payouts.
           </p>
         </div>
       </div>
 
-      <main className="flex-1 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="flex-1 sd-page sd-page-y sd-section-y">
         {/* Summary Cards */}
         <SellerDisputeSummaryCards
           summary={
@@ -154,9 +154,9 @@ const SellerDisputes = () => {
             />
 
             {/* Two-column layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
               {/* Left: Table */}
-              <div className="lg:col-span-2 space-y-4">
+              <div className="lg:col-span-2 space-y-3">
                 {isFilterEmpty && (
                   <SellerDisputeEmptyState variant="no-filter-match" onClearFilters={clearFilters} />
                 )}
@@ -176,7 +176,7 @@ const SellerDisputes = () => {
               </div>
 
               {/* Right Sidebar */}
-              <div className="space-y-5">
+              <div className="space-y-3">
                 <SellerDisputeActionPanel items={data?.action_needed ?? []} />
                 <SellerDisputeBlockedPanel items={data?.blocked_payouts ?? []} />
               </div>

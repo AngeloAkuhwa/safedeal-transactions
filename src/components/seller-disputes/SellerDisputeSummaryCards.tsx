@@ -77,15 +77,15 @@ export function SellerDisputeSummaryCards({ summary }: Props) {
 
   return (
     <TooltipProvider delayDuration={150}>
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
       {cards.map((card, idx) => (
         <Card key={card.label} className={`sd-card sd-metric h-full sd-fade-in-stagger sd-delay-${idx + 1}`}>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-2.5">
-              <div className={`h-9 w-9 rounded-lg ${card.iconBg} flex items-center justify-center`}>
-                <card.icon className={`h-[18px] w-[18px] ${card.iconColor}`} />
+          <CardContent className="p-3">
+            <div className="flex items-start justify-between mb-2">
+              <div className={`h-7 w-7 rounded-md ${card.iconBg} flex items-center justify-center`}>
+                <card.icon className={`h-[14px] w-[14px] ${card.iconColor}`} />
               </div>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${card.badgeBg}`}>
+              <span className={`inline-flex items-center px-1.5 py-px rounded-full text-[9px] font-semibold ${card.badgeBg}`}>
                 {card.badgeLabel}
               </span>
             </div>
