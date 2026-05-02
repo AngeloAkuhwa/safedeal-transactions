@@ -28,6 +28,7 @@ import { TransactionConfirmationProgress } from "@/components/transactions/Trans
 import { SellerConfirmCompletionCard } from "@/components/seller/SellerConfirmCompletionCard";
 import { ReleaseReviewBanner } from "@/components/seller/ReleaseReviewBanner";
 import { RiderLinkCard } from "@/components/seller/RiderLinkCard";
+import { formatMoney } from "@/lib/format";
 import { MessageThread } from "@/components/transactions/MessageThread";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
