@@ -30,31 +30,7 @@ import { ReleaseReviewBanner } from "@/components/seller/ReleaseReviewBanner";
 import { RiderLinkCard } from "@/components/seller/RiderLinkCard";
 import { formatMoney } from "@/lib/format";
 import { MessageThread } from "@/components/transactions/MessageThread";
-
-const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  draft: { label: "Draft", variant: "secondary" },
-  awaiting_buyer: { label: "Awaiting Buyer", variant: "outline" },
-  awaiting_payment: { label: "Payment Pending", variant: "outline" },
-  payment_secured: { label: "Payment Secured", variant: "default" },
-  seller_preparing_delivery: { label: "Preparing Delivery", variant: "default" },
-  seller_dispatched: { label: "Dispatched", variant: "default" },
-  delivered_awaiting_verification: { label: "Buyer Verification", variant: "secondary" },
-  completed: { label: "Completed", variant: "default" },
-  disputed: { label: "Disputed", variant: "destructive" },
-  cancelled: { label: "Cancelled", variant: "secondary" },
-};
-
-const moneyLabels: Record<string, { label: string; color: string }> = {
-  not_secured: { label: "Not Secured", color: "text-muted-foreground" },
-  payment_pending: { label: "Payment Pending", color: "text-yellow-600" },
-  funds_held_in_escrow: { label: "Funds Held Securely", color: "text-green-600" },
-  funds_frozen: { label: "Funds Frozen", color: "text-blue-600" },
-  funds_pending_release: { label: "Awaiting Release", color: "text-primary" },
-  funds_releasing: { label: "Releasing Funds", color: "text-green-600" },
-  funds_released: { label: "Funds Released", color: "text-green-700" },
-  refund_pending: { label: "Refund Pending", color: "text-yellow-600" },
-  refund_issued: { label: "Refunded", color: "text-destructive" },
-};
+import { resolveTransactionLabel, resolveMoneyLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 
 const conditionLabels: Record<string, string> = {
   new: "Brand New",
