@@ -149,6 +149,7 @@ const BuyerTransactions = () => {
           {/* Success */}
           {data && !isLoading && !isError && (
             <>
+              <div className="sd-fade-in-stagger sd-delay-1">
               <TransactionFilters
                 search={search}
                 onSearchChange={setSearch}
@@ -160,6 +161,7 @@ const BuyerTransactions = () => {
                 onClearFilters={clearFilters}
                 hasActiveFilters={hasActiveFilters}
               />
+              </div>
 
               {isNoData && (
                 <TransactionsEmptyState variant="no-data" />
@@ -173,7 +175,7 @@ const BuyerTransactions = () => {
               )}
 
               {data.transactions.length > 0 && (
-                <>
+                <div className="sd-fade-in-stagger sd-delay-2 space-y-4">
                   <TransactionTable transactions={data.transactions} />
                   <TransactionPagination
                     page={data.pagination.page}
@@ -182,7 +184,7 @@ const BuyerTransactions = () => {
                     totalPages={data.pagination.total_pages}
                     onPageChange={setPage}
                   />
-                </>
+                </div>
               )}
             </>
           )}
