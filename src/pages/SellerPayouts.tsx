@@ -165,7 +165,7 @@ const SellerPayouts = () => {
           <SummaryCard
             label="Total Released"
             value={formatMoney(summary.total_released)}
-            subtitle={`Paid into your bank account · ₦${summary.total_released_last_30.toLocaleString("en-NG")} in last 30 days`}
+            subtitle={`Paid into your bank account · ${formatMoney(summary.total_released_last_30)} in last 30 days`}
             icon={CheckCircle2}
             iconBg="bg-success/10"
             iconColor="text-success"

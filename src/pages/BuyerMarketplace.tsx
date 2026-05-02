@@ -25,6 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Input as PriceInput } from "@/components/ui/input";
 import { getMarketplaceProducts } from "@/services/marketplace.service";
 import { useAuthState } from "@/hooks/useSavedProducts";
+import { formatMoney } from "@/lib/format";
 
 export default function BuyerMarketplace() {
   const navigate = useNavigate();
@@ -172,7 +173,7 @@ export default function BuyerMarketplace() {
                 >
                   <SlidersHorizontal className="h-4 w-4" />
                   {appliedPriceMin || appliedPriceMax
-                    ? `₦${appliedPriceMin || "0"} – ₦${appliedPriceMax || "∞"}`
+                    ? `${appliedPriceMin ? formatMoney(Number(appliedPriceMin)) : "₦0.00"} – ${appliedPriceMax ? formatMoney(Number(appliedPriceMax)) : "∞"}`
                     : "Price Filter"}
                 </Button>
               </PopoverTrigger>

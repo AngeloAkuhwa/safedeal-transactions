@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { getTransactionReview, type ReviewData } from "@/services/review.service";
 import { getBuyerProfile } from "@/services/profile.service";
+import { formatMoney } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
@@ -174,12 +175,12 @@ export default function BuyerTransactionReview() {
     );
   }
 
-  const currencySymbol = data.pricing?.currency_code === "NGN" ? "₦" : "$";
+  const currencyCode = data.pricing?.currency_code || "NGN";
   const totalAmount = data.pricing?.total_amount ?? 0;
   const itemAmount = data.pricing?.item_amount ?? 0;
   const feeAmount = data.pricing?.service_fee_amount ?? 0;
   const feeRate = data.pricing?.service_fee_rate ?? 0;
-  const payButtonLabel = authState === "anonymous" ? "Sign Up to Pay" : `Pay ${currencySymbol}${totalAmount.toLocaleString()}`;
+  const payButtonLabel = authState === "anonymous" ? "Sign Up to Pay" : `Pay ${formatMoney(totalAmount, currencyCode)}`;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -402,7 +403,7 @@ export default function BuyerTransactionReview() {
           {/* Right column */}
           <div className="lg:col-span-1">
             <div className="lg:sticky lg:top-24 space-y-6">
-              <EscrowProtectionCard data={data} currencySymbol={currencySymbol} />
+              <EscrowProtectionCard data={data} currencyCode={currencyCode} />
               <FraudWarningCard />
               <NextActionCard
                 payLabel={payButtonLabel}
@@ -414,7 +415,7 @@ export default function BuyerTransactionReview() {
                 onGoToProfile={() => navigate("/dashboard/profile#location")}
                 onGoToTransactions={() => navigate("/dashboard/transactions")}
               />
-              <PaymentSummaryCard data={data} currencySymbol={currencySymbol} itemAmount={itemAmount} feeAmount={feeAmount} feeRate={feeRate} totalAmount={totalAmount} />
+              <PaymentSummaryCard data={data} currencyCode={currencyCode} itemAmount={itemAmount} feeAmount={feeAmount} feeRate={feeRate} totalAmount={totalAmount} />
               <ProtectionFeaturesCard data={data} />
               <TrustIndicatorsCard />
             </div>
@@ -785,7 +786,7 @@ function TimelineCard() {
   );
 }
 
-function EscrowProtectionCard({ data, currencySymbol }: { data: ReviewData; currencySymbol: string }) {
+function EscrowProtectionCard({ data, currencyCode }: { data: ReviewData; currencyCode: string }) {
   const totalAmount = data.pricing?.total_amount ?? 0;
   return (
     <div className="bg-success rounded-2xl shadow-2xl p-6 text-success-foreground border-2 border-success/40">
@@ -797,7 +798,7 @@ function EscrowProtectionCard({ data, currencySymbol }: { data: ReviewData; curr
       </div>
       <div className="space-y-4 mb-6">
         {[
-          { icon: Lock, title: "Your Payment is Held Securely", desc: `SafeDeal holds your ${currencySymbol}${totalAmount.toLocaleString()} in a secure escrow account. The seller cannot access these funds yet.` },
+          { icon: Lock, title: "Your Payment is Held Securely", desc: `SafeDeal holds your ${formatMoney(totalAmount, currencyCode)} in a secure escrow account. The seller cannot access these funds yet.` },
           { icon: HandCoins, title: "Seller Paid Only After Confirmation", desc: "The seller receives payment only when you confirm the item matches this agreement." },
           { icon: Scale, title: "SafeDeal Steps In If Needed", desc: "If you raise a dispute, SafeDeal reviews evidence from both parties and makes a fair decision." },
         ].map((item) => (
@@ -951,8 +952,8 @@ function NextActionCard({ payLabel, onPay, onDecline, authState, canPay, lockRea
   );
 }
 
-function PaymentSummaryCard({ data, currencySymbol, itemAmount, feeAmount, feeRate, totalAmount }: {
-  data: ReviewData; currencySymbol: string; itemAmount: number; feeAmount: number; feeRate: number; totalAmount: number;
+function PaymentSummaryCard({ data, currencyCode, itemAmount, feeAmount, feeRate, totalAmount }: {
+  data: ReviewData; currencyCode: string; itemAmount: number; feeAmount: number; feeRate: number; totalAmount: number;
 }) {
   return (
     <Card className="rounded-2xl shadow-lg">
@@ -964,17 +965,17 @@ function PaymentSummaryCard({ data, currencySymbol, itemAmount, feeAmount, feeRa
         <div className="space-y-3 mb-4">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Item Price</span>
-            <span className="font-semibold text-foreground">{currencySymbol}{itemAmount.toLocaleString()}</span>
+            <span className="font-semibold text-foreground">{formatMoney(itemAmount, currencyCode)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Service Fee ({(feeRate * 100).toFixed(1)}%)</span>
-            <span className="font-semibold text-foreground">{currencySymbol}{feeAmount.toLocaleString()}</span>
+            <span className="font-semibold text-foreground">{formatMoney(feeAmount, currencyCode)}</span>
           </div>
           <p className="text-xs text-muted-foreground -mt-1">Includes payment processing</p>
           <div className="border-t pt-3" />
           <div className="flex justify-between items-center">
             <span className="text-base font-bold text-foreground">Total Amount</span>
-            <span className="text-2xl font-bold text-primary">{currencySymbol}{totalAmount.toLocaleString()}</span>
+            <span className="text-2xl font-bold text-primary">{formatMoney(totalAmount, currencyCode)}</span>
           </div>
         </div>
         <div className="bg-success/10 border border-success/20 rounded-xl p-3">

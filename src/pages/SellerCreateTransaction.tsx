@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { TransactionSuccess } from "@/components/seller/TransactionSuccess";
 import { Button } from "@/components/ui/button";
+import { formatMoney } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -834,10 +835,10 @@ const SellerCreateTransaction = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Buyer:</span><span className="font-medium text-foreground truncate ml-2">{form.buyer_name || "—"}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Item:</span><span className="font-medium text-foreground truncate ml-2">{form.item_title || "—"}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Amount:</span><span className="font-medium text-foreground">{form.price > 0 ? `${currSymbol}${form.price.toLocaleString()}` : "—"}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Amount:</span><span className="font-medium text-foreground">{form.price > 0 ? formatMoney(form.price, form.currency_code) : "—"}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Media:</span><span className="font-medium text-foreground">{photos.length} photo{photos.length !== 1 ? "s" : ""}{video ? ", 1 video" : ""}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Delivery:</span><span className="font-medium text-foreground">{DELIVERY_OPTIONS.find((d) => d.value === form.delivery_method)?.label ?? "—"}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">You'll Receive:</span><span className="font-bold text-success">{pricing ? `${currSymbol}${(pricing.item_amount - pricing.platform_fee_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "—"}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">You'll Receive:</span><span className="font-bold text-success">{pricing ? formatMoney(pricing.item_amount - pricing.platform_fee_amount, form.currency_code) : "—"}</span></div>
                   </div>
                 </CardContent>
               </Card>

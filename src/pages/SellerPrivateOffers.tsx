@@ -11,6 +11,7 @@ import { SellerNav } from "@/components/seller/SellerNav";
 import { Footer } from "@/components/landing/Footer";
 import { listSellerOffers, type SellerOffer } from "@/services/seller-offers.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
+import { formatMoney } from "@/lib/format";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All statuses" },
@@ -210,7 +211,7 @@ function OfferRow({ offer }: { offer: SellerOffer }) {
         </Badge>
       </td>
       <td className="p-3 text-right text-sm font-medium text-foreground">
-        {currency} {total.toLocaleString()}
+        {formatMoney(total, currency)}
       </td>
       <td className="p-3 text-xs text-muted-foreground">
         {offer.expires_at ? new Date(offer.expires_at).toLocaleDateString() : "—"}

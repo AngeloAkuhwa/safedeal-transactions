@@ -19,11 +19,9 @@ import {
 } from "@/services/cart.service";
 import { computePricing } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
+import { formatMoney } from "@/lib/format";
 
-function formatPrice(amount: number, currency = "NGN") {
-  if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
-  return `${currency} ${Number(amount).toLocaleString()}`;
-}
+const formatPrice = (amount: number, currency = "NGN") => formatMoney(amount, currency);
 
 function getStockStatus(item: CartItem) {
   if (!item.product) return { label: "Unavailable", variant: "destructive" as const, canCheckout: false };

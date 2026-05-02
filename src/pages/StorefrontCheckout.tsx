@@ -13,11 +13,9 @@ import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { getPublicProductDetail } from "@/services/public-storefront.service";
 import { createStorefrontTransaction } from "@/services/storefront-checkout.service";
 import { computePricing } from "@/lib/pricing";
+import { formatMoney } from "@/lib/format";
 
-function formatPrice(amount: number, currency: string) {
-  if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
-  return `${currency} ${Number(amount).toLocaleString()}`;
-}
+const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
 const deliveryMethodLabels: Record<string, string> = {
   pickup: "Pickup",

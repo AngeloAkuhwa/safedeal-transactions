@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getBuyerOffers, type BuyerOffer } from "@/services/buyer-offers.service";
 import { getBuyerProfile } from "@/services/profile.service";
+import { formatMoney } from "@/lib/format";
 
 export default function BuyerPrivateOffers() {
   const [showPast, setShowPast] = useState(false);
@@ -112,7 +113,7 @@ function OfferCard({ offer, muted }: { offer: BuyerOffer; muted?: boolean }) {
         <div className="flex items-baseline justify-between border-t border-border pt-3">
           <span className="text-xs text-muted-foreground">Price</span>
           <span className="text-lg font-bold text-foreground">
-            {product?.currency_code} {Number(product?.unit_price || 0).toLocaleString()}
+            {formatMoney(Number(product?.unit_price || 0), product?.currency_code || "NGN")}
           </span>
         </div>
         {offer.expires_at && offer.status !== "expired" && offer.status !== "purchased" && (

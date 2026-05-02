@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/sonner";
+import { formatMoney } from "@/lib/format";
 import { ProductStatusBadge } from "@/components/storefront/ProductStatusBadge";
 import { SellerStorefrontSidebar } from "@/components/storefront/SellerStorefrontSidebar";
 import {
@@ -237,7 +238,7 @@ const SellerProductDetail = () => {
               <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border">
                 <div>
                   <p className="text-xs text-muted-foreground">Price</p>
-                  <p className="text-lg font-semibold text-foreground">{product.currency_code} {Number(product.unit_price).toLocaleString()}</p>
+                  <p className="text-lg font-semibold text-foreground">{formatMoney(Number(product.unit_price), product.currency_code)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Stock</p>
