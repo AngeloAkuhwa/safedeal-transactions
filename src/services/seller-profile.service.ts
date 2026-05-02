@@ -17,6 +17,8 @@ export interface SellerVerification {
   phone_verified: boolean;
   identity_verified: boolean;
   payout_verified: boolean;
+  payout_ready: boolean;
+  payout_blocker_reason: "missing" | "unverified" | "no_recipient_code" | null;
   is_region_eligible: boolean;
   verification_level?: string;
 }
@@ -38,6 +40,8 @@ export interface PayoutAccountSummary {
   verification_status: string;
   last_verified_at: string | null;
   updated_at: string | null;
+  payout_ready?: boolean;
+  payout_blocker_reason?: "missing" | "unverified" | "no_recipient_code" | null;
 }
 
 export interface AccountMeta {
