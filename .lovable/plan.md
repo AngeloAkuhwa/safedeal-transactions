@@ -1,127 +1,142 @@
-# Phase J — Production Readiness: Presentation Correctness
+# Phase K — Final Production Polish
 
-End-to-end backend was verified clean (state machine, RLS, atomic RPCs, edge gating, dispute pipeline, payout queue, cron escalations, dashboard math). Remaining gaps are purely presentational: inconsistent money formatting, drifting status labels, leaked internal vocabulary, and missing buyer KPI deep-links.
+## Why this phase exists
 
-This plan is **formatting + copy + a few component prop additions only**. No SQL, no RLS, no RPC, no new tables, no state-machine changes.
+Phase J shipped `src/lib/format.ts` and `src/lib/status-labels.ts`, and the money-formatter sweep is genuinely 100% — `rg "Intl.NumberFormat"` returns zero hits outside `format.ts`. **However, the status-label registry I built in Phase J is barely wired in.** A direct grep across the codebase shows:
+
+- `audience="buyer"` is used in **zero** places. Every badge defaults to seller voice.
+- **9 inline status-label maps** still drift across pages (buyer detail, buyer tracking, buyer verify, seller detail, seller recent activity, transaction filters, in-transit block, export preview, and seller analytics).
+- `DisputeMoneyStatusBadge` is a separate component with its own hardcoded map ("Releasing", "Funds Released") that doesn't read from the registry.
+- `TransactionTable` (used by `BuyerTransactions`) doesn't accept an `audience` prop, so the buyer's main transactions list shows seller-voice status.
+- Buyer KPI tiles in `MetricsCards` are not deep-linked to filtered list views — Phase J acceptance #6 was checked off but not actually shipped.
+- The money-status filter dropdown shows raw "Funds Releasing" instead of "Payment Processing".
+
+This phase finishes Phase J by *actually adopting* what was built. No new tokens, no new helpers — just enforcement and cleanup.
 
 ---
 
-## J1. Central money formatter — `src/lib/format.ts`
+## K1. Wire `audience` into every badge call site
 
-Create three helpers used everywhere money is shown:
+**Components to update (accept and forward `audience`):**
 
-- `formatMoney(amount, currency = "NGN")` → always 2 dp. NGN uses `Intl.NumberFormat("en-NG", { style:"currency", currency:"NGN", minimumFractionDigits:2, maximumFractionDigits:2 })` → `"₦1,234.50"`. Non-NGN uses `style:"decimal"` + currency-code prefix → `"USD 12.00"` (avoids Intl substituting `"$"` in en-NG locale).
-- `formatMoneyCompact(amount, currency)` → 2 dp under 1,000,000; `1.2M` style above with the exact value passed back as a `title` attribute (call sites add the tooltip).
-- `formatMoneyDelta(amount, currency)` → prefixes `+` / `−`, used in payout & refund rows.
+- `src/components/transactions/TransactionTable.tsx` — add `audience?: Audience` prop, default `"seller"`, forward to `TransactionStatusBadge`.
+- `src/components/transactions/TransactionStatusBadge.tsx` — already supports `audience` via the registry; verify default behavior unchanged.
+- `src/components/transactions/MoneyStatusBadge.tsx` — same.
+- `src/components/disputes/DisputeMoneyStatusBadge.tsx` — **delete the local `moneyConfig` map**, switch to `resolveMoneyLabel(status, audience)`, accept new `audience` prop (default `"buyer"` since it's currently buyer-only).
 
-Mirror the same helpers in `supabase/functions/_shared/format.ts` so CSV exports match on-screen totals.
+**Buyer call sites that must pass `audience="buyer"`:**
 
-Add a local ESLint guardrail (no new dep — `no-restricted-syntax` rule in `.eslintrc`) flagging any `Intl.NumberFormat` call with `minimumFractionDigits: 0` outside `src/lib/format.ts`. Header comment in `format.ts` explains why.
+- `src/pages/BuyerTransactions.tsx` → `<TransactionTable transactions={…} audience="buyer" />`
+- `src/pages/BuyerTransactionDetail.tsx` → all `<MoneyStatusBadge>` and `<TransactionStatusBadge>` usages
+- `src/pages/BuyerTransactionTracking.tsx` → same
+- `src/pages/BuyerTransactionVerify.tsx` → same
+- `src/pages/BuyerTransactionReview.tsx` → same
+- `src/pages/BuyerDisputeDetail.tsx` → `<DisputeMoneyStatusBadge audience="buyer" />`
+- `src/components/disputes/BuyerDisputeList.tsx` → same
 
-## J2. Replace every per-file formatter
+**Seller call sites stay default** (no change needed for `SellerTransactions`, `SellerTransactionDetail`, `SellerDisputeDetail`).
 
-Swap the local `formatCurrency` (or inline `Intl.NumberFormat`) for `formatMoney` in:
+## K2. Delete inline status-label maps (root cause of drift)
 
-- Pages: `SellerTransactions`, `SellerPayouts`, `SellerTransactionDetail`, `SellerUpdateDelivery`, `SellerDisputeDetail`, `SellerProductPreview`, `SellerCreateTransaction`, `SellerAnalytics`, `BuyerTransactionDetail`, `BuyerTransactionTracking`, `BuyerTransactionVerify`.
-- Components: `transactions/TransactionTable`, `transactions/TransactionReceipt`, `seller/SellerMetricsCards`, `seller/SellerRecentActivity`, `seller/ExportPayoutsDialog`, `seller/ExportPreviewDialog`, `seller/TransactionSuccess`, `seller-disputes/SellerDisputeBlockedPanel`, `seller-disputes/SellerDisputeSummaryCards`, `seller-disputes/SellerDisputeTable`, `seller-disputes/SellerPayoutImpactCard`, `disputes/BuyerDisputeList`, `disputes/PossibleOutcomesPanel`, `disputes/DisputeCaseSummary`, `disputes/DisputeResolutionSection`, `marketplace/MarketplaceProductCard`, `dashboard/RecentPurchases`, `verification/VerificationActions`.
+Replace the local maps in each file with a single call to the registry helper:
 
-After this pass, every monetary value across seller, buyer, transaction-detail, payout, dashboard, analytics, receipt, and dispute screens renders with the same 2-dp output. The "rounded to nearest thousand" defects in BuyerDisputeList, PossibleOutcomesPanel, DisputeCaseSummary, DisputeResolutionSection, MarketplaceProductCard, SellerPayoutImpactCard, SellerDisputeDetail and SellerProductPreview disappear.
+```ts
+// before:
+const STATUS_MAP: Record<string, { label: string; … }> = { awaiting_buyer: { label: "Awaiting Buyer" … } … };
+const cfg = STATUS_MAP[status];
 
-## J3. Unified status-label registry — `src/lib/status-labels.ts`
-
-Single source of truth keyed by `audience: "seller" | "buyer"`:
-
-```text
-TRANSACTION_LABELS[audience][tx_status]   -> { label, tone }
-MONEY_LABELS[audience][money_status]      -> { label, tone }
-DISPUTE_LABELS[audience][dispute_status]  -> { label, tone }
+// after:
+import { resolveTransactionLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
+const { label, tone } = resolveTransactionLabel(status, audience);
+const className = TONE_CLASSNAMES[tone];
 ```
 
-Mapping (per spec):
+Files to clean:
 
-Transaction status
-- draft → Draft / —
-- awaiting_buyer → Awaiting Buyer / Review Agreement
-- awaiting_payment → Awaiting Payment / Awaiting Payment
-- payment_secured → Payment Secured / Payment Secured
-- seller_preparing_delivery → Preparing Delivery / Seller Preparing Delivery
-- seller_dispatched → Dispatched / Dispatched
-- delivered_awaiting_verification → Delivered / Confirm Item Received
-- disputed → Disputed / Disputed
-- completed → Completed / Completed
-- cancelled → Cancelled / Cancelled
-- timed_out → Timed Out / Timed Out
-- refunded → Refunded / Refunded
+| File | Map to remove |
+|---|---|
+| `src/pages/BuyerTransactionDetail.tsx` | local `txStatusConfig` (line 62+) |
+| `src/pages/BuyerTransactionTracking.tsx` | local `txStatusConfig` (line 46+) |
+| `src/pages/BuyerTransactionVerify.tsx` | local `STATUS_LABELS` (line 27) |
+| `src/pages/BuyerTransactionReview.tsx` | local status copy block |
+| `src/pages/SellerTransactionDetail.tsx` | local `txStatusConfig` (line 36+) |
+| `src/components/seller/SellerRecentActivity.tsx` | local `txStatusConfig` (line 19+) |
+| `src/components/seller/ExportPreviewDialog.tsx` | local `STATUS_LABELS` (line 28+) — used in CSV header rendering, route through registry with `audience="seller"` |
+| `src/components/transactions/InTransitBlock.tsx` | inline label-when conditions for `delivered_awaiting_verification` |
+| `src/pages/SellerAnalytics.tsx` | inline status display strings |
 
-Money status
-- not_secured → Not Secured / Not Paid Yet
-- payment_pending → Payment Pending / Payment Pending
-- funds_held_in_escrow → Funds Held / Payment Secured
-- funds_pending_release → Awaiting Release / context-aware (Awaiting Seller Confirmation when seller hasn't confirmed; Awaiting Release when both confirmed)
-- funds_releasing → Payment Processing / Payment Processing
-- funds_released → Released To You / Released To Seller
-- funds_frozen → Funds Frozen / Funds Frozen
-- refund_pending → Refund Pending / Refund Pending
-- refund_issued → Refunded / Refunded
+`SellerUpdateDelivery.tsx` and `TransactionConfirmationProgress.tsx` use status strings as **timeline step keys**, not user-facing labels for the same DB value — leave the keys alone, but confirm the displayed label string is registry-sourced.
 
-This fixes the two reversed labels currently in `MoneyStatusBadge.tsx` (`funds_pending_release` ↔ `funds_releasing`) and the buyer-incorrect "Released to You" string.
+## K3. Fix the money-status filter dropdown
 
-Refactor:
+`src/components/transactions/TransactionFilters.tsx` line 52 lists `{ value: "funds_releasing", label: "Funds Releasing" }`. That's the wrong copy. Replace the entire money-status options array with a generated list:
 
-- `MoneyStatusBadge.tsx`, `TransactionStatusBadge.tsx`, and a new `DisputeStatusBadge` (if absent) accept `audience?: "seller" | "buyer"` (default `"seller"` to keep legacy call sites stable while migrating). Internally read from the registry — no inline maps.
-- For `funds_pending_release` on the buyer side, the badge accepts an optional `sellerConfirmed?: boolean` prop. Pages already have this signal (`seller_confirmed_at`); pass it through.
-- Delete the duplicated inline status maps in `BuyerTransactionDetail`, `BuyerTransactionTracking`, `SellerTransactionDetail`, `SellerRecentActivity`, `SellerMetricsCards`.
-- Update every buyer-side `<MoneyStatusBadge>` / `<TransactionStatusBadge>` to pass `audience="buyer"`. Seller surfaces stay default.
+```ts
+const MONEY_STATUS_OPTIONS: { value: MoneyStatus; label: string }[] = (
+  Object.keys(MONEY_LABELS[audience]) as MoneyStatus[]
+).map((value) => ({ value, label: MONEY_LABELS[audience][value].label }));
+```
 
-## J4. Scrub internal vocabulary from user-facing copy
+Add `audience` prop to `TransactionFilters` (default `"seller"`). Pass `audience="buyer"` from `BuyerTransactions.tsx` where it renders the filter.
 
-- Add `INTERNAL_REASON_COPY` map in `status-labels.ts` for `release_review_reason` and `release_review_queue.queue_type` values (`pricing_missing`, `payout_account_missing`, `silent_dispute`, `transfer_reversed`, `manual_hold`, `delivery_proof_missing`, `failed_payout`, `refund_request`, `suspicious_activity`, `stuck`).
-- `SellerAlertBanners.tsx` routes alerts through this map.
-- `SellerDisputeDetail` and `SellerPayoutImpactCard` replace "admin release" / "admin review" with "SafeDeal review" and "Awaiting Release".
-- Buyer copy verified clean — no "admin" string reaches buyer surfaces.
+## K4. Buyer KPI tiles deep-link to filtered lists (Phase J acceptance #6 — not actually shipped)
 
-## J5. Dashboard ↔ table reconciliation
+`src/components/dashboard/MetricsCards.tsx` currently renders 4 tiles as static cards. Wrap each in `<Link to="…">` so clicking pre-applies the matching filter on `/buyer/transactions` or `/buyer/disputes`:
 
-Backend math verified — `seller-dashboard` and the seller transaction list query share the same source of truth. No backend change.
+| Tile | Target |
+|---|---|
+| Active Purchases | `/buyer/transactions?status=active` |
+| Awaiting Delivery | `/buyer/transactions?status=in_fulfillment` |
+| Awaiting Verification | `/buyer/transactions?status=delivered_awaiting_verification` |
+| Open Disputes | `/buyer/disputes?status=open` |
 
-Presentation:
-- `SellerMetricsCards` "Net Earned" tile gets a small two-line breakdown under the value: `Released ₦X` + `Pending bank transfer ₦Y`, plus the same content in the tooltip.
-- Buyer KPI tiles in `Dashboard.tsx` (`active_purchases`, `awaiting_delivery`, `awaiting_verification`, `open_disputes`) become `<Link>`s that navigate to `/buyer/transactions?status=…` or `/buyer/disputes?status=open`. `BuyerTransactions` and `BuyerDisputes` already accept those query params for filtering — verify and wire.
+`BuyerTransactions` and `BuyerDisputes` already read `?status=` from the URL — verify and wire the chip toggle to honor the initial param on mount.
 
-## J6. Notification copy parity
+## K5. DisputeMoneyStatusBadge — buyer-correct copy
 
-Edge-function copy edits only (no logic change):
-- `update-delivery-status` — buyer-facing notification strings rewritten to use the J3 buyer labels (e.g., "Your seller marked the order as Dispatched", "Your seller confirmed delivery — please review and confirm receipt").
-- `seller-confirm-completion` — keep current buyer message ("Both parties have confirmed this deal. SafeDeal will process the release."), align seller copy.
-- `release-payout` — seller message uses "Released To You"; buyer message uses "Released To Seller".
-- `paystack-webhook` — money-state transition notifications use the same registry strings.
+Currently prints "Releasing" and "Funds Released". For the buyer audience these should be "Payment Processing" and "Released to Seller" (per the J3 mapping table). The fix is automatic once K1's switch to `resolveMoneyLabel(status, "buyer")` lands.
 
-## J7. Receipt + timeline 2-dp pass
+Also extend the registry's `MONEY_LABELS.buyer` with the dispute-only states (`refund_pending`, `refund_issued`) — they exist in the seller dict but were copy-pasted; no change needed if already present (verify).
 
-`TransactionReceipt.tsx` already shows 2 dp but builds rows independently. Switch to `formatMoney` and verify all 8 rows (item, gross buyer, service fee, processing fee, total paid, seller net, refund, payout) match the `transaction_pricing` row exactly. Formatting only.
+## K6. Verify defaults and prevent future drift
 
-## J8. UI regression sweep at 1246×890
+- Add a JSDoc note on `MoneyStatusBadge`/`TransactionStatusBadge` props: "If rendering for a buyer surface, pass `audience='buyer'`. Default is `'seller'` for backwards compatibility."
+- Add a one-line comment to `src/lib/status-labels.ts` explaining the registry is the **single source of truth** and inline maps are forbidden.
+- (No ESLint rule — too noisy; the comment + small surface area is enough.)
 
-After J1–J7 land, sweep:
-- Bumped string widths from 0-dp → 2-dp may overflow KPI cards. Adjust `min-w` on the four `SellerMetricsCards` items (Funds Held, Awaiting Release, Net Earned, Net Pending) and the three dispute summary cards.
-- Confirm status chips don't wrap mid-word; if they do, the registry's longer buyer labels ("Confirm Item Received", "Awaiting Seller Confirmation") need `whitespace-nowrap` or are abbreviated to "Confirm Receipt" / "Awaiting Confirmation" with a `title` attribute carrying the long form.
+## K7. Sweep at 1246×890
+
+After K1–K6 land, click through:
+
+1. `/buyer/transactions` — every row's status chip reads buyer voice ("Confirm Item Received", not "Delivered").
+2. `/buyer/transactions/:id` — header status reads buyer voice; money badge reads "Payment Secured" not "Funds Held".
+3. `/buyer/transactions/:id/verify` — page title reads "Confirm Item Received".
+4. `/buyer/disputes/:id` — money badge reads "Payment Processing" not "Releasing".
+5. `/dashboard` — clicking a KPI tile lands on the right filtered list.
+6. `/seller/transactions` — unchanged seller voice ("Awaiting Your Confirmation" etc.) still works.
+7. Filter dropdown on `/seller/transactions` and `/buyer/transactions` shows audience-correct copy.
 
 ---
+
+## Out of scope
+
+- Backend / RLS / RPC changes — verified intact during the prior audit.
+- New design tokens — Phases G/H/I shipped them; reusing.
+- New helper files — `format.ts` and `status-labels.ts` already exist.
+- Storefront / marketplace product browsing surfaces.
 
 ## Acceptance
 
-1. Every monetary value on every seller and buyer surface renders via `formatMoney` → exact 2 dp, no rounding to thousands, no zero-decimal display.
-2. Buyer pages never display "Released to You", "admin release", or "admin review".
-3. `MoneyStatusBadge` and `TransactionStatusBadge` use the new `audience` prop everywhere; no inline status-label maps remain in any page.
-4. `funds_releasing` reads "Payment Processing" on both audiences; `funds_pending_release` reads "Awaiting Release" (seller) / context-aware (buyer).
-5. Seller "Net Earned" tile shows the explicit `Released ₦X + Pending bank transfer ₦Y` breakdown.
-6. Buyer KPI tiles deep-link to the correct filtered list (parity with seller).
-7. CSV exports show 2-dp values that match the on-screen totals.
-8. Type-check clean, no new lint warnings, no regressions at 1246×890.
+1. `rg "audience=\"buyer\"" src` returns hits for at minimum: `BuyerTransactions`, `BuyerTransactionDetail`, `BuyerTransactionTracking`, `BuyerTransactionVerify`, `BuyerDisputeDetail`, `BuyerDisputeList`.
+2. `rg -nE "(awaiting_buyer|payment_secured|seller_dispatched|delivered_awaiting_verification).*['\"][A-Z]" src/pages src/components` returns zero hits in user-facing label maps (only DB keys remain, never literal label strings).
+3. The "Funds Releasing" filter option no longer appears anywhere; "Payment Processing" appears instead.
+4. Clicking each of the 4 buyer KPI tiles navigates to the matching filtered list.
+5. `DisputeMoneyStatusBadge` no longer contains a `moneyConfig` literal.
+6. No regressions at 1246×890 — chips don't wrap, table doesn't overflow, KPI cards render the new labels without truncation.
+7. Type-check clean; no new lint warnings.
 
-## Files touched
+## Files touched (summary)
 
-- **New**: `src/lib/format.ts`, `src/lib/status-labels.ts`, `supabase/functions/_shared/format.ts`
-- **Refactored** (formatter + label registry): the ~30 components/pages listed in J2
-- **Edge functions** (copy only): `update-delivery-status`, `seller-confirm-completion`, `release-payout`, `paystack-webhook`, `seller-payouts` (CSV), `seller-analytics` (CSV)
-- **No SQL. No RLS. No new tables. No RPC changes.**
+- Modified (audience-prop forwarding + map deletion): `TransactionTable.tsx`, `TransactionFilters.tsx`, `DisputeMoneyStatusBadge.tsx`, `MetricsCards.tsx`, `InTransitBlock.tsx`, `ExportPreviewDialog.tsx`, `SellerRecentActivity.tsx`, `BuyerTransactions.tsx`, `BuyerTransactionDetail.tsx`, `BuyerTransactionTracking.tsx`, `BuyerTransactionVerify.tsx`, `BuyerTransactionReview.tsx`, `BuyerDisputeDetail.tsx`, `BuyerDisputeList.tsx`, `SellerTransactionDetail.tsx`, `SellerAnalytics.tsx`.
+- Possibly extended: `src/lib/status-labels.ts` (only if dispute money states are missing from the buyer dict).
+- No edge functions, no SQL, no new files.

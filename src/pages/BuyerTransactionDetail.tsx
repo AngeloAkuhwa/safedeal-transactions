@@ -55,32 +55,7 @@ import { DeliveryTermsCard } from "@/components/transactions/DeliveryTermsCard";
 import { TransactionCompletionBanner } from "@/components/transactions/TransactionCompletionBanner";
 import { TransactionConfirmationProgress } from "@/components/transactions/TransactionConfirmationProgress";
 import { MessageThread } from "@/components/transactions/MessageThread";
-
-/* ───── Status badge config ───── */
-const statusConfig: Record<string, { label: string; className: string }> = {
-  draft: { label: "Draft", className: "bg-muted text-muted-foreground border-border" },
-  awaiting_buyer: { label: "Awaiting Buyer", className: "bg-muted text-muted-foreground border-border" },
-  awaiting_payment: { label: "Awaiting Payment", className: "bg-warning/15 text-warning border-warning/30" },
-  payment_secured: { label: "Payment Secured", className: "bg-primary/15 text-primary border-primary/30" },
-  seller_preparing_delivery: { label: "Preparing", className: "bg-primary/15 text-primary border-primary/30" },
-  seller_dispatched: { label: "In Transit", className: "bg-primary/15 text-primary border-primary/30" },
-  delivered_awaiting_verification: { label: "Delivered", className: "bg-success/15 text-success border-success/30" },
-  disputed: { label: "Disputed", className: "bg-destructive/15 text-destructive border-destructive/30" },
-  completed: { label: "Completed", className: "bg-success/15 text-success border-success/30" },
-  refunded: { label: "Refunded", className: "bg-muted text-muted-foreground border-border" },
-  cancelled: { label: "Cancelled", className: "bg-muted text-muted-foreground border-border" },
-};
-
-const moneyConfig: Record<string, { label: string; className: string }> = {
-  not_secured: { label: "Not Secured", className: "bg-muted text-muted-foreground border-border" },
-  payment_pending: { label: "Payment Pending", className: "bg-warning/15 text-warning border-warning/30" },
-  funds_held_in_escrow: { label: "Funds Held in Escrow", className: "bg-primary/15 text-primary border-primary/30" },
-  funds_frozen: { label: "Funds Frozen", className: "bg-destructive/15 text-destructive border-destructive/30" },
-  funds_releasing: { label: "Releasing", className: "bg-success/15 text-success border-success/30" },
-  funds_released: { label: "Released", className: "bg-success/15 text-success border-success/30" },
-  refund_pending: { label: "Refund Pending", className: "bg-warning/15 text-warning border-warning/30" },
-  refund_issued: { label: "Refunded", className: "bg-muted text-muted-foreground border-border" },
-};
+import { resolveTransactionLabel, resolveMoneyLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 
 /* ───── Timeline step definitions ───── */
 const timelineSteps = [
@@ -273,8 +248,12 @@ const BuyerTransactionDetail = () => {
   const showInTransit = tx.status === "seller_dispatched" || tx.status === "delivered_awaiting_verification";
   const showVerifyCTA = tx.status === "delivered_awaiting_verification";
   const currentStatusIndex = getStatusIndex(tx.status);
-  const sBadge = statusConfig[tx.status] ?? { label: tx.status, className: "bg-muted text-muted-foreground border-border" };
-  const mBadge = moneyConfig[tx.money_status] ?? { label: tx.money_status, className: "bg-muted text-muted-foreground border-border" };
+  const sEntry = resolveTransactionLabel(tx.status, "buyer");
+  const mEntry = resolveMoneyLabel(tx.money_status, "buyer", {
+    sellerConfirmed: tx.seller_confirmed_at ? true : false,
+  });
+  const sBadge = { label: sEntry.label, className: TONE_CLASSNAMES[sEntry.tone] };
+  const mBadge = { label: mEntry.label, className: TONE_CLASSNAMES[mEntry.tone] };
 
   return (
     <div className="min-h-screen bg-muted/30 flex flex-col">

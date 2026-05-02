@@ -30,31 +30,7 @@ import { ReleaseReviewBanner } from "@/components/seller/ReleaseReviewBanner";
 import { RiderLinkCard } from "@/components/seller/RiderLinkCard";
 import { formatMoney } from "@/lib/format";
 import { MessageThread } from "@/components/transactions/MessageThread";
-
-const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  draft: { label: "Draft", variant: "secondary" },
-  awaiting_buyer: { label: "Awaiting Buyer", variant: "outline" },
-  awaiting_payment: { label: "Payment Pending", variant: "outline" },
-  payment_secured: { label: "Payment Secured", variant: "default" },
-  seller_preparing_delivery: { label: "Preparing Delivery", variant: "default" },
-  seller_dispatched: { label: "Dispatched", variant: "default" },
-  delivered_awaiting_verification: { label: "Buyer Verification", variant: "secondary" },
-  completed: { label: "Completed", variant: "default" },
-  disputed: { label: "Disputed", variant: "destructive" },
-  cancelled: { label: "Cancelled", variant: "secondary" },
-};
-
-const moneyLabels: Record<string, { label: string; color: string }> = {
-  not_secured: { label: "Not Secured", color: "text-muted-foreground" },
-  payment_pending: { label: "Payment Pending", color: "text-yellow-600" },
-  funds_held_in_escrow: { label: "Funds Held Securely", color: "text-green-600" },
-  funds_frozen: { label: "Funds Frozen", color: "text-blue-600" },
-  funds_pending_release: { label: "Awaiting Release", color: "text-primary" },
-  funds_releasing: { label: "Releasing Funds", color: "text-green-600" },
-  funds_released: { label: "Funds Released", color: "text-green-700" },
-  refund_pending: { label: "Refund Pending", color: "text-yellow-600" },
-  refund_issued: { label: "Refunded", color: "text-destructive" },
-};
+import { resolveTransactionLabel, resolveMoneyLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 
 const conditionLabels: Record<string, string> = {
   new: "Brand New",
@@ -133,8 +109,26 @@ const SellerTransactionDetail = () => {
 
   const { transaction: tx, buyer, item, pricing, escrow, agreement, delivery_tracking, delivery_terms, timeline, next_action, completion_event, rider_link } = data;
   const currency = pricing?.currency_code ?? "NGN";
-  const statusInfo = statusLabels[tx.status] ?? { label: tx.status, variant: "secondary" as const };
-  const moneyInfo = moneyLabels[tx.money_status] ?? { label: tx.money_status, color: "text-muted-foreground" };
+  const sEntry = resolveTransactionLabel(tx.status, "seller");
+  const mEntry = resolveMoneyLabel(tx.money_status, "seller", {
+    sellerConfirmed: tx.seller_confirmed_at ? true : false,
+  });
+  const tonalVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+    muted: "secondary",
+    info: "default",
+    warning: "outline",
+    success: "default",
+    destructive: "destructive",
+  };
+  const tonalText: Record<string, string> = {
+    muted: "text-muted-foreground",
+    info: "text-primary",
+    warning: "text-warning",
+    success: "text-success",
+    destructive: "text-destructive",
+  };
+  const statusInfo = { label: sEntry.label, variant: tonalVariant[sEntry.tone] };
+  const moneyInfo = { label: mEntry.label, color: tonalText[mEntry.tone] };
 
   const fullShareUrl = tx.share_url ? `${window.location.origin}${tx.share_url}` : null;
 
