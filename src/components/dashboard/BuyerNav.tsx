@@ -55,7 +55,7 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
 
   return (
     <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="sd-page flex h-14 items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Shield className="h-7 w-7 text-primary" />
