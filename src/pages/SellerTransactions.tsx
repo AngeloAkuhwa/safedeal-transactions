@@ -539,68 +539,8 @@ const SellerTransactions = () => {
         </Card>
       </div>
 
-      {/* Summary Cards */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="rounded-2xl shadow-md">
-            <CardContent className="p-5">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Transactions</p>
-              <p className="text-3xl font-bold text-foreground">{summary.total}</p>
-              <p className="text-sm text-muted-foreground">All protected deals you've created</p>
-              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                {summary.total} total · {summary.awaiting_payment_count ?? 0} awaiting · {summary.in_fulfillment_count ?? 0} in fulfillment · {summary.completed} completed
-                {(summary.disputed_count ?? 0) > 0 && ` · ${summary.disputed_count} disputed`}
-                {(summary.cancelled_count ?? 0) > 0 && ` · ${summary.cancelled_count} cancelled`}
-                {(summary.timed_out_count ?? 0) > 0 && ` · ${summary.timed_out_count} timed out`}
-                {(summary.refunded_count ?? 0) > 0 && ` · ${summary.refunded_count} refunded`}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="rounded-2xl shadow-md">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-1.5 mb-1">
-                <p className="text-xs font-medium text-warning uppercase tracking-wider">Awaiting Buyer Payment</p>
-                <InfoTip>Buyer started checkout but payment isn't complete yet.</InfoTip>
-              </div>
-              <p className="text-3xl font-bold text-foreground">{summary.awaiting_payment_count ?? 0}</p>
-              <p className="text-sm text-muted-foreground">Buyer hasn't paid yet</p>
-            </CardContent>
-          </Card>
-          <Card className="rounded-2xl shadow-md">
-            <CardContent className="p-5">
-              <p className="text-xs font-medium text-primary uppercase tracking-wider mb-1">In Fulfillment</p>
-              <p className="text-3xl font-bold text-foreground">{summary.in_fulfillment_count ?? 0}</p>
-              <p className="text-sm text-muted-foreground">Paid · being delivered</p>
-            </CardContent>
-          </Card>
-          <Card className="rounded-2xl shadow-md">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-1.5 mb-1">
-                <p className="text-xs font-medium text-success uppercase tracking-wider">Net Earned (Completed)</p>
-                <InfoTip>
-                  Total amount you've earned from completed deals after SafeDeal fees.
-                  Some may still be queued for bank transfer — see the Payouts tab for actual deposit status.
-                </InfoTip>
-              </div>
-              <p className="text-2xl font-bold text-foreground">
-                {formatCurrency(summary.total_earned, "NGN")}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {summary.completed} completed · escrow released, payout in progress
-              </p>
-              {payoutsData && (
-                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                  {formatCurrency(payoutsData.summary.total_released, "NGN")} paid to bank ·{" "}
-                  {formatCurrency(payoutsData.summary.pending_release, "NGN")} pending bank transfer
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
       {/* Trust Banner */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <SellerTrustBanner />
       </div>
 
