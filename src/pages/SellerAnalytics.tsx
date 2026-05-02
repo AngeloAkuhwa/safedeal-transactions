@@ -110,7 +110,7 @@ const chipToneClass: Record<ChipTone, string> = {
 function TrendChip({ tone, icon, children }: { tone: ChipTone; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
     <span className={cn(
-      "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+      "inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-semibold leading-tight",
       chipToneClass[tone],
     )}>
       {icon}
@@ -133,18 +133,18 @@ function KpiCard({
       to={to}
       aria-label={ariaLabel}
       className={cn(
-        "block group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "block group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         animate && "animate-fade-in",
       )}
-      style={animate ? { animationDelay: `${index * 60}ms`, animationFillMode: "both" } : undefined}
+      style={animate ? { animationDelay: `${index * 50}ms`, animationFillMode: "both" } : undefined}
     >
-      <Card className="rounded-xl h-full transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-sm">
-        <CardContent className="p-3 sm:p-3.5">
-          <div className="flex items-start justify-between gap-2">
+      <Card className="rounded-lg h-full transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-sm">
+        <CardContent className="p-2.5 sm:p-3">
+          <div className="flex items-start justify-between gap-1.5">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide leading-tight">
               {title}
             </p>
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-0.5 shrink-0">
               <TooltipProvider delayDuration={150}><UITooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -163,12 +163,12 @@ function KpiCard({
               <ChevronRight className="h-3 w-3 text-muted-foreground/40 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
             </div>
           </div>
-          <p className={cn("mt-1.5 text-lg sm:text-xl font-bold tracking-tight tabular-nums break-words leading-tight", valueClass)}>
+          <p className={cn("mt-1 text-base sm:text-lg lg:text-xl font-bold tracking-tight tabular-nums break-words leading-tight", valueClass)}>
             {value}
           </p>
-          <div className="mt-1 flex items-center justify-between gap-2 min-h-[16px]">
+          <div className="mt-0.5 flex items-center justify-between gap-1.5 min-h-[14px]">
             {helper ? (
-              <p className="text-[10.5px] text-muted-foreground leading-snug truncate">{helper}</p>
+              <p className="text-[10px] text-muted-foreground leading-snug truncate">{helper}</p>
             ) : <span />}
             {chip}
           </div>
@@ -194,23 +194,23 @@ function HealthCard({
   const [width, setWidth] = useState(animate ? 0 : (progress ?? 100));
   useEffect(() => {
     if (!animate) { setWidth(progress ?? 100); return; }
-    const t = window.setTimeout(() => setWidth(progress ?? 100), 80 + index * 80);
+    const t = window.setTimeout(() => setWidth(progress ?? 100), 80 + index * 70);
     return () => window.clearTimeout(t);
   }, [animate, progress, index]);
 
   return (
     <div
       className={cn(animate && "animate-fade-in")}
-      style={animate ? { animationDelay: `${index * 80}ms`, animationFillMode: "both" } : undefined}
+      style={animate ? { animationDelay: `${index * 70}ms`, animationFillMode: "both" } : undefined}
     >
-      <Card className="rounded-xl">
-        <CardContent className="p-3.5 sm:p-4">
+      <Card className="rounded-lg">
+        <CardContent className="p-2.5 sm:p-3">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold">{title}</p>
+            <p className="text-[11px] font-semibold leading-tight">{title}</p>
             <span className={cn("shrink-0", valueColor)}>{icon}</span>
           </div>
-          <p className={cn("mt-2 text-2xl sm:text-3xl font-bold tracking-tight tabular-nums leading-tight", valueColor)}>{value}</p>
-          <div className="mt-2 h-1 w-full rounded-full bg-muted overflow-hidden">
+          <p className={cn("mt-1.5 text-xl sm:text-2xl font-bold tracking-tight tabular-nums leading-tight", valueColor)}>{value}</p>
+          <div className="mt-1.5 h-1 w-full rounded-full bg-muted overflow-hidden">
             <div
               className={cn("h-full rounded-full transition-[width] duration-700 ease-out", barClass)}
               style={{ width: `${Math.max(0, Math.min(100, width))}%` }}
@@ -241,7 +241,7 @@ function ReleaseRow({ to, ariaLabel, tone, icon, label, count }: {
       to={to}
       aria-label={ariaLabel}
       className={cn(
-        "flex items-center justify-between rounded-lg px-3 py-2.5 group transition-all",
+        "flex items-center justify-between rounded-md px-2.5 py-1.5 group transition-all",
         "hover:brightness-95 dark:hover:brightness-110 hover:shadow-sm",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         bg,
@@ -249,11 +249,11 @@ function ReleaseRow({ to, ariaLabel, tone, icon, label, count }: {
     >
       <div className="flex items-center gap-2 min-w-0">
         <span className={cn("shrink-0", fg)}>{icon}</span>
-        <span className="text-sm font-medium truncate">{label}</span>
+        <span className="text-[13px] font-medium truncate leading-tight">{label}</span>
       </div>
       <div className="flex items-center gap-1 shrink-0 ml-2">
-        <span className="text-sm font-semibold tabular-nums">
-          {count} {count === 1 ? "transaction" : "transactions"}
+        <span className="text-[13px] font-semibold tabular-nums">
+          {count} {count === 1 ? "tx" : "tx"}
         </span>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
       </div>
@@ -270,7 +270,7 @@ function StarRow({ rating }: { rating: number | null }) {
           <Star
             key={i}
             className={cn(
-              "h-4 w-4",
+              "h-3.5 w-3.5",
               i <= Math.round(r)
                 ? "fill-amber-400 text-amber-400"
                 : "fill-muted text-muted-foreground/40",
@@ -278,7 +278,7 @@ function StarRow({ rating }: { rating: number | null }) {
           />
         ))}
       </div>
-      <span className="text-sm font-bold tabular-nums">
+      <span className="text-xs font-bold tabular-nums">
         {rating === null ? "—" : `${rating.toFixed(1)}/5`}
       </span>
     </div>
@@ -288,12 +288,12 @@ function StarRow({ rating }: { rating: number | null }) {
 function YesNoPill({ ok }: { ok: boolean }) {
   return (
     <span className={cn(
-      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
+      "inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[11px] font-semibold",
       ok
         ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
         : "bg-muted text-muted-foreground",
     )}>
-      {ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+      {ok ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
       {ok ? "Yes" : "No"}
     </span>
   );
@@ -388,25 +388,25 @@ const SellerAnalytics = () => {
       <SellerNav sellerName={seller.name} avatarUrl={seller.avatar} />
 
       <main className="flex-1">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
+        <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 py-3 sm:py-4 space-y-3 sm:space-y-3.5">
           {/* Header */}
-          <header className={cn("flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between", animate && "animate-fade-in")}>
+          <header className={cn("flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between", animate && "animate-fade-in")}>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Seller Analytics</h1>
-              <p className="mt-0.5 text-sm text-muted-foreground">
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight">Seller Analytics</h1>
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 Track your sales, releases, products, and trust performance.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               {lastUpdatedLabel && (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <Clock className="h-3 w-3" />
                   <span>{lastUpdatedLabel}</span>
                 </div>
               )}
               <div className="flex gap-2">
                 <Select value={period} onValueChange={(v) => setPeriod(v as AnalyticsPeriod)}>
-                  <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-full sm:w-[150px] h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="30d">Last 30 days</SelectItem>
                     <SelectItem value="90d">Last 90 days</SelectItem>
@@ -418,12 +418,13 @@ const SellerAnalytics = () => {
                     <TooltipTrigger asChild>
                       <span tabIndex={exportDisabled ? 0 : -1}>
                         <Button
+                          size="sm"
                           disabled={exportDisabled}
                           onClick={handleExport}
-                          className="shrink-0"
+                          className="shrink-0 h-8 text-xs"
                           aria-label="Export analytics as CSV"
                         >
-                          <Download className="h-4 w-4 mr-1.5" /> Export CSV
+                          <Download className="h-3.5 w-3.5 mr-1.5" /> Export CSV
                         </Button>
                       </span>
                     </TooltipTrigger>
@@ -440,17 +441,17 @@ const SellerAnalytics = () => {
 
           {/* Loading */}
           {isLoading && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-                {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[130px] rounded-xl" />)}
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[110px] rounded-lg" />)}
               </div>
-              <Skeleton className="h-72 rounded-xl" />
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+              <Skeleton className="h-60 rounded-lg" />
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[105px] rounded-lg" />)}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Skeleton className="h-56 rounded-xl" />
-                <Skeleton className="h-56 rounded-xl" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Skeleton className="h-48 rounded-lg" />
+                <Skeleton className="h-48 rounded-lg" />
               </div>
             </div>
           )}
@@ -458,12 +459,12 @@ const SellerAnalytics = () => {
           {/* Error */}
           {isError && !isLoading && (
             <Card className="border-destructive/40 bg-destructive/5">
-              <CardContent className="py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-start gap-3">
+              <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-start gap-2.5">
                   <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold">We couldn't load analytics</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Please refresh the page or try again later.
                     </p>
                   </div>
@@ -475,19 +476,19 @@ const SellerAnalytics = () => {
 
           {/* Empty */}
           {data && !isLoading && !hasAnyActivity && (
-            <Card className="rounded-xl border-dashed">
-              <CardContent className="py-12 flex flex-col items-center text-center gap-4">
-                <PackageOpen className="h-10 w-10 text-muted-foreground" />
+            <Card className="rounded-lg border-dashed">
+              <CardContent className="py-10 flex flex-col items-center text-center gap-3">
+                <PackageOpen className="h-9 w-9 text-muted-foreground" />
                 <div>
-                  <h2 className="text-lg font-semibold">Analytics will appear after your first protected transaction</h2>
-                  <p className="mt-1 text-sm text-muted-foreground max-w-md">
+                  <h2 className="text-base font-semibold">Analytics will appear after your first protected transaction</h2>
+                  <p className="mt-1 text-xs text-muted-foreground max-w-md">
                     Create a product listing or protected deal. Once buyers pay and transactions progress, your
                     sales and release insights will appear here.
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Button asChild><Link to="/seller/storefront/new"><Plus className="h-4 w-4 mr-1.5" /> Create Product</Link></Button>
-                  <Button asChild variant="outline"><Link to="/seller/transactions/new">Create Protected Deal</Link></Button>
+                  <Button size="sm" asChild><Link to="/seller/storefront/new"><Plus className="h-4 w-4 mr-1.5" /> Create Product</Link></Button>
+                  <Button size="sm" asChild variant="outline"><Link to="/seller/transactions/new">Create Protected Deal</Link></Button>
                 </div>
               </CardContent>
             </Card>
@@ -496,15 +497,15 @@ const SellerAnalytics = () => {
           {/* Content */}
           {data && !isLoading && hasAnyActivity && (
             <>
-              {/* KPI cards: 1 / 2 / 3 / 6 columns */}
-              <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+              {/* KPI cards: 2 / 3 / 6 columns. Compact ~110-130px. */}
+              <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                 <KpiCard
                   index={0} animate={animate}
                   to="/seller/payouts?status=paid"
                   ariaLabel="Open payout history"
-                  title="Seller Net Released"
+                  title="Net Released"
                   value={NGN(data.summary.seller_net_released)}
-                  helper="Paid out after fees"
+                  helper="After fees"
                   tooltip={TT.net}
                   chip={
                     data.summary.completed_transactions_count > 0 ? (
@@ -521,7 +522,7 @@ const SellerAnalytics = () => {
                   title="Awaiting Release"
                   value={NGN(data.summary.funds_awaiting_release)}
                   valueClass="text-amber-600 dark:text-amber-400"
-                  helper="SafeDeal reviewing"
+                  helper="Reviewing"
                   tooltip={TT.awaiting}
                   chip={
                     data.summary.funds_awaiting_release > 0 ? (
@@ -533,7 +534,7 @@ const SellerAnalytics = () => {
                   index={2} animate={animate}
                   to="/seller/transactions?money_status=in_escrow"
                   ariaLabel="Open active escrow transactions"
-                  title="Funds Held in Escrow"
+                  title="In Escrow"
                   value={NGN(data.summary.funds_held_in_escrow)}
                   valueClass="text-sky-600 dark:text-sky-400"
                   helper="Active protected"
@@ -541,7 +542,7 @@ const SellerAnalytics = () => {
                   chip={
                     data.summary.active_transactions_count > 0 ? (
                       <TrendChip tone="info" icon={<ShieldCheck className="h-2.5 w-2.5" />}>
-                        {data.summary.active_transactions_count} active
+                        {data.summary.active_transactions_count}
                       </TrendChip>
                     ) : undefined
                   }
@@ -574,25 +575,25 @@ const SellerAnalytics = () => {
                   index={5} animate={animate}
                   to="/seller/payouts"
                   ariaLabel="Open release performance detail"
-                  title="Avg Release Time"
+                  title="Avg Release"
                   value={data.average_release_time.hours === null
                     ? data.average_release_time.label
                     : `${data.average_release_time.hours.toFixed(1)}h`}
-                  helper="Confirmation to release"
+                  helper="Confirm → release"
                   tooltip={TT.release}
                 />
               </section>
 
               {/* Revenue trend */}
               <Card
-                className={cn("rounded-xl", animate && "animate-fade-in")}
-                style={animate ? { animationDelay: "360ms", animationFillMode: "both" } : undefined}
+                className={cn("rounded-lg", animate && "animate-fade-in")}
+                style={animate ? { animationDelay: "300ms", animationFillMode: "both" } : undefined}
               >
-                <CardContent className="p-4 sm:p-5">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2.5">
                     <div>
-                      <h2 className="text-sm sm:text-base font-semibold">Revenue Trend</h2>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <h2 className="text-sm font-semibold leading-tight">Revenue Trend</h2>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
                         Seller net released over time
                       </p>
                     </div>
@@ -604,27 +605,27 @@ const SellerAnalytics = () => {
                         <span className="h-2 w-2 rounded-full bg-muted-foreground/50" /> Gross Sales
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-amber-500" /> Fees Deducted
+                        <span className="h-2 w-2 rounded-full bg-amber-500" /> Fees
                       </span>
                     </div>
                   </div>
                   {data.revenue_trend.data.length === 0 ? (
-                    <div className="h-44 sm:h-52 rounded-lg border border-dashed bg-muted/20 flex flex-col items-center justify-center text-center gap-2 px-4">
-                      <LineChartIcon className="h-7 w-7 text-muted-foreground/60" />
+                    <div className="h-40 sm:h-44 rounded-md border border-dashed bg-muted/20 flex flex-col items-center justify-center text-center gap-1.5 px-4">
+                      <LineChartIcon className="h-6 w-6 text-muted-foreground/60" />
                       <div>
-                        <p className="text-sm font-medium">No released revenue in this window yet.</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        <p className="text-xs font-medium">No released revenue in this window yet.</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
                           Completed payouts will appear here once funds are released.
                         </p>
                       </div>
-                      <Button asChild size="sm" variant="outline" className="mt-1">
+                      <Button asChild size="sm" variant="outline" className="mt-1 h-7 text-xs">
                         <Link to="/seller/transactions">View transactions</Link>
                       </Button>
                     </div>
                   ) : (
-                    <div className="h-56 sm:h-64 md:h-72 w-full">
+                    <div className="h-48 sm:h-56 lg:h-60 w-full">
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={data.revenue_trend.data} margin={{ top: 10, right: 12, bottom: 0, left: 0 }}>
+                        <AreaChart data={data.revenue_trend.data} margin={{ top: 6, right: 8, bottom: 0, left: 0 }}>
                           <defs>
                             <linearGradient id="netG" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
@@ -632,15 +633,15 @@ const SellerAnalytics = () => {
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                          <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickMargin={6} />
-                          <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11}
+                          <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={10} tickMargin={6} />
+                          <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10}
                             tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
                           <Tooltip
-                            contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                            contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
                             formatter={(v: number) => NGN(v)}
                           />
                           <Area type="monotone" dataKey="seller_net_released" name="Seller Net Released"
-                            stroke="hsl(var(--primary))" fill="url(#netG)" strokeWidth={2.5}
+                            stroke="hsl(var(--primary))" fill="url(#netG)" strokeWidth={2.25}
                             isAnimationActive={animate} animationDuration={900} />
                           <Area type="monotone" dataKey="gross_sales" name="Gross Sales"
                             stroke="hsl(var(--muted-foreground))" fill="transparent" strokeWidth={1.25}
@@ -657,22 +658,22 @@ const SellerAnalytics = () => {
               </Card>
 
               {/* Health */}
-              <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
                 <HealthCard
                   index={0} animate={animate}
                   title="Completion Rate"
                   value={PCT(completionPct)}
                   tone="success"
-                  icon={<CheckCircle2 className="h-4 w-4" />}
+                  icon={<CheckCircle2 className="h-3.5 w-3.5" />}
                   barClass="bg-emerald-500"
                   progress={completionPct}
                 />
                 <HealthCard
                   index={1} animate={animate}
-                  title="Dispute-Free Rate"
+                  title="Dispute-Free"
                   value={`${(data.trust_metrics.dispute_free_rate * 100).toFixed(1)}%`}
                   tone="info"
-                  icon={<ShieldCheck className="h-4 w-4" />}
+                  icon={<ShieldCheck className="h-3.5 w-3.5" />}
                   barClass="bg-sky-500"
                   progress={disputeFreePct}
                 />
@@ -681,7 +682,7 @@ const SellerAnalytics = () => {
                   title="On-Time Dispatch"
                   value={onTimePct === null ? "—" : `${onTimePct.toFixed(1)}%`}
                   tone="warning"
-                  icon={<Truck className="h-4 w-4" />}
+                  icon={<Truck className="h-3.5 w-3.5" />}
                   barClass="bg-amber-500"
                   progress={onTimePct}
                 />
@@ -690,24 +691,24 @@ const SellerAnalytics = () => {
                   title="Response Time"
                   value={responseHrs === null ? "—" : `${responseHrs.toFixed(1)}h`}
                   tone="muted"
-                  icon={<Clock className="h-4 w-4" />}
+                  icon={<Clock className="h-3.5 w-3.5" />}
                   barClass="bg-foreground/70"
                   progress={responseProgress}
                 />
               </section>
 
               {/* Top Products + Release Performance */}
-              <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {/* Top Products */}
-                <Card className="rounded-xl">
-                  <CardContent className="p-4 sm:p-5">
-                    <h2 className="text-sm sm:text-base font-semibold mb-3">Top Products</h2>
+                <Card className="rounded-lg">
+                  <CardContent className="p-3 sm:p-4">
+                    <h2 className="text-sm font-semibold mb-2">Top Products</h2>
                     {data.top_products.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-6 text-center">
+                      <p className="text-xs text-muted-foreground py-5 text-center">
                         Top products appear once buyers complete protected transactions.
                       </p>
                     ) : (
-                      <div className="space-y-2.5">
+                      <div className="space-y-1.5">
                         {data.top_products.map((p, i) => {
                           const stockTone: ChipTone =
                             p.current_stock === 0 ? "danger" :
@@ -722,14 +723,14 @@ const SellerAnalytics = () => {
                               to={`/seller/storefront/${p.product_id}`}
                               aria-label={`View analytics for ${p.name}`}
                               className={cn(
-                                "flex gap-2.5 rounded-lg border bg-card p-2.5 group transition-all",
+                                "flex gap-2 rounded-md border bg-card p-2 group transition-all",
                                 "hover:bg-muted/40 hover:border-primary/30 hover:shadow-sm",
                                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                                 animate && "animate-fade-in",
                               )}
-                              style={animate ? { animationDelay: `${i * 60}ms`, animationFillMode: "both" } : undefined}
+                              style={animate ? { animationDelay: `${i * 50}ms`, animationFillMode: "both" } : undefined}
                             >
-                              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-md bg-muted shrink-0 overflow-hidden flex items-center justify-center">
+                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded bg-muted shrink-0 overflow-hidden flex items-center justify-center">
                                 {p.image_url ? (
                                   <img
                                     src={p.image_url}
@@ -738,23 +739,23 @@ const SellerAnalytics = () => {
                                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
                                 ) : (
-                                  <Package className="h-5 w-5 text-muted-foreground/60" />
+                                  <Package className="h-4 w-4 text-muted-foreground/60" />
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
-                                  <p className="text-sm font-semibold truncate">{p.name}</p>
+                                  <p className="text-[13px] font-semibold truncate leading-tight">{p.name}</p>
                                   <TrendChip tone={stockTone}>{stockLabel}</TrendChip>
                                 </div>
-                                <p className="text-[11px] text-muted-foreground mt-0.5">
-                                  Completed: <span className="font-medium text-foreground">{p.completed_transactions}</span>
-                                </p>
-                                <div className="mt-0.5 grid grid-cols-1 sm:grid-cols-2 gap-x-3 text-[11px]">
-                                  <span className="text-muted-foreground truncate">
-                                    Gross: <span className="text-foreground tabular-nums">{NGN(p.gross_sales)}</span>
+                                <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0 text-[11px] leading-snug">
+                                  <span className="text-muted-foreground">
+                                    {p.completed_transactions} completed
                                   </span>
-                                  <span className="text-muted-foreground truncate">
-                                    Net: <span className="font-bold text-sky-600 dark:text-sky-400 tabular-nums">{NGN(p.seller_net_released)}</span>
+                                  <span className="text-muted-foreground">
+                                    Gross <span className="text-foreground tabular-nums">{NGN(p.gross_sales)}</span>
+                                  </span>
+                                  <span className="text-muted-foreground">
+                                    Net <span className="font-semibold text-sky-600 dark:text-sky-400 tabular-nums">{NGN(p.seller_net_released)}</span>
                                   </span>
                                 </div>
                               </div>
@@ -767,15 +768,15 @@ const SellerAnalytics = () => {
                 </Card>
 
                 {/* Release Performance */}
-                <Card className="rounded-xl">
-                  <CardContent className="p-4 sm:p-5">
-                    <h2 className="text-sm sm:text-base font-semibold mb-3">Release Performance</h2>
-                    <div className="space-y-2">
+                <Card className="rounded-lg">
+                  <CardContent className="p-3 sm:p-4">
+                    <h2 className="text-sm font-semibold mb-2">Release Performance</h2>
+                    <div className="space-y-1.5">
                       <ReleaseRow
                         to="/seller/transactions?money_status=funds_pending_release"
                         ariaLabel="Open Awaiting Release transactions"
                         tone="warning"
-                        icon={<Hourglass className="h-4 w-4" />}
+                        icon={<Hourglass className="h-3.5 w-3.5" />}
                         label="Awaiting Release"
                         count={data.summary.funds_awaiting_release > 0 ? Math.max(1, Math.round(data.summary.active_transactions_count / 2)) : 0}
                       />
@@ -783,7 +784,7 @@ const SellerAnalytics = () => {
                         to="/seller/transactions?status=payment_processing"
                         ariaLabel="Open Payment Processing transactions"
                         tone="info"
-                        icon={<CreditCard className="h-4 w-4" />}
+                        icon={<CreditCard className="h-3.5 w-3.5" />}
                         label="Payment Processing"
                         count={data.summary.active_transactions_count}
                       />
@@ -791,7 +792,7 @@ const SellerAnalytics = () => {
                         to="/seller/payouts?status=paid"
                         ariaLabel="Open payout history"
                         tone="success"
-                        icon={<CheckCircle2 className="h-4 w-4" />}
+                        icon={<CheckCircle2 className="h-3.5 w-3.5" />}
                         label="Paid Out"
                         count={data.summary.completed_transactions_count}
                       />
@@ -799,15 +800,15 @@ const SellerAnalytics = () => {
                         to="/seller/payouts?status=failed"
                         ariaLabel="Open failed payout issues"
                         tone="muted"
-                        icon={<XCircle className="h-4 w-4" />}
+                        icon={<XCircle className="h-3.5 w-3.5" />}
                         label="Failed Release"
                         count={data.summary.failed_payouts_count}
                       />
                     </div>
-                    <div className="mt-3 flex items-start gap-2 rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
-                      <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                      <p className="text-[12px] text-muted-foreground leading-snug">
-                        Releases are processed only after buyer and seller confirmation, or after SafeDeal completes a review.
+                    <div className="mt-2.5 flex items-start gap-1.5 rounded-md bg-primary/5 border border-primary/20 px-2.5 py-1.5">
+                      <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        Releases process only after both confirmations or SafeDeal review.
                       </p>
                     </div>
                   </CardContent>
@@ -815,54 +816,54 @@ const SellerAnalytics = () => {
               </section>
 
               {/* Trust Performance */}
-              <Card className="rounded-xl">
-                <CardContent className="p-4 sm:p-5">
-                  <h2 className="text-sm sm:text-base font-semibold mb-3">Seller Trust Performance</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-5 items-center">
+              <Card className="rounded-lg">
+                <CardContent className="p-3 sm:p-4">
+                  <h2 className="text-sm font-semibold mb-2">Seller Trust Performance</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-center">
                     <div className="divide-y divide-border">
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-sm text-muted-foreground">Rating</span>
+                      <div className="flex items-center justify-between py-1.5">
+                        <span className="text-xs text-muted-foreground">Rating</span>
                         <StarRow rating={data.trust_metrics.seller_rating} />
                       </div>
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-sm text-muted-foreground">Completed Deals</span>
-                        <span className="text-sm font-bold tabular-nums">{data.trust_metrics.completed_deals}</span>
+                      <div className="flex items-center justify-between py-1.5">
+                        <span className="text-xs text-muted-foreground">Completed Deals</span>
+                        <span className="text-xs font-bold tabular-nums">{data.trust_metrics.completed_deals}</span>
                       </div>
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-sm text-muted-foreground">Identity Verified</span>
+                      <div className="flex items-center justify-between py-1.5">
+                        <span className="text-xs text-muted-foreground">Identity Verified</span>
                         <YesNoPill ok={data.trust_metrics.identity_verified} />
                       </div>
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-sm text-muted-foreground">Payout Verified</span>
+                      <div className="flex items-center justify-between py-1.5">
+                        <span className="text-xs text-muted-foreground">Payout Verified</span>
                         <YesNoPill ok={data.trust_metrics.payout_verified} />
                       </div>
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-sm text-muted-foreground">Dispute-Free Rate</span>
-                        <span className="text-sm font-bold text-sky-600 dark:text-sky-400 tabular-nums">
+                      <div className="flex items-center justify-between py-1.5">
+                        <span className="text-xs text-muted-foreground">Dispute-Free Rate</span>
+                        <span className="text-xs font-bold text-sky-600 dark:text-sky-400 tabular-nums">
                           {(data.trust_metrics.dispute_free_rate * 100).toFixed(1)}%
                         </span>
                       </div>
                     </div>
                     <div className="flex items-center justify-center md:justify-end">
                       {showTrustEmpty ? (
-                        <div className="rounded-xl border bg-muted/30 px-5 py-4 text-center min-w-[140px]">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Trust Score</p>
-                          <p className="mt-1 text-sm font-medium">Not enough data yet</p>
+                        <div className="rounded-lg border bg-muted/30 px-4 py-3 text-center min-w-[120px]">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Trust Score</p>
+                          <p className="mt-0.5 text-xs font-medium">Not enough data yet</p>
                         </div>
                       ) : (
                         <div
                           className={cn(
-                            "relative flex flex-col items-center justify-center w-28 h-28 sm:w-32 sm:h-32 rounded-full border-[3px] border-sky-200 dark:border-sky-900 bg-sky-50/50 dark:bg-sky-950/20 transition-all duration-700",
+                            "relative flex flex-col items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full border-[3px] border-sky-200 dark:border-sky-900 bg-sky-50/50 dark:bg-sky-950/20 transition-all duration-700",
                             animate && "animate-scale-in",
                           )}
                         >
-                          <span className="text-3xl font-bold text-sky-600 dark:text-sky-400 tabular-nums">
+                          <span className="text-2xl font-bold text-sky-600 dark:text-sky-400 tabular-nums leading-none">
                             {data.trust_metrics.seller_rating === null ? "—" : data.trust_metrics.seller_rating.toFixed(1)}
                           </span>
-                          <span className="text-[10px] text-muted-foreground mt-0.5">Trust Score</span>
+                          <span className="text-[9px] text-muted-foreground mt-1">Trust Score</span>
                           {data.trust_metrics.identity_verified && data.trust_metrics.payout_verified && (
-                            <span className="absolute -bottom-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold px-2 py-0.5 border border-emerald-200 dark:border-emerald-900">
-                              <ShieldCheck className="h-3 w-3" /> Verified
+                            <span className="absolute -bottom-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[9px] font-semibold px-1.5 py-px border border-emerald-200 dark:border-emerald-900">
+                              <ShieldCheck className="h-2.5 w-2.5" /> Verified
                             </span>
                           )}
                         </div>
@@ -873,7 +874,7 @@ const SellerAnalytics = () => {
               </Card>
 
               {isFetching && (
-                <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                   <Loader2 className="h-3 w-3 animate-spin" /> Refreshing…
                 </div>
               )}
