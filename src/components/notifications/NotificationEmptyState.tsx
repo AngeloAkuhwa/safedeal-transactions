@@ -10,16 +10,16 @@ interface NotificationEmptyStateProps {
 export function NotificationEmptyState({ variant, onClearFilters }: NotificationEmptyStateProps) {
   if (variant === "no-filter-match") {
     return (
-      <div className="rounded-2xl border bg-card p-12 text-center">
-        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-          <Search className="h-7 w-7 text-muted-foreground" />
+      <div className="sd-card p-8 text-center">
+        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+          <Search className="h-5 w-5 text-muted-foreground" />
         </div>
-        <h2 className="text-xl font-bold text-foreground mb-2">No matching notifications</h2>
-        <p className="text-muted-foreground text-sm max-w-md mx-auto mb-4">
+        <h2 className="text-base font-semibold text-foreground mb-1">No matching notifications</h2>
+        <p className="text-xs text-muted-foreground max-w-md mx-auto mb-3">
           Try adjusting your filters or search to find what you're looking for.
         </p>
         {onClearFilters && (
-          <Button variant="outline" onClick={onClearFilters}>
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onClearFilters}>
             Clear Filters
           </Button>
         )}
@@ -28,15 +28,15 @@ export function NotificationEmptyState({ variant, onClearFilters }: Notification
   }
 
   return (
-    <div className="rounded-2xl border bg-card p-12 text-center">
-      <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
-        <BellOff className="h-7 w-7 text-success" />
+    <div className="sd-card p-8 text-center">
+      <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-3">
+        <BellOff className="h-5 w-5 text-success" />
       </div>
-      <h2 className="text-xl font-bold text-foreground mb-2">You're all caught up!</h2>
-      <p className="text-muted-foreground text-sm max-w-md mx-auto mb-4">
+      <h2 className="text-base font-semibold text-foreground mb-1">You're all caught up!</h2>
+      <p className="text-xs text-muted-foreground max-w-md mx-auto mb-3">
         Transaction updates, delivery alerts, and verification reminders will appear here.
       </p>
-      <Button asChild variant="outline">
+      <Button asChild variant="outline" size="sm" className="h-8 text-xs">
         <Link to="/dashboard/transactions">Go to My Purchases</Link>
       </Button>
     </div>
