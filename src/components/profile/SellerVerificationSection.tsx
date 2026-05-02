@@ -16,7 +16,16 @@ function formatNaira(n: number) {
   return formatMoney(n, "NGN");
 }
 
-const getItems = (v: SellerVerification) => [
+const getItems = (v: SellerVerification) => {
+  const payoutDescription = v.payout_verified
+    ? "Payout account verified"
+    : v.payout_blocker_reason === "no_recipient_code"
+      ? "Bank verified — finish linking with our payment processor to receive payouts"
+      : v.payout_blocker_reason === "unverified"
+        ? "Bank account added but not verified — re-enter details to verify"
+        : "Set up a verified payout account to receive funds";
+
+  return [
   {
     key: "email_verified",
     label: "Email Verified",
@@ -42,7 +51,7 @@ const getItems = (v: SellerVerification) => [
     key: "payout_verified",
     label: "Payout Verification",
     icon: Wallet,
-    description: v.payout_verified ? "Payout account verified" : "Set up a verified payout account to receive funds",
+    description: payoutDescription,
     verified: v.payout_verified,
   },
   {
@@ -54,7 +63,8 @@ const getItems = (v: SellerVerification) => [
       : "Buying and selling are available, but payouts are not yet supported in your region.",
     verified: v.is_region_eligible,
   },
-];
+  ];
+};
 
 export function SellerVerificationSection({ verification, permissions, isLoading }: Props) {
   if (isLoading) {
