@@ -107,14 +107,11 @@ const SellerDisputes = () => {
 
       {/* Hero */}
       <div className="bg-gradient-to-br from-sky-50 via-background to-amber-50 dark:from-sky-950/20 dark:via-background dark:to-amber-950/20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-sm font-medium text-primary mb-1">Dispute Management</p>
-          <h1 className="text-3xl font-bold text-foreground">Disputes</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground animate-fade-in">Disputes</h1>
           <p className="text-muted-foreground text-sm mt-1 max-w-2xl">
             Track buyer claims, submit your evidence, and follow dispute outcomes tied to your transactions and payouts.
-          </p>
-          <p className="text-xs text-muted-foreground mt-2 max-w-3xl">
-            Funds remain protected while disputes are reviewed. Decisions are based on the locked agreement, seller evidence, buyer evidence, and transaction history.
           </p>
         </div>
       </div>

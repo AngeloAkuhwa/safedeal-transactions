@@ -156,7 +156,8 @@ const SellerPayouts = () => {
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Page Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Payouts</h1>
+          <p className="sd-eyebrow mb-1">Money management</p>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground animate-fade-in">Payouts</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Track released funds, pending releases, held escrow balances, and payout account activity.
           </p>
@@ -223,16 +224,16 @@ const SellerPayouts = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { icon: Shield, label: "Funds Held", desc: "Payment secured in escrow" },
-                { icon: CheckCircle2, label: "Both Confirm", desc: "Buyer and seller both confirm receipt" },
-                { icon: CreditCard, label: "SafeDeal Releases", desc: "SafeDeal reviews and releases" },
+                { icon: CheckCircle2, label: "Both Confirm", desc: "Buyer and seller confirm receipt" },
+                { icon: CreditCard, label: "SafeDeal Reviews", desc: "SafeDeal reviews and releases" },
                 { icon: Send, label: "Funds Sent", desc: "Deposited to your account" },
               ].map((step, i) => (
-                <div key={i} className="flex flex-col items-center text-center gap-2">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <step.icon className="h-5 w-5 text-primary" />
+                <div key={i} className={`flex flex-col items-center text-center gap-2 sd-fade-in-stagger sd-delay-${i + 1}`}>
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <step.icon className="h-[18px] w-[18px] text-primary" />
                   </div>
                   <span className="text-sm font-medium text-foreground">{step.label}</span>
-                  <span className="text-xs text-muted-foreground">{step.desc}</span>
+                  <span className="text-xs text-muted-foreground leading-snug">{step.desc}</span>
                 </div>
               ))}
             </div>
@@ -544,23 +545,23 @@ function SummaryCard({
   badgeLabel: string; badgeBg: string; tooltip?: React.ReactNode;
 }) {
   return (
-    <Card className="rounded-2xl shadow-md hover:shadow-lg transition-all">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div className={`h-11 w-11 rounded-xl ${iconBg} flex items-center justify-center`}>
-            <Icon className={`h-5 w-5 ${iconColor}`} />
+    <Card className="sd-card sd-metric h-full">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between mb-2.5">
+          <div className={`h-9 w-9 rounded-lg ${iconBg} flex items-center justify-center`}>
+            <Icon className={`h-[18px] w-[18px] ${iconColor}`} />
           </div>
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${badgeBg}`}>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${badgeBg}`}>
             {badgeLabel}
           </span>
         </div>
         <div className="space-y-0.5">
-          <p className="text-sm font-medium text-muted-foreground inline-flex items-center gap-1.5">
+          <p className="text-xs font-medium text-muted-foreground inline-flex items-center gap-1">
             {label}
             {tooltip && <CardInfoTip>{tooltip}</CardInfoTip>}
           </p>
-          <p className="text-2xl font-bold text-foreground">{value}</p>
-          <p className="text-xs text-muted-foreground">{subtitle}</p>
+          <p className="sd-kpi-value tabular-nums">{value}</p>
+          <p className="sd-kpi-helper">{subtitle}</p>
         </div>
       </CardContent>
     </Card>

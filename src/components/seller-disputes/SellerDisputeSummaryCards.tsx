@@ -77,34 +77,34 @@ export function SellerDisputeSummaryCards({ summary }: Props) {
 
   return (
     <TooltipProvider delayDuration={150}>
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-      {cards.map((card) => (
-        <Card key={card.label} className="rounded-2xl shadow-md hover:shadow-lg transition-all">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div className={`h-11 w-11 rounded-xl ${card.iconBg} flex items-center justify-center`}>
-                <card.icon className={`h-5 w-5 ${card.iconColor}`} />
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {cards.map((card, idx) => (
+        <Card key={card.label} className={`sd-card sd-metric h-full sd-fade-in-stagger sd-delay-${idx + 1}`}>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between mb-2.5">
+              <div className={`h-9 w-9 rounded-lg ${card.iconBg} flex items-center justify-center`}>
+                <card.icon className={`h-[18px] w-[18px] ${card.iconColor}`} />
               </div>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${card.badgeBg}`}>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${card.badgeBg}`}>
                 {card.badgeLabel}
               </span>
             </div>
             <div className="space-y-0.5">
-              <p className="text-sm font-medium text-muted-foreground inline-flex items-center gap-1.5">
+              <p className="text-xs font-medium text-muted-foreground inline-flex items-center gap-1">
                 {card.label}
                 {("tooltip" in card) && card.tooltip && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button type="button" aria-label="More info" className="inline-flex text-muted-foreground/60 hover:text-muted-foreground">
-                        <Info className="h-3.5 w-3.5" />
+                        <Info className="h-3 w-3" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs text-xs">{card.tooltip}</TooltipContent>
                   </Tooltip>
                 )}
               </p>
-              <p className="text-2xl font-bold text-foreground">{card.value}</p>
-              <p className="text-xs text-muted-foreground">{card.subtitle}</p>
+              <p className="sd-kpi-value tabular-nums">{card.value}</p>
+              <p className="sd-kpi-helper">{card.subtitle}</p>
             </div>
           </CardContent>
         </Card>

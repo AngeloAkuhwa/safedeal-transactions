@@ -105,16 +105,17 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
         </div>
       </CardHeader>
       <CardContent className="p-0 mt-4">
-        <div className="overflow-x-auto">
+        {/* Desktop / tablet table */}
+        <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">Transaction</TableHead>
-                <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Buyer</TableHead>
-                <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Item</TableHead>
-                <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">Amount</TableHead>
-                <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-                <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider w-36">Action</TableHead>
+                <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">Transaction</TableHead>
+                <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">Buyer</TableHead>
+                <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider hidden lg:table-cell">Item</TableHead>
+                <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">Amount</TableHead>
+                <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">Status</TableHead>
+                <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider w-32">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -124,31 +125,31 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                 return (
                   <TableRow
                     key={row.transaction_id}
-                    className="hover:bg-muted/30 cursor-pointer"
+                    className="sd-row-hover cursor-pointer"
                     onClick={() => navigate(`/seller/transactions/${row.transaction_id}`)}
                   >
-                     <TableCell className="px-6 py-4">
+                     <TableCell className="px-4 py-3">
                        <div className="flex items-center gap-2">
                          <Shield className="h-4 w-4 text-primary shrink-0" />
                          <span className="font-mono text-sm font-medium">{row.transaction_code}</span>
                        </div>
                      </TableCell>
-                     <TableCell className="px-6 py-4 hidden sm:table-cell">
+                     <TableCell className="px-4 py-3">
                        <div>
                          <p className="text-sm font-medium text-foreground">{row.buyer_name}</p>
                          <p className="text-xs text-muted-foreground">{row.buyer_email}</p>
                        </div>
                      </TableCell>
-                     <TableCell className="px-6 py-4 hidden md:table-cell">
+                     <TableCell className="px-4 py-3 hidden lg:table-cell">
                        <p className="text-sm text-foreground truncate max-w-[180px]">{row.item_title}</p>
                      </TableCell>
-                     <TableCell className="px-6 py-4 text-sm font-bold">
+                     <TableCell className="px-4 py-3 text-sm font-bold tabular-nums">
                        {formatCurrency(row.amount, row.currency_code)}
                      </TableCell>
-                     <TableCell className="px-6 py-4">
+                     <TableCell className="px-4 py-3">
                        <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
                      </TableCell>
-                     <TableCell className="px-6 py-4">
+                     <TableCell className="px-4 py-3">
                        <div className="flex items-center gap-1.5">
                          {row.has_active_rider_token && (
                            <Button
@@ -167,7 +168,6 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
                          <Button
                            variant={actionInfo.variant === "default" ? "default" : "outline"}
                            size="sm"
-                           className="text-xs"
                            onClick={(e) => {
                              e.stopPropagation();
                              if (row.transaction_status === "awaiting_buyer") {
@@ -188,6 +188,70 @@ export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
               })}
             </TableBody>
           </Table>
+        </div>
+
+        {/* Mobile / small-tablet stacked cards */}
+        <div className="md:hidden divide-y">
+          {filtered.map((row) => {
+            const statusInfo = statusLabels[row.transaction_status] ?? { label: row.transaction_status, variant: "secondary" as const };
+            const actionInfo = actionLabels[row.transaction_status] ?? { label: "View Details", variant: "outline" as const };
+            return (
+              <div
+                key={row.transaction_id}
+                className="px-4 py-3 sd-row-hover cursor-pointer"
+                onClick={() => navigate(`/seller/transactions/${row.transaction_id}`)}
+              >
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Shield className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="font-mono text-xs font-medium truncate">{row.transaction_code}</span>
+                  </div>
+                  <Badge variant={statusInfo.variant} className="text-[10px]">{statusInfo.label}</Badge>
+                </div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{row.buyer_name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{row.item_title}</p>
+                  </div>
+                  <p className="text-sm font-bold text-foreground tabular-nums shrink-0">
+                    {formatCurrency(row.amount, row.currency_code)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {row.has_active_rider_token && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-primary/30 text-primary hover:bg-primary/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/seller/transactions/${row.transaction_id}#rider`);
+                      }}
+                    >
+                      <QrCode className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  <Button
+                    variant={actionInfo.variant === "default" ? "default" : "outline"}
+                    size="sm"
+                    className="flex-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (row.transaction_status === "awaiting_buyer") {
+                        navigate(`/seller/transactions/${row.transaction_id}/share`);
+                      } else if (row.transaction_status === "seller_preparing_delivery") {
+                        navigate(`/seller/transactions/${row.transaction_id}/delivery`);
+                      } else {
+                        navigate(`/seller/transactions/${row.transaction_id}`);
+                      }
+                    }}
+                  >
+                    {actionInfo.label}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Pagination footer */}
