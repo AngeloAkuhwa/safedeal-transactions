@@ -14,10 +14,6 @@ interface SellerMetricsCardsProps {
   metrics: SellerMetrics;
 }
 
-function formatMoney(amount: number) {
-  return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 export function SellerMetricsCards({ metrics }: SellerMetricsCardsProps) {
   const netPaidToBank = metrics.net_paid_to_bank ?? 0;
   const netPendingBankTransfer = metrics.net_pending_bank_transfer ?? 0;

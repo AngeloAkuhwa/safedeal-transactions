@@ -37,11 +37,6 @@ const actionLabels: Record<string, { label: string; variant: "default" | "outlin
   payment_secured: { label: "Update Status", variant: "default" },
 };
 
-function formatMoney(amount: number, currency: string) {
-  if (currency === "NGN") return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`;
-  return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-}
-
 export function SellerRecentActivity({ activity }: SellerRecentActivityProps) {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();

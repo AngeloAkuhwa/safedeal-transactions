@@ -61,13 +61,6 @@ const actionLabels: Record<string, { label: string; variant: "default" | "outlin
   draft: { label: "Edit Draft", variant: "outline" },
 };
 
-function formatMoney(amount: number, currency: string) {
-  if (currency === "NGN") {
-    return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }
-  return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 function InfoTip({ children }: { children: React.ReactNode }) {
   return (
     <Tooltip>

@@ -5,10 +5,6 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { Info } from "lucide-react";
 import type { SellerDisputeSummary } from "@/services/seller-disputes.service";
 
-function formatMoney(amount: number) {
-  return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 interface Props {
   summary: SellerDisputeSummary;
 }

@@ -6,10 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { SellerDisputeBlockedPayout } from "@/services/seller-disputes.service";
 
-function formatMoney(amount: number) {
-  return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 interface Props {
   items: SellerDisputeBlockedPayout[];
 }
