@@ -52,6 +52,7 @@ import OfferClaimLanding from "./pages/OfferClaimLanding";
 import BuyerPrivateOffers from "./pages/BuyerPrivateOffers";
 import AdminOffers from "./pages/AdminOffers";
 import AdminOfferDetail from "./pages/AdminOfferDetail";
+import AdminDashboard from "./pages/AdminDashboard";
 import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -106,7 +107,8 @@ const App = () => (
             </Route>
 
             {/* Admin routes */}
-            <Route element={<ProtectedRoute />}>
+            <Route element={<ProtectedRoute requireRole="admin" />}>
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/offers" element={<AdminOffers />} />
               <Route path="/admin/offers/:offerId" element={<AdminOfferDetail />} />
             </Route>
