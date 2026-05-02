@@ -193,9 +193,10 @@ Deno.serve(async (req) => {
       .from("transactions")
       .select("id", { count: "exact", head: true })
       .eq("buyer_id", userId)
-      .in("status", ACTIVE_TX_STATUSES);
+      .in("status", ACTIVE_TX_STATUSES)
+      .neq("id", txId);
 
-    if ((activeCount ?? 0) >= maxConcurrent) {
+    if ((activeCount ?? 0) + 1 > maxConcurrent) {
       return jsonErr(
         `You've reached your active purchase limit (${maxConcurrent}). Complete or resolve existing transactions first.`,
         403,
