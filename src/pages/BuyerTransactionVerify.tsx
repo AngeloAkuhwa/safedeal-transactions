@@ -142,7 +142,7 @@ const BuyerTransactionVerify = () => {
                   Delivered
                 </Badge>
                 <Badge className="bg-warning/10 text-warning border-warning/20 hover:bg-warning/10">
-                  {STATUS_LABELS[transaction.status] || transaction.status}
+                  {resolveTransactionLabel(transaction.status, "buyer").label}
                 </Badge>
               </div>
               <h1 className="text-xl lg:text-2xl font-bold text-foreground">
@@ -165,7 +165,7 @@ const BuyerTransactionVerify = () => {
                 <div className="text-sm text-muted-foreground mb-1">Money Status</div>
                 <Badge className="bg-warning/10 text-warning border-warning/20 hover:bg-warning/10 px-3 py-1.5 text-sm font-semibold">
                   <Lock className="h-3.5 w-3.5 mr-1.5" />
-                  {STATUS_LABELS[transaction.money_status] || transaction.money_status}
+                  {resolveMoneyLabel(transaction.money_status, "buyer").label}
                 </Badge>
               </div>
             </div>

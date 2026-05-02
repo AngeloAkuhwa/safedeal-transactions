@@ -161,7 +161,7 @@ const BuyerTransactionTracking = () => {
 
   const sEntry = resolveTransactionLabel(tx.status, "buyer");
   const mEntry = resolveMoneyLabel(tx.money_status, "buyer", {
-    sellerConfirmed: completion_event?.seller_confirmed ?? null,
+    sellerConfirmed: tx.seller_confirmed_at ? true : false,
   });
   const sBadge = { label: sEntry.label, className: TONE_CLASSNAMES[sEntry.tone] };
   const mBadge = { label: mEntry.label, className: TONE_CLASSNAMES[mEntry.tone] };
