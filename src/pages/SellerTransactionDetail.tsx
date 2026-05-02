@@ -30,23 +30,12 @@ import { ReleaseReviewBanner } from "@/components/seller/ReleaseReviewBanner";
 import { RiderLinkCard } from "@/components/seller/RiderLinkCard";
 import { formatMoney } from "@/lib/format";
 import { MessageThread } from "@/components/transactions/MessageThread";
-import { resolveTransactionLabel, resolveMoneyLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
-
-const conditionLabels: Record<string, string> = {
-  new: "Brand New",
-  like_new: "Like New",
-  good: "Good",
-  fair: "Fair",
-  refurbished: "Refurbished",
-};
-
-const deliveryLabels: Record<string, string> = {
-  standard_shipping: "Standard Shipping",
-  express_shipping: "Express Shipping",
-  local_pickup: "Local Pickup",
-  digital_delivery: "Digital Delivery",
-  courier: "Courier",
-};
+import {
+  resolveTransactionLabel,
+  resolveMoneyLabel,
+  resolveItemCondition,
+  TONE_CLASSNAMES,
+} from "@/lib/status-labels";
 
 const fmt = (amount: number | undefined | null, currency: string) =>
   formatMoney(amount ?? 0, currency);
@@ -447,7 +436,7 @@ const SellerTransactionDetail = () => {
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs">
                   <span className="bg-muted px-2.5 py-1 rounded-full font-medium">Qty: {item.quantity}</span>
-                  <span className="bg-muted px-2.5 py-1 rounded-full font-medium">{conditionLabels[item.condition] ?? item.condition}</span>
+                  <span className="bg-muted px-2.5 py-1 rounded-full font-medium">{resolveItemCondition(item.condition)}</span>
                   {item.category && <span className="bg-muted px-2.5 py-1 rounded-full font-medium">{item.category}</span>}
                 </div>
                 {(item.brand || item.model) && (

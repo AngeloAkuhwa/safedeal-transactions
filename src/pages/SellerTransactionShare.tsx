@@ -7,22 +7,7 @@ import { Footer } from "@/components/landing/Footer";
 import { TransactionSuccess } from "@/components/seller/TransactionSuccess";
 import { getSellerTransactionDetail } from "@/services/seller-transaction-detail.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
-
-const conditionLabels: Record<string, string> = {
-  new: "Brand New",
-  like_new: "Like New",
-  good: "Good",
-  fair: "Fair",
-  refurbished: "Refurbished",
-};
-
-const deliveryLabels: Record<string, string> = {
-  standard_shipping: "Standard Shipping",
-  express_shipping: "Express Shipping",
-  local_pickup: "Local Pickup",
-  digital_delivery: "Digital Delivery",
-  courier: "Courier",
-};
+import { resolveDeliveryMethod, resolveItemCondition } from "@/lib/status-labels";
 
 const SellerTransactionShare = () => {
   const { transactionId } = useParams<{ transactionId: string }>();
@@ -102,8 +87,8 @@ const SellerTransactionShare = () => {
         form={form}
         pricing={pricingProps}
         currSymbol={currSymbol}
-        deliveryLabel={deliveryLabels[tx.delivery_method] ?? tx.delivery_method}
-        conditionLabel={conditionLabels[item?.condition ?? ""] ?? item?.condition ?? "—"}
+        deliveryLabel={resolveDeliveryMethod(tx.delivery_method)}
+        conditionLabel={resolveItemCondition(item?.condition)}
       />
       <Footer />
     </div>
