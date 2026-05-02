@@ -321,30 +321,6 @@ const SellerTransactions = () => {
         </div>
       </div>
 
-      {/* Awaiting seller confirmation chip */}
-      {(summary.awaiting_seller_confirmation_count ?? 0) > 0 && statusFilter !== "awaiting-seller-confirmation" && (
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 -mt-1 mb-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("awaiting-seller-confirmation")}
-                className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15 transition-colors"
-              >
-                <CheckCircle className="h-3.5 w-3.5" />
-                Awaiting Your Confirmation
-                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-1">
-                  {summary.awaiting_seller_confirmation_count}
-                </span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs text-xs">
-              The buyer has confirmed the item. Confirm from your side so the transaction can move toward release.
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      )}
-
       {/* Table */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6">
         <Card className="rounded-2xl shadow-md overflow-hidden">
@@ -352,10 +328,10 @@ const SellerTransactions = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">Transaction Code</TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Buyer</TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Item</TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">Transaction Code</TableHead>
+                  <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider hidden sm:table-cell">Buyer</TableHead>
+                  <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider hidden lg:table-cell">Item</TableHead>
+                  <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">
                     <span className="inline-flex items-center gap-1.5">
                       Amount
                       <InfoTip>
@@ -367,14 +343,14 @@ const SellerTransactions = () => {
                       </InfoTip>
                     </span>
                   </TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">
+                  <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">
                     <span className="inline-flex items-center gap-1.5">
                       Money Status
                       <InfoTip>Where the buyer's money currently sits in the SafeDeal escrow flow.</InfoTip>
                     </span>
                   </TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-semibold uppercase tracking-wider w-36">Action</TableHead>
+                  <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider w-32">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
