@@ -1,84 +1,67 @@
-## Phase L — Final Production Closure (the honest pass)
+# Phase M — True 100% Production Closure
 
-The previous "100% complete" claim was premature. A fresh end-to-end grep across the codebase surfaces three categories of real, user-visible gaps. Backend (state machine, atomic RPCs, delivery gating, audit writes, dashboard math) is in good shape — the remaining work is **on the frontend** and is tightly scoped.
+Honest status: **not yet 100%**. Phases K and L closed the high-traffic transaction pages, but a final grep revealed remaining drift on agreement, verification, storefront, dispute, and seller-create surfaces that buyers and sellers actually see. This phase closes them with no new features and no schema changes.
 
-### What's actually wrong (verified, not assumed)
+## What's still wrong
 
-**1. Money formatting drift on high-traffic buyer/seller pages.**
-These files still call `Number(x).toLocaleString()` (no `minimumFractionDigits: 2`) — so amounts like `12345.67` render as `12,346` and amounts ending in `.00` render with no decimals at all, contradicting the "exact 2 decimal places" rule:
+### M1 — Money formatting drift (still using `toLocaleString` without 2-decimal contract)
 
-- `src/pages/BuyerPaymentSummary.tsx` — item, fee, total, escrow lines (10+ sites) — **the page the buyer sees right before paying.**
-- `src/pages/BuyerTransactionReview.tsx` — pay button, hero, receipt rows.
-- `src/pages/BuyerCart.tsx`, `src/pages/CartCheckoutReview.tsx`, `src/pages/StorefrontCheckout.tsx`, `src/pages/BuyerSavedProducts.tsx`, `src/pages/BuyerPrivateOffers.tsx`, `src/pages/OfferClaimLanding.tsx` — local `formatCurrency` helpers shadow `@/lib/format`.
-- `src/pages/SellerPrivateOffers.tsx`, `src/pages/SellerPayouts.tsx` (subtitle "₦… in last 30 days"), `src/pages/SellerOfferDetail.tsx` — seller side.
-- `src/pages/BuyerMarketplace.tsx` — price-range chip.
+User-facing files that bypass `formatMoney`:
 
-**2. Inline status maps that bypass the registry.** These cause the same DB status to read differently in different places:
+- `src/components/agreement/LockedSnapshotCard.tsx` — buyer sees the locked agreement here; line items, item amount, service fee, total all rendered as `toLocaleString()` (no decimals).
+- `src/components/agreement/AgreementTrustIndicators.tsx` — total amount on trust banner.
+- `src/components/verification/VerificationSidebar.tsx` — buyer total during verification step.
+- `src/components/storefront/ProductCard.tsx`, `SellerProductCard.tsx`, `UpdateStockModal.tsx`, `ManageVisibilityModal.tsx`, `PublishSuccessModal.tsx`, `PurchaseAuthModal.tsx` — public storefront prices.
+- `src/pages/PublicProductDetail.tsx` — public product page price.
+- `src/pages/SellerCreateTransaction.tsx` (lines 696, 700, 705) — seller pricing preview still mixes `toLocaleString` with manual `minimumFractionDigits`.
+- `src/components/seller/ExportPreviewDialog.tsx` (line 129) and `src/components/seller/ExportPayoutsDialog.tsx` — local `formatCurrency` helpers instead of shared `formatMoney`.
+- `src/components/seller/TransactionSuccess.tsx` — local fmt helper.
+- `src/components/profile/SellerVerificationSection.tsx`, `AccountVerificationSection.tsx` — verification limit amounts.
+- `src/components/disputes/AgreementSnapshotSection.tsx` — snapshot amounts in dispute view.
 
-- `src/pages/SellerTransactions.tsx` — `statusLabels` map (12 statuses) duplicated; should resolve via `resolveTransactionLabel(_, "seller")`.
-- `src/components/seller/SellerRecentActivity.tsx` — `actionLabels` is fine (CTA copy, not status), but verify after S1 below.
-- `src/components/seller-disputes/SellerPayoutImpactCard.tsx` — escrow + payout state maps. Add to `status-labels.ts` registry as `ESCROW_LABELS` / `PAYOUT_LABELS`.
-- `src/components/seller-disputes/SellerDisputeTable.tsx` — `moneyImpactConfig` is a money-status proxy; replace with `resolveMoneyLabel(_, "seller")`.
-- `src/components/disputes/DisputeStatusBadge.tsx`, `DisputeMoneyStatusBadge.tsx`, `DisputeResolutionSection.tsx` — already partially registry-wired; finish removing the leftover inline maps.
-- `src/components/storefront/{ProductStatusBadge,ProductVisibilityBadge,SellerProductCard,UpdateStockModal}.tsx`, `src/pages/SellerProductPreview.tsx` — these are **product** statuses, not transaction/money. Add `PRODUCT_STATUS_LABELS` and `PRODUCT_VISIBILITY_LABELS` to the registry so all surfaces agree.
+Fix: replace each with `formatMoney(amount, currency)` from `@/lib/format`. Remove the local `formatCurrency` helpers in storefront/seller dialogs.
 
-**3. Three remaining "admin" strings on user-facing surfaces.** These leak internal language to buyers:
+Out of scope (correctly excluded): `src/pages/AdminOffers.tsx`, `AdminOfferDetail.tsx`, `components/landing/demo-data.ts`, `components/ui/chart.tsx`, `SellerConfirmCompletionCard.tsx` (date formatting, not money).
 
-- `src/pages/BuyerPaymentSummary.tsx:407` — "Admin reviews disputes before final decision".
-- `src/pages/BuyerPaymentSummary.tsx:729` — "Admin reviews all disputes before fund release".
-- `src/components/landing/StatusBadgesSection.tsx:8` — "Under admin review" in a public landing badge.
-- `src/pages/BuyerPaymentSummary.tsx:721` — "until a dispute is resolved by SafeDeal administration" (acceptable, but tighten to "SafeDeal review").
+### M2 — Admin language leaking into buyer/seller copy
 
-### What is already correct (and stays as-is)
+- `src/pages/BuyerPaymentSummary.tsx` line 511: "resolved by SafeDeal administration" → change to "resolved by SafeDeal review".
+- `src/components/verification/VerificationActions.tsx` line 98: "an admin will review the case" → "the SafeDeal review team will review the case".
 
-- Transaction / money / dispute state machines, atomic RPCs (`release_payout_atomic`, `freeze_funds_atomic`, `complete_payout_atomic`, `start_refund_atomic`, `timeout_transaction_atomic`, `flag_for_release_review`, `retry_payout_atomic`, etc.) — verified.
-- Delivery gating in `update-delivery-status`: courier requires `tracking_number`, meetup requires `scheduled_handoff_at` + 6-digit handoff code cross-check, delivered requires evidence files. All paths return 400 with explicit copy.
-- Seller dashboard math in `supabase/functions/seller-dashboard/index.ts` derives every KPI by filtering the same `transactions` rows the table renders, so dashboard ↔ table are inherently aligned.
-- Audit writes: every state-changing edge function writes to `status_history`, `money_status_history`, `transaction_events`, or `admin_actions` (verified across 15 functions).
-- Status-label registry already covers transaction, money, and dispute states for both audiences with the seller-confirmation disambiguation for `funds_pending_release`.
-- `formatMoney` in `src/lib/format.ts` and `supabase/functions/_shared/format.ts` already enforces `minimumFractionDigits: 2, maximumFractionDigits: 2`.
+### M3 — Inline status maps still in place
 
-### Plan of work
+- `src/components/disputes/DisputeStatusBadge.tsx` and `DisputeMoneyStatusBadge.tsx` — replace local `statusConfig` / `moneyConfig` with `resolveDisputeLabel` / `resolveDisputeMoneyLabel` from `src/lib/status-labels.ts`. If the registry doesn't yet have dispute entries, add `DISPUTE_STATUS_LABELS` and `DISPUTE_MONEY_STATUS_LABELS` and a resolver alongside the existing transaction/money/product/payout entries.
+- `src/components/disputes/DisputeTimeline.tsx` — swap local `STATUS_LABELS` for the centralized transaction-label resolver (it's just rendering transaction statuses).
+- `src/components/storefront/ProductStatusBadge.tsx`, `SellerProductCard.tsx`, `UpdateStockModal.tsx` — replace inline maps with `PRODUCT_STATUS_LABELS` already added in Phase L.
+- `src/pages/BuyerVerification.tsx` — local `statusConfig` for verification submission status; introduce `VERIFICATION_STATUS_LABELS` in the registry and use it.
 
-**L1 — Money formatting sweep (highest impact).**
-Replace every `Number(x).toLocaleString()` and every local `formatCurrency` helper across the 12 files listed above with `formatMoney(x, currency)` from `@/lib/format`. Delete the shadow helpers entirely. Keep the date-related `toLocaleString()` calls (Admin pages) untouched — those are timestamps, not money. The `BuyerMarketplace` price-range chip becomes `formatMoney(min, "NGN")` style.
+### M4 — Verification
 
-**L2 — Extend the status-label registry.**
-Add to `src/lib/status-labels.ts`:
-- `PRODUCT_STATUS_LABELS` (draft, published, out_of_stock, archived, deactivated) with seller-only audience.
-- `PRODUCT_VISIBILITY_LABELS` (public, private, unlisted).
-- `ESCROW_STATE_LABELS` (held, frozen, released_to_seller, refunded_to_buyer).
-- `PAYOUT_STATUS_LABELS` (awaiting_release, blocked, pending, processing, completed, failed, cancelled, reversed).
-Each with its `resolve…Label` helper following the existing pattern.
+After edits:
 
-**L3 — Wire the registry into remaining components.**
-Refactor the 9 files in section 2 above to import from the registry. Delete the inline maps. For `SellerTransactions.tsx`, pass `audience="seller"` to `<TransactionStatusBadge>` (already supports it); for the inline `statusLabels` use, swap to `resolveTransactionLabel(status, "seller")`.
+1. `rg -n "toLocaleString\(" src/pages src/components` should return only: admin pages, `landing/demo-data.ts`, `ui/chart.tsx`, and date-formatting calls (`Date(...).toLocaleString`).
+2. `rg -n "admin" src/pages src/components -i` filtered for non-admin paths should return zero user-facing strings containing the word "admin".
+3. `rg -n "statusConfig|moneyConfig" src/pages src/components` should return zero hits outside `src/lib/status-labels.ts`.
 
-**L4 — Scrub the 3 "admin" strings.**
-- `BuyerPaymentSummary.tsx:407` → "SafeDeal reviews disputes before final decision".
-- `BuyerPaymentSummary.tsx:729` → "SafeDeal reviews all disputes before fund release".
-- `StatusBadgesSection.tsx:8` → caption "Under SafeDeal review".
-- `BuyerPaymentSummary.tsx:721` → "resolved by SafeDeal review".
+## Files touched (estimate)
 
-**L5 — Smoke-verify after edits.**
-- Type-check passes (harness runs build automatically).
-- Re-run the same audit greps from this exploration; expect zero hits for `toLocaleString()` on money fields, zero hits for "admin review/release" in user surfaces, zero new inline status maps outside `src/lib/status-labels.ts`.
+Edits only, ~18 files:
 
-### Out of scope (intentionally not touching)
+- Registry: `src/lib/status-labels.ts` (add dispute + verification label maps and resolvers).
+- Agreement: `LockedSnapshotCard.tsx`, `AgreementTrustIndicators.tsx`.
+- Verification: `VerificationSidebar.tsx`, `VerificationActions.tsx`, `BuyerVerification.tsx`, `SellerVerificationSection.tsx`, `AccountVerificationSection.tsx`.
+- Storefront: `ProductCard.tsx`, `SellerProductCard.tsx`, `UpdateStockModal.tsx`, `ManageVisibilityModal.tsx`, `PublishSuccessModal.tsx`, `PurchaseAuthModal.tsx`, `ProductStatusBadge.tsx`, `PublicProductDetail.tsx`.
+- Seller: `SellerCreateTransaction.tsx`, `ExportPreviewDialog.tsx`, `ExportPayoutsDialog.tsx`, `TransactionSuccess.tsx`.
+- Disputes: `DisputeStatusBadge.tsx`, `DisputeMoneyStatusBadge.tsx`, `DisputeTimeline.tsx`, `AgreementSnapshotSection.tsx`.
+- Buyer: `BuyerPaymentSummary.tsx` (single string).
 
-- No DB migrations. State machine, RLS, triggers, and atomic RPCs are correct.
-- No edge function logic changes. Delivery gating, dashboard math, audit writes, and concurrency caps are correct.
-- No layout/density rework — Phase G/H/I already covered that and the viewport sweep at 1246px was clean.
-- Admin pages keep their internal labels (those screens are admin-only).
+No SQL migrations. No RLS changes. No new tables. No edge function changes.
 
-### Risk
+## Definition of done
 
-Low. All changes are localized text/formatter swaps in leaf components and pages. No type-shape changes, no new props beyond extending an existing registry. The build will catch any missed import.
+- All three grep checks in M4 return clean.
+- Buyer sees `₦12,345.00` formatting on the locked agreement, verification sidebar, dispute snapshots, and storefront — never `₦12,345`.
+- Buyer never sees the word "admin" or "administration"; seller never sees "admin release".
+- Every dispute, product, and verification status badge resolves through the central registry, matching the Phase K/L pattern already used for transaction and money badges.
 
-### Acceptance
-
-After L1–L4:
-- Every monetary value on every buyer and seller page renders with exactly two decimal places (₦12,345.67 / NGN 0.50).
-- `rg "Record<string, \{ label" src/` returns only `src/lib/status-labels.ts`.
-- `rg -i "admin (review|release)" src/` returns zero matches outside `src/pages/Admin*` and `supabase/functions/admin-*`.
-- The buyer's "Pay ₦…" CTA, the receipt rows, the cart subtotal, and the seller's payout summary all agree to the cent with the underlying `pricing` / `payouts` rows.
+After this phase, SafeDeal is genuinely production-ready end-to-end across seller and buyer surfaces.
