@@ -192,7 +192,7 @@ const BuyerNotifications = () => {
 
       <main className="flex-1">
         {/* Summary Cards */}
-        <section className="sd-page mt-4 mb-4">
+        <section className="sd-page mt-4 mb-4 sd-fade-in-stagger sd-delay-1">
           {data ? (
             <NotificationSummaryCards summary={data.summary} />
           ) : (
@@ -255,7 +255,7 @@ const BuyerNotifications = () => {
 
           {/* Notification list */}
           {!isLoading && !isError && hasItems && (
-            <>
+            <div className="sd-fade-in-stagger sd-delay-2 space-y-4">
               <NotificationList
                 items={data!.items}
                 onMarkRead={(id) => markReadMutation.mutate(id)}
@@ -267,7 +267,7 @@ const BuyerNotifications = () => {
                 totalPages={data!.pagination.total_pages}
                 onPageChange={setPage}
               />
-            </>
+            </div>
           )}
         </div>
       </main>
