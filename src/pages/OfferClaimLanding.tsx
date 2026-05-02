@@ -213,7 +213,7 @@ function AnonymousPreview({
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-border">
               <span className="text-sm text-muted-foreground">{items.length} item{items.length !== 1 ? "s" : ""}</span>
-              <span className="text-sm font-semibold text-foreground">{currency} {total.toLocaleString()}</span>
+              <span className="text-sm font-semibold text-foreground">{formatMoney(total, currency)}</span>
             </div>
             <div className="space-y-3">
               {items.slice(0, 3).map((it) => (
@@ -227,7 +227,7 @@ function AnonymousPreview({
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground truncate">{it.product_title}</p>
-                    <p className="text-xs text-muted-foreground">Qty {it.quantity} · {it.currency_code} {Number(it.unit_price_snapshot).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Qty {it.quantity} · {formatMoney(Number(it.unit_price_snapshot), it.currency_code)}</p>
                   </div>
                 </div>
               ))}
