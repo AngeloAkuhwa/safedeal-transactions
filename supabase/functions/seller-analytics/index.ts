@@ -271,18 +271,21 @@ Deno.serve(async (req) => {
       const { data: prodRows } = await admin
         .from("products")
         .select("id,title,stock_quantity,reserved_quantity," +
-          "product_media(file_url,is_primary,position)")
+          "product_media(is_primary,sort_order,files(secure_url,file_url))")
         .in("id", topIds)
         .eq("seller_id", userId);
       top_products = topIds.map(id => {
         const p = (prodRows ?? []).find((x: any) => x.id === id) as any;
         const a = productAgg.get(id)!;
         const media = (p?.product_media ?? []) as any[];
-        const primary = media.find(m => m.is_primary) ?? media.sort((x,y) => (x.position??0)-(y.position??0))[0];
+        const primary = media.find(m => m.is_primary)
+          ?? [...media].sort((x,y) => (x.sort_order??0) - (y.sort_order??0))[0];
+        const f = primary?.files;
+        const image_url = f?.secure_url ?? f?.file_url ?? null;
         return {
           product_id: id,
           name: p?.title ?? "Product",
-          image_url: primary?.file_url ?? null,
+          image_url,
           completed_transactions: a.completed,
           gross_sales: a.gross,
           seller_net_released: a.net,

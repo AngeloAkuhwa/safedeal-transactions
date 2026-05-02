@@ -1,94 +1,126 @@
 ## Goal
 
-Refine the existing Seller Analytics page (no redesign). Add tooltips, click-throughs, polished hover/loading/empty/error states, smooth motion, and the chart-bucket fix — keeping the current SafeDeal style and component structure.
+Three things in one pass:
 
-## Scope
+1. **Fix the broken product image fetch** in the `seller-analytics` edge function (the SQL select uses non-existent columns).
+2. **Density / spacing pass** on the Seller Analytics page so it feels like a real desktop SaaS dashboard, not a stretched mobile layout.
+3. **Phase E end-to-end test report** — confirm the cron jobs, secret, and atomic timeout RPC are wired correctly and producing the expected side effects.
 
-Single file: `src/pages/SellerAnalytics.tsx`. No backend, no service, no nav changes. The `seller-analytics` edge function already accepts `bucket: 'daily' | 'weekly' | 'monthly'` — only the client mapping changes.
+## 1. Backend fix — product images on Top Products
 
-## Changes
+The bug is in `supabase/functions/seller-analytics/index.ts` line 273-285. It selects `product_media(file_url, is_primary, position)` but those columns don't exist on `product_media`. Real schema: `product_media(file_id, sort_order, is_primary, …)` and `files(secure_url, file_url, …)`.
 
-### 1. Time bucket follows the period filter
+Patch the query and resolver:
 
-Map period → bucket in the React Query key & fetch call:
+```ts
+.select(`
+  id,title,stock_quantity,reserved_quantity,
+  product_media(is_primary,sort_order,files(secure_url,file_url))
+`)
+…
+const media = (p?.product_media ?? []) as any[];
+const primary = media.find(m => m.is_primary)
+  ?? [...media].sort((x,y) => (x.sort_order??0) - (y.sort_order??0))[0];
+const f = primary?.files;
+const image_url = f?.secure_url ?? f?.file_url ?? null;
+```
 
-- `30d` → `daily`
-- `90d` → `weekly`
-- `all` → `monthly`
+No migration needed.
 
-Result: "Last 30 days" no longer shows Jan–Dec on the X axis.
+## 2. Density pass — `src/pages/SellerAnalytics.tsx` only
 
-### 2. KPI card tooltips (custom, not native)
+Keep all existing structure, copy, tooltips, hover, animations, click-throughs, and the chart-bucket fix. Tighten visuals only.
 
-Replace placeholder tooltip strings with the exact copy from the spec, rendered through the existing shadcn `TooltipProvider` / `TooltipContent` (already imported). Info icon is the trigger; tooltip uses `text-xs max-w-[240px]` and respects dark mode via `bg-popover text-popover-foreground`.
+### Container & rhythm
+- Section spacing: `space-y-6 sm:space-y-8` → `space-y-4 sm:space-y-5` to compress vertical rhythm.
+- Page top padding: `py-6 sm:py-8` → `py-4 sm:py-6`.
+- Header bottom margin handled by section gap (no extra spacer).
 
-### 3. Click-through for KPI cards
+### KPI cards (compact)
+- Grid breakpoints retuned: `grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6`. (3-up at laptop ≥768, 6-up at ≥1280.)
+- Card body padding: `p-4 sm:p-5` → `p-3 sm:p-3.5`.
+- Title: `text-[10px]` uppercase; value: `text-lg sm:text-xl` (down from `text-xl sm:text-2xl`); helper: `text-[10.5px]`; chip: `text-[10px]` with `py-0.5`.
+- Card height naturally lands ~130–145px. Removed forced `h-full` shrinkage; chips render inline next to helper to save a row when both fit (`flex items-center justify-between gap-2 mt-1.5`).
 
-Wrap each KPI card body in a `<Link>` (or `button` for non-routable) so the whole card is one tap target. Routes:
+### Revenue Trend
+- Card padding `p-4 sm:p-5`.
+- Chart height: `h-56 sm:h-64 md:h-72` (from `h-64/72/80`).
+- New polished empty-state inside the chart area when `data.revenue_trend.data.length === 0`:
+  - small `LineChart` icon (lucide), 28px
+  - title: "No released revenue in this window yet."
+  - helper: "Completed payouts will appear here once funds are released."
+  - secondary button: `View transactions` → `/seller/transactions`
+  - container height capped at `h-44 sm:h-52` (no giant blank).
 
-| Card | Destination |
-|---|---|
-| Seller Net Released | `/seller/payouts?status=paid` |
-| Awaiting Release | `/seller/transactions?money_status=funds_pending_release` |
-| Funds Held in Escrow | `/seller/transactions?money_status=in_escrow` |
-| Gross Sales | `/seller/transactions` |
-| Dispute Rate | `/seller/disputes` |
-| Avg Release Time | `/seller/payouts` |
+### Transaction Health (compact)
+- Card padding: `p-3.5 sm:p-4`.
+- Title row: `text-xs font-semibold` + icon at top-right (already correct).
+- Value: `text-2xl sm:text-3xl` (down from `text-3xl sm:text-4xl`).
+- Bar: `h-1` (down from `h-1.5`); spacing `mt-2`.
+- Grid: `grid-cols-2 lg:grid-cols-4 gap-3`.
 
-Hover affordance: `transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm cursor-pointer group`. A small `ChevronRight` appears top-right on hover (`opacity-0 group-hover:opacity-100 transition-opacity`).
+### Top Products
+- Replace the "No image" text-only fallback with a real placeholder: a centered `Package` icon (lucide) at `h-5 w-5 text-muted-foreground/60` inside the existing thumbnail box.
+- Compact rows: padding `p-2.5`, gap `gap-2.5`, thumb `w-12 h-12 sm:w-14 sm:h-14`.
+- Layout inside row: name (truncate, `text-sm font-semibold`) + stock chip on the right; line 2 `Completed: N`; line 3 grid 2-col on `sm` showing `Gross` (muted) and `Net Released` (sky-600 bold). Drop the persistent "View product analytics →" footer text — keep the affordance via the existing chevron and hover background. Saves vertical space.
+- Link target fixed: `/seller/storefront/${p.product_id}` (the actual product detail route — `/seller/products/...` doesn't exist).
 
-### 4. Top Product rows clickable
+### Release Performance
+- Row padding: `py-2.5 px-3` (down from `py-3`).
+- Info banner padding: `px-3 py-2`.
+- Note copy already updated previously: "Releases are processed only after buyer and seller confirmation, or after SafeDeal completes a review." ✓
+- Card padding `p-4 sm:p-5`.
 
-Wrap each row in a `<Link>` to `/seller/products/{product_id}` (route already exists via the products page). Hover: `bg-muted/40`, image scales `group-hover:scale-105 transition-transform`, a small "View product →" appears on hover.
+### Seller Trust Performance (compact + premium)
+- Card padding: `p-4 sm:p-5`.
+- Left column rows: `py-2` (down from `py-3`), font sizes unchanged.
+- Right column trust ring: `w-28 h-28 sm:w-32 sm:h-32` (down from 32/36), border `border-[3px]`.
+- **No-data state**: when `seller_rating === null` AND `completed_deals < 1`, render a smaller neutral pill instead of the dashed circle:
+  ```
+  ┌──────────────┐
+  │  Trust Score │
+  │  Not enough  │
+  │   data yet   │
+  └──────────────┘
+  ```
+  Plain card-style block (`rounded-xl border bg-muted/30 px-5 py-4 text-center`), no large empty circle.
 
-### 5. Release Performance rows clickable
+### Header / Export CSV
+- Reorder: button always uses `variant="default"` (sky primary). When `!data` → `disabled` + tooltip wrapper:
+  ```
+  Export becomes available when analytics data exists.
+  ```
+- Wrap with `TooltipProvider` so the disabled button still triggers the tooltip via a wrapping `span`.
 
-Each row becomes a `<Link>`:
+## 3. Phase E end-to-end test (read-only verification)
 
-- Awaiting Release → `/seller/transactions?money_status=funds_pending_release`
-- Payment Processing → `/seller/transactions?status=payment_processing`
-- Paid Out → `/seller/payouts?status=paid`
-- Failed Release → `/seller/payouts?status=failed`
+Already confirmed via DB introspection:
 
-Hover: brightens the tinted background slightly (`hover:brightness-95 dark:hover:brightness-110`).
+- **Cron jobs registered & active**:
+  - `auto-timeout-payments` — `*/15 * * * *` ✓ active
+  - `flag-stuck-confirmations` — `0 3 * * *` ✓ active
+  - `auto-escalate-silent-disputes` — `0 * * * *` ✓ active
+- **Vault**: `cron_secret` present (created 2026-05-01).
+- **Most recent runs at 2026-05-02 00:00**: `auto-timeout-payments` and `auto-escalate-silent-disputes` both **succeeded** (status returned 1 row). `flag-stuck-confirmations` only fires at 03:00 UTC daily — not yet today.
 
-Update the info banner copy to: **"Releases are processed only after buyer and seller confirmation, or after SafeDeal completes a review."**
+Additional checks the test will perform:
 
-### 6. Error state copy
+1. Confirm `timeout_transaction_atomic` RPC exists and is `SECURITY DEFINER` with `search_path` locked.
+2. Confirm `system_logs`, `release_review_queue`, `product_inventory_logs` tables exist with RLS.
+3. Curl each edge function with the `CRON_SECRET` header to confirm 200 / structured JSON response.
+4. Tail `function_edge_logs` for the three job names — confirm no 500s in the last 24h.
+5. Confirm zero unintended fund releases: query `escrow_ledger_entries` for any entries authored by the cron job names — there must be none.
 
-Replace the existing one-liner with the spec's two-line block:
-- Title: **"We couldn't load analytics"**
-- Body: **"Please refresh the page or try again later."**
-- Button: **Retry** → `refetch()`
-
-### 7. Empty state — already matches spec, no copy change.
-
-### 8. Animation pass
-
-Use the project's existing keyframes (`animate-fade-in`) plus a small custom inline `style` for stagger delays. No new global CSS.
-
-- Header: `animate-fade-in`
-- KPI grid: each card gets `animate-fade-in` with `style={{ animationDelay: ${i * 60}ms, animationFillMode: 'both' }}`
-- Chart card: `animate-fade-in` with delay `360ms`. Recharts `<Area>` gets `isAnimationActive` + `animationDuration={900}`.
-- Health cards: stagger 80ms each
-- Top product rows: stagger 60ms each, `animate-fade-in`
-- Trust ring: animate width via CSS — wrap circle's score number in a `transition-all duration-700` and animate from `opacity-0 scale-90` to `opacity-100 scale-100` on mount using a `mounted` boolean state
-- Health progress bars: animate from `width: 0` to actual value via `useEffect` setTimeout flipping a state; bar uses `transition-[width] duration-700 ease-out`
-- Reduced motion: wrap stagger logic with `useReducedMotion` hook (matchMedia `(prefers-reduced-motion: reduce)`); when true, all animation classes & delays are skipped — content is rendered fully visible immediately.
-
-### 9. Accessibility / safety nets
-
-- Every animated element keeps its final-state opacity even if the animation is blocked (`animationFillMode: 'both'` and base classes that don't depend on JS).
-- All click targets have proper `aria-label` (e.g., "Open Awaiting Release transactions").
-- Tooltip triggers get `aria-label="More info"`.
+Test results delivered as a summary block.
 
 ## Out of scope
 
-- Edge function logic (already supports buckets).
-- Service layer types.
-- Real prior-period deltas — trend chips continue to render derived counts using the values already returned. The `+12.4%` style sample numbers in the spec are illustrative; we render real data and only show a trend chip when meaningful (e.g. `{completed_transactions_count} completed`).
-- Nav, route definitions (all destinations already exist in `App.tsx`).
+- Service layer / type changes.
+- New tables or migrations.
+- Visual redesign of unrelated pages.
+- Auto-release of funds (must remain manual / SafeDeal-reviewed).
 
 ## Files touched
 
-- `src/pages/SellerAnalytics.tsx` — single-file refinement.
+- `supabase/functions/seller-analytics/index.ts` — fix product image join.
+- `src/pages/SellerAnalytics.tsx` — density pass + product image fallback + Trust no-data state + Export tooltip.
