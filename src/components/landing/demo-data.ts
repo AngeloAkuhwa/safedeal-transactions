@@ -115,10 +115,16 @@ export const DEMO_SELLERS: DemoSeller[] = [
   },
 ];
 
+import { formatMoney } from "@/lib/format";
+
+/**
+ * Landing-page demo helper. Routes through the shared `formatMoney` so the
+ * marketing surfaces match the production 2-decimal money rule.
+ */
 export function formatNaira(value: number): string {
-  return `₦${value.toLocaleString("en-NG")}`;
+  return formatMoney(value, "NGN");
 }
 
 export function formatCount(value: number): string {
-  return value.toLocaleString("en-NG");
+  return new Intl.NumberFormat("en-NG").format(value);
 }
