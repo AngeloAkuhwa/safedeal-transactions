@@ -65,6 +65,15 @@ Deno.serve(async (req) => {
     const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") || "10", 10)));
     const statusFilter = url.searchParams.get("status") || "";
     const search = url.searchParams.get("search") || "";
+    const fromParam = url.searchParams.get("from") || "";
+    const toParam = url.searchParams.get("to") || "";
+
+    // Validate date range
+    if (fromParam && toParam && fromParam > toParam) {
+      return jsonResponse({ error: "from must be on or before to" }, 400);
+    }
+    const fromTs = fromParam ? new Date(fromParam + "T00:00:00.000Z").getTime() : null;
+    const toTs = toParam ? new Date(toParam + "T23:59:59.999Z").getTime() : null;
 
     // ── Parallel data fetch ──
     const [
@@ -221,6 +230,16 @@ Deno.serve(async (req) => {
     let filteredPayouts = [...allPayouts];
     if (statusFilter) {
       filteredPayouts = filteredPayouts.filter((p) => (p.status as string) === statusFilter);
+    }
+    if (fromTs !== null || toTs !== null) {
+      filteredPayouts = filteredPayouts.filter((p) => {
+        const ts = (p.completed_at ?? p.initiated_at ?? p.created_at) as string | null;
+        if (!ts) return false;
+        const t = new Date(ts).getTime();
+        if (fromTs !== null && t < fromTs) return false;
+        if (toTs !== null && t > toTs) return false;
+        return true;
+      });
     }
 
     // Sort by created_at desc
