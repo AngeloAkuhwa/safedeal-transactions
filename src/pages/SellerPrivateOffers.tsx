@@ -63,23 +63,23 @@ export default function SellerPrivateOffers() {
     <div className="min-h-screen bg-background flex flex-col">
       <SellerNav sellerName={navData?.seller?.full_name ?? "Seller"} avatarUrl={navData?.seller?.avatar_url ?? null} />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Lock className="h-5 w-5 text-primary" />
-              <h1 className="text-2xl font-bold text-foreground animate-fade-in">Private Offers</h1>
+      <main className="flex-1 sd-page sd-page-y">
+        <div className="flex items-start justify-between mb-3 gap-3 flex-wrap">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <Lock className="h-3.5 w-3.5 text-primary" />
+              <h1 className="sd-page-title animate-fade-in">Private Offers</h1>
             </div>
-            <p className="text-sm text-muted-foreground">Buyer-specific offers you've created. Hidden from public marketplace.</p>
+            <p className="sd-page-sub">Buyer-specific offers you've created. Hidden from public marketplace.</p>
           </div>
-          <Button onClick={() => navigate("/seller/transactions/new")} className="gap-2">
-            <Plus className="h-4 w-4" /> Create Private Offer
+          <Button size="sm" onClick={() => navigate("/seller/transactions/new")} className="gap-1.5 h-8 text-xs">
+            <Plus className="h-3.5 w-3.5" /> Create Private Offer
           </Button>
         </div>
 
         {/* Summary Cards */}
         {(data?.offers?.length ?? 0) > 0 && (
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-3 gap-2.5 mb-3">
             {(() => {
               const all = data?.offers ?? [];
               const claimed = all.filter((o) => o.status === "claimed" || o.status === "purchased").length;
@@ -90,8 +90,8 @@ export default function SellerPrivateOffers() {
                 { label: "Expired / Cancelled", value: expiredCancelled, eyebrow: "text-muted-foreground" },
               ].map((card, idx) => (
                 <Card key={card.label} className={`sd-card sd-metric h-full sd-fade-in-stagger sd-delay-${idx + 1}`}>
-                  <CardContent className="p-4">
-                    <p className={`sd-eyebrow mb-1 ${card.eyebrow}`}>{card.label}</p>
+                  <CardContent className="p-3">
+                    <p className={`sd-eyebrow mb-0.5 ${card.eyebrow}`}>{card.label}</p>
                     <p className="sd-kpi-value tabular-nums">{card.value}</p>
                   </CardContent>
                 </Card>
@@ -100,24 +100,24 @@ export default function SellerPrivateOffers() {
           </div>
         )}
 
-        <Card className="mb-4">
-          <CardContent className="p-4 flex flex-wrap gap-3 items-center">
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Card className="rounded-lg mb-3">
+          <CardContent className="p-3 flex flex-wrap gap-2 items-center">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by buyer email, item, or token…"
-                className="pl-9"
+                className="pl-8 h-8 text-xs"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-44 h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
               </SelectContent>
             </Select>
-            <span className="text-sm text-muted-foreground">{filtered.length} offer{filtered.length !== 1 ? "s" : ""}</span>
+            <span className="text-xs text-muted-foreground">{filtered.length} offer{filtered.length !== 1 ? "s" : ""}</span>
           </CardContent>
         </Card>
 
