@@ -3,12 +3,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export type ScrollDirection = "down" | "up";
 export type ScrollSpeed = "very-slow" | "slow" | "normal";
 
-export const SPEED_PX_PER_SEC: Record<ScrollSpeed, number> = {
-  "very-slow": 10,
-  slow": 20 as never,
-  normal: 32,
-} as unknown as Record<ScrollSpeed, number>;
-
 const SPEEDS: Record<ScrollSpeed, number> = {
   "very-slow": 10,
   slow: 20,
