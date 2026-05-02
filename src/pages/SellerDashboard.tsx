@@ -75,56 +75,56 @@ const SellerDashboard = () => {
         avatarUrl={data.seller.avatar_url}
       />
 
-      {/* Unified gradient section: hero + alerts + metrics */}
-      <div className="bg-gradient-to-br from-sky-50 via-background to-green-50 dark:from-sky-950/20 dark:via-background dark:to-green-950/20">
+      {/* Compact header strip (analytics-grade) */}
+      <div className="bg-gradient-to-br from-sky-50/60 via-background to-green-50/60 dark:from-sky-950/15 dark:via-background dark:to-green-950/15 border-b border-border/60">
         <SellerDashboardHero sellerName={data.seller.full_name} verificationLabel={data.seller.verification_label} />
-
-        {totalAlerts > 0 && (
-          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6 space-y-3">
-            <SellerAlertBanners alerts={data.alerts} maxVisible={3} />
-            {showDrawerTrigger && (
-              <button
-                onClick={() => setDrawerOpen(true)}
-                className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5 transition-colors"
-              >
-                View all alerts ({remaining} more)
-                <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </section>
-        )}
-
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6">
-          <SellerMetricsCards metrics={data.metrics} />
-        </section>
       </div>
 
       <main className="flex-1 bg-muted/30">
-        {showOnboarding && (
-          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-            <SellerOnboardingChecklist onboarding={data.onboarding} />
+        <div className="sd-page sd-page-y sd-section-y">
+          {totalAlerts > 0 && (
+            <section className="space-y-2">
+              <SellerAlertBanners alerts={data.alerts} maxVisible={3} />
+              {showDrawerTrigger && (
+                <button
+                  onClick={() => setDrawerOpen(true)}
+                  className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/5 transition-colors"
+                >
+                  View all alerts ({remaining} more)
+                  <ChevronRight className="h-3 w-3" />
+                </button>
+              )}
+            </section>
+          )}
+
+          <section>
+            <SellerMetricsCards metrics={data.metrics} />
           </section>
-        )}
 
-        {showEmptyState ? (
-          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-            <SellerDashboardEmptyState seller={data.seller} metrics={data.metrics} />
-          </section>
-        ) : (
-          <>
-            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-              <SellerRecentActivity activity={data.recent_activity} />
+          {showOnboarding && (
+            <section>
+              <SellerOnboardingChecklist onboarding={data.onboarding} />
             </section>
+          )}
 
-            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6">
-              <SellerQuickActions draftCount={data.quick_actions.draft_count} />
+          {showEmptyState ? (
+            <section>
+              <SellerDashboardEmptyState seller={data.seller} metrics={data.metrics} />
             </section>
-
-            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-10">
-              <SellerTrustBanner />
-            </section>
-          </>
-        )}
+          ) : (
+            <>
+              <section>
+                <SellerRecentActivity activity={data.recent_activity} />
+              </section>
+              <section>
+                <SellerQuickActions draftCount={data.quick_actions.draft_count} />
+              </section>
+              <section className="pt-1">
+                <SellerTrustBanner />
+              </section>
+            </>
+          )}
+        </div>
       </main>
 
       <SellerAlertsDrawer
