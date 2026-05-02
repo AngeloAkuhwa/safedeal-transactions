@@ -73,24 +73,19 @@ const BuyerDisputes = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
 
-      {/* Hero */}
-      <section className="bg-destructive py-10 sm:py-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+      {/* Compact header */}
+      <section className="border-b bg-card/50">
+        <div className="sd-page sd-page-y">
+          <div className="flex items-center justify-between gap-3 border-l-4 border-destructive pl-3">
             <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-destructive-foreground mb-2">
-                My Disputes
-              </h1>
-              <p className="text-destructive-foreground/80 text-base sm:text-lg">
+              <h1 className="sd-page-title">My Disputes</h1>
+              <p className="sd-page-sub">
                 Track all active and resolved disputes related to your protected transactions.
               </p>
             </div>
-            <Button
-              variant="secondary"
-              className="bg-destructive-foreground text-destructive hover:bg-destructive-foreground/90 font-semibold"
-            >
-              <HelpCircle className="h-4 w-4" />
-              Dispute Help
+            <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs">
+              <HelpCircle className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Dispute Help</span>
             </Button>
           </div>
         </div>
@@ -98,7 +93,7 @@ const BuyerDisputes = () => {
 
       <main className="flex-1">
         {/* Summary Cards */}
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 -mt-6 mb-8">
+        <section className="sd-page mt-4 mb-4">
           <BuyerDisputeSummaryCards
             summary={
               data?.summary ?? {
@@ -112,38 +107,38 @@ const BuyerDisputes = () => {
         </section>
 
         {/* Trust Banner */}
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-8">
-          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 lg:p-8">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-6">
-              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
-                <Shield className="h-5 w-5 text-primary-foreground" />
+        <section className="sd-page mb-4">
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:gap-4">
+              <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                <Shield className="h-4 w-4 text-primary-foreground" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-foreground mb-2">How SafeDeal Protects You</h3>
-                <ul className="space-y-2 text-sm text-muted-foreground">
+                <h3 className="text-sm font-semibold text-foreground mb-1">How SafeDeal Protects You</h3>
+                <ul className="space-y-1 text-xs text-muted-foreground">
                   <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <Check className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
                     <span>SafeDeal reviews disputes using the locked transaction agreement and submitted evidence</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <Check className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
                     <span>Funds remain frozen until the dispute is resolved</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <Check className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
                     <span>All evidence submitted becomes part of the permanent dispute record</span>
                   </li>
                 </ul>
               </div>
-              <Button className="flex-shrink-0 gap-2">
-                <BookOpen className="h-4 w-4" />
+              <Button size="sm" className="flex-shrink-0 gap-1.5 h-8 text-xs">
+                <BookOpen className="h-3.5 w-3.5" />
                 Dispute Guide
               </Button>
             </div>
           </div>
         </section>
 
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12 space-y-6">
+        <div className="sd-page pb-8 space-y-4">
           {/* Filters */}
           <BuyerDisputeFilters
             search={search}
@@ -157,18 +152,18 @@ const BuyerDisputes = () => {
 
           {/* Loading */}
           {isLoading && (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-7 w-7 animate-spin text-primary" />
             </div>
           )}
 
           {/* Error */}
           {isError && !isLoading && (
-            <div className="rounded-2xl border bg-card p-12 text-center">
-              <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
-                <RefreshCw className="h-7 w-7 text-destructive" />
+            <div className="rounded-xl border bg-card p-8 text-center">
+              <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-3">
+                <RefreshCw className="h-5 w-5 text-destructive" />
               </div>
-              <h2 className="text-xl font-bold text-foreground mb-2">
+              <h2 className="text-base font-semibold text-foreground mb-1">
                 Unable to load disputes
               </h2>
               <p className="text-muted-foreground text-sm max-w-md mx-auto mb-4">
