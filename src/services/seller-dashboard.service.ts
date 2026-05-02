@@ -58,6 +58,8 @@ export interface SellerMetrics {
   awaiting_buyer_review_amount: number;
   funds_held_in_escrow_amount: number;
   funds_pending_release_amount: number;
+  funds_frozen_amount: number;
+  funds_frozen_count: number;
   payouts_completed_amount: number;
   net_paid_to_bank: number;
   net_pending_bank_transfer: number;
