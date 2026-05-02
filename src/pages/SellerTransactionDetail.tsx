@@ -1,20 +1,26 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import {
   Loader2, RefreshCw, ArrowLeft, Copy, CheckCircle, Shield,
   User, CreditCard, Truck, Package, FileText, Clock, Lock,
   ExternalLink, Phone, Mail, MapPin, Send, Eye, MessageSquare,
-  Headphones, ChevronRight,
+  Headphones, ChevronRight, XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { SellerNav } from "@/components/seller/SellerNav";
 import { Footer } from "@/components/landing/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { getSellerTransactionDetail } from "@/services/seller-transaction-detail.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
+import { cancelSellerTransaction } from "@/services/seller-transactions.service";
 import { BuyerTrustBadges } from "@/components/trust/BuyerTrustBadges";
 import { DeliveryTermsCard } from "@/components/transactions/DeliveryTermsCard";
 import { TransactionCompletionBanner } from "@/components/transactions/TransactionCompletionBanner";
@@ -76,7 +82,11 @@ const SellerTransactionDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelPending, setCancelPending] = useState(false);
 
   const { data: navData } = useQuery({
     queryKey: ["seller-dashboard"],
@@ -129,6 +139,38 @@ const SellerTransactionDetail = () => {
   const moneyInfo = moneyLabels[tx.money_status] ?? { label: tx.money_status, color: "text-muted-foreground" };
 
   const fullShareUrl = tx.share_url ? `${window.location.origin}${tx.share_url}` : null;
+
+  const CANCELLABLE_STATUSES = new Set(["draft", "awaiting_buyer", "awaiting_payment"]);
+  const SAFE_MONEY_STATUSES = new Set(["not_secured", "payment_pending"]);
+  const canCancel =
+    CANCELLABLE_STATUSES.has(tx.status) && SAFE_MONEY_STATUSES.has(tx.money_status);
+
+  const handleConfirmCancel = async () => {
+    if (!transactionId) return;
+    setCancelPending(true);
+    try {
+      await cancelSellerTransaction(transactionId, cancelReason.trim() || undefined);
+      toast({ title: "Transaction cancelled" });
+      setCancelOpen(false);
+      setCancelReason("");
+      queryClient.invalidateQueries({ queryKey: ["seller-transaction-detail", transactionId] });
+      queryClient.invalidateQueries({ queryKey: ["seller-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["seller-dashboard"] });
+    } catch (e: any) {
+      const msg = (e?.message ?? "").toString();
+      let friendly = msg || "Could not cancel transaction";
+      if (msg.includes("state_conflict")) {
+        friendly = "This transaction changed state — please refresh.";
+      } else if (msg.includes("money_not_safe")) {
+        friendly = "Payment is already in progress and cannot be cancelled here.";
+      } else if (msg.includes("not_cancellable")) {
+        friendly = "This transaction is no longer cancellable.";
+      }
+      toast({ title: "Cancellation failed", description: friendly, variant: "destructive" });
+    } finally {
+      setCancelPending(false);
+    }
+  };
 
   const handleCopyLink = async () => {
     if (!fullShareUrl) return;
@@ -204,10 +246,66 @@ const SellerTransactionDetail = () => {
                   Update Delivery
                 </Button>
               )}
+              {canCancel && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => setCancelOpen(true)}
+                >
+                  <XCircle className="h-4 w-4" />
+                  Cancel transaction
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      <AlertDialog open={cancelOpen} onOpenChange={(open) => !cancelPending && setCancelOpen(open)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this transaction?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The buyer will be notified, the share link will be revoked, and any reserved stock
+              will be returned to your inventory. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Reason <span className="text-muted-foreground font-normal">(optional, shared internally)</span>
+            </label>
+            <Textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value.slice(0, 500))}
+              placeholder="e.g. buyer requested cancellation, item no longer available…"
+              rows={3}
+              disabled={cancelPending}
+            />
+            <p className="text-xs text-muted-foreground text-right">{cancelReason.length}/500</p>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelPending}>Keep transaction</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmCancel();
+              }}
+              disabled={cancelPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Cancelling…
+                </>
+              ) : (
+                "Cancel transaction"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         <TransactionConfirmationProgress
