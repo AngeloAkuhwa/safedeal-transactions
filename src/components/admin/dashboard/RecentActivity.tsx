@@ -1,0 +1,56 @@
+import { LineChart, PiggyBank, UserPlus } from "lucide-react";
+import type { AdminActivityItem } from "@/services/admin-dashboard.service";
+import { useAdminNav } from "../useAdminNav";
+import { formatRelative } from "./relative";
+
+const ICONS: Record<AdminActivityItem["kind"], { icon: typeof LineChart; cls: string }> = {
+  transaction_completed: { icon: LineChart, cls: "bg-blue-500/15 text-blue-400" },
+  escrow_released: { icon: PiggyBank, cls: "bg-emerald-500/15 text-emerald-400" },
+  user_registered: { icon: UserPlus, cls: "bg-purple-500/15 text-purple-400" },
+};
+
+interface Props { items: AdminActivityItem[] }
+
+export function RecentActivity({ items }: Props) {
+  const { go } = useAdminNav();
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-white">Recent Activity</h3>
+        <button
+          type="button"
+          onClick={() => go("/admin/audit-logs", "Audit Logs")}
+          className="text-xs text-blue-400 hover:text-blue-300"
+        >
+          View All
+        </button>
+      </div>
+      {items.length === 0 ? (
+        <div className="rounded-lg border border-slate-800 px-3 py-6 text-center text-sm text-slate-400">
+          No recent activity.
+        </div>
+      ) : (
+        <ul className="divide-y divide-slate-800">
+          {items.map((it) => {
+            const cfg = ICONS[it.kind];
+            const Icon = cfg.icon;
+            return (
+              <li key={it.id} className="flex items-center justify-between gap-3 py-2.5">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-md ${cfg.cls}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium text-white">{it.title}</div>
+                    <div className="truncate text-xs text-slate-400">{it.subtitle}</div>
+                  </div>
+                </div>
+                <span className="shrink-0 text-[11px] text-slate-400">{formatRelative(it.at_iso)}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
