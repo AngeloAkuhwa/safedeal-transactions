@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { viewOffer, claimOffer } from "@/services/buyer-offers.service";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { formatMoney } from "@/lib/format";
 
 type Item = {
   id: string;

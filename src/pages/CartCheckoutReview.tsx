@@ -14,11 +14,9 @@ import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { computePricing } from "@/lib/pricing";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { formatMoney } from "@/lib/format";
 
-function formatPrice(amount: number, currency = "NGN") {
-  if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
-  return `${currency} ${Number(amount).toLocaleString()}`;
-}
+const formatPrice = (amount: number, currency = "NGN") => formatMoney(amount, currency);
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 

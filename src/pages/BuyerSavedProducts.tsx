@@ -14,11 +14,9 @@ import {
 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/format";
 
-function formatPrice(amount: number, currency: string) {
-  if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
-  return `${currency} ${Number(amount).toLocaleString()}`;
-}
+const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
 function getStockInfo(qty: number) {
   if (qty <= 0) return { label: "Out of Stock", cls: "bg-muted text-muted-foreground" };
