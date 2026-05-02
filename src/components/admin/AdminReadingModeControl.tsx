@@ -1,0 +1,153 @@
+import { BookOpen, Pause, Play, ArrowDown, ArrowUp, Square } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useReadingMode } from "./ReadingModeContext";
+import type { ScrollSpeed } from "@/hooks/useAutoScroll";
+
+interface Props {
+  variant: "desktop" | "mobile-trigger" | "mobile-floater";
+}
+
+export function AdminReadingModeControl({ variant }: Props) {
+  const rm = useReadingMode();
+  const { isActive, isPaused, direction, speed, start, pause, resume, stop, setDirection, setSpeed } = rm;
+
+  const onPlayPause = () => {
+    if (!isActive) {
+      start();
+      return;
+    }
+    if (isPaused) resume();
+    else pause();
+  };
+
+  const toggleDirection = () => setDirection(direction === "down" ? "up" : "down");
+
+  if (variant === "mobile-trigger") {
+    return (
+      <button
+        type="button"
+        onClick={onPlayPause}
+        aria-label={isActive ? (isPaused ? "Resume reading mode" : "Pause reading mode") : "Start reading mode"}
+        className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+          isActive ? "bg-emerald-500/15 text-emerald-300" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+        }`}
+      >
+        {isActive && !isPaused ? <Pause className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
+      </button>
+    );
+  }
+
+  if (variant === "mobile-floater") {
+    if (!isActive) return null;
+    return (
+      <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 lg:hidden">
+        <div className="flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900/95 px-2 py-1.5 shadow-lg backdrop-blur">
+          <span className="ml-2 mr-1 flex items-center gap-1.5 text-[11px] font-medium text-emerald-300">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+            Reading
+          </span>
+          <button
+            type="button"
+            onClick={onPlayPause}
+            aria-label={isPaused ? "Resume reading mode" : "Pause reading mode"}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-200 hover:bg-slate-800"
+          >
+            {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            type="button"
+            onClick={toggleDirection}
+            aria-label="Change scroll direction"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-200 hover:bg-slate-800"
+          >
+            {direction === "down" ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUp className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            type="button"
+            onClick={stop}
+            aria-label="Stop reading mode"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-200 hover:bg-slate-800"
+          >
+            <Square className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // desktop
+  return (
+    <TooltipProvider delayDuration={200}>
+      <div className="flex items-center gap-1.5">
+        {!isActive ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={onPlayPause}
+                aria-label="Start reading mode"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3.5 py-2 text-sm text-slate-200 transition-colors hover:bg-slate-800"
+              >
+                <BookOpen className="h-4 w-4" />
+                Reading Mode
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="border-slate-700 bg-slate-800 text-slate-100">
+              Auto-scroll this page slowly
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <div className="flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-1">
+            <span className="ml-1 mr-1 flex items-center gap-1.5 text-[11px] font-medium text-emerald-300">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+              Reading Mode active
+            </span>
+            <button
+              type="button"
+              onClick={onPlayPause}
+              aria-label={isPaused ? "Resume reading mode" : "Pause reading mode"}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-slate-100 hover:bg-slate-800"
+            >
+              {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+            </button>
+            <button
+              type="button"
+              onClick={toggleDirection}
+              aria-label="Change scroll direction"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-slate-100 hover:bg-slate-800"
+            >
+              {direction === "down" ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUp className="h-3.5 w-3.5" />}
+            </button>
+            <Select value={speed} onValueChange={(v) => setSpeed(v as ScrollSpeed)}>
+              <SelectTrigger
+                aria-label="Change scroll speed"
+                className="h-7 w-[110px] border-slate-700 bg-slate-900/60 px-2 text-xs text-slate-100"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+                <SelectItem value="very-slow">Very Slow</SelectItem>
+                <SelectItem value="slow">Slow</SelectItem>
+              </SelectContent>
+            </Select>
+            <button
+              type="button"
+              onClick={stop}
+              aria-label="Stop reading mode"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-slate-100 hover:bg-slate-800"
+            >
+              <Square className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
+    </TooltipProvider>
+  );
+}

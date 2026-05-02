@@ -1,4 +1,4 @@
-import { Receipt, PiggyBank, Users, Flag, TrendingUp, TrendingDown } from "lucide-react";
+import { Receipt, Landmark, Users, Flag, TrendingUp, TrendingDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatMoney } from "@/lib/format";
 import type { AdminKpis } from "@/services/admin-dashboard.service";
@@ -17,7 +17,7 @@ export function KpiCards({ kpis }: KpiCardsProps) {
       delta: kpis.total_transactions_delta_pct,
     },
     {
-      icon: PiggyBank,
+      icon: Landmark,
       iconClass: "bg-emerald-500/15 text-emerald-400",
       label: "Escrow Balance",
       value: formatMoney(kpis.escrow_balance_amount, "NGN"),
