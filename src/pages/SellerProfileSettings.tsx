@@ -114,15 +114,15 @@ const SellerProfileSettings = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <SellerNav sellerName={data.profile.full_name} avatarUrl={data.profile.avatar_url} />
 
-      {/* Hero */}
-      <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl flex items-center gap-4">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <UserCog className="h-5 w-5 text-primary" />
+      {/* Compact header */}
+      <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b border-border/60">
+        <div className="sd-page py-3 sm:py-4 flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <UserCog className="h-4 w-4 text-primary" />
           </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Profile & Settings</h1>
-            <p className="text-muted-foreground text-sm">
+          <div className="min-w-0">
+            <h1 className="sd-page-title">Profile & Settings</h1>
+            <p className="sd-page-sub">
               Manage your account, verification status, security, notifications, and payout destination settings.
             </p>
           </div>
@@ -130,10 +130,10 @@ const SellerProfileSettings = () => {
       </section>
 
       {/* Main content */}
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <main className="flex-1 sd-page sd-page-y">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           {/* Left column */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-3">
             <PersonalInfoSection
               profile={data.profile}
               verification={data.verification}
@@ -182,7 +182,7 @@ const SellerProfileSettings = () => {
 
           {/* Right column */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24 space-y-6">
+            <div className="sticky top-20 space-y-3">
               <TrustSafetyPanel />
               <AccountStatusCard
                 accountMeta={data.account_meta}
