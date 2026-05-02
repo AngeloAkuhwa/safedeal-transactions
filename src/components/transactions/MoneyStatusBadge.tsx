@@ -1,34 +1,41 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-const moneyConfig: Record<string, { label: string; className: string }> = {
-  not_secured: { label: "Not Secured", className: "bg-muted text-muted-foreground border-border" },
-  payment_pending: { label: "Payment Pending", className: "bg-warning/15 text-warning border-warning/30" },
-  funds_held_in_escrow: { label: "Funds in Escrow", className: "bg-primary/15 text-primary border-primary/30" },
-  funds_frozen: { label: "Funds Frozen", className: "bg-destructive/15 text-destructive border-destructive/30" },
-  funds_pending_release: { label: "Awaiting Release", className: "bg-primary/15 text-primary border-primary/30" },
-  funds_releasing: { label: "Pending Release", className: "bg-success/15 text-success border-success/30" },
-  funds_released: { label: "Released to You", className: "bg-success/15 text-success border-success/30" },
-  refund_pending: { label: "Refund Pending", className: "bg-warning/15 text-warning border-warning/30" },
-  refund_issued: { label: "Refunded", className: "bg-muted text-muted-foreground border-border" },
-};
+import {
+  resolveMoneyLabel,
+  TONE_CLASSNAMES,
+  type Audience,
+} from "@/lib/status-labels";
 
 interface MoneyStatusBadgeProps {
   status: string;
+  /** Defaults to "seller" so legacy call sites keep their existing copy. */
+  audience?: Audience;
+  /** When `audience="buyer"` and status is `funds_pending_release`, this
+   *  toggles between "Awaiting Seller Confirmation" and "Awaiting Release". */
+  sellerConfirmed?: boolean | null;
+  className?: string;
 }
 
-export function MoneyStatusBadge({ status }: MoneyStatusBadgeProps) {
-  const config = moneyConfig[status] ?? {
-    label: status.replace(/_/g, " "),
-    className: "bg-muted text-muted-foreground border-border",
-  };
+export function MoneyStatusBadge({
+  status,
+  audience = "seller",
+  sellerConfirmed,
+  className,
+}: MoneyStatusBadgeProps) {
+  const entry = resolveMoneyLabel(status, audience, { sellerConfirmed });
+  const display = entry.short ?? entry.label;
 
   return (
     <Badge
       variant="outline"
-      className={cn("text-xs font-medium capitalize whitespace-nowrap", config.className)}
+      title={entry.label}
+      className={cn(
+        "text-xs font-medium whitespace-nowrap",
+        TONE_CLASSNAMES[entry.tone],
+        className,
+      )}
     >
-      {config.label}
+      {display}
     </Badge>
   );
 }
