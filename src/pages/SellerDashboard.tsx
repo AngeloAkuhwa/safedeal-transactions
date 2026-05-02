@@ -94,33 +94,33 @@ const SellerDashboard = () => {
           </section>
         )}
 
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-8">
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6">
           <SellerMetricsCards metrics={data.metrics} />
         </section>
       </div>
 
       <main className="flex-1 bg-muted/30">
         {showOnboarding && (
-          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
             <SellerOnboardingChecklist onboarding={data.onboarding} />
           </section>
         )}
 
         {showEmptyState ? (
-          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
             <SellerDashboardEmptyState seller={data.seller} metrics={data.metrics} />
           </section>
         ) : (
           <>
-            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
               <SellerRecentActivity activity={data.recent_activity} />
             </section>
 
-            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-8">
+            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6">
               <SellerQuickActions draftCount={data.quick_actions.draft_count} />
             </section>
 
-            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12">
+            <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-10">
               <SellerTrustBanner />
             </section>
           </>
