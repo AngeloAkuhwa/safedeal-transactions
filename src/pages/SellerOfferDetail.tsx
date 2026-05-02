@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { format as formatDate } from "date-fns";
 import {
   Loader2, ArrowLeft, Lock, Copy, MessageSquare, Mail, Package,
   XCircle, RefreshCw, ExternalLink, AlertTriangle,
@@ -21,6 +22,16 @@ import {
 } from "@/services/seller-offers.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { formatMoney } from "@/lib/format";
+
+/** Shared timestamp formatter — matches AgreementSnapshotSection / dispute UI. */
+function fmtDateTime(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  try {
+    return formatDate(new Date(iso), "MMM d, yyyy 'at' h:mm a");
+  } catch {
+    return "—";
+  }
+}
 
 const statusStyle: Record<string, string> = {
   pending_claim: "bg-muted text-muted-foreground border-border",
@@ -151,12 +162,12 @@ export default function SellerOfferDetail() {
           <Card>
             <CardContent className="p-5 space-y-2 text-sm">
               <h3 className="font-semibold text-foreground mb-2">Lifecycle</h3>
-              <Row label="Created" value={new Date(offer.created_at).toLocaleString()} />
-              <Row label="Linked at" value={offer.linked_at ? new Date(offer.linked_at).toLocaleString() : "—"} />
-              <Row label="Claimed at" value={offer.claimed_at ? new Date(offer.claimed_at).toLocaleString() : "—"} />
-              <Row label="Purchased at" value={offer.purchased_at ? new Date(offer.purchased_at).toLocaleString() : "—"} />
-              <Row label="Expires" value={offer.expires_at ? new Date(offer.expires_at).toLocaleString() : "—"} />
-              {offer.cancelled_at && <Row label="Cancelled at" value={new Date(offer.cancelled_at).toLocaleString()} />}
+              <Row label="Created" value={fmtDateTime(offer.created_at)} />
+              <Row label="Linked at" value={fmtDateTime(offer.linked_at)} />
+              <Row label="Claimed at" value={fmtDateTime(offer.claimed_at)} />
+              <Row label="Purchased at" value={fmtDateTime(offer.purchased_at)} />
+              <Row label="Expires" value={fmtDateTime(offer.expires_at)} />
+              {offer.cancelled_at && <Row label="Cancelled at" value={fmtDateTime(offer.cancelled_at)} />}
             </CardContent>
           </Card>
 

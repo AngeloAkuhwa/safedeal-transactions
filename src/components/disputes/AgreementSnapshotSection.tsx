@@ -31,7 +31,10 @@ function formatValue(value: unknown, key?: string): string {
     if (key && /amount|fee|price/i.test(key)) {
       return formatMoney(value, "NGN");
     }
-    return value.toLocaleString();
+    // Non-money numerics (e.g. quantity, hours) — render as plain integers
+    // so the snapshot never emits locale-dependent thousands separators that
+    // could be mistaken for money.
+    return String(value);
   }
   if (typeof value === "boolean") return value ? "Yes" : "No";
   return String(value);
