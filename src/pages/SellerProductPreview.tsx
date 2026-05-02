@@ -17,10 +17,9 @@ import { getSellerProductDetail, updateProduct, archiveProduct } from "@/service
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
+import { formatMoney } from "@/lib/format";
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(amount);
-}
+const formatPrice = (amount: number) => formatMoney(amount, "NGN");
 
 function relativeTime(dateStr?: string) {
   if (!dateStr) return "—";

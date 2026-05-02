@@ -1,6 +1,7 @@
 import { List } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "date-fns";
+import { formatMoney } from "@/lib/format";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +28,7 @@ function formatDisputeRef(id: string): string {
 
 function formatAmount(amount: number | null): string {
   if (amount === null || amount === undefined) return "—";
-  return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(amount);
+  return formatMoney(amount, "NGN");
 }
 
 export function BuyerDisputeList({ items, isLoading }: BuyerDisputeListProps) {

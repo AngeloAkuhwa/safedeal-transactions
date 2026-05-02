@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Receipt, ArrowRight, Package, Truck, Scale, Clock, CheckCircle, Lock, Snowflake, Unlock } from "lucide-react";
+import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,13 +71,8 @@ function resolveRoute(purchase: DashboardPurchase): string {
   return `/dashboard/transactions/${purchase.transaction_id}`;
 }
 
-function formatAmount(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: currency || "NGN",
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
+const formatAmount = (amount: number, currency: string) =>
+  formatMoney(amount, currency);
 
 export function RecentPurchases({ purchases }: RecentPurchasesProps) {
   const navigate = useNavigate();

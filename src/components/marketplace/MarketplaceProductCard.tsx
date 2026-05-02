@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { formatMoney } from "@/lib/format";
 import { Heart, ShoppingCart, Bell, CheckCircle, PackageOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,14 +18,8 @@ interface Props {
   onClick?: () => void;
 }
 
-function formatPrice(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: currency || "NGN",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
+const formatPrice = (amount: number, currency: string) =>
+  formatMoney(amount, currency);
 
 const avatarColors = [
   "from-primary to-blue-400",

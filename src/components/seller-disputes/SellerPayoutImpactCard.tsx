@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Wallet, Lock, ArrowLeftRight, AlertTriangle, ExternalLink, Info } from "lucide-react";
+import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,8 @@ interface SellerPayoutImpactCardProps {
   impact: SellerDisputePayoutImpact;
 }
 
-function formatAmount(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-  }).format(amount);
-}
+const formatAmount = (amount: number, currency: string) =>
+  formatMoney(amount, currency);
 
 const escrowStateConfig: Record<string, { label: string; className: string }> = {
   awaiting_payment: { label: "Awaiting Payment", className: "bg-muted text-muted-foreground" },
