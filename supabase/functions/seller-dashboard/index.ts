@@ -114,6 +114,8 @@ Deno.serve(async (req) => {
       identity_verified: false,
       payout_account_present: false,
       payout_account_verified: false,
+      payout_ready: false,
+      payout_blocker_reason: "missing" as "missing" | "unverified" | "no_recipient_code" | null,
       has_published_products: false,
     };
     if (profileResult.status === "fulfilled" && profileResult.value.data) {
@@ -134,6 +136,17 @@ Deno.serve(async (req) => {
       payoutAccountRow = payoutAccountResult.value.data as any;
       seller.payout_account_present = true;
       seller.payout_account_verified = payoutAccountRow!.verification_status === "verified" && !!payoutAccountRow!.provider_recipient_code;
+      seller.payout_ready = seller.payout_account_verified;
+      if (seller.payout_ready) {
+        seller.payout_blocker_reason = null;
+      } else if (payoutAccountRow!.verification_status !== "verified") {
+        seller.payout_blocker_reason = "unverified";
+      } else {
+        seller.payout_blocker_reason = "no_recipient_code";
+      }
+    } else {
+      seller.payout_ready = false;
+      seller.payout_blocker_reason = "missing";
     }
 
     // ==================== Bucket transactions ====================
