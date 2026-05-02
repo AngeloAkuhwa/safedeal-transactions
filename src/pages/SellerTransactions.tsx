@@ -174,19 +174,17 @@ const SellerTransactions = () => {
         avatarUrl={navData?.seller.avatar_url ?? null}
       />
 
-      {/* Hero */}
-      <div className="bg-gradient-to-br from-sky-50 via-background to-green-50 dark:from-sky-950/20 dark:via-background dark:to-green-950/20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-          <p className="text-sm font-medium text-primary mb-1">Transaction Management</p>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Compact header strip */}
+      <div className="bg-gradient-to-br from-sky-50/60 via-background to-green-50/60 dark:from-sky-950/15 dark:via-background dark:to-green-950/15 border-b border-border/60">
+        <div className="sd-page py-3 sm:py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-primary mb-0.5">Transaction Management</p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground animate-fade-in">All Transactions</h1>
-              <p className="text-muted-foreground text-sm mt-1">
-                Monitor and manage all your protected transactions
-              </p>
+              <h1 className="sd-page-title animate-fade-in">All Transactions</h1>
+              <p className="sd-page-sub">Monitor and manage all your protected transactions</p>
             </div>
-            <Button className="gap-2" onClick={() => navigate("/seller/transactions/new")}>
-              <Plus className="h-4 w-4" />
+            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate("/seller/transactions/new")}>
+              <Plus className="h-3.5 w-3.5" />
               Create New Transaction
             </Button>
           </div>
@@ -194,10 +192,10 @@ const SellerTransactions = () => {
       </div>
 
       {/* Summary Cards (moved above filters per polish spec) */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6">
+      <div className="sd-page pt-3 sm:pt-4">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Card className="sd-card sd-metric sd-fade-in-stagger sd-delay-1">
-            <CardContent className="p-4">
+            <CardContent className="p-3">
               <p className="sd-eyebrow mb-1">Transactions</p>
               <p className="sd-kpi-value tabular-nums">{summary.total}</p>
               <p className="sd-kpi-helper">All protected deals you've created</p>
@@ -208,7 +206,7 @@ const SellerTransactions = () => {
             </CardContent>
           </Card>
           <Card className="sd-card sd-metric sd-fade-in-stagger sd-delay-2">
-            <CardContent className="p-4">
+            <CardContent className="p-3">
               <div className="flex items-center gap-1.5 mb-1">
                 <p className="sd-eyebrow text-warning">Awaiting Buyer Payment</p>
                 <InfoTip>Buyer started checkout but payment isn't complete yet.</InfoTip>
@@ -218,14 +216,14 @@ const SellerTransactions = () => {
             </CardContent>
           </Card>
           <Card className="sd-card sd-metric sd-fade-in-stagger sd-delay-3">
-            <CardContent className="p-4">
+            <CardContent className="p-3">
               <p className="sd-eyebrow text-primary mb-1">In Fulfillment</p>
               <p className="sd-kpi-value tabular-nums">{summary.in_fulfillment_count ?? 0}</p>
               <p className="sd-kpi-helper">Paid · being delivered</p>
             </CardContent>
           </Card>
           <Card className="sd-card sd-metric sd-fade-in-stagger sd-delay-4">
-            <CardContent className="p-4">
+            <CardContent className="p-3">
               <div className="flex items-center gap-1.5 mb-1">
                 <p className="sd-eyebrow text-success">Net Earned</p>
                 <InfoTip>
@@ -246,20 +244,20 @@ const SellerTransactions = () => {
       </div>
 
       {/* Filters */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="sd-page py-3">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search by code, buyer, or item..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full pl-8 pr-3 py-1.5 h-8 border border-border rounded-md text-xs bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="min-w-[140px] flex-1 sm:flex-none sm:w-44">
+            <SelectTrigger className="min-w-[140px] flex-1 sm:flex-none sm:w-44 h-8 text-xs">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
@@ -276,7 +274,7 @@ const SellerTransactions = () => {
             </SelectContent>
           </Select>
           <Select value={dateFilter} onValueChange={setDateFilter}>
-            <SelectTrigger className="min-w-[120px] flex-1 sm:flex-none sm:w-36">
+            <SelectTrigger className="min-w-[120px] flex-1 sm:flex-none sm:w-36 h-8 text-xs">
               <SelectValue placeholder="All Time" />
             </SelectTrigger>
             <SelectContent>
@@ -287,15 +285,15 @@ const SellerTransactions = () => {
               <SelectItem value="this-quarter">This Quarter</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setExportOpen(true)}>
-            <Download className="h-4 w-4" />
+          <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setExportOpen(true)}>
+            <Download className="h-3.5 w-3.5" />
             Export
           </Button>
         </div>
       </div>
 
       {/* Filter chip rail */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 -mt-2 mb-2">
+      <div className="sd-page -mt-1 mb-2">
         <div className="flex flex-wrap items-center gap-2">
           {[
             { key: "awaiting-seller-confirmation", label: "Awaiting Your Confirmation", count: summary.awaiting_seller_confirmation_count ?? 0, tone: "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100" },
@@ -309,10 +307,10 @@ const SellerTransactions = () => {
                 key={chip.key}
                 type="button"
                 onClick={() => setStatusFilter(active ? "all" : chip.key)}
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${chip.tone} ${active ? "ring-2 ring-offset-1 ring-primary/30" : ""}`}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors ${chip.tone} ${active ? "ring-2 ring-offset-1 ring-primary/30" : ""}`}
               >
                 {chip.label}
-                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-background/70 text-[10px] font-bold px-1">
+                <span className="inline-flex items-center justify-center min-w-[16px] h-4 rounded-full bg-background/70 text-[9px] font-bold px-1">
                   {chip.count}
                 </span>
               </button>
@@ -322,8 +320,8 @@ const SellerTransactions = () => {
       </div>
 
       {/* Table */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6">
-        <Card className="rounded-2xl shadow-md overflow-hidden">
+      <div className="sd-page pb-4">
+        <Card className="rounded-lg shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -540,7 +538,7 @@ const SellerTransactions = () => {
       </div>
 
       {/* Trust Banner */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <div className="sd-page py-4">
         <SellerTrustBanner />
       </div>
 
