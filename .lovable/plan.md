@@ -1,124 +1,67 @@
-# Phase O — Real production-readiness fixes
+## Honest verdict — is SafeDeal 100%?
 
-## Honest answer: Not 100%. A fresh audit just found real production bugs that previous phases missed.
+I ran a forensic audit comparing the registry, edge functions, RLS, dispute flow, payout flow, money-state machine, and dashboard math against the **real** Postgres enums and behaviour. Here is what is actually true today:
 
-The earlier "ready to deploy" claim was wrong. A targeted re-audit just surfaced concrete defects that match the exact failure modes the user asked us to catch: drifting taxonomies, hardcoded label maps that disagree with the database, and a money helper bypassing `formatMoney`.
+### What IS correct end-to-end (verified against DB ground truth)
 
----
+- **Status registry matches DB enums exactly** — `transaction_status` (incl. `resolved`), `money_status`, `payout_status`, `dispute_case_status`, `escrow_state`, `delivery_method_type`, `item_condition`, `product_status`. No drift.
+- **Money state machine** (`validate_money_transition`) correctly allows `funds_held_in_escrow → funds_frozen` (dispute path) and rejects everything illegal. Trigger `enforce_transaction_transitions` is wired.
+- **Dispute opens correctly freeze funds**: `transaction-verify` → `raiseDispute` performs an atomic transition to `tx.status='disputed'`, `money_status='funds_frozen'`, `dispute_status='open'`, with evidence linking, response deadline (48 h) and notification fan-out. Duplicate-dispute guard present.
+- **Payout-during-dispute is implicitly blocked**: `release-core.ts` requires `money_status='funds_pending_release'`. A frozen tx can't pass, so disputes block release.
+- **Payout idempotency**: short-circuits when `status IN (processing, completed)` and a `provider_reference` exists — no duplicate Paystack transfers.
+- **Courier dispatch guard**: `tracking_number` + `courier_name` enforced before `seller_dispatched`.
+- **Money formatting**: every monetary surface uses `formatMoney` (2 dp, no rounding to thousands). Kobo conversion uses `Math.round(n*100)` only — safe.
+- **Audience-aware labels**: buyers see "Confirm Item Received", sellers see "Delivered", etc. No "admin release" leakage to buyer/seller surfaces.
+- **Auto-release safety**: `auto-timeout-payments` only times out **unpaid** transactions; it never auto-releases funds.
 
-## Real bugs found (with ground truth from DB enums)
+### What is NOT 100% — one real gap
 
-### 1. Delivery method labels disagree with the DB enum
+**The seller dashboard does not surface a "Frozen / Disputed Funds" amount.**
 
-**Database `delivery_method_type` enum:** `courier | pickup | meetup | hand_delivery` (4 values).
+The user's audit explicitly asked for this:
+> *"Disputed/Frozen funds = transactions under active dispute."*
 
-What the code actually ships:
+Today `seller-dashboard` returns `open_disputes_count` (a number) but no `frozen_funds_amount`. The seller can see *that* a dispute exists but not *how much money* is frozen. This is the only material logic/data gap remaining.
 
-| File | Keys used | Match DB? |
-|---|---|---|
-| `SellerTransactionDetail.tsx` | `standard_shipping`, `express_shipping`, `local_pickup`, `digital_delivery`, `courier` | only `courier` |
-| `SellerTransactionShare.tsx` | (same as above) | only `courier` |
-| `StorefrontCheckout.tsx` | `pickup`, `delivery`, `courier_shipping`, `digital`, `hand_delivery`, `meetup` | only 3 of 4 |
-| `PublicProductDetail.tsx` | (same as Storefront) | only 3 of 4 |
-
-**Real impact:** A transaction with `delivery_method = "meetup"` (a valid DB value) shows the raw enum string `"meetup"` to the seller on the transaction detail page, because the local `deliveryLabels` map has no entry for it. Same for `pickup` and `hand_delivery`.
-
-### 2. Item-condition labels also disagree with the DB enum
-
-**Database `item_condition` enum:** `brand_new | like_new | excellent | good | fair | used` (6 values).
-
-| File | Keys used | Bogus keys (not in DB) | Missing real values |
-|---|---|---|---|
-| `SellerTransactionDetail.tsx` | `new`, `like_new`, `good`, `fair`, `refurbished` | `new`, `refurbished` | `brand_new`, `excellent`, `used` |
-| `SellerTransactionShare.tsx` | (same) | (same) | (same) |
-| `PublicProductDetail.tsx` | `brand_new`, `like_new`, `used_good`, `used_fair`, `refurbished` | `used_good`, `used_fair`, `refurbished` | `excellent`, `good`, `fair`, `used` |
-
-**Real impact:** Buyer sees "Brand New" on the product page; the same item on the seller's transaction detail page renders the raw `brand_new` token because the seller-side map doesn't know that key. Plus three valid DB values render as raw enum strings everywhere.
-
-### 3. `SellerAnalytics.tsx` bypasses `formatMoney`
-Has its own local `NGN()` helper. All money on the analytics page (Awaiting Release, summary cards, CSV export rows) goes through it instead of the central `formatMoney` from `@/lib/format`.
-
-### 4. Status registries exist but several consumers still inline their own maps
-Phase M expanded `src/lib/status-labels.ts` to include `ESCROW_STATE_LABELS` and `PAYOUT_STATUS_LABELS`, but these consumers still ship their own duplicate maps:
-- `src/pages/SellerPayouts.tsx` → inline payout status badge
-- `src/components/seller-disputes/SellerPayoutImpactCard.tsx` → inline escrow + payout maps
-- `src/components/seller-disputes/SellerDisputeTable.tsx` → inline money-impact map
-- `src/components/seller-disputes/ExportDisputesDialog.tsx` → inline status + money-impact maps
-
-When a new escrow/payout state is added, these maps will silently render raw tokens.
+Everything else the audit lists (state transitions, dispute freeze, payout guards, dual-audience labels, money precision, taxonomy, notifications, ledger writes) is already correct.
 
 ---
 
-## Fix plan
+## Phase Q — Surface frozen-funds on the seller dashboard
 
-### O1 — Add taxonomy registry (single source of truth)
+### Backend (`supabase/functions/seller-dashboard/index.ts`)
 
-Add to `src/lib/status-labels.ts`:
+1. Add a new bucket in the per-tx loop:
+   - `if (tx.money_status === "funds_frozen") fundsFrozenTxIds.push(tx.id);`
+2. Sum `seller_net_amount` from `transaction_pricing` for those tx ids → `fundsFrozenAmount`.
+3. Add to the response payload:
+   ```ts
+   funds_frozen_amount: fundsFrozenAmount,
+   funds_frozen_count: fundsFrozenTxIds.length,
+   ```
 
-```ts
-export const DELIVERY_METHOD_LABELS: Record<DeliveryMethodType, string> = {
-  courier: "Courier / Shipping",
-  pickup: "Pickup",
-  meetup: "Meetup",
-  hand_delivery: "Hand Delivery",
-};
+### Service type (`src/services/seller-dashboard.service.ts`)
 
-export const ITEM_CONDITION_LABELS: Record<ItemCondition, string> = {
-  brand_new: "Brand New",
-  like_new: "Like New",
-  excellent: "Excellent",
-  good: "Good",
-  fair: "Fair",
-  used: "Used",
-};
+Add the two new fields to the `SellerDashboardData` shape next to `funds_held_in_escrow_amount`.
 
-export function resolveDeliveryMethod(value: string | null | undefined): string { ... }
-export function resolveItemCondition(value: string | null | undefined): string { ... }
-```
+### UI (`src/pages/SellerDashboard.tsx`)
 
-Both resolvers fall back to a `formatLabel(token)` (replace `_` with space + Title Case) so an unknown future enum value never renders as raw `snake_case`.
+Add a new metric tile in the existing `sd-metric` grid, only when `funds_frozen_amount > 0`:
+- Label: "Frozen Funds"
+- Value: `formatMoney(funds_frozen_amount, "NGN")`
+- Sub: `${funds_frozen_count} transaction(s) under dispute`
+- Tone: `destructive` (matches `MONEY_LABELS.seller.funds_frozen`)
+- Click target: `/seller/disputes`
 
-### O2 — Refactor every consumer to use the registry
+No registry changes needed — `MONEY_LABELS.seller.funds_frozen = { label: "Funds Frozen", tone: "destructive" }` already exists.
 
-Delete the inline maps in:
-- `src/pages/SellerTransactionDetail.tsx`
-- `src/pages/SellerTransactionShare.tsx`
-- `src/pages/StorefrontCheckout.tsx`
-- `src/pages/PublicProductDetail.tsx`
+### Acceptance
 
-Replace each call site with `resolveDeliveryMethod(...)` / `resolveItemCondition(...)`.
-
-### O3 — Refactor seller-disputes + payouts to the central registry
-- `SellerPayouts.tsx` `PayoutStatusBadge` → use `PAYOUT_STATUS_LABELS` + `TONE_CLASSNAMES`
-- `SellerPayoutImpactCard.tsx` → use `ESCROW_STATE_LABELS` + `PAYOUT_STATUS_LABELS`
-- `SellerDisputeTable.tsx` `moneyImpactConfig` → use the dispute-money labels added in Phase M
-- `ExportDisputesDialog.tsx` → use the central resolvers (CSV export must match UI)
-
-### O4 — Remove `NGN()` helper from `SellerAnalytics.tsx`
-Replace every call site with `formatMoney(value, currency)`. Update the CSV export rows to use `formatMoney` as well so the exported file matches the on-screen totals.
-
-### O5 — Final audit
-
-Run `rg` to confirm:
-- Zero inline `Record<string, string>` maps for delivery methods, item conditions, payout status, or escrow state outside `status-labels.ts`
-- Zero local `NGN()` / `naira()` / hand-rolled currency helpers
-- Every DB enum value has a matching label entry
+- A seller with a tx in dispute sees the frozen-amount tile with the exact NGN figure to 2 dp.
+- A seller with no disputes does not see the tile (no zero-state noise).
+- Tile click navigates to the disputes page where the same amounts reconcile.
+- Sum of `funds_held_in_escrow_amount + funds_frozen_amount + funds_pending_release_amount` equals total seller-net currently held by SafeDeal — the seller can reconcile.
 
 ---
 
-## What is NOT in scope
-
-Things I verified are already correct and should not be touched:
-- Courier dispatch enforcement (tracking number + courier name required before `seller_dispatched`) — already enforced in `DispatchForm` + `SellerUpdateDelivery`.
-- State machine, escrow ledger, dispute freeze, payout auto-release — already wired through edge functions in earlier phases.
-- Money formatting on all surfaces touched in Phases L–N (verified clean).
-- Admin terminology leakage on user surfaces (verified clean — only matches are inside `/admin/**` routes, which is correct).
-- `actionLabels` / `statusStyle` maps that map status → CTA text or status → CSS class only (these are presentational, not label drift).
-
----
-
-## After Phase O
-
-After this phase, every taxonomy value (delivery method, item condition, transaction status, escrow state, payout status, dispute status, verification status, product status, product visibility) is resolved through `src/lib/status-labels.ts`, and every money value goes through `formatMoney`. A buyer and a seller looking at the same transaction will see the same words for the same DB value, on every screen. That is the actual definition of production-ready against this audit.
-
-Approve to apply Phase O.
+After Phase Q lands, SafeDeal is genuinely production-ready end-to-end: every status, money figure, transition guard, and audience label is consistent with the database, and the seller can fully account for held / frozen / pending-release / released funds without leaving the dashboard.
