@@ -3,6 +3,8 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 import { AdminMobileHeader } from "./AdminMobileHeader";
+import { ReadingModeProvider } from "./ReadingModeContext";
+import { AdminReadingModeControl } from "./AdminReadingModeControl";
 import type { AdminDashboardResponse } from "@/services/admin-dashboard.service";
 
 interface AdminLayoutProps {
@@ -16,6 +18,7 @@ export function AdminLayout({ title, subtitle, badges, children }: AdminLayoutPr
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
+    <ReadingModeProvider>
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="flex min-h-screen">
         {/* Desktop sidebar */}
@@ -44,6 +47,8 @@ export function AdminLayout({ title, subtitle, badges, children }: AdminLayoutPr
           </main>
         </div>
       </div>
+      <AdminReadingModeControl variant="mobile-floater" />
     </div>
+    </ReadingModeProvider>
   );
 }
