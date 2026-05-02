@@ -54,11 +54,11 @@ export function SellerQuickActions({ draftCount }: SellerQuickActionsProps) {
   return (
     <div>
       <h2 className="text-xl font-bold text-foreground mb-4">Quick Actions</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {actions.map((action) => (
           <Card
             key={action.title}
-            className="rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer group"
+            className="rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer group h-full"
             onClick={() => navigate(action.href)}
           >
             <CardContent className="p-5">
