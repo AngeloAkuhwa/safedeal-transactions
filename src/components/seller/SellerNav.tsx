@@ -58,8 +58,8 @@ export function SellerNav({ sellerName, avatarUrl }: SellerNavProps) {
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 border-b border-border/80 bg-card/85 backdrop-blur-lg shadow-sm">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
             <Shield className="h-5 w-5 text-primary-foreground" />
@@ -75,10 +75,10 @@ export function SellerNav({ sellerName, avatarUrl }: SellerNavProps) {
               <Link
                 key={link.href}
                 to={link.href}
-                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   isActive
-                    ? "text-primary font-semibold border-b-2 border-primary"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-primary font-semibold bg-primary/5"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >
                 {link.label}

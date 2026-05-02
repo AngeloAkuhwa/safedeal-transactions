@@ -189,3 +189,37 @@
     }
   }
 }
+
+/* ===== SafeDeal seller density system ===== */
+@layer utilities {
+  .sd-page        { @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8; }
+  .sd-page-y      { @apply py-6 sm:py-8; }
+  .sd-section-y   { @apply space-y-6 sm:space-y-8; }
+  .sd-card        { @apply rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow; }
+  .sd-card-pad    { @apply p-4 sm:p-5; }
+  .sd-metric      { min-height: 118px; }
+  .sd-action      { min-height: 128px; }
+  .sd-alert       { min-height: 76px; }
+  .sd-eyebrow     { @apply text-[11px] font-semibold uppercase tracking-wider text-muted-foreground; }
+  .sd-kpi-value   { @apply text-[22px] sm:text-2xl font-bold text-foreground leading-tight; }
+  .sd-kpi-helper  { @apply text-[11px] text-muted-foreground leading-snug; }
+  .sd-row-hover   { @apply hover:bg-muted/40 transition-colors; }
+
+  .sd-fade-in-stagger {
+    opacity: 0;
+    animation: fade-in 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  }
+  .sd-delay-1 { animation-delay: 40ms; }
+  .sd-delay-2 { animation-delay: 80ms; }
+  .sd-delay-3 { animation-delay: 120ms; }
+  .sd-delay-4 { animation-delay: 160ms; }
+  .sd-delay-5 { animation-delay: 200ms; }
+  .sd-delay-6 { animation-delay: 240ms; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sd-fade-in-stagger {
+      animation: none !important;
+      opacity: 1 !important;
+    }
+  }
+}
