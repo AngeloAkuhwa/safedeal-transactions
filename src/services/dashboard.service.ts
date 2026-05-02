@@ -74,6 +74,11 @@ export const getBuyerDashboard = async (): Promise<BuyerDashboardResponse> => {
       return new Promise<BuyerDashboardResponse>(() => {});
     }
 
+    if (errorMessage === "Buyer role required") {
+      await redirectToRoleHome(session.user.id);
+      return new Promise<BuyerDashboardResponse>(() => {});
+    }
+
     throw new Error(errorMessage || "Failed to load dashboard");
   }
 
@@ -84,8 +89,27 @@ export const getBuyerDashboard = async (): Promise<BuyerDashboardResponse> => {
       return new Promise<BuyerDashboardResponse>(() => {});
     }
 
+    if (data?.error === "Buyer role required") {
+      await redirectToRoleHome(session.user.id);
+      return new Promise<BuyerDashboardResponse>(() => {});
+    }
+
     throw new Error(data?.error || "Failed to load dashboard");
   }
 
   return data as BuyerDashboardResponse;
 };
+
+async function redirectToRoleHome(userId: string) {
+  const { data: roles } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  const names = (roles ?? []).map((r) => r.role as string);
+  const dest = names.includes("admin")
+    ? "/admin/dashboard"
+    : names.includes("seller")
+    ? "/seller"
+    : "/role-selection";
+  window.location.replace(dest);
+}
