@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Boxes, Minus, Plus, Package, Info } from "lucide-react";
+import { formatMoney } from "@/lib/format";
+import { resolveProductStatusLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 
 interface UpdateStockProduct {
   id: string;
@@ -22,23 +24,11 @@ interface UpdateStockModalProps {
   isPending?: boolean;
 }
 
-function formatPrice(amount: number, currency: string) {
-  if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
-  return `${currency} ${Number(amount).toLocaleString()}`;
-}
-
 function getStockStatus(qty: number) {
   if (qty === 0) return { label: "Out of Stock", color: "text-destructive", bg: "bg-destructive/10", dot: "bg-destructive" };
   if (qty <= 5) return { label: "Low Stock", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10", dot: "bg-amber-400" };
   return { label: "In Stock", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10", dot: "bg-emerald-400" };
 }
-
-const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
-  published: { label: "Published", bg: "bg-emerald-500/20", text: "text-emerald-600 dark:text-emerald-400" },
-  draft: { label: "Draft", bg: "bg-amber-500/20", text: "text-amber-600 dark:text-amber-400" },
-  out_of_stock: { label: "Out of Stock", bg: "bg-muted", text: "text-muted-foreground" },
-  archived: { label: "Archived", bg: "bg-destructive/20", text: "text-destructive" },
-};
 
 export function UpdateStockModal({ open, onOpenChange, product, onSave, isPending }: UpdateStockModalProps) {
   const [quantity, setQuantity] = useState(0);
@@ -50,7 +40,8 @@ export function UpdateStockModal({ open, onOpenChange, product, onSave, isPendin
   if (!product) return null;
 
   const stockStatus = getStockStatus(quantity);
-  const productStatus = statusConfig[product.status || "draft"] || statusConfig.draft;
+  const productStatus = resolveProductStatusLabel(product.status || "draft");
+  const productStatusClass = TONE_CLASSNAMES[productStatus.tone];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -80,13 +71,13 @@ export function UpdateStockModal({ open, onOpenChange, product, onSave, isPendin
               <p className="text-sm font-semibold text-foreground truncate">{product.title}</p>
               <p className="text-xs text-muted-foreground">
                 {product.category_name && `${product.category_name} · `}
-                {formatPrice(product.unit_price, product.currency_code)}
+                {formatMoney(product.unit_price, product.currency_code)}
               </p>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${stockStatus.bg} ${stockStatus.color}`}>
                   {getStockStatus(product.stock_quantity).label}
                 </span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${productStatus.bg} ${productStatus.text}`}>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${productStatusClass}`}>
                   {productStatus.label}
                 </span>
               </div>

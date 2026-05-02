@@ -20,11 +20,9 @@ import { Footer } from "@/components/landing/Footer";
 import { PurchaseAuthModal } from "@/components/storefront/PurchaseAuthModal";
 import { useLocation } from "react-router-dom";
 import { useIsProductSaved, useToggleSave } from "@/hooks/useSavedProducts";
+import { formatMoney } from "@/lib/format";
 
-function formatPrice(amount: number, currency: string) {
-  if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
-  return `${currency} ${Number(amount).toLocaleString()}`;
-}
+const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
 const conditionLabels: Record<string, string> = {
   brand_new: "Brand New",

@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { DisputeDetailResponse } from "@/services/disputes.service";
+import { formatMoney } from "@/lib/format";
 
 interface AgreementSnapshotSectionProps {
   snapshot: DisputeDetailResponse["agreement_snapshot"];
@@ -24,9 +25,14 @@ function formatLabel(key: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function formatValue(value: unknown): string {
+function formatValue(value: unknown, key?: string): string {
   if (value === null || value === undefined) return "—";
-  if (typeof value === "number") return value.toLocaleString();
+  if (typeof value === "number") {
+    if (key && /amount|fee|price/i.test(key)) {
+      return formatMoney(value, "NGN");
+    }
+    return value.toLocaleString();
+  }
   if (typeof value === "boolean") return value ? "Yes" : "No";
   return String(value);
 }
@@ -57,7 +63,7 @@ export function AgreementSnapshotSection({ snapshot }: AgreementSnapshotSectionP
   // Extract known fields that have values
   const knownEntries = KNOWN_KEYS
     .filter((k) => json[k] !== undefined && json[k] !== null && json[k] !== "")
-    .map((k) => ({ key: k, label: formatLabel(k), value: formatValue(json[k]) }));
+    .map((k) => ({ key: k, label: formatLabel(k), value: formatValue(json[k], k) }));
 
   // Extra fields not in known list
   const extraKeys = Object.keys(json).filter((k) => !KNOWN_KEYS.includes(k));
@@ -128,7 +134,7 @@ export function AgreementSnapshotSection({ snapshot }: AgreementSnapshotSectionP
               <div key={key} className="min-w-0">
                 <p className="text-xs text-muted-foreground">{formatLabel(key)}</p>
                 <p className="text-sm font-medium text-foreground truncate">
-                  {typeof value === "object" ? JSON.stringify(value) : formatValue(value)}
+                  {typeof value === "object" ? JSON.stringify(value) : formatValue(value, key)}
                 </p>
               </div>
             ))}

@@ -1,17 +1,11 @@
 import { Badge } from "@/components/ui/badge";
-
-const statusConfig: Record<string, { label: string; className: string }> = {
-  draft: { label: "Draft", className: "bg-muted text-muted-foreground border-border" },
-  published: { label: "Published", className: "bg-success/10 text-success border-success/20" },
-  out_of_stock: { label: "Out of Stock", className: "bg-warning/10 text-warning border-warning/20" },
-  archived: { label: "Archived", className: "bg-destructive/10 text-destructive border-destructive/20" },
-};
+import { resolveProductStatusLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 
 export function ProductStatusBadge({ status }: { status: string }) {
-  const config = statusConfig[status] || statusConfig.draft;
+  const entry = resolveProductStatusLabel(status);
   return (
-    <Badge variant="outline" className={config.className}>
-      {config.label}
+    <Badge variant="outline" className={TONE_CLASSNAMES[entry.tone]}>
+      {entry.label}
     </Badge>
   );
 }

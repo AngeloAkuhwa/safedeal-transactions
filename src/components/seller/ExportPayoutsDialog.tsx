@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { getSellerPayouts, type PayoutHistoryItem } from "@/services/seller-payouts.service";
+import { formatMoney } from "@/lib/format";
 
 interface ExportPayoutsDialogProps {
   open: boolean;
@@ -31,9 +32,7 @@ const statusLabel: Record<string, string> = {
   on_hold: "On Hold",
 };
 
-function fmtCurrency(amount: number) {
-  return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`;
-}
+const fmtCurrency = (amount: number) => formatMoney(amount, "NGN");
 
 function buildCsv(rows: PayoutHistoryItem[]): string {
   const headers = [

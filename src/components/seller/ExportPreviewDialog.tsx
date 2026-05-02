@@ -16,6 +16,7 @@ import {
   type SellerTransaction,
 } from "@/services/seller-transactions.service";
 import { resolveTransactionLabel } from "@/lib/status-labels";
+import { formatMoney } from "@/lib/format";
 
 const statusLabel = (s: string) => resolveTransactionLabel(s, "seller").label;
 
@@ -27,10 +28,7 @@ interface ExportPreviewDialogProps {
 }
 
 
-function fmtCurrency(amount: number, currency: string) {
-  if (currency === "NGN") return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`;
-  return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-}
+const fmtCurrency = (amount: number, currency: string) => formatMoney(amount, currency);
 
 function buildCsv(rows: SellerTransaction[]): string {
   const headers = [
@@ -126,7 +124,7 @@ export function ExportPreviewDialog({
             </div>
             <div>
               <span className="text-muted-foreground">Total: </span>
-              <span className="font-semibold text-foreground">₦{totalAmount.toLocaleString("en-NG", { minimumFractionDigits: 2 })}</span>
+              <span className="font-semibold text-foreground">{formatMoney(totalAmount, "NGN")}</span>
             </div>
             <div>
               <span className="text-muted-foreground">Completed: </span>

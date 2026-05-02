@@ -508,7 +508,7 @@ export default function BuyerPaymentSummary() {
                   <ShieldCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-foreground mb-1">Your Protection Guarantee</p>
-                    <p className="text-xs text-muted-foreground">If the item doesn't match the agreement, you can raise a dispute. Funds remain in escrow until the dispute is resolved by SafeDeal administration.</p>
+                    <p className="text-xs text-muted-foreground">If the item doesn't match the agreement, you can raise a dispute. Funds remain in escrow until the dispute is resolved by the SafeDeal review team.</p>
                   </div>
                 </div>
               </div>

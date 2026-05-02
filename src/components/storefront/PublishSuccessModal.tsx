@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Eye, Store, Copy, Share2, Globe, Package, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/components/ui/sonner";
+import { formatMoney } from "@/lib/format";
 
 interface PublishSuccessProduct {
   title: string;
@@ -22,11 +23,6 @@ interface PublishSuccessModalProps {
   onPreview: () => void;
   onViewStore: () => void;
   onBackToStorefront: () => void;
-}
-
-function formatPrice(amount: number, currency: string) {
-  if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
-  return `${currency} ${Number(amount).toLocaleString()}`;
 }
 
 export function PublishSuccessModal({
@@ -106,7 +102,7 @@ export function PublishSuccessModal({
                   <span className="text-xs text-muted-foreground">{product.category_name}</span>
                 )}
                 <span className="text-xs font-bold text-foreground">
-                  {formatPrice(product.unit_price, product.currency_code)}
+                  {formatMoney(product.unit_price, product.currency_code)}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 mt-2">

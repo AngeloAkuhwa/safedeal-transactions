@@ -1,50 +1,38 @@
 import { Scale, Clock, Hourglass, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-const statusConfig: Record<string, { label: string; icon: typeof Scale; className: string }> = {
-  open: {
-    label: "Open",
-    icon: Scale,
-    className: "bg-destructive/15 text-destructive border-destructive/30",
-  },
-  seller_response_pending: {
-    label: "Seller Response Pending",
-    icon: Clock,
-    className: "bg-warning/15 text-warning border-warning/30",
-  },
-  under_review: {
-    label: "Under Review",
-    icon: Hourglass,
-    className: "bg-warning/15 text-warning border-warning/30",
-  },
-  resolved: {
-    label: "Resolved",
-    icon: CheckCircle,
-    className: "bg-success/15 text-success border-success/30",
-  },
-};
+import { resolveDisputeLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 
 interface DisputeStatusBadgeProps {
   status: string;
+  audience?: "seller" | "buyer";
 }
 
-export function DisputeStatusBadge({ status }: DisputeStatusBadgeProps) {
-  const config = statusConfig[status] ?? {
-    label: status.replace(/_/g, " "),
-    icon: Scale,
-    className: "bg-muted text-muted-foreground border-border",
-  };
+const ICON_BY_STATUS: Record<string, typeof Scale> = {
+  open: Scale,
+  awaiting_seller_response: Clock,
+  awaiting_buyer_response: Clock,
+  seller_response_pending: Clock,
+  under_review: Hourglass,
+  resolved: CheckCircle,
+  resolved_buyer_refund: CheckCircle,
+  resolved_seller_release: CheckCircle,
+  resolved_partial: CheckCircle,
+  withdrawn: CheckCircle,
+  closed: CheckCircle,
+};
 
-  const Icon = config.icon;
+export function DisputeStatusBadge({ status, audience = "seller" }: DisputeStatusBadgeProps) {
+  const entry = resolveDisputeLabel(status, audience);
+  const Icon = ICON_BY_STATUS[status] ?? Scale;
 
   return (
     <Badge
       variant="outline"
-      className={cn("text-xs font-bold capitalize whitespace-nowrap gap-1.5", config.className)}
+      className={cn("text-xs font-bold capitalize whitespace-nowrap gap-1.5", TONE_CLASSNAMES[entry.tone])}
     >
       <Icon className="h-3 w-3" />
-      {config.label}
+      {entry.label}
     </Badge>
   );
 }

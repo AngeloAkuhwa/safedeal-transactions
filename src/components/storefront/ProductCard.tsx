@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProductStatusBadge } from "./ProductStatusBadge";
 import { ProductVisibilityBadge } from "./ProductVisibilityBadge";
 import { Package, ShieldCheck, AlertTriangle } from "lucide-react";
+import { formatMoney } from "@/lib/format";
 
 interface SellerTrustSummary {
   verification_level: string;
@@ -28,11 +29,6 @@ interface ProductCardProps {
   showBadges?: boolean;
   sellerName?: string;
   sellerTrustSummary?: SellerTrustSummary;
-}
-
-function formatPrice(amount: number, currency: string) {
-  if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
-  return `${currency} ${Number(amount).toLocaleString()}`;
 }
 
 function getTrustLabel(level: string) {
@@ -90,7 +86,7 @@ export function ProductCard({ product, onClick, showBadges = true, sellerName, s
           </p>
         )}
         <p className="text-base font-bold text-foreground mb-1">
-          {formatPrice(product.unit_price, product.currency_code)}
+          {formatMoney(product.unit_price, product.currency_code)}
         </p>
 
         {/* Seller trust signal */}

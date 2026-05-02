@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { ProductStatusBadge } from "./ProductStatusBadge";
 import { ProductVisibilityBadge } from "./ProductVisibilityBadge";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
+import { formatMoney } from "@/lib/format";
 
 interface ManageVisibilityProduct {
   id: string;
@@ -24,11 +25,6 @@ interface ManageVisibilityModalProps {
   onUnpublish: (productId: string) => void;
   onArchive: (productId: string) => void;
   isPending?: boolean;
-}
-
-function formatPrice(amount: number, currency: string) {
-  if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
-  return `${currency} ${Number(amount).toLocaleString()}`;
 }
 
 export function ManageVisibilityModal({
@@ -84,7 +80,7 @@ export function ManageVisibilityModal({
                 <h4 className="font-semibold text-foreground mb-1">{product.title}</h4>
                 <p className="text-sm text-muted-foreground mb-2">
                   {product.category_name ? `${product.category_name} • ` : ""}
-                  {formatPrice(product.unit_price, product.currency_code)}
+                  {formatMoney(product.unit_price, product.currency_code)}
                 </p>
                 <div className="flex items-center gap-2">
                   {product.status && <ProductStatusBadge status={product.status} />}

@@ -363,3 +363,49 @@ export function resolvePayoutStatusLabel(status: string): LabelEntry {
     ({ label: String(status).replace(/_/g, " "), tone: "muted" } satisfies LabelEntry)
   );
 }
+
+/* ============================================================
+ * DISPUTE MONEY STATUS  (subset of MoneyStatus shown on dispute screens)
+ * ============================================================ */
+
+export const DISPUTE_MONEY_LABELS: Record<string, LabelEntry> = {
+  funds_frozen: { label: "Funds Frozen", tone: "warning" },
+  refund_pending: { label: "Refund Pending", tone: "warning" },
+  refund_issued: { label: "Refund Issued", tone: "success" },
+  funds_releasing: { label: "Releasing", tone: "success" },
+  funds_released: { label: "Funds Released", tone: "muted" },
+  funds_held_in_escrow: { label: "Held in Escrow", tone: "info" },
+  funds_pending_release: { label: "Awaiting Release", tone: "info" },
+};
+
+export function resolveDisputeMoneyLabel(status: string | null | undefined): LabelEntry | null {
+  if (!status) return null;
+  return (
+    DISPUTE_MONEY_LABELS[status] ??
+    ({ label: String(status).replace(/_/g, " "), tone: "muted" } satisfies LabelEntry)
+  );
+}
+
+/* ============================================================
+ * IDENTITY VERIFICATION SUBMISSION STATUS  (buyer self-serve surface)
+ * ============================================================ */
+
+export type VerificationSubmissionStatus =
+  | "pending_review"
+  | "verified"
+  | "rejected"
+  | "more_info_needed";
+
+export const VERIFICATION_STATUS_LABELS: Record<VerificationSubmissionStatus, LabelEntry> = {
+  pending_review: { label: "Under Review", tone: "warning" },
+  verified: { label: "Verified", tone: "success" },
+  rejected: { label: "Rejected", tone: "destructive" },
+  more_info_needed: { label: "More Info Needed", tone: "warning" },
+};
+
+export function resolveVerificationStatusLabel(status: string): LabelEntry {
+  return (
+    VERIFICATION_STATUS_LABELS[status as VerificationSubmissionStatus] ??
+    ({ label: String(status).replace(/_/g, " "), tone: "muted" } satisfies LabelEntry)
+  );
+}

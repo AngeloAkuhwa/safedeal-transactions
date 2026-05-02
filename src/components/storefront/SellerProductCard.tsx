@@ -3,6 +3,11 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { formatMoney } from "@/lib/format";
+import {
+  resolveProductStatusLabel,
+  TONE_CLASSNAMES,
+} from "@/lib/status-labels";
 
 interface SellerProductCardProps {
   product: {
@@ -25,11 +30,6 @@ interface SellerProductCardProps {
   onDuplicate?: () => void;
 }
 
-function formatPrice(amount: number, currency: string) {
-  if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
-  return `${currency} ${Number(amount).toLocaleString()}`;
-}
-
 function relativeTime(dateStr?: string) {
   if (!dateStr) return "";
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -44,13 +44,6 @@ function relativeTime(dateStr?: string) {
   return `${months}mo ago`;
 }
 
-const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
-  published: { label: "Published", bg: "bg-emerald-500/20", text: "text-emerald-600 dark:text-emerald-400" },
-  draft: { label: "Draft", bg: "bg-amber-500/20", text: "text-amber-600 dark:text-amber-400" },
-  out_of_stock: { label: "Out of Stock", bg: "bg-gray-500/20", text: "text-gray-600 dark:text-gray-400" },
-  archived: { label: "Archived", bg: "bg-red-500/20", text: "text-red-600 dark:text-red-400" },
-};
-
 const visibilityConfig: Record<string, { label: string; bg: string; text: string }> = {
   public: { label: "Public", bg: "bg-blue-500/20", text: "text-blue-600 dark:text-blue-400" },
   buyer_specific: { label: "Private", bg: "bg-amber-500/20", text: "text-amber-600 dark:text-amber-400" },
@@ -60,7 +53,8 @@ const visibilityConfig: Record<string, { label: string; bg: string; text: string
 export function SellerProductCard({ product, onClick, onEdit, onManageVisibility, onUpdateStock, onDuplicate }: SellerProductCardProps) {
   const isOutOfStock = product.stock_quantity === 0;
   const isLowStock = product.stock_quantity >= 1 && product.stock_quantity <= 5;
-  const status = statusConfig[product.status || "draft"] || statusConfig.draft;
+  const statusEntry = resolveProductStatusLabel(product.status || "draft");
+  const statusClass = TONE_CLASSNAMES[statusEntry.tone];
   const visibility = visibilityConfig[product.visibility_type || "public"] || visibilityConfig.public;
 
   const stockLabel = isOutOfStock ? "Out of Stock" : isLowStock ? "Low Stock" : "In Stock";
@@ -88,8 +82,8 @@ export function SellerProductCard({ product, onClick, onEdit, onManageVisibility
         )}
         {/* Badges */}
         <div className="absolute top-3 right-3 flex items-center gap-1.5">
-          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${status.bg} ${status.text} backdrop-blur-sm`}>
-            {status.label}
+          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusClass} backdrop-blur-sm`}>
+            {statusEntry.label}
           </span>
           <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${visibility.bg} ${visibility.text} backdrop-blur-sm`}>
             {visibility.label}
@@ -112,7 +106,7 @@ export function SellerProductCard({ product, onClick, onEdit, onManageVisibility
         {/* Price */}
         <div className="pt-3 border-t border-border">
           <p className="text-2xl font-bold text-foreground">
-            {formatPrice(product.unit_price, product.currency_code)}
+            {formatMoney(product.unit_price, product.currency_code)}
           </p>
         </div>
 

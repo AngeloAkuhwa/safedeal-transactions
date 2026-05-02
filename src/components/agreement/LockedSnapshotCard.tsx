@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { AgreementData } from "@/services/agreement.service";
 import { ProductMediaGallery } from "@/components/transactions/ProductMediaGallery";
+import { formatMoney } from "@/lib/format";
 
 interface LockedSnapshotCardProps {
   data: AgreementData;
@@ -96,8 +97,7 @@ export function LockedSnapshotCard({ data }: LockedSnapshotCardProps) {
                           </div>
                         )}
                         <div className="text-xs text-muted-foreground mt-1">
-                          Qty {b.quantity} · {b.currency_code}{" "}
-                          {Number(b.unit_price_snapshot).toLocaleString()}
+                          Qty {b.quantity} · {formatMoney(Number(b.unit_price_snapshot), b.currency_code)}
                         </div>
                       </div>
                     </div>
@@ -160,7 +160,7 @@ export function LockedSnapshotCard({ data }: LockedSnapshotCardProps) {
                   <div className="flex justify-between items-center pb-3 border-b border-border">
                     <span className="text-sm text-muted-foreground">Agreed Price</span>
                     <span className="text-xl font-bold text-foreground">
-                      {pricing.currency_code} {Number(pricing.item_amount).toLocaleString()}
+                      {formatMoney(Number(pricing.item_amount), pricing.currency_code)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b border-border">
@@ -169,13 +169,13 @@ export function LockedSnapshotCard({ data }: LockedSnapshotCardProps) {
                       <p className="text-xs text-muted-foreground mt-0.5">Includes payment processing</p>
                     </div>
                     <span className="text-base font-semibold text-muted-foreground">
-                      {pricing.currency_code} {Number(pricing.service_fee_amount).toLocaleString()}
+                      {formatMoney(Number(pricing.service_fee_amount), pricing.currency_code)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-base font-bold text-foreground">Total Paid</span>
                     <span className="text-2xl font-bold text-primary">
-                      {pricing.currency_code} {Number(pricing.total_amount).toLocaleString()}
+                      {formatMoney(Number(pricing.total_amount), pricing.currency_code)}
                     </span>
                   </div>
                   <div className="mt-4 pt-4 border-t border-border flex items-center gap-2 text-sm">

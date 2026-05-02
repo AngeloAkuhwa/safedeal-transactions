@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { formatMoney } from "@/lib/format";
 
 interface TransactionSuccessProps {
   publishedUrl: string;
@@ -60,7 +61,7 @@ export function TransactionSuccess({
     ? new Date(form.expected_delivery_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : "—";
 
-  const fmt = (amount: number) => `${currSymbol}${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmt = (amount: number) => formatMoney(amount, form.currency_code);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(fullUrl);

@@ -23,6 +23,7 @@ import {
   type IdentityVerificationMethod,
 } from "@/services/identity.service";
 import { toast } from "@/components/ui/sonner";
+import { resolveVerificationStatusLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 
 const BuyerVerification = () => {
   const queryClient = useQueryClient();
@@ -170,27 +171,25 @@ const BuyerVerification = () => {
 };
 
 function SubmissionStatus({ submission }: { submission: IdentitySubmission }) {
-  const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; bg: string; label: string }> = {
-    pending_review: { icon: Clock, color: "text-warning", bg: "bg-warning/10 border-warning/30", label: "Under Review" },
-    verified: { icon: CheckCircle2, color: "text-success", bg: "bg-success/10 border-success/30", label: "Verified" },
-    rejected: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/10 border-destructive/30", label: "Rejected" },
-    more_info_needed: { icon: AlertTriangle, color: "text-warning", bg: "bg-warning/10 border-warning/30", label: "More Info Needed" },
+  const ICONS: Record<string, typeof CheckCircle2> = {
+    pending_review: Clock,
+    verified: CheckCircle2,
+    rejected: XCircle,
+    more_info_needed: AlertTriangle,
   };
-
-  const config = statusConfig[submission.status];
-  if (!config) return null;
-
-  const Icon = config.icon;
+  const entry = resolveVerificationStatusLabel(submission.status);
+  const Icon = ICONS[submission.status] ?? Clock;
+  const toneClass = TONE_CLASSNAMES[entry.tone];
 
   return (
-    <Card className={`border ${config.bg}`}>
+    <Card className={`border ${toneClass}`}>
       <CardContent className="pt-6">
         <div className="flex items-start gap-3">
-          <Icon className={`h-5 w-5 ${config.color} mt-0.5 shrink-0`} />
+          <Icon className="h-5 w-5 mt-0.5 shrink-0" />
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-foreground">Identity Submission</p>
-              <Badge variant="outline" className={`${config.bg} ${config.color}`}>{config.label}</Badge>
+              <Badge variant="outline" className={toneClass}>{entry.label}</Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Method: {submission.verification_method === "nin" ? "NIN" : "Government ID"} · 

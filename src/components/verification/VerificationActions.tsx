@@ -95,8 +95,8 @@ export function VerificationActions({
             <p className="text-sm font-semibold text-foreground mb-1">Protection Reminder</p>
             <p className="text-xs text-muted-foreground">
               If you confirm receipt, funds will be immediately released to the seller. If you raise
-              a dispute, an admin will review the case and make a final decision. Choose wisely
-              based on your verification.
+              a dispute, the SafeDeal review team will review the case and make a final decision.
+              Choose wisely based on your verification.
             </p>
           </div>
         </div>
