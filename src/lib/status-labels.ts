@@ -409,3 +409,57 @@ export function resolveVerificationStatusLabel(status: string): LabelEntry {
     ({ label: String(status).replace(/_/g, " "), tone: "muted" } satisfies LabelEntry)
   );
 }
+
+/* ============================================================
+ * TAXONOMY: DELIVERY METHOD  (DB enum: delivery_method_type)
+ *
+ * The DB only knows these four values. Any UI that renders a
+ * delivery method MUST go through `resolveDeliveryMethod` so a
+ * future enum addition cannot silently render as raw snake_case.
+ * ============================================================ */
+
+export type DeliveryMethod = "courier" | "pickup" | "meetup" | "hand_delivery";
+
+export const DELIVERY_METHOD_LABELS: Record<DeliveryMethod, string> = {
+  courier: "Courier / Shipping",
+  pickup: "Pickup",
+  meetup: "Meetup",
+  hand_delivery: "Hand Delivery",
+};
+
+function titleCaseFromToken(token: string): string {
+  return token
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export function resolveDeliveryMethod(value: string | null | undefined): string {
+  if (!value) return "—";
+  return DELIVERY_METHOD_LABELS[value as DeliveryMethod] ?? titleCaseFromToken(value);
+}
+
+/* ============================================================
+ * TAXONOMY: ITEM CONDITION  (DB enum: item_condition)
+ * ============================================================ */
+
+export type ItemCondition =
+  | "brand_new"
+  | "like_new"
+  | "excellent"
+  | "good"
+  | "fair"
+  | "used";
+
+export const ITEM_CONDITION_LABELS: Record<ItemCondition, string> = {
+  brand_new: "Brand New",
+  like_new: "Like New",
+  excellent: "Excellent",
+  good: "Good",
+  fair: "Fair",
+  used: "Used",
+};
+
+export function resolveItemCondition(value: string | null | undefined): string {
+  if (!value) return "—";
+  return ITEM_CONDITION_LABELS[value as ItemCondition] ?? titleCaseFromToken(value);
+}
