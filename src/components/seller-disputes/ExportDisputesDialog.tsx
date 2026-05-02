@@ -208,11 +208,11 @@ export function ExportDisputesDialog({
                       <td className="py-2.5 pr-3 text-xs">{d.reason_label}</td>
                       <td className="py-2.5 pr-3">
                         <Badge variant="outline" className="text-[10px]">
-                          {statusLabel[d.status] ?? d.status}
+                          {resolveDisputeLabel(d.status, "seller").label}
                         </Badge>
                       </td>
                       <td className="py-2.5 pr-3 hidden sm:table-cell text-xs">
-                        {moneyImpactLabel[d.money_impact] ?? d.money_impact}
+                        {resolveDisputeMoneyImpact(d.money_impact).label}
                       </td>
                       <td className="py-2.5 hidden sm:table-cell text-xs text-muted-foreground">
                         {format(new Date(d.opened_at), "MMM d, yyyy")}
