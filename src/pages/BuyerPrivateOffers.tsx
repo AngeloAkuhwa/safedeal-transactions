@@ -22,15 +22,15 @@ export default function BuyerPrivateOffers() {
     <div className="min-h-screen bg-background">
       <BuyerNav buyerName={buyerName} avatarUrl={avatarUrl} />
 
-      <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3 mb-2">
-          <Lock className="h-6 w-6 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">Private Offers</h1>
+      <div className="sd-page sd-page-y">
+        <div className="flex items-center gap-2 mb-1">
+          <Lock className="h-4 w-4 text-primary" />
+          <h1 className="sd-page-title">Private Offers</h1>
         </div>
-        <p className="text-muted-foreground mb-8">Personalized offers sent directly to you by sellers.</p>
+        <p className="sd-page-sub mb-4">Personalized offers sent directly to you by sellers.</p>
 
         {isLoading && (
-          <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+          <div className="flex justify-center py-10"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div>
         )}
 
         {isError && (
@@ -39,9 +39,9 @@ export default function BuyerPrivateOffers() {
 
         {data && data.active.length === 0 && data.past.length === 0 && (
           <Card>
-            <CardContent className="p-12 text-center space-y-3">
-              <Package className="h-12 w-12 text-muted-foreground mx-auto" />
-              <h3 className="text-lg font-semibold text-foreground">No private offers yet</h3>
+            <CardContent className="p-8 text-center space-y-2">
+              <Package className="h-10 w-10 text-muted-foreground mx-auto" />
+              <h3 className="text-base font-semibold text-foreground">No private offers yet</h3>
               <p className="text-sm text-muted-foreground">When a seller sends you a personalized offer, it will appear here.</p>
             </CardContent>
           </Card>
