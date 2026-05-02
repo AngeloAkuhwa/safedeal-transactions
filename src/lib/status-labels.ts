@@ -258,3 +258,108 @@ export function describeInternalReason(reason: string | null | undefined): strin
   if (!reason) return "Awaiting Release";
   return INTERNAL_REASON_COPY[reason] ?? "Under SafeDeal review";
 }
+
+/* ============================================================
+ * PRODUCT STATUS  (seller-only surface)
+ * ============================================================ */
+
+export type ProductStatus =
+  | "draft"
+  | "published"
+  | "out_of_stock"
+  | "archived"
+  | "deactivated";
+
+export const PRODUCT_STATUS_LABELS: Record<ProductStatus, LabelEntry> = {
+  draft: { label: "Draft", tone: "muted" },
+  published: { label: "Published", tone: "success" },
+  out_of_stock: { label: "Out of Stock", tone: "warning" },
+  archived: { label: "Archived", tone: "muted" },
+  deactivated: { label: "Deactivated", tone: "destructive" },
+};
+
+export function resolveProductStatusLabel(status: string): LabelEntry {
+  return (
+    PRODUCT_STATUS_LABELS[status as ProductStatus] ??
+    ({ label: String(status).replace(/_/g, " "), tone: "muted" } satisfies LabelEntry)
+  );
+}
+
+export type ProductVisibility = "public" | "private" | "unlisted";
+
+export const PRODUCT_VISIBILITY_LABELS: Record<ProductVisibility, LabelEntry> = {
+  public: { label: "Public", tone: "success" },
+  private: { label: "Private", tone: "info" },
+  unlisted: { label: "Unlisted", tone: "muted" },
+};
+
+export function resolveProductVisibilityLabel(visibility: string): LabelEntry {
+  return (
+    PRODUCT_VISIBILITY_LABELS[visibility as ProductVisibility] ??
+    ({ label: String(visibility).replace(/_/g, " "), tone: "muted" } satisfies LabelEntry)
+  );
+}
+
+/* ============================================================
+ * ESCROW STATE  (held / frozen / released / refunded aggregate)
+ * ============================================================ */
+
+export type EscrowState =
+  | "held"
+  | "frozen"
+  | "released_to_seller"
+  | "refunded_to_buyer";
+
+export const ESCROW_STATE_LABELS: Record<Audience, Record<EscrowState, LabelEntry>> = {
+  seller: {
+    held: { label: "Held in Escrow", tone: "info" },
+    frozen: { label: "Funds Frozen", tone: "destructive" },
+    released_to_seller: { label: "Released To You", tone: "success" },
+    refunded_to_buyer: { label: "Refunded To Buyer", tone: "muted" },
+  },
+  buyer: {
+    held: { label: "Held in Escrow", tone: "success" },
+    frozen: { label: "Funds Frozen", tone: "warning" },
+    released_to_seller: { label: "Released To Seller", tone: "muted" },
+    refunded_to_buyer: { label: "Refunded To You", tone: "success" },
+  },
+};
+
+export function resolveEscrowStateLabel(state: string, audience: Audience): LabelEntry {
+  return (
+    ESCROW_STATE_LABELS[audience][state as EscrowState] ??
+    ({ label: String(state).replace(/_/g, " "), tone: "muted" } satisfies LabelEntry)
+  );
+}
+
+/* ============================================================
+ * PAYOUT STATUS
+ * ============================================================ */
+
+export type PayoutStatus =
+  | "awaiting_release"
+  | "blocked"
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "reversed";
+
+export const PAYOUT_STATUS_LABELS: Record<PayoutStatus, LabelEntry> = {
+  awaiting_release: { label: "Awaiting Release", tone: "info" },
+  blocked: { label: "Blocked", tone: "warning" },
+  pending: { label: "Queued for Transfer", tone: "info" },
+  processing: { label: "Transferring", tone: "info" },
+  completed: { label: "Paid Out", tone: "success" },
+  failed: { label: "Transfer Failed", tone: "destructive" },
+  cancelled: { label: "Cancelled", tone: "muted" },
+  reversed: { label: "Reversed", tone: "destructive" },
+};
+
+export function resolvePayoutStatusLabel(status: string): LabelEntry {
+  return (
+    PAYOUT_STATUS_LABELS[status as PayoutStatus] ??
+    ({ label: String(status).replace(/_/g, " "), tone: "muted" } satisfies LabelEntry)
+  );
+}
