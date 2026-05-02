@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Shield, Truck, CheckCircle2, Package } from "lucide-react";
+import { formatMoney } from "@/lib/format";
 
 interface PurchaseAuthModalProps {
   open: boolean;
@@ -15,11 +16,6 @@ interface PurchaseAuthModalProps {
   sellerName: string;
   returnPath: string;
   quantity?: number;
-}
-
-function formatPrice(amount: number, currency: string) {
-  if (currency === "NGN") return `₦${Number(amount).toLocaleString()}`;
-  return `${currency} ${Number(amount).toLocaleString()}`;
 }
 
 export function PurchaseAuthModal({
@@ -71,7 +67,7 @@ export function PurchaseAuthModal({
                 Sold by {sellerName}
               </p>
               <p className="text-sm font-bold text-foreground mt-0.5">
-                {formatPrice(product.price, product.currency)}
+                {formatMoney(product.price, product.currency)}
               </p>
             </div>
           </div>

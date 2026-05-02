@@ -693,16 +693,16 @@ const SellerCreateTransaction = () => {
                     <div className="bg-muted/50 rounded-xl p-4 space-y-2 border">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Item Price</span>
-                        <span className="font-medium text-foreground">{currSymbol}{pricing.item_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        <span className="font-medium text-foreground">{formatMoney(pricing.item_amount, form.currency_code)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">SafeDeal Fee ({(pricing.service_fee_rate * 100).toFixed(1)}%)</span>
-                        <span className="font-medium text-foreground">{currSymbol}{pricing.service_fee_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        <span className="font-medium text-foreground">{formatMoney(pricing.service_fee_amount, form.currency_code)}</span>
                       </div>
                       <hr className="border-border" />
                       <div className="flex justify-between text-sm font-bold">
                         <span className="text-foreground">You'll Receive</span>
-                        <span className="text-success">{currSymbol}{(pricing.item_amount - pricing.platform_fee_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        <span className="text-success">{formatMoney(pricing.item_amount - pricing.platform_fee_amount, form.currency_code)}</span>
                       </div>
                     </div>
                   )}
