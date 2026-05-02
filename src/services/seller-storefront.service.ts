@@ -144,3 +144,20 @@ export async function getProductCategories() {
   if (!res.ok) throw new Error(json.error || "Failed to load categories");
   return json.categories;
 }
+
+export async function duplicateProduct(productId: string): Promise<{ id: string; slug: string }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
+
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/seller-products`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ action: "duplicate", product_id: productId }),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || "Failed to duplicate product");
+  return json;
+}

@@ -445,20 +445,6 @@ async function handleDuplicate(adminClient: any, userId: string, body: any) {
     if (mediaErr) console.error("Duplicate media insert error:", mediaErr);
   }
 
-  // Clone product_serviceable_regions if any
-  const { data: regionRows } = await adminClient
-    .from("product_serviceable_regions")
-    .select("region_id, region_type")
-    .eq("product_id", productId);
-  if (regionRows && regionRows.length > 0) {
-    const cloned = regionRows.map((r: any) => ({
-      product_id: created.id,
-      region_id: r.region_id,
-      region_type: r.region_type,
-    }));
-    const { error: regErr } = await adminClient.from("product_serviceable_regions").insert(cloned);
-    if (regErr) console.error("Duplicate regions insert error:", regErr);
-  }
 
   return jsonResponse({ id: created.id, slug: created.slug }, 201);
 }
