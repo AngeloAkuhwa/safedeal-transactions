@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { DisputeDetailTimelineEntry } from "@/services/disputes.service";
+import { resolveDisputeLabel } from "@/lib/status-labels";
 
 interface DisputeTimelineProps {
   timeline: DisputeDetailTimelineEntry[];
@@ -15,6 +16,9 @@ const STATUS_LABELS: Record<string, string> = {
   under_review: "Review in Progress",
   resolved: "Resolution Issued",
 };
+
+const labelFor = (status: string) =>
+  STATUS_LABELS[status] ?? resolveDisputeLabel(status, "seller").label;
 
 const STATUS_COLORS: Record<string, string> = {
   open: "bg-destructive",
@@ -78,7 +82,7 @@ export function DisputeTimeline({ timeline, currentStatus }: DisputeTimelineProp
                 </div>
                 <div className="pb-6 min-w-0">
                   <p className="text-sm font-semibold text-foreground">
-                    {STATUS_LABELS[entry.new_status] ?? entry.new_status.replace(/_/g, " ")}
+                    {labelFor(entry.new_status)}
                   </p>
                   {entry.reason && (
                     <p className="text-xs text-muted-foreground mt-0.5">{entry.reason}</p>
@@ -102,7 +106,7 @@ export function DisputeTimeline({ timeline, currentStatus }: DisputeTimelineProp
                 </div>
                 <div className="pb-6 min-w-0">
                   <p className="text-sm font-medium text-muted-foreground">
-                    {STATUS_LABELS[step] ?? step.replace(/_/g, " ")}
+                    {labelFor(step)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">Pending</p>
                 </div>
