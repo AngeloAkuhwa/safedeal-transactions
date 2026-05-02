@@ -1,44 +1,124 @@
-# Phase N — Final Drift Cleanup
+# Phase O — Real production-readiness fixes
 
-## Honest answer: Not 100% yet.
+## Honest answer: Not 100%. A fresh audit just found real production bugs that previous phases missed.
 
-The end-to-end flow itself (state machine, escrow, dispute, delivery, payouts, courier validation, agreement lock, notifications) is structurally complete and was already covered in Phases A–M. A focused audit just now found **3 concrete drift points** on user-facing surfaces that violate the centralized `formatMoney` rule established in Phase M. These are small but real — they are exactly the kind of inconsistency the audit asks us to eliminate.
-
-Everything else flagged in a fresh `rg` sweep is correctly scoped (admin pages, chart tooltips, date strings, or landing-page demo data).
+The earlier "ready to deploy" claim was wrong. A targeted re-audit just surfaced concrete defects that match the exact failure modes the user asked us to catch: drifting taxonomies, hardcoded label maps that disagree with the database, and a money helper bypassing `formatMoney`.
 
 ---
 
-## Gaps to fix
+## Real bugs found (with ground truth from DB enums)
 
-### 1. `src/components/disputes/AgreementSnapshotSection.tsx` (line 34)
-The dispute agreement snapshot — shown to **both buyer and seller** during a dispute — uses `value.toLocaleString()` for money. This violates the 2-decimal rule on one of the most trust-critical surfaces in the product (the locked agreement seen during a dispute).
+### 1. Delivery method labels disagree with the DB enum
 
-**Fix:** Replace the local money formatter with `formatMoney(amount, currencyCode)` from `@/lib/format`.
+**Database `delivery_method_type` enum:** `courier | pickup | meetup | hand_delivery` (4 values).
 
-### 2. `src/components/landing/demo-data.ts` (lines 119, 123)
-Demo helpers use `toLocaleString("en-NG")` with no decimals. These render in landing-page demo cards. Buyers/sellers landing here see money formatted differently from the rest of the app.
+What the code actually ships:
 
-**Fix:** Route through `formatMoney` (with currency `"NGN"`) so the demo matches production formatting (₦12,500.00, not ₦12,500).
+| File | Keys used | Match DB? |
+|---|---|---|
+| `SellerTransactionDetail.tsx` | `standard_shipping`, `express_shipping`, `local_pickup`, `digital_delivery`, `courier` | only `courier` |
+| `SellerTransactionShare.tsx` | (same as above) | only `courier` |
+| `StorefrontCheckout.tsx` | `pickup`, `delivery`, `courier_shipping`, `digital`, `hand_delivery`, `meetup` | only 3 of 4 |
+| `PublicProductDetail.tsx` | (same as Storefront) | only 3 of 4 |
 
-### 3. `src/pages/SellerOfferDetail.tsx` (lines 154–159) — date consistency
-Uses raw `new Date(...).toLocaleString()` for timestamps while the rest of the app uses `formatDateTime`/`formatDate` from `@/lib/format`. Not a money issue, but causes locale-dependent date drift between this page and SellerTransactionDetail.
+**Real impact:** A transaction with `delivery_method = "meetup"` (a valid DB value) shows the raw enum string `"meetup"` to the seller on the transaction detail page, because the local `deliveryLabels` map has no entry for it. Same for `pickup` and `hand_delivery`.
 
-**Fix:** Replace with the shared `formatDateTime` helper.
+### 2. Item-condition labels also disagree with the DB enum
+
+**Database `item_condition` enum:** `brand_new | like_new | excellent | good | fair | used` (6 values).
+
+| File | Keys used | Bogus keys (not in DB) | Missing real values |
+|---|---|---|---|
+| `SellerTransactionDetail.tsx` | `new`, `like_new`, `good`, `fair`, `refurbished` | `new`, `refurbished` | `brand_new`, `excellent`, `used` |
+| `SellerTransactionShare.tsx` | (same) | (same) | (same) |
+| `PublicProductDetail.tsx` | `brand_new`, `like_new`, `used_good`, `used_fair`, `refurbished` | `used_good`, `used_fair`, `refurbished` | `excellent`, `good`, `fair`, `used` |
+
+**Real impact:** Buyer sees "Brand New" on the product page; the same item on the seller's transaction detail page renders the raw `brand_new` token because the seller-side map doesn't know that key. Plus three valid DB values render as raw enum strings everywhere.
+
+### 3. `SellerAnalytics.tsx` bypasses `formatMoney`
+Has its own local `NGN()` helper. All money on the analytics page (Awaiting Release, summary cards, CSV export rows) goes through it instead of the central `formatMoney` from `@/lib/format`.
+
+### 4. Status registries exist but several consumers still inline their own maps
+Phase M expanded `src/lib/status-labels.ts` to include `ESCROW_STATE_LABELS` and `PAYOUT_STATUS_LABELS`, but these consumers still ship their own duplicate maps:
+- `src/pages/SellerPayouts.tsx` → inline payout status badge
+- `src/components/seller-disputes/SellerPayoutImpactCard.tsx` → inline escrow + payout maps
+- `src/components/seller-disputes/SellerDisputeTable.tsx` → inline money-impact map
+- `src/components/seller-disputes/ExportDisputesDialog.tsx` → inline status + money-impact maps
+
+When a new escrow/payout state is added, these maps will silently render raw tokens.
 
 ---
 
-## What is explicitly NOT in scope (already verified clean)
+## Fix plan
 
-- **Courier dispatch enforcement** — `DispatchForm` + `SellerUpdateDelivery` already require courier name + tracking number before allowing transition to `seller_dispatched`. ✅
-- **Status label registry** — `src/lib/status-labels.ts` covers transaction, money, escrow, payout, product, visibility, dispute, and verification labels. All major UI consumers refactored in Phases L–M. ✅
-- **"Admin" terminology on user surfaces** — only remaining matches are inside `/admin/**` pages (correctly internal). ✅
-- **State transitions** — happy path, dispute path, timeout path, and auto-transitions all wired through edge functions and history tables (Phases B–F). ✅
-- **Dashboard ↔ transaction list reconciliation** — server-side aggregation via edge function (Phase G). ✅
+### O1 — Add taxonomy registry (single source of truth)
+
+Add to `src/lib/status-labels.ts`:
+
+```ts
+export const DELIVERY_METHOD_LABELS: Record<DeliveryMethodType, string> = {
+  courier: "Courier / Shipping",
+  pickup: "Pickup",
+  meetup: "Meetup",
+  hand_delivery: "Hand Delivery",
+};
+
+export const ITEM_CONDITION_LABELS: Record<ItemCondition, string> = {
+  brand_new: "Brand New",
+  like_new: "Like New",
+  excellent: "Excellent",
+  good: "Good",
+  fair: "Fair",
+  used: "Used",
+};
+
+export function resolveDeliveryMethod(value: string | null | undefined): string { ... }
+export function resolveItemCondition(value: string | null | undefined): string { ... }
+```
+
+Both resolvers fall back to a `formatLabel(token)` (replace `_` with space + Title Case) so an unknown future enum value never renders as raw `snake_case`.
+
+### O2 — Refactor every consumer to use the registry
+
+Delete the inline maps in:
+- `src/pages/SellerTransactionDetail.tsx`
+- `src/pages/SellerTransactionShare.tsx`
+- `src/pages/StorefrontCheckout.tsx`
+- `src/pages/PublicProductDetail.tsx`
+
+Replace each call site with `resolveDeliveryMethod(...)` / `resolveItemCondition(...)`.
+
+### O3 — Refactor seller-disputes + payouts to the central registry
+- `SellerPayouts.tsx` `PayoutStatusBadge` → use `PAYOUT_STATUS_LABELS` + `TONE_CLASSNAMES`
+- `SellerPayoutImpactCard.tsx` → use `ESCROW_STATE_LABELS` + `PAYOUT_STATUS_LABELS`
+- `SellerDisputeTable.tsx` `moneyImpactConfig` → use the dispute-money labels added in Phase M
+- `ExportDisputesDialog.tsx` → use the central resolvers (CSV export must match UI)
+
+### O4 — Remove `NGN()` helper from `SellerAnalytics.tsx`
+Replace every call site with `formatMoney(value, currency)`. Update the CSV export rows to use `formatMoney` as well so the exported file matches the on-screen totals.
+
+### O5 — Final audit
+
+Run `rg` to confirm:
+- Zero inline `Record<string, string>` maps for delivery methods, item conditions, payout status, or escrow state outside `status-labels.ts`
+- Zero local `NGN()` / `naira()` / hand-rolled currency helpers
+- Every DB enum value has a matching label entry
 
 ---
 
-## After Phase N
+## What is NOT in scope
 
-With these 3 edits applied, every user-facing money value in the app routes through `formatMoney` (2-decimal, currency-aware), every status label routes through the central registry, and every date on offer/transaction detail pages routes through `formatDateTime`. At that point the system is genuinely production-ready against the audit checklist — no remaining drift, no surface where buyer and seller see conflicting truth.
+Things I verified are already correct and should not be touched:
+- Courier dispatch enforcement (tracking number + courier name required before `seller_dispatched`) — already enforced in `DispatchForm` + `SellerUpdateDelivery`.
+- State machine, escrow ledger, dispute freeze, payout auto-release — already wired through edge functions in earlier phases.
+- Money formatting on all surfaces touched in Phases L–N (verified clean).
+- Admin terminology leakage on user surfaces (verified clean — only matches are inside `/admin/**` routes, which is correct).
+- `actionLabels` / `statusStyle` maps that map status → CTA text or status → CSS class only (these are presentational, not label drift).
 
-Approve to apply Phase N.
+---
+
+## After Phase O
+
+After this phase, every taxonomy value (delivery method, item condition, transaction status, escrow state, payout status, dispute status, verification status, product status, product visibility) is resolved through `src/lib/status-labels.ts`, and every money value goes through `formatMoney`. A buyer and a seller looking at the same transaction will see the same words for the same DB value, on every screen. That is the actual definition of production-ready against this audit.
+
+Approve to apply Phase O.
