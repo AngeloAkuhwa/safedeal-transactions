@@ -72,21 +72,19 @@ export default function BuyerSavedProducts() {
     <div className="flex min-h-screen bg-background">
       <BuyerSidebar />
       <main className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-[1400px] px-4 md:px-8 py-6 md:py-8 space-y-6">
+        <div className="sd-page sd-page-y space-y-4">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <Heart className="h-6 w-6 text-primary" />
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <Heart className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground">
-                  Saved Products
-                </h1>
-                <p className="text-sm md:text-base lg:text-lg text-muted-foreground">Products you've saved for later</p>
+                <h1 className="sd-page-title">Saved Products</h1>
+                <p className="sd-page-sub">Products you've saved for later</p>
               </div>
             </div>
-            <Badge className="self-start sm:self-auto bg-primary/10 text-primary border-primary/20 text-sm px-3 py-1">
+            <Badge className="self-start sm:self-auto bg-primary/10 text-primary border-primary/20 text-xs px-2 py-0.5">
               {items.length} {items.length === 1 ? "item" : "items"}
             </Badge>
           </div>
@@ -252,7 +250,7 @@ export default function BuyerSavedProducts() {
 
                       {/* Price + CTA */}
                       <div className="mt-auto space-y-3">
-                        <p className="text-2xl font-bold text-foreground">
+                        <p className="text-lg font-bold tabular-nums text-foreground">
                           {formatPrice(item.unit_price, item.currency_code)}
                         </p>
                         <Button
