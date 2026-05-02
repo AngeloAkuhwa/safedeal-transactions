@@ -162,6 +162,7 @@ const SellerTransactions = () => {
     awaiting_payment_count: 0,
     in_fulfillment_count: 0,
     completed: 0,
+    awaiting_seller_confirmation_count: 0,
     total_earned: 0,
   };
 
@@ -215,6 +216,7 @@ const SellerTransactions = () => {
               <SelectItem value="processing">Processing</SelectItem>
               <SelectItem value="awaiting-delivery">Awaiting Delivery</SelectItem>
               <SelectItem value="buyer-verification">Awaiting Buyer Review</SelectItem>
+              <SelectItem value="awaiting-seller-confirmation">Awaiting your confirmation</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="disputed">Disputed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
@@ -239,6 +241,30 @@ const SellerTransactions = () => {
           </Button>
         </div>
       </div>
+
+      {/* Awaiting seller confirmation chip */}
+      {(summary.awaiting_seller_confirmation_count ?? 0) > 0 && statusFilter !== "awaiting-seller-confirmation" && (
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 -mt-1 mb-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("awaiting-seller-confirmation")}
+                className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15 transition-colors"
+              >
+                <CheckCircle className="h-3.5 w-3.5" />
+                Awaiting Your Confirmation
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-1">
+                  {summary.awaiting_seller_confirmation_count}
+                </span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs text-xs">
+              The buyer has confirmed the item. Confirm from your side so the transaction can move toward release.
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      )}
 
       {/* Table */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6">
