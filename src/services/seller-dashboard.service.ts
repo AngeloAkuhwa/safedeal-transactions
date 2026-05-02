@@ -101,6 +101,8 @@ export interface SellerSummary {
     identity_verified: boolean;
     payout_account_present: boolean;
     payout_account_verified: boolean;
+    payout_ready: boolean;
+    payout_blocker_reason: "missing" | "unverified" | "no_recipient_code" | null;
     has_published_products: boolean;
 }
 
