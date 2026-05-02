@@ -15,6 +15,9 @@ import {
   getSellerTransactions,
   type SellerTransaction,
 } from "@/services/seller-transactions.service";
+import { resolveTransactionLabel } from "@/lib/status-labels";
+
+const statusLabel = (s: string) => resolveTransactionLabel(s, "seller").label;
 
 interface ExportPreviewDialogProps {
   open: boolean;
@@ -42,7 +45,7 @@ function buildCsv(rows: SellerTransaction[]): string {
     tx.item_quantity,
     tx.amount,
     tx.currency_code,
-    statusLabel[tx.transaction_status] ?? tx.transaction_status,
+    statusLabel(tx.transaction_status),
     tx.money_status.replace(/_/g, " "),
     format(new Date(tx.created_at), "yyyy-MM-dd"),
   ].join(","));
@@ -171,7 +174,7 @@ export function ExportPreviewDialog({
                     </td>
                     <td className="py-2.5 pr-3">
                       <Badge variant="outline" className="text-[10px]">
-                        {statusLabel[tx.transaction_status] ?? tx.transaction_status}
+                        {statusLabel(tx.transaction_status)}
                       </Badge>
                     </td>
                     <td className="py-2.5 hidden sm:table-cell text-xs text-muted-foreground">
