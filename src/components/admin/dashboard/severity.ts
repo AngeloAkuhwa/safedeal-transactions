@@ -1,0 +1,31 @@
+import type { Severity } from "@/services/admin-dashboard.service";
+
+export const SEVERITY_BG: Record<Severity, string> = {
+  blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  red: "bg-red-500/10 text-red-400 border-red-500/20",
+  orange: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  purple: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  cyan: "bg-cyan-500/10 text-cyan-300 border-cyan-500/20",
+  yellow: "bg-yellow-500/10 text-yellow-300 border-yellow-500/20",
+  emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+};
+
+export const SEVERITY_DOT: Record<Severity, string> = {
+  blue: "bg-blue-400",
+  red: "bg-red-400",
+  orange: "bg-orange-400",
+  purple: "bg-purple-400",
+  cyan: "bg-cyan-300",
+  yellow: "bg-yellow-300",
+  emerald: "bg-emerald-400",
+};
+
+export const SEVERITY_BTN: Record<Severity, string> = {
+  blue: "bg-blue-500/15 text-blue-300 hover:bg-blue-500/25",
+  red: "bg-red-500/15 text-red-300 hover:bg-red-500/25",
+  orange: "bg-orange-500/15 text-orange-300 hover:bg-orange-500/25",
+  purple: "bg-purple-500/15 text-purple-300 hover:bg-purple-500/25",
+  cyan: "bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/25",
+  yellow: "bg-yellow-500/15 text-yellow-200 hover:bg-yellow-500/25",
+  emerald: "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25",
+};
