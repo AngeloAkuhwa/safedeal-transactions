@@ -19,18 +19,6 @@ interface TransactionTableProps {
   isLoading?: boolean;
 }
 
-function formatMoney(amount: number, currency: string) {
-  try {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toLocaleString()}`;
-  }
-}
-
 function getInitials(name: string) {
   return name
     .split(" ")

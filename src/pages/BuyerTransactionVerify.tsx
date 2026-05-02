@@ -23,18 +23,6 @@ import { SafeDealReviewNotice } from "@/components/verification/SafeDealReviewNo
 import { getVerificationData } from "@/services/verification.service";
 import { getBuyerProfile } from "@/services/profile.service";
 
-function formatMoney(amount: number, currency: string) {
-  try {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toLocaleString()}`;
-  }
-}
-
 const STATUS_LABELS: Record<string, string> = {
   delivered_awaiting_verification: "Awaiting Verification",
   funds_held_in_escrow: "Funds Held in Escrow",
