@@ -90,7 +90,9 @@ export const getSellerPayouts = async (
   page = 1,
   limit = 10,
   statusFilter = "",
-  search = ""
+  search = "",
+  from?: string,
+  to?: string
 ): Promise<SellerPayoutsResponse> => {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Not authenticated");
@@ -98,6 +100,8 @@ export const getSellerPayouts = async (
   const params: Record<string, string> = { page: String(page), limit: String(limit) };
   if (statusFilter) params.status = statusFilter;
   if (search) params.search = search;
+  if (from) params.from = from;
+  if (to) params.to = to;
 
   const queryString = new URLSearchParams(params).toString();
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
