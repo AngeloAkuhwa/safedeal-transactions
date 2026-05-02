@@ -24,9 +24,9 @@ const LIMIT_BY_LEVEL: Record<string, number> = {
 
 const CONCURRENT_BY_LEVEL: Record<string, number> = {
   unverified: 0,
-  basic_verified: 1,
-  trusted_buyer: 3,
-  high_trust_buyer: 5,
+  basic_verified: 5,
+  trusted_buyer: 10,
+  high_trust_buyer: 20,
 };
 
 const ACTIVE_TX_STATUSES = [
