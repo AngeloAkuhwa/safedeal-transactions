@@ -1,4 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { formatMoney } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -80,14 +81,6 @@ const moneyConfig: Record<string, { label: string; className: string }> = {
   refund_pending: { label: "Refund Pending", className: "bg-warning/15 text-warning border-warning/30" },
   refund_issued: { label: "Refunded", className: "bg-muted text-muted-foreground border-border" },
 };
-
-function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: currency || "NGN",
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
 
 /* ───── Timeline step definitions ───── */
 const timelineSteps = [
@@ -345,7 +338,7 @@ const BuyerTransactionDetail = () => {
               <div>
                 <p className="text-sm font-bold text-primary">Escrow Protection Active</p>
                 <p className="text-xs mt-0.5 text-primary/80">
-                  Your payment of <span className="font-bold">{formatCurrency(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.
+                  Your payment of <span className="font-bold">{formatMoney(escrow.held_amount, pricing.currency_code)}</span> is securely held by SafeDeal. Funds will be released to the seller once you verify the item received matches what was agreed.
                 </p>
               </div>
             </div>
@@ -356,7 +349,7 @@ const BuyerTransactionDetail = () => {
               <div>
                 <p className="text-sm font-bold text-destructive">Funds Frozen — Dispute In Progress</p>
                 <p className="text-xs mt-0.5 text-destructive/80">
-                  Your funds of <span className="font-bold">{formatCurrency(escrow.frozen_amount, pricing.currency_code)}</span> are currently frozen while the dispute is under review. No money will move until the dispute is resolved.
+                  Your funds of <span className="font-bold">{formatMoney(escrow.frozen_amount, pricing.currency_code)}</span> are currently frozen while the dispute is under review. No money will move until the dispute is resolved.
                 </p>
               </div>
             </div>
@@ -367,7 +360,7 @@ const BuyerTransactionDetail = () => {
               <div>
                 <p className="text-sm font-bold text-success">Transaction Completed — Funds Released</p>
                 <p className="text-xs mt-0.5 text-success/80">
-                  Your payment of <span className="font-bold">{formatCurrency(escrow.released_amount, pricing.currency_code)}</span> has been successfully released to the seller. This transaction is now complete.
+                  Your payment of <span className="font-bold">{formatMoney(escrow.released_amount, pricing.currency_code)}</span> has been successfully released to the seller. This transaction is now complete.
                 </p>
               </div>
             </div>
@@ -709,7 +702,7 @@ const BuyerTransactionDetail = () => {
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Item Price</span>
-                  <span className="font-semibold text-foreground">{formatCurrency(pricing.item_amount, pricing.currency_code)}</span>
+                  <span className="font-semibold text-foreground">{formatMoney(pricing.item_amount, pricing.currency_code)}</span>
                 </div>
                 {(pricing.service_fee_amount || 0) > 0 && (
                   <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-border text-sm">
@@ -717,12 +710,12 @@ const BuyerTransactionDetail = () => {
                       <span className="text-muted-foreground">Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
                       <p className="text-xs text-muted-foreground mt-0.5">Includes payment processing</p>
                     </div>
-                    <span className="font-semibold text-foreground">{formatCurrency(pricing.service_fee_amount, pricing.currency_code)}</span>
+                    <span className="font-semibold text-foreground">{formatMoney(pricing.service_fee_amount, pricing.currency_code)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-sm sm:text-base font-bold text-foreground">Total Paid</span>
-                  <span className="text-lg sm:text-xl font-bold text-primary">{formatCurrency(pricing.total_amount, pricing.currency_code)}</span>
+                  <span className="text-lg sm:text-xl font-bold text-primary">{formatMoney(pricing.total_amount, pricing.currency_code)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Currency</span>
@@ -798,7 +791,7 @@ const BuyerTransactionDetail = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Item Price</span>
-                    <span className="font-semibold text-foreground">{formatCurrency(pricing.item_amount, pricing.currency_code)}</span>
+                    <span className="font-semibold text-foreground">{formatMoney(pricing.item_amount, pricing.currency_code)}</span>
                   </div>
                   {(pricing.service_fee_amount || 0) > 0 && (
                     <div className="flex justify-between pb-3 border-b border-border text-sm">
@@ -806,12 +799,12 @@ const BuyerTransactionDetail = () => {
                         <span className="text-muted-foreground">Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
                         <p className="text-xs text-muted-foreground mt-0.5">Includes payment processing</p>
                       </div>
-                      <span className="font-semibold text-foreground">{formatCurrency(pricing.service_fee_amount, pricing.currency_code)}</span>
+                      <span className="font-semibold text-foreground">{formatMoney(pricing.service_fee_amount, pricing.currency_code)}</span>
                     </div>
                   )}
                   <div className="flex justify-between pt-2">
                     <span className="text-base font-bold text-foreground">Total Paid</span>
-                    <span className="text-xl font-bold text-primary">{formatCurrency(pricing.total_amount, pricing.currency_code)}</span>
+                    <span className="text-xl font-bold text-primary">{formatMoney(pricing.total_amount, pricing.currency_code)}</span>
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-border">
@@ -908,7 +901,7 @@ function TransactionTimeline({
 
           let extraInfo = "";
           if (step.status === "payment_secured" && isReached) {
-            extraInfo = `${formatCurrency(pricing.total_amount, pricing.currency_code)} held securely in escrow`;
+            extraInfo = `${formatMoney(pricing.total_amount, pricing.currency_code)} held securely in escrow`;
           }
           if (step.status === "seller_dispatched" && deliveryTracking?.tracking_number) {
             extraInfo = `Tracking: ${deliveryTracking.tracking_number}`;

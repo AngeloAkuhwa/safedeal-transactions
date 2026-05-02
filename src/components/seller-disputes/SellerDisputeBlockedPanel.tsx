@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
+import { formatMoney } from "@/lib/format";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { SellerDisputeBlockedPayout } from "@/services/seller-disputes.service";
 
-function formatCurrency(amount: number) {
+function formatMoney(amount: number) {
   return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -47,7 +48,7 @@ export function SellerDisputeBlockedPanel({ items }: Props) {
             <p className="text-sm font-medium text-foreground truncate">{item.item_title ?? "—"}</p>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">{item.buyer_name ?? "—"}</span>
-              <span className="text-sm font-bold text-foreground">{formatCurrency(item.amount)}</span>
+              <span className="text-sm font-bold text-foreground">{formatMoney(item.amount)}</span>
             </div>
             {item.dispute_id && (
               <Button variant="outline" size="sm" className="w-full h-7 text-xs mt-1" asChild>

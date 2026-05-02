@@ -1,10 +1,11 @@
 import { Scale, Clock, Hourglass, CheckCircle2, Wallet } from "lucide-react";
+import { formatMoney } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 import type { SellerDisputeSummary } from "@/services/seller-disputes.service";
 
-function formatCurrency(amount: number) {
+function formatMoney(amount: number) {
   return `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -64,7 +65,7 @@ export function SellerDisputeSummaryCards({ summary }: Props) {
     },
     {
       label: "Payouts Blocked",
-      value: formatCurrency(summary.blocked_payout_amount),
+      value: formatMoney(summary.blocked_payout_amount),
       subtitle: "Your seller net currently held by active disputes",
       icon: Wallet,
       iconBg: "bg-warning/10",
