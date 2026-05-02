@@ -102,36 +102,36 @@ export default function BuyerSavedProducts() {
           )}
 
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col sm:flex-row gap-2 rounded-lg border bg-card p-2.5">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 placeholder="Search saved products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 h-12 rounded-xl"
+                className="pl-8 h-8 text-xs"
               />
             </div>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="w-full sm:w-48 h-12 rounded-xl">
+              <SelectTrigger className="h-8 text-xs sm:w-44">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="all" className="text-xs">All Categories</SelectItem>
                 {categories.map((c) => (
-                  <SelectItem key={c.slug} value={c.slug}>{c.name}</SelectItem>
+                  <SelectItem key={c.slug} value={c.slug} className="text-xs">{c.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Select value={sort} onValueChange={setSort}>
-              <SelectTrigger className="w-full sm:w-48 h-12 rounded-xl">
+              <SelectTrigger className="h-8 text-xs sm:w-44">
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="recent">Recently Saved</SelectItem>
-                <SelectItem value="price_low">Price: Low → High</SelectItem>
-                <SelectItem value="price_high">Price: High → Low</SelectItem>
-                <SelectItem value="name">Name A-Z</SelectItem>
+                <SelectItem value="recent" className="text-xs">Recently Saved</SelectItem>
+                <SelectItem value="price_low" className="text-xs">Price: Low → High</SelectItem>
+                <SelectItem value="price_high" className="text-xs">Price: High → Low</SelectItem>
+                <SelectItem value="name" className="text-xs">Name A-Z</SelectItem>
               </SelectContent>
             </Select>
           </div>
