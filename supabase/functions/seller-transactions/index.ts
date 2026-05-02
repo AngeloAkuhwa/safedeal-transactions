@@ -66,12 +66,13 @@ Deno.serve(async (req) => {
       "disputed": ["disputed"],
       "cancelled": ["cancelled", "timed_out", "refunded"],
       "draft": ["draft"],
+      "awaiting-seller-confirmation": ["completed"], // composite: also requires buyer_confirmed_at && !seller_confirmed_at
     };
 
     // Build query for all seller transactions (for counts)
     const { data: allTx } = await adminClient
       .from("transactions")
-      .select("id, status, money_status, created_at, buyer_id, transaction_code")
+      .select("id, status, money_status, created_at, buyer_id, transaction_code, buyer_confirmed_at, seller_confirmed_at, dispute_status")
       .eq("seller_id", userId);
 
     // Drafts are pre-share/incomplete records and should not appear in the
@@ -105,6 +106,11 @@ Deno.serve(async (req) => {
     const allowedStatuses = statusMap[statusFilter] ?? [];
     let filteredRows = allRows.filter((tx) => {
       if (allowedStatuses.length > 0 && !allowedStatuses.includes(tx.status)) return false;
+      if (statusFilter === "awaiting-seller-confirmation") {
+        if (!tx.buyer_confirmed_at) return false;
+        if (tx.seller_confirmed_at) return false;
+        if (tx.dispute_status && tx.dispute_status !== "none") return false;
+      }
       if (!dateFilterFn(tx.created_at)) return false;
       return true;
     });
@@ -307,6 +313,13 @@ Deno.serve(async (req) => {
       cancelled_count: allRows.filter((t) => t.status === "cancelled").length,
       timed_out_count: allRows.filter((t) => t.status === "timed_out").length,
       refunded_count: allRows.filter((t) => t.status === "refunded").length,
+      awaiting_seller_confirmation_count: allRows.filter(
+        (t) =>
+          t.status === "completed" &&
+          t.buyer_confirmed_at &&
+          !t.seller_confirmed_at &&
+          (!t.dispute_status || t.dispute_status === "none"),
+      ).length,
       total_earned: 0,
     };
 

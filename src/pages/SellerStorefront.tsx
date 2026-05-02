@@ -8,7 +8,7 @@ import { SellerProductCard } from "@/components/storefront/SellerProductCard";
 import { StorefrontShareCard } from "@/components/storefront/StorefrontShareCard";
 import { ManageVisibilityModal } from "@/components/storefront/ManageVisibilityModal";
 import { UpdateStockModal } from "@/components/storefront/UpdateStockModal";
-import { getSellerProducts, getProductCategories, updateProduct, archiveProduct } from "@/services/seller-storefront.service";
+import { getSellerProducts, getProductCategories, updateProduct, archiveProduct, duplicateProduct } from "@/services/seller-storefront.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { toast } from "@/components/ui/sonner";
 
@@ -39,6 +39,21 @@ const SellerStorefront = () => {
   const [stockProduct, setStockProduct] = useState<any>(null);
   const [actionPending, setActionPending] = useState(false);
   const [stockPending, setStockPending] = useState(false);
+
+  const handleDuplicate = async (productId: string) => {
+    try {
+      const res = await duplicateProduct(productId);
+      toast.success("Product duplicated as draft", {
+        action: {
+          label: "Edit Draft",
+          onClick: () => navigate(`/seller/storefront/${res.id}`),
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: ["seller-products"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to duplicate product");
+    }
+  };
 
   const { data: dashData } = useQuery({
     queryKey: ["seller-dashboard"],
@@ -295,6 +310,7 @@ const SellerStorefront = () => {
                         onEdit={() => navigate(`/seller/storefront/${product.id}`)}
                         onManageVisibility={() => setManageProduct(product)}
                         onUpdateStock={() => setStockProduct(product)}
+                        onDuplicate={() => handleDuplicate(product.id)}
                       />
                     ))}
                   </div>

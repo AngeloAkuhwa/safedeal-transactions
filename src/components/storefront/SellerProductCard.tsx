@@ -1,5 +1,8 @@
-import { Package, Edit, MoreVertical } from "lucide-react";
+import { Package, Edit, MoreVertical, Copy, Eye, Boxes } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 interface SellerProductCardProps {
   product: {
@@ -19,6 +22,7 @@ interface SellerProductCardProps {
   onEdit?: () => void;
   onManageVisibility?: () => void;
   onUpdateStock?: () => void;
+  onDuplicate?: () => void;
 }
 
 function formatPrice(amount: number, currency: string) {
@@ -53,7 +57,7 @@ const visibilityConfig: Record<string, { label: string; bg: string; text: string
   private_draft: { label: "Draft", bg: "bg-muted", text: "text-muted-foreground" },
 };
 
-export function SellerProductCard({ product, onClick, onEdit, onManageVisibility, onUpdateStock }: SellerProductCardProps) {
+export function SellerProductCard({ product, onClick, onEdit, onManageVisibility, onUpdateStock, onDuplicate }: SellerProductCardProps) {
   const isOutOfStock = product.stock_quantity === 0;
   const isLowStock = product.stock_quantity >= 1 && product.stock_quantity <= 5;
   const status = statusConfig[product.status || "draft"] || statusConfig.draft;
@@ -153,17 +157,31 @@ export function SellerProductCard({ product, onClick, onEdit, onManageVisibility
             <Edit className="h-3.5 w-3.5" />
             Edit
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-muted-foreground hover:text-foreground"
-            onClick={(e) => {
-              e.stopPropagation();
-              onManageVisibility?.();
-            }}
-          >
-            <MoreVertical className="h-3.5 w-3.5" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <MoreVertical className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={() => onEdit?.()}>
+                <Edit className="h-3.5 w-3.5 mr-2" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onDuplicate?.()}>
+                <Copy className="h-3.5 w-3.5 mr-2" /> Duplicate
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onManageVisibility?.()}>
+                <Eye className="h-3.5 w-3.5 mr-2" /> Manage visibility
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onUpdateStock?.()}>
+                <Boxes className="h-3.5 w-3.5 mr-2" /> Update stock
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { AlertCircle, Download, FileText, Loader2, RefreshCw } from "lucide-react";
@@ -7,6 +7,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -49,9 +51,9 @@ function buildCsv(rows: PayoutHistoryItem[]): string {
     esc(r.transaction_code),
     esc(r.buyer_name),
     esc(r.item_title),
-    r.gross_amount,
-    r.fees,
-    r.net_payout,
+    r.gross_amount.toFixed(2),
+    r.fees.toFixed(2),
+    r.net_payout.toFixed(2),
     r.currency_code,
     esc(statusLabel[r.status] ?? r.status),
     format(new Date(r.release_date), "yyyy-MM-dd"),
@@ -76,25 +78,36 @@ export function ExportPayoutsDialog({
   open, onOpenChange, currentStatusFilter, currentSearch,
 }: ExportPayoutsDialogProps) {
   const [scope, setScope] = useState("filtered");
-  const [dateFilter, setDateFilter] = useState("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const dateError = useMemo(() => {
+    if (fromDate && toDate && fromDate > toDate) {
+      return "Start date must be on or before end date";
+    }
+    return null;
+  }, [fromDate, toDate]);
 
   const resolvedStatus = (() => {
     if (scope === "filtered") return currentStatusFilter || undefined;
-    if (scope === "completed") return "completed";
-    if (scope === "pending") return "pending";
-    if (scope === "failed") return "failed";
-    if (scope === "on_hold") return "on_hold";
-    if (scope === "processing") return "processing";
-    return undefined;
+    if (scope === "all") return undefined;
+    return scope;
   })();
 
   const resolvedSearch = scope === "filtered" ? currentSearch || undefined : undefined;
 
-  // TODO: dateFilter is visual-only for now — wire to API when backend supports date range filtering
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["seller-payouts-export", scope, dateFilter, resolvedStatus, resolvedSearch],
-    queryFn: () => getSellerPayouts(1, 500, resolvedStatus ?? "", resolvedSearch ?? ""),
-    enabled: open,
+    queryKey: ["seller-payouts-export", scope, fromDate, toDate, resolvedStatus, resolvedSearch],
+    queryFn: () =>
+      getSellerPayouts(
+        1,
+        500,
+        resolvedStatus ?? "",
+        resolvedSearch ?? "",
+        fromDate || undefined,
+        toDate || undefined,
+      ),
+    enabled: open && !dateError,
   });
 
   const rows = data?.payout_history ?? [];
@@ -102,13 +115,24 @@ export function ExportPayoutsDialog({
   const totalNet = rows.reduce((s, r) => s + r.net_payout, 0);
   const releasedCount = rows.filter((r) => r.status === "completed").length;
 
+  const helperText = !fromDate && !toDate
+    ? "No date range selected — exporting all payout history."
+    : "Export payout records within the selected date range.";
+
   const handleDownload = () => {
     const csv = buildCsv(rows);
     const dateStr = format(new Date(), "yyyy-MM-dd");
-    const suffix = scope !== "all" ? "-filtered" : "";
-    downloadBlob(csv, `safedeal-payouts${suffix}-${dateStr}.csv`);
-    toast.success(`Exported ${rows.length} payout records`);
+    const rangeSuffix = fromDate || toDate ? `-${fromDate || "start"}_${toDate || "now"}` : "";
+    const scopeSuffix = scope !== "all" ? "-filtered" : "";
+    downloadBlob(csv, `safedeal-payouts${scopeSuffix}${rangeSuffix}-${dateStr}.csv`);
+    toast.success(
+      rows.length > 0
+        ? `Exported ${rows.length} payout record${rows.length === 1 ? "" : "s"}`
+        : "Exported empty CSV (headers only)"
+    );
   };
+
+  const exportDisabled = isLoading || !!dateError;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -123,37 +147,64 @@ export function ExportPayoutsDialog({
         </DialogHeader>
 
         {/* Controls + Summary */}
-        <div className="px-6 py-4 border-b bg-muted/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <Select value={scope} onValueChange={setScope}>
-                <SelectTrigger className="w-48 bg-background">
-                  <SelectValue placeholder="Export Scope" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="filtered">Current filtered view</SelectItem>
-                  <SelectItem value="all">All payouts</SelectItem>
-                  <SelectItem value="completed">Released only</SelectItem>
-                  <SelectItem value="processing">Processing only</SelectItem>
-                  <SelectItem value="pending">Pending / Scheduled only</SelectItem>
-                  <SelectItem value="on_hold">On Hold only</SelectItem>
-                  <SelectItem value="failed">Failed only</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="w-40 bg-background">
-                  <SelectValue placeholder="Time Range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Time</SelectItem>
-                  <SelectItem value="this-week">This Week</SelectItem>
-                  <SelectItem value="this-month">This Month</SelectItem>
-                  <SelectItem value="this-quarter">This Quarter</SelectItem>
-                </SelectContent>
-              </Select>
-              {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+        <div className="px-6 py-4 border-b bg-muted/30 flex flex-col lg:flex-row items-start lg:items-end justify-between gap-4">
+          <div className="flex flex-col gap-2 w-full lg:w-auto">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex flex-col gap-1">
+                <Label className="text-[11px] text-muted-foreground">Scope</Label>
+                <Select value={scope} onValueChange={setScope}>
+                  <SelectTrigger className="w-48 bg-background h-9">
+                    <SelectValue placeholder="Export Scope" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="filtered">Current filtered view</SelectItem>
+                    <SelectItem value="all">All payouts</SelectItem>
+                    <SelectItem value="completed">Released only</SelectItem>
+                    <SelectItem value="processing">Processing only</SelectItem>
+                    <SelectItem value="pending">Pending / Scheduled only</SelectItem>
+                    <SelectItem value="on_hold">On Hold only</SelectItem>
+                    <SelectItem value="failed">Failed only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="from-date" className="text-[11px] text-muted-foreground">Date from</Label>
+                <Input
+                  id="from-date"
+                  type="date"
+                  value={fromDate}
+                  max={toDate || undefined}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="w-40 bg-background h-9"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="to-date" className="text-[11px] text-muted-foreground">Date to</Label>
+                <Input
+                  id="to-date"
+                  type="date"
+                  value={toDate}
+                  min={fromDate || undefined}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="w-40 bg-background h-9"
+                />
+              </div>
+              {(fromDate || toDate) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 text-xs"
+                  onClick={() => { setFromDate(""); setToDate(""); }}
+                >
+                  Clear dates
+                </Button>
+              )}
+              {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mb-2" />}
             </div>
-            <p className="text-[11px] text-muted-foreground/70">Filters by release date</p>
+            <p className={`text-[11px] ${dateError ? "text-destructive" : "text-muted-foreground/70"}`}>
+              {dateError ?? helperText}
+            </p>
           </div>
           <div className="flex items-center gap-5 text-sm">
             <div>
@@ -186,7 +237,7 @@ export function ExportPayoutsDialog({
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <FileText className="h-10 w-10 text-muted-foreground/30 mb-3" />
               <p className="text-sm font-medium text-foreground">No payouts in this range</p>
-              <p className="text-xs text-muted-foreground mt-1">Try a different scope or time range</p>
+              <p className="text-xs text-muted-foreground mt-1">Try a different scope or date range</p>
             </div>
           ) : (
             <>
@@ -244,8 +295,8 @@ export function ExportPayoutsDialog({
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button size="sm" className="gap-1.5" disabled={rows.length === 0 || isLoading} onClick={handleDownload}>
-              <Download className="h-4 w-4" />
+            <Button size="sm" className="gap-1.5" disabled={exportDisabled} onClick={handleDownload}>
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               Download CSV
             </Button>
           </div>
