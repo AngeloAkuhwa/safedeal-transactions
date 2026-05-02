@@ -57,23 +57,23 @@ const BuyerVerification = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <BuyerNav buyerName={data.profile.full_name} avatarUrl={data.profile.avatar_url} />
 
-      {/* Hero */}
-      <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <nav className="flex items-center gap-1.5 text-sm text-muted-foreground mb-4">
+      {/* Compact header */}
+      <section className="border-b bg-card/50">
+        <div className="sd-page sd-page-y">
+          <nav className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
             <Link to="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
-            <ChevronRight className="h-3.5 w-3.5" />
+            <ChevronRight className="h-3 w-3" />
             <Link to="/dashboard/profile" className="hover:text-foreground transition-colors">Profile</Link>
-            <ChevronRight className="h-3.5 w-3.5" />
+            <ChevronRight className="h-3 w-3" />
             <span className="text-foreground font-medium">Verification</span>
           </nav>
-          <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <ShieldCheck className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <ShieldCheck className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Identity Verification</h1>
-              <p className="text-muted-foreground text-sm">
+              <h1 className="sd-page-title">Identity Verification</h1>
+              <p className="sd-page-sub">
                 Submit your identity to unlock higher transaction limits and trusted buyer status
               </p>
             </div>
@@ -81,7 +81,7 @@ const BuyerVerification = () => {
         </div>
       </section>
 
-      <main className="flex-1 mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="flex-1 mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4">
         {/* Prerequisites check */}
         {!isBasicVerified && (
           <Card className="border-warning/30">
