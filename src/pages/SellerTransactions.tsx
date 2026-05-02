@@ -37,7 +37,7 @@ import { getSellerPayouts } from "@/services/seller-payouts.service";
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   draft: { label: "Draft", variant: "secondary" },
   awaiting_buyer: { label: "Awaiting Buyer", variant: "outline" },
-  awaiting_payment: { label: "Payment Pending", variant: "outline" },
+  awaiting_payment: { label: "Awaiting Payment", variant: "outline" },
   payment_secured: { label: "Payment Secured", variant: "default" },
   seller_preparing_delivery: { label: "Preparing", variant: "default" },
   seller_dispatched: { label: "Dispatched", variant: "default" },
@@ -176,11 +176,11 @@ const SellerTransactions = () => {
 
       {/* Hero */}
       <div className="bg-gradient-to-br from-sky-50 via-background to-green-50 dark:from-sky-950/20 dark:via-background dark:to-green-950/20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-sm font-medium text-primary mb-1">Transaction Management</p>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">All Transactions</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground animate-fade-in">All Transactions</h1>
               <p className="text-muted-foreground text-sm mt-1">
                 Monitor and manage all your protected transactions
               </p>
@@ -193,10 +193,62 @@ const SellerTransactions = () => {
         </div>
       </div>
 
+      {/* Summary Cards (moved above filters per polish spec) */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Card className="sd-card sd-metric sd-fade-in-stagger sd-delay-1">
+            <CardContent className="p-4">
+              <p className="sd-eyebrow mb-1">Transactions</p>
+              <p className="sd-kpi-value tabular-nums">{summary.total}</p>
+              <p className="sd-kpi-helper">All protected deals you've created</p>
+              <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
+                {summary.awaiting_payment_count ?? 0} awaiting · {summary.in_fulfillment_count ?? 0} in fulfillment · {summary.completed} completed
+                {(summary.disputed_count ?? 0) > 0 && ` · ${summary.disputed_count} disputed`}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="sd-card sd-metric sd-fade-in-stagger sd-delay-2">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-1.5 mb-1">
+                <p className="sd-eyebrow text-warning">Awaiting Buyer Payment</p>
+                <InfoTip>Buyer started checkout but payment isn't complete yet.</InfoTip>
+              </div>
+              <p className="sd-kpi-value tabular-nums">{summary.awaiting_payment_count ?? 0}</p>
+              <p className="sd-kpi-helper">Buyer hasn't paid yet</p>
+            </CardContent>
+          </Card>
+          <Card className="sd-card sd-metric sd-fade-in-stagger sd-delay-3">
+            <CardContent className="p-4">
+              <p className="sd-eyebrow text-primary mb-1">In Fulfillment</p>
+              <p className="sd-kpi-value tabular-nums">{summary.in_fulfillment_count ?? 0}</p>
+              <p className="sd-kpi-helper">Paid · being delivered</p>
+            </CardContent>
+          </Card>
+          <Card className="sd-card sd-metric sd-fade-in-stagger sd-delay-4">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-1.5 mb-1">
+                <p className="sd-eyebrow text-success">Net Earned</p>
+                <InfoTip>
+                  Total amount you've earned from completed deals after SafeDeal fees.
+                  Some may still be queued for bank transfer — see the Payouts tab for actual deposit status.
+                </InfoTip>
+              </div>
+              <p className="sd-kpi-value tabular-nums">{formatCurrency(summary.total_earned, "NGN")}</p>
+              <p className="sd-kpi-helper">Includes paid to bank and pending bank transfer.</p>
+              {payoutsData && (
+                <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+                  {formatCurrency(payoutsData.summary.total_released, "NGN")} paid · {formatCurrency(payoutsData.summary.pending_release, "NGN")} pending
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px] max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
@@ -207,7 +259,7 @@ const SellerTransactions = () => {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-44">
+            <SelectTrigger className="min-w-[140px] flex-1 sm:flex-none sm:w-44">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
@@ -215,7 +267,7 @@ const SellerTransactions = () => {
               <SelectItem value="payment-pending">Payment Pending</SelectItem>
               <SelectItem value="processing">Processing</SelectItem>
               <SelectItem value="awaiting-delivery">Awaiting Delivery</SelectItem>
-              <SelectItem value="buyer-verification">Awaiting Buyer Review</SelectItem>
+              <SelectItem value="awaiting-buyer-review">Awaiting Buyer Review</SelectItem>
               <SelectItem value="awaiting-seller-confirmation">Awaiting your confirmation</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="disputed">Disputed</SelectItem>
@@ -224,7 +276,7 @@ const SellerTransactions = () => {
             </SelectContent>
           </Select>
           <Select value={dateFilter} onValueChange={setDateFilter}>
-            <SelectTrigger className="w-36">
+            <SelectTrigger className="min-w-[120px] flex-1 sm:flex-none sm:w-36">
               <SelectValue placeholder="All Time" />
             </SelectTrigger>
             <SelectContent>
@@ -239,6 +291,33 @@ const SellerTransactions = () => {
             <Download className="h-4 w-4" />
             Export
           </Button>
+        </div>
+      </div>
+
+      {/* Filter chip rail */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 -mt-2 mb-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {[
+            { key: "awaiting-seller-confirmation", label: "Awaiting Your Confirmation", count: summary.awaiting_seller_confirmation_count ?? 0, tone: "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100" },
+            { key: "awaiting-delivery", label: "In Fulfillment", count: summary.in_fulfillment_count ?? 0, tone: "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15" },
+            { key: "disputed", label: "Disputed", count: summary.disputed_count ?? 0, tone: "border-destructive/30 bg-destructive/5 text-destructive hover:bg-destructive/10" },
+            { key: "completed", label: "Released", count: summary.completed ?? 0, tone: "border-success/30 bg-success/10 text-success hover:bg-success/15" },
+          ].filter((c) => c.count > 0).map((chip) => {
+            const active = statusFilter === chip.key;
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={() => setStatusFilter(active ? "all" : chip.key)}
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${chip.tone} ${active ? "ring-2 ring-offset-1 ring-primary/30" : ""}`}
+              >
+                {chip.label}
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-background/70 text-[10px] font-bold px-1">
+                  {chip.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
