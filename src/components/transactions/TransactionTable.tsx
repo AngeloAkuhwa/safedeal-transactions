@@ -13,10 +13,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionStatusBadge } from "./TransactionStatusBadge";
 import type { BuyerTransactionRow } from "@/services/transactions.service";
+import type { Audience } from "@/lib/status-labels";
 
 interface TransactionTableProps {
   transactions: BuyerTransactionRow[];
   isLoading?: boolean;
+  /** Pass `"buyer"` from buyer surfaces so status copy reads in buyer voice. */
+  audience?: Audience;
 }
 
 function getInitials(name: string) {
@@ -28,7 +31,7 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
-export function TransactionTable({ transactions, isLoading }: TransactionTableProps) {
+export function TransactionTable({ transactions, isLoading, audience = "seller" }: TransactionTableProps) {
   const navigate = useNavigate();
 
   if (isLoading) {
@@ -125,7 +128,7 @@ export function TransactionTable({ transactions, isLoading }: TransactionTablePr
 
                 {/* Status */}
                 <TableCell className="py-4 px-4">
-                  <TransactionStatusBadge status={tx.transaction_status} />
+                  <TransactionStatusBadge status={tx.transaction_status} audience={audience} />
                 </TableCell>
               </TableRow>
             ))}
@@ -162,7 +165,7 @@ export function TransactionTable({ transactions, isLoading }: TransactionTablePr
             </div>
 
             <div className="flex items-center justify-between gap-2">
-              <TransactionStatusBadge status={tx.transaction_status} />
+              <TransactionStatusBadge status={tx.transaction_status} audience={audience} />
             </div>
           </div>
         ))}
