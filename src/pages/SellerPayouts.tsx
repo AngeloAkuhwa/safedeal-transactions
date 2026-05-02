@@ -23,6 +23,7 @@ import { SellerNav } from "@/components/seller/SellerNav";
 import { Footer } from "@/components/landing/Footer";
 import { EditPayoutDetailsModal } from "@/components/seller/EditPayoutDetailsModal";
 import { ExportPayoutsDialog } from "@/components/seller/ExportPayoutsDialog";
+import { resolvePayoutStatusLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 import { getSellerPayouts, updatePayoutAccount } from "@/services/seller-payouts.service";
 import { toast } from "@/hooks/use-toast";
 import type { PayoutHistoryItem, UpcomingRelease, BlockedFund } from "@/services/seller-payouts.service";
