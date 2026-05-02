@@ -154,9 +154,9 @@ const SellerDisputes = () => {
             />
 
             {/* Two-column layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
               {/* Left: Table */}
-              <div className="lg:col-span-2 space-y-4">
+              <div className="lg:col-span-2 space-y-3">
                 {isFilterEmpty && (
                   <SellerDisputeEmptyState variant="no-filter-match" onClearFilters={clearFilters} />
                 )}
@@ -176,7 +176,7 @@ const SellerDisputes = () => {
               </div>
 
               {/* Right Sidebar */}
-              <div className="space-y-5">
+              <div className="space-y-3">
                 <SellerDisputeActionPanel items={data?.action_needed ?? []} />
                 <SellerDisputeBlockedPanel items={data?.blocked_payouts ?? []} />
               </div>
