@@ -153,18 +153,18 @@ const SellerPayouts = () => {
     <div className="min-h-screen bg-background">
       <SellerNav sellerName={seller.full_name} avatarUrl={seller.avatar_url} />
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="sd-page sd-page-y sd-section-y">
         {/* Page Header */}
         <div>
-          <p className="sd-eyebrow mb-1">Money management</p>
-          <h1 className="text-xl sm:text-2xl font-semibold text-foreground animate-fade-in">Payouts</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="sd-eyebrow mb-0.5">Money management</p>
+          <h1 className="sd-page-title animate-fade-in">Payouts</h1>
+          <p className="sd-page-sub">
             Track released funds, pending releases, held escrow balances, and payout account activity.
           </p>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
           <SummaryCard
             label="Total Released"
             value={formatCurrency(summary.total_released)}
@@ -212,28 +212,28 @@ const SellerPayouts = () => {
         </div>
 
         {/* How Payouts Work */}
-        <Card className="rounded-2xl border-primary/10 bg-primary/[0.02]">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Info className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-foreground">How Payouts Work</h3>
+        <Card className="rounded-lg border-primary/10 bg-primary/[0.02]">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Info className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">How Payouts Work</h3>
             </div>
-            <p className="text-sm text-muted-foreground mb-5">
+            <p className="text-xs text-muted-foreground mb-3">
               SafeDeal holds funds securely until both you and the buyer confirm, then SafeDeal reviews and releases your payout.
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
                 { icon: Shield, label: "Funds Held", desc: "Payment secured in escrow" },
                 { icon: CheckCircle2, label: "Both Confirm", desc: "Buyer and seller confirm receipt" },
                 { icon: CreditCard, label: "SafeDeal Reviews", desc: "SafeDeal reviews and releases" },
                 { icon: Send, label: "Funds Sent", desc: "Deposited to your account" },
               ].map((step, i) => (
-                <div key={i} className={`flex flex-col items-center text-center gap-2 sd-fade-in-stagger sd-delay-${i + 1}`}>
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <step.icon className="h-[18px] w-[18px] text-primary" />
+                <div key={i} className={`flex flex-col items-center text-center gap-1.5 sd-fade-in-stagger sd-delay-${i + 1}`}>
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <step.icon className="h-4 w-4 text-primary" />
                   </div>
-                  <span className="text-sm font-medium text-foreground">{step.label}</span>
-                  <span className="text-xs text-muted-foreground leading-snug">{step.desc}</span>
+                  <span className="text-xs font-semibold text-foreground">{step.label}</span>
+                  <span className="text-[10px] text-muted-foreground leading-snug">{step.desc}</span>
                 </div>
               ))}
             </div>
@@ -241,26 +241,26 @@ const SellerPayouts = () => {
         </Card>
 
         {/* Two-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           {/* Left: Payout History */}
-          <div className="lg:col-span-2 space-y-4">
-            <Card className="rounded-2xl">
-              <CardHeader className="pb-3">
+          <div className="lg:col-span-2 space-y-3">
+            <Card className="rounded-lg">
+              <CardHeader className="pb-2 pt-3 px-3 sm:px-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <CardTitle className="text-lg">Payout History</CardTitle>
+                  <CardTitle className="text-sm font-semibold">Payout History</CardTitle>
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                       <Input
                         placeholder="Search..."
-                        className="pl-9 h-9 w-48"
+                        className="pl-8 h-8 w-44 text-xs"
                         value={searchInput}
                         onChange={(e) => setSearchInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                       />
                     </div>
                     <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v === "all" ? "" : v); setPage(1); }}>
-                      <SelectTrigger className="h-9 w-36">
+                      <SelectTrigger className="h-8 w-36 text-xs">
                         <Filter className="h-3.5 w-3.5 mr-1.5" />
                         <SelectValue placeholder="All Status" />
                       </SelectTrigger>
@@ -272,7 +272,7 @@ const SellerPayouts = () => {
                         <SelectItem value="failed">Failed</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" size="sm" className="h-9" onClick={() => setExportOpen(true)}>
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setExportOpen(true)}>
                       <Download className="h-3.5 w-3.5 mr-1.5" /> Export
                     </Button>
                   </div>
@@ -359,11 +359,11 @@ const SellerPayouts = () => {
           </div>
 
           {/* Right Sidebar */}
-          <div className="space-y-5">
+          <div className="space-y-3">
             {/* Stuck Payouts Alert */}
             {stuckPayouts.length > 0 && (
-              <Card className="rounded-2xl border-warning/40 bg-warning/[0.04]">
-                <CardContent className="p-4 flex items-start gap-2.5">
+              <Card className="rounded-lg border-warning/40 bg-warning/[0.04]">
+                <CardContent className="p-3 flex items-start gap-2.5">
                   <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <p className="text-sm font-semibold text-warning">
@@ -388,32 +388,32 @@ const SellerPayouts = () => {
             )}
 
             {/* Upcoming Releases */}
-            <Card className="rounded-2xl">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
+            <Card className="rounded-lg">
+              <CardHeader className="pb-2 pt-3 px-3 sm:px-4">
+                <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
                   <TrendingUp className="h-4 w-4 text-success" />
                   Upcoming Releases
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2 px-3 sm:px-4 pb-3">
                 {upcoming_releases.length === 0 ? (
                   <div className="text-center py-6">
                     <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">No upcoming releases right now.</p>
+                    <p className="text-xs text-muted-foreground">No upcoming releases right now.</p>
                   </div>
                 ) : (
                   upcoming_releases.map((r: UpcomingRelease) => (
-                    <div key={r.transaction_id} className="border rounded-xl p-3.5 space-y-2 hover:bg-muted/30 transition-colors">
+                    <div key={r.transaction_id} className="border rounded-md p-2.5 space-y-1.5 hover:bg-muted/30 transition-colors">
                       <div className="flex items-center justify-between">
                         <Link to={`/seller/transactions/${r.transaction_id}`} className="text-xs font-mono text-primary hover:underline">
                           {r.transaction_code}
                         </Link>
-                        <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs">{r.release_trigger}</Badge>
+                        <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-[10px] py-0">{r.release_trigger}</Badge>
                       </div>
-                      <p className="text-sm font-medium text-foreground truncate">{r.item_title}</p>
+                      <p className="text-xs font-medium text-foreground truncate">{r.item_title}</p>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">{r.buyer_name}</span>
-                        <span className="text-sm font-bold text-foreground">{formatCurrency(r.amount)}</span>
+                        <span className="text-[11px] text-muted-foreground">{r.buyer_name}</span>
+                        <span className="text-xs font-bold text-foreground tabular-nums">{formatCurrency(r.amount)}</span>
                       </div>
                     </div>
                   ))
@@ -423,30 +423,30 @@ const SellerPayouts = () => {
 
             {/* Blocked / Delayed */}
             {blocked_funds.length > 0 && (
-              <Card className="rounded-2xl border-warning/30">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
+              <Card className="rounded-lg border-warning/30">
+                <CardHeader className="pb-2 pt-3 px-3 sm:px-4">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
                     <AlertTriangle className="h-4 w-4 text-warning" />
                     Blocked / Delayed Funds
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2 px-3 sm:px-4 pb-3">
                   {blocked_funds.map((b: BlockedFund) => (
-                    <div key={b.transaction_id} className="border border-warning/20 bg-warning/[0.03] rounded-xl p-3.5 space-y-2">
+                    <div key={b.transaction_id} className="border border-warning/20 bg-warning/[0.03] rounded-md p-2.5 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <Link to={`/seller/transactions/${b.transaction_id}`} className="text-xs font-mono text-primary hover:underline">
                           {b.transaction_code}
                         </Link>
-                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">On Hold</Badge>
+                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[10px] py-0">On Hold</Badge>
                       </div>
-                      <p className="text-sm font-medium text-foreground truncate">{b.item_title}</p>
+                      <p className="text-xs font-medium text-foreground truncate">{b.item_title}</p>
                       <div className="flex items-center gap-1.5">
                         <AlertCircle className="h-3.5 w-3.5 text-warning flex-shrink-0" />
-                        <span className="text-xs text-warning">{b.blocker_reason}</span>
+                        <span className="text-[11px] text-warning">{b.blocker_reason}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">{b.buyer_name}</span>
-                        <span className="text-sm font-bold text-foreground">{formatCurrency(b.amount)}</span>
+                        <span className="text-[11px] text-muted-foreground">{b.buyer_name}</span>
+                        <span className="text-xs font-bold text-foreground tabular-nums">{formatCurrency(b.amount)}</span>
                       </div>
                       {/* Context-aware action for blocked funds */}
                       {b.blocker_reason.includes("Dispute") && (
@@ -466,20 +466,20 @@ const SellerPayouts = () => {
             )}
 
             {/* Payout Account */}
-            <Card className={`rounded-2xl ${!payout_account.verified ? "border-warning/30" : ""}`}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
+            <Card className={`rounded-lg ${!payout_account.verified ? "border-warning/30" : ""}`}>
+              <CardHeader className="pb-2 pt-3 px-3 sm:px-4">
+                <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
                   <Banknote className="h-4 w-4 text-primary" />
                   Payout Account
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2 px-3 sm:px-4 pb-3">
                 {!payout_account.verified && (
-                  <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-start gap-2.5">
+                  <div className="bg-warning/10 border border-warning/20 rounded-md p-2.5 flex items-start gap-2">
                     <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-warning">Verification Incomplete</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Complete payout verification to receive funds.</p>
+                      <p className="text-xs font-semibold text-warning">Verification Incomplete</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Complete payout verification to receive funds.</p>
                       <Button size="sm" className="mt-2 h-7 text-xs" onClick={() => setEditModalOpen(true)}>
                         Complete Verification
                       </Button>
@@ -487,7 +487,7 @@ const SellerPayouts = () => {
                   </div>
                 )}
 
-                <div className="space-y-2.5 text-sm">
+                <div className="space-y-1.5 text-[13px]">
                   <Row label="Bank Name" value={payout_account.bank_name ?? "Not set"} muted={!payout_account.bank_name} />
                   <Row label="Account Name" value={payout_account.account_name} />
                   <Row label="Account Number" value={payout_account.masked_account_number ?? "••••••••••"} muted={!payout_account.masked_account_number} />
@@ -504,7 +504,7 @@ const SellerPayouts = () => {
                   <Row label="Processing Time" value={payout_account.typical_processing_time} />
                 </div>
 
-                <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => setEditModalOpen(true)}>
+                <Button variant="outline" size="sm" className="w-full mt-2 h-8 text-xs" onClick={() => setEditModalOpen(true)}>
                   <FileText className="h-3.5 w-3.5 mr-1.5" /> Edit Payout Details
                 </Button>
               </CardContent>
