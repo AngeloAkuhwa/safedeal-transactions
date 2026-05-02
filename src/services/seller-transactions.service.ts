@@ -74,3 +74,17 @@ export const getSellerTransactions = async (
 
   return data as SellerTransactionsResponse;
 };
+
+export async function cancelSellerTransaction(
+  transactionId: string,
+  reason?: string,
+): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
+  const { data, error } = await supabase.functions.invoke("seller-cancel-transaction", {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+    body: { transaction_id: transactionId, reason },
+  });
+  if (error) throw new Error(error.message || "Failed to cancel transaction");
+  if (!data || data.error) throw new Error(data?.error || "Failed to cancel transaction");
+}
