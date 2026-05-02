@@ -179,42 +179,33 @@ export function resolveTransactionLabel(
 }
 
 /* ============================================================
- * DISPUTE STATUS
+ * DISPUTE STATUS  (DB enum: dispute_case_status)
+ *
+ * DB values: open | seller_response_pending | under_review | resolved
+ * (The legacy `dispute_status` enum also includes `none`.)
  * ============================================================ */
 
 export type DisputeStatus =
+  | "none"
   | "open"
-  | "awaiting_seller_response"
-  | "awaiting_buyer_response"
+  | "seller_response_pending"
   | "under_review"
-  | "resolved_buyer_refund"
-  | "resolved_seller_release"
-  | "resolved_partial"
-  | "withdrawn"
-  | "closed";
+  | "resolved";
 
 export const DISPUTE_LABELS: Record<Audience, Record<DisputeStatus, LabelEntry>> = {
   seller: {
+    none: { label: "No Dispute", tone: "muted" },
     open: { label: "Open", tone: "warning" },
-    awaiting_seller_response: { label: "Your Response Needed", tone: "warning" },
-    awaiting_buyer_response: { label: "Awaiting Buyer", tone: "info" },
+    seller_response_pending: { label: "Your Response Needed", tone: "warning" },
     under_review: { label: "SafeDeal Review", tone: "info" },
-    resolved_buyer_refund: { label: "Resolved · Refunded", tone: "muted" },
-    resolved_seller_release: { label: "Resolved · Released", tone: "success" },
-    resolved_partial: { label: "Resolved · Partial", tone: "muted" },
-    withdrawn: { label: "Withdrawn", tone: "muted" },
-    closed: { label: "Closed", tone: "muted" },
+    resolved: { label: "Resolved", tone: "success" },
   },
   buyer: {
+    none: { label: "No Dispute", tone: "muted" },
     open: { label: "Open", tone: "warning" },
-    awaiting_seller_response: { label: "Awaiting Seller", tone: "info" },
-    awaiting_buyer_response: { label: "Your Response Needed", tone: "warning" },
+    seller_response_pending: { label: "Awaiting Seller", tone: "info" },
     under_review: { label: "SafeDeal Review", tone: "info" },
-    resolved_buyer_refund: { label: "Resolved · Refunded", tone: "success" },
-    resolved_seller_release: { label: "Resolved · Released to Seller", tone: "muted" },
-    resolved_partial: { label: "Resolved · Partial", tone: "muted" },
-    withdrawn: { label: "Withdrawn", tone: "muted" },
-    closed: { label: "Closed", tone: "muted" },
+    resolved: { label: "Resolved", tone: "success" },
   },
 };
 
@@ -228,6 +219,31 @@ export function resolveDisputeLabel(
       label: String(status).replace(/_/g, " "),
       tone: "muted",
     } satisfies LabelEntry)
+  );
+}
+
+/* ============================================================
+ * DISPUTE MONEY IMPACT  (computed by `seller-disputes` edge fn)
+ *
+ * Values: no_impact | funds_frozen | payout_blocked | refund_pending
+ * Plus tolerated aliases used in legacy CSV exports.
+ * ============================================================ */
+
+export const DISPUTE_MONEY_IMPACT_LABELS: Record<string, LabelEntry> = {
+  no_impact: { label: "No Impact", tone: "muted" },
+  funds_frozen: { label: "Funds Frozen", tone: "destructive" },
+  payout_blocked: { label: "Payout Blocked", tone: "warning" },
+  payout_on_hold: { label: "Payout On Hold", tone: "warning" },
+  refund_pending: { label: "Refund Pending", tone: "warning" },
+  refunded: { label: "Refunded", tone: "muted" },
+  released: { label: "Released", tone: "success" },
+};
+
+export function resolveDisputeMoneyImpact(value: string | null | undefined): LabelEntry {
+  if (!value) return { label: "No Impact", tone: "muted" };
+  return (
+    DISPUTE_MONEY_IMPACT_LABELS[value] ??
+    ({ label: String(value).replace(/_/g, " "), tone: "muted" } satisfies LabelEntry)
   );
 }
 
