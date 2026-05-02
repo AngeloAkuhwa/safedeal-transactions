@@ -5,7 +5,7 @@ const statuses = [
   { label: "IN TRANSIT", caption: "Item being delivered", tone: "primary" },
   { label: "AWAITING VERIFICATION", caption: "Buyer needs to confirm", tone: "warning" },
   { label: "COMPLETED", caption: "Funds released to seller", tone: "success" },
-  { label: "DISPUTED", caption: "Under admin review", tone: "destructive" },
+  { label: "DISPUTED", caption: "Under SafeDeal review", tone: "destructive" },
   { label: "CANCELLED", caption: "Transaction terminated", tone: "muted" },
 ] as const;
 

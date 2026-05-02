@@ -266,7 +266,7 @@ export default function BuyerPaymentSummary() {
     );
   }
 
-  const currencySymbol = data.pricing?.currency_code === "NGN" ? "₦" : "$";
+  const currencyCode = data.pricing?.currency_code || "NGN";
   const totalAmount = data.pricing?.total_amount ?? 0;
   const itemAmount = data.pricing?.item_amount ?? 0;
   const feeAmount = data.pricing?.service_fee_amount ?? 0;
@@ -404,7 +404,7 @@ export default function BuyerPaymentSummary() {
                 {[
                   "Seller is only paid after you confirm receipt",
                   "If you raise a dispute, fund release is paused",
-                  "Admin reviews disputes before final decision",
+                  "SafeDeal reviews disputes before final decision",
                 ].map((item) => (
                   <div key={item} className="flex items-start gap-2">
                     <CheckCircle className="h-4 w-4 text-success/70 mt-0.5 shrink-0" />
@@ -464,7 +464,7 @@ export default function BuyerPaymentSummary() {
                   {
                     step: 1,
                     title: "Payment Secured in Escrow",
-                    desc: `Your ${currencySymbol}${totalAmount.toLocaleString()} payment is immediately placed in a secure escrow account managed by SafeDeal. The seller cannot access these funds.`,
+                    desc: `Your ${formatMoney(totalAmount, currencyCode)} payment is immediately placed in a secure escrow account managed by SafeDeal. The seller cannot access these funds.`,
                     bgClass: "bg-success/10",
                     textClass: "text-success",
                   },
@@ -547,7 +547,7 @@ export default function BuyerPaymentSummary() {
               <div className="space-y-3 py-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Item Price</span>
-                  <span className="text-base font-semibold text-foreground">{currencySymbol}{itemAmount.toLocaleString()}</span>
+                  <span className="text-base font-semibold text-foreground">{formatMoney(itemAmount, currencyCode)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -556,7 +556,7 @@ export default function BuyerPaymentSummary() {
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-medium text-amber-600 border-amber-500/30 bg-amber-500/10">capped</Badge>
                     )}
                   </div>
-                  <span className="text-base font-semibold text-success">{currencySymbol}{feeAmount.toLocaleString()}</span>
+                  <span className="text-base font-semibold text-success">{formatMoney(feeAmount, currencyCode)}</span>
                 </div>
                 <p className="text-xs text-muted-foreground -mt-1 pl-0.5">Non-refundable · Covers escrow, buyer protection & dispute resolution</p>
               </div>
@@ -564,7 +564,7 @@ export default function BuyerPaymentSummary() {
               <div className="pt-4 border-t-2">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-bold text-foreground">Total You Pay</span>
-                  <span className="text-3xl font-bold text-primary">{currencySymbol}{totalAmount.toLocaleString()}</span>
+                  <span className="text-3xl font-bold text-primary">{formatMoney(totalAmount, currencyCode)}</span>
                 </div>
                 <p className="text-xs text-muted-foreground text-right mt-1">{data.pricing?.currency_code}</p>
               </div>
@@ -718,7 +718,7 @@ export default function BuyerPaymentSummary() {
                 <div className="flex-1">
                   <h3 className="text-sm font-bold text-foreground mb-2">Escrow Payment Agreement</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                    By continuing with this payment, you understand and agree that your {currencySymbol}{totalAmount.toLocaleString()} will be held securely by SafeDeal in a protected escrow account. These funds will <strong>not be released to the seller</strong> until you explicitly confirm receipt and verification of the item, or until a dispute is resolved by SafeDeal administration.
+                    By continuing with this payment, you understand and agree that your {formatMoney(totalAmount, currencyCode)} will be held securely by SafeDeal in a protected escrow account. These funds will <strong>not be released to the seller</strong> until you explicitly confirm receipt and verification of the item, or until a dispute is resolved by SafeDeal review.
                   </p>
                   <div className="bg-card border rounded-lg p-3 mb-3">
                     <p className="text-xs font-semibold text-foreground mb-2">You retain full control:</p>
@@ -726,7 +726,7 @@ export default function BuyerPaymentSummary() {
                       {[
                         "Funds remain locked until your confirmation",
                         "You can raise a dispute if item doesn't match",
-                        "Admin reviews all disputes before fund release",
+                        "SafeDeal reviews all disputes before fund release",
                       ].map((item) => (
                         <li key={item} className="flex items-start gap-2">
                           <Check className="h-3 w-3 text-success mt-0.5 shrink-0" />
@@ -786,7 +786,7 @@ export default function BuyerPaymentSummary() {
                     ) : (
                       <>
                         <Lock className="h-5 w-5" />
-                        <span>Pay {currencySymbol}{totalAmount.toLocaleString()}</span>
+                        <span>Pay {formatMoney(totalAmount, currencyCode)}</span>
                       </>
                     )}
                   </button>
@@ -903,7 +903,7 @@ export default function BuyerPaymentSummary() {
                 </div>
                 <div className="flex justify-between items-center mb-3 pb-3 border-b">
                   <span className="text-sm text-muted-foreground">Amount Paid</span>
-                  <span className="text-sm font-bold text-foreground">{currencySymbol}{totalAmount.toLocaleString()}</span>
+                  <span className="text-sm font-bold text-foreground">{formatMoney(totalAmount, currencyCode)}</span>
                 </div>
                 <div className="flex justify-between items-center mb-3 pb-3 border-b">
                   <span className="text-sm text-muted-foreground">Status</span>
@@ -1009,7 +1009,7 @@ export default function BuyerPaymentSummary() {
                   <div className="grid grid-cols-2 divide-x divide-border bg-muted/30">
                     <div className="flex flex-col items-center gap-1 py-3 px-2">
                       <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Amount</span>
-                      <span className="text-sm font-bold text-foreground">{currencySymbol}{totalAmount.toLocaleString()}</span>
+                      <span className="text-sm font-bold text-foreground">{formatMoney(totalAmount, currencyCode)}</span>
                     </div>
                     <div className="flex flex-col items-center gap-1 py-3 px-2">
                       <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Code</span>
