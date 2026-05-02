@@ -40,6 +40,7 @@ export interface SellerTransactionsSummary {
   cancelled_count?: number;
   timed_out_count?: number;
   refunded_count?: number;
+  awaiting_seller_confirmation_count?: number;
   total_earned: number;
 }
 
