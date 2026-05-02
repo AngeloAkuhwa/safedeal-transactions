@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { VerificationStatus, BuyerPermissions, VerificationLevel } from "@/services/profile.service";
+import { formatMoney } from "@/lib/format";
 
 interface Props {
   verification: VerificationStatus;
@@ -28,7 +29,7 @@ const LEVEL_CONFIG: Record<VerificationLevel, { label: string; color: string; bg
 
 function formatNaira(n: number) {
   if (n >= 999999999) return "Unlimited";
-  return `₦${n.toLocaleString()}`;
+  return formatMoney(n, "NGN");
 }
 
 export function AccountVerificationSection({

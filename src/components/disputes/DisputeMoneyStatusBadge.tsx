@@ -1,33 +1,16 @@
 import { Lock, Clock, ArrowLeftRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { resolveDisputeMoneyLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 
-const moneyConfig: Record<string, { label: string; icon: typeof Lock; className: string }> = {
-  funds_frozen: {
-    label: "Funds Frozen",
-    icon: Lock,
-    className: "bg-warning/15 text-warning border-warning/30",
-  },
-  refund_pending: {
-    label: "Refund Pending",
-    icon: Clock,
-    className: "bg-warning/15 text-warning border-warning/30",
-  },
-  refund_issued: {
-    label: "Refund Issued",
-    icon: ArrowLeftRight,
-    className: "bg-success/15 text-success border-success/30",
-  },
-  funds_releasing: {
-    label: "Releasing",
-    icon: ArrowLeftRight,
-    className: "bg-success/15 text-success border-success/30",
-  },
-  funds_released: {
-    label: "Funds Released",
-    icon: ArrowLeftRight,
-    className: "bg-muted text-muted-foreground border-border",
-  },
+const ICON_BY_MONEY: Record<string, typeof Lock> = {
+  funds_frozen: Lock,
+  refund_pending: Clock,
+  refund_issued: ArrowLeftRight,
+  funds_releasing: ArrowLeftRight,
+  funds_released: ArrowLeftRight,
+  funds_held_in_escrow: Lock,
+  funds_pending_release: Clock,
 };
 
 interface DisputeMoneyStatusBadgeProps {
@@ -35,27 +18,19 @@ interface DisputeMoneyStatusBadgeProps {
 }
 
 export function DisputeMoneyStatusBadge({ status }: DisputeMoneyStatusBadgeProps) {
-  if (!status) {
-    return (
-      <span className="text-xs text-muted-foreground">—</span>
-    );
+  const entry = resolveDisputeMoneyLabel(status);
+  if (!entry) {
+    return <span className="text-xs text-muted-foreground">—</span>;
   }
-
-  const config = moneyConfig[status] ?? {
-    label: status.replace(/_/g, " "),
-    icon: Lock,
-    className: "bg-muted text-muted-foreground border-border",
-  };
-
-  const Icon = config.icon;
+  const Icon = ICON_BY_MONEY[status as string] ?? Lock;
 
   return (
     <Badge
       variant="outline"
-      className={cn("text-xs font-bold capitalize whitespace-nowrap gap-1.5", config.className)}
+      className={cn("text-xs font-bold capitalize whitespace-nowrap gap-1.5", TONE_CLASSNAMES[entry.tone])}
     >
       <Icon className="h-3 w-3" />
-      {config.label}
+      {entry.label}
     </Badge>
   );
 }

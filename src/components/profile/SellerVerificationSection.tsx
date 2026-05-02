@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { SellerVerification, SellerPermissions } from "@/services/seller-profile.service";
+import { formatMoney } from "@/lib/format";
 
 interface Props {
   verification: SellerVerification;
@@ -12,7 +13,7 @@ interface Props {
 
 function formatNaira(n: number) {
   if (n >= 999999999) return "Unlimited";
-  return `₦${n.toLocaleString()}`;
+  return formatMoney(n, "NGN");
 }
 
 const getItems = (v: SellerVerification) => [
