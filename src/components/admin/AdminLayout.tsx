@@ -48,6 +48,7 @@ export function AdminLayout({ title, subtitle, badges, children }: AdminLayoutPr
         </div>
       </div>
       <AdminReadingModeControl variant="mobile-floater" />
+      <AdminReadingModeControl variant="desktop-floater" />
     </div>
     </ReadingModeProvider>
   );
