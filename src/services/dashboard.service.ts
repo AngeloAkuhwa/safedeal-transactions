@@ -48,6 +48,23 @@ export const getBuyerDashboard = async (): Promise<BuyerDashboardResponse> => {
     return new Promise<BuyerDashboardResponse>(() => {});
   }
 
+  // Pre-flight role check: avoid hitting the buyer-dashboard edge function
+  // (which 403s and pollutes runtime errors) when the user isn't a buyer.
+  const { data: roles } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", session.user.id);
+  const roleNames = (roles ?? []).map((r) => r.role as string);
+  if (!roleNames.includes("buyer")) {
+    const dest = roleNames.includes("admin")
+      ? "/admin/dashboard"
+      : roleNames.includes("seller")
+      ? "/seller"
+      : "/role-selection";
+    window.location.replace(dest);
+    return new Promise<BuyerDashboardResponse>(() => {});
+  }
+
   const { data, error } = await supabase.functions.invoke("buyer-dashboard", {
     headers: {
       Authorization: `Bearer ${session.access_token}`,
