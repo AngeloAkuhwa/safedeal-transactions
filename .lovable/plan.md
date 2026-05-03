@@ -1,73 +1,63 @@
-## Reading Mode (auto-scroll) for Admin shell + Escrow icon fix
+# Reading Mode: Fix boundary logic + persistent floating control
 
-### 1. New hook: `src/hooks/useAutoScroll.ts`
-A reusable, framework-agnostic auto-scroll engine using `requestAnimationFrame`.
+## Problem
 
-State exposed:
-- `isActive`, `isPaused`
-- `direction: "down" | "up"`
-- `speed: "very-slow" | "slow" | "normal"` (px/sec: 10 / 20 / 32; default `very-slow`)
-- methods: `start()`, `pause()`, `resume()`, `stop()`, `setDirection()`, `setSpeed()`
-- `atTop`, `atBottom` helpers
+1. Clicking "Reading Mode" at the top of the page incorrectly shows "You're at the top." This is because `start()` in `useAutoScroll.ts` checks `top <= 1` for direction `up` — but the live `direction` state isn't read from the ref before the check, and the at-top guard fires regardless of intent.
+2. After scrolling down past the admin header, there's no way to control Reading Mode without scrolling back up — the only controls live in `AdminHeader` (desktop) or `AdminMobileHeader`.
+3. The current mobile floater only appears when active. There's no persistent compact entry point that follows the page.
 
-Behavior:
-- Optional `containerRef` param; defaults to `window` (`document.scrollingElement`).
-- Uses delta time (`(now - last) / 1000 * pxPerSec`) → consistent on any refresh rate.
-- Accumulator pattern so sub-pixel deltas at 10px/s still advance smoothly.
-- Auto-stops on reaching top/bottom (within 1px tolerance) and toasts "You're at the bottom/top."
-- Respects `prefers-reduced-motion`: `start()` is a no-op + returns reason `"reduced-motion"`.
-- Pause triggers wired inside the hook:
-  - `wheel`, `touchmove`, `keydown` (PageUp/Down/Arrow/Space/Home/End) → pause.
-  - `visibilitychange` (tab hidden) → pause.
-  - Listens for `focusin` on `input, textarea, select, [role="combobox"], [contenteditable]` → pause.
-  - Observes `body` for `[data-state="open"]` on Radix dialogs/sheets/dropdowns/tooltips via MutationObserver → pause while any open.
-- Cleans up RAF + listeners on unmount / stop.
+## Fix 1 — Boundary logic in `src/hooks/useAutoScroll.ts`
 
-### 2. New component: `src/components/admin/AdminReadingModeControl.tsx`
-Two render variants via prop `variant: "desktop" | "mobile"`.
+- Use a 3px threshold constant (`EDGE_THRESHOLD = 3`) for both the tick loop and the start guards.
+- In `start()`:
+  - Read direction from `directionRef.current` (already done) but ALSO sync it from the latest `direction` state by accepting an optional `directionOverride` param so the caller can start in a specific direction without a stale ref.
+  - Only show "at top" when direction is `up` AND `top <= threshold`.
+  - Only show "at bottom" when direction is `down` AND `top >= max - threshold`.
+  - When at-bottom with direction `down`, suggest switching: emit `onBlocked("at-bottom-suggest-up")` (extend the union). The provider will toast "You're at the bottom. Switch direction to scroll up." and offer no auto-flip (user choice).
+  - Same mirror for at-top with direction `up`.
+- Allow direction change while running: when `setDirection` is called and `isActive`, do NOT stop — the existing `directionRef` is read each tick, so reversing already works. Verify by removing any implicit stop, and ensure the at-edge auto-stop only triggers for the matching direction.
+- Default `initialDirection` stays `"down"`.
 
-Desktop (lives in `AdminHeader` actions, left of Filters):
-- Compact pill group matching existing slate-800/700 button style.
-- Inactive: single button `BookOpen` icon + "Reading Mode" with Tooltip "Auto-scroll this page slowly".
-- Active: expands inline to show
-  - Play/Pause toggle (`Pause` ↔ `Play`)
-  - Direction toggle (`ArrowDown` / `ArrowUp`)
-  - Speed `Select` (Very Slow / Slow)
-  - Stop (`Square`)
-  - Subtle emerald dot + "Reading Mode active" label.
+## Fix 2 — Shared state already in place
 
-Mobile:
-- When inactive: small icon button in `AdminMobileHeader` (next to Export).
-- When active: a fixed bottom-center floating mini toolbar (`fixed bottom-4 left-1/2 -translate-x-1/2 z-50`) with Play/Pause, Direction, Stop. Rounded pill, slate-900/95 backdrop, subtle border.
+`ReadingModeProvider` wraps `AdminLayout` and exposes a single `useAutoScroll` instance via `useReadingMode()`. Header control + new floating control will both consume this same context — no duplicate loops.
 
-All buttons get aria-labels per spec. Last speed/direction persisted to `localStorage` key `admin.readingMode`.
+## Fix 3 — New persistent floating control
 
-### 3. Wire into admin shell
-- `AdminLayout.tsx`: instantiate the hook once at the layout level and pass state + actions to a small `ReadingModeContext` so both desktop header and mobile header/floater share one engine.
-- Stop on route change via `useLocation` effect.
-- Container ref = `window` (admin pages scroll the window, confirmed from `AdminLayout`).
+Extend `src/components/admin/AdminReadingModeControl.tsx` with two new variants:
 
-### 4. Header integrations
-- `AdminHeader.tsx`: render `<AdminReadingModeControl variant="desktop" />` immediately before the Filters button.
-- `AdminMobileHeader.tsx`: add icon button in the right-side actions (before Export) + render the floating mobile bar from the layout when active.
+- `variant="desktop-floater"` — bottom-right of main content, visible only after the user scrolls past ~120px (track via a small `useEffect` listening to `window.scroll`). Hidden on `lg:` breakpoint when not yet scrolled. Two states:
+  - **Inactive (collapsed pill):** `BookOpen` icon + "Reading Mode" label, click starts.
+  - **Active (expanded):** Play/Pause, Direction toggle (Down/Up), Speed select (Very Slow / Slow), Stop. Same styling as existing desktop pill (slate-900/95 surface, slate-700 border, soft shadow, emerald active dot).
+  - Position: `fixed bottom-5 right-5 z-40`, with `pb-[env(safe-area-inset-bottom)]` safety.
+  - Smooth transition: `transition-opacity duration-200` + translate-y on appear.
+- Mobile floater (existing `mobile-floater`) is upgraded to also show when **inactive but scrolled past 120px** as a small "Reading Mode" pill on the left edge of the bottom bar. When active it expands as today (Play/Pause, Direction, Stop, plus a small speed menu via Popover for Very Slow / Slow).
 
-### 5. Escrow Balance icon fix (`KpiCards.tsx`)
-The current icon is `PiggyBank`, which reads as savings/consumer, not custodial escrow. Replace with `Landmark` (vault/institution feel) keeping the emerald color treatment. Tooltip copy unchanged.
+Mount points (in `src/components/admin/AdminLayout.tsx`):
+- Add `<AdminReadingModeControl variant="desktop-floater" />` next to the existing `mobile-floater`.
+- Both live inside `ReadingModeProvider` so they share state with the header.
 
-### Acceptance check
-- Click Reading Mode → page glides downward at ~10px/s.
-- Manual wheel/touch/keyboard input pauses it; user must click Resume.
-- Opening any Sheet / Dialog / Dropdown auto-pauses (Radix `data-state="open"`).
-- Reaching bottom stops + toasts "You're at the bottom."
-- `prefers-reduced-motion: reduce` disables auto-start with explanatory toast.
-- Works identically on `/admin/dashboard` today and any future page wrapped in `AdminLayout`.
-- Escrow KPI now uses `Landmark` icon.
+Header control (`AdminHeader`) and mobile trigger (`AdminMobileHeader`) keep their current placement and wiring — no duplicate logic since all controls call into the same context.
 
-### Files
-- create `src/hooks/useAutoScroll.ts`
-- create `src/components/admin/AdminReadingModeControl.tsx`
-- create `src/components/admin/ReadingModeContext.tsx` (small provider)
-- edit `src/components/admin/AdminLayout.tsx`
-- edit `src/components/admin/AdminHeader.tsx`
-- edit `src/components/admin/AdminMobileHeader.tsx`
-- edit `src/components/admin/dashboard/KpiCards.tsx` (icon swap)
+## Fix 4 — Click-on-control should not pause
+
+The control is rendered outside the document scroll flow and its buttons don't fire `wheel`/`touchmove` on `window`. The current pause listeners (`wheel`, `touchmove`, `keydown`, `focusin`) won't fire from button clicks. Confirm by adding `onPointerDown={(e) => e.stopPropagation()}` on the floater wrapper as a defensive measure.
+
+## Acceptance criteria mapping
+
+- Top + click Reading Mode → starts scrolling down (no false toast). ✓ via `start()` direction-aware guard.
+- Boundary toasts only for the active direction. ✓
+- Direction switchable mid-scroll, smoothly reverses. ✓ (refs already drive each tick).
+- Floating control reachable mid-page on desktop and mobile. ✓
+- Header + floating share state. ✓ (single context).
+- Reduced-motion still blocks start with the existing toast. ✓
+- No duplicate RAF loops. ✓ (single hook instance).
+
+## Files
+
+- Edit `src/hooks/useAutoScroll.ts` — threshold constant, fix `start()` direction guards, extend `onBlocked` reasons, accept optional `directionOverride` on `start`.
+- Edit `src/components/admin/ReadingModeContext.tsx` — handle new `onBlocked` reasons with appropriate toasts.
+- Edit `src/components/admin/AdminReadingModeControl.tsx` — add `desktop-floater` variant, upgrade `mobile-floater` to also render when inactive after scroll, add scroll-past-header visibility hook.
+- Edit `src/components/admin/AdminLayout.tsx` — mount `desktop-floater`.
+
+No DB or backend changes.
