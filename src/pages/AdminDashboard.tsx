@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, RefreshCw } from "lucide-react";
-import { getAdminDashboard } from "@/services/admin-dashboard.service";
+import { getAdminDashboard, AdminAccessRequiredError } from "@/services/admin-dashboard.service";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { KpiCards } from "@/components/admin/dashboard/KpiCards";
 import { AdminActionRequired } from "@/components/admin/dashboard/AdminActionRequired";
@@ -44,12 +44,25 @@ const AdminDashboard = () => {
     queryKey: ["admin-dashboard"],
     queryFn: getAdminDashboard,
     staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    retry: (count, err) => !(err instanceof AdminAccessRequiredError) && count < 2,
   });
 
   if (isLoading) {
     return (
       <AdminLayout title={TITLE} subtitle={SUBTITLE}>
         <DashboardSkeleton />
+      </AdminLayout>
+    );
+  }
+
+  if (error instanceof AdminAccessRequiredError) {
+    return (
+      <AdminLayout title={TITLE} subtitle={SUBTITLE}>
+        <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-slate-800 bg-slate-900 px-6 py-16 text-center">
+          <h2 className="text-base font-semibold text-white">Admin access required</h2>
+          <p className="text-sm text-slate-400">You do not have permission to view this dashboard.</p>
+        </div>
       </AdminLayout>
     );
   }
