@@ -9,12 +9,14 @@ const SPEEDS: Record<ScrollSpeed, number> = {
   normal: 32,
 };
 
+const EDGE_THRESHOLD = 3;
+
 export interface UseAutoScrollOptions {
   containerRef?: React.RefObject<HTMLElement | null>;
   initialSpeed?: ScrollSpeed;
   initialDirection?: ScrollDirection;
   onReachEdge?: (edge: "top" | "bottom") => void;
-  onBlocked?: (reason: "reduced-motion") => void;
+  onBlocked?: (reason: "reduced-motion" | "at-top-suggest-down" | "at-bottom-suggest-up") => void;
 }
 
 function prefersReducedMotion() {
@@ -132,18 +134,23 @@ export function useAutoScroll(options: UseAutoScrollOptions = {}) {
     cancelRaf();
   }, [cancelRaf]);
 
-  const start = useCallback(() => {
+  const start = useCallback((directionOverride?: ScrollDirection) => {
     if (prefersReducedMotion()) {
       onBlocked?.("reduced-motion");
       return false;
     }
+    if (directionOverride && directionOverride !== directionRef.current) {
+      directionRef.current = directionOverride;
+      setDirectionState(directionOverride);
+    }
     const { top, max } = getMetrics();
-    if (directionRef.current === "down" && top >= max - 1) {
-      onReachEdge?.("bottom");
+    const dir = directionRef.current;
+    if (dir === "down" && top >= max - EDGE_THRESHOLD) {
+      onBlocked?.("at-bottom-suggest-up");
       return false;
     }
-    if (directionRef.current === "up" && top <= 1) {
-      onReachEdge?.("top");
+    if (dir === "up" && top <= EDGE_THRESHOLD) {
+      onBlocked?.("at-top-suggest-down");
       return false;
     }
     setIsActive(true);
