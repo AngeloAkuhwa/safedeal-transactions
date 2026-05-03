@@ -39,6 +39,14 @@ export function ReadingModeProvider({ children }: { children: ReactNode }) {
         toast({
           description: "Auto-scroll is disabled because reduced motion is enabled.",
         });
+      } else if (reason === "at-bottom-suggest-up") {
+        toast({
+          description: "You're at the bottom. Switch direction to scroll up.",
+        });
+      } else if (reason === "at-top-suggest-down") {
+        toast({
+          description: "You're at the top. Switch direction to scroll down.",
+        });
       }
     },
   });
