@@ -441,17 +441,52 @@ export default function AdminTransactions() {
           </button>
         </div>
 
-        <div className={`mt-3 flex-wrap gap-2 ${filtersOpen ? "flex" : "hidden"} lg:flex`}>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveQuick("all");
-              setSearch("");
-            }}
-            className="rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
-          >
-            Clear Filters
-          </button>
+        <div
+          className={`mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 ${filtersOpen ? "" : "hidden"} lg:grid`}
+        >
+          <FilterSelect
+            label="Transaction Status"
+            value={txStatus}
+            onChange={setTxStatus}
+            options={TX_STATUS_OPTIONS}
+          />
+          <FilterSelect
+            label="Money Status"
+            value={moneyStatus}
+            onChange={setMoneyStatus}
+            options={MONEY_STATUS_OPTIONS}
+          />
+          <FilterSelect
+            label="Dispute Status"
+            value={disputeStatus}
+            onChange={setDisputeStatus}
+            options={DISPUTE_STATUS_OPTIONS}
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <FilterInput label="Min ₦" type="number" value={amountMin} onChange={setAmountMin} />
+            <FilterInput label="Max ₦" type="number" value={amountMax} onChange={setAmountMax} />
+          </div>
+          <FilterInput label="From" type="date" value={dateFrom} onChange={setDateFrom} />
+          <FilterInput label="To" type="date" value={dateTo} onChange={setDateTo} />
+          <div className="flex items-end justify-end sm:col-span-2 lg:col-span-2">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveQuick("all");
+                setSearch("");
+                setTxStatus("");
+                setMoneyStatus("");
+                setDisputeStatus("");
+                setAmountMin("");
+                setAmountMax("");
+                setDateFrom("");
+                setDateTo("");
+              }}
+              className="rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
+            >
+              Clear Filters
+            </button>
+          </div>
         </div>
       </div>
 
