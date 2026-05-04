@@ -626,13 +626,13 @@ export default function AdminTransactionDetail() {
               title="Complete Transaction Timeline"
               subtitle="All events, status changes, and interventions"
               action={
-                <Button size="sm" variant="ghost" onClick={() => setTlNewest((v) => !v)}>
+                <Button size="sm" variant="ghost" className="lg:hidden" onClick={() => setTlNewest((v) => !v)}>
                   {tlNewest ? "Newest first" : "Oldest first"}
                 </Button>
               }
             />
             <div className="p-4 lg:p-6">
-              <div className="flex flex-wrap items-center gap-1.5 mb-4">
+              <div className="flex flex-wrap items-center gap-1.5 mb-4 lg:hidden">
                 {TL_FILTERS.map((f) => (
                   <button
                     key={f.key}
@@ -678,9 +678,9 @@ export default function AdminTransactionDetail() {
                 </div>
               )}
               {filteredTimeline.length > 8 && (
-                <div className="mt-4 text-center">
-                  <Button size="sm" variant="outline" onClick={() => setShowFullTimeline((v) => !v)}>
-                    {showFullTimeline ? "Show less" : `Show full timeline (${filteredTimeline.length})`}
+                <div className="mt-4">
+                  <Button size="sm" variant="link" className="text-muted-foreground hover:text-foreground p-0 h-auto" onClick={() => setShowFullTimeline((v) => !v)}>
+                    {showFullTimeline ? "Show less" : `Show full timeline (${filteredTimeline.length} events)`}
                   </Button>
                 </div>
               )}
