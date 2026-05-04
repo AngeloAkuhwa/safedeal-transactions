@@ -24,6 +24,8 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  ArrowUpDown,
+  Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -32,12 +34,24 @@ import { AdminReadingModeControl } from "@/components/admin/AdminReadingModeCont
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatMoney, formatMoneyCompact } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AdminAccessRequiredError,
   getAdminTransactionsMonitor,
   type AdminTxMonitorResponse,
   type AdminTxQuickFilter,
   type AdminTxRow,
+  type AdminTxMonitorParams,
 } from "@/services/admin-transactions-monitor.service";
 
 /* ---------------- Visual helpers ---------------- */
