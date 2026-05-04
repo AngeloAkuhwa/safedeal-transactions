@@ -95,6 +95,35 @@ const FLAG_META: Record<string, { label: string; cls: string; Icon?: typeof Flag
   fraud_watch: { label: "Fraud Watch", cls: "bg-red-500/15 text-red-400 border-red-500/30", Icon: Flame },
 };
 
+// Operational flags returned in `flags[]` by admin-transactions-monitor.
+const SECONDARY_FLAG_META: Record<string, { label: string; cls: string; Icon?: typeof Flag }> = {
+  frozen:         { label: "Frozen",         cls: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",      Icon: Snowflake },
+  admin_frozen:   { label: "Admin Frozen",   cls: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",      Icon: Snowflake },
+  overdue:        { label: "Overdue",        cls: "bg-orange-500/15 text-orange-300 border-orange-500/30",Icon: Clock },
+  payment_failed: { label: "Payment Failed", cls: "bg-red-500/15 text-red-400 border-red-500/30",         Icon: ShieldAlert },
+  payout_failed:  { label: "Payout Failed",  cls: "bg-red-500/15 text-red-400 border-red-500/30",         Icon: ShieldAlert },
+  risk_flagged:   { label: "Risk Flagged",   cls: "bg-red-500/15 text-red-400 border-red-500/30",         Icon: Flag },
+};
+
+function buildFlagBadges(t: { riskLevel: string; flags?: string[] | null }) {
+  const out: { key: string; label: string; cls: string; Icon?: typeof Flag }[] = [];
+  if (t.riskLevel && t.riskLevel !== "clean" && FLAG_META[t.riskLevel]) {
+    out.push({ key: t.riskLevel, ...FLAG_META[t.riskLevel] });
+  }
+  const seen = new Set(out.map((b) => b.key));
+  for (const f of t.flags ?? []) {
+    if (seen.has(f)) continue;
+    if (f === "risk_flagged" && t.riskLevel !== "clean") continue;
+    if (f === "admin_frozen" && seen.has("frozen")) continue;
+    if (f === "frozen" && seen.has("admin_frozen")) continue;
+    const meta = SECONDARY_FLAG_META[f];
+    if (!meta) continue;
+    out.push({ key: f, ...meta });
+    seen.add(f);
+  }
+  return out;
+}
+
 const QUICK_FILTERS: { key: AdminTxQuickFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "awaiting_payment", label: "Awaiting Payment" },
@@ -797,15 +826,29 @@ export default function AdminTransactions() {
                       )}
                     </td>
                     <td className="px-3 py-2.5 align-middle">
-                      {t.riskLevel === "clean" ? (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      ) : (
-                        <Badge
-                          label={FLAG_META[t.riskLevel].label}
-                          cls={FLAG_META[t.riskLevel].cls}
-                          Icon={FLAG_META[t.riskLevel].Icon}
-                        />
-                      )}
+                      {(() => {
+                        const badges = buildFlagBadges(t);
+                        if (badges.length === 0) {
+                          return <span className="text-xs text-muted-foreground">—</span>;
+                        }
+                        const visible = badges.slice(0, 2);
+                        const overflow = badges.slice(2);
+                        return (
+                          <div className="flex flex-wrap items-center gap-1">
+                            {visible.map((b) => (
+                              <Badge key={b.key} label={b.label} cls={b.cls} Icon={b.Icon} />
+                            ))}
+                            {overflow.length > 0 && (
+                              <span
+                                title={overflow.map((b) => b.label).join(", ")}
+                                className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                              >
+                                +{overflow.length}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-3 py-2.5 align-middle">
                       <span
@@ -909,24 +952,34 @@ export default function AdminTransactions() {
                 </div>
               </div>
 
-              {(t.riskLevel !== "clean" ||
-                (t.escrowStatus.key !== "pending" && t.escrowStatus.key !== "released")) && (
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  {t.escrowStatus.key !== "pending" && t.escrowStatus.key !== "released" && (
-                    <Badge
-                      label={t.escrowStatus.label}
-                      cls={ESCROW_BADGE_CLS[t.escrowStatus.key] ?? "bg-muted text-muted-foreground border-border"}
-                    />
-                  )}
-                  {t.riskLevel !== "clean" && (
-                    <Badge
-                      label={FLAG_META[t.riskLevel].label}
-                      cls={FLAG_META[t.riskLevel].cls}
-                      Icon={FLAG_META[t.riskLevel].Icon}
-                    />
-                  )}
-                </div>
-              )}
+              {(() => {
+                const flagBadges = buildFlagBadges(t);
+                const showEscrow = t.escrowStatus.key !== "pending" && t.escrowStatus.key !== "released";
+                if (!showEscrow && flagBadges.length === 0) return null;
+                const visible = flagBadges.slice(0, 2);
+                const overflow = flagBadges.slice(2);
+                return (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {showEscrow && (
+                      <Badge
+                        label={t.escrowStatus.label}
+                        cls={ESCROW_BADGE_CLS[t.escrowStatus.key] ?? "bg-muted text-muted-foreground border-border"}
+                      />
+                    )}
+                    {visible.map((b) => (
+                      <Badge key={b.key} label={b.label} cls={b.cls} Icon={b.Icon} />
+                    ))}
+                    {overflow.length > 0 && (
+                      <span
+                        title={overflow.map((b) => b.label).join(", ")}
+                        className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                      >
+                        +{overflow.length}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
 
               {(t.lastActivityTone === "warn" || t.lastActivityTone === "danger") && (
                 <div

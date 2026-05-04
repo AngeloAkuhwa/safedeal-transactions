@@ -62,8 +62,8 @@ export function AdminReadingModeControl({ variant }: Props) {
     if (!isActive) {
       return (
         <div
-          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 lg:hidden"
-          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          className="fixed left-1/2 z-50 -translate-x-1/2 lg:hidden"
+          style={{ bottom: "calc(env(safe-area-inset-bottom) + 72px)" }}
           onPointerDown={(e) => e.stopPropagation()}
         >
           <button
@@ -80,8 +80,8 @@ export function AdminReadingModeControl({ variant }: Props) {
     }
     return (
       <div
-        className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 lg:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        className="fixed left-1/2 z-50 -translate-x-1/2 lg:hidden"
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 72px)" }}
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-1 rounded-full border border-border bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur">
@@ -134,7 +134,7 @@ export function AdminReadingModeControl({ variant }: Props) {
     if (!scrolledPast) return null;
     return (
       <div
-        className="fixed bottom-5 right-5 z-40 hidden transition-opacity duration-200 lg:block"
+        className="fixed bottom-5 left-5 z-40 hidden transition-opacity duration-200 lg:block"
         onPointerDown={(e) => e.stopPropagation()}
       >
         {!isActive ? (
