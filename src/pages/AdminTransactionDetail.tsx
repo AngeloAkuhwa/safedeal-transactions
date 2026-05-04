@@ -207,14 +207,48 @@ export default function AdminTransactionDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {adminCan.canExport && (
-            <Button variant="outline" size="sm" onClick={exportData}><Download className="h-4 w-4 mr-1.5" /> Export</Button>
+          {adminCan.canOpenInvestigation && (
+            <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200">
+              <Search className="h-4 w-4 mr-1.5" /> Investigate
+            </Button>
+          )}
+          {adminCan.canFreeze && (
+            <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-cyan-500/40 text-cyan-300 hover:text-cyan-200">
+              <Snowflake className="h-4 w-4 mr-1.5" /> Freeze Funds
+            </Button>
+          )}
+          {adminCan.canUnfreeze && (
+            <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200">
+              <Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze
+            </Button>
           )}
           {adminCan.canManageDispute && dispute && (
             <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
-              <Scale className="h-4 w-4 mr-1.5" /> View Dispute
+              <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
             </Button>
           )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" aria-label="More actions"><MoreHorizontal className="h-4 w-4" /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {adminCan.canAddNote && <DropdownMenuItem onClick={() => setNoteOpen(true)}><StickyNote className="h-4 w-4 mr-2" /> Add Internal Note</DropdownMenuItem>}
+              {adminCan.canFlagForReview && <DropdownMenuItem onClick={() => setFlagOpen(true)}><Flag className="h-4 w-4 mr-2" /> Flag for Review</DropdownMenuItem>}
+              {adminCan.canViewBuyer && data?.parties?.buyer?.id && (
+                <DropdownMenuItem onClick={() => navigate(`/admin/users/${data.parties.buyer!.id}`)}><User className="h-4 w-4 mr-2" /> View Buyer Profile</DropdownMenuItem>
+              )}
+              {adminCan.canViewSeller && data?.parties?.seller?.id && (
+                <DropdownMenuItem onClick={() => navigate(`/admin/users/${data.parties.seller!.id}`)}><User className="h-4 w-4 mr-2" /> View Seller Profile</DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              {adminCan.canExport && <DropdownMenuItem onClick={exportData}><Download className="h-4 w-4 mr-2" /> Export Data</DropdownMenuItem>}
+              <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(code); toast.success("Code copied"); }}>
+                <Receipt className="h-4 w-4 mr-2" /> Copy Transaction Code
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
