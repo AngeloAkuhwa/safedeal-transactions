@@ -1,0 +1,117 @@
+import { useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ShieldCheck, FileText, Image as ImageIcon, Video, Receipt, Truck } from "lucide-react";
+import type { AdminTxEvidenceItem } from "@/services/admin-transaction-detail.service";
+
+interface Props {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  item: AdminTxEvidenceItem | null;
+  transactionCode: string;
+}
+
+export function EvidencePreviewDialog({ open, onOpenChange, item, transactionCode }: Props) {
+  useEffect(() => {
+    if (!open) return;
+    const blockKeys = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "p" || e.key === "P" || e.key === "s" || e.key === "S")) {
+        e.preventDefault();
+      }
+    };
+    const blockCtx = (e: MouseEvent) => e.preventDefault();
+    const origPrint = window.print;
+    window.print = () => {};
+    document.addEventListener("keydown", blockKeys);
+    document.addEventListener("contextmenu", blockCtx);
+    return () => {
+      window.print = origPrint;
+      document.removeEventListener("keydown", blockKeys);
+      document.removeEventListener("contextmenu", blockCtx);
+    };
+  }, [open]);
+
+  const url = item?.secureUrl ?? null;
+  const mime = (item?.mimeType ?? "").toLowerCase();
+  const isImage = mime.startsWith("image/") || item?.kind === "image";
+  const isVideo = mime.startsWith("video/") || item?.kind === "video";
+  const isPdf = mime === "application/pdf";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="max-w-4xl max-h-[88vh] overflow-hidden p-0"
+        onCopy={(e) => e.preventDefault()}
+        onCut={(e) => e.preventDefault()}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        <DialogHeader className="px-6 pt-6 pb-3 border-b border-border">
+          <div className="flex items-center justify-between gap-3">
+            <DialogTitle className="text-base truncate">
+              Evidence Preview {item ? `— ${item.title}` : ""}
+            </DialogTitle>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400 border border-emerald-500/20">
+              <ShieldCheck className="h-3.5 w-3.5" /> Read-only
+            </span>
+          </div>
+        </DialogHeader>
+        <div className="relative bg-black/40 max-h-[72vh] overflow-auto select-none">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          >
+            <div className="rotate-[-25deg] text-2xl font-black uppercase tracking-widest text-white/10">
+              SafeDeal Admin · #{transactionCode}
+            </div>
+          </div>
+          <div className="relative p-6 flex items-center justify-center min-h-[320px]">
+            {!url ? (
+              <UnsupportedFallback item={item} />
+            ) : isImage ? (
+              <img
+                src={url}
+                alt={item?.title ?? "evidence"}
+                draggable={false}
+                className="max-h-[68vh] max-w-full rounded shadow-lg pointer-events-none"
+              />
+            ) : isVideo ? (
+              <video
+                src={url}
+                controls
+                controlsList="nodownload noremoteplayback"
+                disablePictureInPicture
+                className="max-h-[68vh] max-w-full rounded shadow-lg"
+              />
+            ) : isPdf ? (
+              <iframe
+                src={`${url}#toolbar=0&navpanes=0`}
+                title="document"
+                className="w-full h-[68vh] rounded bg-white"
+              />
+            ) : (
+              <UnsupportedFallback item={item} />
+            )}
+          </div>
+        </div>
+        {item && (
+          <div className="px-6 py-3 border-t border-border text-xs text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span>Type: {item.kind}</span>
+            {item.uploadedByName && <span>Uploaded by: {item.uploadedByName}</span>}
+            {item.uploadedByRole && <span>Role: {item.uploadedByRole}</span>}
+            <span>At: {new Date(item.uploadedAt).toLocaleString("en-NG")}</span>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function UnsupportedFallback({ item }: { item: AdminTxEvidenceItem | null }) {
+  const Icon = item?.kind === "video" ? Video : item?.kind === "receipt" ? Receipt : item?.kind === "delivery_proof" ? Truck : item?.kind === "image" ? ImageIcon : FileText;
+  return (
+    <div className="flex flex-col items-center gap-3 text-muted-foreground py-12">
+      <Icon className="h-10 w-10" />
+      <div className="text-sm">Preview unavailable</div>
+      {item?.title && <div className="text-xs">{item.title}</div>}
+    </div>
+  );
+}
