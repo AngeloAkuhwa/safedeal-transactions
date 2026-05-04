@@ -1015,7 +1015,12 @@ export default function AdminTransactionDetail() {
                     {evidence.length === 0 ? (
                       <Empty>No evidence files uploaded yet.</Empty>
                     ) : (
-                      <ul className="space-y-3">
+                      <div className="rounded-lg bg-muted/30 p-3">
+                        <div className="flex items-center gap-3 mb-3">
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-foreground">Photo Evidence</span>
+                        </div>
+                        <ul className="space-y-2">
                         {evidence.map((ev) => {
                           const Icon = evidenceIcon(ev.kind);
                           return (
@@ -1023,25 +1028,25 @@ export default function AdminTransactionDetail() {
                               <button
                                 type="button"
                                 onClick={() => setEvidencePreview(ev)}
-                                className="w-full text-left flex items-center gap-3 rounded-lg border border-border bg-muted/20 p-3 hover:border-blue-500/50 transition-all"
+                                className="w-full text-left flex items-center gap-2 rounded-md p-1.5 hover:bg-muted/50 transition-all"
                               >
-                                <div className="w-12 h-12 rounded-md bg-muted/40 flex items-center justify-center shrink-0 overflow-hidden">
+                                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                                   {ev.kind === "image" && ev.secureUrl ? (
                                     <img src={ev.secureUrl} alt={ev.title} draggable={false} className="w-full h-full object-cover pointer-events-none" />
                                   ) : (
-                                    <Icon className="h-5 w-5 text-muted-foreground" />
+                                    <Icon className="h-4 w-4 text-muted-foreground" />
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium text-foreground truncate">{ev.title}</div>
-                                  <div className="text-xs text-muted-foreground truncate">{fmtDate(ev.uploadedAt)}{ev.uploadedByRole ? ` · ${ev.uploadedByRole}` : ""}</div>
+                                  <div className="text-sm text-muted-foreground truncate">{ev.title}</div>
+                                  <div className="text-xs text-muted-foreground truncate">{fmtDate(ev.uploadedAt)}</div>
                                 </div>
-                                <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
                               </button>
                             </li>
                           );
                         })}
-                      </ul>
+                        </ul>
+                      </div>
                     )}
                   </div>
                 </Card>
