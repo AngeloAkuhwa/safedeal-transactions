@@ -20,9 +20,13 @@ import {
   LineChart,
   User,
   Home,
+  Menu,
+  ShieldCheck,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { AdminReadingModeControl } from "@/components/admin/AdminReadingModeControl";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatMoney, formatMoneyCompact } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
@@ -297,32 +301,76 @@ export default function AdminTransactions() {
     toast({ title: label, description: `${code} — coming soon` });
 
   return (
-    <AdminLayout title="Transaction Monitor" subtitle="Monitor and investigate all platform transactions" badges={SIDEBAR_BADGES}>
-      {/* Live indicator + actions row (desktop). The AdminHeader already shows title/subtitle. */}
-      <div className="hidden items-center justify-between lg:flex animate-fade-in">
-        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-300">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-          Live
+    <AdminLayout
+      title="Transaction Monitor"
+      subtitle="Monitor and investigate all platform transactions"
+      badges={SIDEBAR_BADGES}
+      headerSlot={
+        <div className="sticky top-0 z-30 hidden border-b border-border bg-background/85 backdrop-blur lg:block">
+          <div className="flex items-center justify-between gap-4 px-8 py-4">
+            <div className="flex min-w-0 items-center gap-4">
+              <div>
+                <h1 className="text-xl font-semibold leading-tight text-foreground">Transaction Monitor</h1>
+                <p className="text-xs text-muted-foreground">Monitor and investigate all platform transactions</p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-400">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                Live
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <AdminReadingModeControl variant="desktop" />
+              <ThemeToggle />
+              <button
+                type="button"
+                onClick={handleExport}
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+              >
+                <Download className="h-4 w-4" />
+                Export
+              </button>
+              <button
+                type="button"
+                onClick={handleRefresh}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-500"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleExport}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted"
-          >
-            <Download className="h-4 w-4" />
-            Export
-          </button>
-          <button
-            type="button"
-            onClick={handleRefresh}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-500"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </button>
-        </div>
-      </div>
+      }
+      mobileHeaderSlot={({ onOpenMenu }) => (
+        <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur lg:hidden">
+          <div className="flex items-center justify-between gap-3 px-4 py-3">
+            <button
+              type="button"
+              onClick={onOpenMenu}
+              aria-label="Open menu"
+              className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-foreground/90 hover:bg-muted/70"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="min-w-0 flex-1 text-center">
+              <div className="truncate text-sm font-semibold leading-tight text-foreground">Transaction Monitor</div>
+              <div className="inline-flex items-center gap-1.5 text-[10px] font-medium text-emerald-400">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                Live
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              aria-label="Refresh"
+              className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-foreground/90 hover:bg-muted/70"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
+          </div>
+        </header>
+      )}
+    >
 
       {/* Summary KPI cards */}
       <TooltipProvider delayDuration={150}>
