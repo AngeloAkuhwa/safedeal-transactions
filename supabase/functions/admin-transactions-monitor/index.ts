@@ -209,8 +209,12 @@ function applyFilters(
 async function buildPayload(client: SupabaseClient, params: MonitorParams) {
   const page = Math.max(1, Math.floor(params.page ?? 1));
   const pageSize = Math.min(100, Math.max(1, Math.floor(params.pageSize ?? 25)));
-  const sortBy: "created_at" | "updated_at" | "transaction_code" =
-    params.sortBy === "updated_at" || params.sortBy === "transaction_code" ? params.sortBy : "created_at";
+  const requestedSort = params.sortBy ?? "urgency";
+  const dbSortable = new Set(["created_at", "updated_at", "transaction_code", "status"]);
+  const sortBy: "created_at" | "updated_at" | "transaction_code" | "status" =
+    dbSortable.has(requestedSort)
+      ? (requestedSort as "created_at" | "updated_at" | "transaction_code" | "status")
+      : "created_at";
   const sortDirection = params.sortDirection === "asc" ? "asc" : "desc";
 
   // Pre-compute failed-payment tx ids if needed for quickFilter or row enrichment
