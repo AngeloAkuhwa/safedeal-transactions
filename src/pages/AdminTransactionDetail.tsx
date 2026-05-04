@@ -1061,13 +1061,13 @@ export default function AdminTransactionDetail() {
 
           {/* === Supplementary admin-only sections === */}
           <Card>
-            <details>
+            <details className="group">
               <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 lg:px-6 py-4 border-b border-border">
                 <div>
                   <h2 className="text-sm lg:text-base font-semibold text-foreground">Admin extras</h2>
                   <p className="text-xs text-muted-foreground mt-0.5">Pricing breakdown, payout details, and full escrow ledger</p>
                 </div>
-                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
               <div className="p-4 lg:p-6 space-y-6">
                 <div>
