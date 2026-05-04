@@ -316,7 +316,14 @@ export default function AdminTransactions() {
       if (e instanceof AdminAccessRequiredError) {
         setAccessDenied(true);
       } else {
-        setError((e as Error).message || "Failed to load transactions");
+        const msg = (e as Error).message || "Failed to load Transaction Monitor";
+        setError(msg);
+        if (!initialLoad) {
+          sonnerToast.error("Failed to refresh", {
+            description: msg,
+            action: { label: "Retry", onClick: () => void fetchData() },
+          });
+        }
       }
     } finally {
       if (reqIdRef.current === reqId) {
