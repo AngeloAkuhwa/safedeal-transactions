@@ -684,7 +684,7 @@ export default function AdminTransactions() {
       </div>
 
       {/* Desktop table */}
-      <div className="hidden rounded-xl border border-border bg-card lg:block">
+      <div className="hidden overflow-hidden rounded-xl border border-border bg-card lg:block">
         <div className="flex items-center justify-between border-b border-border p-3">
           <h3 className="text-sm font-semibold text-foreground">
             Transactions
@@ -699,9 +699,13 @@ export default function AdminTransactions() {
             <LiveSyncPill state={liveSync} compact />
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div
+          className={`max-h-[calc(100vh-360px)] overflow-auto transition-opacity ${listDimmed ? "opacity-60 pointer-events-none" : ""}`}
+          aria-busy={listDimmed || undefined}
+        >
           <table className="w-full text-sm">
-            <thead>
+            <caption className="sr-only">Platform transactions, sortable and filterable</caption>
+            <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
                 <th className="px-3 py-2 text-left font-semibold">Transaction</th>
                 <th className="px-3 py-2 text-left font-semibold">Item</th>
@@ -711,7 +715,7 @@ export default function AdminTransactions() {
                 <th className="px-3 py-2 text-left font-semibold">Escrow</th>
                 <th className="px-3 py-2 text-left font-semibold">Flags</th>
                 <th className="px-3 py-2 text-left font-semibold">Last Activity</th>
-                <th className="px-3 py-2 text-left font-semibold">Actions</th>
+                <th className="w-[120px] px-3 py-2 text-left font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -725,32 +729,32 @@ export default function AdminTransactions() {
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-3 py-10 text-center text-sm text-muted-foreground">
-                    No transactions match the current filters.
+                  <td colSpan={9} className="px-3 py-2">
+                    <TransactionsEmptyState variant={emptyVariant} onClearFilters={clearAllFilters} />
                   </td>
                 </tr>
               ) : (
                 rows.map((t, i) => (
                   <tr
                     key={t.transactionId}
-                    className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} border-b border-border/60 transition-colors hover:bg-muted/40`}
+                    className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} border-b border-border/60 transition-colors hover:bg-muted/40 motion-reduce:transition-none`}
                   >
-                    <td className="px-3 py-3 align-top">
-                      <div className="flex items-start gap-2">
-                        {t.isFrozen ? <Snowflake className="mt-0.5 h-3.5 w-3.5 text-cyan-400" /> : null}
+                    <td className="px-3 py-2.5 align-middle">
+                      <div className="flex items-center gap-2">
+                        {t.isFrozen ? <Snowflake className="h-3.5 w-3.5 text-cyan-400" aria-hidden /> : null}
                         <div>
                           <div className="font-medium text-foreground">#{t.transactionCode}</div>
                           <div className="text-xs text-muted-foreground">{formatDate(t.createdAt)}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-3 align-top">
-                      <div className="font-medium text-foreground">{t.itemTitle}</div>
+                    <td className="px-3 py-2.5 align-middle">
+                      <div className="line-clamp-1 font-medium text-foreground" title={t.itemTitle}>{t.itemTitle}</div>
                       {t.itemCategory ? (
                         <div className="text-xs text-muted-foreground">{t.itemCategory}</div>
                       ) : null}
                     </td>
-                    <td className="px-3 py-3 align-top">
+                    <td className="px-3 py-2.5 align-middle">
                       <div className="text-xs">
                         <span className="text-muted-foreground">Buyer:</span>{" "}
                         <span className="text-foreground">{t.buyerName}</span>
@@ -760,7 +764,7 @@ export default function AdminTransactions() {
                         <span className="text-foreground">{t.sellerName}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-3 align-top">
+                    <td className="px-3 py-2.5 align-middle">
                       <div className="font-semibold text-foreground tabular-nums">
                         {formatMoney(t.amount, t.currency)}
                       </div>
@@ -768,27 +772,35 @@ export default function AdminTransactions() {
                         Protection Fee: {formatMoney(t.protectionFee, t.currency)}
                       </div>
                     </td>
-                    <td className="px-3 py-3 align-top">
+                    <td className="px-3 py-2.5 align-middle">
                       <Badge
                         label={t.transactionStatus.label}
                         cls={STATUS_BADGE_CLS[t.transactionStatus.key] ?? "bg-muted text-muted-foreground border-border"}
                       />
                       <div className="mt-1 text-[11px] text-muted-foreground">{t.moneyStatus.label}</div>
                     </td>
-                    <td className="px-3 py-3 align-top">
-                      <Badge
-                        label={t.escrowStatus.label}
-                        cls={ESCROW_BADGE_CLS[t.escrowStatus.key] ?? "bg-muted text-muted-foreground border-border"}
-                      />
+                    <td className="px-3 py-2.5 align-middle">
+                      {t.escrowStatus.key === "pending" || t.escrowStatus.key === "released" ? (
+                        <span className="text-[11px] text-muted-foreground">{t.escrowStatus.label}</span>
+                      ) : (
+                        <Badge
+                          label={t.escrowStatus.label}
+                          cls={ESCROW_BADGE_CLS[t.escrowStatus.key] ?? "bg-muted text-muted-foreground border-border"}
+                        />
+                      )}
                     </td>
-                    <td className="px-3 py-3 align-top">
-                      <Badge
-                        label={FLAG_META[t.riskLevel].label}
-                        cls={FLAG_META[t.riskLevel].cls}
-                        Icon={FLAG_META[t.riskLevel].Icon}
-                      />
+                    <td className="px-3 py-2.5 align-middle">
+                      {t.riskLevel === "clean" ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <Badge
+                          label={FLAG_META[t.riskLevel].label}
+                          cls={FLAG_META[t.riskLevel].cls}
+                          Icon={FLAG_META[t.riskLevel].Icon}
+                        />
+                      )}
                     </td>
-                    <td className="px-3 py-3 align-top">
+                    <td className="px-3 py-2.5 align-middle">
                       <span
                         className={`text-xs ${
                           t.lastActivityTone === "danger"
@@ -801,16 +813,13 @@ export default function AdminTransactions() {
                         {t.lastActivityLabel}
                       </span>
                     </td>
-                    <td className="px-3 py-3 align-top">
-                      <div className="flex items-center justify-start gap-1.5 text-muted-foreground">
-                        <IconBtn label="View" onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}>
+                    <td className="w-[120px] px-3 py-2.5 align-middle">
+                      <div className="flex items-center justify-start gap-1 text-muted-foreground">
+                        <IconBtn label="View details" onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}>
                           <Eye className="h-4 w-4" />
                         </IconBtn>
-                        <IconBtn label="Notes" onClick={() => { setActionRow(t); setActionKind("note"); }}>
+                        <IconBtn label="Add internal note" onClick={() => { setActionRow(t); setActionKind("note"); }}>
                           <MessageSquare className="h-4 w-4" />
-                        </IconBtn>
-                        <IconBtn label="Ledger" onClick={() => { setActionRow(t); setDrawerSection("ledger"); }}>
-                          <ArrowLeftRight className="h-4 w-4" />
                         </IconBtn>
                         <RowActionsMenu row={t} handlers={buildHandlers(t)} />
                       </div>
