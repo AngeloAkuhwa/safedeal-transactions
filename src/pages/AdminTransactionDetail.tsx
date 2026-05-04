@@ -4,7 +4,7 @@ import {
   ArrowLeft, AlertTriangle, Download, Scale, ShieldCheck,
   Snowflake, MoreVertical, ExternalLink, Truck, Package,
   CreditCard, Lock, Circle, StickyNote, Search, Flag, MoreHorizontal,
-  User, Wallet, Receipt, Clock, Vault, Handshake, Gavel, Image as ImageIcon,
+  User, Wallet, Receipt, Clock, Vault, Handshake, Gavel, Image as ImageIcon, Coins, Banknote,
   FileText, Video, ChevronDown, ChevronUp, Eye, FileSignature,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
