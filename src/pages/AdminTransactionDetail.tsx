@@ -997,7 +997,7 @@ export default function AdminTransactionDetail() {
             <div className="xl:col-span-2 space-y-5 lg:space-y-6">
 
               {/* Locked Agreement */}
-              <Card>
+              <div id="agreement"><Card>
                 <CardHeader
                   title="Locked Agreement"
                   subtitle={lockedAgreement?.lockedAt ? `Locked ${fmtDate(lockedAgreement.lockedAt)}` : "Original terms when payment was made"}
@@ -1042,7 +1042,7 @@ export default function AdminTransactionDetail() {
                     </div>
                   )}
                 </div>
-              </Card>
+              </Card></div>
 
               {/* Transaction Items */}
               <Card>
@@ -1127,7 +1127,7 @@ export default function AdminTransactionDetail() {
           </Card></div>
 
               {/* Delivery & Fulfillment */}
-              <Card>
+              <div id="delivery"><Card>
             <CardHeader title="Delivery & Fulfillment" />
             <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
               <div className="p-4 lg:p-6">
