@@ -824,24 +824,63 @@ export default function AdminTransactionDetail() {
             <CardHeader title="Linked Records" />
             <div className="px-4 pb-4">
               {data.linkedRecords.length === 0 && <Empty>No linked records.</Empty>}
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {data.linkedRecords.map((r, i) => {
+                  const typeKey = (r.type ?? "").toLowerCase();
+                  const ICON_MAP: Record<string, { Icon: any; cls: string }> = {
+                    payment: { Icon: CreditCard, cls: "bg-emerald-500/20 text-emerald-400" },
+                    escrow: { Icon: Vault, cls: "bg-purple-500/20 text-purple-400" },
+                    payout: { Icon: Wallet, cls: "bg-blue-500/20 text-blue-400" },
+                    dispute: { Icon: Scale, cls: "bg-orange-500/20 text-orange-400" },
+                    agreement: { Icon: Handshake, cls: "bg-slate-500/20 text-slate-400" },
+                  };
+                  const isParty = typeKey === "buyer" || typeKey === "seller";
+                  const iconMeta = ICON_MAP[typeKey];
+                  const party = isParty ? data.parties[typeKey as "buyer" | "seller"] : null;
                   const inner = (
-                    <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 p-3 hover:bg-muted/60 transition-colors">
-                      <div className="min-w-0">
-                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{titleCase(r.type)}</div>
-                        <div className="text-sm font-medium text-foreground truncate">{r.label}</div>
-                        {r.subtitle && <div className="text-[11px] text-muted-foreground truncate">{r.subtitle}</div>}
+                    <div className="p-4 bg-muted/30 border border-border rounded-lg hover:border-blue-500/50 transition-all h-full flex flex-col">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">{titleCase(r.type)}</span>
+                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
-                      <div className="text-right shrink-0">
-                        {r.amount != null && <div className="text-sm tabular-nums font-semibold">{ngn(r.amount)}</div>}
-                        {r.status && <StatusBadge value={r.status} />}
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {isParty ? (
+                          <Avatar name={party?.name ?? r.label} src={party?.avatarUrl ?? null} size={40} />
+                        ) : iconMeta ? (
+                          <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", iconMeta.cls)}>
+                            <iconMeta.Icon className="h-4 w-4" />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0"><Circle className="h-4 w-4 text-muted-foreground" /></div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-foreground font-medium text-sm truncate">{r.label}</p>
+                          {r.subtitle && <p className="text-muted-foreground text-xs truncate font-mono">{r.subtitle}</p>}
+                        </div>
                       </div>
+                      {(r.status || r.amount != null || (isParty && party?.flagged)) && (
+                        <div className="mt-3 pt-3 border-t border-border flex items-center justify-between gap-2">
+                          {isParty ? (
+                            party?.flagged ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
+                                <Flag className="h-3 w-3 mr-1" /> Flagged
+                              </span>
+                            ) : party?.verification?.identity ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400">
+                                <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                              </span>
+                            ) : <span />
+                          ) : (
+                            r.status ? <StatusBadge value={r.status} /> : <span />
+                          )}
+                          {r.amount != null && <span className="text-sm font-semibold tabular-nums text-foreground">{ngn(r.amount)}</span>}
+                        </div>
+                      )}
                     </div>
                   );
                   return (
                     <li key={i}>
-                      {r.route ? <button type="button" onClick={() => navigate(r.route!)} className="w-full text-left">{inner}</button> : inner}
+                      {r.route ? <button type="button" onClick={() => navigate(r.route!)} className="w-full text-left h-full">{inner}</button> : inner}
                     </li>
                   );
                 })}
@@ -854,21 +893,11 @@ export default function AdminTransactionDetail() {
       {/* Mobile sticky action bar */}
       {!loading && !denied && !notFound && data && (
         <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur px-3 py-2 flex items-center gap-2">
-          {adminCan.canOpenInvestigation ? (
-            <Button size="sm" className="flex-1 bg-red-500 hover:bg-red-600 text-white" onClick={() => setInvestigateOpen(true)}>
-              <Search className="h-4 w-4 mr-1.5" /> Investigate
-            </Button>
-          ) : adminCan.canManageDispute && dispute ? (
-            <Button size="sm" className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
-              <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
-            </Button>
-          ) : (
-            <Button size="sm" variant="outline" className="flex-1" onClick={() => setNoteOpen(true)}>
-              <StickyNote className="h-4 w-4 mr-1.5" /> Add Note
-            </Button>
-          )}
-          <Button size="sm" variant="outline" onClick={() => setActionSheetOpen(true)} aria-label="More">
-            <MoreHorizontal className="h-4 w-4" />
+          <Button size="sm" className="flex-1 bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setActionSheetOpen(true)}>
+            <Search className="h-4 w-4 mr-1.5" /> Take Action
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setActionSheetOpen(true)} aria-label="More" className="px-3">
+            <MoreVertical className="h-4 w-4" />
           </Button>
         </div>
       )}
