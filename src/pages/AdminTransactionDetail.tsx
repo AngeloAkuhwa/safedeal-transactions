@@ -633,44 +633,77 @@ export default function AdminTransactionDetail() {
             )}
           </CollapsibleCard>
 
-          {/* Risk & Investigation */}
+          {/* Risk & Investigation — split into Assessment + Log */}
           <Card>
-            <CardHeader title="Risk & Investigation" action={<StatusBadge value={data.risk?.level} />} />
-            <div className="px-4 pb-4 space-y-3">
-              {(data.risk?.flags ?? []).length === 0 && <Empty>No risk flags.</Empty>}
-              {(data.risk?.flags ?? []).length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {data.risk.flags.map((f: any, i: number) => (
-                    <span key={i} className={cn("rounded-md border px-2 py-0.5 text-[11px]",
-                      f.severity === "high" ? "border-red-500/30 bg-red-500/15 text-red-300" :
-                      f.severity === "medium" ? "border-orange-500/30 bg-orange-500/15 text-orange-300" :
-                      "border-yellow-500/30 bg-yellow-500/15 text-yellow-300")}>{f.label}</span>
-                  ))}
+            <CardHeader
+              title="Risk & Investigation"
+              action={
+                <div className="flex items-center gap-2">
+                  <StatusBadge value={data.risk?.level} />
+                  {adminCan.canOpenInvestigation && (
+                    <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)}>
+                      <Search className="h-3.5 w-3.5 mr-1.5" /> Investigate
+                    </Button>
+                  )}
                 </div>
-              )}
-              {(data.risk?.escalationHistory ?? []).length > 0 && (
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Escalation History</div>
+              }
+            />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 px-4 pb-4">
+              {/* Assessment */}
+              <div className="space-y-3">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Risk Assessment</div>
+                {(data.risk?.flags ?? []).length === 0 && <Empty>No risk flags raised.</Empty>}
+                {(data.risk?.flags ?? []).length > 0 && (
+                  <ul className="space-y-1.5">
+                    {data.risk.flags.map((f: any, i: number) => (
+                      <li key={i} className={cn("flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-[11px]",
+                        f.severity === "high" ? "border-red-500/30 bg-red-500/10 text-red-300" :
+                        f.severity === "medium" ? "border-orange-500/30 bg-orange-500/10 text-orange-300" :
+                        "border-yellow-500/30 bg-yellow-500/10 text-yellow-300")}>
+                        <Flag className="h-3 w-3 mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="font-medium">{f.label}</div>
+                          {f.detail && <div className="text-[10px] opacity-80 truncate">{f.detail}</div>}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {data.risk?.adminReviewReason && (
+                  <div className="rounded-md border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground">
+                    <span className="text-foreground font-medium">Reason:</span> {data.risk.adminReviewReason}
+                  </div>
+                )}
+              </div>
+              {/* Investigation Log */}
+              <div className="space-y-3 lg:border-l lg:border-border lg:pl-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Investigation Log</div>
+                  {adminCan.canAddNote && (
+                    <button type="button" onClick={() => setNoteOpen(true)} className="text-[11px] text-primary hover:underline">+ Add note</button>
+                  )}
+                </div>
+                {(data.risk?.escalationHistory ?? []).length > 0 && (
                   <ul className="text-xs space-y-1">
                     {data.risk.escalationHistory.map((h: any, i: number) => (
                       <li key={i} className="text-muted-foreground"><span className="text-foreground">{titleCase(h.label)}</span> · {fmtDate(h.at)}{h.by ? ` · ${h.by}` : ""}{h.note ? ` — ${h.note}` : ""}</li>
                     ))}
                   </ul>
-                </div>
-              )}
-              {(data.risk?.investigationNotes ?? []).length > 0 && (
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Investigation Notes</div>
+                )}
+                {(data.risk?.investigationNotes ?? []).length === 0 && (data.risk?.escalationHistory ?? []).length === 0 && (
+                  <Empty>No investigation activity yet.</Empty>
+                )}
+                {(data.risk?.investigationNotes ?? []).length > 0 && (
                   <ul className="space-y-2">
                     {data.risk.investigationNotes.map((n: any) => (
                       <li key={n.id} className="rounded-md border border-border bg-muted/30 p-2 text-xs">
                         <div className="text-muted-foreground">{fmtDate(n.at)} {n.author?.full_name ? `· ${n.author.full_name}` : ""}</div>
-                        <div className="text-foreground mt-0.5">{n.note}</div>
+                        <div className="text-foreground mt-0.5 whitespace-pre-wrap">{n.note}</div>
                       </li>
                     ))}
                   </ul>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </Card>
 
