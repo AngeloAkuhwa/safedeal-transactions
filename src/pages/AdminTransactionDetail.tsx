@@ -779,28 +779,44 @@ export default function AdminTransactionDetail() {
                     <button type="button" onClick={() => setNoteOpen(true)} className="text-[11px] text-primary hover:underline">+ Add note</button>
                   )}
                 </div>
-                {(data.risk?.escalationHistory ?? []).length > 0 && (
-                  <ul className="text-xs space-y-1">
-                    {data.risk.escalationHistory.map((h: any, i: number) => (
-                      <li key={i} className="text-muted-foreground"><span className="text-foreground">{titleCase(h.label)}</span> · {fmtDate(h.at)}{h.by ? ` · ${h.by}` : ""}{h.note ? ` — ${h.note}` : ""}</li>
-                    ))}
-                  </ul>
-                )}
                 {(data.risk?.investigationNotes ?? []).length === 0 && (data.risk?.escalationHistory ?? []).length === 0 && (
                   <Empty>No investigation activity yet.</Empty>
                 )}
                 {(data.risk?.investigationNotes ?? []).length > 0 && (
                   <ul className="space-y-2">
                     {data.risk.investigationNotes.map((n: any) => (
-                      <li key={n.id} className="rounded-md border border-border bg-muted/30 p-2 text-xs">
-                        <div className="text-muted-foreground">{fmtDate(n.at)} {n.author?.full_name ? `· ${n.author.full_name}` : ""}</div>
-                        <div className="text-foreground mt-0.5 whitespace-pre-wrap">{n.note}</div>
+                      <li key={n.id} className="rounded-md border border-border bg-muted/30 p-3 text-xs">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <span className="text-muted-foreground text-[11px]">{fmtDate(n.at)} {n.author?.full_name ? `· ${n.author.full_name}` : ""}</span>
+                          {n.tag && <span className="text-[10px] font-semibold uppercase text-orange-400">{n.tag}</span>}
+                        </div>
+                        <p className="text-foreground whitespace-pre-wrap">{n.note}</p>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
             </div>
+            {(data.risk?.escalationHistory ?? []).length > 0 && (
+              <div className="px-4 pb-4">
+                <div className="border-t border-border pt-4">
+                  <h4 className="text-sm font-medium text-foreground mb-3">Escalation History</h4>
+                  <ul className="space-y-2">
+                    {data.risk.escalationHistory.map((h: any, i: number) => {
+                      const dot = h.severity === "critical" ? "bg-red-400" : h.severity === "warning" ? "bg-orange-400" : "bg-slate-400";
+                      return (
+                        <li key={i} className="flex items-center gap-3 text-sm">
+                          <div className={cn("w-2 h-2 rounded-full shrink-0", dot)} />
+                          <span className="text-muted-foreground text-xs whitespace-nowrap">{fmtDate(h.at)}</span>
+                          <span className="text-foreground">{titleCase(h.label)}</span>
+                          {h.by && <span className="text-muted-foreground text-xs">by {h.by}</span>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
+            )}
           </Card>
 
           {/* Linked Records */}
