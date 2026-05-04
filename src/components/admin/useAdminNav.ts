@@ -5,6 +5,7 @@ import { toast } from "@/hooks/use-toast";
 const BUILT_ROUTES = new Set<string>([
   "/admin/dashboard",
   "/admin/offers",
+  "/admin/transactions",
 ]);
 
 export function isBuiltAdminRoute(href: string | null | undefined): boolean {
