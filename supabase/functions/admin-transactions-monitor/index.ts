@@ -608,7 +608,7 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
       // Pull risk + ops signals for this chunk in parallel
       const sinceIso = new Date(now - 30 * day).toISOString();
       const [stuckRes, queueRes, payoutFailedRes, overdueDispRes, adminActsChunkRes, auditChunkRes, paymentsFailedChunkRes] = await Promise.all([
-        client.from("transactions").select("id, status, created_at, needs_release_review, dispute_status").in("id", chunk),
+        client.from("transactions").select("id, status, money_status, created_at, needs_release_review, dispute_status").in("id", chunk),
         client.from("release_review_queue").select("transaction_id, status").in("transaction_id", chunk).in("status", ["pending", "claimed", "processing", "awaiting_info", "held", "failed"]),
         client.from("payouts").select("transaction_id, status").in("transaction_id", chunk).eq("status", "failed"),
         client.from("disputes").select("transaction_id, seller_response_due_at, status").in("transaction_id", chunk).in("status", ACTIVE_DISPUTE_STATUSES as unknown as string[]).lt("seller_response_due_at", new Date(now).toISOString()),
@@ -624,6 +624,9 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
         if (r.needs_release_review) {
           flaggedSet.add(r.id);
           awaitingSet.add(r.id);
+        }
+        if (r.money_status === "funds_frozen") {
+          flaggedSet.add(r.id);
         }
         if ((ACTIVE_DISPUTE_STATUSES as readonly string[]).includes(r.dispute_status)) {
           awaitingSet.add(r.id);
