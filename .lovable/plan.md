@@ -1,77 +1,109 @@
-## Plan: Make admin transaction rows/cards clickable → detail page
+# SafeDeal Admin Transaction Detail — Implementation Plan
 
-### 1. New route + page
+## 0. Reading Mode (already done — confirming)
 
-**`src/App.tsx`** — register:
-```tsx
-<Route path="/admin/transactions/:transactionId" element={<AdminTransactionDetail />} />
-```
-inside the existing admin `ProtectedRoute requireRole="admin"` block.
+Reading Mode is already wired globally for every Central Admin screen via `AdminLayout`:
+- `ReadingModeProvider` wraps all admin pages.
+- Desktop trigger lives in `AdminHeader`; mobile trigger in `AdminMobileHeader`.
+- Floating controls (`mobile-floater`, `desktop-floater`) are mounted from `AdminLayout` so they appear on Dashboard, Transactions, the new Detail page, and any future admin route automatically.
 
-**New file `src/pages/AdminTransactionDetail.tsx`**:
-- Reads `transactionId` from `useParams()`.
-- Calls existing `getAdminTransactionDetail(transactionId, ["timeline","ledger","messages","summary"])` from `src/services/admin-transaction-actions.service.ts` (already used by `DetailDrawer`).
-- Layout uses `AdminLayout` (same shell as `AdminTransactions`).
-- Sections: header (back button, code, status pills, key amounts), Timeline, Ledger, Messages, Linked Records (buyer/seller, payment ref, escrow). Reuses `Badge`/status helpers from `AdminTransactions.tsx` (extracted minimally inline; no styling overhaul — V1 mirrors the DetailDrawer data plus a richer header).
-- Back button: `navigate(returnTo ?? "/admin/transactions")` where `returnTo` is taken from `location.state.returnTo` (full path with query string) — preserves filters.
-- Loading / error states + 403 → admin denied message.
+**No new work needed** — the new Detail page inherits it through `AdminLayout`. We will only verify it doesn't collide with the new mobile sticky bottom action bar (raise floater offset if needed).
 
-### 2. Make rows clickable (`src/pages/AdminTransactions.tsx`)
+---
 
-Add a helper inside the component:
-```ts
-const goToDetail = (t: AdminTxRow) => {
-  navigate(`/admin/transactions/${t.transactionId}`, {
-    state: { returnTo: `${location.pathname}${location.search}` },
-  });
-};
-```
-(`useLocation` already importable from `react-router-dom`; `navigate` already in scope.)
+## 1. Backend — extend `admin-transaction-detail` edge function
 
-**Desktop `<tr>` (line ~815)**:
-- Add `onClick={() => goToDetail(t)}`, `onKeyDown` handler (Enter/Space → goToDetail), `tabIndex={0}`, `role="button"`, `aria-label={`Open transaction ${t.transactionCode}`}`.
-- Append classes: `cursor-pointer hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 active:bg-muted/80` (keeps existing `rowStateClass(t)` risk styling because it's applied first).
+The current function returns: `summary`, `timeline`, `ledger`, `messages`, `notes`. We need richer data to fill all design sections without hardcoding.
 
-**Mobile `<article>` (line ~961)**:
-- Same pattern: `onClick`, `onKeyDown`, `tabIndex={0}`, `role="button"`, `aria-label`. Classes add `cursor-pointer hover:bg-muted/30 active:scale-[0.998] transition-colors focus-visible:ring-2 focus-visible:ring-blue-500/50`.
+Add to the response:
 
-### 3. Stop propagation on action controls
+| Section | New fields |
+|---|---|
+| `summary` | `payoutStatus`, `paymentProvider`, `providerReference`, `lastActivityAt`, `itemTitle`, full `pricing` (item_total, protection_fee, buyer_total, seller_net, refunded, payout) |
+| `risk` (new) | `riskLevel`, `riskSignals[]`, `escalationHistory[]`, `investigationLog[]` (from `admin_actions` + `audit_logs`) |
+| `dispute` (new) | `id`, `status`, `reason`, `openedAt`, `deadlineAt`, `evidence[]` |
+| `linkedRecords` (new) | `buyerProfile` (id, name, masked email, flagged), `sellerProfile` (verified tier), `payment` (provider, ref, amount), `escrow` (state, held) |
+| `agreement` (new) | locked JSONB snapshot from `transactions.agreement_snapshot` |
+| `items` (new) | `transaction_items` rows (title, qty, unit price, image url) |
+| `delivery` (new) | `delivery_method`, `tracking_number`, `carrier`, shipped/delivered timestamps, latest `delivery_updates` |
+| `auditTrail` (new) | last 50 `audit_logs` rows scoped to this transaction |
 
-To prevent action buttons from triggering row navigation:
+All queries run in `Promise.all`. Field names continue camelCase. Auth/RLS pattern unchanged (admin-only via `has_role`).
 
-- **`IconBtn`** (line ~1175 in `AdminTransactions.tsx`) — wrap its `onClick`:
-  ```ts
-  onClick={(e) => { e.stopPropagation(); onClick(); }}
-  ```
-  Update prop type to accept the event. This covers View, Add Internal Note icons used in the table.
-- **Mobile "View" `<button>`** (line ~1036) — add `e.stopPropagation()` in its onClick.
-- **`RowActionsMenu`** (`src/components/admin/transactions/RowActionsMenu.tsx`) — wrap the trigger button (kebab) `onClick` with `e.stopPropagation()`, and add `onClick={(e) => e.stopPropagation()}` on the `DropdownMenuContent` so menu-item clicks don't bubble to the row.
-- **Snowflake icon / Badges** are non-interactive → no change needed.
+---
 
-### 4. Accessibility / UX detail
+## 2. Frontend — rebuild `src/pages/AdminTransactionDetail.tsx`
 
-- Use `onKeyDown` matching `Enter` and `Space` (preventDefault on Space to avoid page scroll).
-- `aria-label="Open transaction {transactionCode}"` on both row and card.
-- Keep existing eye-icon View button (still works, just stops propagation).
-- High-risk row tints (`rowStateClass`) remain — hover layer is `bg-muted/60` over the tint so risk color stays visible.
+Replace the current minimal layout with a section-driven, fully responsive page rendered inside `AdminLayout`.
 
-### 5. State preservation
+### Shared utilities
+- `formatNGN(value)` — wrapper around `formatMoney` forcing `NGN` + 2 decimals (no abbreviation).
+- `StatusBadge` — single component with the design's color matrix:
+  - In Dispute → orange · Held in Escrow → purple · Frozen → cyan (or red if severity high) · Completed → green · Awaiting Payment → yellow · Awaiting Release → blue · Refunded → gray · Failed → red · Overdue → red.
 
-- Outbound: pass `state: { returnTo }` containing the current `pathname + search` (filters/page/sort are already mirrored to URL search params in many flows; if not, the `returnTo` still preserves whatever URL the user is on). No new query-param plumbing required for v1 because filters live in component state — but pressing Back via the new detail page restores the same `/admin/transactions` URL.
-- Optional follow-up (not in this change): persist filters to URL search params for true cross-tab durability.
+### Desktop layout (≥ lg)
+Sticky header slot (passed via `AdminLayout headerSlot`):
+- Back arrow, title `Transaction #{transactionCode}`, subtitle `{itemTitle} — {statusLabel}`
+- Right: `Export`, conditional `View Dispute`.
 
-### 6. Files touched
+Single-column main area (matches design — full-width cards stacked):
+1. **Transaction Summary Header** — large card with left orange accent if disputed; grid of: Transaction code, Last Activity, Total Amount, Payout Status, Payment Provider, Buyer, Seller, Transaction Status, Money Status, Item Total, Protection Fee, Total Charged, Held in Escrow. Inline action row at the bottom: Export Data, Open Investigation, Freeze Funds, Manage Dispute (state-aware, disabled with tooltip).
+2. **Risk & Investigation** — Risk Assessment panel (level + signals), Investigation Log (right column at lg+), Escalation History below.
+3. **Complete Transaction Timeline** — full event stream from existing `timeline[]`.
+4. **Linked Records** — Buyer Profile, Seller Profile, Payment, Escrow as 2×2 grid.
+5. **Locked Agreement** — read-only JSON viewer + key fields (item price, fee, total, dates).
+6. **Transaction Items** — list/table of items with thumbnails and NGN totals.
+7. **Payment & Escrow** — provider, reference (masked, copy-to-clipboard), escrow state, held/released amounts.
+8. **Delivery & Fulfillment** — method, carrier, tracking, status timeline.
+9. **Admin Notes / Internal Activity** — existing `notes[]` plus inline "Add Note" action (already in actions service).
+10. **Audit Trail** — table of audit events.
 
-- `src/App.tsx` — add route.
-- `src/pages/AdminTransactionDetail.tsx` — new page.
-- `src/pages/AdminTransactions.tsx` — clickable row + card, `IconBtn` stopPropagation, navigation helper with `returnTo` state.
-- `src/components/admin/transactions/RowActionsMenu.tsx` — stopPropagation on trigger + content.
+All sections **expanded by default** on desktop.
 
-### Acceptance check (after build)
+### Mobile layout (< lg)
+- `AdminLayout` mobile header retained (back, brand, hamburger).
+- Mini transaction header card: code, item title, status badges (multiple).
+- Stacked cards: Summary, High Risk Alert (only if risky), Quick Actions (Investigate / Freeze / Export / Manage), Dispute Status (collapsible), Timeline (collapsible), Linked Records (collapsible), Transaction Details (collapsible), Payment & Escrow (collapsible), Delivery & Fulfillment (collapsible).
+- Sticky bottom action bar: primary `Take Action` (opens action sheet reusing `RowActionsMenu` items) + kebab `More`.
+- Reuse shadcn `Collapsible`. Default open: Summary + Quick Actions; rest closed.
+- Add `pb-24` to main scroll container so sticky bar doesn't hide content; raise mobile reading-mode floater to `bottom-32` only on this page.
 
-- Click anywhere on a desktop row (outside the action column buttons) → navigates to `/admin/transactions/:id`.
-- Click anywhere on a mobile card (outside View/kebab) → navigates.
-- Eye icon, note icon, kebab menu and its items do NOT navigate.
-- Enter on a focused row navigates.
-- Back from detail returns to `/admin/transactions` with prior URL state.
-- Risk-tinted rows still show their tint and respond to hover.
+### State preservation
+Back button continues using `location.state.returnTo` (already implemented).
+
+---
+
+## 3. Money formatting rule (enforced)
+Every money value across the page goes through `formatNGN`. No `$`, no abbreviation. Examples: `₦5,356.00`, `₦156.00`, `₦5,200.00`. Replace any sample design copy showing `$` with the corresponding NGN field.
+
+---
+
+## 4. Files touched
+
+- **Edit** `supabase/functions/admin-transaction-detail/index.ts` — add risk, dispute, linkedRecords, agreement, items, delivery, auditTrail; expand summary fields. Redeploy.
+- **Edit** `src/services/admin-transaction-actions.service.ts` — extend `AdminTxDetail` type.
+- **Replace** `src/pages/AdminTransactionDetail.tsx` — full design build, mobile + desktop.
+- **New** `src/components/admin/transactions/detail/` —
+  - `StatusBadge.tsx`
+  - `SummaryHeader.tsx`
+  - `RiskInvestigation.tsx`
+  - `TimelineSection.tsx`
+  - `LinkedRecords.tsx`
+  - `LockedAgreement.tsx`
+  - `ItemsSection.tsx`
+  - `PaymentEscrow.tsx`
+  - `DeliveryFulfillment.tsx`
+  - `InternalActivity.tsx`
+  - `AuditTrail.tsx`
+  - `MobileActionBar.tsx`
+  - `CollapsibleSection.tsx`
+- **No changes** to Reading Mode plumbing — already global.
+
+---
+
+## 5. Acceptance verification (after build)
+- Visual diff vs the two uploaded references (desktop + mobile) at 1280px and 390px.
+- All money values render as `₦X,XXX.00` — grep-free of `$` in the new files.
+- Disputed transaction shows orange accent, Risk panel, View Dispute button; non-disputed transaction hides those gracefully.
+- Mobile sticky action bar doesn't overlap reading-mode floater or content.
+- Reading Mode toggle still works on this page (Easy / Standard / Dense).
