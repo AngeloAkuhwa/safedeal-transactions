@@ -95,6 +95,35 @@ const FLAG_META: Record<string, { label: string; cls: string; Icon?: typeof Flag
   fraud_watch: { label: "Fraud Watch", cls: "bg-red-500/15 text-red-400 border-red-500/30", Icon: Flame },
 };
 
+// Operational flags returned in `flags[]` by admin-transactions-monitor.
+const SECONDARY_FLAG_META: Record<string, { label: string; cls: string; Icon?: typeof Flag }> = {
+  frozen:         { label: "Frozen",         cls: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",      Icon: Snowflake },
+  admin_frozen:   { label: "Admin Frozen",   cls: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",      Icon: Snowflake },
+  overdue:        { label: "Overdue",        cls: "bg-orange-500/15 text-orange-300 border-orange-500/30",Icon: Clock },
+  payment_failed: { label: "Payment Failed", cls: "bg-red-500/15 text-red-400 border-red-500/30",         Icon: ShieldAlert },
+  payout_failed:  { label: "Payout Failed",  cls: "bg-red-500/15 text-red-400 border-red-500/30",         Icon: ShieldAlert },
+  risk_flagged:   { label: "Risk Flagged",   cls: "bg-red-500/15 text-red-400 border-red-500/30",         Icon: Flag },
+};
+
+function buildFlagBadges(t: { riskLevel: string; flags?: string[] | null }) {
+  const out: { key: string; label: string; cls: string; Icon?: typeof Flag }[] = [];
+  if (t.riskLevel && t.riskLevel !== "clean" && FLAG_META[t.riskLevel]) {
+    out.push({ key: t.riskLevel, ...FLAG_META[t.riskLevel] });
+  }
+  const seen = new Set(out.map((b) => b.key));
+  for (const f of t.flags ?? []) {
+    if (seen.has(f)) continue;
+    if (f === "risk_flagged" && t.riskLevel !== "clean") continue;
+    if (f === "admin_frozen" && seen.has("frozen")) continue;
+    if (f === "frozen" && seen.has("admin_frozen")) continue;
+    const meta = SECONDARY_FLAG_META[f];
+    if (!meta) continue;
+    out.push({ key: f, ...meta });
+    seen.add(f);
+  }
+  return out;
+}
+
 const QUICK_FILTERS: { key: AdminTxQuickFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "awaiting_payment", label: "Awaiting Payment" },

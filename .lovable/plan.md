@@ -1,113 +1,35 @@
-# Admin Transaction Monitor — Production Polish
 
-Scope: refinements only. No data-shape changes, no new endpoints. Touches `src/pages/AdminTransactions.tsx` plus 3 small new presentation components. All data continues to flow from `admin-transactions-monitor` and `admin-transaction-actions` edge functions.
+## Issues
 
-## 1. Desktop polish
+1. **Flags column shows only "—"** — The table "Flags" cell only renders the `riskLevel` badge. Since most rows have `riskLevel: "clean"`, they fall through to the dash. The backend already returns a rich `flags[]` array (`frozen`, `admin_frozen`, `overdue`, `payment_failed`, `payout_failed`, `risk_flagged`, `escalated`, `high_risk`, `fraud_watch`) in `admin-transactions-monitor`, but the UI ignores it.
+2. **Reading-mode floater overlaps pagination & bottom nav** — `AdminReadingModeControl` renders fixed at:
+   - desktop: `bottom-5 right-5 z-40` → sits directly on top of the right-aligned `Prev / Next` buttons in the table footer.
+   - mobile: `bottom-4 left-1/2 z-50` → sits above (and overlaps) the fixed bottom navigation (`z-30`, ~64 px tall).
 
-**Summary cards (`summaryTiles`)**
-- Reduce padding `p-4 → p-3.5`, icon tile `h-10 w-10 → h-8 w-8`, value `text-2xl → text-xl`, fixed min height so all 6 align.
-- Skeleton bar styled to match final value height to prevent jump.
-- Hover lift kept but lowered to `-translate-y-px` for less bounce.
+## Fix Plan (single file each)
 
-**Table density & sticky header**
-- Wrap `<table>` in `max-h-[calc(100vh-380px)] overflow-auto` so the header is sticky inside the table area: `<thead className="sticky top-0 z-10 bg-card">`.
-- Standardize row height: `py-2.5` cells, `align-middle`, line-clamp item title to 1 line (with `title` attr).
-- Action column collapses to: `View`, `Notes`, `More` (move Ledger into the More menu — `RowActionsMenu` already supports it).
-- Action cell `w-[120px]` so icons stay aligned across rows.
+### A. `src/pages/AdminTransactions.tsx` — populate Flags
 
-**Row highlighting (state-driven, color-blind safe)**
-- Frozen → `bg-cyan-500/[0.04]` + 2px left border `border-l-cyan-500/60`.
-- Disputed → `border-l-orange-500/60` + subtle bg.
-- High risk / fraud watch → `border-l-red-500/60`.
-- Default rows keep `border-l-transparent` for layout parity.
-- Snowflake / shield icons remain so color isn't the only signal.
+1. Add `SECONDARY_FLAG_META` map for the operational flags returned by the edge function: `frozen`, `admin_frozen`, `overdue`, `payment_failed`, `payout_failed`, `risk_flagged`, each with a sensible label, color class, and icon (Snowflake / Clock / ShieldAlert / Flag — all already imported).
+2. Add a `buildFlagBadges(row)` helper that:
+   - Starts with the `riskLevel` badge when not `clean` (Escalated / High Risk / Fraud Watch).
+   - Appends secondary flags from `row.flags`, deduped (collapse `frozen` ↔ `admin_frozen`, drop `risk_flagged` when a risk-level badge is already present).
+   - Caps the visible list at **2 badges**; any remainder becomes a `+N` chip with a tooltip listing the rest, so the row stays uncluttered.
+3. Replace the current `t.riskLevel === "clean" ? "—" : <Badge .../>` block in the desktop table cell with:
+   - `badges.length === 0` → keep the `—` placeholder.
+   - Otherwise render the badges in a `flex flex-wrap gap-1` container.
+4. Mirror the same helper on the mobile card badge row so badges like Overdue / Payment Failed surface there too.
 
-**Badges**
-- Show **one** primary badge per cell. Status column: only Tx status badge (money status stays as small caption beneath — already done).
-- Flags column: render badge only when `riskLevel !== "clean"`; show `—` otherwise to reduce noise.
-- Escrow column: hide pill when state is `pending` / `released`; replace with muted text label.
+### B. `src/components/admin/AdminReadingModeControl.tsx` — keep floater clear of controls
 
-**Overflow**
-- Move horizontal scroll to inner table wrapper only; outer card stays at full width (already mostly done — just confirm `overflow-hidden` on outer card so border-radius clips correctly).
+1. **Desktop floater** (`variant === "desktop-floater"`): move from `bottom-5 right-5` to `bottom-5 left-5` (away from right-aligned pagination), keep `z-40`. Add `pointer-events-auto` wrapper so it doesn't trap clicks elsewhere (already isolated, no behavior regression).
+2. **Mobile floater** (`variant === "mobile-floater"`): raise it above the fixed bottom nav by adding `bottom-[calc(env(safe-area-inset-bottom)+72px)]` (nav is ~64 px + safe-area). Keep `z-50` so it stays above the nav itself but no longer overlaps page content/pagination.
+3. No layout regressions on pages without bottom nav — extra offset is purely vertical and small.
 
-## 2. Mobile polish
+## Acceptance
 
-**Cards**
-- Reorder card body to: header (code/date + status badge) → item title → amount + protection (right-aligned) → buyer/seller compact line → escrow/risk badges row (only when non-default) → footer with primary action (`View`) + More menu.
-- Drop the explicit "Buyer/Seller" two-column block; replace with single line `Buyer • Seller` truncated.
-- Hide `Last activity` line unless tone is `warn` or `danger`.
-- Reduce vertical paddings: `p-3 → p-2.5`, separators `border-t` → `mt-2 pt-2 border-t border-border/60`.
-
-**Filter chips**
-- Already horizontally scrollable; add `snap-x snap-mandatory` and `scrollbar-none` utility (Tailwind `[scrollbar-width:none] [&::-webkit-scrollbar]:none`).
-
-**Search**
-- Pull search bar **above** quick chips on mobile (`flex-col` stacking with search first), keeping it prominent and always visible. Filters chip row stays beneath.
-
-**Bottom nav**
-- Add `pb-[calc(64px+env(safe-area-inset-bottom))]` to the page wrapper so cards / pagination aren't hidden behind nav. Currently only the mobile card list has `pb-20` — apply at page level.
-
-## 3. Empty states (new component `TransactionsEmptyState`)
-
-One presentational component, variant-driven, used in both desktop table tbody and mobile list:
-
-| Variant | When |
-|---|---|
-| `no-data` | API returned 0 rows AND no filters active |
-| `no-search` | `debouncedSearch` non-empty AND 0 results |
-| `no-filtered` | Any filter active AND 0 results |
-| `no-disputes` | `activeQuick === "in_dispute"` AND 0 results |
-| `no-flagged` | `activeQuick === "flagged"` AND 0 results |
-
-Each has icon + heading + 1-line hint + "Clear filters" CTA where appropriate.
-
-## 4. Loading states
-
-- **Summary skeletons**: 6 shimmer tiles matching final card dimensions (only on `initialLoad`).
-- **Filter panel**: render as-is even on first load (controls are static). No skeleton needed.
-- **Table/cards**: existing skeletons retained, refined to match new row height (desktop) and new card layout (mobile).
-- **Subtle inline loading on filter changes**: dim `tbody` / mobile list with `opacity-60 pointer-events-none transition-opacity` while `isFetching && !initialLoad`. Already partly present via the search spinner — extend to the whole list.
-
-## 5. Error states
-
-- Existing error banner kept; copy adjusted: "Failed to load Transaction Monitor".
-- Add toast via `sonnerToast.error` on refresh failure with **Retry** action button (not just banner).
-- Action failures already use `sonnerToast.error` — add an explicit "Retry" affordance in the toast for `freeze/flag/escalate`.
-
-## 6. Animations
-
-- Header: wrap title block in `animate-fade-in` (already on subsections).
-- Summary cards: keep existing `sd-fade-in-stagger` (already in place).
-- Filter panel: `animate-fade-in` (already in place).
-- Table rows: keep stagger only for **first 6 rows**, no stagger on subsequent fetches (avoid re-animating on realtime). Detect via `initialLoad` flag.
-- Badges: remove any `animate-pulse` from badges (none currently — confirm).
-- Live indicator pulse: keep but wrap in `motion-safe:animate-pulse`.
-- Add `motion-reduce:transition-none motion-reduce:animate-none` to row hover/lift effects globally on this page (utility class on wrapper).
-
-## 7. Accessibility
-
-- All `IconBtn` already has `aria-label`. Wrap each in `<Tooltip>` for hover hint (use existing `TooltipProvider`).
-- Add `aria-label` to refresh, export, sort, and filters buttons.
-- Add `<caption className="sr-only">Platform transactions, sortable, filterable</caption>` on the table.
-- Filter `<label>` wrapping is in place — confirm `htmlFor`/id pairing for inputs.
-- Status, escrow, risk: each badge already pairs an icon with text; confirm icon has `aria-hidden`.
-- Keyboard: ensure quick filter chips are real `<button>` (already), focus-visible ring `focus-visible:ring-2 focus-visible:ring-blue-500/60` added to chips, IconBtn, BottomNav, and PaginationBar buttons.
-
-## 8. Files touched
-
-```text
-src/pages/AdminTransactions.tsx                              (refinements)
-src/components/admin/transactions/TransactionsEmptyState.tsx (new)
-src/components/admin/transactions/StateRowDecoration.ts      (new — small helper returning row className per row state)
-```
-
-No DB migrations. No edge function changes. No service-layer changes. No new dependencies.
-
-## 9. Acceptance check
-
-- 1366×768 desktop: 6 KPI cards on one row, table header sticky inside scrollable area, action column never wraps, frozen/disputed/high-risk rows visually distinct via border + subtle bg + icon.
-- 390×844 mobile: search prominent at top, chips scroll horizontally with snap, cards compact (~140–160 px tall), bottom nav doesn't cover last card.
-- All five empty-state variants render with correct copy.
-- `prefers-reduced-motion: reduce` disables stagger, hover lift, and live-pulse.
-- Lighthouse a11y for the page ≥ 95 (manual smoke check).
-- No hardcoded counts/money/names anywhere — only the static enum option labels and visual tokens.
+- Desktop "Flags" column shows real chips per row (e.g. `Frozen`, `Overdue`, `Payment Failed`) and `—` only when truly clean.
+- Mobile cards display the same operational badges in the existing badge row.
+- Scrolling to the bottom of `/admin/transactions`, the Prev / Next buttons are fully clickable and **not** covered by the Reading Mode pill.
+- Mobile Reading Mode pill sits above the bottom navigation and never sits on top of pagination or card content.
+- No backend changes; no new dependencies; only the two files above are touched.
