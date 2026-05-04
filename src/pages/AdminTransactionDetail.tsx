@@ -640,9 +640,9 @@ export default function AdminTransactionDetail() {
         onOpenChange={setFreezeOpen}
         title="Freeze Funds"
         description="Type FREEZE to confirm freezing the escrow funds for this transaction."
-        confirmWord="FREEZE"
+        typeToConfirm="FREEZE"
         confirmLabel="Freeze Funds"
-        requireReason
+        confirmTone="danger"
         onConfirm={async (reason) => {
           if (!transactionId) return;
           await freezeTransaction(transactionId, reason ?? "manual_hold");
@@ -653,6 +653,7 @@ export default function AdminTransactionDetail() {
       <InternalNoteDialog
         open={noteOpen}
         onOpenChange={setNoteOpen}
+        transactionCode={code}
         onSubmit={async (note) => {
           if (!transactionId) return;
           await addInternalNote(transactionId, note);
