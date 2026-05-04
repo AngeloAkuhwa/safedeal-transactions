@@ -150,9 +150,11 @@ function timelineMeta(icon?: string, severity?: string) {
   if (severity === "success") return { ...base, cls: "border-emerald-500 bg-emerald-500/15 text-emerald-400" };
   return base;
 }
-function evidenceIcon(kind: string) {
-  if (kind === "image") return ImageIcon;
-  if (kind === "video") return Video;
+function evidenceIcon(kind: string, mime?: string | null) {
+  const m = (mime ?? "").toLowerCase();
+  if (m.startsWith("image/") || kind === "image") return ImageIcon;
+  if (m.startsWith("video/") || kind === "video") return Video;
+  if (m === "application/pdf") return FileText;
   if (kind === "receipt") return Receipt;
   if (kind === "delivery_proof") return Truck;
   return FileText;
@@ -269,11 +271,13 @@ export default function AdminTransactionDetail() {
   }, [data?.timeline, tlFilter, tlNewest]);
 
   const visibleTimeline = showFullTimeline ? filteredTimeline : filteredTimeline.slice(0, 8);
+  const allFlagsCount = (data?.risk?.flags?.length ?? 0);
   const showHighRisk =
     data?.risk?.level === "high" ||
     data?.risk?.level === "escalated" ||
     tx?.moneyStatus === "funds_frozen" ||
-    !!(dispute?.overdue);
+    !!dispute ||
+    allFlagsCount > 0;
 
   // Header (desktop)
   const headerSlot = (
