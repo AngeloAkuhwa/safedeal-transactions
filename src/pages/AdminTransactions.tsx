@@ -511,7 +511,7 @@ export default function AdminTransactions() {
                 </div>
                 <div className="text-[11px] text-muted-foreground">{t.label}</div>
                 <div className="mt-1 truncate text-2xl font-semibold tracking-tight text-foreground">
-                  {isFetching && !summary ? <span className="inline-block h-6 w-16 animate-pulse rounded bg-muted" /> : t.value}
+                  {initialLoad && !summary ? <span className="inline-block h-6 w-16 animate-pulse rounded bg-muted" /> : t.value}
                 </div>
               </div>
             );
