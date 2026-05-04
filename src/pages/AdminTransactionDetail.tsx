@@ -623,7 +623,7 @@ export default function AdminTransactionDetail() {
           {/* Pricing */}
           <Card>
             <CardHeader title="Pricing & Fees" />
-            <div className="px-4 pb-4">
+            <div className="p-4 lg:p-6">
               {!data.pricing && <Empty>No pricing recorded.</Empty>}
               {data.pricing && (
                 <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -642,7 +642,7 @@ export default function AdminTransactionDetail() {
             {/* Payment */}
             <Card>
               <CardHeader title="Payment" />
-              <div className="px-4 pb-4">
+              <div className="p-4 lg:p-6">
                 {!data.payment && <Empty>No payment recorded.</Empty>}
                 {data.payment && (
                   <dl className="grid grid-cols-2 gap-4">
@@ -661,7 +661,7 @@ export default function AdminTransactionDetail() {
             {/* Escrow */}
             <Card>
               <CardHeader title="Escrow" />
-              <div className="px-4 pb-4">
+              <div className="p-4 lg:p-6">
                 {!data.escrow && <Empty>No escrow record.</Empty>}
                 {data.escrow && (
                   <dl className="grid grid-cols-2 gap-4">
@@ -679,7 +679,7 @@ export default function AdminTransactionDetail() {
             {/* Payout */}
             <Card>
               <CardHeader title="Payout" />
-              <div className="px-4 pb-4">
+              <div className="p-4 lg:p-6">
                 {!data.payout && <Empty>No payout recorded.</Empty>}
                 {data.payout && (
                   <dl className="grid grid-cols-2 gap-4">
@@ -700,7 +700,7 @@ export default function AdminTransactionDetail() {
             {/* Delivery */}
             <Card>
               <CardHeader title="Delivery" />
-              <div className="px-4 pb-4">
+              <div className="p-4 lg:p-6">
                 <dl className="grid grid-cols-2 gap-4">
                   <Stat label="Method" value={titleCase(data.delivery?.method)} />
                   <Stat label="Courier" value={data.delivery?.courier ?? "—"} />
@@ -737,7 +737,7 @@ export default function AdminTransactionDetail() {
           {dispute && (
             <Card accent="orange">
               <CardHeader title="Dispute" subtitle={titleCase(dispute.claimType)} action={<StatusBadge value={dispute.status} />} />
-              <div className="px-4 pb-4 space-y-3">
+              <div className="p-4 lg:p-6 space-y-3">
                 <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <Stat label="Opened" value={fmtDate(dispute.openedAt)} />
                   <Stat label="Seller Response Due" value={<><span>{fmtDate(dispute.sellerResponseDueAt)}</span>{dispute.overdue && <span className="ml-1.5 text-[10px] rounded bg-red-500/20 text-red-300 px-1.5 py-0.5">Overdue</span>}</>} />
@@ -896,7 +896,7 @@ export default function AdminTransactionDetail() {
               </div>
             </div>
             {(data.risk?.escalationHistory ?? []).length > 0 && (
-              <div className="px-4 pb-4">
+              <div className="p-4 lg:p-6">
                 <div className="border-t border-border pt-4">
                   <h4 className="text-sm font-medium text-foreground mb-3">Escalation History</h4>
                   <ul className="space-y-2">
@@ -920,7 +920,7 @@ export default function AdminTransactionDetail() {
           {/* Linked Records */}
           <Card>
             <CardHeader title="Linked Records" />
-            <div className="px-4 pb-4">
+            <div className="p-4 lg:p-6">
               {data.linkedRecords.length === 0 && <Empty>No linked records.</Empty>}
               <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {data.linkedRecords.map((r, i) => {
