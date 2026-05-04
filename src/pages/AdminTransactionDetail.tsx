@@ -41,7 +41,7 @@ export default function AdminTransactionDetail() {
   const code = summary?.transaction_code ?? summary?.code ?? transactionId?.slice(0, 8);
 
   return (
-    <AdminLayout>
+    <AdminLayout title={`Transaction #${code ?? ""}`} subtitle="Admin transaction detail">
       <div className="mx-auto max-w-6xl space-y-4 p-4">
         <header className="flex items-center justify-between gap-3">
           <button
