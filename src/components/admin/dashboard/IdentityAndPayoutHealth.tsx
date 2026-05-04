@@ -29,18 +29,18 @@ interface Props {
 export function IdentityAndPayoutHealth({ identity, payout }: Props) {
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <h3 className="mb-3 text-sm font-semibold text-white">Identity Review Health</h3>
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h3 className="mb-3 text-sm font-semibold text-foreground">Identity Review Health</h3>
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-            <div className="text-xs text-slate-400">Pending Reviews</div>
-            <div className="mt-1 text-xl font-semibold text-white tabular-nums">
+          <div className="rounded-lg border border-border bg-card/60 p-3">
+            <div className="text-xs text-muted-foreground">Pending Reviews</div>
+            <div className="mt-1 text-xl font-semibold text-foreground tabular-nums">
               {identity.pending_reviews}
             </div>
           </div>
-          <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-            <div className="text-xs text-slate-400">Avg Review Time</div>
-            <div className="mt-1 text-xl font-semibold text-white tabular-nums">
+          <div className="rounded-lg border border-border bg-card/60 p-3">
+            <div className="text-xs text-muted-foreground">Avg Review Time</div>
+            <div className="mt-1 text-xl font-semibold text-foreground tabular-nums">
               {identity.avg_review_hours != null ? `${identity.avg_review_hours.toFixed(1)}h` : "—"}
             </div>
           </div>
@@ -48,19 +48,19 @@ export function IdentityAndPayoutHealth({ identity, payout }: Props) {
         <div className="mt-3"><Spark data={identity.spark} color="rgb(168 85 247)" /></div>
       </div>
 
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <h3 className="mb-3 text-sm font-semibold text-white">Payout Health</h3>
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h3 className="mb-3 text-sm font-semibold text-foreground">Payout Health</h3>
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-            <div className="text-xs text-slate-400">Pending Payouts</div>
-            <div className="mt-1 truncate text-xl font-semibold text-white tabular-nums">
+          <div className="rounded-lg border border-border bg-card/60 p-3">
+            <div className="text-xs text-muted-foreground">Pending Payouts</div>
+            <div className="mt-1 truncate text-xl font-semibold text-foreground tabular-nums">
               {formatMoney(payout.pending_payouts_amount, "NGN")}
             </div>
-            <div className="mt-1 text-[10px] text-slate-500">Awaiting release + processing</div>
+            <div className="mt-1 text-[10px] text-muted-foreground">Awaiting release + processing</div>
           </div>
-          <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-            <div className="text-xs text-slate-400">Avg Payout Time</div>
-            <div className="mt-1 text-xl font-semibold text-white tabular-nums">
+          <div className="rounded-lg border border-border bg-card/60 p-3">
+            <div className="text-xs text-muted-foreground">Avg Payout Time</div>
+            <div className="mt-1 text-xl font-semibold text-foreground tabular-nums">
               {payout.avg_payout_hours != null ? `${payout.avg_payout_hours.toFixed(1)}h` : "—"}
             </div>
           </div>

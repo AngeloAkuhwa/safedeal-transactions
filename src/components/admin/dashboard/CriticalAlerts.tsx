@@ -20,19 +20,19 @@ interface Props { alerts: AdminAlert[] }
 export function CriticalAlerts({ alerts: initial }: Props) {
   const [alerts, setAlerts] = useState(initial);
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div className="rounded-xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">Critical Alerts</h3>
+        <h3 className="text-sm font-semibold text-foreground">Critical Alerts</h3>
         <button
           type="button"
           onClick={() => setAlerts([])}
-          className="text-xs text-slate-400 hover:text-slate-200"
+          className="text-xs text-muted-foreground hover:text-foreground"
         >
           Clear All
         </button>
       </div>
       {alerts.length === 0 ? (
-        <div className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-6 text-center text-sm text-slate-400">
+        <div className="rounded-lg border border-border bg-muted/40 px-3 py-6 text-center text-sm text-muted-foreground">
           No active alerts. All clear.
         </div>
       ) : (
@@ -47,8 +47,8 @@ export function CriticalAlerts({ alerts: initial }: Props) {
                 <div className="flex min-w-0 items-start gap-2.5">
                   <Icon className="mt-0.5 h-4 w-4 shrink-0" />
                   <div className="min-w-0">
-                    <div className="text-sm font-medium text-white">{a.title}</div>
-                    <div className="truncate text-xs text-slate-400">{a.description}</div>
+                    <div className="text-sm font-medium text-foreground">{a.title}</div>
+                    <div className="truncate text-xs text-muted-foreground">{a.description}</div>
                   </div>
                 </div>
                 <div className="shrink-0 text-[11px] opacity-80">{formatRelative(a.at_iso)}</div>

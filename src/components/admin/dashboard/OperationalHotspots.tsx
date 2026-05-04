@@ -21,15 +21,15 @@ export function OperationalHotspots({ items }: Props) {
         return (
           <div
             key={item.key}
-            className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} rounded-xl border bg-slate-900 p-4 transition-all hover:-translate-y-0.5 ${SEVERITY_BG[item.severity]}`}
+            className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} rounded-xl border bg-card p-4 transition-all hover:-translate-y-0.5 ${SEVERITY_BG[item.severity]}`}
           >
             <div className="mb-2 flex items-start gap-3">
               <div className={`flex h-9 w-9 items-center justify-center rounded-md border ${SEVERITY_BG[item.severity]}`}>
                 <Icon className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-2xl font-semibold leading-none text-white tabular-nums">{item.count}</div>
-                <div className="mt-1 text-xs text-slate-400">{item.label}</div>
+                <div className="text-2xl font-semibold leading-none text-foreground tabular-nums">{item.count}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{item.label}</div>
               </div>
             </div>
             <button

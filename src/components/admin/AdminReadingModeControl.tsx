@@ -49,7 +49,7 @@ export function AdminReadingModeControl({ variant }: Props) {
         onClick={onPlayPause}
         aria-label={isActive ? (isPaused ? "Resume reading mode" : "Pause reading mode") : "Start reading mode"}
         className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-          isActive ? "bg-emerald-500/15 text-emerald-300" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+          isActive ? "bg-emerald-500/15 text-emerald-300" : "bg-muted text-foreground/90 hover:bg-muted/70"
         }`}
       >
         {isActive && !isPaused ? <Pause className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
@@ -70,7 +70,7 @@ export function AdminReadingModeControl({ variant }: Props) {
             type="button"
             onClick={() => start()}
             aria-label="Start reading mode"
-            className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/95 px-3.5 py-2 text-xs font-medium text-slate-200 shadow-lg backdrop-blur transition-opacity hover:bg-slate-800"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card/95 px-3.5 py-2 text-xs font-medium text-foreground shadow-lg backdrop-blur transition-opacity hover:bg-muted"
           >
             <BookOpen className="h-3.5 w-3.5" />
             Reading Mode
@@ -84,7 +84,7 @@ export function AdminReadingModeControl({ variant }: Props) {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900/95 px-2 py-1.5 shadow-lg backdrop-blur">
+        <div className="flex items-center gap-1 rounded-full border border-border bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur">
           <span className="ml-2 mr-1 flex items-center gap-1.5 text-[11px] font-medium text-emerald-300">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
             Reading
@@ -93,7 +93,7 @@ export function AdminReadingModeControl({ variant }: Props) {
             type="button"
             onClick={onPlayPause}
             aria-label={isPaused ? "Resume reading mode" : "Pause reading mode"}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-200 hover:bg-slate-800"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground hover:bg-muted"
           >
             {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
           </button>
@@ -101,18 +101,18 @@ export function AdminReadingModeControl({ variant }: Props) {
             type="button"
             onClick={toggleDirection}
             aria-label="Change scroll direction"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-200 hover:bg-slate-800"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground hover:bg-muted"
           >
             {direction === "down" ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUp className="h-3.5 w-3.5" />}
           </button>
           <Select value={speed} onValueChange={(v) => setSpeed(v as ScrollSpeed)}>
             <SelectTrigger
               aria-label="Change scroll speed"
-              className="h-8 w-[96px] border-slate-700 bg-slate-900/60 px-2 text-[11px] text-slate-100"
+              className="h-8 w-[96px] border-border bg-card/60 px-2 text-[11px] text-foreground"
             >
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+            <SelectContent className="border-border bg-card text-foreground">
               <SelectItem value="very-slow">Very Slow</SelectItem>
               <SelectItem value="slow">Slow</SelectItem>
             </SelectContent>
@@ -121,7 +121,7 @@ export function AdminReadingModeControl({ variant }: Props) {
             type="button"
             onClick={stop}
             aria-label="Stop reading mode"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-200 hover:bg-slate-800"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground hover:bg-muted"
           >
             <Square className="h-3.5 w-3.5" />
           </button>
@@ -142,13 +142,13 @@ export function AdminReadingModeControl({ variant }: Props) {
             type="button"
             onClick={() => start()}
             aria-label="Start reading mode"
-            className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/95 px-4 py-2 text-sm text-slate-200 shadow-lg backdrop-blur hover:bg-slate-800"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-sm text-foreground shadow-lg backdrop-blur hover:bg-muted"
           >
             <BookOpen className="h-4 w-4" />
             Reading Mode
           </button>
         ) : (
-          <div className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-slate-900/95 px-2 py-1.5 shadow-lg backdrop-blur">
+          <div className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur">
             <span className="ml-2 mr-1 flex items-center gap-1.5 text-[11px] font-medium text-emerald-300">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
               Reading
@@ -157,7 +157,7 @@ export function AdminReadingModeControl({ variant }: Props) {
               type="button"
               onClick={onPlayPause}
               aria-label={isPaused ? "Resume reading mode" : "Pause reading mode"}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-slate-100 hover:bg-slate-800"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-foreground hover:bg-muted"
             >
               {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
             </button>
@@ -165,18 +165,18 @@ export function AdminReadingModeControl({ variant }: Props) {
               type="button"
               onClick={toggleDirection}
               aria-label="Change scroll direction"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-slate-100 hover:bg-slate-800"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-foreground hover:bg-muted"
             >
               {direction === "down" ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUp className="h-3.5 w-3.5" />}
             </button>
             <Select value={speed} onValueChange={(v) => setSpeed(v as ScrollSpeed)}>
               <SelectTrigger
                 aria-label="Change scroll speed"
-                className="h-8 w-[110px] border-slate-700 bg-slate-900/60 px-2 text-xs text-slate-100"
+                className="h-8 w-[110px] border-border bg-card/60 px-2 text-xs text-foreground"
               >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+              <SelectContent className="border-border bg-card text-foreground">
                 <SelectItem value="very-slow">Very Slow</SelectItem>
                 <SelectItem value="slow">Slow</SelectItem>
               </SelectContent>
@@ -185,7 +185,7 @@ export function AdminReadingModeControl({ variant }: Props) {
               type="button"
               onClick={stop}
               aria-label="Stop reading mode"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-slate-100 hover:bg-slate-800"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-foreground hover:bg-muted"
             >
               <Square className="h-3.5 w-3.5" />
             </button>
@@ -206,13 +206,13 @@ export function AdminReadingModeControl({ variant }: Props) {
                 type="button"
                 onClick={onPlayPause}
                 aria-label="Start reading mode"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3.5 py-2 text-sm text-slate-200 transition-colors hover:bg-slate-800"
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted"
               >
                 <BookOpen className="h-4 w-4" />
                 Reading Mode
               </button>
             </TooltipTrigger>
-            <TooltipContent className="border-slate-700 bg-slate-800 text-slate-100">
+            <TooltipContent className="border-border bg-muted text-foreground">
               Auto-scroll this page slowly
             </TooltipContent>
           </Tooltip>
@@ -226,7 +226,7 @@ export function AdminReadingModeControl({ variant }: Props) {
               type="button"
               onClick={onPlayPause}
               aria-label={isPaused ? "Resume reading mode" : "Pause reading mode"}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-slate-100 hover:bg-slate-800"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-foreground hover:bg-muted"
             >
               {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
             </button>
@@ -234,18 +234,18 @@ export function AdminReadingModeControl({ variant }: Props) {
               type="button"
               onClick={toggleDirection}
               aria-label="Change scroll direction"
-              className="flex h-7 w-7 items-center justify-center rounded-md text-slate-100 hover:bg-slate-800"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-foreground hover:bg-muted"
             >
               {direction === "down" ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUp className="h-3.5 w-3.5" />}
             </button>
             <Select value={speed} onValueChange={(v) => setSpeed(v as ScrollSpeed)}>
               <SelectTrigger
                 aria-label="Change scroll speed"
-                className="h-7 w-[110px] border-slate-700 bg-slate-900/60 px-2 text-xs text-slate-100"
+                className="h-7 w-[110px] border-border bg-card/60 px-2 text-xs text-foreground"
               >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+              <SelectContent className="border-border bg-card text-foreground">
                 <SelectItem value="very-slow">Very Slow</SelectItem>
                 <SelectItem value="slow">Slow</SelectItem>
               </SelectContent>
@@ -254,7 +254,7 @@ export function AdminReadingModeControl({ variant }: Props) {
               type="button"
               onClick={stop}
               aria-label="Stop reading mode"
-              className="flex h-7 w-7 items-center justify-center rounded-md text-slate-100 hover:bg-slate-800"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-foreground hover:bg-muted"
             >
               <Square className="h-3.5 w-3.5" />
             </button>

@@ -18,12 +18,12 @@ export function RiskAndPaymentHealth({ sla, payments }: Props) {
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
       {/* Dispute SLA Pressure */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+      <div className="rounded-xl border border-border bg-card p-4">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white">Dispute SLA Pressure</h3>
-          <span className="text-[11px] text-slate-400">{total} open</span>
+          <h3 className="text-sm font-semibold text-foreground">Dispute SLA Pressure</h3>
+          <span className="text-[11px] text-muted-foreground">{total} open</span>
         </div>
-        <div className="mb-4 flex h-3 w-full overflow-hidden rounded-full bg-slate-800">
+        <div className="mb-4 flex h-3 w-full overflow-hidden rounded-full bg-muted">
           {segments.map((s) => (
             <div
               key={s.key}
@@ -38,25 +38,25 @@ export function RiskAndPaymentHealth({ sla, payments }: Props) {
             <li key={s.key} className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
                 <span className={`h-2 w-2 rounded-full ${s.color}`} />
-                <span className="text-slate-300">{s.label}</span>
+                <span className="text-foreground/90">{s.label}</span>
               </div>
-              <span className="font-medium text-white tabular-nums">{s.value}</span>
+              <span className="font-medium text-foreground tabular-nums">{s.value}</span>
             </li>
           ))}
         </ul>
       </div>
 
       {/* Payment Health */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <h3 className="mb-4 text-sm font-semibold text-white">Payment Health</h3>
-        <ul className="divide-y divide-slate-800">
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">Payment Health</h3>
+        <ul className="divide-y divide-border">
           {payments.map((row) => (
             <li key={row.key} className="flex items-center justify-between py-2.5 text-sm">
               <div className="flex items-center gap-2.5">
                 <span className={`h-2 w-2 rounded-full ${SEVERITY_DOT[row.severity]}`} />
-                <span className="text-slate-300">{row.label}</span>
+                <span className="text-foreground/90">{row.label}</span>
               </div>
-              <span className="font-semibold text-white tabular-nums">
+              <span className="font-semibold text-foreground tabular-nums">
                 {row.count.toLocaleString("en-NG")}
               </span>
             </li>

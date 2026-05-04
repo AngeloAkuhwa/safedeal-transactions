@@ -53,7 +53,7 @@ export function KpiCards({ kpis }: KpiCardsProps) {
           const card = (
             <div
               key={t.label}
-              className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} group rounded-xl border border-slate-800 bg-slate-900 p-4 transition-all hover:-translate-y-0.5 hover:border-slate-700`}
+              className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} group rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-border`}
             >
               <div className="mb-3 flex items-start justify-between">
                 <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${t.iconClass}`}>
@@ -68,18 +68,18 @@ export function KpiCards({ kpis }: KpiCardsProps) {
                     {(t.delta as number).toFixed(1)}%
                   </div>
                 ) : (
-                  <div className="text-xs font-medium text-slate-500">—</div>
+                  <div className="text-xs font-medium text-muted-foreground">—</div>
                 )}
               </div>
-              <div className="text-xs text-slate-400">{t.label}</div>
-              <div className="mt-1 truncate text-2xl font-semibold tracking-tight text-white">{t.value}</div>
+              <div className="text-xs text-muted-foreground">{t.label}</div>
+              <div className="mt-1 truncate text-2xl font-semibold tracking-tight text-foreground">{t.value}</div>
             </div>
           );
           if (t.tooltip) {
             return (
               <Tooltip key={t.label}>
                 <TooltipTrigger asChild>{card}</TooltipTrigger>
-                <TooltipContent className="max-w-[260px] border-slate-700 bg-slate-800 text-slate-100">
+                <TooltipContent className="max-w-[260px] border-border bg-muted text-foreground">
                   {t.tooltip}
                 </TooltipContent>
               </Tooltip>
