@@ -64,6 +64,8 @@ import { RowActionsMenu } from "@/components/admin/transactions/RowActionsMenu";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
 import { InternalNoteDialog } from "@/components/admin/transactions/InternalNoteDialog";
 import { DetailDrawer } from "@/components/admin/transactions/DetailDrawer";
+import { TransactionsEmptyState } from "@/components/admin/transactions/TransactionsEmptyState";
+import { rowStateClass, pickEmptyVariant } from "@/components/admin/transactions/rowState";
 
 /* ---------------- Visual helpers ---------------- */
 
@@ -268,7 +270,10 @@ export default function AdminTransactions() {
       sonnerToast.success("Action completed", { description: `#${actionRow.transactionCode}` });
       fetchData();
     } catch (e) {
-      sonnerToast.error("Action failed", { description: (e as Error).message });
+      sonnerToast.error("Action failed", {
+        description: `#${actionRow.transactionCode}: ${(e as Error).message}`,
+        action: { label: "Retry", onClick: () => void runAction(kind, reason) },
+      });
       throw e;
     }
   };
