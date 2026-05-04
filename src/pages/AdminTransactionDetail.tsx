@@ -907,7 +907,7 @@ export default function AdminTransactionDetail() {
           </Card>
 
               {/* Payment & Escrow */}
-              <Card>
+              <div id="escrow-ledger"><Card>
             <CardHeader title="Payment & Escrow" />
             <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
               <div className="p-4 lg:p-6">
