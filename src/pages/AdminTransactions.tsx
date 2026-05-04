@@ -557,20 +557,24 @@ export default function AdminTransactions() {
 
       {/* Summary KPI cards */}
       <TooltipProvider delayDuration={150}>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6 motion-reduce:[&>*]:!animate-none">
           {summaryTiles.map((t, i) => {
             const Icon = t.icon;
             const card = (
               <div
                 key={t.key}
-                className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-foreground/10`}
+                className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} flex min-h-[104px] flex-col rounded-xl border border-border bg-card p-3.5 transition-all motion-safe:hover:-translate-y-px hover:border-foreground/10`}
               >
-                <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${t.iconCls}`}>
-                  <Icon className="h-5 w-5" />
+                <div className={`mb-2.5 flex h-8 w-8 items-center justify-center rounded-lg ${t.iconCls}`}>
+                  <Icon className="h-4 w-4" aria-hidden />
                 </div>
                 <div className="text-[11px] text-muted-foreground">{t.label}</div>
-                <div className="mt-1 truncate text-2xl font-semibold tracking-tight text-foreground">
-                  {initialLoad && !summary ? <span className="inline-block h-6 w-16 animate-pulse rounded bg-muted" /> : t.value}
+                <div className="mt-1 truncate text-xl font-semibold tracking-tight text-foreground tabular-nums">
+                  {initialLoad && !summary ? (
+                    <span className="inline-block h-5 w-20 animate-pulse rounded bg-muted" />
+                  ) : (
+                    t.value
+                  )}
                 </div>
               </div>
             );
@@ -588,15 +592,21 @@ export default function AdminTransactions() {
       </TooltipProvider>
 
       {/* Quick filter chips */}
-      <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 animate-fade-in">
+      <div
+        className="-mx-1 flex snap-x snap-mandatory items-center gap-2 overflow-x-auto px-1 pb-1 motion-safe:animate-fade-in [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="tablist"
+        aria-label="Quick filters"
+      >
         {QUICK_FILTERS.map((f) => {
           const active = activeQuick === f.key;
           return (
             <button
               key={f.key}
               type="button"
+              role="tab"
+              aria-selected={active}
               onClick={() => setActiveQuick(f.key)}
-              className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`shrink-0 snap-start rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
                 active
                   ? "border-blue-500/40 bg-blue-500/15 text-blue-300"
                   : "border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
