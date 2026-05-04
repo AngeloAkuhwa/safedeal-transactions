@@ -1051,8 +1051,17 @@ export default function AdminTransactionDetail() {
 
           {/* === Supplementary admin-only sections === */}
           <Card>
-            <CardHeader title="Pricing & Fees" />
-            <div className="p-4 lg:p-6">
+            <details>
+              <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 lg:px-6 py-4 border-b border-border">
+                <div>
+                  <h2 className="text-sm lg:text-base font-semibold text-foreground">Admin extras</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Pricing breakdown, payout details, and full escrow ledger</p>
+                </div>
+                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" />
+              </summary>
+              <div className="p-4 lg:p-6 space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium text-foreground mb-3">Pricing & Fees</h3>
               {!data.pricing ? <Empty>No pricing recorded.</Empty> : (
                 <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <KV label="Item Total" value={ngn(data.pricing.itemTotal)} />
@@ -1063,12 +1072,19 @@ export default function AdminTransactionDetail() {
                   <KV label="Buyer Total" value={ngn(data.pricing.buyerTotal)} bold />
                 </dl>
               )}
-            </div>
-          </Card>
+                </div>
 
-          <Card>
-            <CardHeader title="Payout" />
-            <div className="p-4 lg:p-6">
+                <div>
+                  <h3 className="text-sm font-medium text-foreground mb-3">Delivery extras</h3>
+                  <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <KV label="Method" value={titleCase(data.delivery?.method) || "—"} />
+                    <KV label="Delivered" value={fmtDate(data.delivery?.deliveredAt)} />
+                    {data.delivery?.address && <KV label="Address" value={<span className="text-xs text-muted-foreground">{data.delivery.address}</span>} />}
+                  </dl>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-foreground mb-3">Payout</h3>
               {!data.payout ? (
                 <div className="text-sm text-muted-foreground">
                   {dispute ? "No payout yet — pending dispute resolution." : "No payout recorded."}
@@ -1083,14 +1099,12 @@ export default function AdminTransactionDetail() {
                   {data.payout.blocked && <div className="col-span-2"><KV label="Blocked" value={<span className="text-orange-300">{data.payout.blockedReason ?? "Blocked"}</span>} /></div>}
                 </dl>
               )}
-            </div>
-          </Card>
+                </div>
 
-          {(data.escrow?.ledger?.length ?? 0) > 0 && (
-            <Card>
-              <CardHeader title="Escrow Ledger (Full History)" />
-              <div className="p-4 lg:p-6">
-                <div className="overflow-x-auto rounded-md border border-border">
+                {(data.escrow?.ledger?.length ?? 0) > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-foreground mb-3">Escrow Ledger (Full History)</h3>
+                    <div className="overflow-x-auto rounded-md border border-border">
                   <table className="w-full text-xs">
                     <thead className="bg-muted/40 text-muted-foreground"><tr>
                       <th className="p-2 text-left">Date</th>
@@ -1111,10 +1125,12 @@ export default function AdminTransactionDetail() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </Card>
-          )}
+            </details>
+          </Card>
 
         </div>
       )}
