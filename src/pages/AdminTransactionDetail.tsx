@@ -552,22 +552,25 @@ export default function AdminTransactionDetail() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 lg:p-6">
               <div className="space-y-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Risk Assessment</div>
+                {(showHighRisk) && (
+                  <div className="flex items-center justify-between p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="h-4 w-4 text-red-400" />
+                      <span className="text-foreground font-medium text-sm">High Risk Transaction</span>
+                    </div>
+                    <span className="text-red-400 text-xs font-semibold tracking-wider">
+                      {data.risk?.level === "escalated" ? "ESCALATED" : "HIGH"}
+                    </span>
+                  </div>
+                )}
                 {allFlags.length === 0 ? (
                   <Empty>No risk flags.</Empty>
                 ) : (
-                  <ul className="space-y-1.5">
+                  <ul className="space-y-2 mt-2">
                     {allFlags.map((f: any, i: number) => (
-                      <li key={i} className={cn(
-                        "flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-[11px]",
-                        f.severity === "high" ? "border-red-500/30 bg-red-500/10 text-red-300" :
-                        f.severity === "medium" ? "border-orange-500/30 bg-orange-500/10 text-orange-300" :
-                        "border-yellow-500/30 bg-yellow-500/10 text-yellow-300",
-                      )}>
-                        <Flag className="h-3 w-3 mt-0.5 shrink-0" />
-                        <div className="min-w-0">
-                          <div className="font-medium">{f.label}</div>
-                          {f.detail && <div className="text-[10px] opacity-80 truncate">{f.detail}</div>}
-                        </div>
+                      <li key={i} className="flex items-center gap-2 text-sm">
+                        <Flag className="h-3.5 w-3.5 text-orange-400 shrink-0" />
+                        <span className="text-muted-foreground">{f.label}</span>
                       </li>
                     ))}
                   </ul>
