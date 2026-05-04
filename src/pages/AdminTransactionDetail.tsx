@@ -5,6 +5,7 @@ import {
   ChevronDown, ChevronUp, Snowflake, MoreVertical, ExternalLink,
   Truck, Package, CreditCard, Lock, Circle, StickyNote, RefreshCcw,
   Search, Flag, Eye, MoreHorizontal, User, Wallet, Receipt, BookOpen,
+  Clock, Vault, Handshake,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
@@ -71,7 +72,7 @@ function StatusBadge({ value }: { value?: string | null }) {
   if (!value) return <span className="text-xs text-muted-foreground">—</span>;
   const cls = STATUS_CLS[value] ?? "bg-slate-500/15 text-slate-300 border-slate-500/30";
   return (
-    <span className={cn("inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium", cls)}>
+    <span className={cn("inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold whitespace-nowrap", cls)}>
       {titleCase(value)}
     </span>
   );
@@ -340,33 +341,118 @@ export default function AdminTransactionDetail() {
 
           {/* Summary */}
           <Card accent={accent}>
-            <div className="p-4 lg:p-5">
-              <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                <Stat label="Transaction" value={<><div className="font-semibold">#{code}</div><div className="text-[11px] text-muted-foreground mt-0.5">Created {fmtDate(tx.createdAt)}</div></>} />
-                <Stat label="Last Activity" value={<><div className="font-semibold">{relTime(tx.lastActivityAt)}</div><div className="text-[11px] text-muted-foreground mt-0.5">{fmtDate(tx.lastActivityAt)}</div></>} />
-                <Stat label="Total Amount" value={<><div className="font-semibold text-base">{ngn(data.pricing?.buyerTotal)}</div><div className="text-[11px] text-muted-foreground mt-0.5">Fee: {ngn(data.pricing?.protectionFee)}</div></>} />
-                <Stat label="Payout Status" value={<StatusBadge value={data.payout?.status} />} />
-                <Stat label="Payment Provider" value={<><div className="font-semibold capitalize">{data.payment?.provider ?? "—"}</div><div className="text-[11px] text-muted-foreground font-mono truncate mt-0.5">{data.payment?.providerReference ?? "—"}</div></>} />
+            <div className="p-4 lg:p-6 bg-gradient-to-br from-card to-card/50 rounded-xl">
+              {/* Primary Info Row */}
+              <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6 mb-6">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Transaction</div>
+                  <div className="text-foreground text-base lg:text-xl font-bold truncate">#{code}</div>
+                  <div className="text-muted-foreground text-xs mt-1">Created {fmtDate(tx.createdAt)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Last Activity</div>
+                  <div className="text-foreground text-sm lg:text-lg font-semibold">{relTime(tx.lastActivityAt)}</div>
+                  <div className="text-muted-foreground text-xs mt-1">{fmtDate(tx.lastActivityAt)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Amount</div>
+                  <div className="text-foreground text-base lg:text-xl font-bold tabular-nums">{ngn(data.pricing?.buyerTotal)}</div>
+                  <div className="text-muted-foreground text-xs mt-1">Fee: {ngn(data.pricing?.protectionFee)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Payout Status</div>
+                  <div><StatusBadge value={data.payout?.status} /></div>
+                  {data.payout?.blockedReason && <div className="text-muted-foreground text-xs mt-1 truncate">{data.payout.blockedReason}</div>}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Payment Provider</div>
+                  <div className="text-foreground text-sm lg:text-lg font-semibold capitalize">{data.payment?.provider ?? "—"}</div>
+                  <div className="text-muted-foreground text-xs mt-1 font-mono truncate">{data.payment?.providerReference ?? "—"}</div>
+                </div>
               </dl>
-              <div className="my-4 border-t border-border" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Parties Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 mb-6 pb-6 border-b border-border">
                 {(["buyer","seller"] as const).map((k) => {
                   const p = data.parties[k];
                   return (
                     <div key={k} className="flex items-center gap-3">
-                      <Avatar name={p?.name} src={p?.avatarUrl} />
+                      <Avatar name={p?.name} src={p?.avatarUrl} size={48} />
                       <div className="min-w-0">
-                        <div className="text-[10px] uppercase text-muted-foreground font-semibold">{titleCase(k)}</div>
-                        <div className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{titleCase(k)}</div>
+                        <div className="text-base font-semibold text-foreground truncate flex items-center gap-1.5">
                           {p?.name ?? "—"}
                           {p?.verification?.identity && <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />}
                           {p?.flagged && <span className="text-[10px] rounded bg-red-500/20 text-red-300 px-1.5 py-0.5">{p.accountStatus}</span>}
                         </div>
-                        <div className="text-[11px] text-muted-foreground truncate">{p?.maskedEmail ?? p?.maskedPhone ?? ""}</div>
+                        <div className="text-xs text-muted-foreground truncate">{p?.maskedEmail ?? p?.maskedPhone ?? `User #${(p?.id ?? "").slice(0,8)}`}</div>
                       </div>
                     </div>
                   );
                 })}
+              </div>
+              {/* Status Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Transaction Status</div>
+                  <StatusBadge value={tx.status} />
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Money Status</div>
+                  <StatusBadge value={tx.moneyStatus} />
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Item Total</div>
+                  <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.itemTotal)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Protection Fee</div>
+                  <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.protectionFee)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Charged</div>
+                  <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.buyerTotal)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Held in Escrow</div>
+                  <div className="text-purple-400 text-base lg:text-lg font-semibold tabular-nums">{ngn(data.escrow?.heldAmount)}</div>
+                </div>
+              </div>
+              {/* Action Row (desktop) */}
+              <div className="hidden lg:flex items-center justify-between mt-6 pt-6 border-t border-border gap-4 flex-wrap">
+                <div className="flex items-center gap-3 flex-wrap">
+                  {dispute && dispute.status !== "resolved" && dispute.status !== "closed" && (
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                      <Flag className="h-3 w-3 mr-1.5" /> Escalated Dispute
+                    </span>
+                  )}
+                  {dispute?.overdue && (
+                    <span className="text-red-400 text-sm font-medium inline-flex items-center">
+                      <Clock className="h-3.5 w-3.5 mr-1" /> Overdue: past resolution deadline
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {adminCan.canExport && (
+                    <Button variant="outline" size="sm" onClick={exportData}>
+                      <Download className="h-4 w-4 mr-1.5" /> Export Data
+                    </Button>
+                  )}
+                  {adminCan.canOpenInvestigation && (
+                    <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-blue-500/40 text-blue-300 hover:text-blue-200">
+                      <Search className="h-4 w-4 mr-1.5" /> Open Investigation
+                    </Button>
+                  )}
+                  {adminCan.canFreeze && (
+                    <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200">
+                      <Lock className="h-4 w-4 mr-1.5" /> Freeze Funds
+                    </Button>
+                  )}
+                  {adminCan.canManageDispute && dispute && (
+                    <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
+                      <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </Card>
@@ -582,28 +668,38 @@ export default function AdminTransactionDetail() {
           )}
 
           {/* Timeline */}
-          <CollapsibleCard title="Timeline" subtitle={`${data.timeline.length} events`}>
+          <CollapsibleCard title="Complete Transaction Timeline" subtitle="All events, status changes, and interventions">
             {data.timeline.length === 0 && <Empty>No events recorded.</Empty>}
-            <ol className="relative space-y-4">
-              {data.timeline.map((e) => {
-                const m = timelineMeta(e.icon, e.severity);
-                const Icon = m.Icon;
-                return (
-                  <li key={e.id} className="flex gap-3">
-                    <div className={cn("h-8 w-8 rounded-full border flex items-center justify-center shrink-0", m.cls)}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-foreground">{titleCase(e.title)}</div>
-                      {e.description && <div className="text-xs text-muted-foreground line-clamp-2">{e.description}</div>}
-                      <div className="text-[11px] text-muted-foreground mt-0.5">
-                        {fmtDate(e.at)} {e.actorName ? `· ${e.actorName}` : (e.actorType ? `· ${e.actorType}` : "")}
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
+            {data.timeline.length > 0 && (
+              <div className="relative">
+                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" aria-hidden />
+                <ol className="relative space-y-5">
+                  {data.timeline.map((e) => {
+                    const m = timelineMeta(e.icon, e.severity);
+                    const Icon = m.Icon;
+                    return (
+                      <li key={e.id} className="flex gap-4">
+                        <div className={cn("h-8 w-8 rounded-full border-2 flex items-center justify-center shrink-0 relative z-10", m.cls)}>
+                          <Icon className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0 pb-1">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h4 className="text-sm font-medium text-foreground">{titleCase(e.title)}</h4>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">{fmtDate(e.at)}</span>
+                          </div>
+                          {e.description && <p className="text-xs text-muted-foreground">{e.description}</p>}
+                          {(e.actorName || e.actorType) && (
+                            <div className="text-[11px] text-muted-foreground mt-0.5">
+                              by {e.actorName ?? e.actorType}
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            )}
           </CollapsibleCard>
 
           {/* Escrow Ledger */}
@@ -683,28 +779,44 @@ export default function AdminTransactionDetail() {
                     <button type="button" onClick={() => setNoteOpen(true)} className="text-[11px] text-primary hover:underline">+ Add note</button>
                   )}
                 </div>
-                {(data.risk?.escalationHistory ?? []).length > 0 && (
-                  <ul className="text-xs space-y-1">
-                    {data.risk.escalationHistory.map((h: any, i: number) => (
-                      <li key={i} className="text-muted-foreground"><span className="text-foreground">{titleCase(h.label)}</span> · {fmtDate(h.at)}{h.by ? ` · ${h.by}` : ""}{h.note ? ` — ${h.note}` : ""}</li>
-                    ))}
-                  </ul>
-                )}
                 {(data.risk?.investigationNotes ?? []).length === 0 && (data.risk?.escalationHistory ?? []).length === 0 && (
                   <Empty>No investigation activity yet.</Empty>
                 )}
                 {(data.risk?.investigationNotes ?? []).length > 0 && (
                   <ul className="space-y-2">
                     {data.risk.investigationNotes.map((n: any) => (
-                      <li key={n.id} className="rounded-md border border-border bg-muted/30 p-2 text-xs">
-                        <div className="text-muted-foreground">{fmtDate(n.at)} {n.author?.full_name ? `· ${n.author.full_name}` : ""}</div>
-                        <div className="text-foreground mt-0.5 whitespace-pre-wrap">{n.note}</div>
+                      <li key={n.id} className="rounded-md border border-border bg-muted/30 p-3 text-xs">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <span className="text-muted-foreground text-[11px]">{fmtDate(n.at)} {n.author?.full_name ? `· ${n.author.full_name}` : ""}</span>
+                          {n.tag && <span className="text-[10px] font-semibold uppercase text-orange-400">{n.tag}</span>}
+                        </div>
+                        <p className="text-foreground whitespace-pre-wrap">{n.note}</p>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
             </div>
+            {(data.risk?.escalationHistory ?? []).length > 0 && (
+              <div className="px-4 pb-4">
+                <div className="border-t border-border pt-4">
+                  <h4 className="text-sm font-medium text-foreground mb-3">Escalation History</h4>
+                  <ul className="space-y-2">
+                    {data.risk.escalationHistory.map((h: any, i: number) => {
+                      const dot = h.severity === "critical" ? "bg-red-400" : h.severity === "warning" ? "bg-orange-400" : "bg-slate-400";
+                      return (
+                        <li key={i} className="flex items-center gap-3 text-sm">
+                          <div className={cn("w-2 h-2 rounded-full shrink-0", dot)} />
+                          <span className="text-muted-foreground text-xs whitespace-nowrap">{fmtDate(h.at)}</span>
+                          <span className="text-foreground">{titleCase(h.label)}</span>
+                          {h.by && <span className="text-muted-foreground text-xs">by {h.by}</span>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
+            )}
           </Card>
 
           {/* Linked Records */}
@@ -712,24 +824,63 @@ export default function AdminTransactionDetail() {
             <CardHeader title="Linked Records" />
             <div className="px-4 pb-4">
               {data.linkedRecords.length === 0 && <Empty>No linked records.</Empty>}
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {data.linkedRecords.map((r, i) => {
+                  const typeKey = (r.type ?? "").toLowerCase();
+                  const ICON_MAP: Record<string, { Icon: any; cls: string }> = {
+                    payment: { Icon: CreditCard, cls: "bg-emerald-500/20 text-emerald-400" },
+                    escrow: { Icon: Vault, cls: "bg-purple-500/20 text-purple-400" },
+                    payout: { Icon: Wallet, cls: "bg-blue-500/20 text-blue-400" },
+                    dispute: { Icon: Scale, cls: "bg-orange-500/20 text-orange-400" },
+                    agreement: { Icon: Handshake, cls: "bg-slate-500/20 text-slate-400" },
+                  };
+                  const isParty = typeKey === "buyer" || typeKey === "seller";
+                  const iconMeta = ICON_MAP[typeKey];
+                  const party = isParty ? data.parties[typeKey as "buyer" | "seller"] : null;
                   const inner = (
-                    <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 p-3 hover:bg-muted/60 transition-colors">
-                      <div className="min-w-0">
-                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{titleCase(r.type)}</div>
-                        <div className="text-sm font-medium text-foreground truncate">{r.label}</div>
-                        {r.subtitle && <div className="text-[11px] text-muted-foreground truncate">{r.subtitle}</div>}
+                    <div className="p-4 bg-muted/30 border border-border rounded-lg hover:border-blue-500/50 transition-all h-full flex flex-col">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">{titleCase(r.type)}</span>
+                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
-                      <div className="text-right shrink-0">
-                        {r.amount != null && <div className="text-sm tabular-nums font-semibold">{ngn(r.amount)}</div>}
-                        {r.status && <StatusBadge value={r.status} />}
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {isParty ? (
+                          <Avatar name={party?.name ?? r.label} src={party?.avatarUrl ?? null} size={40} />
+                        ) : iconMeta ? (
+                          <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", iconMeta.cls)}>
+                            <iconMeta.Icon className="h-4 w-4" />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0"><Circle className="h-4 w-4 text-muted-foreground" /></div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-foreground font-medium text-sm truncate">{r.label}</p>
+                          {r.subtitle && <p className="text-muted-foreground text-xs truncate font-mono">{r.subtitle}</p>}
+                        </div>
                       </div>
+                      {(r.status || r.amount != null || (isParty && party?.flagged)) && (
+                        <div className="mt-3 pt-3 border-t border-border flex items-center justify-between gap-2">
+                          {isParty ? (
+                            party?.flagged ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
+                                <Flag className="h-3 w-3 mr-1" /> Flagged
+                              </span>
+                            ) : party?.verification?.identity ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400">
+                                <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                              </span>
+                            ) : <span />
+                          ) : (
+                            r.status ? <StatusBadge value={r.status} /> : <span />
+                          )}
+                          {r.amount != null && <span className="text-sm font-semibold tabular-nums text-foreground">{ngn(r.amount)}</span>}
+                        </div>
+                      )}
                     </div>
                   );
                   return (
                     <li key={i}>
-                      {r.route ? <button type="button" onClick={() => navigate(r.route!)} className="w-full text-left">{inner}</button> : inner}
+                      {r.route ? <button type="button" onClick={() => navigate(r.route!)} className="w-full text-left h-full">{inner}</button> : inner}
                     </li>
                   );
                 })}
@@ -742,21 +893,11 @@ export default function AdminTransactionDetail() {
       {/* Mobile sticky action bar */}
       {!loading && !denied && !notFound && data && (
         <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur px-3 py-2 flex items-center gap-2">
-          {adminCan.canOpenInvestigation ? (
-            <Button size="sm" className="flex-1 bg-red-500 hover:bg-red-600 text-white" onClick={() => setInvestigateOpen(true)}>
-              <Search className="h-4 w-4 mr-1.5" /> Investigate
-            </Button>
-          ) : adminCan.canManageDispute && dispute ? (
-            <Button size="sm" className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
-              <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
-            </Button>
-          ) : (
-            <Button size="sm" variant="outline" className="flex-1" onClick={() => setNoteOpen(true)}>
-              <StickyNote className="h-4 w-4 mr-1.5" /> Add Note
-            </Button>
-          )}
-          <Button size="sm" variant="outline" onClick={() => setActionSheetOpen(true)} aria-label="More">
-            <MoreHorizontal className="h-4 w-4" />
+          <Button size="sm" className="flex-1 bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setActionSheetOpen(true)}>
+            <Search className="h-4 w-4 mr-1.5" /> Take Action
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setActionSheetOpen(true)} aria-label="More" className="px-3">
+            <MoreVertical className="h-4 w-4" />
           </Button>
         </div>
       )}
