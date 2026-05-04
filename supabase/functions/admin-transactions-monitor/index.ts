@@ -182,15 +182,23 @@ function applyFilters(
         q = q.eq("id", "00000000-0000-0000-0000-000000000000");
       }
       break;
-    case "flagged":
-      // Either DB-level review flag OR augmented risk signals from admin_actions/audit_logs
+    case "flagged": {
+      // Match any signal the Flags column can render:
+      // needs_release_review, frozen money, active dispute, overdue awaiting_payment,
+      // failed payments/payouts, admin freeze/escalate/flag actions, risky audit logs.
+      const orParts: string[] = [
+        "needs_release_review.eq.true",
+        "money_status.eq.funds_frozen",
+        `dispute_status.in.(${ACTIVE_DISPUTE_STATUSES.join(",")})`,
+        `and(status.eq.awaiting_payment,created_at.lt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()})`,
+      ];
       if (riskTxIds && riskTxIds.size > 0) {
         const ids = Array.from(riskTxIds).slice(0, 1000).join(",");
-        q = q.or(`needs_release_review.eq.true,id.in.(${ids})`);
-      } else {
-        q = q.eq("needs_release_review", true);
+        orParts.push(`id.in.(${ids})`);
       }
+      q = q.or(orParts.join(","));
       break;
+    }
     case "frozen":
       q = q.eq("money_status", "funds_frozen");
       break;
@@ -224,15 +232,17 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
     failedTxIds = new Set((data ?? []).map((r: any) => r.transaction_id).filter(Boolean));
   }
 
-  // Pre-compute risk-augmented tx ids (admin_actions freeze/flag, recent risky audit_logs)
+  // Pre-compute risk-augmented tx ids for the "flagged" quick filter:
+  // admin_actions (freeze/escalate/flag), recent risky audit_logs,
+  // failed payments, failed payouts.
   let riskTxIds: Set<string> | null = null;
   if (params.quickFilter === "flagged") {
     const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const [adminActsRes, auditRes] = await Promise.all([
+    const [adminActsRes, auditRes, failedPayRes, failedPayoutRes] = await Promise.all([
       client
         .from("admin_actions")
         .select("transaction_id, action_type")
-        .in("action_type", ["freeze_funds", "escalate_case"])
+        .in("action_type", ["freeze_funds", "escalate_case", "flag_for_review"])
         .not("transaction_id", "is", null)
         .limit(5000),
       client
@@ -241,6 +251,8 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
         .gte("created_at", sinceIso)
         .not("transaction_id", "is", null)
         .limit(5000),
+      client.from("payments").select("transaction_id").eq("status", "failed").limit(5000),
+      client.from("payouts").select("transaction_id").eq("status", "failed").limit(5000),
     ]);
     riskTxIds = new Set<string>();
     for (const r of ((adminActsRes.data ?? []) as any[])) {
@@ -250,6 +262,12 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
       if (r.transaction_id && typeof r.action === "string" && /(risk|fraud|suspicious|flag)/i.test(r.action)) {
         riskTxIds.add(r.transaction_id);
       }
+    }
+    for (const r of ((failedPayRes.data ?? []) as any[])) {
+      if (r.transaction_id) riskTxIds.add(r.transaction_id);
+    }
+    for (const r of ((failedPayoutRes.data ?? []) as any[])) {
+      if (r.transaction_id) riskTxIds.add(r.transaction_id);
     }
   }
 
@@ -589,13 +607,14 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
 
       // Pull risk + ops signals for this chunk in parallel
       const sinceIso = new Date(now - 30 * day).toISOString();
-      const [stuckRes, queueRes, payoutFailedRes, overdueDispRes, adminActsChunkRes, auditChunkRes] = await Promise.all([
-        client.from("transactions").select("id, status, created_at, needs_release_review, dispute_status").in("id", chunk),
+      const [stuckRes, queueRes, payoutFailedRes, overdueDispRes, adminActsChunkRes, auditChunkRes, paymentsFailedChunkRes] = await Promise.all([
+        client.from("transactions").select("id, status, money_status, created_at, needs_release_review, dispute_status").in("id", chunk),
         client.from("release_review_queue").select("transaction_id, status").in("transaction_id", chunk).in("status", ["pending", "claimed", "processing", "awaiting_info", "held", "failed"]),
         client.from("payouts").select("transaction_id, status").in("transaction_id", chunk).eq("status", "failed"),
         client.from("disputes").select("transaction_id, seller_response_due_at, status").in("transaction_id", chunk).in("status", ACTIVE_DISPUTE_STATUSES as unknown as string[]).lt("seller_response_due_at", new Date(now).toISOString()),
         client.from("admin_actions").select("transaction_id, action_type").in("transaction_id", chunk).in("action_type", ["freeze_funds", "escalate_case"]),
         client.from("audit_logs").select("transaction_id, action").in("transaction_id", chunk).gte("created_at", sinceIso),
+        client.from("payments").select("transaction_id, status").in("transaction_id", chunk).eq("status", "failed"),
       ]);
 
       const dayAgo = now - day;
@@ -606,12 +625,30 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
           flaggedSet.add(r.id);
           awaitingSet.add(r.id);
         }
-        if ((ACTIVE_DISPUTE_STATUSES as readonly string[]).includes(r.dispute_status)) awaitingSet.add(r.id);
-        if (r.status === "awaiting_payment" && new Date(r.created_at).getTime() < dayAgo) awaitingSet.add(r.id);
+        if (r.money_status === "funds_frozen") {
+          flaggedSet.add(r.id);
+        }
+        if ((ACTIVE_DISPUTE_STATUSES as readonly string[]).includes(r.dispute_status)) {
+          awaitingSet.add(r.id);
+          flaggedSet.add(r.id);
+        }
+        if (r.status === "awaiting_payment" && new Date(r.created_at).getTime() < dayAgo) {
+          awaitingSet.add(r.id);
+          flaggedSet.add(r.id);
+        }
       }
       for (const r of ((queueRes.data ?? []) as any[])) awaitingSet.add(r.transaction_id);
-      for (const r of ((payoutFailedRes.data ?? []) as any[])) awaitingSet.add(r.transaction_id);
-      for (const r of ((overdueDispRes.data ?? []) as any[])) awaitingSet.add(r.transaction_id);
+      for (const r of ((payoutFailedRes.data ?? []) as any[])) {
+        awaitingSet.add(r.transaction_id);
+        flaggedSet.add(r.transaction_id);
+      }
+      for (const r of ((overdueDispRes.data ?? []) as any[])) {
+        awaitingSet.add(r.transaction_id);
+        flaggedSet.add(r.transaction_id);
+      }
+      for (const r of ((paymentsFailedChunkRes.data ?? []) as any[])) {
+        flaggedSet.add(r.transaction_id);
+      }
       for (const r of ((adminActsChunkRes.data ?? []) as any[])) {
         flaggedSet.add(r.transaction_id);
         awaitingSet.add(r.transaction_id);
