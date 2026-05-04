@@ -154,6 +154,46 @@ const DISPUTE_STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "under_review", label: "Under Review" },
   { value: "resolved", label: "Resolved" },
 ];
+const RISK_LEVEL_OPTIONS: { value: string; label: string }[] = [
+  { value: "clean", label: "Clean" },
+  { value: "escalated", label: "Escalated" },
+  { value: "high_risk", label: "High Risk" },
+  { value: "fraud_watch", label: "Fraud Watch" },
+];
+
+type SortKey = NonNullable<AdminTxMonitorParams["sortBy"]>;
+type SortDir = NonNullable<AdminTxMonitorParams["sortDirection"]>;
+const SORT_OPTIONS: { key: SortKey; dir: SortDir; label: string }[] = [
+  { key: "urgency", dir: "desc", label: "Urgency (default)" },
+  { key: "created_at", dir: "desc", label: "Newest" },
+  { key: "created_at", dir: "asc", label: "Oldest" },
+  { key: "amount", dir: "desc", label: "Amount: High → Low" },
+  { key: "amount", dir: "asc", label: "Amount: Low → High" },
+  { key: "last_activity_at", dir: "desc", label: "Last activity" },
+  { key: "status", dir: "asc", label: "Status" },
+  { key: "risk_level", dir: "desc", label: "Risk level" },
+];
+
+const REALTIME_TABLES = [
+  "transactions",
+  "transaction_events",
+  "money_status_history",
+  "disputes",
+  "payments",
+  "payouts",
+  "release_review_queue",
+] as const;
+
+function relativeMinutes(from: Date | null): string {
+  if (!from) return "—";
+  const ms = Date.now() - from.getTime();
+  const m = Math.round(ms / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} hr ago`;
+  return `${Math.round(h / 24)} day(s) ago`;
+}
 
 export default function AdminTransactions() {
   const navigate = useNavigate();
