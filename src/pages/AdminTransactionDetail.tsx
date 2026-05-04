@@ -664,13 +664,56 @@ export default function AdminTransactionDetail() {
           setReloadKey((k) => k + 1);
         }}
       />
+      <ActionConfirmDialog
+        open={unfreezeOpen}
+        onOpenChange={setUnfreezeOpen}
+        title="Unfreeze Funds"
+        description={`Move funds for #${code} back to pending release. No money is moved out yet.`}
+        confirmLabel="Unfreeze"
+        confirmTone="primary"
+        onConfirm={async (reason) => {
+          if (!transactionId) return;
+          await unfreezeTransaction(transactionId, reason);
+          toast.success("Funds unfrozen");
+          setReloadKey((k) => k + 1);
+        }}
+      />
+      <ActionConfirmDialog
+        open={flagOpen}
+        onOpenChange={setFlagOpen}
+        title="Flag for Review"
+        description={`Flag #${code} for the admin review queue. Provide a reason.`}
+        confirmLabel="Flag for Review"
+        confirmTone="danger"
+        onConfirm={async (reason) => {
+          if (!transactionId) return;
+          await flagForReview(transactionId, reason);
+          toast.success("Flagged for review");
+          setReloadKey((k) => k + 1);
+        }}
+      />
+      <ActionConfirmDialog
+        open={investigateOpen}
+        onOpenChange={setInvestigateOpen}
+        title="Open Investigation"
+        description={`Create an investigation record for #${code}. This is logged in the audit trail.`}
+        reasonMin={1}
+        confirmLabel="Open Investigation"
+        confirmTone="primary"
+        onConfirm={async (reason) => {
+          if (!transactionId) return;
+          await openInvestigation(transactionId, reason);
+          toast.success("Investigation opened");
+          setReloadKey((k) => k + 1);
+        }}
+      />
       <InternalNoteDialog
         open={noteOpen}
         onOpenChange={setNoteOpen}
         transactionCode={code}
-        onSubmit={async (note) => {
+        onSubmit={async (note, noteType) => {
           if (!transactionId) return;
-          await addInternalNote(transactionId, note);
+          await addInternalNoteTyped(transactionId, note, noteType);
           toast.success("Note added");
           setReloadKey((k) => k + 1);
         }}
