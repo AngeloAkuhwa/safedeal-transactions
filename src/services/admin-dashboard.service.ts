@@ -110,10 +110,20 @@ export interface AdminAlert {
 
 export interface AdminActivityItem {
   id: string;
-  kind: "transaction_completed" | "escrow_released" | "user_registered";
+  kind:
+    | "transaction_completed"
+    | "escrow_released"
+    | "user_registered"
+    | "dispute_opened"
+    | "dispute_resolved"
+    | "payout_failed"
+    | "refund_issued";
   title: string;
   subtitle: string;
   at_iso: string;
+  amount?: number;
+  currency?: string;
+  action_href?: string | null;
 }
 
 export interface PerformanceMetric {
@@ -198,14 +208,40 @@ export async function getAdminDashboard(): Promise<AdminDashboardResponse> {
 }
 
 /**
- * Empty trend series used as a placeholder while the edge function does not
- * yet compute windowed trends. The frontend MUST NOT synthesize data — when
- * the edge function adds windowed trend support, this helper will call it.
+ * Real DB-driven trend fetcher: queries the `admin-dashboard-trend` edge function
+ * and returns the windowed transactions-vs-disputes series.
  */
-export function buildTransactionsDisputesTrend(_window: "7D" | "30D" | "90D"): TrendSeries {
-  return {
-    primary_label: "Transactions",
-    secondary_label: "Disputes",
-    points: [],
-  };
+export async function getAdminDashboardTrend(
+  window: "7D" | "30D" | "90D",
+): Promise<TrendSeries> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const session = sessionData?.session;
+  if (!session) {
+    if (typeof globalThis.window !== "undefined") {
+      globalThis.window.location.replace("/auth");
+    }
+    return new Promise<TrendSeries>(() => {});
+  }
+
+  const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
+  const url = `https://${projectId}.supabase.co/functions/v1/admin-dashboard-trend?window=${encodeURIComponent(window)}`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
+    },
+  });
+
+  if (res.status === 401) {
+    if (typeof globalThis.window !== "undefined") {
+      globalThis.window.location.replace("/auth");
+    }
+    return new Promise<TrendSeries>(() => {});
+  }
+  if (res.status === 403) throw new AdminAccessRequiredError();
+  if (!res.ok) throw new Error(`Trend fetch failed: ${res.status}`);
+
+  const data = (await res.json()) as TrendSeries;
+  return data;
 }

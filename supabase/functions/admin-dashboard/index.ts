@@ -244,6 +244,37 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     q.in("status", ["awaiting_release", "pending", "processing"]),
   );
 
+  // ---------- Sidebar badges (real) ----------
+  const since7dIso = new Date(now.getTime() - 7 * ms24h).toISOString();
+  const [
+    badgeDisputesReal,
+    badgeIdentityReal,
+    badgePayoutsFailed,
+    badgePayoutsAwaiting,
+  ] = await Promise.all([
+    safeCount(client, "disputes", (q) =>
+      q.in("status", ["open", "under_review", "seller_response_pending"]),
+    ),
+    safeCount(client, "identity_submissions", (q) => q.eq("status", "pending_review")),
+    safeCount(client, "payouts", (q) => q.eq("status", "failed").eq("retry_allowed", true)),
+    safeCount(client, "payouts", (q) => q.eq("status", "awaiting_release")),
+  ]);
+  let flaggedUsersBadge = 0;
+  try {
+    const { data: flagRows } = await client
+      .from("admin_actions")
+      .select("target_user_id")
+      .gte("created_at", since7dIso)
+      .in("action_type", ["flag_user", "freeze_transaction", "escalate_case"])
+      .not("target_user_id", "is", null)
+      .limit(5000);
+    flaggedUsersBadge = new Set(
+      ((flagRows ?? []) as any[]).map((r) => r.target_user_id).filter(Boolean),
+    ).size;
+  } catch {
+    flaggedUsersBadge = 0;
+  }
+
   // Identity review health (avg time + 9-day sparkline)
   let avgReviewHours: number | null = null;
   let identitySpark: number[] = [];
@@ -410,28 +441,166 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     await logEdgeError(client, `escrow_trend_failed: ${(e as Error).message}`, userId);
   }
 
-  // Recent activity: last 3 status history entries we can show
+  // ---------- Recent Activity (real, multi-source) ----------
   let recentActivity: any[] = [];
   try {
-    const { data } = await client
-      .from("transaction_status_history")
-      .select("id, transaction_id, new_status, changed_at")
-      .order("changed_at", { ascending: false })
-      .limit(3);
-    recentActivity = (data ?? []).map((r: any) => ({
-      id: r.id,
-      kind:
-        r.new_status === "completed"
-          ? "transaction_completed"
-          : r.new_status === "funds_released"
-          ? "escrow_released"
-          : "transaction_completed",
-      title: `Transaction ${r.new_status}`,
+    const items: any[] = [];
+    const [
+      txDone, fundsReleased, newProfiles,
+      disputesOpened, disputesResolved, payoutsFailedRows, refundsDone,
+    ] = await Promise.all([
+      client.from("transactions")
+        .select("id, transaction_code, updated_at")
+        .eq("status", "completed").order("updated_at", { ascending: false }).limit(10),
+      client.from("money_status_history")
+        .select("id, transaction_id, changed_at")
+        .eq("new_status", "funds_released").order("changed_at", { ascending: false }).limit(10),
+      client.from("profiles")
+        .select("id, full_name, email, created_at").order("created_at", { ascending: false }).limit(10),
+      client.from("disputes")
+        .select("id, transaction_id, opened_at").order("opened_at", { ascending: false }).limit(10),
+      client.from("disputes")
+        .select("id, transaction_id, resolved_at")
+        .not("resolved_at", "is", null).order("resolved_at", { ascending: false }).limit(10),
+      client.from("payouts")
+        .select("id, transaction_id, amount, currency_code, failed_at, failure_reason")
+        .eq("status", "failed").not("failed_at", "is", null)
+        .order("failed_at", { ascending: false }).limit(10),
+      client.from("refunds")
+        .select("id, transaction_id, refund_amount, currency_code, completed_at")
+        .eq("status", "completed").not("completed_at", "is", null)
+        .order("completed_at", { ascending: false }).limit(10),
+    ]);
+    for (const r of (txDone.data ?? []) as any[]) items.push({
+      id: `tx-${r.id}`, kind: "transaction_completed",
+      title: "Transaction completed",
+      subtitle: r.transaction_code ?? `TX ${String(r.id).slice(0, 8)}`,
+      at_iso: r.updated_at, action_href: `/admin/transactions/${r.id}`,
+    });
+    for (const r of (fundsReleased.data ?? []) as any[]) items.push({
+      id: `rel-${r.id}`, kind: "escrow_released",
+      title: "Escrow released",
       subtitle: `TX ${String(r.transaction_id).slice(0, 8)}`,
-      at_iso: r.changed_at,
-    }));
+      at_iso: r.changed_at, action_href: `/admin/transactions/${r.transaction_id}`,
+    });
+    for (const r of (newProfiles.data ?? []) as any[]) items.push({
+      id: `usr-${r.id}`, kind: "user_registered",
+      title: "New user registered",
+      subtitle: r.full_name || r.email || String(r.id).slice(0, 8),
+      at_iso: r.created_at,
+    });
+    for (const r of (disputesOpened.data ?? []) as any[]) items.push({
+      id: `dop-${r.id}`, kind: "dispute_opened",
+      title: "Dispute opened",
+      subtitle: `TX ${String(r.transaction_id).slice(0, 8)}`,
+      at_iso: r.opened_at, action_href: `/admin/disputes/${r.id}`,
+    });
+    for (const r of (disputesResolved.data ?? []) as any[]) items.push({
+      id: `drs-${r.id}`, kind: "dispute_resolved",
+      title: "Dispute resolved",
+      subtitle: `TX ${String(r.transaction_id).slice(0, 8)}`,
+      at_iso: r.resolved_at, action_href: `/admin/disputes/${r.id}`,
+    });
+    for (const r of (payoutsFailedRows.data ?? []) as any[]) items.push({
+      id: `pof-${r.id}`, kind: "payout_failed",
+      title: "Payout failed",
+      subtitle: r.failure_reason || `TX ${String(r.transaction_id).slice(0, 8)}`,
+      amount: Number(r.amount ?? 0), currency: r.currency_code || "NGN",
+      at_iso: r.failed_at, action_href: `/admin/payouts`,
+    });
+    for (const r of (refundsDone.data ?? []) as any[]) items.push({
+      id: `ref-${r.id}`, kind: "refund_issued",
+      title: "Refund issued",
+      subtitle: `TX ${String(r.transaction_id).slice(0, 8)}`,
+      amount: Number(r.refund_amount ?? 0), currency: r.currency_code || "NGN",
+      at_iso: r.completed_at, action_href: `/admin/transactions/${r.transaction_id}`,
+    });
+    recentActivity = items
+      .filter((i) => i.at_iso)
+      .sort((a, b) => new Date(b.at_iso).getTime() - new Date(a.at_iso).getTime())
+      .slice(0, 10);
   } catch (e) {
     await logEdgeError(client, `recent_activity_failed: ${(e as Error).message}`, userId);
+  }
+
+  // ---------- Critical Alerts (dynamic) ----------
+  const criticalAlerts: any[] = [];
+  try {
+    const { data: settingsRows } = await client
+      .from("system_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", [
+        "escrow_balance_min_threshold",
+        "dispute_queue_overflow_threshold",
+        "webhook_failure_spike_threshold",
+        "failed_payout_spike_threshold",
+        "stale_transaction_spike_threshold",
+      ]);
+    const settings = new Map<string, string>();
+    for (const s of (settingsRows ?? []) as any[]) settings.set(s.setting_key, String(s.setting_value));
+    const numSetting = (k: string, fallback?: number): number | null => {
+      const v = settings.get(k);
+      if (v == null) return fallback ?? null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : (fallback ?? null);
+    };
+    const nowIso = now.toISOString();
+
+    // Escrow low balance — only if threshold is set in settings
+    const escrowThreshold = numSetting("escrow_balance_min_threshold");
+    if (escrowThreshold != null && escrowBalance < escrowThreshold) {
+      criticalAlerts.push({
+        id: "alert-escrow-low",
+        title: "Escrow balance below threshold",
+        description: `Escrow balance NGN ${escrowBalance.toFixed(2)} is below threshold NGN ${escrowThreshold.toFixed(2)}.`,
+        severity: "red", at_iso: nowIso,
+      });
+    }
+
+    const disputeThreshold = numSetting("dispute_queue_overflow_threshold", 30)!;
+    if (disputesOpenAll > disputeThreshold) {
+      criticalAlerts.push({
+        id: "alert-dispute-overflow",
+        title: "Dispute queue overflow",
+        description: `${disputesOpenAll} active disputes exceed the threshold of ${disputeThreshold}.`,
+        severity: "yellow", at_iso: nowIso,
+      });
+    }
+
+    const webhookFailThreshold = numSetting("webhook_failure_spike_threshold", 5)!;
+    const webhookFails24h = await safeCount(client, "payment_webhook_logs", (q) =>
+      q.eq("processed_successfully", false).gte("created_at", since24h),
+    );
+    if (webhookFails24h > webhookFailThreshold) {
+      criticalAlerts.push({
+        id: "alert-webhook-spike",
+        title: "Webhook failure spike",
+        description: `${webhookFails24h} webhook failures in last 24h (threshold ${webhookFailThreshold}).`,
+        severity: "red", at_iso: nowIso,
+      });
+    }
+
+    const failedPayoutThreshold = numSetting("failed_payout_spike_threshold", 5)!;
+    if (failedPayouts > failedPayoutThreshold) {
+      criticalAlerts.push({
+        id: "alert-failed-payouts",
+        title: "Failed payout spike",
+        description: `${failedPayouts} failed payouts pending retry (threshold ${failedPayoutThreshold}).`,
+        severity: "red", at_iso: nowIso,
+      });
+    }
+
+    const staleThreshold = numSetting("stale_transaction_spike_threshold", 10)!;
+    if (staleTx > staleThreshold) {
+      criticalAlerts.push({
+        id: "alert-stale-tx",
+        title: "Stale transactions",
+        description: `${staleTx} transactions awaiting payment > 24h (threshold ${staleThreshold}).`,
+        severity: "yellow", at_iso: nowIso,
+      });
+    }
+  } catch (e) {
+    await logEdgeError(client, `critical_alerts_failed: ${(e as Error).message}`, userId);
   }
 
   // Last audit entry
@@ -533,14 +702,14 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       compliance_status: highSev24h > 10 ? "amber" : "green",
       compliance_last_check_iso: now.toISOString(),
     },
-    critical_alerts: [] as any[],
+    critical_alerts: criticalAlerts,
     recent_activity: recentActivity,
     performance: [] as any[],
     sidebar_badges: {
-      disputes: badgeDisputes,
-      identity: badgeIdentity,
-      payouts: badgePayouts,
-      flagged_users: 0,
+      disputes: badgeDisputesReal,
+      identity: badgeIdentityReal,
+      payouts: badgePayoutsFailed + badgePayoutsAwaiting,
+      flagged_users: flaggedUsersBadge,
       exports: 0,
     },
   };
