@@ -52,9 +52,31 @@ async function safeSum(
   }
 }
 
-function calculateDeltaPct(current: number, previous: number): number {
-  if (!previous || previous === 0) return current > 0 ? 100 : 0;
+function calculateDeltaPct(current: number, previous: number): number | null {
+  if (!previous || previous === 0) return null;
   return Number((((current - previous) / previous) * 100).toFixed(1));
+}
+
+async function distinctActiveUsers(
+  client: SupabaseClient,
+  sinceIso: string,
+  untilIso?: string,
+): Promise<number> {
+  try {
+    let q = client
+      .from("user_sessions")
+      .select("user_id")
+      .gte("last_seen_at", sinceIso)
+      .limit(10000);
+    if (untilIso) q = q.lt("last_seen_at", untilIso);
+    const { data, error } = await q;
+    if (error || !data) return 0;
+    const set = new Set<string>();
+    for (const r of data as any[]) if (r?.user_id) set.add(r.user_id);
+    return set.size;
+  } catch {
+    return 0;
+  }
 }
 
 function formatDateBucket(d: Date): string {
@@ -103,8 +125,8 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     txTotal,
     txCurrent30d,
     txPrev30d,
-    activeUsers30d,
-    flaggedTx,
+    flaggedNeedsReview,
+    flaggedNeedsReviewPrev,
     awaitingRelease,
     failedPayouts,
     disputesOpen,
@@ -130,8 +152,10 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     safeCount(client, "transactions", (q) =>
       q.gte("created_at", prev30dStart).lt("created_at", since30d),
     ),
-    safeCount(client, "user_sessions", (q) => q.gte("last_seen_at", since30d)),
-    safeCount(client, "disputes", (q) => q.in("status", ["open", "under_review", "seller_response_pending"])),
+    safeCount(client, "transactions", (q) => q.eq("needs_release_review", true)),
+    safeCount(client, "transactions", (q) =>
+      q.eq("needs_release_review", true).gte("created_at", prev30dStart).lt("created_at", since30d),
+    ),
     safeCount(client, "release_review_queue", (q) => q.eq("status", "pending")),
     safeCount(client, "payouts", (q) => q.eq("status", "failed")),
     safeCount(client, "disputes", (q) => q.in("status", ["open", "under_review"])),
@@ -165,9 +189,44 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     safeCount(client, "payouts", (q) => q.in("status", ["pending", "processing", "failed"])),
   ]);
 
-  const escrowSumHeld = await safeSum(client, "escrow_states", "held_amount");
-  const escrowSumFrozen = await safeSum(client, "escrow_states", "frozen_amount");
+  const [
+    escrowSumHeld,
+    escrowSumFrozen,
+    activeUsers30d,
+    activeUsersPrev30d,
+    disputesOpenAll,
+    disputesOpenPrev,
+  ] = await Promise.all([
+    safeSum(client, "escrow_states", "held_amount"),
+    safeSum(client, "escrow_states", "frozen_amount"),
+    distinctActiveUsers(client, since30d),
+    distinctActiveUsers(client, prev30dStart, since30d),
+    safeCount(client, "disputes", (q) =>
+      q.in("status", ["open", "under_review", "seller_response_pending"]),
+    ),
+    safeCount(client, "disputes", (q) =>
+      q
+        .in("status", ["open", "under_review", "seller_response_pending"])
+        .gte("opened_at", prev30dStart)
+        .lt("opened_at", since30d),
+    ),
+  ]);
   const escrowBalance = escrowSumHeld + escrowSumFrozen;
+
+  // Active users fallback → registered profiles
+  let activeUsersValue = activeUsers30d;
+  let activeUsersIsFallback = false;
+  if (activeUsers30d === 0) {
+    const profilesCount = await safeCount(client, "profiles");
+    if (profilesCount > 0) {
+      activeUsersValue = profilesCount;
+      activeUsersIsFallback = true;
+    }
+  }
+
+  // Flagged activity = needs_release_review tx + open disputes
+  const flaggedActivity = flaggedNeedsReview + disputesOpenAll;
+  const flaggedActivityPrev = flaggedNeedsReviewPrev + disputesOpenPrev;
 
   const pendingPayoutsAmount = await safeSum(client, "payouts", "amount", (q) =>
     q.in("status", ["pending", "processing"]),
@@ -241,11 +300,12 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       total_transactions: txTotal,
       total_transactions_delta_pct: calculateDeltaPct(txCurrent30d, txPrev30d),
       escrow_balance_amount: Number(escrowBalance.toFixed(2)),
-      escrow_balance_delta_pct: 0,
-      active_users: activeUsers30d,
-      active_users_delta_pct: 0,
-      flagged_activity: flaggedTx,
-      flagged_activity_delta_pct: 0,
+      escrow_balance_delta_pct: null,
+      active_users: activeUsersValue,
+      active_users_delta_pct: calculateDeltaPct(activeUsers30d, activeUsersPrev30d),
+      active_users_is_fallback: activeUsersIsFallback,
+      flagged_activity: flaggedActivity,
+      flagged_activity_delta_pct: calculateDeltaPct(flaggedActivity, flaggedActivityPrev),
     },
     action_required: [
       { key: "awaiting_release", label: "Awaiting Release", count: awaitingRelease, severity: "blue", action_label: "Open Release Queue", action_href: null },
