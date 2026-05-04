@@ -596,6 +596,35 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
     }
   }
 
+  // In-memory sort for non-DB-native keys
+  const dir = sortDirection === "asc" ? 1 : -1;
+  const cmp = (a: number, b: number) => (a === b ? 0 : a < b ? -1 : 1) * dir;
+  const riskRank: Record<string, number> = { fraud_watch: 4, high_risk: 3, escalated: 2, clean: 1 };
+  if (requestedSort === "amount") {
+    outRows.sort((a, b) => cmp(a.amount, b.amount));
+  } else if (requestedSort === "last_activity_at") {
+    outRows.sort((a, b) => cmp(
+      a.lastActivityAt ? new Date(a.lastActivityAt).getTime() : 0,
+      b.lastActivityAt ? new Date(b.lastActivityAt).getTime() : 0,
+    ));
+  } else if (requestedSort === "risk_level") {
+    outRows.sort((a, b) => cmp(riskRank[a.riskLevel] ?? 0, riskRank[b.riskLevel] ?? 0));
+  } else if (requestedSort === "urgency") {
+    const score = (r: any) => {
+      let s = 0;
+      if (r.disputeStatus.key && ["open", "awaiting_seller", "under_review"].includes(r.disputeStatus.key)) s += 1000;
+      if (r.isFrozen) s += 500;
+      if (r.riskLevel === "fraud_watch") s += 400;
+      else if (r.riskLevel === "high_risk") s += 300;
+      if (r.needsReleaseReview) s += 200;
+      if (r.isOverdue) s += 100;
+      if (r.flags?.includes("payment_failed") || r.flags?.includes("payout_failed")) s += 80;
+      const t = r.lastActivityAt ? new Date(r.lastActivityAt).getTime() : 0;
+      return s * 1e13 + t;
+    };
+    outRows.sort((a, b) => cmp(score(a), score(b)));
+  }
+
   return {
     summary: {
       totalTransactions: totalCount ?? 0,
