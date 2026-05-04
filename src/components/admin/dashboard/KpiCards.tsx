@@ -13,7 +13,7 @@ export function KpiCards({ kpis }: KpiCardsProps) {
       icon: Receipt,
       iconClass: "bg-blue-500/15 text-blue-400",
       label: "Total Transactions",
-      value: kpis.total_transactions.toLocaleString("en-NG"),
+      value: (kpis.total_transactions ?? 0).toLocaleString("en-NG"),
       delta: kpis.total_transactions_delta_pct,
     },
     {
@@ -27,15 +27,18 @@ export function KpiCards({ kpis }: KpiCardsProps) {
     {
       icon: Users,
       iconClass: "bg-purple-500/15 text-purple-400",
-      label: "Active Users",
-      value: kpis.active_users.toLocaleString("en-NG"),
+      label: kpis.active_users_is_fallback ? "Registered Users" : "Active Users",
+      value: (kpis.active_users ?? 0).toLocaleString("en-NG"),
       delta: kpis.active_users_delta_pct,
+      tooltip: kpis.active_users_is_fallback
+        ? "Showing total registered users — no recent session activity recorded yet."
+        : undefined,
     },
     {
       icon: Flag,
       iconClass: "bg-red-500/15 text-red-400",
       label: "Flagged Activity",
-      value: kpis.flagged_activity.toLocaleString("en-NG"),
+      value: (kpis.flagged_activity ?? 0).toLocaleString("en-NG"),
       delta: kpis.flagged_activity_delta_pct,
     },
   ];
@@ -45,7 +48,8 @@ export function KpiCards({ kpis }: KpiCardsProps) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map((t, i) => {
           const Icon = t.icon;
-          const positive = t.delta >= 0;
+          const deltaAvailable = t.delta !== null && t.delta !== undefined;
+          const positive = deltaAvailable && (t.delta as number) >= 0;
           const card = (
             <div
               key={t.label}
@@ -55,13 +59,17 @@ export function KpiCards({ kpis }: KpiCardsProps) {
                 <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${t.iconClass}`}>
                   <Icon className="h-5 w-5" />
                 </div>
-                <div
-                  className={`flex items-center gap-1 text-xs font-medium ${positive ? "text-emerald-400" : "text-red-400"}`}
-                >
-                  {positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                  {positive ? "+" : ""}
-                  {t.delta.toFixed(1)}%
-                </div>
+                {deltaAvailable ? (
+                  <div
+                    className={`flex items-center gap-1 text-xs font-medium ${positive ? "text-emerald-400" : "text-red-400"}`}
+                  >
+                    {positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    {positive ? "+" : ""}
+                    {(t.delta as number).toFixed(1)}%
+                  </div>
+                ) : (
+                  <div className="text-xs font-medium text-slate-500">—</div>
+                )}
               </div>
               <div className="text-xs text-slate-400">{t.label}</div>
               <div className="mt-1 truncate text-2xl font-semibold tracking-tight text-white">{t.value}</div>
