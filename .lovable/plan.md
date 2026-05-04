@@ -1,54 +1,61 @@
-# Complete the Flags column on Admin Transactions
+# Fix: "Flagged" quick filter returns no rows
 
-## Why some rows show "—" today
+## Root cause
 
-The backend (`admin-transactions-monitor`) only attaches **risk/operational** flags:
-`escalated`, `high_risk`, `fraud_watch`, `frozen`, `admin_frozen`, `overdue`,
-`payment_failed`, `payout_failed`, `risk_flagged`.
+The Flags column in the UI surfaces many signals: `frozen`, `overdue`, `payment_failed`, `payout_failed`, `escalated` (active dispute), `risk_flagged`, `admin_frozen`, `high_risk`, `fraud_watch`.
 
-Healthy rows (`funds_held`, `completed`, `released`, `draft`, `cancelled`, `refunded`,
-`awaiting_payment` not yet overdue) intentionally return `flags: []`, so the UI renders `—`.
+But in `supabase/functions/admin-transactions-monitor/index.ts` the **"flagged" quick filter** is much narrower — it only matches:
 
-That's correct logic — but for a monitor screen we want every row to read at a glance.
+- `transactions.needs_release_review = true`, OR
+- transactions referenced by `admin_actions` of type `freeze_funds` / `escalate_case`, OR
+- recent `audit_logs` whose `action` contains `risk|fraud|suspicious|flag`.
 
-## Fix (UI only, single file)
+In current data none of those conditions are satisfied, so the query returns 0 rows even though the UI shows orange/red pills like "Frozen", "Overdue", "Payment Failed", "In Dispute" on many rows. That mismatch is the bug.
 
-**File: `src/pages/AdminTransactions.tsx`**
+There is also a secondary bug at line 189:
+```ts
+q = q.or(`needs_release_review.eq.true,id.in.(${ids})`);
+```
+The commas inside `id.in.(uuid,uuid,...)` collide with the comma that separates OR clauses in PostgREST — the filter has to be wrapped so the parser doesn't split it.
 
-1. Add a third metadata map `NEUTRAL_FLAG_META` for lifecycle pills derived from
-   `transactionStatus.key` / `moneyStatus.key` when no risk/operational flag exists:
-   - `funds_held` / money `held` → "Held Safely" (sky/blue)
-   - `delivered` / `awaiting_verification` → "Awaiting Confirm" (amber)
-   - `in_transit` → "In Transit" (indigo)
-   - `released` / `completed` → "Released" (emerald)
-   - `refunded` → "Refunded" (slate)
-   - `cancelled` → "Cancelled" (zinc)
-   - `draft` → "Draft" (zinc/dashed)
-   - `awaiting_payment` (not overdue) → "Awaiting Payment" (amber)
-   Each entry includes an `Icon` already in the `lucide-react` import set
-   (`ShieldCheck`, `Clock`, `Truck`, `CheckCircle2`, `RotateCcw`, `Ban`, `FileText`, `Hourglass`).
-   Add only the icons not already imported.
+## Fix (edge function only)
 
-2. Update `buildFlagBadges(t)`:
-   - Keep current logic: risk badge from `riskLevel` + secondary flags from `flags[]`.
-   - **If the resulting list is still empty**, push a single neutral pill derived from
-     `transactionStatus.key` (fall back to `moneyStatus.key`). If neither maps, return `[]`
-     and keep the `—` placeholder.
+**File: `supabase/functions/admin-transactions-monitor/index.ts`**
 
-3. Pass `transactionStatus` and `moneyStatus` into `buildFlagBadges` (signature change to
-   `{ riskLevel, flags, transactionStatus, moneyStatus }`). Update both call sites
-   (desktop table cell, mobile card badge row) accordingly.
+1. **Broaden the `flagged` quick filter** so it matches every signal the Flags column can render:
+   - `needs_release_review = true`
+   - `money_status = 'funds_frozen'`
+   - `dispute_status` in active dispute statuses
+   - any tx id present in `admin_actions` with `action_type` in `('freeze_funds','escalate_case','flag_for_review')`
+   - any tx id with a recent (<=30 days) `audit_logs.action` matching `risk|fraud|suspicious|flag`
+   - any tx id with a `payments.status = 'failed'` row
+   - any tx id with a `payouts.status = 'failed'` row
+   - any tx id that is currently overdue (`status='awaiting_payment'` and `created_at < now()-24h`)
 
-4. Visual rules (unchanged):
-   - Cap at **2 visible pills** + `+N` overflow chip with tooltip listing the rest.
-   - Neutral pills use lower-contrast classes (e.g. `bg-slate-500/10 text-slate-300 border-slate-500/30`)
-     so they don't visually compete with risk pills.
-   - Keep `Icon` decorative (`aria-hidden`), label remains the source of truth for screen readers.
+2. **Implementation pattern**: in `buildPayload`, when `params.quickFilter === 'flagged'`, run the existing pre-compute block plus extra lookups (`payments.failed`, `payouts.failed`) and build a single `flaggedTxIds: Set<string>`. Then in `buildBaseQuery` switch case `flagged`, restrict by that set:
+   ```ts
+   case "flagged": {
+     const ids = Array.from(flaggedTxIds);
+     // Two paths so we still cover money_status=funds_frozen, active disputes, and overdue
+     // even if those rows weren't pre-collected.
+     const orParts = [
+       "needs_release_review.eq.true",
+       "money_status.eq.funds_frozen",
+       `dispute_status.in.(${ACTIVE_DISPUTE_STATUSES.join(",")})`,
+     ];
+     if (ids.length) orParts.push(`id.in.(${ids.join(",")})`);
+     q = q.or(orParts.join(","));
+     break;
+   }
+   ```
+   PostgREST tolerates commas inside `in.(...)` within `.or()` because the parens balance; the existing single-`or` form is the right shape, just expanded.
+
+3. **Keep the summary `flaggedCount` consistent**: extend the existing `flaggedSet` block (lines ~602–624) to also add tx ids from `payments.failed`, `payouts.failed`, `money_status=funds_frozen`, active dispute, and overdue awaiting_payment, so the "Flagged" tile and the "Flagged" filter agree on the same population.
+
+4. No UI changes required — the chip already calls `quickFilter=flagged`; once the backend honors the broader definition, results will appear.
 
 ## Acceptance
 
-- Every row in the Admin Transactions table (desktop + mobile) shows at least one
-  meaningful pill: a risk/operational badge when present, otherwise a neutral lifecycle pill.
-- Risk and operational badges still take priority and are rendered first.
-- `—` only appears for rows with no mappable status (should be effectively never with current data).
-- No backend changes; only `src/pages/AdminTransactions.tsx` is touched.
+- Clicking the **Flagged** chip on `/admin/transactions` returns every row that displays any non-neutral pill in the Flags column (Frozen, Overdue, Payment Failed, Payout Failed, In Dispute, High Risk, Fraud Watch, Risk Flagged, Admin Frozen, Needs Review).
+- The "Flagged" KPI card count equals the number of rows returned by the Flagged filter (when no other filters are active).
+- All other quick filters (Awaiting Payment, Funds Held, In Dispute, Overdue, Refunded, Failed, Frozen) continue to behave as today.
