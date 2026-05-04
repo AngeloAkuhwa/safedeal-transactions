@@ -1,150 +1,113 @@
+# Admin Transaction Monitor — Production Polish
 
-# Admin Row/Card Actions — SafeDeal Transaction Monitor
+Scope: refinements only. No data-shape changes, no new endpoints. Touches `src/pages/AdminTransactions.tsx` plus 3 small new presentation components. All data continues to flow from `admin-transactions-monitor` and `admin-transaction-actions` edge functions.
 
-## Goals
-Add safe, state-aware admin actions per row (desktop) and per card (mobile). All state-changing actions go through dedicated admin edge functions with confirmation + reason + audit. No money movement, payout, or refund from this screen.
+## 1. Desktop polish
 
-## 1. Database changes (one migration)
+**Summary cards (`summaryTiles`)**
+- Reduce padding `p-4 → p-3.5`, icon tile `h-10 w-10 → h-8 w-8`, value `text-2xl → text-xl`, fixed min height so all 6 align.
+- Skeleton bar styled to match final value height to prevent jump.
+- Hover lift kept but lowered to `-translate-y-px` for less bounce.
 
-Schema additions only — no data writes via migration:
+**Table density & sticky header**
+- Wrap `<table>` in `max-h-[calc(100vh-380px)] overflow-auto` so the header is sticky inside the table area: `<thead className="sticky top-0 z-10 bg-card">`.
+- Standardize row height: `py-2.5` cells, `align-middle`, line-clamp item title to 1 line (with `title` attr).
+- Action column collapses to: `View`, `Notes`, `More` (move Ledger into the More menu — `RowActionsMenu` already supports it).
+- Action cell `w-[120px]` so icons stay aligned across rows.
 
-1. **`admin_transaction_notes`** (new) — internal admin notes (the existing `transaction_notes` table is seller-scoped, single-row, and not suitable):
-   - `id uuid pk`, `transaction_id uuid fk -> transactions(id) on delete restrict`
-   - `admin_user_id uuid fk -> profiles(id) on delete restrict`
-   - `note text not null check(length(trim(note)) > 0)`
-   - `is_pinned boolean default false`, `created_at timestamptz default now()`
-   - RLS: admins-only SELECT/INSERT (`has_role(auth.uid(),'admin')`); no UPDATE/DELETE.
-   - Index on `(transaction_id, created_at desc)`.
+**Row highlighting (state-driven, color-blind safe)**
+- Frozen → `bg-cyan-500/[0.04]` + 2px left border `border-l-cyan-500/60`.
+- Disputed → `border-l-orange-500/60` + subtle bg.
+- High risk / fraud watch → `border-l-red-500/60`.
+- Default rows keep `border-l-transparent` for layout parity.
+- Snowflake / shield icons remain so color isn't the only signal.
 
-2. **Extend `admin_action_type` enum** with: `add_internal_note`, `flag_for_review`, `unfreeze_transaction`. (`freeze_transaction`, `escalate_case` already exist.)
+**Badges**
+- Show **one** primary badge per cell. Status column: only Tx status badge (money status stays as small caption beneath — already done).
+- Flags column: render badge only when `riskLevel !== "clean"`; show `—` otherwise to reduce noise.
+- Escrow column: hide pill when state is `pending` / `released`; replace with muted text label.
 
-3. **`audit_action_type` enum** — add `admin_freeze`, `admin_unfreeze`, `admin_flag_review`, `admin_escalate_dispute`, `admin_internal_note`. (Used by `audit_logs.action`.)
+**Overflow**
+- Move horizontal scroll to inner table wrapper only; outer card stays at full width (already mostly done — just confirm `overflow-hidden` on outer card so border-radius clips correctly).
 
-No CHECK constraints on time-based values; no triggers added to reserved schemas.
+## 2. Mobile polish
 
-## 2. New edge function: `admin-transaction-actions`
+**Cards**
+- Reorder card body to: header (code/date + status badge) → item title → amount + protection (right-aligned) → buyer/seller compact line → escrow/risk badges row (only when non-default) → footer with primary action (`View`) + More menu.
+- Drop the explicit "Buyer/Seller" two-column block; replace with single line `Buyer • Seller` truncated.
+- Hide `Last activity` line unless tone is `warn` or `danger`.
+- Reduce vertical paddings: `p-3 → p-2.5`, separators `border-t` → `mt-2 pt-2 border-t border-border/60`.
 
-Single function, action-dispatched via `{ action, transactionId, payload }` body. Strict admin gate (JWT → `getClaims` → `has_role rpc`). Service role used only after gate passes. Per-action validation with Zod-style guards.
+**Filter chips**
+- Already horizontally scrollable; add `snap-x snap-mandatory` and `scrollbar-none` utility (Tailwind `[scrollbar-width:none] [&::-webkit-scrollbar]:none`).
 
-Supported actions and rules:
+**Search**
+- Pull search bar **above** quick chips on mobile (`flex-col` stacking with search first), keeping it prominent and always visible. Filters chip row stays beneath.
 
-- `add_internal_note` — `{ note: string<=2000 }`. Insert into `admin_transaction_notes`; `admin_actions(action_type='add_internal_note', action_notes)`; `audit_logs(action='admin_internal_note')`.
+**Bottom nav**
+- Add `pb-[calc(64px+env(safe-area-inset-bottom))]` to the page wrapper so cards / pagination aren't hidden behind nav. Currently only the mobile card list has `pb-20` — apply at page level.
 
-- `freeze` — Allowed only when `escrow_states.held_amount > 0` AND `money_status = 'funds_held_in_escrow'` AND no active completed/refunded state. Requires `{ reason: string(min 8) }`.
-  - Update `transactions.money_status='funds_frozen'`
-  - Insert `money_status_history(old_status, new_status='funds_frozen', changed_by_user_id=admin, reason)`
-  - Update `escrow_states`: move `held_amount` → `frozen_amount` (atomic update by id, conditional on current values to avoid races)
-  - `admin_actions(action_type='freeze_transaction')` + `audit_logs(action='admin_freeze')`.
+## 3. Empty states (new component `TransactionsEmptyState`)
 
-- `unfreeze` — Inverse of freeze; only when `money_status='funds_frozen'` AND `frozen_amount > 0`. Reverse the amounts; insert history; log.
+One presentational component, variant-driven, used in both desktop table tbody and mobile list:
 
-- `flag_for_review` — Allowed when txn is not in terminal state (`completed`/`cancelled`). Requires `{ reason: string(min 8) }`.
-  - `transactions.needs_release_review = true`, `release_review_reason = reason`
-  - Upsert `release_review_queue` with `queue_type='manual_hold'` (uses existing partial unique index `rrq_unique_open_per_type`); set `seller_id` from txn, `notes = reason`, `status='pending'`.
-  - `admin_actions(action_type='flag_for_review')` + `audit_logs(action='admin_flag_review')`.
+| Variant | When |
+|---|---|
+| `no-data` | API returned 0 rows AND no filters active |
+| `no-search` | `debouncedSearch` non-empty AND 0 results |
+| `no-filtered` | Any filter active AND 0 results |
+| `no-disputes` | `activeQuick === "in_dispute"` AND 0 results |
+| `no-flagged` | `activeQuick === "flagged"` AND 0 results |
 
-- `escalate_dispute` — Allowed only when an active dispute exists (`disputes.status in ('open','seller_response_pending','under_review')`) OR `riskLevel in ('high_risk','fraud_watch')`. Requires `{ reason: string }`.
-  - If dispute active: update `disputes.status='under_review'` (if not already) and write `dispute_status_history`.
-  - If no dispute but high risk: skip dispute update, only audit.
-  - `admin_actions(action_type='escalate_case', dispute_id?)` + `audit_logs(action='admin_escalate_dispute')`.
+Each has icon + heading + 1-line hint + "Clear filters" CTA where appropriate.
 
-All write paths return the updated availability flags and a fresh `lastActivityAt` so the UI can refresh the row in place.
+## 4. Loading states
 
-Forbidden by design (returns 400 with explanatory error if invoked): `release_funds`, `refund_buyer`. The handler refuses these with the message: "Refund must be handled from dispute or payout review."
+- **Summary skeletons**: 6 shimmer tiles matching final card dimensions (only on `initialLoad`).
+- **Filter panel**: render as-is even on first load (controls are static). No skeleton needed.
+- **Table/cards**: existing skeletons retained, refined to match new row height (desktop) and new card layout (mobile).
+- **Subtle inline loading on filter changes**: dim `tbody` / mobile list with `opacity-60 pointer-events-none transition-opacity` while `isFetching && !initialLoad`. Already partly present via the search spinner — extend to the whole list.
 
-## 3. New read-only edge function: `admin-transaction-detail`
+## 5. Error states
 
-Aggregates everything needed for the side panels/modals so the UI never queries Supabase directly. Admin-gated. Body: `{ transactionId, sections?: string[] }`. Sections:
+- Existing error banner kept; copy adjusted: "Failed to load Transaction Monitor".
+- Add toast via `sonnerToast.error` on refresh failure with **Retry** action button (not just banner).
+- Action failures already use `sonnerToast.error` — add an explicit "Retry" affordance in the toast for `freeze/flag/escalate`.
 
-- `summary` — header info (code, amounts, statuses, parties masked)
-- `timeline` — merged + sorted events from `transaction_status_history`, `money_status_history`, `transaction_events`, `delivery_updates`, `dispute_status_history`, `admin_actions` (limit 200)
-- `ledger` — `escrow_ledger_entries` rows (read-only)
-- `messages` — last 100 `transaction_messages` (read-only on monitor screen)
-- `notes` — `admin_transaction_notes` newest first
+## 6. Animations
 
-## 4. Service layer
+- Header: wrap title block in `animate-fade-in` (already on subsections).
+- Summary cards: keep existing `sd-fade-in-stagger` (already in place).
+- Filter panel: `animate-fade-in` (already in place).
+- Table rows: keep stagger only for **first 6 rows**, no stagger on subsequent fetches (avoid re-animating on realtime). Detect via `initialLoad` flag.
+- Badges: remove any `animate-pulse` from badges (none currently — confirm).
+- Live indicator pulse: keep but wrap in `motion-safe:animate-pulse`.
+- Add `motion-reduce:transition-none motion-reduce:animate-none` to row hover/lift effects globally on this page (utility class on wrapper).
 
-`src/services/admin-transaction-actions.service.ts`:
-- `addInternalNote`, `freezeTransaction`, `unfreezeTransaction`, `flagForReview`, `escalateDispute`, `getTransactionDetail(id, sections)`
-- All call edge functions via `supabase.functions.invoke` with the user JWT; surface `AdminAccessRequiredError` on 403.
+## 7. Accessibility
 
-Extend `admin-transactions-monitor` row response `actionAvailability` to include new flags consumed by the menu:
-`canFreeze`, `canUnfreeze`, `canFlagForReview`, `canEscalateDispute`, `canAddNote` (always true), with parallel `*_reason` strings used as tooltip copy when disabled.
+- All `IconBtn` already has `aria-label`. Wrap each in `<Tooltip>` for hover hint (use existing `TooltipProvider`).
+- Add `aria-label` to refresh, export, sort, and filters buttons.
+- Add `<caption className="sr-only">Platform transactions, sortable, filterable</caption>` on the table.
+- Filter `<label>` wrapping is in place — confirm `htmlFor`/id pairing for inputs.
+- Status, escrow, risk: each badge already pairs an icon with text; confirm icon has `aria-hidden`.
+- Keyboard: ensure quick filter chips are real `<button>` (already), focus-visible ring `focus-visible:ring-2 focus-visible:ring-blue-500/60` added to chips, IconBtn, BottomNav, and PaginationBar buttons.
 
-## 5. UI changes — `src/pages/AdminTransactions.tsx`
-
-### Desktop row (Actions column)
-Inline icon buttons (left-aligned, already styled):
-1. **View Details** (Eye) — `navigate('/admin/transactions/:id')`
-2. **More Actions** (MoreVertical) — opens `DropdownMenu` with the rest:
-   - Add Internal Note
-   - Open Messages
-   - View Timeline
-   - View Ledger
-   - separator
-   - Freeze Transaction (or Unfreeze when frozen)
-   - Flag for Review
-   - Escalate Dispute
-
-Disabled items render with `aria-disabled`, muted styling, and a `Tooltip` showing the `*_reason` returned from the backend (e.g. "Funds already released", "No active dispute", "Transaction is not eligible for freeze").
-
-### Mobile card
-Show only:
-- **View** icon (top-right)
-- **More** menu (kebab) — same dropdown content as desktop, full-width items, larger tap targets
-
-### Modals (new components in `src/components/admin/transactions/`)
-- `InternalNoteDialog` — textarea (8–2000 chars), Save / Cancel.
-- `FreezeTransactionDialog` — required reason textarea, "Type FREEZE to confirm" guard, summarises affected `held_amount` from row data, Save / Cancel.
-- `UnfreezeTransactionDialog` — required reason, similar.
-- `FlagForReviewDialog` — reason textarea, queue-type fixed to `manual_hold`.
-- `EscalateDisputeDialog` — reason textarea, shows dispute status if any.
-- `MessagesDrawer`, `TimelineDrawer`, `LedgerDrawer` — read-only side `Sheet`s sourced from `admin-transaction-detail`.
-
-All dialogs:
-- Optimistically disable submit while pending; show toast on success ("Transaction frozen", etc.) and on failure (error message from server).
-- On success, trigger `fetchData()` to refresh the table and close.
-- Realtime subscription already in place will also pick up the change on other clients.
-
-### Detail route stub
-Add minimal `src/pages/AdminTransactionDetail.tsx` at `/admin/transactions/:transactionId` that renders summary + tabbed Timeline/Ledger/Messages/Notes by reusing `admin-transaction-detail`. Out-of-scope: full edit screens. Wire route in `src/App.tsx`.
-
-## 6. Safety rails (enforced server-side)
-
-- Admin gate on every action (JWT + `has_role`).
-- Per-action state preconditions checked again server-side immediately before the write — UI flags are advisory only.
-- All writes use the service role client, in a sequence ordered to fail safely (history insert before state mutation where possible; conditional `update ... where money_status=...` to prevent races).
-- Every action writes both `admin_actions` and `audit_logs`.
-- Money movement actions (`release_funds`, `refund_buyer`) are explicitly rejected by this function with a guidance message.
-- Confirmation modal mandatory for: Freeze, Unfreeze, Flag for Review, Escalate Dispute.
-
-## 7. File map
+## 8. Files touched
 
 ```text
-supabase/migrations/<ts>_admin_actions_schema.sql      (new)
-supabase/functions/admin-transaction-actions/index.ts  (new)
-supabase/functions/admin-transaction-detail/index.ts   (new)
-supabase/functions/admin-transactions-monitor/index.ts (extend actionAvailability + reasons)
-src/services/admin-transaction-actions.service.ts      (new)
-src/services/admin-transactions-monitor.service.ts     (extend types)
-src/components/admin/transactions/InternalNoteDialog.tsx
-src/components/admin/transactions/FreezeTransactionDialog.tsx
-src/components/admin/transactions/UnfreezeTransactionDialog.tsx
-src/components/admin/transactions/FlagForReviewDialog.tsx
-src/components/admin/transactions/EscalateDisputeDialog.tsx
-src/components/admin/transactions/MessagesDrawer.tsx
-src/components/admin/transactions/TimelineDrawer.tsx
-src/components/admin/transactions/LedgerDrawer.tsx
-src/components/admin/transactions/RowActionsMenu.tsx     (shared dropdown)
-src/pages/AdminTransactions.tsx                        (wire menu + modals)
-src/pages/AdminTransactionDetail.tsx                   (new minimal route)
-src/App.tsx                                            (add route)
+src/pages/AdminTransactions.tsx                              (refinements)
+src/components/admin/transactions/TransactionsEmptyState.tsx (new)
+src/components/admin/transactions/StateRowDecoration.ts      (new — small helper returning row className per row state)
 ```
 
-## 8. Acceptance criteria mapping
+No DB migrations. No edge function changes. No service-layer changes. No new dependencies.
 
-- **State-aware actions** → server-computed `actionAvailability` + `*_reason`; menu items disabled with tooltip.
-- **Confirmation + reason for dangerous actions** → Freeze/Unfreeze/Flag/Escalate dialogs each require a reason.
-- **All admin actions audited** → every action writes `admin_actions` and `audit_logs`.
-- **No casual money movement** → `release_funds` / `refund_buyer` not exposed; rejected server-side if attempted.
-- **Mobile actions clean** → only View + More on the card; full menu inside dropdown.
+## 9. Acceptance check
+
+- 1366×768 desktop: 6 KPI cards on one row, table header sticky inside scrollable area, action column never wraps, frozen/disputed/high-risk rows visually distinct via border + subtle bg + icon.
+- 390×844 mobile: search prominent at top, chips scroll horizontally with snap, cards compact (~140–160 px tall), bottom nav doesn't cover last card.
+- All five empty-state variants render with correct copy.
+- `prefers-reduced-motion: reduce` disables stagger, hover lift, and live-pulse.
+- Lighthouse a11y for the page ≥ 95 (manual smoke check).
+- No hardcoded counts/money/names anywhere — only the static enum option labels and visual tokens.
