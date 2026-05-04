@@ -19,10 +19,10 @@ export function AdminLayout({ title, subtitle, badges, children }: AdminLayoutPr
 
   return (
     <ReadingModeProvider>
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="flex min-h-screen">
         {/* Desktop sidebar */}
-        <div className="hidden w-72 shrink-0 border-r border-slate-800 lg:block">
+        <div className="hidden w-72 shrink-0 border-r border-border lg:block">
           <div className="sticky top-0 h-screen overflow-hidden">
             <AdminSidebar badges={badges} />
           </div>
@@ -32,7 +32,7 @@ export function AdminLayout({ title, subtitle, badges, children }: AdminLayoutPr
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent
             side="left"
-            className="w-72 border-slate-800 bg-slate-900 p-0 text-slate-100"
+            className="w-72 border-border bg-card p-0 text-foreground"
           >
             <AdminSidebar badges={badges} onNavigate={() => setMobileOpen(false)} />
           </SheetContent>

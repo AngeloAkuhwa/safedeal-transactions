@@ -53,9 +53,9 @@ export function AuditComplianceSignalCard({ signal }: Props) {
   ];
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div className="rounded-xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">Audit & Compliance Signal</h3>
+        <h3 className="text-sm font-semibold text-foreground">Audit & Compliance Signal</h3>
         <span
           className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium ${COMPLIANCE_BADGE[signal.compliance_status]}`}
         >
@@ -63,7 +63,7 @@ export function AuditComplianceSignalCard({ signal }: Props) {
           Compliance: {COMPLIANCE_LABEL[signal.compliance_status]}
         </span>
       </div>
-      <ul className="divide-y divide-slate-800">
+      <ul className="divide-y divide-border">
         {rows.map((r) => {
           const Icon = r.icon;
           return (
@@ -71,22 +71,22 @@ export function AuditComplianceSignalCard({ signal }: Props) {
               <button
                 type="button"
                 onClick={r.onClick}
-                className="flex w-full items-center justify-between gap-3 py-2.5 text-left transition-colors hover:bg-slate-800/40"
+                className="flex w-full items-center justify-between gap-3 py-2.5 text-left transition-colors hover:bg-muted/40"
               >
                 <div className="flex min-w-0 items-center gap-2.5">
-                  <Icon className="h-4 w-4 shrink-0 text-slate-400" />
+                  <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <div className="min-w-0">
-                    <div className="truncate text-xs text-slate-400">{r.label}</div>
-                    <div className="truncate text-sm text-slate-100">{r.value}</div>
+                    <div className="truncate text-xs text-muted-foreground">{r.label}</div>
+                    <div className="truncate text-sm text-foreground">{r.value}</div>
                   </div>
                 </div>
-                <span className="shrink-0 text-[11px] text-slate-400">{r.meta}</span>
+                <span className="shrink-0 text-[11px] text-muted-foreground">{r.meta}</span>
               </button>
             </li>
           );
         })}
       </ul>
-      <div className="mt-3 text-[11px] text-slate-500">
+      <div className="mt-3 text-[11px] text-muted-foreground">
         Compliance last checked {formatRelative(signal.compliance_last_check_iso)}
       </div>
     </div>

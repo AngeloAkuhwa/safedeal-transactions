@@ -22,9 +22,9 @@ type Win = "7D" | "30D" | "90D";
 
 function ChartCard({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div className="rounded-xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">{title}</h3>
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         {right}
       </div>
       <div className="h-[260px]">{children}</div>
@@ -66,15 +66,15 @@ export function TrendCharts({ initialTransactions, escrow }: TrendChartsProps) {
         title="Transactions vs Disputes Trend"
         right={
           <div className="inline-flex items-center gap-2">
-            {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" /> : null}
-            <div className="inline-flex rounded-md border border-slate-700 bg-slate-800/60 p-0.5 text-[11px]">
+            {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" /> : null}
+            <div className="inline-flex rounded-md border border-border bg-muted/60 p-0.5 text-[11px]">
             {(["7D", "30D", "90D"] as Win[]).map((w) => (
               <button
                 key={w}
                 type="button"
                 onClick={() => setWin(w)}
                 className={`rounded-sm px-2.5 py-1 transition-colors ${
-                  win === w ? "bg-blue-500/20 text-blue-300" : "text-slate-400 hover:text-slate-200"
+                  win === w ? "bg-blue-500/20 text-blue-300" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {w}
@@ -98,7 +98,7 @@ export function TrendCharts({ initialTransactions, escrow }: TrendChartsProps) {
 
       <ChartCard
         title="Escrow, Releases & Refunds"
-        right={<span className="text-[11px] text-slate-400">Last 30 days</span>}
+        right={<span className="text-[11px] text-muted-foreground">Last 30 days</span>}
       >
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={escrow.points} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>

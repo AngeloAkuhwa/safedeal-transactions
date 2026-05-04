@@ -30,11 +30,11 @@ export function AdminActionRequired({ items }: AdminActionRequiredProps) {
   return (
     <section
       aria-label="Admin action required"
-      className="rounded-xl border border-slate-800 bg-slate-900/60 p-4"
+      className="rounded-xl border border-border bg-card/60 p-4"
     >
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-white">Admin Action Required</h2>
-        <span className="text-[11px] uppercase tracking-wider text-slate-500">
+        <h2 className="text-sm font-semibold text-foreground">Admin Action Required</h2>
+        <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
           Internal queues
         </span>
       </div>
@@ -44,15 +44,15 @@ export function AdminActionRequired({ items }: AdminActionRequiredProps) {
           return (
             <div
               key={item.key}
-              className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} flex flex-col rounded-lg border bg-slate-900 p-3 transition-all hover:-translate-y-0.5 ${SEVERITY_BG[item.severity]}`}
+              className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} flex flex-col rounded-lg border bg-card p-3 transition-all hover:-translate-y-0.5 ${SEVERITY_BG[item.severity]}`}
             >
               <div className="mb-2 flex items-center justify-between">
                 <div className={`flex h-8 w-8 items-center justify-center rounded-md ${SEVERITY_BG[item.severity]} border`}> 
                   <Icon className="h-4 w-4" />
                 </div>
-                <div className="text-xl font-semibold text-white tabular-nums">{item.count}</div>
+                <div className="text-xl font-semibold text-foreground tabular-nums">{item.count}</div>
               </div>
-              <div className="mb-3 text-xs leading-snug text-slate-300">{item.label}</div>
+              <div className="mb-3 text-xs leading-snug text-foreground/90">{item.label}</div>
               <button
                 type="button"
                 onClick={() => go(item.action_href, item.label)}

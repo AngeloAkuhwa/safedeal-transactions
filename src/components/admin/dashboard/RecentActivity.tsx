@@ -19,9 +19,9 @@ interface Props { items: AdminActivityItem[] }
 export function RecentActivity({ items }: Props) {
   const { go } = useAdminNav();
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div className="rounded-xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">Recent Activity</h3>
+        <h3 className="text-sm font-semibold text-foreground">Recent Activity</h3>
         <button
           type="button"
           onClick={() => go("/admin/audit-logs", "Audit Logs")}
@@ -31,11 +31,11 @@ export function RecentActivity({ items }: Props) {
         </button>
       </div>
       {items.length === 0 ? (
-        <div className="rounded-lg border border-slate-800 px-3 py-6 text-center text-sm text-slate-400">
+        <div className="rounded-lg border border-border px-3 py-6 text-center text-sm text-muted-foreground">
           No recent activity.
         </div>
       ) : (
-        <ul className="divide-y divide-slate-800">
+        <ul className="divide-y divide-border">
           {items.map((it) => {
             const cfg = ICONS[it.kind];
             const Icon = cfg.icon;
@@ -43,25 +43,25 @@ export function RecentActivity({ items }: Props) {
               <li
                 key={it.id}
                 onClick={() => it.action_href && go(it.action_href, it.title)}
-                className={`flex items-center justify-between gap-3 py-2.5 ${it.action_href ? "cursor-pointer hover:bg-slate-800/40" : ""}`}
+                className={`flex items-center justify-between gap-3 py-2.5 ${it.action_href ? "cursor-pointer hover:bg-muted/40" : ""}`}
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <div className={`flex h-8 w-8 items-center justify-center rounded-md ${cfg.cls}`}>
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2 truncate text-sm font-medium text-white">
+                    <div className="flex items-center gap-2 truncate text-sm font-medium text-foreground">
                       <span className="truncate">{it.title}</span>
                       {typeof it.amount === "number" && it.amount > 0 ? (
-                        <span className="shrink-0 text-xs text-slate-300 tabular-nums">
+                        <span className="shrink-0 text-xs text-foreground/90 tabular-nums">
                           {formatMoney(it.amount, it.currency || "NGN")}
                         </span>
                       ) : null}
                     </div>
-                    <div className="truncate text-xs text-slate-400">{it.subtitle}</div>
+                    <div className="truncate text-xs text-muted-foreground">{it.subtitle}</div>
                   </div>
                 </div>
-                <span className="shrink-0 text-[11px] text-slate-400">{formatRelative(it.at_iso)}</span>
+                <span className="shrink-0 text-[11px] text-muted-foreground">{formatRelative(it.at_iso)}</span>
               </li>
             );
           })}

@@ -155,15 +155,15 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <aside className="flex h-full w-full flex-col bg-slate-900 text-slate-100">
+      <aside className="flex h-full w-full flex-col bg-card text-foreground">
         {/* Logo */}
-        <div className="flex items-center gap-3 border-b border-slate-800 px-5 py-5">
+        <div className="flex items-center gap-3 border-b border-border px-5 py-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-emerald-500">
-            <ShieldCheck className="h-5 w-5 text-white" />
+            <ShieldCheck className="h-5 w-5 text-foreground" />
           </div>
           <div className="min-w-0">
             <div className="truncate text-base font-semibold leading-tight">SafeDeal</div>
-            <div className="text-xs text-slate-400">Admin Portal</div>
+            <div className="text-xs text-muted-foreground">Admin Portal</div>
           </div>
         </div>
 
@@ -171,7 +171,7 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
           {groups.map((group) => (
             <div key={group.label}>
-              <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {group.label}
               </div>
               <ul className="space-y-0.5">
@@ -190,8 +190,8 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
                         active
                           ? "border border-blue-500/30 bg-blue-500/10 text-blue-300"
                           : built
-                            ? "text-slate-300 hover:bg-slate-800/70 hover:text-white"
-                            : "text-slate-500 hover:bg-slate-800/40 hover:text-slate-300",
+                            ? "text-foreground/90 hover:bg-muted/70 hover:text-foreground"
+                            : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
                       ].join(" ")}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
@@ -212,7 +212,7 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
                       ) : (
                         <Tooltip>
                           <TooltipTrigger asChild>{row}</TooltipTrigger>
-                          <TooltipContent side="right" className="border-slate-700 bg-slate-800 text-slate-100">
+                          <TooltipContent side="right" className="border-border bg-muted text-foreground">
                             Coming soon
                           </TooltipContent>
                         </Tooltip>
@@ -226,19 +226,19 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
         </nav>
 
         {/* Profile */}
-        <div className="flex items-center gap-3 border-t border-slate-800 px-4 py-4">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 text-sm font-semibold text-white">
+        <div className="flex items-center gap-3 border-t border-border px-4 py-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 text-sm font-semibold text-foreground">
             A
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium text-slate-100">Admin User</div>
-            <div className="truncate text-xs text-slate-400">Super Admin</div>
+            <div className="truncate text-sm font-medium text-foreground">Admin User</div>
+            <div className="truncate text-xs text-muted-foreground">Super Admin</div>
           </div>
           <button
             type="button"
             onClick={handleLogout}
             aria-label="Log out"
-            className="rounded-md p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <LogOut className="h-4 w-4" />
           </button>

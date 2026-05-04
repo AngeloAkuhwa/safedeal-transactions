@@ -22,17 +22,17 @@ function DashboardSkeleton() {
     <>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-[110px] rounded-xl bg-slate-900" />
+          <Skeleton key={i} className="h-[110px] rounded-xl bg-card" />
         ))}
       </div>
-      <Skeleton className="h-[160px] rounded-xl bg-slate-900" />
+      <Skeleton className="h-[160px] rounded-xl bg-card" />
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <Skeleton className="h-[300px] rounded-xl bg-slate-900" />
-        <Skeleton className="h-[300px] rounded-xl bg-slate-900" />
+        <Skeleton className="h-[300px] rounded-xl bg-card" />
+        <Skeleton className="h-[300px] rounded-xl bg-card" />
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-[120px] rounded-xl bg-slate-900" />
+          <Skeleton key={i} className="h-[120px] rounded-xl bg-card" />
         ))}
       </div>
     </>
@@ -59,9 +59,9 @@ const AdminDashboard = () => {
   if (error instanceof AdminAccessRequiredError) {
     return (
       <AdminLayout title={TITLE} subtitle={SUBTITLE}>
-        <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-slate-800 bg-slate-900 px-6 py-16 text-center">
-          <h2 className="text-base font-semibold text-white">Admin access required</h2>
-          <p className="text-sm text-slate-400">You do not have permission to view this dashboard.</p>
+        <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-border bg-card px-6 py-16 text-center">
+          <h2 className="text-base font-semibold text-foreground">Admin access required</h2>
+          <p className="text-sm text-muted-foreground">You do not have permission to view this dashboard.</p>
         </div>
       </AdminLayout>
     );
@@ -70,20 +70,20 @@ const AdminDashboard = () => {
   if (isError || !data) {
     return (
       <AdminLayout title={TITLE} subtitle={SUBTITLE}>
-        <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-slate-800 bg-slate-900 px-6 py-16 text-center">
+        <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-border bg-card px-6 py-16 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 text-red-400">
             <RefreshCw className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-white">Could not load admin dashboard</h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <h2 className="text-base font-semibold text-foreground">Could not load admin dashboard</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
               {(error as Error)?.message || "Please try again."}
             </p>
           </div>
           <button
             type="button"
             onClick={() => refetch()}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-blue-500"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-foreground hover:bg-blue-500"
           >
             <Loader2 className="h-4 w-4" />
             Try Again
