@@ -796,9 +796,61 @@ export default function AdminTransactionDetail() {
             </div>
           </Card>
 
-          {/* === Items === */}
-          <Card>
-            <CardHeader title="Items" subtitle={`${data.items.length} item${data.items.length === 1 ? "" : "s"}`} />
+          {/* === Lower 2/1 grid === */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 lg:gap-6">
+            <div className="xl:col-span-2 space-y-5 lg:space-y-6">
+
+              {/* Locked Agreement */}
+              <Card>
+                <CardHeader
+                  title="Locked Agreement"
+                  subtitle={lockedAgreement?.lockedAt ? `Locked ${fmtDate(lockedAgreement.lockedAt)}` : "Original terms when payment was made"}
+                  action={
+                    <Button size="sm" variant="outline" onClick={() => setAgreementOpen(true)}>
+                      <Eye className="h-4 w-4 mr-1.5" /> Preview Agreement
+                    </Button>
+                  }
+                />
+                <div className="p-4 lg:p-6">
+                  {!lockedAgreement ? (
+                    <div className="rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-300">
+                      Agreement snapshot missing. Review this transaction for data integrity.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h4 className="text-sm font-medium text-foreground mb-3">Item Details</h4>
+                        <div className="space-y-1.5 text-sm">
+                          <p className="text-foreground">{lockedAgreement.item.title ?? "—"}</p>
+                          {lockedAgreement.item.description && <p className="text-xs text-muted-foreground">{lockedAgreement.item.description}</p>}
+                          {lockedAgreement.item.condition && <p className="text-xs text-muted-foreground">Condition: {titleCase(lockedAgreement.item.condition)}</p>}
+                          {lockedAgreement.item.quantity != null && <p className="text-xs text-muted-foreground">Quantity: {lockedAgreement.item.quantity}</p>}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-foreground mb-3">Terms</h4>
+                        <div className="space-y-2 text-sm">
+                          <RowKV k="Agreed Price" v={ngn(lockedAgreement.agreedPrice)} />
+                          <RowKV k="Protection Fee" v={ngn(lockedAgreement.protectionFee)} />
+                          <RowKV k="Total" v={ngn(lockedAgreement.total)} bold />
+                          <RowKV k="Delivery" v={titleCase(lockedAgreement.deliveryMethod) || "—"} />
+                          <RowKV k="Verification Window" v={lockedAgreement.verificationWindowHours ? `${lockedAgreement.verificationWindowHours}h` : "—"} />
+                        </div>
+                      </div>
+                      {lockedAgreement.sellerNotes && (
+                        <div className="md:col-span-2 rounded-md bg-muted/30 p-3">
+                          <h5 className="text-sm font-medium text-foreground mb-1">Seller Notes</h5>
+                          <p className="text-sm text-muted-foreground">{lockedAgreement.sellerNotes}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              {/* Transaction Items */}
+              <Card>
+            <CardHeader title="Transaction Items" subtitle={`${data.items.length} item${data.items.length === 1 ? "" : "s"}`} />
             <div className="p-4 lg:p-6 space-y-3">
               {data.items.length === 0 && <Empty>No items recorded.</Empty>}
               {data.items.map((it) => (
@@ -824,25 +876,8 @@ export default function AdminTransactionDetail() {
             </div>
           </Card>
 
-          {/* === Pricing & Fees === */}
-          <Card>
-            <CardHeader title="Pricing & Fees" />
-            <div className="p-4 lg:p-6">
-              {!data.pricing ? <Empty>No pricing recorded.</Empty> : (
-                <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <KV label="Item Total" value={ngn(data.pricing.itemTotal)} />
-                  <KV label="Protection Fee" value={ngn(data.pricing.protectionFee)} />
-                  <KV label="Processing Fee" value={ngn(data.pricing.processingFee)} />
-                  <KV label="Refunded" value={ngn(data.pricing.refundedTotal)} />
-                  <KV label="Seller Net" value={ngn(data.pricing.sellerNet)} />
-                  <KV label="Buyer Total" value={ngn(data.pricing.buyerTotal)} bold />
-                </dl>
-              )}
-            </div>
-          </Card>
-
-          {/* === Payment & Escrow === */}
-          <Card>
+              {/* Payment & Escrow */}
+              <Card>
             <CardHeader title="Payment & Escrow" />
             <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
               <div className="p-4 lg:p-6">
@@ -859,71 +894,46 @@ export default function AdminTransactionDetail() {
                 )}
               </div>
               <div className="p-4 lg:p-6">
-                <h4 className="text-sm font-medium text-foreground mb-3">Escrow</h4>
+                <h4 className="text-sm font-medium text-foreground mb-3">Escrow Ledger</h4>
                 {!data.escrow ? <Empty>No escrow record.</Empty> : (
-                  <div className="space-y-2 text-sm">
-                    <RowKV k="State" v={<MoneyPill value={tx.moneyStatus} />} />
-                    <RowKV k="Held" v={ngn(data.escrow.heldAmount)} />
-                    <RowKV k="Frozen" v={<span className={tx.moneyStatus === "funds_frozen" ? "text-cyan-300 font-semibold" : ""}>{ngn(data.escrow.frozenAmount || (tx.moneyStatus === "funds_frozen" ? escrowDisplay.value : 0))}</span>} />
-                    <RowKV k="Released" v={ngn(data.escrow.releasedAmount)} />
-                    <RowKV k="Refunded" v={ngn(data.escrow.refundedAmount)} />
-                    <RowKV k="Last Changed" v={fmtDate(data.escrow.lastChangedAt)} />
+                  <div className="space-y-2.5 text-sm">
+                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-md">
+                      <div>
+                        <p className="text-foreground text-sm">Funds Received</p>
+                        <p className="text-xs text-muted-foreground">{fmtDate(data.payment?.paidAt)}</p>
+                      </div>
+                      <span className="text-emerald-400 font-semibold tabular-nums">+{ngn(data.payment?.amount ?? data.pricing?.buyerTotal)}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-md">
+                      <div>
+                        <p className="text-foreground text-sm">Fee Deducted</p>
+                        <p className="text-xs text-muted-foreground">{fmtDate(data.payment?.paidAt)}</p>
+                      </div>
+                      <span className="text-muted-foreground tabular-nums">-{ngn(data.pricing?.protectionFee)}</span>
+                    </div>
+                    <div className={cn(
+                      "flex items-center justify-between p-3 rounded-md border",
+                      tx.moneyStatus === "funds_frozen"
+                        ? "bg-cyan-500/10 border-cyan-500/20"
+                        : "bg-purple-500/10 border-purple-500/20",
+                    )}>
+                      <div>
+                        <p className="text-foreground text-sm">{escrowDisplay.label}</p>
+                        <p className="text-xs text-muted-foreground">{titleCase(tx.moneyStatus)}</p>
+                      </div>
+                      <span className={cn(
+                        "font-semibold tabular-nums",
+                        tx.moneyStatus === "funds_frozen" ? "text-cyan-300" : "text-purple-400",
+                      )}>{ngn(escrowDisplay.value)}</span>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
-            {(data.escrow?.ledger?.length ?? 0) > 0 && (
-              <div className="border-t border-border p-4 lg:p-6">
-                <h4 className="text-sm font-medium text-foreground mb-3">Escrow Ledger</h4>
-                <div className="overflow-x-auto rounded-md border border-border">
-                  <table className="w-full text-xs">
-                    <thead className="bg-muted/40 text-muted-foreground"><tr>
-                      <th className="p-2 text-left">Date</th>
-                      <th className="p-2 text-left">Type</th>
-                      <th className="p-2 text-right">Amount</th>
-                      <th className="p-2 text-right">Balance</th>
-                      <th className="p-2 text-left">Notes</th>
-                    </tr></thead>
-                    <tbody>
-                      {data.escrow!.ledger.map((r) => (
-                        <tr key={r.id} className="border-t border-border">
-                          <td className="p-2 align-top whitespace-nowrap">{fmtDate(r.at)}</td>
-                          <td className="p-2 align-top">{titleCase(r.entryType)}</td>
-                          <td className="p-2 text-right tabular-nums align-top">{ngn(r.amount)}</td>
-                          <td className="p-2 text-right tabular-nums align-top">{ngn(r.balanceAfter)}</td>
-                          <td className="p-2 align-top text-muted-foreground">{r.notes ?? "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
           </Card>
 
-          {/* === Payout === */}
-          <Card>
-            <CardHeader title="Payout" />
-            <div className="p-4 lg:p-6">
-              {!data.payout ? (
-                <div className="text-sm text-muted-foreground">
-                  {dispute ? "No payout yet — pending dispute resolution." : "No payout recorded."}
-                </div>
-              ) : (
-                <dl className="grid grid-cols-2 gap-4">
-                  <KV label="Status" value={<StatusPill value={data.payout.status} />} />
-                  <KV label="Amount" value={ngn(data.payout.amount)} />
-                  <KV label="Reference" value={<span className="font-mono text-xs break-all">{data.payout.providerReference ?? "—"}</span>} />
-                  <KV label="Released At" value={fmtDate(data.payout.releasedAt ?? data.payout.completedAt)} />
-                  {data.payout.failureReason && <div className="col-span-2"><KV label="Failure" value={<span className="text-red-300">{data.payout.failureReason}</span>} /></div>}
-                  {data.payout.blocked && <div className="col-span-2"><KV label="Blocked" value={<span className="text-orange-300">{data.payout.blockedReason ?? "Blocked"}</span>} /></div>}
-                </dl>
-              )}
-            </div>
-          </Card>
-
-          {/* === Delivery & Fulfillment === */}
-          <Card>
+              {/* Delivery & Fulfillment */}
+              <Card>
             <CardHeader title="Delivery & Fulfillment" />
             <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
               <div className="p-4 lg:p-6">
@@ -953,15 +963,156 @@ export default function AdminTransactionDetail() {
                     ))}
                   </ul>
                 )}
-                {dispute?.overdue && (
+                {dispute && data.delivery?.deliveredAt && (() => {
+                  const diff = new Date(dispute.openedAt).getTime() - new Date(data.delivery.deliveredAt).getTime();
+                  return diff >= 0 && diff < 24 * 3600 * 1000;
+                })() && (
                   <div className="mt-4 rounded-md border border-red-500/20 bg-red-500/10 p-2.5 flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
-                    <span className="text-red-400 text-xs">Dispute opened — funds frozen</span>
+                    <span className="text-red-400 text-xs">Dispute opened within 24hrs of delivery</span>
                   </div>
                 )}
               </div>
             </div>
           </Card>
+
+            </div>
+
+            {/* Right rail */}
+            <aside className="space-y-5 lg:space-y-6">
+              {dispute && (
+                <Card accent="orange">
+                  <CardHeader title="Dispute Status" />
+                  <div className="p-4 lg:p-6 space-y-3">
+                    <DStatusRow icon={Scale} label="Dispute Opened" value={fmtDate(dispute.openedAt)} pill={<StatusPill value={dispute.status} />} />
+                    {dispute.sellerResponseDueAt && (
+                      <DStatusRow
+                        icon={Clock}
+                        label="Resolution Deadline"
+                        value={fmtDate(dispute.sellerResponseDueAt)}
+                        pill={dispute.overdue ? <span className="text-xs font-bold text-red-400">OVERDUE</span> : null}
+                      />
+                    )}
+                    <DStatusRow icon={User} label="Dispute Type" value={titleCase(dispute.claimType) || "—"} pill={null} />
+                    {dispute.summary && <p className="text-sm text-foreground/90 pt-1">{dispute.summary}</p>}
+                    {dispute.outcome && (
+                      <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
+                        <div className="font-semibold text-foreground">Outcome: {titleCase(dispute.outcome.type)}</div>
+                        <div className="text-muted-foreground mt-1">{dispute.outcome.summary}</div>
+                        <div className="text-muted-foreground mt-1">Refund {ngn(dispute.outcome.refundAmount)} · Release {ngn(dispute.outcome.releaseAmount)}</div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {(evidence.length > 0 || dispute) && (
+                <Card>
+                  <CardHeader title="Dispute Evidence" subtitle={`${evidence.length} item${evidence.length === 1 ? "" : "s"}`} />
+                  <div className="p-4 lg:p-6">
+                    {evidence.length === 0 ? (
+                      <Empty>No evidence files uploaded yet.</Empty>
+                    ) : (
+                      <ul className="space-y-3">
+                        {evidence.map((ev) => {
+                          const Icon = evidenceIcon(ev.kind);
+                          return (
+                            <li key={ev.id}>
+                              <button
+                                type="button"
+                                onClick={() => setEvidencePreview(ev)}
+                                className="w-full text-left flex items-center gap-3 rounded-lg border border-border bg-muted/20 p-3 hover:border-blue-500/50 transition-all"
+                              >
+                                <div className="w-12 h-12 rounded-md bg-muted/40 flex items-center justify-center shrink-0 overflow-hidden">
+                                  {ev.kind === "image" && ev.secureUrl ? (
+                                    <img src={ev.secureUrl} alt={ev.title} draggable={false} className="w-full h-full object-cover pointer-events-none" />
+                                  ) : (
+                                    <Icon className="h-5 w-5 text-muted-foreground" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium text-foreground truncate">{ev.title}</div>
+                                  <div className="text-xs text-muted-foreground truncate">{fmtDate(ev.uploadedAt)}{ev.uploadedByRole ? ` · ${ev.uploadedByRole}` : ""}</div>
+                                </div>
+                                <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                </Card>
+              )}
+            </aside>
+          </div>
+
+          {/* === Supplementary admin-only sections === */}
+          <Card>
+            <CardHeader title="Pricing & Fees" />
+            <div className="p-4 lg:p-6">
+              {!data.pricing ? <Empty>No pricing recorded.</Empty> : (
+                <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <KV label="Item Total" value={ngn(data.pricing.itemTotal)} />
+                  <KV label="Protection Fee" value={ngn(data.pricing.protectionFee)} />
+                  <KV label="Processing Fee" value={ngn(data.pricing.processingFee)} />
+                  <KV label="Refunded" value={ngn(data.pricing.refundedTotal)} />
+                  <KV label="Seller Net" value={ngn(data.pricing.sellerNet)} />
+                  <KV label="Buyer Total" value={ngn(data.pricing.buyerTotal)} bold />
+                </dl>
+              )}
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader title="Payout" />
+            <div className="p-4 lg:p-6">
+              {!data.payout ? (
+                <div className="text-sm text-muted-foreground">
+                  {dispute ? "No payout yet — pending dispute resolution." : "No payout recorded."}
+                </div>
+              ) : (
+                <dl className="grid grid-cols-2 gap-4">
+                  <KV label="Status" value={<StatusPill value={data.payout.status} />} />
+                  <KV label="Amount" value={ngn(data.payout.amount)} />
+                  <KV label="Reference" value={<span className="font-mono text-xs break-all">{data.payout.providerReference ?? "—"}</span>} />
+                  <KV label="Released At" value={fmtDate(data.payout.releasedAt ?? data.payout.completedAt)} />
+                  {data.payout.failureReason && <div className="col-span-2"><KV label="Failure" value={<span className="text-red-300">{data.payout.failureReason}</span>} /></div>}
+                  {data.payout.blocked && <div className="col-span-2"><KV label="Blocked" value={<span className="text-orange-300">{data.payout.blockedReason ?? "Blocked"}</span>} /></div>}
+                </dl>
+              )}
+            </div>
+          </Card>
+
+          {(data.escrow?.ledger?.length ?? 0) > 0 && (
+            <Card>
+              <CardHeader title="Escrow Ledger (Full History)" />
+              <div className="p-4 lg:p-6">
+                <div className="overflow-x-auto rounded-md border border-border">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/40 text-muted-foreground"><tr>
+                      <th className="p-2 text-left">Date</th>
+                      <th className="p-2 text-left">Type</th>
+                      <th className="p-2 text-right">Amount</th>
+                      <th className="p-2 text-right">Balance</th>
+                      <th className="p-2 text-left">Notes</th>
+                    </tr></thead>
+                    <tbody>
+                      {data.escrow!.ledger.map((r) => (
+                        <tr key={r.id} className="border-t border-border">
+                          <td className="p-2 align-top whitespace-nowrap">{fmtDate(r.at)}</td>
+                          <td className="p-2 align-top">{titleCase(r.entryType)}</td>
+                          <td className="p-2 text-right tabular-nums align-top">{ngn(r.amount)}</td>
+                          <td className="p-2 text-right tabular-nums align-top">{ngn(r.balanceAfter)}</td>
+                          <td className="p-2 align-top text-muted-foreground">{r.notes ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </Card>
+          )}
 
         </div>
       )}
