@@ -49,26 +49,26 @@ export function DetailDrawer({ open, onOpenChange, transactionId, transactionCod
             <ul className="space-y-3">
               {(data.timeline ?? []).length === 0 && (<li className="text-muted-foreground">No events recorded.</li>)}
               {(data.timeline ?? []).map((e: any, i: number) => (
-                <li key={i} className="border-l-2 border-border pl-3">
-                  <div className="text-[11px] text-muted-foreground">{fmtDate(e.at)} · {e.kind}</div>
-                  <div className="text-foreground">{e.from ? <><span className="text-muted-foreground">{e.from}</span> → </> : null}<span className="font-medium">{e.to}</span></div>
-                  {e.note && <div className="text-xs text-muted-foreground">{e.note}</div>}
+                <li key={e.id ?? i} className="border-l-2 border-border pl-3">
+                  <div className="text-[11px] text-muted-foreground">{fmtDate(e.at)} · {e.type ?? e.kind}</div>
+                  <div className="text-foreground"><span className="font-medium">{e.title ?? e.to}</span></div>
+                  {(e.description ?? e.note) && <div className="text-xs text-muted-foreground">{e.description ?? e.note}</div>}
                 </li>
               ))}
             </ul>
           )}
           {!loading && !err && data && section === "ledger" && (
             <div className="space-y-2">
-              {(data.ledger ?? []).length === 0 && (<div className="text-muted-foreground">No ledger entries.</div>)}
+              {(((data as any).escrow?.ledger ?? data.ledger) ?? []).length === 0 && (<div className="text-muted-foreground">No ledger entries.</div>)}
               <div className="rounded-md border border-border">
                 <table className="w-full text-xs">
                   <thead className="bg-muted/40 text-muted-foreground"><tr><th className="p-2 text-left">Date</th><th className="p-2 text-left">Type</th><th className="p-2 text-right">Amount</th><th className="p-2 text-left">Notes</th></tr></thead>
                   <tbody>
-                    {(data.ledger ?? []).map((r: any) => (
+                    {(((data as any).escrow?.ledger ?? data.ledger) ?? []).map((r: any) => (
                       <tr key={r.id} className="border-t border-border">
-                        <td className="p-2 align-top">{fmtDate(r.created_at)}</td>
-                        <td className="p-2 align-top">{r.entry_type}</td>
-                        <td className="p-2 text-right align-top tabular-nums">{formatMoney(Number(r.amount), r.currency_code)}</td>
+                        <td className="p-2 align-top">{fmtDate(r.at ?? r.created_at)}</td>
+                        <td className="p-2 align-top">{r.entryType ?? r.entry_type}</td>
+                        <td className="p-2 text-right align-top tabular-nums">{formatMoney(Number(r.amount), r.currency ?? r.currency_code)}</td>
                         <td className="p-2 align-top text-muted-foreground">{r.notes ?? "—"}</td>
                       </tr>
                     ))}
