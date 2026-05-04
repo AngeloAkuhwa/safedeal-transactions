@@ -428,15 +428,7 @@ export default function AdminTransactions() {
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search transactions..."
-              className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40 lg:placeholder:text-transparent lg:placeholder:lg:text-muted-foreground"
-              aria-label="Search transactions"
-            />
-            {/* Use a wider placeholder on lg screens via a data attribute trick */}
+            <ResponsiveSearchInput value={search} onChange={setSearch} />
           </div>
 
           <div className="hidden gap-2 lg:flex">
