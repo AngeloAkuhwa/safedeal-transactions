@@ -845,7 +845,10 @@ export default function AdminTransactions() {
       </div>
 
       {/* Mobile card list */}
-      <div className="space-y-3 lg:hidden pb-20">
+      <div
+        className={`space-y-2.5 lg:hidden transition-opacity ${listDimmed ? "opacity-60 pointer-events-none" : ""}`}
+        aria-busy={listDimmed || undefined}
+      >
         <div className="flex items-center justify-between px-1">
           <h3 className="text-sm font-semibold text-foreground">Recent Transactions</h3>
           {pagination ? (
@@ -856,21 +859,21 @@ export default function AdminTransactions() {
         </div>
         {initialLoad && rows.length === 0 ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-card" />
+            <div key={i} className="h-32 animate-pulse rounded-xl border border-border bg-card" />
           ))
         ) : rows.length === 0 ? (
-          <div className="rounded-xl border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
-            No transactions match.
+          <div className="rounded-xl border border-border bg-card">
+            <TransactionsEmptyState variant={emptyVariant} onClearFilters={clearAllFilters} />
           </div>
         ) : (
           rows.map((t, i) => (
             <article
               key={t.transactionId}
-              className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} rounded-xl border border-border bg-card p-3`}
+              className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} rounded-xl border border-border bg-card p-3`}
             >
-              <header className="flex items-start justify-between">
-                <div className="flex items-start gap-2">
-                  {t.isFrozen ? <Snowflake className="mt-0.5 h-3.5 w-3.5 text-cyan-400" /> : null}
+              <header className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  {t.isFrozen ? <Snowflake className="h-3.5 w-3.5 shrink-0 text-cyan-400" aria-hidden /> : null}
                   <div>
                     <div className="text-sm font-semibold text-foreground">#{t.transactionCode}</div>
                     <div className="text-[11px] text-muted-foreground">{formatDate(t.createdAt)}</div>
@@ -882,26 +885,26 @@ export default function AdminTransactions() {
                 />
               </header>
 
-              <div className="mt-2">
-                <div className="text-sm font-medium text-foreground">{t.itemTitle}</div>
-                {t.itemCategory ? (
-                  <div className="text-[11px] text-muted-foreground">{t.itemCategory}</div>
-                ) : null}
-              </div>
-
-              <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border pt-2 text-[11px]">
-                <div>
-                  <div className="text-muted-foreground">Buyer</div>
-                  <div className="truncate text-foreground">{t.buyerName}</div>
+              <div className="mt-2 flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="line-clamp-1 text-sm font-medium text-foreground" title={t.itemTitle}>{t.itemTitle}</div>
+                  <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                    {t.buyerName} <span aria-hidden>•</span> {t.sellerName}
+                  </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-muted-foreground">Seller</div>
-                  <div className="truncate text-foreground">{t.sellerName}</div>
+                  <div className="text-base font-semibold text-foreground tabular-nums">
+                    {formatMoney(t.amount, t.currency)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    Protection {formatMoney(t.protectionFee, t.currency)}
+                  </div>
                 </div>
               </div>
 
-              {(t.riskLevel !== "clean" || t.isFrozen) && (
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
+              {(t.riskLevel !== "clean" ||
+                (t.escrowStatus.key !== "pending" && t.escrowStatus.key !== "released")) && (
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   {t.escrowStatus.key !== "pending" && t.escrowStatus.key !== "released" && (
                     <Badge
                       label={t.escrowStatus.label}
@@ -918,28 +921,26 @@ export default function AdminTransactions() {
                 </div>
               )}
 
-              <div className="mt-2 flex items-end justify-between border-t border-border pt-2">
-                <div>
-                  <div className="text-base font-semibold text-foreground tabular-nums">
-                    {formatMoney(t.amount, t.currency)}
-                  </div>
-                  <div
-                    className={`text-[11px] ${
-                      t.lastActivityTone === "danger" ? "text-red-400" : "text-muted-foreground"
-                    }`}
-                  >
-                    Protection: {formatMoney(t.protectionFee, t.currency)}
-                  </div>
-                  {t.lastActivityTone === "danger" ? (
-                    <div className="mt-0.5 text-[11px] text-red-400">{t.lastActivityLabel}</div>
-                  ) : null}
+              {(t.lastActivityTone === "warn" || t.lastActivityTone === "danger") && (
+                <div
+                  className={`mt-2 text-[11px] ${
+                    t.lastActivityTone === "danger" ? "text-red-400" : "text-orange-300"
+                  }`}
+                >
+                  {t.lastActivityLabel}
                 </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <IconBtn label="View" onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}>
-                    <Eye className="h-4 w-4 text-blue-400" />
-                  </IconBtn>
-                  <RowActionsMenu row={t} handlers={buildHandlers(t)} />
-                </div>
+              )}
+
+              <div className="mt-2 flex items-center justify-end gap-1 border-t border-border/60 pt-2 text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                  aria-label={`View details for ${t.transactionCode}`}
+                >
+                  <Eye className="h-3.5 w-3.5" aria-hidden /> View
+                </button>
+                <RowActionsMenu row={t} handlers={buildHandlers(t)} />
               </div>
             </article>
           ))
