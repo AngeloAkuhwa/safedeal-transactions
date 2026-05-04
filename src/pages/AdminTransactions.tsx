@@ -1059,10 +1059,13 @@ export default function AdminTransactions() {
                 </div>
               )}
 
-              <div className="mt-2 flex items-center justify-end gap-1 border-t border-border/60 pt-2 text-muted-foreground">
+              <div
+                className="mt-2 flex items-center justify-end gap-1 border-t border-border/60 pt-2 text-muted-foreground"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   type="button"
-                  onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}
+                  onClick={(e) => { e.stopPropagation(); goToDetail(t); }}
                   className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
                   aria-label={`View details for ${t.transactionCode}`}
                 >
