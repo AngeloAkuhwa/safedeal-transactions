@@ -41,7 +41,7 @@ export function IdentityAndPayoutHealth({ identity, payout }: Props) {
           <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
             <div className="text-xs text-slate-400">Avg Review Time</div>
             <div className="mt-1 text-xl font-semibold text-white tabular-nums">
-              {identity.avg_review_hours.toFixed(1)}h
+              {identity.avg_review_hours != null ? `${identity.avg_review_hours.toFixed(1)}h` : "—"}
             </div>
           </div>
         </div>
@@ -61,7 +61,7 @@ export function IdentityAndPayoutHealth({ identity, payout }: Props) {
           <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
             <div className="text-xs text-slate-400">Avg Payout Time</div>
             <div className="mt-1 text-xl font-semibold text-white tabular-nums">
-              {payout.avg_payout_hours.toFixed(1)}h
+              {payout.avg_payout_hours != null ? `${payout.avg_payout_hours.toFixed(1)}h` : "—"}
             </div>
           </div>
         </div>
