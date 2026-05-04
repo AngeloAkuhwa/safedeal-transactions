@@ -633,8 +633,45 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     ]),
   );
 
-  // Transactions vs Disputes trend stays empty (separate scope).
-  const emptyTrend = { primary_label: "Transactions", secondary_label: "Disputes", points: [] as any[] };
+  // Pre-seed 7-day Transactions vs Disputes trend so the chart's first paint
+  // matches the 7D view served by `admin-dashboard-trend`.
+  const txDisputeTrendPoints: Array<{ label: string; date: string; primary: number; secondary: number }> = [];
+  try {
+    const today0 = new Date(startOfToday).getTime();
+    const since7dStartIso = new Date(today0 - 6 * 24 * 60 * 60 * 1000).toISOString();
+    const [{ data: tx7 }, { data: dp7 }] = await Promise.all([
+      client.from("transactions").select("created_at").gte("created_at", since7dStartIso).limit(50000),
+      client.from("disputes").select("created_at").gte("created_at", since7dStartIso).limit(50000),
+    ]);
+    const map = new Map<string, { primary: number; secondary: number }>();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today0 - i * 24 * 60 * 60 * 1000);
+      const key = d.toISOString().slice(0, 10);
+      map.set(key, { primary: 0, secondary: 0 });
+    }
+    for (const r of (tx7 ?? []) as any[]) {
+      const d = new Date(r.created_at);
+      const key = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString().slice(0, 10);
+      const b = map.get(key);
+      if (b) b.primary++;
+    }
+    for (const r of (dp7 ?? []) as any[]) {
+      const d = new Date(r.created_at);
+      const key = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString().slice(0, 10);
+      const b = map.get(key);
+      if (b) b.secondary++;
+    }
+    for (const [date, v] of map.entries()) {
+      txDisputeTrendPoints.push({ label: date.slice(5), date, primary: v.primary, secondary: v.secondary });
+    }
+  } catch (e) {
+    await logEdgeError(client, `tx_dispute_trend_failed: ${(e as Error).message}`, userId);
+  }
+  const txDisputeTrend = {
+    primary_label: "Transactions",
+    secondary_label: "Disputes",
+    points: txDisputeTrendPoints,
+  };
   const escrowTrend = {
     primary_label: "Escrow Held",
     secondary_label: "Released",
@@ -663,7 +700,7 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       { key: "webhook_recon_issues", label: "Webhook & Reconciliation", count: webhookFailures, severity: "yellow", action_label: "Investigate", action_href: "/admin/webhooks" },
     ],
     trends: {
-      transactions_vs_disputes: emptyTrend,
+      transactions_vs_disputes: txDisputeTrend,
       escrow_releases_refunds: escrowTrend,
     },
     hotspots: [

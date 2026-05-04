@@ -11,6 +11,7 @@ const ICON: Record<string, typeof LineChart> = {
 interface Props { metrics: PerformanceMetric[] }
 
 export function PerformanceMetrics({ metrics }: Props) {
+  if (!metrics || metrics.length === 0) return null;
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
       <div className="mb-3 flex items-center justify-between">
