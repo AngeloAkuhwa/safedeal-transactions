@@ -14,7 +14,7 @@ interface AdminLayoutProps {
   children: ReactNode;
   hideDefaultHeaders?: boolean;
   headerSlot?: ReactNode;
-  mobileHeaderSlot?: ReactNode;
+  mobileHeaderSlot?: ReactNode | ((opts: { onOpenMenu: () => void }) => ReactNode);
 }
 
 export function AdminLayout({
@@ -52,7 +52,9 @@ export function AdminLayout({
         {/* Main column */}
         <div className="flex min-w-0 flex-1 flex-col">
           {mobileHeaderSlot
-            ? mobileHeaderSlot
+            ? typeof mobileHeaderSlot === "function"
+              ? mobileHeaderSlot({ onOpenMenu: () => setMobileOpen(true) })
+              : mobileHeaderSlot
             : !hideDefaultHeaders && <AdminMobileHeader onOpenMenu={() => setMobileOpen(true)} />}
           {headerSlot
             ? headerSlot
