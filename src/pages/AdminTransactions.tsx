@@ -707,6 +707,34 @@ function Select({ label }: { label: string }) {
   );
 }
 
+function ResponsiveSearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [isLg, setIsLg] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)").matches : false,
+  );
+  if (typeof window !== "undefined") {
+    // initialize listener once
+  }
+  // Subscribe to viewport changes
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useMemo(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const handler = (e: MediaQueryListEvent) => setIsLg(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={isLg ? "Search transaction code, buyer, seller, or item..." : "Search transactions..."}
+      aria-label="Search transactions"
+      className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+    />
+  );
+}
+
 function IconBtn({ children, onClick, label }: { children: React.ReactNode; onClick: () => void; label: string }) {
   return (
     <button
