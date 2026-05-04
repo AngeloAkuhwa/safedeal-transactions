@@ -575,18 +575,25 @@ Deno.serve(async (req) => {
   });
 
   // ===== Admin actions available (state-aware) =====
+  const TERMINAL_TX = ["completed", "cancelled", "refunded", "timed_out"];
+  const isTerminal = TERMINAL_TX.includes(tx.status as string);
+  const hasOpenInvestigation = (investigationNotes ?? []).some((n: any) =>
+    /^\[investigation\]/i.test(String(n?.note ?? ""))
+  );
   const adminActionsAvailable = {
-    canFreeze: tx.money_status === "funds_held_in_escrow",
+    canFreeze: tx.money_status === "funds_held_in_escrow" && !isTerminal,
     canUnfreeze: tx.money_status === "funds_frozen",
     canManageDispute: !!disputeOut && disputeOut.status !== "closed",
+    hasDispute: !!disputeOut,
     canExport: true,
     canAddNote: true,
     canViewBuyer: !!parties.buyer,
     canViewSeller: !!parties.seller,
     canRetryPayout: !!(payout && payout.retryAllowed && (payout.status === "failed")),
     canApproveRelease: tx.needs_release_review === true,
-    canOpenInvestigation: (riskLevel !== "clean") || !!disputeOut || !!tx.needs_release_review,
-    canFlagForReview: !tx.needs_release_review,
+    canOpenInvestigation: !isTerminal,
+    investigationAlreadyOpen: hasOpenInvestigation,
+    canFlagForReview: !tx.needs_release_review && !isTerminal,
     canViewPayment: !!payment,
     canViewEscrow: !!escrow,
     canViewPayout: !!payout,
