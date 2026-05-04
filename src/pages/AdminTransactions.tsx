@@ -952,24 +952,34 @@ export default function AdminTransactions() {
                 </div>
               </div>
 
-              {(t.riskLevel !== "clean" ||
-                (t.escrowStatus.key !== "pending" && t.escrowStatus.key !== "released")) && (
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  {t.escrowStatus.key !== "pending" && t.escrowStatus.key !== "released" && (
-                    <Badge
-                      label={t.escrowStatus.label}
-                      cls={ESCROW_BADGE_CLS[t.escrowStatus.key] ?? "bg-muted text-muted-foreground border-border"}
-                    />
-                  )}
-                  {t.riskLevel !== "clean" && (
-                    <Badge
-                      label={FLAG_META[t.riskLevel].label}
-                      cls={FLAG_META[t.riskLevel].cls}
-                      Icon={FLAG_META[t.riskLevel].Icon}
-                    />
-                  )}
-                </div>
-              )}
+              {(() => {
+                const flagBadges = buildFlagBadges(t);
+                const showEscrow = t.escrowStatus.key !== "pending" && t.escrowStatus.key !== "released";
+                if (!showEscrow && flagBadges.length === 0) return null;
+                const visible = flagBadges.slice(0, 2);
+                const overflow = flagBadges.slice(2);
+                return (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {showEscrow && (
+                      <Badge
+                        label={t.escrowStatus.label}
+                        cls={ESCROW_BADGE_CLS[t.escrowStatus.key] ?? "bg-muted text-muted-foreground border-border"}
+                      />
+                    )}
+                    {visible.map((b) => (
+                      <Badge key={b.key} label={b.label} cls={b.cls} Icon={b.Icon} />
+                    ))}
+                    {overflow.length > 0 && (
+                      <span
+                        title={overflow.map((b) => b.label).join(", ")}
+                        className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                      >
+                        +{overflow.length}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
 
               {(t.lastActivityTone === "warn" || t.lastActivityTone === "danger") && (
                 <div
