@@ -970,6 +970,8 @@ export default function AdminTransactions() {
           <BottomNav label="Profile" Icon={User} onClick={() => toast({ title: "Profile", description: "Coming soon" })} />
         </div>
       </nav>
+      {/* Mobile spacer to keep last content above fixed bottom nav */}
+      <div className="h-20 lg:hidden" aria-hidden />
 
       {/* Mobile filters sheet */}
       <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
@@ -1071,14 +1073,19 @@ export default function AdminTransactions() {
 
 function IconBtn({ children, onClick, label }: { children: React.ReactNode; onClick: () => void; label: string }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      className="rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground"
-    >
-      {children}
-    </button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          onClick={onClick}
+          className="rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 motion-reduce:transition-none"
+        >
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -1099,11 +1106,13 @@ function BottomNav({
     <button
       type="button"
       onClick={onClick}
-      className={`relative flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+      aria-label={label}
+      aria-current={active ? "page" : undefined}
+      className={`relative flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
         active ? "text-blue-400" : "text-muted-foreground hover:text-foreground"
       }`}
     >
-      <Icon className="h-5 w-5" />
+      <Icon className="h-5 w-5" aria-hidden />
       {label}
       {badge && badge > 0 ? (
         <span className="absolute right-[28%] top-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-orange-500 px-1 text-[9px] font-bold text-white">
