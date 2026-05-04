@@ -507,11 +507,16 @@ export default function AdminTransactionDetail() {
                       <Flag className="h-3 w-3 mr-1.5" /> Escalated Dispute
                     </span>
                   )}
-                  {dispute?.overdue && (
-                    <span className="text-red-400 text-sm font-medium inline-flex items-center">
-                      <Clock className="h-3.5 w-3.5 mr-1" /> Overdue: past resolution deadline
-                    </span>
-                  )}
+                  {dispute?.overdue && (() => {
+                    const due = dispute.sellerResponseDueAt ? new Date(dispute.sellerResponseDueAt).getTime() : null;
+                    const days = due ? Math.max(1, Math.floor((Date.now() - due) / (24 * 3600 * 1000))) : null;
+                    return (
+                      <span className="text-red-400 text-sm font-medium inline-flex items-center">
+                        <Clock className="h-3.5 w-3.5 mr-1" />
+                        {days ? `Overdue: ${days} day${days === 1 ? "" : "s"} past resolution deadline` : "Overdue: past resolution deadline"}
+                      </span>
+                    );
+                  })()}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   {adminCan.canExport && <Button variant="outline" size="sm" onClick={exportData}><Download className="h-4 w-4 mr-1.5" /> Export Data</Button>}
