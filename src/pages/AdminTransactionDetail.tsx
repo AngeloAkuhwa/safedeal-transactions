@@ -739,14 +739,44 @@ export default function AdminTransactionDetail() {
         </div>
       )}
 
+      {/* Mobile sticky action bar */}
+      {!loading && !denied && !notFound && data && (
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur px-3 py-2 flex items-center gap-2">
+          {adminCan.canOpenInvestigation ? (
+            <Button size="sm" className="flex-1 bg-red-500 hover:bg-red-600 text-white" onClick={() => setInvestigateOpen(true)}>
+              <Search className="h-4 w-4 mr-1.5" /> Investigate
+            </Button>
+          ) : adminCan.canManageDispute && dispute ? (
+            <Button size="sm" className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
+              <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" className="flex-1" onClick={() => setNoteOpen(true)}>
+              <StickyNote className="h-4 w-4 mr-1.5" /> Add Note
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={() => setActionSheetOpen(true)} aria-label="More">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Mobile actions sheet */}
       <Sheet open={actionSheetOpen} onOpenChange={setActionSheetOpen}>
         <SheetContent side="bottom" className="rounded-t-xl">
           <SheetHeader><SheetTitle>Actions</SheetTitle></SheetHeader>
           <div className="mt-4 grid grid-cols-2 gap-2">
-            {adminCan.canFreeze && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setFreezeOpen(true); }}><Snowflake className="h-4 w-4 mr-1.5" /> Freeze</Button>}
-            {adminCan.canAddNote && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setNoteOpen(true); }}><StickyNote className="h-4 w-4 mr-1.5" /> Note</Button>}
+            {adminCan.canFreeze && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setFreezeOpen(true); }}><Snowflake className="h-4 w-4 mr-1.5" /> Freeze Funds</Button>}
+            {adminCan.canUnfreeze && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setUnfreezeOpen(true); }}><Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze</Button>}
+            {adminCan.canFlagForReview && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setFlagOpen(true); }}><Flag className="h-4 w-4 mr-1.5" /> Flag for Review</Button>}
+            {adminCan.canManageDispute && dispute && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/disputes/${dispute.id}`); }}><Scale className="h-4 w-4 mr-1.5" /> Manage Dispute</Button>}
+            {adminCan.canAddNote && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setNoteOpen(true); }}><StickyNote className="h-4 w-4 mr-1.5" /> Add Note</Button>}
+            {adminCan.canViewBuyer && data?.parties?.buyer?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/users/${data.parties.buyer!.id}`); }}><User className="h-4 w-4 mr-1.5" /> View Buyer</Button>}
+            {adminCan.canViewSeller && data?.parties?.seller?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/users/${data.parties.seller!.id}`); }}><User className="h-4 w-4 mr-1.5" /> View Seller</Button>}
             {adminCan.canExport && <Button variant="outline" onClick={() => { setActionSheetOpen(false); exportData(); }}><Download className="h-4 w-4 mr-1.5" /> Export</Button>}
+            <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigator.clipboard.writeText(code); toast.success("Code copied"); }}>
+              <Receipt className="h-4 w-4 mr-1.5" /> Copy Code
+            </Button>
           </div>
         </SheetContent>
       </Sheet>
