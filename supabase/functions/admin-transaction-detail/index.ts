@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
 
   const { data: tx, error: txErr } = await admin
     .from("transactions")
-    .select("id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, created_at, updated_at, needs_release_review, release_review_reason")
+    .select("id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, created_at, updated_at, needs_release_review, release_review_reason, agreement_locked_at, delivered_at, verification_deadline_at")
     .eq("id", txId)
     .single();
   if (txErr || !tx) return json({ error: "transaction_not_found" }, 404);
