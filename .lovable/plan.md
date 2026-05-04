@@ -1,63 +1,81 @@
-# Reading Mode: Fix boundary logic + persistent floating control
+## Goal
+Make the four KPI cards on `/admin/dashboard` 100% database-driven, with safe handling of zero/missing data and proper NGN money formatting.
 
-## Problem
+## Schema findings
+- `transactions` has **no `needs_admin_review`** column. Closest equivalent is `needs_release_review` (boolean) plus `dispute_status`. We will use these as flagged signals.
+- `user_sessions` has `last_seen_at` and `is_active` — usable for the preferred "Active Users" source.
+- `escrow_states` exposes `held_amount` and `frozen_amount` — already what the spec requires.
+- `profiles` exists as a fallback for "registered users".
 
-1. Clicking "Reading Mode" at the top of the page incorrectly shows "You're at the top." This is because `start()` in `useAutoScroll.ts` checks `top <= 1` for direction `up` — but the live `direction` state isn't read from the ref before the check, and the at-top guard fires regardless of intent.
-2. After scrolling down past the admin header, there's no way to control Reading Mode without scrolling back up — the only controls live in `AdminHeader` (desktop) or `AdminMobileHeader`.
-3. The current mobile floater only appears when active. There's no persistent compact entry point that follows the page.
+## Backend changes — `supabase/functions/admin-dashboard/index.ts`
 
-## Fix 1 — Boundary logic in `src/hooks/useAutoScroll.ts`
+Update `buildDashboardPayload` so the four KPIs match the spec exactly.
 
-- Use a 3px threshold constant (`EDGE_THRESHOLD = 3`) for both the tick loop and the start guards.
-- In `start()`:
-  - Read direction from `directionRef.current` (already done) but ALSO sync it from the latest `direction` state by accepting an optional `directionOverride` param so the caller can start in a specific direction without a stale ref.
-  - Only show "at top" when direction is `up` AND `top <= threshold`.
-  - Only show "at bottom" when direction is `down` AND `top >= max - threshold`.
-  - When at-bottom with direction `down`, suggest switching: emit `onBlocked("at-bottom-suggest-up")` (extend the union). The provider will toast "You're at the bottom. Switch direction to scroll up." and offer no auto-flip (user choice).
-  - Same mirror for at-top with direction `up`.
-- Allow direction change while running: when `setDirection` is called and `isActive`, do NOT stop — the existing `directionRef` is read each tick, so reversing already works. Verify by removing any implicit stop, and ensure the at-edge auto-stop only triggers for the matching direction.
-- Default `initialDirection` stays `"down"`.
+1. **Total Transactions**
+   - `total_transactions` = `count(*)` from `transactions`.
+   - `total_transactions_delta_pct`: compare last 30 days vs the prior 30 days using `created_at`. Existing `calculateDeltaPct` is fine, but treat "no previous data" as `null` (unavailable), not `0` or `100`.
 
-## Fix 2 — Shared state already in place
+2. **Escrow Balance**
+   - `escrow_balance_amount` = `sum(held_amount) + sum(frozen_amount)` from `escrow_states` (already correct — keep, ensure 2 dp via `toFixed(2)`).
+   - `escrow_balance_delta_pct`: compute by snapshotting today's vs 30‑days‑ago value using `escrow_ledger_entries` (`balance_after` at cutoff). If no historical data, return `null`.
+   - Explicitly do NOT include `released_amount` or `refunded_amount`.
 
-`ReadingModeProvider` wraps `AdminLayout` and exposes a single `useAutoScroll` instance via `useReadingMode()`. Header control + new floating control will both consume this same context — no duplicate loops.
+3. **Active Users**
+   - Preferred: `count(distinct user_id)` from `user_sessions where last_seen_at >= now() - 30d`.
+   - Implement via service-role `select user_id` with a Set (Supabase JS has no `count distinct`). Cap rows with a windowed query and dedupe in code.
+   - Delta: same window vs prior 30 days; `null` if previous = 0.
+   - Fallback: if the preferred query errors or returns 0 rows total, use `count(*)` from `profiles` and add an `active_users_is_fallback: true` flag in the payload.
 
-## Fix 3 — New persistent floating control
+4. **Flagged Activity**
+   - Sum of:
+     - `count(transactions where needs_release_review = true)`
+     - `count(disputes where status in ('open','under_review','seller_response_pending'))`
+     - `count(audit_logs where action ~ flagged/risk action types)` if any rows exist; otherwise contributes 0.
+   - Delta: same metric calculated over last 30d vs prior 30d using `created_at` / `opened_at` filters; `null` if no previous.
 
-Extend `src/components/admin/AdminReadingModeControl.tsx` with two new variants:
+5. **Delta semantics**
+   - Change `calculateDeltaPct` (or wrap it) to return `number | null`. `null` means "unavailable" → frontend renders `—`.
+   - Update `AdminKpis` type in `src/services/admin-dashboard.service.ts` to allow `number | null` for all four `*_delta_pct` fields.
 
-- `variant="desktop-floater"` — bottom-right of main content, visible only after the user scrolls past ~120px (track via a small `useEffect` listening to `window.scroll`). Hidden on `lg:` breakpoint when not yet scrolled. Two states:
-  - **Inactive (collapsed pill):** `BookOpen` icon + "Reading Mode" label, click starts.
-  - **Active (expanded):** Play/Pause, Direction toggle (Down/Up), Speed select (Very Slow / Slow), Stop. Same styling as existing desktop pill (slate-900/95 surface, slate-700 border, soft shadow, emerald active dot).
-  - Position: `fixed bottom-5 right-5 z-40`, with `pb-[env(safe-area-inset-bottom)]` safety.
-  - Smooth transition: `transition-opacity duration-200` + translate-y on appear.
-- Mobile floater (existing `mobile-floater`) is upgraded to also show when **inactive but scrolled past 120px** as a small "Reading Mode" pill on the left edge of the bottom bar. When active it expands as today (Play/Pause, Direction, Stop, plus a small speed menu via Popover for Very Slow / Slow).
+6. **Type / contract update**
+   - Extend `AdminKpis` with optional `active_users_is_fallback?: boolean` so the UI can label the tile as "Registered Users" when needed.
 
-Mount points (in `src/components/admin/AdminLayout.tsx`):
-- Add `<AdminReadingModeControl variant="desktop-floater" />` next to the existing `mobile-floater`.
-- Both live inside `ReadingModeProvider` so they share state with the header.
+7. **Caching / safety**
+   - Keep the 20s in-memory cache.
+   - Keep `safeCount` / `safeSum` so any single failed query yields `0` and the card still renders.
+   - Log any per-KPI failure to `edge_function_errors` via existing `logEdgeError`.
 
-Header control (`AdminHeader`) and mobile trigger (`AdminMobileHeader`) keep their current placement and wiring — no duplicate logic since all controls call into the same context.
+## Frontend changes
 
-## Fix 4 — Click-on-control should not pause
+### `src/services/admin-dashboard.service.ts`
+- Update `AdminKpis`:
+  ```ts
+  total_transactions_delta_pct: number | null;
+  escrow_balance_delta_pct:    number | null;
+  active_users_delta_pct:      number | null;
+  flagged_activity_delta_pct:  number | null;
+  active_users_is_fallback?:   boolean;
+  ```
+- No other service changes — still calls the same edge function.
 
-The control is rendered outside the document scroll flow and its buttons don't fire `wheel`/`touchmove` on `window`. The current pause listeners (`wheel`, `touchmove`, `keydown`, `focusin`) won't fire from button clicks. Confirm by adding `onPointerDown={(e) => e.stopPropagation()}` on the floater wrapper as a defensive measure.
+### `src/components/admin/dashboard/KpiCards.tsx`
+- Keep current visual design, icons, grid, and stagger animations.
+- Render delta:
+  - If `delta === null` → show `—` in neutral slate color, no up/down arrow.
+  - Else keep existing up/down + colored chip behavior.
+- Money:
+  - Escrow tile keeps `formatMoney(kpis.escrow_balance_amount, "NGN")` (already 2 dp, no `$`).
+- Active Users tile:
+  - If `kpis.active_users_is_fallback`, change label to "Registered Users" and tooltip explains the fallback.
+- Zero-data safety:
+  - All values default to `0` from the edge function; cards render normally.
+  - Use `(value ?? 0).toLocaleString("en-NG")` defensively for counts.
 
-## Acceptance criteria mapping
+## Out of scope
+- No layout / visual redesign.
+- No changes to other dashboard sections (action_required, trends, hotspots, etc.).
+- No new tables or migrations.
 
-- Top + click Reading Mode → starts scrolling down (no false toast). ✓ via `start()` direction-aware guard.
-- Boundary toasts only for the active direction. ✓
-- Direction switchable mid-scroll, smoothly reverses. ✓ (refs already drive each tick).
-- Floating control reachable mid-page on desktop and mobile. ✓
-- Header + floating share state. ✓ (single context).
-- Reduced-motion still blocks start with the existing toast. ✓
-- No duplicate RAF loops. ✓ (single hook instance).
-
-## Files
-
-- Edit `src/hooks/useAutoScroll.ts` — threshold constant, fix `start()` direction guards, extend `onBlocked` reasons, accept optional `directionOverride` on `start`.
-- Edit `src/components/admin/ReadingModeContext.tsx` — handle new `onBlocked` reasons with appropriate toasts.
-- Edit `src/components/admin/AdminReadingModeControl.tsx` — add `desktop-floater` variant, upgrade `mobile-floater` to also render when inactive after scroll, add scroll-past-header visibility hook.
-- Edit `src/components/admin/AdminLayout.tsx` — mount `desktop-floater`.
-
-No DB or backend changes.
+## Acceptance verification
+- Curl the `admin-dashboard` edge function as an admin, confirm payload contains numeric KPIs and either numeric or `null` deltas.
+- Visually confirm `/admin/dashboard` shows NGN with 2 decimal places, `—` where deltas are unavailable, and `0` where data is empty.
