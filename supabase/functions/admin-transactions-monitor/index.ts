@@ -182,15 +182,23 @@ function applyFilters(
         q = q.eq("id", "00000000-0000-0000-0000-000000000000");
       }
       break;
-    case "flagged":
-      // Either DB-level review flag OR augmented risk signals from admin_actions/audit_logs
+    case "flagged": {
+      // Match any signal the Flags column can render:
+      // needs_release_review, frozen money, active dispute, overdue awaiting_payment,
+      // failed payments/payouts, admin freeze/escalate/flag actions, risky audit logs.
+      const orParts: string[] = [
+        "needs_release_review.eq.true",
+        "money_status.eq.funds_frozen",
+        `dispute_status.in.(${ACTIVE_DISPUTE_STATUSES.join(",")})`,
+        `and(status.eq.awaiting_payment,created_at.lt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()})`,
+      ];
       if (riskTxIds && riskTxIds.size > 0) {
         const ids = Array.from(riskTxIds).slice(0, 1000).join(",");
-        q = q.or(`needs_release_review.eq.true,id.in.(${ids})`);
-      } else {
-        q = q.eq("needs_release_review", true);
+        orParts.push(`id.in.(${ids})`);
       }
+      q = q.or(orParts.join(","));
       break;
+    }
     case "frozen":
       q = q.eq("money_status", "funds_frozen");
       break;
@@ -224,15 +232,17 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
     failedTxIds = new Set((data ?? []).map((r: any) => r.transaction_id).filter(Boolean));
   }
 
-  // Pre-compute risk-augmented tx ids (admin_actions freeze/flag, recent risky audit_logs)
+  // Pre-compute risk-augmented tx ids for the "flagged" quick filter:
+  // admin_actions (freeze/escalate/flag), recent risky audit_logs,
+  // failed payments, failed payouts.
   let riskTxIds: Set<string> | null = null;
   if (params.quickFilter === "flagged") {
     const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const [adminActsRes, auditRes] = await Promise.all([
+    const [adminActsRes, auditRes, failedPayRes, failedPayoutRes] = await Promise.all([
       client
         .from("admin_actions")
         .select("transaction_id, action_type")
-        .in("action_type", ["freeze_funds", "escalate_case"])
+        .in("action_type", ["freeze_funds", "escalate_case", "flag_for_review"])
         .not("transaction_id", "is", null)
         .limit(5000),
       client
@@ -241,6 +251,8 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
         .gte("created_at", sinceIso)
         .not("transaction_id", "is", null)
         .limit(5000),
+      client.from("payments").select("transaction_id").eq("status", "failed").limit(5000),
+      client.from("payouts").select("transaction_id").eq("status", "failed").limit(5000),
     ]);
     riskTxIds = new Set<string>();
     for (const r of ((adminActsRes.data ?? []) as any[])) {
@@ -250,6 +262,12 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
       if (r.transaction_id && typeof r.action === "string" && /(risk|fraud|suspicious|flag)/i.test(r.action)) {
         riskTxIds.add(r.transaction_id);
       }
+    }
+    for (const r of ((failedPayRes.data ?? []) as any[])) {
+      if (r.transaction_id) riskTxIds.add(r.transaction_id);
+    }
+    for (const r of ((failedPayoutRes.data ?? []) as any[])) {
+      if (r.transaction_id) riskTxIds.add(r.transaction_id);
     }
   }
 
