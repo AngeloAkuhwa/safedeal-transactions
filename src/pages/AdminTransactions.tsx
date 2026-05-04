@@ -780,27 +780,16 @@ export default function AdminTransactions() {
                     </td>
                     <td className="px-3 py-3 align-top">
                       <div className="flex items-center justify-start gap-1.5 text-muted-foreground">
-                        <IconBtn label="View" onClick={() => handleRowAction("View transaction", t.transactionCode)}>
+                        <IconBtn label="View" onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}>
                           <Eye className="h-4 w-4" />
                         </IconBtn>
-                        {t.riskLevel !== "clean" || t.transactionStatus.key === "in_dispute" ? (
-                          <>
-                            <IconBtn label="Notes" onClick={() => handleRowAction("Open notes", t.transactionCode)}>
-                              <MessageSquare className="h-4 w-4" />
-                            </IconBtn>
-                            <IconBtn label="Trace funds" onClick={() => handleRowAction("Trace funds", t.transactionCode)}>
-                              <ArrowLeftRight className="h-4 w-4" />
-                            </IconBtn>
-                            {t.actionAvailability.canFreeze && (
-                              <IconBtn label="Freeze" onClick={() => handleRowAction("Freeze transaction", t.transactionCode)}>
-                                <Snowflake className="h-4 w-4" />
-                              </IconBtn>
-                            )}
-                          </>
-                        ) : null}
-                        <IconBtn label="More" onClick={() => handleRowAction("More actions", t.transactionCode)}>
-                          <MoreVertical className="h-4 w-4" />
+                        <IconBtn label="Notes" onClick={() => { setActionRow(t); setActionKind("note"); }}>
+                          <MessageSquare className="h-4 w-4" />
                         </IconBtn>
+                        <IconBtn label="Ledger" onClick={() => { setActionRow(t); setDrawerSection("ledger"); }}>
+                          <ArrowLeftRight className="h-4 w-4" />
+                        </IconBtn>
+                        <RowActionsMenu row={t} handlers={buildHandlers(t)} />
                       </div>
                     </td>
                   </tr>
@@ -914,12 +903,10 @@ export default function AdminTransactions() {
                   ) : null}
                 </div>
                 <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <IconBtn label="View" onClick={() => handleRowAction("View transaction", t.transactionCode)}>
+                  <IconBtn label="View" onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}>
                     <Eye className="h-4 w-4 text-blue-400" />
                   </IconBtn>
-                  <IconBtn label="More" onClick={() => handleRowAction("More actions", t.transactionCode)}>
-                    <MoreVertical className="h-4 w-4" />
-                  </IconBtn>
+                  <RowActionsMenu row={t} handlers={buildHandlers(t)} />
                 </div>
               </div>
             </article>
