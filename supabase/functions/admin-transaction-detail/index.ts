@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
   if (wanted.has("messages")) {
     const { data } = await admin
       .from("transaction_messages")
-      .select("id, created_at, sender_user_id, body, message_type")
+      .select("id, created_at, sender_user_id, recipient_user_id, message_text, is_read")
       .eq("transaction_id", txId)
       .order("created_at", { ascending: false })
       .limit(100);
