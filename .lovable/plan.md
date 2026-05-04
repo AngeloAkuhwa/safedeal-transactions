@@ -1,81 +1,71 @@
-## Goal
-Make the desktop `/admin/transactions/:transactionId` view a 1:1 visual match of `Transaction_Detail_2-2.html`. Vertical order, grid split, and right-rail layout are already correct — but several cards still contain extra rows, extra buttons, and extra sections that aren't in the design. This pass is purely a fidelity pass: trim, relabel, and rearrange to match the mockup.
+## What's wrong right now
 
-## Diff: design vs current (only what's wrong)
+### 1. Dispute Evidence tiles look "broken"
+The right-rail "Dispute Evidence" list renders each row's 48×48 tile as a real `<img>` pointing at the Cloudinary `secure_url`. For this transaction the evidence list contains:
 
-### 1. Sticky page header (top bar)
-Design: only two actions on the right — `Export` (slate ghost) and `View Dispute` (orange).
-Current: Export + Investigate + Freeze/Unfreeze + Manage Dispute + overflow menu.
-Fix: Reduce the desktop header to exactly `Export` and `View Dispute` (orange, navigates to `/admin/disputes/:id` when a dispute exists; hidden otherwise). Move Investigate / Freeze / Unfreeze / Add Note / Flag / View Buyer / View Seller / Copy Code into the existing overflow `MoreHorizontal` menu only — but keep the menu itself out of the visible row to match the design (it can live behind a single icon button only when no dispute exists, so the row matches the mockup when a dispute is active).
+- a PNG image (Cloudinary `image/upload` URL) — loads fine
+- a **PDF** (`application/pdf`) — but the tile still tries to render it as an image when the kind heuristic gets confused, producing a browser "broken image" glyph
+- an **MP4 video** (`video/upload` URL) — same problem
 
-### 2. Summary card — top "Last Activity" cell
-Matches. No change.
+The mockup (`Transaction_Detail_2-3.html`, lines 861–896) shows every row as a flat gray square with a single icon — no thumbnails. So we should drop the inline `<img>` thumbnails entirely and use the typed icon, then let the **preview dialog** load the actual file (image / video / PDF) at full size.
 
-### 3. Summary card — action row (bottom strip)
-Design: left side shows `Escalated Dispute` pill + red "Overdue: N days past resolution deadline" text; right side shows `Export Data`, `Open Investigation`, `Freeze Funds`, `Manage Dispute`.
-Current: matches, but the overdue copy reads "Dispute response overdue" pill instead of inline red text "Overdue: X days past resolution deadline".
-Fix: render the overdue indicator as plain red text with a clock icon and a computed "X days past resolution deadline" string (from `dispute.sellerResponseDueAt`).
+### 2. PDF previews must actually work in the dialog
+`EvidencePreviewDialog` already has a PDF branch (`<iframe src=...#toolbar=0>`), but two things make it fail in practice:
 
-### 4. Risk & Investigation card
-Design: "Risk Assessment" column starts with a prominent red tile `High Risk Transaction … ESCALATED`, then a flat bullet list of flags (orange flag icon + slate text, no per‑row colored borders).
-Current: no prominent header tile; every flag is rendered as its own colored bordered chip, which is too noisy.
-Fix:
-- Add the leading "High Risk Transaction / ESCALATED" tile when `risk.level` is `high|escalated` OR funds are frozen OR dispute is overdue.
-- Render flags below it as a plain list (`flag` icon + text), no per-row colored borders.
-- Keep the right column "Investigation Log" and the bottom "Escalation History" as they are.
+- `isPdf` only checks `mime === "application/pdf"`. If the file row's `mimeType` is missing (older uploads), or the kind was inferred as `"document"` from `evidence_type`, we fall through to the `UnsupportedFallback` even though the URL ends in `.pdf`.
+- Cloudinary's raw delivery sometimes serves PDFs with `Content-Disposition: attachment`, which makes browsers download instead of preview inside the iframe.
 
-### 5. Complete Transaction Timeline card
-Design: simple icon-on-rail list, no filter chips, no "Newest first" toggle, no "Show full timeline" button (the design just lists the events).
-Current: has a filter row (`All · Payment · Escrow · …`), a sort toggle, and a "Show full timeline" CTA.
-Fix: hide the filter chip row and the sort toggle on desktop to match the design. Keep "Show full timeline" only when there are >8 events, but render it as a small ghost link under the list rather than a centered outlined button.
+Both need a small fix so PDFs in the dispute documents always render inline.
 
-### 6. Linked Records card
-Design: 6 cards in a 4-col grid — Buyer Profile, Seller Profile, Payment Record, Escrow Record, Payout Record (dimmed when none), Dispute Record.
-Current: includes those 6 plus an extra synthesized "Locked Agreement" card.
-Fix: remove the synthesized Locked Agreement card from Linked Records (the agreement already has its own dedicated section in the left rail).
+### 3. Small remaining drift from the design
+While re-reading the mockup against the live page I found two more small mismatches:
 
-### 7. Locked Agreement card (left rail)
-Design: header is `Locked Agreement` + subtitle `Original terms when payment was made`. Body is two columns (Item Details / Terms) plus a "Seller Notes" tinted block beneath.
-Current: header has a `Preview Agreement` button.
-Fix: keep the `Preview Agreement` button in the header as it is — it's a useful affordance for opening the full read-only snapshot dialog. No change to this section.
+- **Risk Assessment leading tile** is currently triggered by `risk.level in {high, escalated} || frozen || disputeOverdue`. It accidentally hides on transactions where risk is mid but a dispute exists. Broaden to: show whenever `risk.flags.length > 0`, a dispute exists, or funds are frozen.
+- **Linked Records → Payment card** in the mockup shows a small monospace fragment of the payment reference under the provider name (`pi_3Om...`). Ours doesn't.
+- **Admin extras** chevron does not rotate when opened — missing `group` + `group-open:rotate-180`.
 
-### 8. Payment & Escrow card — Payment Details column
-Design rows: Provider, Reference, Status, Processed (4 rows only).
-Current rows: Provider, Status, Amount, Method, Reference, Paid At (6 rows).
-Fix: trim to exactly Provider / Reference / Status / Processed in this order to match the mockup. (The full payment data still lives in the supplementary admin block — see §11.)
+The "Show full timeline" link **stays as-is** per request.
 
-### 9. Delivery & Fulfillment card — Shipping Details column
-Design rows: Carrier, Tracking, Shipped, Expected.
-Current rows: Method, Carrier, Tracking, Shipped, Delivered, Expected, plus address line.
-Fix: trim to exactly Carrier / Tracking / Shipped / Expected. Move Method, Delivered, and Address into the supplementary admin block.
+## Fix plan
 
-### 10. Delivery Status column
-Design: three solid emerald dots labelled `Package shipped` / `In transit` / `Delivered` with timestamps, then the red "Dispute opened within 24hrs of delivery" alert when applicable.
-Current: renders `data.delivery.updates` (variable-length, status-derived labels). Works, but doesn't always render the three canonical milestones the design shows.
-Fix: render a fixed three-step milestone list driven by `delivery.shippedAt`, an inferred in-transit timestamp (first update between shipped and delivered, otherwise hidden), and `delivery.deliveredAt`. Keep the red 24-hr alert exactly as today.
+### A. Dispute Evidence list (`src/pages/AdminTransactionDetail.tsx`)
 
-### 11. Supplementary admin sections (Pricing & Fees, Payout, Full Escrow Ledger)
-Design: not present.
-Current: rendered as three full-width cards under the 2/1 grid.
-Fix: collapse the three into a single full-width `Card` titled `Admin extras` with a `<details>`-style expander (closed by default), so the visible page matches the design pixel-for-pixel while preserving access to the full pricing breakdown, payout fields, and full ledger table for admins. No data is lost.
+1. Stop rendering remote `<img>` thumbnails in the list rows. Each tile becomes the same flat `w-12 h-12 rounded-lg bg-muted flex items-center justify-center` square with one icon centered, picked by `evidenceIcon(ev.kind, ev.mimeType)` (icon resolver upgraded to also use mime as a tiebreaker so a PDF always shows the file icon, a video always shows the video icon, etc.).
+2. Keep the click → open `EvidencePreviewDialog` behaviour for **all** rows, including PDFs, videos, and images. The dialog is where the real preview happens.
+3. Drop role/eye-icon residue. Each row shows only `title` and `fmtDate(uploadedAt)`.
+4. If `secureUrl` is null, render the row but disable the click and append a small "Unavailable" suffix (so no dead dialog opens).
+5. **Keep the "Show full timeline" link** exactly as it is today (per user request) — no changes to the timeline card.
 
-### 12. Dispute Evidence (right rail)
-Design: a single "Photo Evidence" header inside the card body, then stacked rows of `image icon + filename + date` (no preview eye-icon, no per-row hover border).
-Current: flat list of evidence buttons with thumbnail, date, role, and an eye icon.
-Fix: keep the buttons functional (clicking still opens `EvidencePreviewDialog`) but match the visual: no role suffix in the meta line, no trailing eye icon, smaller 12×12 icon tile with a generic image glyph for non-image kinds.
+### B. PDF preview reliability (`src/components/admin/transactions/EvidencePreviewDialog.tsx`)
 
-## File touched
-- `src/pages/AdminTransactionDetail.tsx` — all of the above are edits inside this file. No service or backend changes.
+6. Broaden the `isPdf` check to also catch URL-based hints:
+   `isPdf = mime === "application/pdf" || /\.pdf(\?|$)/i.test(url ?? "") || item?.evidenceType === "pdf"`.
+7. For Cloudinary `raw/upload` PDFs, force inline display by appending `fl_attachment:false` (Cloudinary URL transformation) when the host is `res.cloudinary.com` and the path contains `/raw/upload/` or `/image/upload/` with `.pdf`. This makes the browser render the PDF in the iframe instead of downloading it.
+8. Keep the existing `<iframe src="${url}#toolbar=0&navpanes=0">` rendering — this works in Chrome/Edge/Safari for all inline-served PDFs.
+9. As an extra safety net, if the iframe `onError` fires, swap to a small "Open PDF in new tab" link plus a download-blocked notice (so admins always have a path to view, never a hard dead-end).
+10. Mirror the same broadened detection in the small `UnsupportedFallback` icon picker so PDFs show the document icon, not the generic file icon.
+
+### C. Small design polish (`src/pages/AdminTransactionDetail.tsx`)
+
+11. Risk Assessment leading "High Risk Transaction / ESCALATED" tile: change visibility to `risk.flags.length > 0 || hasDispute || frozen`.
+12. Linked Records Payment card: add a muted `font-mono text-xs text-muted-foreground` line under the provider showing `truncateRef(paymentReference)` (first 8 chars + `…` when longer). No-op when reference is missing.
+13. Admin extras `<details>`: add `group` to the `<details>` element and `group-open:rotate-180 transition-transform` on the chevron.
+
+## Files touched
+
+- `src/pages/AdminTransactionDetail.tsx` — evidence list cleanup, risk tile trigger, payment ref snippet, admin-extras chevron animation.
+- `src/components/admin/transactions/EvidencePreviewDialog.tsx` — broaden PDF detection, force Cloudinary inline delivery, add iframe error fallback.
+- No service or edge-function changes.
 
 ## Acceptance
-- Desktop top bar shows only `Export` + `View Dispute` (when dispute exists) plus the overflow menu icon.
-- Risk card opens with a prominent "High Risk Transaction / ESCALATED" tile and a clean flag list.
-- Timeline has no filter chips or sort toggle on desktop.
-- Linked Records contains exactly 6 cards (no agreement card).
-- Locked Agreement card retains its `Preview Agreement` header button.
-- Payment Details column has exactly Provider / Reference / Status / Processed.
-- Shipping Details column has exactly Carrier / Tracking / Shipped / Expected.
-- Delivery Status column shows the 3 canonical milestones + the 24-hr red alert when relevant.
-- Pricing, Payout, and full Escrow Ledger live behind a single collapsible "Admin extras" card.
-- Right-rail Dispute Evidence list matches the design's "Photo Evidence" stacked rows.
+
+- Dispute Evidence list shows flat icon tiles for every row — no broken-image glyphs, no remote `<img>` requests in that list.
+- Clicking any row (image, video, **PDF**, document) opens `EvidencePreviewDialog` and the file renders inline (image preview, playable video, scrollable PDF).
+- PDFs hosted on Cloudinary render inside the dialog's iframe instead of triggering a download.
+- If a PDF iframe fails to load, the dialog shows a clear "Open in new tab" fallback link.
+- Rows with no resolvable file URL render an "Unavailable" suffix and are not clickable.
+- Risk Assessment column always opens with the red "High Risk Transaction / ESCALATED" tile when there are risk flags, an active dispute, or frozen funds.
+- Linked Records Payment card shows a small monospace reference snippet under the provider.
+- Admin extras chevron rotates 180° when opened.
+- "Show full timeline" link remains in place on all viewports — unchanged.
 - Mobile (<lg) layout unchanged.
