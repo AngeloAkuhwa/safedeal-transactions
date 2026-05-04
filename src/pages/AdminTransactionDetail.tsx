@@ -341,33 +341,118 @@ export default function AdminTransactionDetail() {
 
           {/* Summary */}
           <Card accent={accent}>
-            <div className="p-4 lg:p-5">
-              <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                <Stat label="Transaction" value={<><div className="font-semibold">#{code}</div><div className="text-[11px] text-muted-foreground mt-0.5">Created {fmtDate(tx.createdAt)}</div></>} />
-                <Stat label="Last Activity" value={<><div className="font-semibold">{relTime(tx.lastActivityAt)}</div><div className="text-[11px] text-muted-foreground mt-0.5">{fmtDate(tx.lastActivityAt)}</div></>} />
-                <Stat label="Total Amount" value={<><div className="font-semibold text-base">{ngn(data.pricing?.buyerTotal)}</div><div className="text-[11px] text-muted-foreground mt-0.5">Fee: {ngn(data.pricing?.protectionFee)}</div></>} />
-                <Stat label="Payout Status" value={<StatusBadge value={data.payout?.status} />} />
-                <Stat label="Payment Provider" value={<><div className="font-semibold capitalize">{data.payment?.provider ?? "—"}</div><div className="text-[11px] text-muted-foreground font-mono truncate mt-0.5">{data.payment?.providerReference ?? "—"}</div></>} />
+            <div className="p-4 lg:p-6 bg-gradient-to-br from-card to-card/50 rounded-xl">
+              {/* Primary Info Row */}
+              <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6 mb-6">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Transaction</div>
+                  <div className="text-foreground text-base lg:text-xl font-bold truncate">#{code}</div>
+                  <div className="text-muted-foreground text-xs mt-1">Created {fmtDate(tx.createdAt)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Last Activity</div>
+                  <div className="text-foreground text-sm lg:text-lg font-semibold">{relTime(tx.lastActivityAt)}</div>
+                  <div className="text-muted-foreground text-xs mt-1">{fmtDate(tx.lastActivityAt)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Amount</div>
+                  <div className="text-foreground text-base lg:text-xl font-bold tabular-nums">{ngn(data.pricing?.buyerTotal)}</div>
+                  <div className="text-muted-foreground text-xs mt-1">Fee: {ngn(data.pricing?.protectionFee)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Payout Status</div>
+                  <div><StatusBadge value={data.payout?.status} /></div>
+                  {data.payout?.blockedReason && <div className="text-muted-foreground text-xs mt-1 truncate">{data.payout.blockedReason}</div>}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Payment Provider</div>
+                  <div className="text-foreground text-sm lg:text-lg font-semibold capitalize">{data.payment?.provider ?? "—"}</div>
+                  <div className="text-muted-foreground text-xs mt-1 font-mono truncate">{data.payment?.providerReference ?? "—"}</div>
+                </div>
               </dl>
-              <div className="my-4 border-t border-border" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Parties Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 mb-6 pb-6 border-b border-border">
                 {(["buyer","seller"] as const).map((k) => {
                   const p = data.parties[k];
                   return (
                     <div key={k} className="flex items-center gap-3">
-                      <Avatar name={p?.name} src={p?.avatarUrl} />
+                      <Avatar name={p?.name} src={p?.avatarUrl} size={48} />
                       <div className="min-w-0">
-                        <div className="text-[10px] uppercase text-muted-foreground font-semibold">{titleCase(k)}</div>
-                        <div className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{titleCase(k)}</div>
+                        <div className="text-base font-semibold text-foreground truncate flex items-center gap-1.5">
                           {p?.name ?? "—"}
                           {p?.verification?.identity && <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />}
                           {p?.flagged && <span className="text-[10px] rounded bg-red-500/20 text-red-300 px-1.5 py-0.5">{p.accountStatus}</span>}
                         </div>
-                        <div className="text-[11px] text-muted-foreground truncate">{p?.maskedEmail ?? p?.maskedPhone ?? ""}</div>
+                        <div className="text-xs text-muted-foreground truncate">{p?.maskedEmail ?? p?.maskedPhone ?? `User #${(p?.id ?? "").slice(0,8)}`}</div>
                       </div>
                     </div>
                   );
                 })}
+              </div>
+              {/* Status Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Transaction Status</div>
+                  <StatusBadge value={tx.status} />
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Money Status</div>
+                  <StatusBadge value={tx.moneyStatus} />
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Item Total</div>
+                  <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.itemTotal)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Protection Fee</div>
+                  <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.protectionFee)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Charged</div>
+                  <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.buyerTotal)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Held in Escrow</div>
+                  <div className="text-purple-400 text-base lg:text-lg font-semibold tabular-nums">{ngn(data.escrow?.heldAmount)}</div>
+                </div>
+              </div>
+              {/* Action Row (desktop) */}
+              <div className="hidden lg:flex items-center justify-between mt-6 pt-6 border-t border-border gap-4 flex-wrap">
+                <div className="flex items-center gap-3 flex-wrap">
+                  {dispute && dispute.status !== "resolved" && dispute.status !== "closed" && (
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                      <Flag className="h-3 w-3 mr-1.5" /> Escalated Dispute
+                    </span>
+                  )}
+                  {dispute?.overdue && (
+                    <span className="text-red-400 text-sm font-medium inline-flex items-center">
+                      <Clock className="h-3.5 w-3.5 mr-1" /> Overdue: past resolution deadline
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {adminCan.canExport && (
+                    <Button variant="outline" size="sm" onClick={exportData}>
+                      <Download className="h-4 w-4 mr-1.5" /> Export Data
+                    </Button>
+                  )}
+                  {adminCan.canOpenInvestigation && (
+                    <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-blue-500/40 text-blue-300 hover:text-blue-200">
+                      <Search className="h-4 w-4 mr-1.5" /> Open Investigation
+                    </Button>
+                  )}
+                  {adminCan.canFreeze && (
+                    <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200">
+                      <Lock className="h-4 w-4 mr-1.5" /> Freeze Funds
+                    </Button>
+                  )}
+                  {adminCan.canManageDispute && dispute && (
+                    <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
+                      <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </Card>
