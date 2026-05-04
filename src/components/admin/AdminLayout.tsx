@@ -12,9 +12,20 @@ interface AdminLayoutProps {
   subtitle?: string;
   badges?: AdminDashboardResponse["sidebar_badges"];
   children: ReactNode;
+  hideDefaultHeaders?: boolean;
+  headerSlot?: ReactNode;
+  mobileHeaderSlot?: ReactNode | ((opts: { onOpenMenu: () => void }) => ReactNode);
 }
 
-export function AdminLayout({ title, subtitle, badges, children }: AdminLayoutProps) {
+export function AdminLayout({
+  title,
+  subtitle,
+  badges,
+  children,
+  hideDefaultHeaders,
+  headerSlot,
+  mobileHeaderSlot,
+}: AdminLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -40,8 +51,14 @@ export function AdminLayout({ title, subtitle, badges, children }: AdminLayoutPr
 
         {/* Main column */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <AdminMobileHeader onOpenMenu={() => setMobileOpen(true)} />
-          <AdminHeader title={title} subtitle={subtitle} />
+          {mobileHeaderSlot
+            ? typeof mobileHeaderSlot === "function"
+              ? mobileHeaderSlot({ onOpenMenu: () => setMobileOpen(true) })
+              : mobileHeaderSlot
+            : !hideDefaultHeaders && <AdminMobileHeader onOpenMenu={() => setMobileOpen(true)} />}
+          {headerSlot
+            ? headerSlot
+            : !hideDefaultHeaders && <AdminHeader title={title} subtitle={subtitle} />}
           <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
             <div className="mx-auto w-full max-w-[1400px] space-y-5">{children}</div>
           </main>
