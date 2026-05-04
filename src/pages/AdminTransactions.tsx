@@ -111,6 +111,36 @@ const SIDEBAR_BADGES = {
 
 const PAGE_SIZE = 25;
 
+const TX_STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: "awaiting_payment", label: "Awaiting Payment" },
+  { value: "payment_secured", label: "Funds Held" },
+  { value: "seller_preparing_delivery", label: "In Fulfillment" },
+  { value: "seller_dispatched", label: "Dispatched" },
+  { value: "delivered_awaiting_verification", label: "Delivered" },
+  { value: "completed", label: "Completed" },
+  { value: "disputed", label: "In Dispute" },
+  { value: "refunded", label: "Refunded" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "timed_out", label: "Timed Out" },
+];
+const MONEY_STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: "not_secured", label: "Not Secured" },
+  { value: "payment_pending", label: "Payment Pending" },
+  { value: "funds_held_in_escrow", label: "Held" },
+  { value: "funds_frozen", label: "Frozen" },
+  { value: "funds_pending_release", label: "Awaiting Release" },
+  { value: "funds_releasing", label: "Releasing" },
+  { value: "funds_released", label: "Released" },
+  { value: "refund_pending", label: "Refund Pending" },
+  { value: "refund_issued", label: "Refunded" },
+];
+const DISPUTE_STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: "open", label: "Open" },
+  { value: "seller_response_pending", label: "Awaiting Seller" },
+  { value: "under_review", label: "Under Review" },
+  { value: "resolved", label: "Resolved" },
+];
+
 export default function AdminTransactions() {
   const navigate = useNavigate();
   const [activeQuick, setActiveQuick] = useState<AdminTxQuickFilter>("all");
@@ -118,6 +148,13 @@ export default function AdminTransactions() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [txStatus, setTxStatus] = useState<string>("");
+  const [moneyStatus, setMoneyStatus] = useState<string>("");
+  const [disputeStatus, setDisputeStatus] = useState<string>("");
+  const [amountMin, setAmountMin] = useState<string>("");
+  const [amountMax, setAmountMax] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
   const [data, setData] = useState<AdminTxMonitorResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -134,7 +171,7 @@ export default function AdminTransactions() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [activeQuick, debouncedSearch]);
+  }, [activeQuick, debouncedSearch, txStatus, moneyStatus, disputeStatus, amountMin, amountMax, dateFrom, dateTo]);
 
   const fetchData = useCallback(async () => {
     const reqId = ++reqIdRef.current;
@@ -144,6 +181,13 @@ export default function AdminTransactions() {
       const resp = await getAdminTransactionsMonitor({
         search: debouncedSearch || undefined,
         quickFilter: activeQuick,
+        transactionStatus: txStatus || undefined,
+        moneyStatus: moneyStatus || undefined,
+        disputeStatus: disputeStatus || undefined,
+        amountMin: amountMin ? Number(amountMin) : undefined,
+        amountMax: amountMax ? Number(amountMax) : undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
         page,
         pageSize: PAGE_SIZE,
         sortBy: "created_at",
@@ -161,7 +205,7 @@ export default function AdminTransactions() {
     } finally {
       if (reqIdRef.current === reqId) setLoading(false);
     }
-  }, [debouncedSearch, activeQuick, page]);
+  }, [debouncedSearch, activeQuick, page, txStatus, moneyStatus, disputeStatus, amountMin, amountMax, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchData();
@@ -397,17 +441,52 @@ export default function AdminTransactions() {
           </button>
         </div>
 
-        <div className={`mt-3 flex-wrap gap-2 ${filtersOpen ? "flex" : "hidden"} lg:flex`}>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveQuick("all");
-              setSearch("");
-            }}
-            className="rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
-          >
-            Clear Filters
-          </button>
+        <div
+          className={`mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 ${filtersOpen ? "" : "hidden"} lg:grid`}
+        >
+          <FilterSelect
+            label="Transaction Status"
+            value={txStatus}
+            onChange={setTxStatus}
+            options={TX_STATUS_OPTIONS}
+          />
+          <FilterSelect
+            label="Money Status"
+            value={moneyStatus}
+            onChange={setMoneyStatus}
+            options={MONEY_STATUS_OPTIONS}
+          />
+          <FilterSelect
+            label="Dispute Status"
+            value={disputeStatus}
+            onChange={setDisputeStatus}
+            options={DISPUTE_STATUS_OPTIONS}
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <FilterInput label="Min ₦" type="number" value={amountMin} onChange={setAmountMin} />
+            <FilterInput label="Max ₦" type="number" value={amountMax} onChange={setAmountMax} />
+          </div>
+          <FilterInput label="From" type="date" value={dateFrom} onChange={setDateFrom} />
+          <FilterInput label="To" type="date" value={dateTo} onChange={setDateTo} />
+          <div className="flex items-end justify-end sm:col-span-2 lg:col-span-2">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveQuick("all");
+                setSearch("");
+                setTxStatus("");
+                setMoneyStatus("");
+                setDisputeStatus("");
+                setAmountMin("");
+                setAmountMax("");
+                setDateFrom("");
+                setDateTo("");
+              }}
+              className="rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
+            >
+              Clear Filters
+            </button>
+          </div>
         </div>
       </div>
 
@@ -808,5 +887,50 @@ function ResponsiveSearchInput({ value, onChange }: { value: string; onChange: (
       aria-label="Search transactions"
       className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
     />
+  );
+}
+function FilterSelect({
+  label, value, onChange, options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+      >
+        <option value="">All</option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function FilterInput({
+  label, value, onChange, type,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type: "text" | "number" | "date";
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+      />
+    </label>
   );
 }

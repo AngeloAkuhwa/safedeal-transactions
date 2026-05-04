@@ -1,109 +1,73 @@
-## Goal
 
-Replace the mock data in `/admin/transactions` with real DB-driven data via a new admin-only edge function, mirroring the patterns used by `admin-dashboard`.
+## Current state (verified)
 
-## Files
+- `supabase/functions/admin-transactions-monitor/index.ts` exists with: CORS, JWT verify via `auth.getUser`, `has_role(_user_id, 'admin')` gate, service-role queries, parallel reads, status/money/dispute/escrow label mapping, summary, pagination.
+- `src/services/admin-transactions-monitor.service.ts` invokes the function with the user's access token, throws `AdminAccessRequiredError` on 403, redirects on 401.
+- `src/pages/AdminTransactions.tsx` renders KPIs, quick filters, search, desktop table, mobile cards, pagination, loading/empty/error/access-denied states. Money is rendered via `formatMoney` (NGN, 2 decimals) with compact tooltips for exact values.
 
-1. **NEW** `supabase/functions/admin-transactions-monitor/index.ts`
-2. **NEW** `src/services/admin-transactions-monitor.service.ts`
-3. **EDIT** `src/pages/AdminTransactions.tsx` — wire to service; remove mock rows; keep UI shell (KPIs / chips / table / mobile cards / empty + loading + error states).
+## Gaps vs. the spec
 
-## Edge Function: `admin-transactions-monitor`
+1. **Search is too narrow** — only matches `transaction_code`. Spec implies item title and party names should match too.
+2. **"Awaiting Action" KPI is approximate** — should combine `release_review_queue` (pending), failed `payouts`, stuck transactions, overdue dispute responses, and flagged-for-review.
+3. **"Flagged" KPI** — currently `needs_release_review` only. Should also include active risk/admin-review signals from `audit_logs` / `admin_actions`.
+4. **Tables underused** — spec lists `transaction_participants`, `transaction_status_history`, `transaction_delivery_terms`, `payouts`, `refunds`, `release_review_queue`, `dispute_responses`, `dispute_outcomes`, `admin_actions`, `audit_logs` but the function reads only a subset.
+5. **Filter params not all wired in UI** — `moneyStatus`, `disputeStatus`, `riskLevel`, `amountMin/Max`, `dateFrom/To` exist in the API but the page only exposes the quick-filter chips and search.
+6. **`hasUnreadMessages` always false** — should be derived (or omitted with an honest `null`).
+7. **Risk level inference is heuristic** — keep the heuristic but augment with `admin_actions` (freeze) and `audit_logs` recent risk events.
+8. **Design parity check** — confirm the desktop header, KPI tile order/icons, quick-filter chips, 9-column table layout, and mobile card structure still match the shared design at 1246px and 390px viewports. Adjust spacing, badge tones, and the "Live sync" pill if drift is found.
 
-### Auth (mirror `admin-dashboard`)
-- Reject if no `Authorization: Bearer …` → 401.
-- `auth.getUser(token)` → 401 on invalid.
-- `rpc("has_role", { _user_id, _role: "admin" })` → 403 if false.
-- After admin confirmation, use service-role client for queries.
+## Changes
 
-### Input (POST JSON body, all optional)
-```
-{ search, transactionStatus, moneyStatus, disputeStatus, riskLevel,
-  amountMin, amountMax, dateFrom, dateTo, quickFilter,
-  page=1, pageSize=25, sortBy="created_at", sortDirection="desc" }
-```
-Validate with zod; clamp `pageSize` to 1–100; whitelist `sortBy` to `created_at | updated_at | transaction_code`.
+### A. Edge function (`supabase/functions/admin-transactions-monitor/index.ts`)
 
-### Quick filter mapping
-- `awaiting_payment` → `status='awaiting_payment'`
-- `funds_held` → `money_status='funds_held_in_escrow'`
-- `in_dispute` → `dispute_status in ('open','seller_response_pending','under_review')`
-- `overdue` → join disputes overdue OR `status='awaiting_payment' AND created_at < now()-24h`
-- `refunded` → `money_status in ('refund_pending','refund_issued') OR status='refunded'`
-- `failed` → exists failed payment for tx
-- `flagged` → `needs_release_review=true`
-- `frozen` → `money_status='funds_frozen'`
+- **Search**: when `search` is set, run parallel pre-queries to resolve matching ids:
+  - `transactions.transaction_code ilike %s%`
+  - `transaction_items.title ilike %s%` → ids
+  - `profiles.full_name/email ilike %s%` → user ids → `transactions` where `buyer_id`/`seller_id` in (ids)
+  - Union the id sets and apply `.in("id", unionIds)`.
+- **Awaiting Action KPI** — compute as the union (deduped) of, restricted to the filtered scope:
+  - `release_review_queue` rows with status pending,
+  - transactions whose latest `payouts.status = 'failed'`,
+  - active disputes with `seller_response_due_at < now()`,
+  - transactions stuck in `awaiting_payment` > 24h,
+  - `needs_release_review = true`.
+- **Flagged KPI** — `needs_release_review = true` ∪ transaction ids referenced by recent `audit_logs` actions tagged as risk/fraud ∪ `admin_actions.action_type` in (freeze, flag).
+- **Per-row enrichment**:
+  - `lastActivityAt` — also consider latest `transaction_status_history.changed_at`.
+  - `flags[]` — append `payout_failed`, `admin_frozen` (from `admin_actions`), `risk_flagged` (from `audit_logs`).
+  - `actionAvailability.canFreeze` — also false if a recent `admin_actions` freeze exists.
+  - `hasUnreadMessages` — set to `null` (omit from UI) until a messages source exists; do not fake.
+- **Performance**: keep all enrichment parallel via `Promise.all`; cap fan-out for KPI sums at 5k ids (already in place).
 
-### Query plan
-1. Build base `transactions` query with all filters; get `count: 'exact'` and ordered/paginated rows (id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, needs_release_review, payment_received_at, completed_at, created_at, updated_at).
-2. For the page's tx ids, batch fetch in parallel:
-   - `transaction_items` (title, description, condition_label) — pick first item per tx as headline.
-   - `transaction_pricing` (item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount, currency_code).
-   - `escrow_states` (state, held_amount, frozen_amount, released_amount, refunded_amount, last_changed_at).
-   - `disputes` open per tx (id, status, opened_at, seller_response_due_at).
-   - `money_status_history` latest per tx (changed_at).
-   - `transaction_events` latest per tx (created_at, event_type) — last activity fallback.
-   - `payments` latest per tx (status).
-   - `profiles` for buyer_id+seller_id (id, full_name, email).
-3. Map raw enums → display labels (per spec `Status mapping` and `Money status mapping`). Inside admin portal use "Awaiting Release" / "Release Review" — never "admin release".
-4. Compute per-row:
-   - `lastActivityAt = max(money_status_history.changed_at, transaction_events.created_at, updated_at)` + relative label.
-   - `isOverdue` = open dispute with `seller_response_due_at < now()` OR `status='awaiting_payment' AND created_at < now()-24h`.
-   - `isFrozen` = `money_status='funds_frozen'`.
-   - `riskLevel` derived: `fraud_watch` if `needs_release_review && money_status='funds_frozen'`; `high_risk` if `needs_release_review`; `escalated` if open dispute; else `clean`.
-   - `flags`: array combining the above.
-   - `actionAvailability`: `{ canFreeze, canTrace, canViewNotes, canMore }` based on state.
-   - `buyerEmailMasked / sellerEmailMasked`: only mask local part (`a***@domain`); names stay full.
+### B. Frontend service (`src/services/admin-transactions-monitor.service.ts`)
 
-### Summary block (uses same filters EXCEPT pagination)
-- `totalTransactions` = filtered count.
-- `totalAmount` = SUM(`transaction_pricing.buyer_total_amount`) for filtered tx (paged-in-server using `.in('transaction_id', filteredIds)` chunks, OR a single SQL via service-role + RPC; first cut: fetch all filtered ids in chunks of 1000 and sum via `transaction_pricing` rows).
-- `inEscrowAmount` = SUM(`escrow_states.held_amount + frozen_amount`) for filtered tx.
-- `inDisputeCount` = filtered count where dispute_status in active set.
-- `awaitingActionCount` = union of: `release_review_queue.status='pending'`, `payouts.status='failed'` (filtered tx scope), overdue disputes, stuck (`status='awaiting_payment' < now()-24h`), `needs_release_review=true`. Counted as distinct tx ids.
-- `flaggedCount` = filtered count where `needs_release_review=true`.
+- Add the new optional params on `AdminTxMonitorParams` (already present); no breaking changes.
+- Surface `hasUnreadMessages?: boolean | null` on `AdminTxRow`.
 
-To keep cost bounded, summary scope is the same filter as the list (without page/pageSize). For "no filters" path we just count all transactions and aggregate from `escrow_states` / `disputes` directly.
+### C. Page (`src/pages/AdminTransactions.tsx`)
 
-### Response shape
-```
-{ summary: { totalTransactions, totalAmount, inEscrowAmount,
-             inDisputeCount, awaitingActionCount, flaggedCount, currency: "NGN" },
-  rows: AdminTxRow[],
-  pagination: { page, pageSize, totalCount, hasNextPage, hasPreviousPage } }
-```
+- **Filters drawer**: expand the existing "Filters" panel (currently just Clear) to include:
+  - Transaction Status, Money Status, Dispute Status, Risk Level (selects from mapping enums),
+  - Amount min/max (numeric, NGN),
+  - Date from / to (date inputs).
+  - All wired to API params; reset page to 1 on change.
+- **Mobile**: same filters behind the existing toggle; quick-filter chips remain.
+- **Design parity**:
+  - Re-check the KPI tile order: Total Tx, Total Amount, In Escrow, In Dispute, Awaiting Action, Flagged (matches spec).
+  - Verify the 9 desktop columns: Transaction, Item, Parties, Amount, Status, Escrow, Flags, Last Activity, Actions.
+  - Mobile card hierarchy: code+date, status badge, item, buyer/seller, optional risk row, amount + actions.
+  - Confirm `Live` pill uses emerald token in both themes.
+- Hide the unread-messages indicator when `hasUnreadMessages` is `null`.
 
-### CORS / errors
-- Same `corsHeaders` as `admin-dashboard` (POST, OPTIONS).
-- Catch-all returns 500 with message; log via `edge_function_errors`.
+### D. QA pass (no code, just verification)
 
-## Service: `admin-transactions-monitor.service.ts`
+- Resize preview to 1280×720 and 390×844, compare each section to the shared design.
+- Verify NGN formatting: every money string ends in `.00` (or 2 decimals) and uses `₦`.
+- Confirm 401 → `/auth`, 403 → access-denied panel, network error → red banner with Retry.
+- Run the function with no filters, with `quickFilter=in_dispute`, and with a search term to confirm KPIs and rows update consistently.
 
-- Export TypeScript interfaces matching the response.
-- `getAdminTransactionsMonitor(params)` →
-  - `supabase.auth.getSession()`; redirect to `/auth` if missing.
-  - `supabase.functions.invoke("admin-transactions-monitor", { body: params, headers: { Authorization } })`.
-  - Map 401 → redirect; 403 → throw `AdminAccessRequiredError`.
-- Re-export `AdminAccessRequiredError` (or import from a shared file; first cut: local copy matching the existing pattern).
+## Out of scope (not needed for acceptance)
 
-## Page: `src/pages/AdminTransactions.tsx`
-
-- Replace `MOCK_TXS` and `SUMMARY_TILES` constants with state from `getAdminTransactionsMonitor`.
-- Use `useEffect` keyed on `{search, activeQuick, page, pageSize, sortBy, sortDirection, advanced filters}` with debounced search.
-- Show skeleton rows while loading; error banner on failure (with retry); existing empty-state copy when `rows.length === 0`.
-- Pagination footer (Prev / Next + "Page X of Y") on both desktop table and mobile list.
-- Action icons keep current callbacks (toasts) — no behavior change requested.
-- Keep KPI tiles: bind to `summary` fields. Keep tooltips with exact NGN value via `formatMoney`.
-- Sidebar `badges` continues to use the static `SIDEBAR_BADGES` for now (sidebar will be wired separately to the dashboard service in a follow-up).
-
-## Out of scope (this iteration)
-- Action handlers (Freeze / Notes / Trace) — still toasts.
-- Realtime updates — manual Refresh button only.
-- Admin-side detail drawer.
-
-## Acceptance check
-- Non-admin user gets 403 → page shows "Admin access required".
-- Logged-out user redirected to `/auth`.
-- All KPI numbers + rows are computed from DB; no hardcoded NGN values remain.
-- Filters/search/pagination round-trip to backend.
-- Mobile cards and desktop table render the same row data.
+- Real messages/unread system — left stubbed as `null`.
+- Advanced sort UI (column header click); API supports it but UI keeps `created_at desc`.
+- CSV export pipeline; current Export button still toasts.

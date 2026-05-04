@@ -34,10 +34,10 @@ export interface AdminTxRow {
   lastActivityAt: string | null;
   lastActivityLabel: string;
   lastActivityTone: "muted" | "warn" | "danger";
-  hasUnreadMessages: boolean;
   isOverdue: boolean;
   isFrozen: boolean;
   needsReleaseReview: boolean;
+  hasUnreadMessages: boolean | null;
   actionAvailability: {
     canView: boolean;
     canViewNotes: boolean;
