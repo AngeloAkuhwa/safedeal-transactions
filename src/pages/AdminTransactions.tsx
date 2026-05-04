@@ -903,6 +903,41 @@ export default function AdminTransactions() {
           <BottomNav label="Profile" Icon={User} onClick={() => toast({ title: "Profile", description: "Coming soon" })} />
         </div>
       </nav>
+
+      {/* Mobile filters sheet */}
+      <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
+        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto bg-card">
+          <SheetHeader>
+            <SheetTitle>Filters</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <FilterSelect label="Transaction Status" value={txStatus} onChange={setTxStatus} options={TX_STATUS_OPTIONS} />
+            <FilterSelect label="Money Status" value={moneyStatus} onChange={setMoneyStatus} options={MONEY_STATUS_OPTIONS} />
+            <FilterSelect label="Dispute Status" value={disputeStatus} onChange={setDisputeStatus} options={DISPUTE_STATUS_OPTIONS} />
+            <FilterSelect label="Risk Level" value={riskLevel} onChange={setRiskLevel} options={RISK_LEVEL_OPTIONS} />
+            <FilterInput label="Min ₦" type="number" value={amountMin} onChange={setAmountMin} />
+            <FilterInput label="Max ₦" type="number" value={amountMax} onChange={setAmountMax} />
+            <FilterInput label="From" type="date" value={dateFrom} onChange={setDateFrom} />
+            <FilterInput label="To" type="date" value={dateTo} onChange={setDateTo} />
+          </div>
+          <SheetFooter className="mt-4 flex flex-row gap-2 sm:justify-between">
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="flex-1 rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileSheetOpen(false)}
+              className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
+            >
+              Apply
+            </button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </AdminLayout>
   );
 }
