@@ -544,8 +544,14 @@ export default function AdminTransactionDetail() {
   return (
     <AdminLayout title={`Transaction #${code}`} subtitle={itemTitle} headerSlot={headerSlot} mobileHeaderSlot={mobileHeaderSlot}>
       {loading && (
-        <div className="space-y-3">
-          {[0, 1, 2].map((i) => <div key={i} className="h-32 rounded-xl border border-border bg-card animate-pulse" />)}
+        <div className="space-y-4 max-w-[1440px] mx-auto">
+          <div className="h-10 rounded-md bg-muted/40 animate-pulse w-1/2" />
+          <div className="h-48 rounded-xl border border-border bg-card animate-pulse" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="h-40 rounded-xl border border-border bg-card animate-pulse" />
+            <div className="h-40 rounded-xl border border-border bg-card animate-pulse" />
+          </div>
+          <div className="h-64 rounded-xl border border-border bg-card animate-pulse" />
         </div>
       )}
 
@@ -617,7 +623,7 @@ export default function AdminTransactionDetail() {
           )}
 
           {/* === Summary Card === */}
-          <Card accent={accent}>
+          <div id="summary" className={anim("animate-fade-in")}><Card accent={accent}>
             <div className="p-4 lg:p-6 bg-gradient-to-br from-card to-card/50 rounded-xl">
               {/* Primary Info Row */}
               <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6 mb-6">
@@ -732,11 +738,10 @@ export default function AdminTransactionDetail() {
                 </div>
               </div>
             </div>
-          </Card>
+          </Card></div>
 
-          {/* === Locked Agreement preview card === */}
           {/* === Risk & Investigation === */}
-          <Card>
+          <div id="risk" className={cn(anim("animate-fade-in"), showHighRisk && "ring-1 ring-red-500/30 rounded-xl")}><Card>
             <CardHeader
               title="Risk & Investigation"
               action={
@@ -819,10 +824,10 @@ export default function AdminTransactionDetail() {
                 </div>
               </div>
             )}
-          </Card>
+          </Card></div>
 
           {/* === Complete Transaction Timeline === */}
-          <Card>
+          <div id="timeline"><Card>
             <CardHeader
               title="Complete Transaction Timeline"
               subtitle="All events, status changes, and interventions"
@@ -886,7 +891,7 @@ export default function AdminTransactionDetail() {
                 </div>
               )}
             </div>
-          </Card>
+          </Card></div>
 
           {/* === Linked Records === */}
           <div id="linked-records"><Card>
@@ -935,6 +940,7 @@ export default function AdminTransactionDetail() {
                   const inner = (
                     <div className={cn(
                       "p-4 bg-muted/30 border border-border rounded-lg hover:border-blue-500/50 transition-all h-full flex flex-col",
+                      motionOk && "hover:-translate-y-0.5",
                       isEmptyPayout && "opacity-60",
                     )}>
                       <div className="flex items-center justify-between mb-3">
