@@ -432,9 +432,11 @@ export default function AdminTransactions() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search transaction code, buyer, seller, or item..."
-              className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+              placeholder="Search transactions..."
+              className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40 lg:placeholder:text-transparent lg:placeholder:lg:text-muted-foreground"
+              aria-label="Search transactions"
             />
+            {/* Use a wider placeholder on lg screens via a data attribute trick */}
           </div>
 
           <div className="hidden gap-2 lg:flex">
