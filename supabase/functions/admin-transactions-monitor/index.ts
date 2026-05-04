@@ -259,14 +259,25 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
     const raw = params.search.trim();
     const s = raw.replace(/[%_]/g, "");
     const like = `%${s}%`;
-    const [byCodeRes, byItemRes, partyProfilesRes] = await Promise.all([
+    const digits = s.replace(/\D/g, "");
+    const phoneOr = digits.length >= 3 ? `,phone.ilike.%${digits}%` : "";
+    const [byCodeRes, byItemTitleRes, byItemCatRes, partyProfilesRes] = await Promise.all([
       client.from("transactions").select("id").ilike("transaction_code", like).limit(1000),
       client.from("transaction_items").select("transaction_id").ilike("title", like).limit(2000),
-      client.from("profiles").select("id").or(`full_name.ilike.${like},email.ilike.${like}`).limit(500),
+      client.from("transaction_items").select("transaction_id").ilike("category", like).limit(2000).then(
+        (r: any) => r,
+        () => ({ data: [] as any[] }),
+      ),
+      client
+        .from("profiles")
+        .select("id")
+        .or(`full_name.ilike.${like},email.ilike.${like}${phoneOr}`)
+        .limit(500),
     ]);
     const ids = new Set<string>();
     for (const r of ((byCodeRes.data ?? []) as any[])) if (r.id) ids.add(r.id);
-    for (const r of ((byItemRes.data ?? []) as any[])) if (r.transaction_id) ids.add(r.transaction_id);
+    for (const r of ((byItemTitleRes.data ?? []) as any[])) if (r.transaction_id) ids.add(r.transaction_id);
+    for (const r of ((byItemCatRes.data ?? []) as any[])) if (r.transaction_id) ids.add(r.transaction_id);
     const partyIds = ((partyProfilesRes.data ?? []) as any[]).map((r: any) => r.id).filter(Boolean);
     if (partyIds.length > 0) {
       const { data: partyTxRes } = await client
