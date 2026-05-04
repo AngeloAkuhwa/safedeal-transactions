@@ -493,7 +493,7 @@ export default function AdminTransactions() {
                 <th className="px-3 py-2 text-left font-semibold">Escrow</th>
                 <th className="px-3 py-2 text-left font-semibold">Flags</th>
                 <th className="px-3 py-2 text-left font-semibold">Last Activity</th>
-                <th className="px-3 py-2 text-right font-semibold">Actions</th>
+                <th className="px-3 py-2 text-left font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -566,7 +566,7 @@ export default function AdminTransactions() {
                       </span>
                     </td>
                     <td className="px-3 py-3 align-top">
-                      <div className="flex items-center justify-end gap-1.5 text-muted-foreground">
+                      <div className="flex items-center justify-start gap-1.5 text-muted-foreground">
                         <IconBtn label="View" onClick={() => handleRowAction("View transaction", t.code)}>
                           <Eye className="h-4 w-4" />
                         </IconBtn>
