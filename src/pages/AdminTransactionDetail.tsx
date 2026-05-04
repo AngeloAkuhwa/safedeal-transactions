@@ -38,7 +38,7 @@ export default function AdminTransactionDetail() {
   }, [transactionId]);
 
   const summary = data?.summary ?? null;
-  const code = summary?.transaction_code ?? summary?.code ?? transactionId?.slice(0, 8);
+  const code = summary?.transactionCode ?? transactionId?.slice(0, 8);
 
   return (
     <AdminLayout title={`Transaction #${code ?? ""}`} subtitle="Admin transaction detail">
@@ -54,8 +54,8 @@ export default function AdminTransactionDetail() {
           </button>
           <div className="text-right">
             <h1 className="text-lg font-semibold text-foreground">Transaction #{code}</h1>
-            {summary?.created_at && (
-              <div className="text-xs text-muted-foreground">Created {fmtDate(summary.created_at)}</div>
+            {summary?.createdAt && (
+              <div className="text-xs text-muted-foreground">Created {fmtDate(summary.createdAt)}</div>
             )}
           </div>
         </header>
@@ -86,18 +86,18 @@ export default function AdminTransactionDetail() {
                   <h2 className="text-sm font-semibold text-foreground">Summary</h2>
                   <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
                     <Stat label="Status" value={summary.status ?? "—"} />
-                    <Stat label="Money" value={summary.money_status ?? "—"} />
-                    <Stat label="Dispute" value={summary.dispute_status ?? "—"} />
+                    <Stat label="Money" value={summary.moneyStatus ?? "—"} />
+                    <Stat label="Dispute" value={summary.disputeStatus ?? "—"} />
                     <Stat
                       label="Amount"
                       value={
-                        summary.amount != null
-                          ? formatMoney(Number(summary.amount), summary.currency_code ?? "NGN")
+                        summary.pricing?.buyer_total_amount != null
+                          ? formatMoney(Number(summary.pricing.buyer_total_amount), summary.pricing.currency_code ?? "NGN")
                           : "—"
                       }
                     />
-                    <Stat label="Buyer" value={summary.buyer_name ?? "—"} />
-                    <Stat label="Seller" value={summary.seller_name ?? "—"} />
+                    <Stat label="Buyer" value={summary.buyer?.name ?? "—"} />
+                    <Stat label="Seller" value={summary.seller?.name ?? "—"} />
                   </dl>
                 </div>
               )}
