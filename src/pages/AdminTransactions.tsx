@@ -972,6 +972,64 @@ export default function AdminTransactions() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      {/* Admin action dialogs */}
+      {actionRow && (
+        <>
+          <InternalNoteDialog
+            open={actionKind === "note"}
+            onOpenChange={(o) => !o && closeAction()}
+            transactionCode={actionRow.transactionCode}
+            onSubmit={(note) => runAction("note", note)}
+          />
+          <ActionConfirmDialog
+            open={actionKind === "freeze"}
+            onOpenChange={(o) => !o && closeAction()}
+            title="Freeze transaction"
+            description={`Funds for #${actionRow.transactionCode} will be moved to the frozen pool. No money is released or refunded.`}
+            confirmLabel="Freeze transaction"
+            confirmTone="danger"
+            typeToConfirm="FREEZE"
+            reasonPlaceholder="Why is this transaction being frozen?"
+            onConfirm={(r) => runAction("freeze", r)}
+          />
+          <ActionConfirmDialog
+            open={actionKind === "unfreeze"}
+            onOpenChange={(o) => !o && closeAction()}
+            title="Unfreeze transaction"
+            description={`Funds for #${actionRow.transactionCode} will return to held escrow.`}
+            confirmLabel="Unfreeze transaction"
+            reasonPlaceholder="Why is this transaction being unfrozen?"
+            onConfirm={(r) => runAction("unfreeze", r)}
+          />
+          <ActionConfirmDialog
+            open={actionKind === "flag"}
+            onOpenChange={(o) => !o && closeAction()}
+            title="Flag for review"
+            description={`Adds #${actionRow.transactionCode} to the release review queue.`}
+            confirmLabel="Flag for review"
+            reasonPlaceholder="Reason for flagging…"
+            onConfirm={(r) => runAction("flag", r)}
+          />
+          <ActionConfirmDialog
+            open={actionKind === "escalate"}
+            onOpenChange={(o) => !o && closeAction()}
+            title="Escalate dispute"
+            description={`Marks the active dispute on #${actionRow.transactionCode} as under admin review.`}
+            confirmLabel="Escalate dispute"
+            confirmTone="danger"
+            reasonPlaceholder="Reason for escalation…"
+            onConfirm={(r) => runAction("escalate", r)}
+          />
+          <DetailDrawer
+            open={drawerSection !== null}
+            onOpenChange={(o) => !o && closeDrawer()}
+            transactionId={actionRow.transactionId}
+            transactionCode={actionRow.transactionCode}
+            section={drawerSection ?? "timeline"}
+          />
+        </>
+      )}
     </AdminLayout>
   );
 }
