@@ -32,7 +32,7 @@ import {
   FileText,
   Hourglass,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminReadingModeControl } from "@/components/admin/AdminReadingModeControl";
@@ -278,6 +278,7 @@ function relativeMinutes(from: Date | null): string {
 
 export default function AdminTransactions() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeQuick, setActiveQuick] = useState<AdminTxQuickFilter>("all");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -316,7 +317,7 @@ export default function AdminTransactions() {
   const closeDrawer = () => { setDrawerSection(null); };
 
   const buildHandlers = (row: AdminTxRow) => ({
-    onView: () => navigate(`/admin/transactions/${row.transactionId}`),
+    onView: () => goToDetail(row),
     onAddNote: () => { setActionRow(row); setActionKind("note"); },
     onMessages: () => { setActionRow(row); setDrawerSection("messages"); },
     onTimeline: () => { setActionRow(row); setDrawerSection("timeline"); },
@@ -326,6 +327,19 @@ export default function AdminTransactions() {
     onFlagForReview: () => { setActionRow(row); setActionKind("flag"); },
     onEscalateDispute: () => { setActionRow(row); setActionKind("escalate"); },
   });
+
+  const goToDetail = (row: AdminTxRow) => {
+    navigate(`/admin/transactions/${row.transactionId}`, {
+      state: { returnTo: `${location.pathname}${location.search}` },
+    });
+  };
+
+  const handleRowKeyDown = (e: React.KeyboardEvent, row: AdminTxRow) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      goToDetail(row);
+    }
+  };
 
   const runAction = async (kind: typeof actionKind, reason: string) => {
     if (!actionRow || !kind) return;
