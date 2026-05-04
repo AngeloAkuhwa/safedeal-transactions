@@ -1073,6 +1073,7 @@ export default function AdminTransactions() {
 
 function IconBtn({ children, onClick, label }: { children: React.ReactNode; onClick: () => void; label: string }) {
   return (
+    <TooltipProvider delayDuration={200}>
     <Tooltip>
       <TooltipTrigger asChild>
         <button
@@ -1086,6 +1087,7 @@ function IconBtn({ children, onClick, label }: { children: React.ReactNode; onCl
       </TooltipTrigger>
       <TooltipContent side="top">{label}</TooltipContent>
     </Tooltip>
+    </TooltipProvider>
   );
 }
 
