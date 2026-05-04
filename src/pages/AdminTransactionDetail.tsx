@@ -1026,24 +1026,25 @@ export default function AdminTransactionDetail() {
                         </div>
                         <ul className="space-y-2">
                         {evidence.map((ev) => {
-                          const Icon = evidenceIcon(ev.kind);
+                          const Icon = evidenceIcon(ev.kind, ev.mimeType);
+                          const unavailable = !ev.secureUrl;
                           return (
                             <li key={ev.id}>
                               <button
                                 type="button"
-                                onClick={() => setEvidencePreview(ev)}
-                                className="w-full text-left flex items-center gap-2 rounded-md p-1.5 hover:bg-muted/50 transition-all"
+                                onClick={() => !unavailable && setEvidencePreview(ev)}
+                                disabled={unavailable}
+                                className="w-full text-left flex items-center gap-2 rounded-md p-1.5 hover:bg-muted/50 transition-all disabled:cursor-not-allowed disabled:hover:bg-transparent"
                               >
-                                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
-                                  {ev.kind === "image" && ev.secureUrl ? (
-                                    <img src={ev.secureUrl} alt={ev.title} draggable={false} className="w-full h-full object-cover pointer-events-none" />
-                                  ) : (
-                                    <Icon className="h-4 w-4 text-muted-foreground" />
-                                  )}
+                                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                  <Icon className="h-4 w-4 text-muted-foreground" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="text-sm text-muted-foreground truncate">{ev.title}</div>
-                                  <div className="text-xs text-muted-foreground truncate">{fmtDate(ev.uploadedAt)}</div>
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    {fmtDate(ev.uploadedAt)}
+                                    {unavailable && <span className="ml-2 text-red-400">Unavailable</span>}
+                                  </div>
                                 </div>
                               </button>
                             </li>
