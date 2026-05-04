@@ -53,6 +53,17 @@ import {
   type AdminTxRow,
   type AdminTxMonitorParams,
 } from "@/services/admin-transactions-monitor.service";
+import {
+  addInternalNote,
+  freezeTransaction,
+  unfreezeTransaction,
+  flagForReview,
+  escalateDispute,
+} from "@/services/admin-transaction-actions.service";
+import { RowActionsMenu } from "@/components/admin/transactions/RowActionsMenu";
+import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
+import { InternalNoteDialog } from "@/components/admin/transactions/InternalNoteDialog";
+import { DetailDrawer } from "@/components/admin/transactions/DetailDrawer";
 
 /* ---------------- Visual helpers ---------------- */
 
@@ -225,6 +236,42 @@ export default function AdminTransactions() {
   const reqIdRef = useRef(0);
   const realtimeDebounceRef = useRef<number | null>(null);
   const lastRealtimeToastRef = useRef<number>(0);
+
+  // Admin row actions state
+  const [actionRow, setActionRow] = useState<AdminTxRow | null>(null);
+  const [actionKind, setActionKind] = useState<null | "freeze" | "unfreeze" | "flag" | "escalate" | "note">(null);
+  const [drawerSection, setDrawerSection] = useState<null | "timeline" | "ledger" | "messages">(null);
+
+  const closeAction = () => { setActionKind(null); };
+  const closeDrawer = () => { setDrawerSection(null); };
+
+  const buildHandlers = (row: AdminTxRow) => ({
+    onView: () => navigate(`/admin/transactions/${row.transactionId}`),
+    onAddNote: () => { setActionRow(row); setActionKind("note"); },
+    onMessages: () => { setActionRow(row); setDrawerSection("messages"); },
+    onTimeline: () => { setActionRow(row); setDrawerSection("timeline"); },
+    onLedger: () => { setActionRow(row); setDrawerSection("ledger"); },
+    onFreeze: () => { setActionRow(row); setActionKind("freeze"); },
+    onUnfreeze: () => { setActionRow(row); setActionKind("unfreeze"); },
+    onFlagForReview: () => { setActionRow(row); setActionKind("flag"); },
+    onEscalateDispute: () => { setActionRow(row); setActionKind("escalate"); },
+  });
+
+  const runAction = async (kind: typeof actionKind, reason: string) => {
+    if (!actionRow || !kind) return;
+    try {
+      if (kind === "note") await addInternalNote(actionRow.transactionId, reason);
+      else if (kind === "freeze") await freezeTransaction(actionRow.transactionId, reason);
+      else if (kind === "unfreeze") await unfreezeTransaction(actionRow.transactionId, reason);
+      else if (kind === "flag") await flagForReview(actionRow.transactionId, reason);
+      else if (kind === "escalate") await escalateDispute(actionRow.transactionId, reason);
+      sonnerToast.success("Action completed", { description: `#${actionRow.transactionCode}` });
+      fetchData();
+    } catch (e) {
+      sonnerToast.error("Action failed", { description: (e as Error).message });
+      throw e;
+    }
+  };
 
   // Debounce search
   useEffect(() => {
@@ -733,27 +780,16 @@ export default function AdminTransactions() {
                     </td>
                     <td className="px-3 py-3 align-top">
                       <div className="flex items-center justify-start gap-1.5 text-muted-foreground">
-                        <IconBtn label="View" onClick={() => handleRowAction("View transaction", t.transactionCode)}>
+                        <IconBtn label="View" onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}>
                           <Eye className="h-4 w-4" />
                         </IconBtn>
-                        {t.riskLevel !== "clean" || t.transactionStatus.key === "in_dispute" ? (
-                          <>
-                            <IconBtn label="Notes" onClick={() => handleRowAction("Open notes", t.transactionCode)}>
-                              <MessageSquare className="h-4 w-4" />
-                            </IconBtn>
-                            <IconBtn label="Trace funds" onClick={() => handleRowAction("Trace funds", t.transactionCode)}>
-                              <ArrowLeftRight className="h-4 w-4" />
-                            </IconBtn>
-                            {t.actionAvailability.canFreeze && (
-                              <IconBtn label="Freeze" onClick={() => handleRowAction("Freeze transaction", t.transactionCode)}>
-                                <Snowflake className="h-4 w-4" />
-                              </IconBtn>
-                            )}
-                          </>
-                        ) : null}
-                        <IconBtn label="More" onClick={() => handleRowAction("More actions", t.transactionCode)}>
-                          <MoreVertical className="h-4 w-4" />
+                        <IconBtn label="Notes" onClick={() => { setActionRow(t); setActionKind("note"); }}>
+                          <MessageSquare className="h-4 w-4" />
                         </IconBtn>
+                        <IconBtn label="Ledger" onClick={() => { setActionRow(t); setDrawerSection("ledger"); }}>
+                          <ArrowLeftRight className="h-4 w-4" />
+                        </IconBtn>
+                        <RowActionsMenu row={t} handlers={buildHandlers(t)} />
                       </div>
                     </td>
                   </tr>
@@ -867,12 +903,10 @@ export default function AdminTransactions() {
                   ) : null}
                 </div>
                 <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <IconBtn label="View" onClick={() => handleRowAction("View transaction", t.transactionCode)}>
+                  <IconBtn label="View" onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}>
                     <Eye className="h-4 w-4 text-blue-400" />
                   </IconBtn>
-                  <IconBtn label="More" onClick={() => handleRowAction("More actions", t.transactionCode)}>
-                    <MoreVertical className="h-4 w-4" />
-                  </IconBtn>
+                  <RowActionsMenu row={t} handlers={buildHandlers(t)} />
                 </div>
               </div>
             </article>
@@ -938,6 +972,64 @@ export default function AdminTransactions() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      {/* Admin action dialogs */}
+      {actionRow && (
+        <>
+          <InternalNoteDialog
+            open={actionKind === "note"}
+            onOpenChange={(o) => !o && closeAction()}
+            transactionCode={actionRow.transactionCode}
+            onSubmit={(note) => runAction("note", note)}
+          />
+          <ActionConfirmDialog
+            open={actionKind === "freeze"}
+            onOpenChange={(o) => !o && closeAction()}
+            title="Freeze transaction"
+            description={`Funds for #${actionRow.transactionCode} will be moved to the frozen pool. No money is released or refunded.`}
+            confirmLabel="Freeze transaction"
+            confirmTone="danger"
+            typeToConfirm="FREEZE"
+            reasonPlaceholder="Why is this transaction being frozen?"
+            onConfirm={(r) => runAction("freeze", r)}
+          />
+          <ActionConfirmDialog
+            open={actionKind === "unfreeze"}
+            onOpenChange={(o) => !o && closeAction()}
+            title="Unfreeze transaction"
+            description={`Funds for #${actionRow.transactionCode} will return to held escrow.`}
+            confirmLabel="Unfreeze transaction"
+            reasonPlaceholder="Why is this transaction being unfrozen?"
+            onConfirm={(r) => runAction("unfreeze", r)}
+          />
+          <ActionConfirmDialog
+            open={actionKind === "flag"}
+            onOpenChange={(o) => !o && closeAction()}
+            title="Flag for review"
+            description={`Adds #${actionRow.transactionCode} to the release review queue.`}
+            confirmLabel="Flag for review"
+            reasonPlaceholder="Reason for flagging…"
+            onConfirm={(r) => runAction("flag", r)}
+          />
+          <ActionConfirmDialog
+            open={actionKind === "escalate"}
+            onOpenChange={(o) => !o && closeAction()}
+            title="Escalate dispute"
+            description={`Marks the active dispute on #${actionRow.transactionCode} as under admin review.`}
+            confirmLabel="Escalate dispute"
+            confirmTone="danger"
+            reasonPlaceholder="Reason for escalation…"
+            onConfirm={(r) => runAction("escalate", r)}
+          />
+          <DetailDrawer
+            open={drawerSection !== null}
+            onOpenChange={(o) => !o && closeDrawer()}
+            transactionId={actionRow.transactionId}
+            transactionCode={actionRow.transactionCode}
+            section={drawerSection ?? "timeline"}
+          />
+        </>
+      )}
     </AdminLayout>
   );
 }

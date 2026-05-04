@@ -144,6 +144,62 @@ export type Database = {
           },
         ]
       }
+      admin_transaction_notes: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          id: string
+          is_pinned: boolean
+          note: string
+          transaction_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          note: string
+          transaction_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          note?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_transaction_notes_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_transaction_notes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_transaction_notes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_transaction_notes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: Database["public"]["Enums"]["audit_action_type"]
@@ -3999,6 +4055,9 @@ export type Database = {
         | "flag_user"
         | "unflag_user"
         | "update_setting"
+        | "add_internal_note"
+        | "flag_for_review"
+        | "unfreeze_transaction"
       audit_action_type:
         | "profile_update"
         | "profile_suspend"
@@ -4015,6 +4074,11 @@ export type Database = {
         | "system_action"
         | "dispute_response_edited"
         | "dispute_evidence_replaced"
+        | "admin_freeze"
+        | "admin_unfreeze"
+        | "admin_flag_review"
+        | "admin_escalate_dispute"
+        | "admin_internal_note"
       buyer_specific_offer_status:
         | "pending_claim"
         | "linked"
@@ -4352,6 +4416,9 @@ export const Constants = {
         "flag_user",
         "unflag_user",
         "update_setting",
+        "add_internal_note",
+        "flag_for_review",
+        "unfreeze_transaction",
       ],
       audit_action_type: [
         "profile_update",
@@ -4369,6 +4436,11 @@ export const Constants = {
         "system_action",
         "dispute_response_edited",
         "dispute_evidence_replaced",
+        "admin_freeze",
+        "admin_unfreeze",
+        "admin_flag_review",
+        "admin_escalate_dispute",
+        "admin_internal_note",
       ],
       buyer_specific_offer_status: [
         "pending_claim",

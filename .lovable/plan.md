@@ -1,99 +1,150 @@
-## Goal
-Make the `/admin/transactions` screen feel live: better search/sort, expanded filters in a mobile bottom sheet, manual refresh + last-updated stamp, real Supabase realtime sync with graceful fallback, and a layout that never overflows horizontally.
 
-## Files
+# Admin Row/Card Actions — SafeDeal Transaction Monitor
 
-- `supabase/functions/admin-transactions-monitor/index.ts` — extend search + sorting
-- `src/services/admin-transactions-monitor.service.ts` — extend `sortBy` union
-- `src/pages/AdminTransactions.tsx` — interactions, realtime, sort menu, mobile filter sheet
-- New SQL migration — add the 7 monitor tables to the `supabase_realtime` publication
+## Goals
+Add safe, state-aware admin actions per row (desktop) and per card (mobile). All state-changing actions go through dedicated admin edge functions with confirmation + reason + audit. No money movement, payout, or refund from this screen.
 
-## A. Edge function
+## 1. Database changes (one migration)
 
-1. **Search expansion** — current search resolves over `transactions.transaction_code`, `transaction_items.title`, and `profiles.full_name/email`. Add:
-   - `transaction_items.category` (silent fallback if column absent)
-   - `profiles.phone ilike %digits%` for the party id resolver
-2. **Sorting** — accept `sortBy` ∈ `created_at | updated_at | transaction_code | amount | last_activity_at | status | risk_level | urgency`.
-   - For DB-sortable columns (`created_at`, `updated_at`, `transaction_code`, `status`) use `.order()` directly.
-   - For `amount`, `last_activity_at`, `risk_level`, `urgency` (default): fetch the page using `created_at desc`, then sort the enriched page in-memory by the requested key. Urgency rank: active dispute → frozen escrow → fraud_watch/high_risk → needs_release_review → overdue → failed payment/payout → newest activity.
-3. Default `sortBy` becomes `urgency` when omitted.
+Schema additions only — no data writes via migration:
 
-## B. Service
+1. **`admin_transaction_notes`** (new) — internal admin notes (the existing `transaction_notes` table is seller-scoped, single-row, and not suitable):
+   - `id uuid pk`, `transaction_id uuid fk -> transactions(id) on delete restrict`
+   - `admin_user_id uuid fk -> profiles(id) on delete restrict`
+   - `note text not null check(length(trim(note)) > 0)`
+   - `is_pinned boolean default false`, `created_at timestamptz default now()`
+   - RLS: admins-only SELECT/INSERT (`has_role(auth.uid(),'admin')`); no UPDATE/DELETE.
+   - Index on `(transaction_id, created_at desc)`.
 
-- Extend `AdminTxMonitorParams.sortBy` union to include `amount | last_activity_at | status | risk_level | urgency`.
-- No shape changes elsewhere.
+2. **Extend `admin_action_type` enum** with: `add_internal_note`, `flag_for_review`, `unfreeze_transaction`. (`freeze_transaction`, `escalate_case` already exist.)
 
-## C. Page rewrite (interactions)
+3. **`audit_action_type` enum** — add `admin_freeze`, `admin_unfreeze`, `admin_flag_review`, `admin_escalate_dispute`, `admin_internal_note`. (Used by `audit_logs.action`.)
 
-**Search**
-- Debounce 350 → **400 ms**.
-- Show a small spinner inside the input while a fetch is in flight (background fetches only — never re-skeleton KPIs).
+No CHECK constraints on time-based values; no triggers added to reserved schemas.
 
-**Loading state split**
-- `initialLoad` (skeleton everywhere) only on first mount or when access state changes.
-- `isFetching` dims/overlays just the table + cards, leaves KPIs and chrome untouched.
+## 2. New edge function: `admin-transaction-actions`
 
-**Quick tabs** — unchanged behaviour (already wired).
+Single function, action-dispatched via `{ action, transactionId, payload }` body. Strict admin gate (JWT → `getClaims` → `has_role rpc`). Service role used only after gate passes. Per-action validation with Zod-style guards.
 
-**Advanced filters**
-- Add `Risk Level` select (clean / escalated / high_risk / fraud_watch).
-- Existing: tx status, money status, dispute status, amount min/max, date from/to.
-- `Clear Filters` resets quick filter, search, all selects, dates, amounts; `page=1`; preserves `pageSize`.
+Supported actions and rules:
 
-**Sorting UI**
-- New "Sort" menu beside the "Filters" trigger.
-- Options: Urgency (default), Newest, Oldest, Amount ↓, Amount ↑, Last activity, Status, Risk.
-- Selecting an option sets `sortBy`/`sortDirection` and resets `page` to 1.
+- `add_internal_note` — `{ note: string<=2000 }`. Insert into `admin_transaction_notes`; `admin_actions(action_type='add_internal_note', action_notes)`; `audit_logs(action='admin_internal_note')`.
 
-**Refresh + last updated**
-- Track `lastUpdatedAt` after each successful fetch.
-- Show "Updated 2 min ago" near the Refresh button (auto-ticks every 30 s).
-- Refresh button calls `fetchData()` (no toast spam).
+- `freeze` — Allowed only when `escrow_states.held_amount > 0` AND `money_status = 'funds_held_in_escrow'` AND no active completed/refunded state. Requires `{ reason: string(min 8) }`.
+  - Update `transactions.money_status='funds_frozen'`
+  - Insert `money_status_history(old_status, new_status='funds_frozen', changed_by_user_id=admin, reason)`
+  - Update `escrow_states`: move `held_amount` → `frozen_amount` (atomic update by id, conditional on current values to avoid races)
+  - `admin_actions(action_type='freeze_transaction')` + `audit_logs(action='admin_freeze')`.
 
-**Live sync pill**
-- Replace the always-on emerald pill with state-driven:
-  - emerald pulsing "Live sync" when realtime channel is `SUBSCRIBED`
-  - muted "Manual refresh" when channel is closed/errored
+- `unfreeze` — Inverse of freeze; only when `money_status='funds_frozen'` AND `frozen_amount > 0`. Reverse the amounts; insert history; log.
 
-**Realtime**
-- Subscribe one channel `admin-tx-monitor` with `postgres_changes` (event `*`, schema `public`) on:
-  `transactions`, `transaction_events`, `money_status_history`, `disputes`, `payments`, `payouts`, `release_review_queue`.
-- On any change → schedule a debounced (1.5 s) refetch with current filters/page; show one sonner toast `Transaction monitor updated` (deduped within 5 s).
-- On `CHANNEL_ERROR`/`TIMED_OUT`/`CLOSED` → flip pill state.
+- `flag_for_review` — Allowed when txn is not in terminal state (`completed`/`cancelled`). Requires `{ reason: string(min 8) }`.
+  - `transactions.needs_release_review = true`, `release_review_reason = reason`
+  - Upsert `release_review_queue` with `queue_type='manual_hold'` (uses existing partial unique index `rrq_unique_open_per_type`); set `seller_id` from txn, `notes = reason`, `status='pending'`.
+  - `admin_actions(action_type='flag_for_review')` + `audit_logs(action='admin_flag_review')`.
 
-**Mobile filter bottom sheet**
-- Replace the inline toggled grid (mobile only) with a shadcn `Sheet` (`side="bottom"`).
-- Body: all advanced filters stacked.
-- Footer: `Clear` (resets local sheet state + applied filters) and `Apply` (commits + closes + refetches).
-- Search stays above the cards on the page itself.
-- Desktop unchanged: inline grid panel.
+- `escalate_dispute` — Allowed only when an active dispute exists (`disputes.status in ('open','seller_response_pending','under_review')`) OR `riskLevel in ('high_risk','fraud_watch')`. Requires `{ reason: string }`.
+  - If dispute active: update `disputes.status='under_review'` (if not already) and write `dispute_status_history`.
+  - If no dispute but high risk: skip dispute update, only audit.
+  - `admin_actions(action_type='escalate_case', dispute_id?)` + `audit_logs(action='admin_escalate_dispute')`.
 
-**Layout safety**
-- Page body wrapped in `overflow-x-hidden`; horizontal scroll lives only on the table wrapper.
+All write paths return the updated availability flags and a fresh `lastActivityAt` so the UI can refresh the row in place.
 
-## D. Migration
+Forbidden by design (returns 400 with explanatory error if invoked): `release_funds`, `refund_buyer`. The handler refuses these with the message: "Refund must be handled from dispute or payout review."
 
-Add the seven monitor tables to the realtime publication:
+## 3. New read-only edge function: `admin-transaction-detail`
 
-```sql
-alter publication supabase_realtime add table public.transactions;
-alter publication supabase_realtime add table public.transaction_events;
-alter publication supabase_realtime add table public.money_status_history;
-alter publication supabase_realtime add table public.disputes;
-alter publication supabase_realtime add table public.payments;
-alter publication supabase_realtime add table public.payouts;
-alter publication supabase_realtime add table public.release_review_queue;
+Aggregates everything needed for the side panels/modals so the UI never queries Supabase directly. Admin-gated. Body: `{ transactionId, sections?: string[] }`. Sections:
+
+- `summary` — header info (code, amounts, statuses, parties masked)
+- `timeline` — merged + sorted events from `transaction_status_history`, `money_status_history`, `transaction_events`, `delivery_updates`, `dispute_status_history`, `admin_actions` (limit 200)
+- `ledger` — `escrow_ledger_entries` rows (read-only)
+- `messages` — last 100 `transaction_messages` (read-only on monitor screen)
+- `notes` — `admin_transaction_notes` newest first
+
+## 4. Service layer
+
+`src/services/admin-transaction-actions.service.ts`:
+- `addInternalNote`, `freezeTransaction`, `unfreezeTransaction`, `flagForReview`, `escalateDispute`, `getTransactionDetail(id, sections)`
+- All call edge functions via `supabase.functions.invoke` with the user JWT; surface `AdminAccessRequiredError` on 403.
+
+Extend `admin-transactions-monitor` row response `actionAvailability` to include new flags consumed by the menu:
+`canFreeze`, `canUnfreeze`, `canFlagForReview`, `canEscalateDispute`, `canAddNote` (always true), with parallel `*_reason` strings used as tooltip copy when disabled.
+
+## 5. UI changes — `src/pages/AdminTransactions.tsx`
+
+### Desktop row (Actions column)
+Inline icon buttons (left-aligned, already styled):
+1. **View Details** (Eye) — `navigate('/admin/transactions/:id')`
+2. **More Actions** (MoreVertical) — opens `DropdownMenu` with the rest:
+   - Add Internal Note
+   - Open Messages
+   - View Timeline
+   - View Ledger
+   - separator
+   - Freeze Transaction (or Unfreeze when frozen)
+   - Flag for Review
+   - Escalate Dispute
+
+Disabled items render with `aria-disabled`, muted styling, and a `Tooltip` showing the `*_reason` returned from the backend (e.g. "Funds already released", "No active dispute", "Transaction is not eligible for freeze").
+
+### Mobile card
+Show only:
+- **View** icon (top-right)
+- **More** menu (kebab) — same dropdown content as desktop, full-width items, larger tap targets
+
+### Modals (new components in `src/components/admin/transactions/`)
+- `InternalNoteDialog` — textarea (8–2000 chars), Save / Cancel.
+- `FreezeTransactionDialog` — required reason textarea, "Type FREEZE to confirm" guard, summarises affected `held_amount` from row data, Save / Cancel.
+- `UnfreezeTransactionDialog` — required reason, similar.
+- `FlagForReviewDialog` — reason textarea, queue-type fixed to `manual_hold`.
+- `EscalateDisputeDialog` — reason textarea, shows dispute status if any.
+- `MessagesDrawer`, `TimelineDrawer`, `LedgerDrawer` — read-only side `Sheet`s sourced from `admin-transaction-detail`.
+
+All dialogs:
+- Optimistically disable submit while pending; show toast on success ("Transaction frozen", etc.) and on failure (error message from server).
+- On success, trigger `fetchData()` to refresh the table and close.
+- Realtime subscription already in place will also pick up the change on other clients.
+
+### Detail route stub
+Add minimal `src/pages/AdminTransactionDetail.tsx` at `/admin/transactions/:transactionId` that renders summary + tabbed Timeline/Ledger/Messages/Notes by reusing `admin-transaction-detail`. Out-of-scope: full edit screens. Wire route in `src/App.tsx`.
+
+## 6. Safety rails (enforced server-side)
+
+- Admin gate on every action (JWT + `has_role`).
+- Per-action state preconditions checked again server-side immediately before the write — UI flags are advisory only.
+- All writes use the service role client, in a sequence ordered to fail safely (history insert before state mutation where possible; conditional `update ... where money_status=...` to prevent races).
+- Every action writes both `admin_actions` and `audit_logs`.
+- Money movement actions (`release_funds`, `refund_buyer`) are explicitly rejected by this function with a guidance message.
+- Confirmation modal mandatory for: Freeze, Unfreeze, Flag for Review, Escalate Dispute.
+
+## 7. File map
+
+```text
+supabase/migrations/<ts>_admin_actions_schema.sql      (new)
+supabase/functions/admin-transaction-actions/index.ts  (new)
+supabase/functions/admin-transaction-detail/index.ts   (new)
+supabase/functions/admin-transactions-monitor/index.ts (extend actionAvailability + reasons)
+src/services/admin-transaction-actions.service.ts      (new)
+src/services/admin-transactions-monitor.service.ts     (extend types)
+src/components/admin/transactions/InternalNoteDialog.tsx
+src/components/admin/transactions/FreezeTransactionDialog.tsx
+src/components/admin/transactions/UnfreezeTransactionDialog.tsx
+src/components/admin/transactions/FlagForReviewDialog.tsx
+src/components/admin/transactions/EscalateDisputeDialog.tsx
+src/components/admin/transactions/MessagesDrawer.tsx
+src/components/admin/transactions/TimelineDrawer.tsx
+src/components/admin/transactions/LedgerDrawer.tsx
+src/components/admin/transactions/RowActionsMenu.tsx     (shared dropdown)
+src/pages/AdminTransactions.tsx                        (wire menu + modals)
+src/pages/AdminTransactionDetail.tsx                   (new minimal route)
+src/App.tsx                                            (add route)
 ```
 
-Each `add table` is idempotent-guarded with a `do $$ ... exception when duplicate_object then null; end $$;` block so re-runs are safe.
+## 8. Acceptance criteria mapping
 
-## E. Out of scope
-- CSV export pipeline (button still toasts).
-- A real `hasUnreadMessages` source (stays `null`).
-
-## Acceptance
-- Search: typing once fires a single request after 400 ms; spinner shows; KPIs stay put.
-- Filters/quick tabs/sort/refresh all work and reset page where appropriate.
-- Realtime: editing a row in the DB triggers a refetch + one toast; pill is green.
-- Disconnect WS → pill turns gray, manual refresh still works.
-- Mobile: Filters opens a bottom sheet; Apply triggers fetch; no horizontal page scroll.
+- **State-aware actions** → server-computed `actionAvailability` + `*_reason`; menu items disabled with tooltip.
+- **Confirmation + reason for dangerous actions** → Freeze/Unfreeze/Flag/Escalate dialogs each require a reason.
+- **All admin actions audited** → every action writes `admin_actions` and `audit_logs`.
+- **No casual money movement** → `release_funds` / `refund_buyer` not exposed; rejected server-side if attempted.
+- **Mobile actions clean** → only View + More on the card; full menu inside dropdown.

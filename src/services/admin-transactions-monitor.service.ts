@@ -43,7 +43,15 @@ export interface AdminTxRow {
     canViewNotes: boolean;
     canTrace: boolean;
     canFreeze: boolean;
+    canUnfreeze: boolean;
+    canFlagForReview: boolean;
+    canEscalateDispute: boolean;
+    canAddNote: boolean;
     canMore: boolean;
+    freezeReason?: string | null;
+    unfreezeReason?: string | null;
+    flagReason?: string | null;
+    escalateReason?: string | null;
   };
 }
 
