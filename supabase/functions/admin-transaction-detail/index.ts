@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
     itemsRes, productRes, paymentRes, payoutRes, refundsRes,
     deliveryTermsRes, deliveryTrackingRes, deliveryUpdatesRes, deliveryProofRes,
     disputeRes, txStatusRes, moneyStatusRes, eventsRes, adminActionsRes, auditRes,
-    productMediaRes,
+    productMediaRes, agreementSnapRes,
   ] = await Promise.all([
     userIds.length
       ? admin.from("profiles").select("id, full_name, email, phone, avatar_url, status, store_slug").in("id", userIds)
@@ -122,6 +122,7 @@ Deno.serve(async (req) => {
     tx.source_product_id
       ? admin.from("product_media").select("file_id, is_primary, sort_order").eq("product_id", tx.source_product_id).order("is_primary", { ascending: false }).order("sort_order", { ascending: true }).limit(1)
       : Promise.resolve({ data: [] as any[] }),
+    admin.from("transaction_agreement_snapshots").select("snapshot_json, locked_at, locked_by_user_id").eq("transaction_id", txId).maybeSingle(),
   ]);
 
   // Profiles map + verification map
