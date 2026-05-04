@@ -241,7 +241,7 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
   const flaggedActivityPrev = flaggedNeedsReviewPrev + disputesOpenPrev;
 
   const pendingPayoutsAmount = await safeSum(client, "payouts", "amount", (q) =>
-    q.in("status", ["pending", "processing"]),
+    q.in("status", ["awaiting_release", "pending", "processing"]),
   );
 
   // Identity review health (avg time + 9-day sparkline)
@@ -286,6 +286,128 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     identitySpark = buckets;
   } catch (e) {
     await logEdgeError(client, `identity_health_failed: ${(e as Error).message}`, userId);
+  }
+
+  // ---------- Payout Health: avg payout time + 9d sparkline ----------
+  let avgPayoutHours: number | null = null;
+  let payoutSpark: number[] = [];
+  try {
+    const { data: completedPayouts } = await client
+      .from("payouts")
+      .select("released_at, last_release_attempt_at, updated_at, completed_at")
+      .eq("status", "completed")
+      .gte("completed_at", since30d)
+      .not("completed_at", "is", null)
+      .limit(2000);
+    if (completedPayouts?.length) {
+      const hrs = (completedPayouts as any[])
+        .map((r) => {
+          const end = new Date(r.completed_at).getTime();
+          const startTs = r.released_at
+            ? new Date(r.released_at).getTime()
+            : r.last_release_attempt_at
+            ? new Date(r.last_release_attempt_at).getTime()
+            : r.updated_at
+            ? new Date(r.updated_at).getTime()
+            : NaN;
+          return (end - startTs) / (1000 * 60 * 60);
+        })
+        .filter((n) => Number.isFinite(n) && n >= 0);
+      if (hrs.length) {
+        avgPayoutHours = Number((hrs.reduce((a, b) => a + b, 0) / hrs.length).toFixed(1));
+      }
+    }
+    const { data: payouts9d } = await client
+      .from("payouts")
+      .select("completed_at")
+      .eq("status", "completed")
+      .gte("completed_at", since9d)
+      .limit(5000);
+    const buckets: number[] = Array(9).fill(0);
+    const today0 = new Date(startOfToday).getTime();
+    for (const r of (payouts9d ?? []) as any[]) {
+      const d = new Date(r.completed_at);
+      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      const dayIdx = 8 - Math.floor((today0 - dayStart) / (24 * 60 * 60 * 1000));
+      if (dayIdx >= 0 && dayIdx < 9) buckets[dayIdx]++;
+    }
+    payoutSpark = buckets;
+  } catch (e) {
+    await logEdgeError(client, `payout_health_failed: ${(e as Error).message}`, userId);
+  }
+
+  // ---------- Reconciliation Mismatches ----------
+  // Successful payments in the last 30d that lack a matching escrow_ledger_entries
+  // payment_credit/escrow_hold deposit for the same transaction.
+  // TODO: extend reconciliation rules — duplicate webhook ledger entries,
+  // held_amount vs payment_amount drift on escrow_states.
+  let reconMismatchCount = 0;
+  try {
+    const { data: succ } = await client
+      .from("payments")
+      .select("transaction_id")
+      .eq("status", "succeeded")
+      .gte("created_at", since30d)
+      .not("transaction_id", "is", null)
+      .limit(2000);
+    const txIds = Array.from(
+      new Set(((succ ?? []) as any[]).map((r) => r.transaction_id).filter(Boolean)),
+    );
+    if (txIds.length) {
+      const { data: ledger } = await client
+        .from("escrow_ledger_entries")
+        .select("transaction_id, entry_type")
+        .in("transaction_id", txIds)
+        .in("entry_type", ["payment_credit", "escrow_hold"]);
+      const haveDeposit = new Set(
+        ((ledger ?? []) as any[]).map((r) => r.transaction_id),
+      );
+      reconMismatchCount = txIds.filter((id) => !haveDeposit.has(id)).length;
+    }
+  } catch (e) {
+    await logEdgeError(client, `recon_failed: ${(e as Error).message}`, userId);
+  }
+
+  // ---------- Escrow / Releases / Refunds 30-day trend ----------
+  const escrowTrendPoints: Array<{ label: string; primary: number; secondary: number; tertiary: number }> = [];
+  try {
+    const { data: ledger30 } = await client
+      .from("escrow_ledger_entries")
+      .select("created_at, entry_type, amount")
+      .gte("created_at", since30d)
+      .limit(20000);
+    const map = new Map<string, { primary: number; secondary: number; tertiary: number }>();
+    const today0 = new Date(startOfToday).getTime();
+    // seed 30 days
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today0 - i * 24 * 60 * 60 * 1000);
+      const key = `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      map.set(key, { primary: 0, secondary: 0, tertiary: 0 });
+    }
+    for (const r of (ledger30 ?? []) as any[]) {
+      const d = new Date(r.created_at);
+      const key = `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const bucket = map.get(key);
+      if (!bucket) continue;
+      const amt = Math.abs(Number(r.amount ?? 0));
+      if (r.entry_type === "escrow_hold" || r.entry_type === "payment_credit") {
+        bucket.primary += amt;
+      } else if (r.entry_type === "payout_debit") {
+        bucket.secondary += amt;
+      } else if (r.entry_type === "refund_debit") {
+        bucket.tertiary += amt;
+      }
+    }
+    for (const [label, v] of map.entries()) {
+      escrowTrendPoints.push({
+        label,
+        primary: Number(v.primary.toFixed(2)),
+        secondary: Number(v.secondary.toFixed(2)),
+        tertiary: Number(v.tertiary.toFixed(2)),
+      });
+    }
+  } catch (e) {
+    await logEdgeError(client, `escrow_trend_failed: ${(e as Error).message}`, userId);
   }
 
   // Recent activity: last 3 status history entries we can show
@@ -342,13 +464,13 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     ]),
   );
 
-  // Trends — empty arrays for now (frontend builds windows separately)
+  // Transactions vs Disputes trend stays empty (separate scope).
   const emptyTrend = { primary_label: "Transactions", secondary_label: "Disputes", points: [] as any[] };
-  const emptyEscrowTrend = {
+  const escrowTrend = {
     primary_label: "Escrow Held",
     secondary_label: "Released",
     tertiary_label: "Refunded",
-    points: [] as any[],
+    points: escrowTrendPoints,
   };
 
   const payload = {
@@ -373,7 +495,7 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     ],
     trends: {
       transactions_vs_disputes: emptyTrend,
-      escrow_releases_refunds: emptyEscrowTrend,
+      escrow_releases_refunds: escrowTrend,
     },
     hotspots: [
       { key: "overdue_responses", count: overdueResponses, label: "Overdue Responses", severity: "orange", action_label: "Review Now", action_href: null },
@@ -391,7 +513,7 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       { key: "successful", label: "Successful Payments", count: paySuccess, severity: "emerald" },
       { key: "failed", label: "Failed Payments", count: payFailed, severity: "red" },
       { key: "webhook_failures", label: "Webhook Failures", count: webhookFailures, severity: "orange" },
-      { key: "recon_mismatches", label: "Reconciliation Mismatches", count: reconMismatches, severity: "yellow" },
+      { key: "recon_mismatches", label: "Reconciliation Mismatches", count: reconMismatchCount, severity: "yellow" },
     ],
     identity_health: {
       pending_reviews: identityPending,
@@ -400,8 +522,8 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     },
     payout_health: {
       pending_payouts_amount: Number(pendingPayoutsAmount.toFixed(2)),
-      avg_payout_hours: null as number | null,
-      spark: [] as number[],
+      avg_payout_hours: avgPayoutHours,
+      spark: payoutSpark,
     },
     audit_signal: {
       last_audit_entry: lastAuditEntry,
