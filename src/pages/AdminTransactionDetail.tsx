@@ -874,11 +874,9 @@ export default function AdminTransactionDetail() {
                 {!data.payment ? <Empty>No payment recorded.</Empty> : (
                   <div className="space-y-2 text-sm">
                     <RowKV k="Provider" v={titleCase(data.payment.provider)} />
-                    <RowKV k="Status" v={<StatusPill value={data.payment.status} />} />
-                    <RowKV k="Amount" v={ngn(data.payment.amount)} />
-                    <RowKV k="Method" v={titleCase(data.payment.paymentMethodType) || "—"} />
                     <RowKV k="Reference" v={<span className="font-mono text-xs break-all">{data.payment.providerReference ?? "—"}</span>} />
-                    <RowKV k="Paid At" v={fmtDate(data.payment.paidAt)} />
+                    <RowKV k="Status" v={<StatusPill value={data.payment.status} />} />
+                    <RowKV k="Processed" v={fmtDate(data.payment.paidAt)} />
                   </div>
                 )}
               </div>
