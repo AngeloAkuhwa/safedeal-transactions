@@ -44,7 +44,15 @@ interface MonitorParams {
   quickFilter?: QuickFilter;
   page?: number;
   pageSize?: number;
-  sortBy?: "created_at" | "updated_at" | "transaction_code";
+  sortBy?:
+    | "created_at"
+    | "updated_at"
+    | "transaction_code"
+    | "amount"
+    | "last_activity_at"
+    | "status"
+    | "risk_level"
+    | "urgency";
   sortDirection?: "asc" | "desc";
 }
 
