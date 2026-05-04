@@ -958,7 +958,7 @@ export default function AdminTransactionDetail() {
                 )}
               </div>
             </div>
-          </Card>
+          </Card></div>
 
               {/* Delivery & Fulfillment */}
               <Card>
