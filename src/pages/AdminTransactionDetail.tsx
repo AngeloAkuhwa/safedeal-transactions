@@ -547,7 +547,7 @@ export default function AdminTransactionDetail() {
           )}
 
           {/* Locked Agreement */}
-          {(data.agreement || data.transaction?.agreementLockedAt) && (
+          {((data as any).agreement || data.transaction?.agreementLockedAt) && (
             <Card>
               <CardHeader title="Locked Agreement" subtitle="Original terms when payment was made" />
               <div className="p-4 lg:p-6">
@@ -579,10 +579,10 @@ export default function AdminTransactionDetail() {
                         <span className="text-muted-foreground">Verification Window:</span>
                         <span className="text-foreground">{data.delivery?.verificationWindowHours ? `${data.delivery.verificationWindowHours}h` : "—"}</span>
                       </div>
-                      {(data.agreement?.lockedAt || data.transaction?.agreementLockedAt) && (
+                      {((data as any).agreement?.lockedAt || data.transaction?.agreementLockedAt) && (
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Locked At:</span>
-                          <span className="text-foreground">{fmtDate(data.agreement?.lockedAt ?? data.transaction.agreementLockedAt)}</span>
+                          <span className="text-foreground">{fmtDate((data as any).agreement?.lockedAt ?? data.transaction.agreementLockedAt)}</span>
                         </div>
                       )}
                     </div>
