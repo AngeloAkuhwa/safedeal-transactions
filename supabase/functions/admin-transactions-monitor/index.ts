@@ -495,13 +495,43 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
       isOverdue: !!isOverdue,
       isFrozen,
       needsReleaseReview: !!t.needs_release_review,
-      actionAvailability: {
-        canView: true,
-        canViewNotes: true,
-        canTrace: true,
-        canFreeze: !isFrozen && t.money_status === "funds_held_in_escrow" && !adminFrozenTx.has(t.id),
-        canMore: true,
-      },
+      actionAvailability: (() => {
+        const isTerminal = ["completed", "cancelled", "refunded", "timed_out"].includes(t.status);
+        const canFreeze = t.money_status === "funds_held_in_escrow" && !isFrozen;
+        const canUnfreeze = t.money_status === "funds_frozen";
+        const canFlagForReview = !isTerminal;
+        const hasActiveDispute = !!activeDispute;
+        const isHighRisk = riskLevel === "high_risk" || riskLevel === "fraud_watch";
+        const canEscalateDispute = hasActiveDispute || isHighRisk;
+        let freezeReason: string | null = null;
+        if (!canFreeze) {
+          if (t.money_status === "funds_released") freezeReason = "Funds already released";
+          else if (t.money_status === "refund_issued") freezeReason = "Funds already refunded";
+          else if (isFrozen) freezeReason = "Already frozen";
+          else freezeReason = "Transaction is not eligible for freeze";
+        }
+        let unfreezeReason: string | null = null;
+        if (!canUnfreeze) unfreezeReason = "Transaction is not currently frozen";
+        let flagReason: string | null = null;
+        if (!canFlagForReview) flagReason = "Transaction is in a terminal state";
+        let escalateReason: string | null = null;
+        if (!canEscalateDispute) escalateReason = "No active dispute";
+        return {
+          canView: true,
+          canViewNotes: true,
+          canTrace: true,
+          canFreeze,
+          canUnfreeze,
+          canFlagForReview,
+          canEscalateDispute,
+          canAddNote: true,
+          canMore: true,
+          freezeReason,
+          unfreezeReason,
+          flagReason,
+          escalateReason,
+        };
+      })(),
     };
   });
 
