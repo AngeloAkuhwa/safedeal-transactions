@@ -237,6 +237,42 @@ export default function AdminTransactions() {
   const realtimeDebounceRef = useRef<number | null>(null);
   const lastRealtimeToastRef = useRef<number>(0);
 
+  // Admin row actions state
+  const [actionRow, setActionRow] = useState<AdminTxRow | null>(null);
+  const [actionKind, setActionKind] = useState<null | "freeze" | "unfreeze" | "flag" | "escalate" | "note">(null);
+  const [drawerSection, setDrawerSection] = useState<null | "timeline" | "ledger" | "messages">(null);
+
+  const closeAction = () => { setActionKind(null); };
+  const closeDrawer = () => { setDrawerSection(null); };
+
+  const buildHandlers = (row: AdminTxRow) => ({
+    onView: () => navigate(`/admin/transactions/${row.transactionId}`),
+    onAddNote: () => { setActionRow(row); setActionKind("note"); },
+    onMessages: () => { setActionRow(row); setDrawerSection("messages"); },
+    onTimeline: () => { setActionRow(row); setDrawerSection("timeline"); },
+    onLedger: () => { setActionRow(row); setDrawerSection("ledger"); },
+    onFreeze: () => { setActionRow(row); setActionKind("freeze"); },
+    onUnfreeze: () => { setActionRow(row); setActionKind("unfreeze"); },
+    onFlagForReview: () => { setActionRow(row); setActionKind("flag"); },
+    onEscalateDispute: () => { setActionRow(row); setActionKind("escalate"); },
+  });
+
+  const runAction = async (kind: typeof actionKind, reason: string) => {
+    if (!actionRow || !kind) return;
+    try {
+      if (kind === "note") await addInternalNote(actionRow.transactionId, reason);
+      else if (kind === "freeze") await freezeTransaction(actionRow.transactionId, reason);
+      else if (kind === "unfreeze") await unfreezeTransaction(actionRow.transactionId, reason);
+      else if (kind === "flag") await flagForReview(actionRow.transactionId, reason);
+      else if (kind === "escalate") await escalateDispute(actionRow.transactionId, reason);
+      sonnerToast.success("Action completed", { description: `#${actionRow.transactionCode}` });
+      fetchData();
+    } catch (e) {
+      sonnerToast.error("Action failed", { description: (e as Error).message });
+      throw e;
+    }
+  };
+
   // Debounce search
   useEffect(() => {
     const h = setTimeout(() => setDebouncedSearch(search.trim()), 400);
