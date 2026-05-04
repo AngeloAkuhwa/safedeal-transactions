@@ -606,5 +606,35 @@ Deno.serve(async (req) => {
     risk,
     linkedRecords,
     adminActionsAvailable,
+    evidence: evidenceOut,
+    lockedAgreement: (() => {
+      const snap = (agreementSnapRes as any)?.data ?? null;
+      if (!snap && !tx.agreement_locked_at) return null;
+      const j = snap?.snapshot_json ?? {};
+      return {
+        lockedAt: snap?.locked_at ?? tx.agreement_locked_at ?? null,
+        transactionCode: tx.transaction_code,
+        buyerName: parties.buyer?.name ?? null,
+        sellerName: parties.seller?.name ?? null,
+        item: {
+          title: items[0]?.title ?? j?.item?.title ?? null,
+          description: items[0]?.description ?? j?.item?.description ?? null,
+          condition: items[0]?.condition ?? j?.item?.condition ?? null,
+          quantity: items[0]?.quantity ?? j?.item?.quantity ?? null,
+        },
+        agreedPrice: pricingOut?.itemTotal ?? null,
+        protectionFee: pricingOut?.protectionFee ?? null,
+        total: pricingOut?.buyerTotal ?? null,
+        currency: pricingOut?.currency ?? "NGN",
+        deliveryMethod: delivery.method,
+        verificationWindowHours: delivery.verificationWindowHours,
+        sellerNotes: j?.seller_notes ?? j?.sellerNotes ?? null,
+        buyerNotes: j?.buyer_notes ?? j?.buyerNotes ?? null,
+        rules: j?.rules ?? j?.terms ?? null,
+        hash: j?.hash ?? null,
+        version: j?.version ?? null,
+        snapshot: snap?.snapshot_json ?? null,
+      };
+    })(),
   });
 });
