@@ -376,8 +376,6 @@ export default function AdminTransactions() {
   };
   const handleExport = () =>
     toast({ title: "Export queued", description: "Your export will appear in /admin/exports when ready." });
-  const handleRowAction = (label: string, code: string) =>
-    toast({ title: label, description: `${code} — coming soon` });
 
   const clearAllFilters = useCallback(() => {
     setActiveQuick("all");
@@ -401,6 +399,16 @@ export default function AdminTransactions() {
   const summary = data?.summary;
   const rows = data?.rows ?? [];
   const pagination = data?.pagination;
+
+  const hasFilters = Boolean(
+    txStatus || moneyStatus || disputeStatus || riskLevel || amountMin || amountMax || dateFrom || dateTo,
+  );
+  const emptyVariant = pickEmptyVariant({
+    hasSearch: Boolean(debouncedSearch),
+    hasFilters,
+    quick: activeQuick,
+  });
+  const listDimmed = isFetching && !initialLoad;
 
   const summaryTiles = useMemo(
     () => [
