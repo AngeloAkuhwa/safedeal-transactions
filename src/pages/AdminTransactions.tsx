@@ -1071,6 +1071,48 @@ function FilterSelect({
   );
 }
 
+function SortMenu({
+  value,
+  label,
+  onChange,
+}: {
+  value: string;
+  label: string;
+  onChange: (key: SortKey, dir: SortDir) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
+        >
+          <span className="inline-flex items-center gap-2">
+            <ArrowUpDown className="h-4 w-4" />
+            <span className="hidden sm:inline">Sort:</span> <span className="truncate max-w-[140px]">{label}</span>
+          </span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Sort transactions</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {SORT_OPTIONS.map((opt) => {
+          const key = `${opt.key}:${opt.dir}`;
+          return (
+            <DropdownMenuItem
+              key={key}
+              onSelect={() => onChange(opt.key, opt.dir)}
+              className={value === key ? "bg-muted" : ""}
+            >
+              {opt.label}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function LiveSyncPill({ state, compact = false }: { state: "connecting" | "live" | "off"; compact?: boolean }) {
   const conf =
     state === "live"
