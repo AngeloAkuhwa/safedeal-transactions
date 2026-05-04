@@ -25,6 +25,33 @@ function maskPhone(phone?: string | null): string | null {
 }
 const num = (v: any) => (v == null ? null : Number(v));
 
+function titleCaseEvent(t?: string | null): string {
+  if (!t) return "Event";
+  return t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+function prettyEventData(d: any): string {
+  if (d == null) return "";
+  if (typeof d === "string") return d;
+  if (typeof d !== "object") return String(d);
+  const parts: string[] = [];
+  const preferred = ["reason", "message", "note", "amount", "currency", "status", "from", "to", "provider", "reference"];
+  for (const k of preferred) {
+    if (d[k] != null && typeof d[k] !== "object") {
+      const label = k.charAt(0).toUpperCase() + k.slice(1);
+      parts.push(`${label}: ${d[k]}`);
+    }
+  }
+  if (parts.length === 0) {
+    for (const [k, v] of Object.entries(d)) {
+      if (v != null && typeof v !== "object") {
+        parts.push(`${k.replace(/_/g, " ")}: ${v}`);
+      }
+      if (parts.length >= 4) break;
+    }
+  }
+  return parts.slice(0, 4).join(" · ");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -64,6 +91,7 @@ Deno.serve(async (req) => {
     itemsRes, productRes, paymentRes, payoutRes, refundsRes,
     deliveryTermsRes, deliveryTrackingRes, deliveryUpdatesRes, deliveryProofRes,
     disputeRes, txStatusRes, moneyStatusRes, eventsRes, adminActionsRes, auditRes,
+    productMediaRes,
   ] = await Promise.all([
     userIds.length
       ? admin.from("profiles").select("id, full_name, email, phone, avatar_url, status, store_slug").in("id", userIds)
@@ -91,6 +119,9 @@ Deno.serve(async (req) => {
     admin.from("transaction_events").select("id, occurred_at, event_type, actor_user_id, actor_role, event_data").eq("transaction_id", txId).order("occurred_at", { ascending: false }).limit(100),
     admin.from("admin_actions").select("id, created_at, admin_user_id, action_type, action_notes").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(100),
     admin.from("audit_logs").select("id, created_at, action, actor_user_id, description, metadata").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(100),
+    tx.source_product_id
+      ? admin.from("product_media").select("file_id, is_primary, sort_order").eq("product_id", tx.source_product_id).order("is_primary", { ascending: false }).order("sort_order", { ascending: true }).limit(1)
+      : Promise.resolve({ data: [] as any[] }),
   ]);
 
   // Profiles map + verification map
@@ -121,20 +152,12 @@ Deno.serve(async (req) => {
     };
   };
 
-  // Product media (image)
+  // Product media (image) - file lookup via primary media row from parallel batch
   let productImage: string | null = null;
-  if (tx.source_product_id) {
-    const { data: media } = await admin
-      .from("product_media")
-      .select("file_id, is_primary, sort_order")
-      .eq("product_id", tx.source_product_id)
-      .order("is_primary", { ascending: false })
-      .order("sort_order", { ascending: true })
-      .limit(1);
-    if (media && media[0]?.file_id) {
-      const { data: f } = await admin.from("files").select("secure_url, file_url").eq("id", media[0].file_id).maybeSingle();
-      productImage = f?.secure_url ?? f?.file_url ?? null;
-    }
+  const primaryMediaFileId = ((productMediaRes as any)?.data ?? [])[0]?.file_id ?? null;
+  if (primaryMediaFileId) {
+    const { data: f } = await admin.from("files").select("secure_url, file_url").eq("id", primaryMediaFileId).maybeSingle();
+    productImage = f?.secure_url ?? f?.file_url ?? null;
   }
 
   // Items - attach unit_price from product if single-item
@@ -344,8 +367,8 @@ Deno.serve(async (req) => {
   for (const r of (eventsRes.data ?? []) as any[]) {
     items_tl.push({
       id: `ev-${r.id}`, at: r.occurred_at, type: "event",
-      title: (r.event_type ?? "").replace(/_/g, " "),
-      description: r.event_data ? JSON.stringify(r.event_data) : "",
+      title: titleCaseEvent(r.event_type),
+      description: prettyEventData(r.event_data),
       actorType: r.actor_role ?? "system", actorName: null,
       severity: "info", icon: "credit-card",
     });
