@@ -24,6 +24,13 @@ import {
   ChevronRight,
   ArrowUpDown,
   Loader2,
+  ShieldCheck,
+  Truck,
+  CheckCircle2,
+  RotateCcw,
+  Ban,
+  FileText,
+  Hourglass,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -105,7 +112,30 @@ const SECONDARY_FLAG_META: Record<string, { label: string; cls: string; Icon?: t
   risk_flagged:   { label: "Risk Flagged",   cls: "bg-red-500/15 text-red-400 border-red-500/30",         Icon: Flag },
 };
 
-function buildFlagBadges(t: { riskLevel: string; flags?: string[] | null }) {
+// Neutral lifecycle pills shown when no risk/operational flag is present, so
+// every row in the monitor communicates state at a glance.
+const NEUTRAL_FLAG_META: Record<string, { label: string; cls: string; Icon?: typeof Flag }> = {
+  funds_held:        { label: "Held Safely",      cls: "bg-sky-500/10 text-sky-300 border-sky-500/30",         Icon: ShieldCheck },
+  held:              { label: "Held Safely",      cls: "bg-sky-500/10 text-sky-300 border-sky-500/30",         Icon: ShieldCheck },
+  in_fulfillment:    { label: "In Fulfillment",   cls: "bg-indigo-500/10 text-indigo-300 border-indigo-500/30",Icon: Truck },
+  dispatched:        { label: "In Transit",       cls: "bg-indigo-500/10 text-indigo-300 border-indigo-500/30",Icon: Truck },
+  in_transit:        { label: "In Transit",       cls: "bg-indigo-500/10 text-indigo-300 border-indigo-500/30",Icon: Truck },
+  delivered:         { label: "Awaiting Confirm", cls: "bg-amber-500/10 text-amber-300 border-amber-500/30",   Icon: Clock },
+  delivered_awaiting_verification: { label: "Awaiting Confirm", cls: "bg-amber-500/10 text-amber-300 border-amber-500/30", Icon: Clock },
+  completed:         { label: "Released",         cls: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30", Icon: CheckCircle2 },
+  released:          { label: "Released",         cls: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30", Icon: CheckCircle2 },
+  refunded:          { label: "Refunded",         cls: "bg-slate-500/10 text-slate-300 border-slate-500/30",   Icon: RotateCcw },
+  cancelled:         { label: "Cancelled",        cls: "bg-zinc-500/10 text-zinc-300 border-zinc-500/30",      Icon: Ban },
+  draft:             { label: "Draft",            cls: "bg-zinc-500/10 text-zinc-400 border-dashed border-zinc-500/40", Icon: FileText },
+  awaiting_payment:  { label: "Awaiting Payment", cls: "bg-amber-500/10 text-amber-300 border-amber-500/30",   Icon: Hourglass },
+};
+
+function buildFlagBadges(t: {
+  riskLevel: string;
+  flags?: string[] | null;
+  transactionStatus?: { key: string } | null;
+  moneyStatus?: { key: string } | null;
+}) {
   const out: { key: string; label: string; cls: string; Icon?: typeof Flag }[] = [];
   if (t.riskLevel && t.riskLevel !== "clean" && FLAG_META[t.riskLevel]) {
     out.push({ key: t.riskLevel, ...FLAG_META[t.riskLevel] });
@@ -120,6 +150,17 @@ function buildFlagBadges(t: { riskLevel: string; flags?: string[] | null }) {
     if (!meta) continue;
     out.push({ key: f, ...meta });
     seen.add(f);
+  }
+  if (out.length === 0) {
+    const tk = t.transactionStatus?.key;
+    const mk = t.moneyStatus?.key;
+    const neutral =
+      (tk && NEUTRAL_FLAG_META[tk]) ||
+      (mk && NEUTRAL_FLAG_META[mk]) ||
+      null;
+    if (neutral) {
+      out.push({ key: `lifecycle:${tk ?? mk}`, ...neutral });
+    }
   }
   return out;
 }
