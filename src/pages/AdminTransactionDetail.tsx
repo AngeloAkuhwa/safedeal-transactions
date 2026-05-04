@@ -729,7 +729,7 @@ export default function AdminTransactionDetail() {
           </Card>
 
           {/* === Linked Records === */}
-          <Card>
+          <Card id="linked-records">
             <CardHeader title="Linked Records" />
             <div className="p-4 lg:p-6">
               <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
