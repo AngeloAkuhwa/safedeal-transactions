@@ -32,9 +32,9 @@ Deno.serve(async (req) => {
     { global: { headers: { Authorization: auth } } },
   );
   const token = auth.replace("Bearer ", "");
-  const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
-  if (claimsErr || !claimsData?.claims) return json({ error: "unauthorized" }, 401);
-  const userId = claimsData.claims.sub as string;
+  const { data: userData, error: userErr } = await userClient.auth.getUser(token);
+  if (userErr || !userData?.user) return json({ error: "unauthorized" }, 401);
+  const userId = userData.user.id;
   const { data: isAdmin } = await userClient.rpc("has_role", {
     _user_id: userId, _role: "admin",
   });
