@@ -1,172 +1,74 @@
 ## Goal
-Rebuild `/admin/transactions/:transactionId` to match the approved desktop and mobile references exactly, fix money/escrow display, surface dispute evidence near the top, and add a read-only Locked Agreement preview and Dispute Evidence preview — all driven by real backend data.
 
-## Files to change
-- `src/pages/AdminTransactionDetail.tsx` — full structural rebuild + money formatting + new sub-sections
-- `src/components/admin/transactions/AgreementPreviewDialog.tsx` — NEW. Read-only locked agreement modal with watermark, no download/print
-- `src/components/admin/transactions/EvidencePreviewDialog.tsx` — NEW. Read-only image/video/document/PDF preview, no download/print
-- `src/components/admin/transactions/MoneyStatus.ts` — NEW small util mapping money_status → label/tone (Held / Frozen / Awaiting Release / Releasing / Released / Refund Pending / Refunded)
-- `supabase/functions/admin-transaction-detail/index.ts` — extend response to include `evidence[]` (typed media list with secure preview URL, uploader, status, notes), `lockedAgreement` snapshot block, and ensure frozen amount + ledger are returned as numeric NGN. No money math changes.
-- `src/services/admin-transaction-detail.service.ts` — extend types: `AdminTxEvidenceItem`, `AdminTxLockedAgreement`. Currency stays NGN.
+Make the desktop `/admin/transactions/:transactionId` page a 100% structural replica of the approved design (`Transaction_Detail_2.html`). Mobile already follows the mockup; desktop has the right cards but wrong order and is missing the 2/1 column split at the bottom.
 
-No DB migration required. No edge function logic change beyond shaping/aggregation already available from existing tables (`disputes`, `dispute_evidence`, `files`, escrow ledger, agreement snapshot JSONB).
+## Gap analysis (current desktop vs design)
 
-## Page structure rebuild
+Design top-to-bottom (full-width):
+1. Header (sticky)
+2. Transaction Summary card (orange left border) — primary info row, parties row, status grid, action row
+3. Risk & Investigation
+4. Complete Transaction Timeline
+5. Linked Records (4-col grid)
+6. **2/1 grid block:**
+   - Left col (xl:col-span-2): Locked Agreement → Transaction Items → Payment & Escrow → Delivery & Fulfillment
+   - Right col: Dispute Status → Dispute Evidence
 
-### Desktop order (top → bottom)
-1. Sticky admin header (back, title, subtitle, state-aware Investigate / Unfreeze / Manage Dispute / overflow)
-2. High-risk alert banner — only when risk level is high/escalated OR money_status=funds_frozen OR dispute open+overdue
-3. Transaction Summary card (see §Summary fixes)
-4. Locked Agreement preview card with **Preview Agreement** button
-5. Dispute Evidence & Media — only when evidence/dispute/delivery proof exists. Sits HIGH on the page intentionally.
-6. Dispute Status — only when dispute exists
-7. Risk & Investigation
-8. Complete Transaction Timeline (compact, see §Timeline fixes)
-9. Linked Records
-10. Items
-11. Pricing & Fees
-12. Payment & Escrow (grouped into one section, two columns)
-13. Payout
-14. Delivery & Fulfillment
-15. Admin Notes / Audit Trail
+Current desktop order (all full-width, no 2/1 grid):
+Summary → Locked Agreement → Dispute Evidence → Dispute Status → Risk → Timeline → Linked Records → Items → Pricing → Payment&Escrow → Payout → Delivery.
 
-On `xl+` screens use a 2-col layout for sections 7–14: left rail = Risk, Timeline, Items, Pricing, Payment & Escrow, Payout, Delivery; right rail = Dispute Status (sticky), Linked Records, Quick Actions, Admin Notes summary.
+Mismatches to fix:
+- Wrong vertical order (Agreement/Evidence/Dispute pushed to top instead of grouped at bottom).
+- No 2-column split for the lower block — design clearly uses `xl:grid-cols-3` with 2/1.
+- "Pricing & Fees" and "Payout" are extra sections not present in the design — keep them but move them out of the matched section, rendered after the 2/1 grid as supplementary admin-only data so the matched designed area is pixel-faithful.
+- Inside Payment & Escrow card: design uses a 2-column body (Payment Details | Escrow Ledger as stacked rows, not a table). Replace the wide ledger table on desktop with the 3-row stacked variant from the design (Funds Received / Fee Deducted / Currently Held). Keep the full ledger table behind a "View full ledger" toggle.
+- Delivery & Fulfillment: design has 2 columns (Shipping Details | Delivery Status milestones with the red "Dispute opened within 24hrs of delivery" banner when applicable). Current already has 2-col shipping/proof; swap right column for the milestone list derived from `delivery.events` / shipped/delivered timestamps and conditionally show the red banner when a dispute was opened within 24h of `deliveredAt`.
+- Dispute Status card: design uses 3 stacked rows (Dispute Opened / Resolution Deadline / Dispute Type) — current already matches; just move it to the right rail.
+- Dispute Evidence card on the right rail: switch from 3-col image grid to a vertical list (icon + title + date + small thumbnail) to match the narrow-column design. The full grid stays available for mobile.
 
-### Mobile order
-1. Compact top bar (back, brand mark, overflow)
-2. Header strip (txn code + item title + status pills incl. Overdue)
-3. High-risk alert
-4. Transaction Summary card (mobile layout: 2-col primary, parties stacked, 2×2 status grid)
-5. Quick Actions card
-6. Locked Agreement preview card (button opens read-only drawer)
-7. Dispute Status accordion
-8. Dispute Evidence accordion
-9. Timeline accordion
-10. Linked Records accordion
-11. Transaction Details accordion (Item, Agreement totals, Shipping)
-12. Payment & Escrow accordion
-13. Delivery accordion
-14. Sticky bottom action bar (`Take Action` + ⋮)
+## Changes
 
-## Money display fixes
-- All amounts route through `formatMoney(value, "NGN")` → always 2 decimals, ₦ prefix.
-- Remove every `$` and any `formatMoneyCompact` use on this admin page.
-- Map `money_status` to label using new util:
-  - `funds_held_in_escrow` → "Held in Escrow"
-  - `funds_frozen` → "Funds Frozen"
-  - `funds_pending_release` → "Awaiting Release"
-  - `funds_releasing` → "Releasing"
-  - `funds_released` → "Released"
-  - `refund_pending` → "Refund Pending"
-  - `refund_issued` → "Refunded"
-- Summary card primary escrow tile rules:
-  - if `money_status === funds_frozen` → label "Funds Frozen in Escrow", value = `escrow.frozenAmount` (or buyerTotal if frozen amount is 0 and ledger shows frozen entry)
-  - else if `funds_held_in_escrow` → label "Held in Escrow", value = `escrow.heldAmount`
-  - else if released → label "Released", value = `escrow.releasedAmount`
-  - else fall back to current state amount
-- Escrow card always shows full breakdown: Held, Frozen, Released, Refunded, Last Changed.
-- Linked Records "ESCROW" tile reflects the same active state and value (never "Frozen ₦0.00").
+### File: `src/pages/AdminTransactionDetail.tsx`
 
-## Summary card fixes
-Three rows, in this exact composition:
+Reorder the JSX inside the main content wrapper to:
 
-Row 1 (5 cells):
-- Transaction (code + created)
-- Last activity (relative + absolute)
-- Total Charged (`pricing.buyerTotal`)
-- Payment provider (`payment.provider` + masked reference)
-- Payout Status (`payout.status` or "—")
+```text
+- Mobile mini-header (unchanged)
+- High-risk banner (unchanged, full-width)
+- Summary Card (full-width, unchanged)
+- Risk & Investigation (full-width, moved up)
+- Complete Transaction Timeline (full-width, moved up)
+- Linked Records (full-width, moved up)
+- <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <div class="xl:col-span-2 space-y-6">
+      Locked Agreement
+      Transaction Items
+      Payment & Escrow (compact ledger variant)
+      Delivery & Fulfillment (milestones variant)
+    </div>
+    <aside class="space-y-6">
+      Dispute Status
+      Dispute Evidence (vertical list variant)
+    </aside>
+  </div>
+- Supplementary admin-only block (full-width, after grid):
+    Pricing & Fees, Payout, full Escrow Ledger table (collapsible)
+```
 
-Row 2 (parties, 2 cells): Buyer | Seller — avatar, name, masked contact, verified shield, flagged chip.
+Mobile (`lg:hidden` accordions) keeps the existing top-to-bottom order matching the mobile mockup; only desktop layout changes.
 
-Row 3 (status, 6 cells): Transaction Status, Money Status (mapped label), Item Total, Protection Fee, Total Charged, **Active Escrow Value** using rule above.
+Implementation notes:
+- Wrap the right-rail cards in `hidden xl:block` inside the grid; on `lg` and below they render in their existing single-column flow before the left-rail cards (to preserve the mobile mockup order).
+- Add a small `EscrowLedgerCompact` inline component (3 rows: received / fee / currently held) computed from existing `data.escrow` + `data.pricing`. Keep `data.escrow.ledger` table behind a "View full ledger" toggle.
+- Add a `DeliveryMilestones` inline component that renders shipped / in-transit / delivered dots from `data.delivery.shippedAt`, `inTransitAt` (if present, otherwise omit), `deliveredAt`. Show the red "Dispute opened within 24hrs of delivery" alert when `dispute.openedAt` and `delivery.deliveredAt` are both present and within 24h.
+- Adjust the right-rail Dispute Evidence card to a vertical list when rendered inside the right column (`xl:flex-col xl:divide-y` style) and keep the existing card grid layout when rendered standalone (mobile / when right column not used).
 
-Row 4 (action bar): Export Data, Open Investigation, Freeze/Unfreeze (state-aware), Manage Dispute (if dispute), overflow.
+No backend or service changes required — all needed fields already exist in `AdminTxDetailResponse`.
 
-## Locked Agreement section
-- Card showing: locked-at timestamp, txn code, buyer, seller, item title/desc/condition/qty, agreed price, protection fee, total, delivery method, verification window, seller notes, buyer notes (if any), dispute/cancel rules (if any), agreement hash/version (if any).
-- Primary button: **Preview Agreement** → opens `AgreementPreviewDialog` (modal on desktop, drawer on mobile).
-- Preview dialog rules:
-  - read-only badge in header
-  - large watermark "SafeDeal Admin Review Only" + transaction code, repeating diagonal
-  - no download / no print buttons
-  - `onCopy`, `oncontextmenu`, `Ctrl+P` intercepted and blocked at the dialog root
-  - `window.print` no-op while open
-  - scroll only
-- If agreement snapshot missing → show banner: "Agreement snapshot missing. Review this transaction for data integrity."
+### Acceptance
 
-## Dispute Evidence & Media
-- New high-position section. Renders when any of: dispute exists, evidence list non-empty, delivery proof files exist.
-- Backend returns `evidence[]` items with: `id, kind (image|video|document|receipt|delivery_proof|screenshot), title, secureUrl, mimeType, uploadedByRole, uploadedByName, uploadedAt, status (pending|reviewed|verified|rejected|flagged), note`.
-- Card grid (1-col mobile, 2-col tablet, 3-col desktop). Each card:
-  - thumbnail for image/video; file-type icon for document/receipt
-  - title, kind badge, uploader + role, timestamp, status pill
-  - actions: **Preview**, **Mark Reviewed**, **Flag Suspicious**, **Add Note** (gated by `adminCan.canReviewEvidence` etc.)
-  - never: delete, replace, edit, download, print
-- Preview dialog uses signed/secure URL only. Unsupported types show metadata + "Preview unavailable".
-- All review actions logged via existing `admin-transaction-actions` edge function (new `evidence_reviewed`, `evidence_flagged`, `evidence_note_added` action types).
-
-## Risk & Investigation fixes
-- Always derive a synthesized flag set even when `risk.flags` is empty:
-  - if `money_status === funds_frozen` → "Funds frozen"
-  - if dispute open → "Dispute open"
-  - if dispute overdue → "Dispute response overdue"
-  - if `pricing.buyerTotal` over high-value threshold → "High-value transaction"
-  - if buyer flagged → "Buyer account flagged"
-  - if conflicting evidence detected → "Evidence conflict"
-- Show synthesized flags alongside backend ones.
-- Investigation log shows admin notes + escalation history + system risk events. Empty-state copy: "No admin notes yet. Risk flags were generated automatically from transaction state." with **Add note** button.
-
-## Linked Records fixes
-Cards: Buyer Profile, Seller Profile, Payment, Escrow, Payout, Dispute, Evidence Files, Locked Agreement, Delivery Proof. Each shows type, label, status, amount where relevant, click action.
-
-- Payout when missing & dispute pending → "No payout yet / Pending dispute resolution" (opacity 60, not greyed-out broken).
-- Escrow card reflects active state per money_status mapping (e.g. "Frozen ₦676,000.00" not "Frozen ₦0.00").
-- Evidence Files card opens the Dispute Evidence section (scroll-to + highlight).
-- Locked Agreement card opens preview dialog.
-
-## Timeline fixes
-- Default render: latest 8 events, newest-first.
-- Toolbar: filter chips (All, Payment, Escrow, Delivery, Dispute, Admin, Money) + sort toggle (newest/oldest) + **Show full timeline**.
-- Group events sharing the same timestamp under one node with a sub-list.
-- Each event keeps icon, title, short description, actor, timestamp, money/state impact tag.
-
-## Payment, Escrow, Ledger consistency
-- Payment card: Provider, Status, Amount (NGN), Method, Reference, Paid at.
-- Escrow card: State (mapped label), Held, Frozen, Released, Refunded, Last Changed.
-- Ledger table unchanged structure but values formatted via `formatMoney`. If ledger shows a freeze entry equal to buyerTotal, summary tile reflects that as the frozen amount.
-- Add a sanity check: if `escrow.frozenAmount === 0` but `money_status === funds_frozen` and the ledger has a frozen entry, derive the displayed frozen amount from the most recent frozen ledger entry. This prevents the "₦0.00 while frozen" defect without backend changes.
-
-## State-aware actions
-- Header + summary action row only shows what makes sense for current state:
-  - frozen → Unfreeze (not Freeze)
-  - dispute exists → Manage Dispute
-  - high risk → Investigate
-  - no payout → never show "Release Payout" anywhere
-- Wording stays neutral: "Awaiting Release", "Pending Resolution", "Pending Review". No "admin will release" copy.
-
-## Visual density
-- Max content width 1440px.
-- Card padding: `p-5 lg:p-6` desktop, `p-4` mobile.
-- Section spacing: `space-y-5 lg:space-y-6`.
-- Two-column layout used only on `xl+` for the lower stack as described above.
-- Long supporting blocks (Ledger, Audit Trail, full Timeline) are collapsible.
-
-## Backend (admin-transaction-detail edge function)
-Add to response (no DB schema changes; reads existing tables):
-- `lockedAgreement`: `{ lockedAt, txnCode, buyer, seller, item:{title, description, condition, quantity}, agreedPrice, protectionFee, total, deliveryMethod, verificationWindowHours, sellerNotes, buyerNotes, rules, hash, version }` from the agreement JSONB snapshot stored at payment time.
-- `evidence[]`: aggregated from `dispute_evidence` joined with `files` + `delivery_proof_files`. Each item exposes a **secure preview URL only** (signed Cloudinary URL or short-lived storage URL — never raw paths).
-- Ensure `escrow.frozenAmount`, `escrow.heldAmount`, `escrow.releasedAmount`, `escrow.refundedAmount` are always present numerically.
-- `risk.flags` always includes synthesized flags described above.
-
-## Acceptance criteria mapped
-- Exact desktop + mobile order ✅
-- All money in NGN with 2 decimals, no `$` ✅
-- Frozen funds shown clearly as frozen, not missing ✅
-- Dispute status + evidence sit high on the page when dispute exists ✅
-- Locked agreement preview is read-only, watermarked, no download/print ✅
-- Evidence preview is read-only, no download/print ✅
-- Timeline compact with full-view toggle ✅
-- Risk/investigation reflects actual state, never "no activity" while frozen/disputed ✅
-- Linked records useful and clickable ✅
-- All values come from API; no UX-Pilot sample data ✅
+- Desktop @ ≥1280px: section order and 2/1 split match the HTML design exactly.
+- Locked Agreement, Items, Payment & Escrow, Delivery sit in a 2-col left rail; Dispute Status + Dispute Evidence sit in the right rail.
+- Risk, Timeline, Linked Records, Summary, High-risk banner remain full-width and appear above the grid in the order shown above.
+- Mobile (<lg): unchanged from current accordion flow which already matches the mobile mockup.
+- No data is lost — Pricing & Fees, Payout, and the full Escrow Ledger table render in a supplementary section under the grid.
