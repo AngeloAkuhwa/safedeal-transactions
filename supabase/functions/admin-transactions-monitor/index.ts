@@ -145,6 +145,9 @@ function applyFilters(
   failedTxIds: Set<string> | null,
   searchTxIds: Set<string> | null,
   riskTxIds: Set<string> | null,
+  amountTxIds: Set<string> | null,
+  riskLevelTxIds: Set<string> | null,
+  riskLevelExcludeIds: Set<string> | null,
 ): any {
   let q = qb;
 
@@ -210,6 +213,47 @@ function applyFilters(
   if (p.disputeStatus) q = q.eq("dispute_status", p.disputeStatus);
   if (p.dateFrom) q = q.gte("created_at", p.dateFrom);
   if (p.dateTo) q = q.lte("created_at", p.dateTo);
+
+  // Amount range (filtered via pre-resolved tx ids from transaction_pricing)
+  if (amountTxIds) {
+    if (amountTxIds.size === 0) {
+      q = q.eq("id", "00000000-0000-0000-0000-000000000000");
+    } else {
+      q = q.in("id", Array.from(amountTxIds));
+    }
+  }
+
+  // Risk level filter
+  if (p.riskLevel) {
+    if (p.riskLevel === "clean") {
+      q = q
+        .eq("needs_release_review", false)
+        .neq("money_status", "funds_frozen")
+        .not("dispute_status", "in", `(${ACTIVE_DISPUTE_STATUSES.join(",")})`);
+      if (riskLevelExcludeIds && riskLevelExcludeIds.size > 0) {
+        const ids = Array.from(riskLevelExcludeIds).slice(0, 5000).join(",");
+        q = q.not("id", "in", `(${ids})`);
+      }
+    } else if (p.riskLevel === "escalated") {
+      q = q
+        .in("dispute_status", ACTIVE_DISPUTE_STATUSES as unknown as string[])
+        .eq("needs_release_review", false)
+        .neq("money_status", "funds_frozen");
+    } else if (p.riskLevel === "high_risk" || p.riskLevel === "fraud_watch") {
+      const orParts: string[] = ["needs_release_review.eq.true"];
+      if (riskLevelTxIds && riskLevelTxIds.size > 0) {
+        const ids = Array.from(riskLevelTxIds).slice(0, 5000).join(",");
+        orParts.push(`id.in.(${ids})`);
+      }
+      q = q.or(orParts.join(","));
+      if (p.riskLevel === "fraud_watch") {
+        q = q.eq("money_status", "funds_frozen");
+      } else {
+        q = q.neq("money_status", "funds_frozen");
+      }
+    }
+  }
+
   return q;
 }
 
@@ -315,7 +359,7 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
       "id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, needs_release_review, payment_received_at, completed_at, created_at, updated_at",
       { count: "exact" },
     );
-  listQ = applyFilters(listQ, params, failedTxIds, searchTxIds, riskTxIds);
+  listQ = applyFilters(listQ, params, failedTxIds, searchTxIds, riskTxIds, amountTxIds, riskLevelTxIds, riskLevelExcludeIds);
   listQ = listQ
     .order(sortBy, { ascending: sortDirection === "asc" })
     .range((page - 1) * pageSize, page * pageSize - 1);
