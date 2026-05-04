@@ -1,4 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  mapTransactionStatus,
+  mapMoneyStatus,
+  mapDisputeStatus,
+  mapEscrowState,
+  mapPayoutStatus,
+  buildRiskFlags,
+  mapRiskLevel as sharedMapRisk,
+} from "../_shared/admin-mappers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -280,6 +289,9 @@ Deno.serve(async (req) => {
     status: tx.status,
     moneyStatus: tx.money_status,
     disputeStatus: tx.dispute_status,
+    statusLabel: mapTransactionStatus(tx.status),
+    moneyStatusLabel: mapMoneyStatus(tx.money_status),
+    disputeStatusLabel: mapDisputeStatus(tx.dispute_status),
     createdAt: tx.created_at,
     updatedAt: tx.updated_at,
     lastActivityAt: tx.updated_at ?? tx.created_at,
@@ -310,6 +322,8 @@ Deno.serve(async (req) => {
       .filter((r: any) => r.status === "completed")
       .reduce((acc: number, r: any) => acc + Number(r.refund_amount ?? 0), 0),
   } : null;
+  const escrowStateLabel = escrow ? mapEscrowState(escrow.state) : null;
+  const payoutStatusLabel = payout ? mapPayoutStatus(payout.status) : null;
 
   const payment = paymentRes.data ? {
     id: paymentRes.data.id,
@@ -490,17 +504,21 @@ Deno.serve(async (req) => {
   const timeline = items_tl.slice(0, 250);
 
   // ===== Risk =====
-  const flags: { label: string; severity: "low" | "medium" | "high" }[] = [];
-  if (tx.needs_release_review) flags.push({ label: tx.release_review_reason ?? "Needs admin review", severity: "high" });
-  if (tx.money_status === "funds_frozen") flags.push({ label: "Funds frozen", severity: "high" });
-  if (tx.dispute_status && tx.dispute_status !== "none") flags.push({ label: `Dispute: ${tx.dispute_status.replace(/_/g, " ")}`, severity: "medium" });
-  if (disputeOverdue) flags.push({ label: "Dispute response overdue", severity: "high" });
-  if (parties.buyer?.flagged) flags.push({ label: "Buyer account flagged", severity: "high" });
-  let riskLevel: "clean" | "elevated" | "high" | "escalated" = "clean";
-  const highCount = flags.filter(f => f.severity === "high").length;
-  if (highCount >= 2) riskLevel = "escalated";
-  else if (highCount === 1) riskLevel = "high";
-  else if (flags.length > 0) riskLevel = "elevated";
+  const flags = buildRiskFlags({
+    needsReleaseReview: tx.needs_release_review,
+    releaseReviewReason: tx.release_review_reason,
+    moneyStatus: tx.money_status,
+    disputeStatus: tx.dispute_status,
+    disputeOverdue,
+    buyerFlagged: !!parties.buyer?.flagged,
+    sellerFlagged: !!parties.seller?.flagged,
+  });
+  const sharedRisk = sharedMapRisk({
+    needsReleaseReview: tx.needs_release_review,
+    moneyStatus: tx.money_status,
+    disputeStatus: tx.dispute_status,
+  });
+  const riskLevel = sharedRisk.level;
 
   const investigationNotes = (await admin
     .from("admin_transaction_notes")
@@ -554,17 +572,17 @@ Deno.serve(async (req) => {
     route: null,
   });
   if (escrow) linkedRecords.push({
-    type: "escrow", label: "Escrow", subtitle: (escrow.state ?? "").replace(/_/g, " "),
+    type: "escrow", label: "Escrow", subtitle: escrowStateLabel?.label ?? "—",
     status: escrow.state, amount: escrow.heldAmount, currency: pricingOut?.currency ?? "NGN",
     route: null,
   });
   if (payout) linkedRecords.push({
-    type: "payout", label: "Payout", subtitle: payout.providerReference ?? payout.status,
+    type: "payout", label: "Payout", subtitle: payout.providerReference ?? payoutStatusLabel?.label ?? payout.status,
     status: payout.status, amount: payout.amount, currency: payout.currency,
     route: null,
   });
   if (disputeOut) linkedRecords.push({
-    type: "dispute", label: "Dispute", subtitle: (disputeOut.claimType ?? "").replace(/_/g, " "),
+    type: "dispute", label: "Dispute", subtitle: mapDisputeStatus(disputeOut.status).label,
     status: disputeOut.status,
     route: `/admin/disputes/${disputeOut.id}`,
   });
@@ -606,7 +624,9 @@ Deno.serve(async (req) => {
     pricing: pricingOut,
     payment,
     escrow,
+    escrowStateLabel,
     payout,
+    payoutStatusLabel,
     delivery,
     dispute: disputeOut,
     timeline,
