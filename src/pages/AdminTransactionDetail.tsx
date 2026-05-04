@@ -1263,7 +1263,7 @@ export default function AdminTransactionDetail() {
           </div>
 
           {/* === Supplementary admin-only sections === */}
-          <Card>
+          <div id="audit"><Card>
             <details className="group">
               <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 lg:px-6 py-4 border-b border-border">
                 <div>
@@ -1343,7 +1343,7 @@ export default function AdminTransactionDetail() {
                 )}
               </div>
             </details>
-          </Card>
+          </Card></div>
 
         </div>
       )}
