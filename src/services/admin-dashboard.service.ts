@@ -17,13 +17,14 @@ export type Severity = "blue" | "red" | "orange" | "purple" | "cyan" | "yellow" 
 
 export interface AdminKpis {
   total_transactions: number;
-  total_transactions_delta_pct: number;
+  total_transactions_delta_pct: number | null;
   escrow_balance_amount: number;
-  escrow_balance_delta_pct: number;
+  escrow_balance_delta_pct: number | null;
   active_users: number;
-  active_users_delta_pct: number;
+  active_users_delta_pct: number | null;
+  active_users_is_fallback?: boolean;
   flagged_activity: number;
-  flagged_activity_delta_pct: number;
+  flagged_activity_delta_pct: number | null;
 }
 
 export interface AdminActionItem {
