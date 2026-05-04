@@ -554,10 +554,14 @@ export default function AdminTransactions() {
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <ResponsiveSearchInput value={search} onChange={setSearch} />
+            {isFetching && search !== debouncedSearch && (
+              <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+            )}
           </div>
+          <SortMenu value={`${sortBy}:${sortDir}`} label={currentSortLabel} onChange={(k, d) => { setSortBy(k); setSortDir(d); }} />
           <button
             type="button"
-            onClick={() => setFiltersOpen((s) => !s)}
+            onClick={() => setMobileSheetOpen(true)}
             className="inline-flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted lg:hidden"
           >
             <span className="inline-flex items-center gap-2">
