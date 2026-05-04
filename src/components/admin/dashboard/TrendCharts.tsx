@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -11,7 +13,8 @@ import {
   YAxis,
 } from "recharts";
 import {
-  buildTransactionsDisputesTrend,
+  AdminAccessRequiredError,
+  getAdminDashboardTrend,
   type TrendSeries,
 } from "@/services/admin-dashboard.service";
 
@@ -44,17 +47,27 @@ interface TrendChartsProps {
 
 export function TrendCharts({ initialTransactions, escrow }: TrendChartsProps) {
   const [win, setWin] = useState<Win>("7D");
-  const txSeries = useMemo<TrendSeries>(
-    () => (win === "7D" ? initialTransactions : buildTransactionsDisputesTrend(win)),
-    [win, initialTransactions],
-  );
+  const { data, isFetching } = useQuery({
+    queryKey: ["admin-dashboard-trend", win],
+    queryFn: () => getAdminDashboardTrend(win),
+    staleTime: 30_000,
+    initialData: win === "7D" ? initialTransactions : undefined,
+    retry: (count, err) => !(err instanceof AdminAccessRequiredError) && count < 1,
+  });
+  const txSeries: TrendSeries = data ?? {
+    primary_label: "Transactions",
+    secondary_label: "Disputes",
+    points: [],
+  };
 
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
       <ChartCard
         title="Transactions vs Disputes Trend"
         right={
-          <div className="inline-flex rounded-md border border-slate-700 bg-slate-800/60 p-0.5 text-[11px]">
+          <div className="inline-flex items-center gap-2">
+            {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" /> : null}
+            <div className="inline-flex rounded-md border border-slate-700 bg-slate-800/60 p-0.5 text-[11px]">
             {(["7D", "30D", "90D"] as Win[]).map((w) => (
               <button
                 key={w}
@@ -67,6 +80,7 @@ export function TrendCharts({ initialTransactions, escrow }: TrendChartsProps) {
                 {w}
               </button>
             ))}
+            </div>
           </div>
         }
       >
