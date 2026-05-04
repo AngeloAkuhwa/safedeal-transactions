@@ -294,24 +294,9 @@ export default function AdminTransactionDetail() {
               <Download className="h-4 w-4 mr-1.5" /> Export
             </Button>
           )}
-          {adminCan.canOpenInvestigation && (
-            <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200">
-              <Search className="h-4 w-4 mr-1.5" /> Investigate
-            </Button>
-          )}
-          {adminCan.canFreeze && (
-            <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-cyan-500/40 text-cyan-300 hover:text-cyan-200">
-              <Snowflake className="h-4 w-4 mr-1.5" /> Freeze
-            </Button>
-          )}
-          {adminCan.canUnfreeze && (
-            <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200">
-              <Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze
-            </Button>
-          )}
-          {adminCan.canManageDispute && dispute && (
+          {dispute && (
             <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
-              <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
+              <Scale className="h-4 w-4 mr-1.5" /> View Dispute
             </Button>
           )}
           <DropdownMenu>
@@ -321,6 +306,9 @@ export default function AdminTransactionDetail() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              {adminCan.canOpenInvestigation && <DropdownMenuItem onClick={() => setInvestigateOpen(true)}><Search className="h-4 w-4 mr-2" /> Open Investigation</DropdownMenuItem>}
+              {adminCan.canFreeze && <DropdownMenuItem onClick={() => setFreezeOpen(true)}><Snowflake className="h-4 w-4 mr-2" /> Freeze Funds</DropdownMenuItem>}
+              {adminCan.canUnfreeze && <DropdownMenuItem onClick={() => setUnfreezeOpen(true)}><Snowflake className="h-4 w-4 mr-2" /> Unfreeze Funds</DropdownMenuItem>}
               {adminCan.canAddNote && <DropdownMenuItem onClick={() => setNoteOpen(true)}><StickyNote className="h-4 w-4 mr-2" /> Add Internal Note</DropdownMenuItem>}
               {adminCan.canFlagForReview && <DropdownMenuItem onClick={() => setFlagOpen(true)}><Flag className="h-4 w-4 mr-2" /> Flag for Review</DropdownMenuItem>}
               {adminCan.canViewBuyer && data?.parties?.buyer?.id && (
@@ -519,11 +507,16 @@ export default function AdminTransactionDetail() {
                       <Flag className="h-3 w-3 mr-1.5" /> Escalated Dispute
                     </span>
                   )}
-                  {dispute?.overdue && (
-                    <span className="text-red-400 text-sm font-medium inline-flex items-center">
-                      <Clock className="h-3.5 w-3.5 mr-1" /> Overdue: past resolution deadline
-                    </span>
-                  )}
+                  {dispute?.overdue && (() => {
+                    const due = dispute.sellerResponseDueAt ? new Date(dispute.sellerResponseDueAt).getTime() : null;
+                    const days = due ? Math.max(1, Math.floor((Date.now() - due) / (24 * 3600 * 1000))) : null;
+                    return (
+                      <span className="text-red-400 text-sm font-medium inline-flex items-center">
+                        <Clock className="h-3.5 w-3.5 mr-1" />
+                        {days ? `Overdue: ${days} day${days === 1 ? "" : "s"} past resolution deadline` : "Overdue: past resolution deadline"}
+                      </span>
+                    );
+                  })()}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   {adminCan.canExport && <Button variant="outline" size="sm" onClick={exportData}><Download className="h-4 w-4 mr-1.5" /> Export Data</Button>}
@@ -559,22 +552,25 @@ export default function AdminTransactionDetail() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 lg:p-6">
               <div className="space-y-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Risk Assessment</div>
+                {(showHighRisk) && (
+                  <div className="flex items-center justify-between p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="h-4 w-4 text-red-400" />
+                      <span className="text-foreground font-medium text-sm">High Risk Transaction</span>
+                    </div>
+                    <span className="text-red-400 text-xs font-semibold tracking-wider">
+                      {data.risk?.level === "escalated" ? "ESCALATED" : "HIGH"}
+                    </span>
+                  </div>
+                )}
                 {allFlags.length === 0 ? (
                   <Empty>No risk flags.</Empty>
                 ) : (
-                  <ul className="space-y-1.5">
+                  <ul className="space-y-2 mt-2">
                     {allFlags.map((f: any, i: number) => (
-                      <li key={i} className={cn(
-                        "flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-[11px]",
-                        f.severity === "high" ? "border-red-500/30 bg-red-500/10 text-red-300" :
-                        f.severity === "medium" ? "border-orange-500/30 bg-orange-500/10 text-orange-300" :
-                        "border-yellow-500/30 bg-yellow-500/10 text-yellow-300",
-                      )}>
-                        <Flag className="h-3 w-3 mt-0.5 shrink-0" />
-                        <div className="min-w-0">
-                          <div className="font-medium">{f.label}</div>
-                          {f.detail && <div className="text-[10px] opacity-80 truncate">{f.detail}</div>}
-                        </div>
+                      <li key={i} className="flex items-center gap-2 text-sm">
+                        <Flag className="h-3.5 w-3.5 text-orange-400 shrink-0" />
+                        <span className="text-muted-foreground">{f.label}</span>
                       </li>
                     ))}
                   </ul>
@@ -630,13 +626,13 @@ export default function AdminTransactionDetail() {
               title="Complete Transaction Timeline"
               subtitle="All events, status changes, and interventions"
               action={
-                <Button size="sm" variant="ghost" onClick={() => setTlNewest((v) => !v)}>
+                <Button size="sm" variant="ghost" className="lg:hidden" onClick={() => setTlNewest((v) => !v)}>
                   {tlNewest ? "Newest first" : "Oldest first"}
                 </Button>
               }
             />
             <div className="p-4 lg:p-6">
-              <div className="flex flex-wrap items-center gap-1.5 mb-4">
+              <div className="flex flex-wrap items-center gap-1.5 mb-4 lg:hidden">
                 {TL_FILTERS.map((f) => (
                   <button
                     key={f.key}
@@ -682,9 +678,9 @@ export default function AdminTransactionDetail() {
                 </div>
               )}
               {filteredTimeline.length > 8 && (
-                <div className="mt-4 text-center">
-                  <Button size="sm" variant="outline" onClick={() => setShowFullTimeline((v) => !v)}>
-                    {showFullTimeline ? "Show less" : `Show full timeline (${filteredTimeline.length})`}
+                <div className="mt-4">
+                  <Button size="sm" variant="link" className="text-muted-foreground hover:text-foreground p-0 h-auto" onClick={() => setShowFullTimeline((v) => !v)}>
+                    {showFullTimeline ? "Show less" : `Show full timeline (${filteredTimeline.length} events)`}
                   </Button>
                 </div>
               )}
@@ -718,13 +714,6 @@ export default function AdminTransactionDetail() {
                     });
                   }
                   // Add Locked Agreement card
-                  if (lockedAgreement) {
-                    records.push({
-                      type: "agreement", label: "Locked Agreement",
-                      subtitle: lockedAgreement.lockedAt ? fmtDate(lockedAgreement.lockedAt) : null,
-                      status: null, amount: null, currency: null, route: null,
-                    });
-                  }
                   return records;
                 })().map((r, i) => {
                   const typeKey = (r.type ?? "").toLowerCase();
@@ -885,11 +874,9 @@ export default function AdminTransactionDetail() {
                 {!data.payment ? <Empty>No payment recorded.</Empty> : (
                   <div className="space-y-2 text-sm">
                     <RowKV k="Provider" v={titleCase(data.payment.provider)} />
-                    <RowKV k="Status" v={<StatusPill value={data.payment.status} />} />
-                    <RowKV k="Amount" v={ngn(data.payment.amount)} />
-                    <RowKV k="Method" v={titleCase(data.payment.paymentMethodType) || "—"} />
                     <RowKV k="Reference" v={<span className="font-mono text-xs break-all">{data.payment.providerReference ?? "—"}</span>} />
-                    <RowKV k="Paid At" v={fmtDate(data.payment.paidAt)} />
+                    <RowKV k="Status" v={<StatusPill value={data.payment.status} />} />
+                    <RowKV k="Processed" v={fmtDate(data.payment.paidAt)} />
                   </div>
                 )}
               </div>
@@ -939,30 +926,45 @@ export default function AdminTransactionDetail() {
               <div className="p-4 lg:p-6">
                 <h4 className="text-sm font-medium text-foreground mb-3">Shipping Details</h4>
                 <div className="space-y-2 text-sm">
-                  <RowKV k="Method" v={titleCase(data.delivery?.method)} />
                   <RowKV k="Carrier" v={data.delivery?.courier ?? "—"} />
                   <RowKV k="Tracking" v={<span className="font-mono text-xs">{data.delivery?.trackingNumber ?? "—"}</span>} />
                   <RowKV k="Shipped" v={fmtDate(data.delivery?.shippedAt)} />
-                  <RowKV k="Delivered" v={fmtDate(data.delivery?.deliveredAt)} />
                   <RowKV k="Expected" v={fmtDate(data.delivery?.expectedDeliveryAt ?? data.delivery?.expectedDate)} />
                 </div>
-                {data.delivery?.address && <div className="mt-3 text-xs text-muted-foreground">{data.delivery.address}</div>}
               </div>
               <div className="p-4 lg:p-6">
                 <h4 className="text-sm font-medium text-foreground mb-3">Delivery Status</h4>
-                {(data.delivery?.updates ?? []).length === 0 ? <Empty>No delivery updates.</Empty> : (
-                  <ul className="space-y-2 text-sm">
-                    {data.delivery.updates.map((u: any) => (
-                      <li key={u.id} className="flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-foreground">{titleCase(u.status)}</p>
-                          <p className="text-xs text-muted-foreground">{fmtDate(u.at)}{u.notes ? ` — ${u.notes}` : ""}</p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {(() => {
+                  const shippedAt = data.delivery?.shippedAt ?? null;
+                  const deliveredAt = data.delivery?.deliveredAt ?? null;
+                  const updates: any[] = data.delivery?.updates ?? [];
+                  const inTransitUpd = updates.find((u) => {
+                    const at = new Date(u.at).getTime();
+                    const sa = shippedAt ? new Date(shippedAt).getTime() : 0;
+                    const da = deliveredAt ? new Date(deliveredAt).getTime() : Infinity;
+                    return at > sa && at < da;
+                  });
+                  const inTransitAt = inTransitUpd?.at ?? null;
+                  const milestones = [
+                    { label: "Package shipped", at: shippedAt },
+                    { label: "In transit", at: inTransitAt },
+                    { label: "Delivered", at: deliveredAt },
+                  ];
+                  if (!shippedAt && !deliveredAt) return <Empty>No delivery updates.</Empty>;
+                  return (
+                    <ul className="space-y-3 text-sm">
+                      {milestones.map((m, i) => (
+                        <li key={i} className="flex items-center gap-3">
+                          <div className={cn("w-3 h-3 rounded-full shrink-0", m.at ? "bg-emerald-400" : "bg-muted")} />
+                          <div className="min-w-0">
+                            <p className={cn("text-foreground", !m.at && "text-muted-foreground")}>{m.label}</p>
+                            <p className="text-xs text-muted-foreground">{m.at ? fmtDate(m.at) : "Pending"}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()}
                 {dispute && data.delivery?.deliveredAt && (() => {
                   const diff = new Date(dispute.openedAt).getTime() - new Date(data.delivery.deliveredAt).getTime();
                   return diff >= 0 && diff < 24 * 3600 * 1000;
@@ -1013,7 +1015,12 @@ export default function AdminTransactionDetail() {
                     {evidence.length === 0 ? (
                       <Empty>No evidence files uploaded yet.</Empty>
                     ) : (
-                      <ul className="space-y-3">
+                      <div className="rounded-lg bg-muted/30 p-3">
+                        <div className="flex items-center gap-3 mb-3">
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-foreground">Photo Evidence</span>
+                        </div>
+                        <ul className="space-y-2">
                         {evidence.map((ev) => {
                           const Icon = evidenceIcon(ev.kind);
                           return (
@@ -1021,25 +1028,25 @@ export default function AdminTransactionDetail() {
                               <button
                                 type="button"
                                 onClick={() => setEvidencePreview(ev)}
-                                className="w-full text-left flex items-center gap-3 rounded-lg border border-border bg-muted/20 p-3 hover:border-blue-500/50 transition-all"
+                                className="w-full text-left flex items-center gap-2 rounded-md p-1.5 hover:bg-muted/50 transition-all"
                               >
-                                <div className="w-12 h-12 rounded-md bg-muted/40 flex items-center justify-center shrink-0 overflow-hidden">
+                                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                                   {ev.kind === "image" && ev.secureUrl ? (
                                     <img src={ev.secureUrl} alt={ev.title} draggable={false} className="w-full h-full object-cover pointer-events-none" />
                                   ) : (
-                                    <Icon className="h-5 w-5 text-muted-foreground" />
+                                    <Icon className="h-4 w-4 text-muted-foreground" />
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium text-foreground truncate">{ev.title}</div>
-                                  <div className="text-xs text-muted-foreground truncate">{fmtDate(ev.uploadedAt)}{ev.uploadedByRole ? ` · ${ev.uploadedByRole}` : ""}</div>
+                                  <div className="text-sm text-muted-foreground truncate">{ev.title}</div>
+                                  <div className="text-xs text-muted-foreground truncate">{fmtDate(ev.uploadedAt)}</div>
                                 </div>
-                                <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
                               </button>
                             </li>
                           );
                         })}
-                      </ul>
+                        </ul>
+                      </div>
                     )}
                   </div>
                 </Card>
@@ -1049,8 +1056,17 @@ export default function AdminTransactionDetail() {
 
           {/* === Supplementary admin-only sections === */}
           <Card>
-            <CardHeader title="Pricing & Fees" />
-            <div className="p-4 lg:p-6">
+            <details>
+              <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 lg:px-6 py-4 border-b border-border">
+                <div>
+                  <h2 className="text-sm lg:text-base font-semibold text-foreground">Admin extras</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Pricing breakdown, payout details, and full escrow ledger</p>
+                </div>
+                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" />
+              </summary>
+              <div className="p-4 lg:p-6 space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium text-foreground mb-3">Pricing & Fees</h3>
               {!data.pricing ? <Empty>No pricing recorded.</Empty> : (
                 <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <KV label="Item Total" value={ngn(data.pricing.itemTotal)} />
@@ -1061,12 +1077,19 @@ export default function AdminTransactionDetail() {
                   <KV label="Buyer Total" value={ngn(data.pricing.buyerTotal)} bold />
                 </dl>
               )}
-            </div>
-          </Card>
+                </div>
 
-          <Card>
-            <CardHeader title="Payout" />
-            <div className="p-4 lg:p-6">
+                <div>
+                  <h3 className="text-sm font-medium text-foreground mb-3">Delivery extras</h3>
+                  <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <KV label="Method" value={titleCase(data.delivery?.method) || "—"} />
+                    <KV label="Delivered" value={fmtDate(data.delivery?.deliveredAt)} />
+                    {data.delivery?.address && <KV label="Address" value={<span className="text-xs text-muted-foreground">{data.delivery.address}</span>} />}
+                  </dl>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-foreground mb-3">Payout</h3>
               {!data.payout ? (
                 <div className="text-sm text-muted-foreground">
                   {dispute ? "No payout yet — pending dispute resolution." : "No payout recorded."}
@@ -1081,14 +1104,12 @@ export default function AdminTransactionDetail() {
                   {data.payout.blocked && <div className="col-span-2"><KV label="Blocked" value={<span className="text-orange-300">{data.payout.blockedReason ?? "Blocked"}</span>} /></div>}
                 </dl>
               )}
-            </div>
-          </Card>
+                </div>
 
-          {(data.escrow?.ledger?.length ?? 0) > 0 && (
-            <Card>
-              <CardHeader title="Escrow Ledger (Full History)" />
-              <div className="p-4 lg:p-6">
-                <div className="overflow-x-auto rounded-md border border-border">
+                {(data.escrow?.ledger?.length ?? 0) > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-foreground mb-3">Escrow Ledger (Full History)</h3>
+                    <div className="overflow-x-auto rounded-md border border-border">
                   <table className="w-full text-xs">
                     <thead className="bg-muted/40 text-muted-foreground"><tr>
                       <th className="p-2 text-left">Date</th>
@@ -1109,10 +1130,12 @@ export default function AdminTransactionDetail() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </Card>
-          )}
+            </details>
+          </Card>
 
         </div>
       )}

@@ -1,74 +1,81 @@
 ## Goal
+Make the desktop `/admin/transactions/:transactionId` view a 1:1 visual match of `Transaction_Detail_2-2.html`. Vertical order, grid split, and right-rail layout are already correct — but several cards still contain extra rows, extra buttons, and extra sections that aren't in the design. This pass is purely a fidelity pass: trim, relabel, and rearrange to match the mockup.
 
-Make the desktop `/admin/transactions/:transactionId` page a 100% structural replica of the approved design (`Transaction_Detail_2.html`). Mobile already follows the mockup; desktop has the right cards but wrong order and is missing the 2/1 column split at the bottom.
+## Diff: design vs current (only what's wrong)
 
-## Gap analysis (current desktop vs design)
+### 1. Sticky page header (top bar)
+Design: only two actions on the right — `Export` (slate ghost) and `View Dispute` (orange).
+Current: Export + Investigate + Freeze/Unfreeze + Manage Dispute + overflow menu.
+Fix: Reduce the desktop header to exactly `Export` and `View Dispute` (orange, navigates to `/admin/disputes/:id` when a dispute exists; hidden otherwise). Move Investigate / Freeze / Unfreeze / Add Note / Flag / View Buyer / View Seller / Copy Code into the existing overflow `MoreHorizontal` menu only — but keep the menu itself out of the visible row to match the design (it can live behind a single icon button only when no dispute exists, so the row matches the mockup when a dispute is active).
 
-Design top-to-bottom (full-width):
-1. Header (sticky)
-2. Transaction Summary card (orange left border) — primary info row, parties row, status grid, action row
-3. Risk & Investigation
-4. Complete Transaction Timeline
-5. Linked Records (4-col grid)
-6. **2/1 grid block:**
-   - Left col (xl:col-span-2): Locked Agreement → Transaction Items → Payment & Escrow → Delivery & Fulfillment
-   - Right col: Dispute Status → Dispute Evidence
+### 2. Summary card — top "Last Activity" cell
+Matches. No change.
 
-Current desktop order (all full-width, no 2/1 grid):
-Summary → Locked Agreement → Dispute Evidence → Dispute Status → Risk → Timeline → Linked Records → Items → Pricing → Payment&Escrow → Payout → Delivery.
+### 3. Summary card — action row (bottom strip)
+Design: left side shows `Escalated Dispute` pill + red "Overdue: N days past resolution deadline" text; right side shows `Export Data`, `Open Investigation`, `Freeze Funds`, `Manage Dispute`.
+Current: matches, but the overdue copy reads "Dispute response overdue" pill instead of inline red text "Overdue: X days past resolution deadline".
+Fix: render the overdue indicator as plain red text with a clock icon and a computed "X days past resolution deadline" string (from `dispute.sellerResponseDueAt`).
 
-Mismatches to fix:
-- Wrong vertical order (Agreement/Evidence/Dispute pushed to top instead of grouped at bottom).
-- No 2-column split for the lower block — design clearly uses `xl:grid-cols-3` with 2/1.
-- "Pricing & Fees" and "Payout" are extra sections not present in the design — keep them but move them out of the matched section, rendered after the 2/1 grid as supplementary admin-only data so the matched designed area is pixel-faithful.
-- Inside Payment & Escrow card: design uses a 2-column body (Payment Details | Escrow Ledger as stacked rows, not a table). Replace the wide ledger table on desktop with the 3-row stacked variant from the design (Funds Received / Fee Deducted / Currently Held). Keep the full ledger table behind a "View full ledger" toggle.
-- Delivery & Fulfillment: design has 2 columns (Shipping Details | Delivery Status milestones with the red "Dispute opened within 24hrs of delivery" banner when applicable). Current already has 2-col shipping/proof; swap right column for the milestone list derived from `delivery.events` / shipped/delivered timestamps and conditionally show the red banner when a dispute was opened within 24h of `deliveredAt`.
-- Dispute Status card: design uses 3 stacked rows (Dispute Opened / Resolution Deadline / Dispute Type) — current already matches; just move it to the right rail.
-- Dispute Evidence card on the right rail: switch from 3-col image grid to a vertical list (icon + title + date + small thumbnail) to match the narrow-column design. The full grid stays available for mobile.
+### 4. Risk & Investigation card
+Design: "Risk Assessment" column starts with a prominent red tile `High Risk Transaction … ESCALATED`, then a flat bullet list of flags (orange flag icon + slate text, no per‑row colored borders).
+Current: no prominent header tile; every flag is rendered as its own colored bordered chip, which is too noisy.
+Fix:
+- Add the leading "High Risk Transaction / ESCALATED" tile when `risk.level` is `high|escalated` OR funds are frozen OR dispute is overdue.
+- Render flags below it as a plain list (`flag` icon + text), no per-row colored borders.
+- Keep the right column "Investigation Log" and the bottom "Escalation History" as they are.
 
-## Changes
+### 5. Complete Transaction Timeline card
+Design: simple icon-on-rail list, no filter chips, no "Newest first" toggle, no "Show full timeline" button (the design just lists the events).
+Current: has a filter row (`All · Payment · Escrow · …`), a sort toggle, and a "Show full timeline" CTA.
+Fix: hide the filter chip row and the sort toggle on desktop to match the design. Keep "Show full timeline" only when there are >8 events, but render it as a small ghost link under the list rather than a centered outlined button.
 
-### File: `src/pages/AdminTransactionDetail.tsx`
+### 6. Linked Records card
+Design: 6 cards in a 4-col grid — Buyer Profile, Seller Profile, Payment Record, Escrow Record, Payout Record (dimmed when none), Dispute Record.
+Current: includes those 6 plus an extra synthesized "Locked Agreement" card.
+Fix: remove the synthesized Locked Agreement card from Linked Records (the agreement already has its own dedicated section in the left rail).
 
-Reorder the JSX inside the main content wrapper to:
+### 7. Locked Agreement card (left rail)
+Design: header is `Locked Agreement` + subtitle `Original terms when payment was made`. Body is two columns (Item Details / Terms) plus a "Seller Notes" tinted block beneath.
+Current: header has a `Preview Agreement` button.
+Fix: keep the `Preview Agreement` button in the header as it is — it's a useful affordance for opening the full read-only snapshot dialog. No change to this section.
 
-```text
-- Mobile mini-header (unchanged)
-- High-risk banner (unchanged, full-width)
-- Summary Card (full-width, unchanged)
-- Risk & Investigation (full-width, moved up)
-- Complete Transaction Timeline (full-width, moved up)
-- Linked Records (full-width, moved up)
-- <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-    <div class="xl:col-span-2 space-y-6">
-      Locked Agreement
-      Transaction Items
-      Payment & Escrow (compact ledger variant)
-      Delivery & Fulfillment (milestones variant)
-    </div>
-    <aside class="space-y-6">
-      Dispute Status
-      Dispute Evidence (vertical list variant)
-    </aside>
-  </div>
-- Supplementary admin-only block (full-width, after grid):
-    Pricing & Fees, Payout, full Escrow Ledger table (collapsible)
-```
+### 8. Payment & Escrow card — Payment Details column
+Design rows: Provider, Reference, Status, Processed (4 rows only).
+Current rows: Provider, Status, Amount, Method, Reference, Paid At (6 rows).
+Fix: trim to exactly Provider / Reference / Status / Processed in this order to match the mockup. (The full payment data still lives in the supplementary admin block — see §11.)
 
-Mobile (`lg:hidden` accordions) keeps the existing top-to-bottom order matching the mobile mockup; only desktop layout changes.
+### 9. Delivery & Fulfillment card — Shipping Details column
+Design rows: Carrier, Tracking, Shipped, Expected.
+Current rows: Method, Carrier, Tracking, Shipped, Delivered, Expected, plus address line.
+Fix: trim to exactly Carrier / Tracking / Shipped / Expected. Move Method, Delivered, and Address into the supplementary admin block.
 
-Implementation notes:
-- Wrap the right-rail cards in `hidden xl:block` inside the grid; on `lg` and below they render in their existing single-column flow before the left-rail cards (to preserve the mobile mockup order).
-- Add a small `EscrowLedgerCompact` inline component (3 rows: received / fee / currently held) computed from existing `data.escrow` + `data.pricing`. Keep `data.escrow.ledger` table behind a "View full ledger" toggle.
-- Add a `DeliveryMilestones` inline component that renders shipped / in-transit / delivered dots from `data.delivery.shippedAt`, `inTransitAt` (if present, otherwise omit), `deliveredAt`. Show the red "Dispute opened within 24hrs of delivery" alert when `dispute.openedAt` and `delivery.deliveredAt` are both present and within 24h.
-- Adjust the right-rail Dispute Evidence card to a vertical list when rendered inside the right column (`xl:flex-col xl:divide-y` style) and keep the existing card grid layout when rendered standalone (mobile / when right column not used).
+### 10. Delivery Status column
+Design: three solid emerald dots labelled `Package shipped` / `In transit` / `Delivered` with timestamps, then the red "Dispute opened within 24hrs of delivery" alert when applicable.
+Current: renders `data.delivery.updates` (variable-length, status-derived labels). Works, but doesn't always render the three canonical milestones the design shows.
+Fix: render a fixed three-step milestone list driven by `delivery.shippedAt`, an inferred in-transit timestamp (first update between shipped and delivered, otherwise hidden), and `delivery.deliveredAt`. Keep the red 24-hr alert exactly as today.
 
-No backend or service changes required — all needed fields already exist in `AdminTxDetailResponse`.
+### 11. Supplementary admin sections (Pricing & Fees, Payout, Full Escrow Ledger)
+Design: not present.
+Current: rendered as three full-width cards under the 2/1 grid.
+Fix: collapse the three into a single full-width `Card` titled `Admin extras` with a `<details>`-style expander (closed by default), so the visible page matches the design pixel-for-pixel while preserving access to the full pricing breakdown, payout fields, and full ledger table for admins. No data is lost.
 
-### Acceptance
+### 12. Dispute Evidence (right rail)
+Design: a single "Photo Evidence" header inside the card body, then stacked rows of `image icon + filename + date` (no preview eye-icon, no per-row hover border).
+Current: flat list of evidence buttons with thumbnail, date, role, and an eye icon.
+Fix: keep the buttons functional (clicking still opens `EvidencePreviewDialog`) but match the visual: no role suffix in the meta line, no trailing eye icon, smaller 12×12 icon tile with a generic image glyph for non-image kinds.
 
-- Desktop @ ≥1280px: section order and 2/1 split match the HTML design exactly.
-- Locked Agreement, Items, Payment & Escrow, Delivery sit in a 2-col left rail; Dispute Status + Dispute Evidence sit in the right rail.
-- Risk, Timeline, Linked Records, Summary, High-risk banner remain full-width and appear above the grid in the order shown above.
-- Mobile (<lg): unchanged from current accordion flow which already matches the mobile mockup.
-- No data is lost — Pricing & Fees, Payout, and the full Escrow Ledger table render in a supplementary section under the grid.
+## File touched
+- `src/pages/AdminTransactionDetail.tsx` — all of the above are edits inside this file. No service or backend changes.
+
+## Acceptance
+- Desktop top bar shows only `Export` + `View Dispute` (when dispute exists) plus the overflow menu icon.
+- Risk card opens with a prominent "High Risk Transaction / ESCALATED" tile and a clean flag list.
+- Timeline has no filter chips or sort toggle on desktop.
+- Linked Records contains exactly 6 cards (no agreement card).
+- Locked Agreement card retains its `Preview Agreement` header button.
+- Payment Details column has exactly Provider / Reference / Status / Processed.
+- Shipping Details column has exactly Carrier / Tracking / Shipped / Expected.
+- Delivery Status column shows the 3 canonical milestones + the 24-hr red alert when relevant.
+- Pricing, Payout, and full Escrow Ledger live behind a single collapsible "Admin extras" card.
+- Right-rail Dispute Evidence list matches the design's "Photo Evidence" stacked rows.
+- Mobile (<lg) layout unchanged.
