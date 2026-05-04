@@ -946,7 +946,7 @@ export default function AdminTransactionDetail() {
       {!loading && !denied && !notFound && data && (
         <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur px-3 py-2 flex items-center gap-2">
           <Button size="sm" className="flex-1 bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setActionSheetOpen(true)}>
-            <Search className="h-4 w-4 mr-1.5" /> Take Action
+            <Gavel className="h-4 w-4 mr-1.5" /> Take Action
           </Button>
           <Button size="sm" variant="outline" onClick={() => setActionSheetOpen(true)} aria-label="More" className="px-3">
             <MoreVertical className="h-4 w-4" />
