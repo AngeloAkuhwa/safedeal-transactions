@@ -51,6 +51,38 @@ export interface AdminTxLinkedRecord {
   type: string; label: string; subtitle?: string | null; status?: string | null;
   amount?: number | null; currency?: string | null; route?: string | null;
 }
+export interface AdminTxEvidenceItem {
+  id: string;
+  kind: "image" | "video" | "document" | "receipt" | "delivery_proof" | "screenshot" | string;
+  title: string;
+  secureUrl: string | null;
+  mimeType: string | null;
+  evidenceType: string | null;
+  uploadedByRole: string | null;
+  uploadedByName: string | null;
+  uploadedAt: string;
+  status: "pending" | "reviewed" | "verified" | "rejected" | "flagged" | string;
+  note: string | null;
+}
+export interface AdminTxLockedAgreement {
+  lockedAt: string | null;
+  transactionCode: string | null;
+  buyerName: string | null;
+  sellerName: string | null;
+  item: { title: string | null; description: string | null; condition: string | null; quantity: number | null };
+  agreedPrice: number | null;
+  protectionFee: number | null;
+  total: number | null;
+  currency: string;
+  deliveryMethod: string | null;
+  verificationWindowHours: number | null;
+  sellerNotes: string | null;
+  buyerNotes: string | null;
+  rules: any;
+  hash: string | null;
+  version: string | null;
+  snapshot: any;
+}
 export interface AdminTxDetailResponse {
   transaction: any;
   parties: { buyer: AdminTxParty | null; seller: AdminTxParty | null };
@@ -65,6 +97,8 @@ export interface AdminTxDetailResponse {
   risk: any;
   linkedRecords: AdminTxLinkedRecord[];
   adminActionsAvailable: Record<string, boolean>;
+  evidence?: AdminTxEvidenceItem[];
+  lockedAgreement?: AdminTxLockedAgreement | null;
 }
 
 export async function getAdminTransactionDetailFull(
