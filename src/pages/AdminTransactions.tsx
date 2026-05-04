@@ -649,7 +649,7 @@ export default function AdminTransactions() {
               </tr>
             </thead>
             <tbody>
-              {isFetching && rows.length === 0 ? (
+              {initialLoad && rows.length === 0 ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i} className="border-b border-border/60">
                     <td colSpan={9} className="px-3 py-3">
@@ -790,7 +790,7 @@ export default function AdminTransactions() {
             </span>
           ) : null}
         </div>
-        {isFetching && rows.length === 0 ? (
+        {initialLoad && rows.length === 0 ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-card" />
           ))
