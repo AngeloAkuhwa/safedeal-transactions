@@ -842,7 +842,7 @@ export default function AdminTransactionDetail() {
                 </div>
               }
             />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 px-4 pb-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 lg:p-6">
               {/* Assessment */}
               <div className="space-y-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Risk Assessment</div>
