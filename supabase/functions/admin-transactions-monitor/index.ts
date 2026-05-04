@@ -352,6 +352,52 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
     searchTxIds = ids;
   }
 
+  // Pre-compute amount-range tx ids via transaction_pricing
+  let amountTxIds: Set<string> | null = null;
+  if (typeof params.amountMin === "number" || typeof params.amountMax === "number") {
+    let pq = client.from("transaction_pricing").select("transaction_id").limit(10000);
+    if (typeof params.amountMin === "number") pq = pq.gte("buyer_total_amount", params.amountMin);
+    if (typeof params.amountMax === "number") pq = pq.lte("buyer_total_amount", params.amountMax);
+    const { data: amtRes } = await pq;
+    amountTxIds = new Set<string>();
+    for (const r of ((amtRes ?? []) as any[])) {
+      if (r.transaction_id) amountTxIds.add(r.transaction_id);
+    }
+  }
+
+  // Pre-compute risk-level tx ids when filtering by risk level
+  let riskLevelTxIds: Set<string> | null = null;
+  let riskLevelExcludeIds: Set<string> | null = null;
+  if (params.riskLevel === "high_risk" || params.riskLevel === "fraud_watch" || params.riskLevel === "clean") {
+    const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const [adminActsRes, auditRes] = await Promise.all([
+      client
+        .from("admin_actions")
+        .select("transaction_id, action_type")
+        .in("action_type", ["freeze_funds", "escalate_case", "flag_for_review"])
+        .not("transaction_id", "is", null)
+        .limit(5000),
+      client
+        .from("audit_logs")
+        .select("transaction_id, action")
+        .gte("created_at", sinceIso)
+        .not("transaction_id", "is", null)
+        .limit(5000),
+    ]);
+    const ids = new Set<string>();
+    for (const r of ((adminActsRes.data ?? []) as any[])) if (r.transaction_id) ids.add(r.transaction_id);
+    for (const r of ((auditRes.data ?? []) as any[])) {
+      if (r.transaction_id && typeof r.action === "string" && /(risk|fraud|suspicious|flag)/i.test(r.action)) {
+        ids.add(r.transaction_id);
+      }
+    }
+    if (params.riskLevel === "clean") {
+      riskLevelExcludeIds = ids;
+    } else {
+      riskLevelTxIds = ids;
+    }
+  }
+
   /* ---- Filtered transactions: list page + count ---- */
   let listQ = client
     .from("transactions")
