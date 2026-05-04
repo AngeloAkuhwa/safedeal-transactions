@@ -50,6 +50,13 @@ export interface AdminTxDetail {
   ledger?: any[];
   messages?: any[];
   notes?: any[];
+  risk?: any;
+  dispute?: any;
+  linked?: any;
+  items?: any[];
+  delivery?: any;
+  agreement?: any;
+  audit?: any[];
 }
 
 export async function getAdminTransactionDetail(
