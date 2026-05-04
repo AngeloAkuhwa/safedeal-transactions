@@ -43,6 +43,13 @@ export const flagForReview = (transactionId: string, reason: string) =>
   invokeAction("flag_for_review", transactionId, { reason });
 export const escalateDispute = (transactionId: string, reason: string) =>
   invokeAction("escalate_dispute", transactionId, { reason });
+export const openInvestigation = (transactionId: string, reason?: string) =>
+  invokeAction("open_investigation", transactionId, { reason });
+export const addInternalNoteTyped = (
+  transactionId: string,
+  note: string,
+  note_type?: "note" | "escalation" | "risk" | "payment" | "dispute" | "payout",
+) => invokeAction("add_internal_note", transactionId, { note, note_type });
 
 export interface AdminTxDetail {
   summary?: any;
