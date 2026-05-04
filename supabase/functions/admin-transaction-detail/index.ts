@@ -3,8 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), {
@@ -12,13 +11,19 @@ const json = (b: unknown, s = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-function maskEmail(email: string | null | undefined): string | null {
+function maskEmail(email?: string | null): string | null {
   if (!email) return null;
   const [local, domain] = email.split("@");
   if (!domain) return email;
   const head = local.length <= 2 ? local : local.slice(0, 2);
   return `${head}***@${domain}`;
 }
+function maskPhone(phone?: string | null): string | null {
+  if (!phone) return null;
+  if (phone.length <= 4) return phone;
+  return `***${phone.slice(-4)}`;
+}
+const num = (v: any) => (v == null ? null : Number(v));
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -26,260 +31,485 @@ Deno.serve(async (req) => {
 
   const auth = req.headers.get("Authorization");
   if (!auth?.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
+
   const userClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: auth } } },
   );
-  const token = auth.replace("Bearer ", "");
-  const { data: userData, error: userErr } = await userClient.auth.getUser(token);
+  const { data: userData, error: userErr } = await userClient.auth.getUser(auth.replace("Bearer ", ""));
   if (userErr || !userData?.user) return json({ error: "unauthorized" }, 401);
-  const userId = userData.user.id;
-  const { data: isAdmin } = await userClient.rpc("has_role", {
-    _user_id: userId, _role: "admin",
-  });
+  const { data: isAdmin } = await userClient.rpc("has_role", { _user_id: userData.user.id, _role: "admin" });
   if (!isAdmin) return json({ error: "admin_access_required" }, 403);
 
-  let body: { transactionId?: string; sections?: string[] };
+  let body: { transaction_id?: string; transactionId?: string };
   try { body = await req.json(); } catch { return json({ error: "invalid_json" }, 400); }
-  const txId = body?.transactionId;
-  if (!txId) return json({ error: "missing_transactionId" }, 400);
-  const wanted = new Set(body?.sections ?? ["summary", "timeline", "ledger", "messages", "notes"]);
+  const txId = body.transaction_id ?? body.transactionId;
+  if (!txId) return json({ error: "missing_transaction_id" }, 400);
 
-  const admin = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   const { data: tx, error: txErr } = await admin
     .from("transactions")
-    .select("id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, created_at, updated_at, needs_release_review, release_review_reason, agreement_locked_at, delivered_at, verification_deadline_at")
+    .select("id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, source_product_id, created_at, updated_at, completed_at, buyer_confirmed_at, seller_confirmed_at, agreement_locked_at, payment_received_at, delivered_at, verification_deadline_at, needs_release_review, release_review_reason")
     .eq("id", txId)
-    .single();
-  if (txErr || !tx) return json({ error: "transaction_not_found" }, 404);
+    .maybeSingle();
+  if (txErr) return json({ error: "query_failed", detail: txErr.message }, 500);
+  if (!tx) return json({ error: "transaction_not_found" }, 404);
 
-  const out: any = {};
+  const userIds = [tx.buyer_id, tx.seller_id].filter(Boolean) as string[];
 
-  if (wanted.has("summary")) {
-    const userIds = [tx.buyer_id, tx.seller_id].filter(Boolean) as string[];
-    const [profilesRes, pricingRes, escrowRes, firstItemRes, latestPaymentRes, latestPayoutRes, openDisputeRes] = await Promise.all([
-      userIds.length
-        ? admin.from("profiles").select("id, full_name, email, phone, avatar_url").in("id", userIds)
-        : Promise.resolve({ data: [] as any[] }),
-      admin.from("transaction_pricing").select("currency_code, item_amount, buyer_total_amount, platform_fee_amount, processing_fee_amount, seller_net_amount").eq("transaction_id", txId).maybeSingle(),
-      admin.from("escrow_states").select("state, held_amount, frozen_amount, released_amount, refunded_amount").eq("transaction_id", txId).maybeSingle(),
-      admin.from("transaction_items").select("title").eq("transaction_id", txId).order("created_at", { ascending: true }).limit(1).maybeSingle(),
-      admin.from("payments").select("provider, provider_reference, status, amount, currency_code, created_at").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      admin.from("payouts").select("status, amount, currency_code, provider_reference, created_at").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      admin.from("disputes").select("id, status, reason, description, opened_at, seller_response_due_at, resolved_at").eq("transaction_id", txId).maybeSingle(),
-    ]);
-    const byId = new Map<string, any>();
-    for (const p of (profilesRes.data ?? []) as any[]) byId.set(p.id, p);
-    const buyer = tx.buyer_id ? byId.get(tx.buyer_id) : null;
-    const seller = tx.seller_id ? byId.get(tx.seller_id) : null;
-    const payment = latestPaymentRes.data ?? null;
-    const payout = latestPayoutRes.data ?? null;
-    const lastActivityAt = tx.updated_at ?? tx.created_at ?? null;
-    out.summary = {
-      transactionId: tx.id,
-      transactionCode: tx.transaction_code,
-      itemTitle: firstItemRes.data?.title ?? null,
-      status: tx.status,
-      moneyStatus: tx.money_status,
-      disputeStatus: tx.dispute_status,
-      payoutStatus: payout?.status ?? null,
-      paymentProvider: payment?.provider ?? null,
-      providerReference: payment?.provider_reference ?? null,
-      createdAt: tx.created_at,
-      updatedAt: tx.updated_at,
-      lastActivityAt,
-      agreementLockedAt: tx.agreement_locked_at ?? null,
-      needsReleaseReview: tx.needs_release_review,
-      releaseReviewReason: tx.release_review_reason,
-      buyer: buyer ? { id: buyer.id, name: buyer.full_name ?? null, email: maskEmail(buyer.email), phone: buyer.phone ?? null, avatarUrl: buyer.avatar_url ?? null } : null,
-      seller: seller ? { id: seller.id, name: seller.full_name ?? null, email: maskEmail(seller.email), phone: seller.phone ?? null, avatarUrl: seller.avatar_url ?? null } : null,
-      pricing: pricingRes.data ?? null,
-      escrow: escrowRes.data ?? null,
-      payment,
-      payout,
-      dispute: openDisputeRes.data ?? null,
-      deadlineOverdue: !!(openDisputeRes.data?.seller_response_due_at && new Date(openDisputeRes.data.seller_response_due_at).getTime() < Date.now() && !openDisputeRes.data?.resolved_at),
+  const [
+    profilesRes, verifsRes, pricingRes, escrowRes, ledgerRes,
+    itemsRes, productRes, paymentRes, payoutRes, refundsRes,
+    deliveryTermsRes, deliveryTrackingRes, deliveryUpdatesRes, deliveryProofRes,
+    disputeRes, txStatusRes, moneyStatusRes, eventsRes, adminActionsRes, auditRes,
+  ] = await Promise.all([
+    userIds.length
+      ? admin.from("profiles").select("id, full_name, email, phone, avatar_url, status, store_slug").in("id", userIds)
+      : Promise.resolve({ data: [] as any[] }),
+    userIds.length
+      ? admin.from("account_verifications").select("user_id, verification_level, identity_verified, email_verified, phone_verified, payout_verified").in("user_id", userIds)
+      : Promise.resolve({ data: [] as any[] }),
+    admin.from("transaction_pricing").select("currency_code, item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount").eq("transaction_id", txId).maybeSingle(),
+    admin.from("escrow_states").select("state, held_amount, frozen_amount, released_amount, refunded_amount, last_changed_at").eq("transaction_id", txId).maybeSingle(),
+    admin.from("escrow_ledger_entries").select("id, created_at, entry_type, amount, currency_code, balance_after, reference_type, reference_id, notes").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(100),
+    admin.from("transaction_items").select("id, title, description, quantity, condition_label, brand, model, warranty_info, created_at").eq("transaction_id", txId).order("created_at", { ascending: true }),
+    tx.source_product_id
+      ? admin.from("products").select("id, title, slug, category_id, condition_label, unit_price, currency_code").eq("id", tx.source_product_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    admin.from("payments").select("id, provider, provider_reference, status, amount, currency_code, payment_method_type, authorized_at, captured_at, failed_at, failure_reason, created_at").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    admin.from("payouts").select("id, status, amount, currency_code, provider_reference, initiated_at, completed_at, released_at, failed_at, failure_reason, last_release_error, retry_allowed, release_blocked, payout_blocked_reason, created_at").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    admin.from("refunds").select("id, status, refund_amount, currency_code, reason, created_at, completed_at").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(20),
+    admin.from("transaction_delivery_terms").select("delivery_method, expected_delivery_date, verification_window_hours, delivery_address_line1, delivery_address_line2, delivery_city, delivery_state, delivery_country_code, delivery_postal_code").eq("transaction_id", txId).maybeSingle(),
+    admin.from("delivery_tracking_details").select("courier_name, tracking_number, tracking_url, shipped_at, expected_delivery_at, delivered_at, signature_name").eq("transaction_id", txId).maybeSingle(),
+    admin.from("delivery_updates").select("id, created_at, status, notes").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(50),
+    admin.from("delivery_proof_files").select("id, proof_type, created_at, file_id").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(20),
+    admin.from("disputes").select("id, status, reason, description, opened_at, seller_response_due_at, resolved_at").eq("transaction_id", txId).order("opened_at", { ascending: false }).limit(1).maybeSingle(),
+    admin.from("transaction_status_history").select("changed_at, old_status, new_status, reason, changed_by_user_id").eq("transaction_id", txId).order("changed_at", { ascending: false }).limit(100),
+    admin.from("money_status_history").select("changed_at, old_status, new_status, reason, changed_by_user_id").eq("transaction_id", txId).order("changed_at", { ascending: false }).limit(100),
+    admin.from("transaction_events").select("id, occurred_at, event_type, actor_user_id, actor_role, event_data").eq("transaction_id", txId).order("occurred_at", { ascending: false }).limit(100),
+    admin.from("admin_actions").select("id, created_at, admin_user_id, action_type, action_notes").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(100),
+    admin.from("audit_logs").select("id, created_at, action, actor_user_id, description, metadata").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(100),
+  ]);
+
+  // Profiles map + verification map
+  const profById = new Map<string, any>(((profilesRes as any).data ?? []).map((p: any) => [p.id, p]));
+  const vById = new Map<string, any>(((verifsRes as any).data ?? []).map((v: any) => [v.user_id, v]));
+
+  const buildParty = (uid: string | null, kind: "buyer" | "seller") => {
+    if (!uid) return null;
+    const p = profById.get(uid);
+    const v = vById.get(uid);
+    if (!p) return null;
+    return {
+      id: p.id,
+      name: p.full_name ?? null,
+      storeSlug: kind === "seller" ? p.store_slug ?? null : null,
+      avatarUrl: p.avatar_url ?? null,
+      maskedEmail: maskEmail(p.email),
+      maskedPhone: maskPhone(p.phone),
+      flagged: p.status && p.status !== "active",
+      accountStatus: p.status ?? null,
+      verification: v ? {
+        level: v.verification_level,
+        identity: !!v.identity_verified,
+        email: !!v.email_verified,
+        phone: !!v.phone_verified,
+        payout: !!v.payout_verified,
+      } : null,
     };
-  }
+  };
 
-  if (wanted.has("risk")) {
-    const [aaRes, alRes] = await Promise.all([
-      admin.from("admin_actions").select("id, created_at, admin_user_id, action_type, action_notes").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(50),
-      admin.from("audit_logs").select("id, created_at, actor_user_id, action, description, metadata").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(50),
-    ]);
-    const signals: { label: string; severity: "low" | "medium" | "high" }[] = [];
-    if (tx.needs_release_review) signals.push({ label: tx.release_review_reason ?? "Needs release review", severity: "high" });
-    if (tx.money_status === "funds_frozen") signals.push({ label: "Funds frozen", severity: "high" });
-    if (tx.dispute_status && tx.dispute_status !== "none") signals.push({ label: `Dispute: ${tx.dispute_status}`, severity: "medium" });
-    let level: "clean" | "elevated" | "high" | "escalated" = "clean";
-    if (signals.some(s => s.severity === "high")) level = signals.length > 1 ? "escalated" : "high";
-    else if (signals.length > 0) level = "elevated";
-    const escalationHistory = ((aaRes.data ?? []) as any[])
-      .filter((a) => /escalat|flag|freeze|review/i.test(a.action_type ?? ""))
-      .map((a) => ({ at: a.created_at, label: (a.action_type ?? "").replace(/_/g, " "), by: a.admin_user_id, note: a.action_notes }));
-    out.risk = {
-      level,
-      signals,
-      adminActions: aaRes.data ?? [],
-      auditLog: alRes.data ?? [],
-      escalationHistory,
-    };
-  }
-
-  if (wanted.has("dispute")) {
-    const { data: d } = await admin.from("disputes").select("id, status, reason, description, opened_at, seller_response_due_at, resolved_at").eq("transaction_id", txId).maybeSingle();
-    let evidence: any[] = [];
-    if (d?.id) {
-      const { data: ev } = await admin.from("dispute_evidence").select("id, created_at, evidence_type, notes, submitted_by_role, file_id").eq("dispute_id", d.id).eq("is_active", true).order("created_at", { ascending: false }).limit(50);
-      evidence = ev ?? [];
+  // Product media (image)
+  let productImage: string | null = null;
+  if (tx.source_product_id) {
+    const { data: media } = await admin
+      .from("product_media")
+      .select("file_id, is_primary, sort_order")
+      .eq("product_id", tx.source_product_id)
+      .order("is_primary", { ascending: false })
+      .order("sort_order", { ascending: true })
+      .limit(1);
+    if (media && media[0]?.file_id) {
+      const { data: f } = await admin.from("files").select("secure_url, file_url").eq("id", media[0].file_id).maybeSingle();
+      productImage = f?.secure_url ?? f?.file_url ?? null;
     }
-    out.dispute = d ? { ...d, evidence } : null;
   }
 
-  if (wanted.has("linked")) {
-    const userIds = [tx.buyer_id, tx.seller_id].filter(Boolean) as string[];
-    const [paymentsRes, payoutsRes, refundsRes, profsRes, vRes] = await Promise.all([
-      admin.from("payments").select("id, provider, provider_reference, status, amount, currency_code, created_at").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(20),
-      admin.from("payouts").select("id, status, amount, currency_code, provider_reference, created_at, completed_at").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(20),
-      admin.from("refunds").select("id, status, refund_amount, currency_code, reason, created_at, completed_at").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(20),
-      userIds.length ? admin.from("profiles").select("id, full_name, email, avatar_url, status").in("id", userIds) : Promise.resolve({ data: [] as any[] }),
-      userIds.length ? admin.from("account_verifications").select("user_id, verification_level, identity_verified, email_verified, phone_verified").in("user_id", userIds) : Promise.resolve({ data: [] as any[] }),
-    ]);
-    const profById = new Map(((profsRes as any).data ?? []).map((p: any) => [p.id, p]));
-    const vById = new Map(((vRes as any).data ?? []).map((v: any) => [v.user_id, v]));
-    const enrich = (uid: string | null) => {
-      if (!uid) return null;
-      const p = profById.get(uid); const v = vById.get(uid);
-      return p ? {
-        id: p.id, name: p.full_name, email: maskEmail(p.email), avatarUrl: p.avatar_url ?? null,
-        flagged: p.status && p.status !== "active",
-        verified: !!(v && (v.identity_verified || v.verification_level === "verified" || v.verification_level === "trusted")),
-        verificationLevel: v?.verification_level ?? "unverified",
-      } : null;
+  // Items - attach unit_price from product if single-item
+  const pricing = pricingRes.data ?? null;
+  const items = (itemsRes.data ?? []).map((it: any, idx: number) => {
+    const isSingle = (itemsRes.data ?? []).length === 1;
+    const unitPrice = isSingle && pricing
+      ? num(pricing.item_amount) / Math.max(1, it.quantity ?? 1)
+      : num(productRes.data?.unit_price);
+    const lineTotal = unitPrice != null ? unitPrice * (it.quantity ?? 1) : (isSingle ? num(pricing?.item_amount) : null);
+    return {
+      id: it.id,
+      title: it.title,
+      description: it.description,
+      condition: it.condition_label,
+      quantity: it.quantity,
+      brand: it.brand,
+      model: it.model,
+      warrantyInfo: it.warranty_info,
+      unitPrice,
+      lineTotal,
+      image: idx === 0 ? productImage : null,
+      productId: tx.source_product_id ?? null,
     };
-    out.linked = {
-      payments: paymentsRes.data ?? [],
-      payouts: payoutsRes.data ?? [],
-      refunds: refundsRes.data ?? [],
-      buyer: enrich(tx.buyer_id),
-      seller: enrich(tx.seller_id),
-    };
-  }
+  });
 
-  if (wanted.has("items")) {
-    const { data } = await admin
-      .from("transaction_items")
-      .select("id, title, description, quantity, condition_label, brand, model, warranty_info, created_at")
-      .eq("transaction_id", txId)
-      .order("created_at", { ascending: true });
-    out.items = data ?? [];
-  }
+  const dispute = disputeRes.data;
+  const disputeOverdue = !!(dispute?.seller_response_due_at && new Date(dispute.seller_response_due_at).getTime() < Date.now() && !dispute.resolved_at);
 
-  if (wanted.has("delivery")) {
-    const [termsRes, updatesRes, trackRes] = await Promise.all([
-      admin.from("transaction_delivery_terms").select("delivery_method, expected_delivery_date, verification_window_hours, delivery_address_line1, delivery_address_line2, delivery_city, delivery_state, delivery_country_code, delivery_postal_code").eq("transaction_id", txId).maybeSingle(),
-      admin.from("delivery_updates").select("id, created_at, status, notes").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(50),
-      admin.from("delivery_tracking_details").select("courier_name, tracking_number, tracking_url, shipped_at, delivered_at, expected_delivery_at").eq("transaction_id", txId).maybeSingle(),
+  // Dispute evidence
+  let evidence: any[] = [];
+  let disputeHistory: any[] = [];
+  let disputeOutcome: any = null;
+  let disputeResponses: any[] = [];
+  if (dispute?.id) {
+    const [evRes, dhRes, doRes, drRes] = await Promise.all([
+      admin.from("dispute_evidence").select("id, created_at, evidence_type, notes, submitted_by_role, file_id").eq("dispute_id", dispute.id).eq("is_active", true).order("created_at", { ascending: false }).limit(50),
+      admin.from("dispute_status_history").select("changed_at, old_status, new_status, reason, changed_by_user_id").eq("dispute_id", dispute.id).order("changed_at", { ascending: false }).limit(50),
+      admin.from("dispute_outcomes").select("id, outcome_type, decision_summary, refund_amount, release_amount, resolved_at").eq("dispute_id", dispute.id).maybeSingle(),
+      admin.from("dispute_responses").select("id, response_number, response_text, submitted_at, responded_by_user_id").eq("dispute_id", dispute.id).order("submitted_at", { ascending: false }).limit(10),
     ]);
-    out.delivery = {
-      terms: termsRes.data ?? null,
-      updates: updatesRes.data ?? [],
-      tracking: trackRes.data ?? null,
-      deliveredAt: tx.delivered_at ?? trackRes.data?.delivered_at ?? null,
-      verificationDeadlineAt: tx.verification_deadline_at ?? null,
-    };
+    evidence = evRes.data ?? [];
+    disputeHistory = dhRes.data ?? [];
+    disputeOutcome = doRes.data ?? null;
+    disputeResponses = drRes.data ?? [];
   }
 
-  if (wanted.has("agreement")) {
-    const [pricingRes, itemsRes, termsRes] = await Promise.all([
-      admin.from("transaction_pricing").select("currency_code, item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount").eq("transaction_id", txId).maybeSingle(),
-      admin.from("transaction_items").select("title, quantity, condition_label").eq("transaction_id", txId).order("created_at", { ascending: true }),
-      admin.from("transaction_delivery_terms").select("delivery_method, expected_delivery_date, verification_window_hours").eq("transaction_id", txId).maybeSingle(),
-    ]);
-    out.agreement = {
-      lockedAt: tx.agreement_locked_at ?? null,
-      pricing: pricingRes.data ?? null,
-      items: itemsRes.data ?? [],
-      terms: termsRes.data ?? null,
-    };
-  }
+  // ===== Build response sections =====
 
-  if (wanted.has("audit")) {
-    const { data } = await admin
-      .from("audit_logs")
-      .select("id, created_at, action, actor_user_id, target_user_id, description, metadata, ip_address")
-      .eq("transaction_id", txId)
-      .order("created_at", { ascending: false })
-      .limit(50);
-    out.audit = data ?? [];
-  }
+  const transaction = {
+    id: tx.id,
+    transactionCode: tx.transaction_code,
+    status: tx.status,
+    moneyStatus: tx.money_status,
+    disputeStatus: tx.dispute_status,
+    createdAt: tx.created_at,
+    updatedAt: tx.updated_at,
+    lastActivityAt: tx.updated_at ?? tx.created_at,
+    completedAt: tx.completed_at,
+    buyerConfirmedAt: tx.buyer_confirmed_at,
+    sellerConfirmedAt: tx.seller_confirmed_at,
+    agreementLockedAt: tx.agreement_locked_at,
+    paymentReceivedAt: tx.payment_received_at,
+    deliveredAt: tx.delivered_at,
+    verificationDeadlineAt: tx.verification_deadline_at,
+    needsAdminReview: tx.needs_release_review,
+    adminReviewReason: tx.release_review_reason,
+  };
 
-  if (wanted.has("timeline")) {
-    const [tsh, msh, evt, du, dsh, aa] = await Promise.all([
-      admin.from("transaction_status_history").select("changed_at, old_status, new_status, reason").eq("transaction_id", txId).order("changed_at", { ascending: false }).limit(100),
-      admin.from("money_status_history").select("changed_at, old_status, new_status, reason").eq("transaction_id", txId).order("changed_at", { ascending: false }).limit(100),
-      admin.from("transaction_events").select("created_at, event_type, event_data").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(100),
-      admin.from("delivery_updates").select("created_at, status, notes").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(50),
-      admin.from("disputes").select("id").eq("transaction_id", txId).limit(5),
-      admin.from("admin_actions").select("created_at, action_type, action_notes").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(50),
-    ]);
-    const disputeIds = ((dsh.data ?? []) as any[]).map((d) => d.id);
-    const dshRows = disputeIds.length
-      ? (await admin.from("dispute_status_history").select("changed_at, old_status, new_status, reason").in("dispute_id", disputeIds).order("changed_at", { ascending: false }).limit(100)).data ?? []
-      : [];
-    const items: any[] = [];
-    for (const r of (tsh.data ?? []) as any[]) items.push({ at: r.changed_at, kind: "transaction_status", from: r.old_status, to: r.new_status, note: r.reason });
-    for (const r of (msh.data ?? []) as any[]) items.push({ at: r.changed_at, kind: "money_status", from: r.old_status, to: r.new_status, note: r.reason });
-    for (const r of (evt.data ?? []) as any[]) items.push({ at: r.created_at, kind: "event", to: r.event_type, note: null, data: r.event_data });
-    for (const r of (du.data ?? []) as any[]) items.push({ at: r.created_at, kind: "delivery", to: r.status, note: r.notes });
-    for (const r of dshRows as any[]) items.push({ at: r.changed_at, kind: "dispute", from: r.old_status, to: r.new_status, note: r.reason });
-    for (const r of (aa.data ?? []) as any[]) items.push({ at: r.created_at, kind: "admin_action", to: r.action_type, note: r.action_notes });
-    items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
-    out.timeline = items.slice(0, 200);
-  }
+  const parties = {
+    buyer: buildParty(tx.buyer_id, "buyer"),
+    seller: buildParty(tx.seller_id, "seller"),
+  };
 
-  if (wanted.has("ledger")) {
-    const { data } = await admin
-      .from("escrow_ledger_entries")
-      .select("id, created_at, entry_type, amount, currency_code, balance_after, reference_type, reference_id, notes")
-      .eq("transaction_id", txId)
-      .order("created_at", { ascending: false })
-      .limit(200);
-    out.ledger = data ?? [];
-  }
+  const pricingOut = pricing ? {
+    currency: pricing.currency_code,
+    itemTotal: num(pricing.item_amount),
+    protectionFee: num(pricing.platform_fee_amount),
+    processingFee: num(pricing.processing_fee_amount),
+    sellerNet: num(pricing.seller_net_amount),
+    buyerTotal: num(pricing.buyer_total_amount),
+    refundedTotal: (refundsRes.data ?? [])
+      .filter((r: any) => r.status === "completed")
+      .reduce((acc: number, r: any) => acc + Number(r.refund_amount ?? 0), 0),
+  } : null;
 
-  if (wanted.has("messages")) {
-    const { data } = await admin
-      .from("transaction_messages")
-      .select("id, created_at, sender_user_id, recipient_user_id, message_text, is_read")
-      .eq("transaction_id", txId)
-      .order("created_at", { ascending: false })
-      .limit(100);
-    out.messages = data ?? [];
-  }
+  const payment = paymentRes.data ? {
+    id: paymentRes.data.id,
+    provider: paymentRes.data.provider,
+    providerReference: paymentRes.data.provider_reference,
+    status: paymentRes.data.status,
+    amount: num(paymentRes.data.amount),
+    currency: paymentRes.data.currency_code,
+    paymentMethodType: paymentRes.data.payment_method_type,
+    authorizedAt: paymentRes.data.authorized_at,
+    capturedAt: paymentRes.data.captured_at,
+    paidAt: paymentRes.data.captured_at ?? paymentRes.data.authorized_at,
+    failedAt: paymentRes.data.failed_at,
+    failureReason: paymentRes.data.failure_reason,
+    createdAt: paymentRes.data.created_at,
+  } : null;
 
-  if (wanted.has("notes")) {
-    const { data } = await admin
-      .from("admin_transaction_notes")
-      .select("id, created_at, admin_user_id, note, is_pinned")
-      .eq("transaction_id", txId)
-      .order("created_at", { ascending: false })
-      .limit(100);
-    const adminIds = Array.from(new Set(((data ?? []) as any[]).map((r) => r.admin_user_id)));
-    const profiles = adminIds.length
-      ? (await admin.from("profiles").select("id, full_name, email").in("id", adminIds)).data ?? []
-      : [];
-    const byId = new Map(profiles.map((p: any) => [p.id, p]));
-    out.notes = ((data ?? []) as any[]).map((n) => ({
-      ...n,
-      author: byId.get(n.admin_user_id) ?? null,
+  const escrow = escrowRes.data ? {
+    state: escrowRes.data.state,
+    heldAmount: num(escrowRes.data.held_amount),
+    frozenAmount: num(escrowRes.data.frozen_amount),
+    releasedAmount: num(escrowRes.data.released_amount),
+    refundedAmount: num(escrowRes.data.refunded_amount),
+    lastChangedAt: escrowRes.data.last_changed_at,
+    ledger: (ledgerRes.data ?? []).map((e: any) => ({
+      id: e.id,
+      at: e.created_at,
+      entryType: e.entry_type,
+      amount: num(e.amount),
+      currency: e.currency_code,
+      balanceAfter: num(e.balance_after),
+      referenceType: e.reference_type,
+      referenceId: e.reference_id,
+      notes: e.notes,
+    })),
+  } : null;
+
+  const payout = payoutRes.data ? {
+    id: payoutRes.data.id,
+    status: payoutRes.data.status,
+    amount: num(payoutRes.data.amount),
+    currency: payoutRes.data.currency_code,
+    providerReference: payoutRes.data.provider_reference,
+    initiatedAt: payoutRes.data.initiated_at,
+    completedAt: payoutRes.data.completed_at,
+    releasedAt: payoutRes.data.released_at,
+    failedAt: payoutRes.data.failed_at,
+    failureReason: payoutRes.data.failure_reason ?? payoutRes.data.last_release_error,
+    retryAllowed: !!payoutRes.data.retry_allowed,
+    blocked: !!payoutRes.data.release_blocked,
+    blockedReason: payoutRes.data.payout_blocked_reason,
+    awaitingRelease: payoutRes.data.status === "pending" || payoutRes.data.status === "awaiting_release",
+  } : null;
+
+  const delivery = {
+    method: deliveryTermsRes.data?.delivery_method ?? null,
+    expectedDate: deliveryTermsRes.data?.expected_delivery_date ?? null,
+    verificationWindowHours: deliveryTermsRes.data?.verification_window_hours ?? null,
+    address: deliveryTermsRes.data ? [
+      deliveryTermsRes.data.delivery_address_line1,
+      deliveryTermsRes.data.delivery_address_line2,
+      deliveryTermsRes.data.delivery_city,
+      deliveryTermsRes.data.delivery_state,
+      deliveryTermsRes.data.delivery_country_code,
+      deliveryTermsRes.data.delivery_postal_code,
+    ].filter(Boolean).join(", ") || null : null,
+    courier: deliveryTrackingRes.data?.courier_name ?? null,
+    trackingNumber: deliveryTrackingRes.data?.tracking_number ?? null,
+    trackingUrl: deliveryTrackingRes.data?.tracking_url ?? null,
+    shippedAt: deliveryTrackingRes.data?.shipped_at ?? null,
+    deliveredAt: deliveryTrackingRes.data?.delivered_at ?? tx.delivered_at ?? null,
+    expectedDeliveryAt: deliveryTrackingRes.data?.expected_delivery_at ?? null,
+    updates: (deliveryUpdatesRes.data ?? []).map((u: any) => ({ id: u.id, at: u.created_at, status: u.status, notes: u.notes })),
+    proofs: (deliveryProofRes.data ?? []).map((p: any) => ({ id: p.id, proofType: p.proof_type, at: p.created_at, fileId: p.file_id })),
+  };
+
+  const disputeOut = dispute ? {
+    id: dispute.id,
+    status: dispute.status,
+    claimType: dispute.reason,
+    summary: dispute.description,
+    openedAt: dispute.opened_at,
+    sellerResponseDueAt: dispute.seller_response_due_at,
+    resolvedAt: dispute.resolved_at,
+    overdue: disputeOverdue,
+    evidence: evidence.map((e: any) => ({
+      id: e.id, at: e.created_at, evidenceType: e.evidence_type, notes: e.notes, submittedByRole: e.submitted_by_role, fileId: e.file_id,
+    })),
+    history: disputeHistory.map((h: any) => ({ at: h.changed_at, from: h.old_status, to: h.new_status, reason: h.reason })),
+    responses: disputeResponses.map((r: any) => ({ id: r.id, number: r.response_number, text: r.response_text, at: r.submitted_at })),
+    outcome: disputeOutcome ? {
+      type: disputeOutcome.outcome_type,
+      summary: disputeOutcome.decision_summary,
+      refundAmount: num(disputeOutcome.refund_amount),
+      releaseAmount: num(disputeOutcome.release_amount),
+      resolvedAt: disputeOutcome.resolved_at,
+    } : null,
+  } : null;
+
+  // ===== Timeline =====
+  const TL_META: Record<string, { type: string; severity: string; icon: string; title: (r: any) => string; description: (r: any) => string }> = {};
+  const items_tl: any[] = [];
+
+  for (const r of (txStatusRes.data ?? []) as any[]) {
+    items_tl.push({
+      id: `ts-${r.changed_at}`, at: r.changed_at, type: "transaction_status",
+      title: `Transaction: ${(r.new_status ?? "").replace(/_/g, " ")}`,
+      description: r.old_status ? `From ${r.old_status.replace(/_/g, " ")}${r.reason ? ` — ${r.reason}` : ""}` : (r.reason ?? ""),
+      actorType: r.changed_by_user_id ? "user" : "system", actorName: null,
+      severity: "info", icon: "truck",
+    });
+  }
+  for (const r of (moneyStatusRes.data ?? []) as any[]) {
+    items_tl.push({
+      id: `ms-${r.changed_at}`, at: r.changed_at, type: "money_status",
+      title: `Money: ${(r.new_status ?? "").replace(/_/g, " ")}`,
+      description: r.old_status ? `From ${r.old_status.replace(/_/g, " ")}${r.reason ? ` — ${r.reason}` : ""}` : (r.reason ?? ""),
+      actorType: r.changed_by_user_id ? "user" : "system", actorName: null,
+      severity: "info", icon: "lock",
+    });
+  }
+  for (const r of (eventsRes.data ?? []) as any[]) {
+    items_tl.push({
+      id: `ev-${r.id}`, at: r.occurred_at, type: "event",
+      title: (r.event_type ?? "").replace(/_/g, " "),
+      description: r.event_data ? JSON.stringify(r.event_data) : "",
+      actorType: r.actor_role ?? "system", actorName: null,
+      severity: "info", icon: "credit-card",
+    });
+  }
+  for (const r of (deliveryUpdatesRes.data ?? []) as any[]) {
+    items_tl.push({
+      id: `du-${r.id}`, at: r.created_at, type: "delivery",
+      title: `Delivery: ${(r.status ?? "").replace(/_/g, " ")}`,
+      description: r.notes ?? "",
+      actorType: "user", actorName: null,
+      severity: "info", icon: "package",
+    });
+  }
+  for (const r of disputeHistory as any[]) {
+    items_tl.push({
+      id: `dh-${r.changed_at}`, at: r.changed_at, type: "dispute",
+      title: `Dispute: ${(r.new_status ?? "").replace(/_/g, " ")}`,
+      description: r.reason ?? "",
+      actorType: r.changed_by_user_id ? "user" : "system", actorName: null,
+      severity: "warning", icon: "scale",
+    });
+  }
+  for (const r of (adminActionsRes.data ?? []) as any[]) {
+    items_tl.push({
+      id: `aa-${r.id}`, at: r.created_at, type: "admin_action",
+      title: (r.action_type ?? "").replace(/_/g, " "),
+      description: r.action_notes ?? "",
+      actorType: "admin", actorName: profById.get(r.admin_user_id)?.full_name ?? null,
+      severity: /freeze|escalat/i.test(r.action_type ?? "") ? "critical" : "warning",
+      icon: "alert-triangle",
+    });
+  }
+  if (payment) {
+    if (payment.capturedAt) items_tl.push({ id: `pay-cap-${payment.id}`, at: payment.capturedAt, type: "payment", title: "Payment captured", description: `${payment.provider} · ${payment.providerReference}`, actorType: "system", actorName: null, severity: "success", icon: "credit-card" });
+    if (payment.failedAt) items_tl.push({ id: `pay-fail-${payment.id}`, at: payment.failedAt, type: "payment", title: "Payment failed", description: payment.failureReason ?? "", actorType: "system", actorName: null, severity: "critical", icon: "credit-card" });
+  }
+  if (payout) {
+    if (payout.releasedAt) items_tl.push({ id: `po-rel-${payout.id}`, at: payout.releasedAt, type: "payout", title: "Payout released", description: payout.providerReference ?? "", actorType: "system", actorName: null, severity: "success", icon: "credit-card" });
+    if (payout.completedAt) items_tl.push({ id: `po-cmp-${payout.id}`, at: payout.completedAt, type: "payout", title: "Payout completed", description: payout.providerReference ?? "", actorType: "system", actorName: null, severity: "success", icon: "credit-card" });
+    if (payout.failedAt) items_tl.push({ id: `po-fail-${payout.id}`, at: payout.failedAt, type: "payout", title: "Payout failed", description: payout.failureReason ?? "", actorType: "system", actorName: null, severity: "critical", icon: "credit-card" });
+  }
+  for (const e of (escrow?.ledger ?? [])) {
+    items_tl.push({
+      id: `el-${e.id}`, at: e.at, type: "escrow_ledger",
+      title: `Escrow: ${(e.entryType ?? "").replace(/_/g, " ")}`,
+      description: e.notes ?? "",
+      actorType: "system", actorName: null,
+      severity: "info", icon: "lock",
+    });
+  }
+  items_tl.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  const timeline = items_tl.slice(0, 250);
+
+  // ===== Risk =====
+  const flags: { label: string; severity: "low" | "medium" | "high" }[] = [];
+  if (tx.needs_release_review) flags.push({ label: tx.release_review_reason ?? "Needs admin review", severity: "high" });
+  if (tx.money_status === "funds_frozen") flags.push({ label: "Funds frozen", severity: "high" });
+  if (tx.dispute_status && tx.dispute_status !== "none") flags.push({ label: `Dispute: ${tx.dispute_status.replace(/_/g, " ")}`, severity: "medium" });
+  if (disputeOverdue) flags.push({ label: "Dispute response overdue", severity: "high" });
+  if (parties.buyer?.flagged) flags.push({ label: "Buyer account flagged", severity: "high" });
+  let riskLevel: "clean" | "elevated" | "high" | "escalated" = "clean";
+  const highCount = flags.filter(f => f.severity === "high").length;
+  if (highCount >= 2) riskLevel = "escalated";
+  else if (highCount === 1) riskLevel = "high";
+  else if (flags.length > 0) riskLevel = "elevated";
+
+  const investigationNotes = (await admin
+    .from("admin_transaction_notes")
+    .select("id, created_at, admin_user_id, note, is_pinned")
+    .eq("transaction_id", txId)
+    .order("created_at", { ascending: false })
+    .limit(50)).data ?? [];
+  const noteAdminIds = Array.from(new Set(investigationNotes.map((n: any) => n.admin_user_id)));
+  const noteAdminProfs = noteAdminIds.length
+    ? (await admin.from("profiles").select("id, full_name").in("id", noteAdminIds)).data ?? []
+    : [];
+  const noteProfById = new Map(noteAdminProfs.map((p: any) => [p.id, p]));
+
+  const escalationHistory = ((adminActionsRes.data ?? []) as any[])
+    .filter((a) => /escalat|flag|freeze|review/i.test(a.action_type ?? ""))
+    .map((a) => ({
+      at: a.created_at,
+      label: (a.action_type ?? "").replace(/_/g, " "),
+      by: profById.get(a.admin_user_id)?.full_name ?? null,
+      note: a.action_notes,
     }));
-  }
 
-  return json(out);
+  const risk = {
+    level: riskLevel,
+    flags,
+    overdue: disputeOverdue,
+    needsAdminReview: !!tx.needs_release_review,
+    adminReviewReason: tx.release_review_reason ?? null,
+    investigationNotes: investigationNotes.map((n: any) => ({
+      id: n.id, at: n.created_at, note: n.note, isPinned: n.is_pinned,
+      author: noteProfById.get(n.admin_user_id) ?? null,
+    })),
+    escalationHistory,
+  };
+
+  // ===== Linked Records =====
+  const linkedRecords: any[] = [];
+  if (parties.buyer) linkedRecords.push({
+    type: "buyer", label: parties.buyer.name ?? "Buyer", subtitle: parties.buyer.maskedEmail ?? "",
+    status: parties.buyer.flagged ? "flagged" : (parties.buyer.verification?.identity ? "verified" : "active"),
+    route: `/admin/users/${parties.buyer.id}`,
+  });
+  if (parties.seller) linkedRecords.push({
+    type: "seller", label: parties.seller.name ?? "Seller", subtitle: parties.seller.maskedEmail ?? "",
+    status: parties.seller.verification?.identity ? "verified" : "unverified",
+    route: `/admin/users/${parties.seller.id}`,
+  });
+  if (payment) linkedRecords.push({
+    type: "payment", label: `${payment.provider} payment`, subtitle: payment.providerReference,
+    status: payment.status, amount: payment.amount, currency: payment.currency,
+    route: null,
+  });
+  if (escrow) linkedRecords.push({
+    type: "escrow", label: "Escrow", subtitle: (escrow.state ?? "").replace(/_/g, " "),
+    status: escrow.state, amount: escrow.heldAmount, currency: pricingOut?.currency ?? "NGN",
+    route: null,
+  });
+  if (payout) linkedRecords.push({
+    type: "payout", label: "Payout", subtitle: payout.providerReference ?? payout.status,
+    status: payout.status, amount: payout.amount, currency: payout.currency,
+    route: null,
+  });
+  if (disputeOut) linkedRecords.push({
+    type: "dispute", label: "Dispute", subtitle: (disputeOut.claimType ?? "").replace(/_/g, " "),
+    status: disputeOut.status,
+    route: `/admin/disputes/${disputeOut.id}`,
+  });
+  if (productRes.data) linkedRecords.push({
+    type: "product", label: productRes.data.title, subtitle: "Source product",
+    status: "active",
+    route: `/seller/products/${productRes.data.id}`,
+  });
+
+  // ===== Admin actions available (state-aware) =====
+  const adminActionsAvailable = {
+    canFreeze: tx.money_status === "funds_held_in_escrow",
+    canUnfreeze: tx.money_status === "funds_frozen",
+    canManageDispute: !!disputeOut && disputeOut.status !== "closed",
+    canExport: true,
+    canAddNote: true,
+    canViewBuyer: !!parties.buyer,
+    canViewSeller: !!parties.seller,
+    canRetryPayout: !!(payout && payout.retryAllowed && (payout.status === "failed")),
+    canApproveRelease: tx.needs_release_review === true,
+  };
+
+  return json({
+    transaction,
+    parties,
+    items,
+    pricing: pricingOut,
+    payment,
+    escrow,
+    payout,
+    delivery,
+    dispute: disputeOut,
+    timeline,
+    risk,
+    linkedRecords,
+    adminActionsAvailable,
+  });
 });
