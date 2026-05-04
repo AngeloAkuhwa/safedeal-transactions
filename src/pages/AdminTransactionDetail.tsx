@@ -328,14 +328,16 @@ export default function AdminTransactionDetail() {
             </div>
           )}
 
-          {/* Mobile mini header */}
-          <div className="lg:hidden px-1">
+          {/* Mobile mini header strip */}
+          <div className="lg:hidden -mx-4 -mt-4 px-4 py-4 bg-card border-b border-border">
             <h1 className="text-lg font-semibold text-foreground">#{code}</h1>
-            <p className="text-sm text-muted-foreground">{itemTitle}</p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <p className="text-sm text-muted-foreground mt-1">{itemTitle}</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
               <StatusBadge value={tx.status} />
-              <StatusBadge value={tx.moneyStatus} />
               {dispute && <StatusBadge value={dispute.status} />}
+              {dispute?.overdue && (
+                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-red-500/20 text-red-400">Overdue</span>
+              )}
             </div>
           </div>
 
