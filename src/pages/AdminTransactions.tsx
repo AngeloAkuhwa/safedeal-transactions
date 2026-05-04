@@ -924,8 +924,11 @@ export default function AdminTransactions() {
                       </span>
                     </td>
                     <td className="w-[120px] px-3 py-2.5 align-middle">
-                      <div className="flex items-center justify-start gap-1 text-muted-foreground">
-                        <IconBtn label="View details" onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}>
+                       <div
+                         className="flex items-center justify-start gap-1 text-muted-foreground"
+                         onClick={(e) => e.stopPropagation()}
+                       >
+                         <IconBtn label="View details" onClick={() => goToDetail(t)}>
                           <Eye className="h-4 w-4" />
                         </IconBtn>
                         <IconBtn label="Add internal note" onClick={() => { setActionRow(t); setActionKind("note"); }}>
