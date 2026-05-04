@@ -318,7 +318,7 @@ export default function AdminTransactions() {
       } else {
         const msg = (e as Error).message || "Failed to load Transaction Monitor";
         setError(msg);
-        if (!initialLoad) {
+        if (reqId > 1) {
           sonnerToast.error("Failed to refresh", {
             description: msg,
             action: { label: "Retry", onClick: () => void fetchData() },
