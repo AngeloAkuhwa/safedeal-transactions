@@ -96,7 +96,9 @@ function mapEscrowState(s: string | null): { key: string; label: string } {
     case "awaiting_payment": return { key: "pending", label: "Pending" };
     case "held": return { key: "held", label: "Held" };
     case "frozen": return { key: "frozen", label: "Frozen" };
+    case "released":
     case "released_to_seller": return { key: "released", label: "Released" };
+    case "refunded":
     case "refunded_to_buyer": return { key: "refunded", label: "Refunded" };
     default: return { key: s ?? "pending", label: "Pending" };
   }
