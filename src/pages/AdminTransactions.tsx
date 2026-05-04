@@ -826,15 +826,29 @@ export default function AdminTransactions() {
                       )}
                     </td>
                     <td className="px-3 py-2.5 align-middle">
-                      {t.riskLevel === "clean" ? (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      ) : (
-                        <Badge
-                          label={FLAG_META[t.riskLevel].label}
-                          cls={FLAG_META[t.riskLevel].cls}
-                          Icon={FLAG_META[t.riskLevel].Icon}
-                        />
-                      )}
+                      {(() => {
+                        const badges = buildFlagBadges(t);
+                        if (badges.length === 0) {
+                          return <span className="text-xs text-muted-foreground">—</span>;
+                        }
+                        const visible = badges.slice(0, 2);
+                        const overflow = badges.slice(2);
+                        return (
+                          <div className="flex flex-wrap items-center gap-1">
+                            {visible.map((b) => (
+                              <Badge key={b.key} label={b.label} cls={b.cls} Icon={b.Icon} />
+                            ))}
+                            {overflow.length > 0 && (
+                              <span
+                                title={overflow.map((b) => b.label).join(", ")}
+                                className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                              >
+                                +{overflow.length}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-3 py-2.5 align-middle">
                       <span
