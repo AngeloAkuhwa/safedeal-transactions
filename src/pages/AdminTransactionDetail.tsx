@@ -577,7 +577,7 @@ export default function AdminTransactionDetail() {
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   {adminCan.canExport && <Button variant="outline" size="sm" onClick={exportData}><Download className="h-4 w-4 mr-1.5" /> Export Data</Button>}
-                  {adminCan.canOpenInvestigation && <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-blue-500/40 text-blue-300 hover:text-blue-200"><Search className="h-4 w-4 mr-1.5" /> Open Investigation</Button>}
+                  {adminCan.canOpenInvestigation && <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-blue-500/40 text-blue-300 hover:text-blue-200"><Search className="h-4 w-4 mr-1.5" /> {adminCan.investigationAlreadyOpen ? "Update Investigation" : "Open Investigation"}</Button>}
                   {adminCan.canFreeze && <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200"><Lock className="h-4 w-4 mr-1.5" /> Freeze Funds</Button>}
                   {adminCan.canUnfreeze && <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200"><Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze Funds</Button>}
                   {adminCan.canManageDispute && dispute && (
