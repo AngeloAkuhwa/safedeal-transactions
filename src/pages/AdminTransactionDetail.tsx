@@ -926,30 +926,45 @@ export default function AdminTransactionDetail() {
               <div className="p-4 lg:p-6">
                 <h4 className="text-sm font-medium text-foreground mb-3">Shipping Details</h4>
                 <div className="space-y-2 text-sm">
-                  <RowKV k="Method" v={titleCase(data.delivery?.method)} />
                   <RowKV k="Carrier" v={data.delivery?.courier ?? "—"} />
                   <RowKV k="Tracking" v={<span className="font-mono text-xs">{data.delivery?.trackingNumber ?? "—"}</span>} />
                   <RowKV k="Shipped" v={fmtDate(data.delivery?.shippedAt)} />
-                  <RowKV k="Delivered" v={fmtDate(data.delivery?.deliveredAt)} />
                   <RowKV k="Expected" v={fmtDate(data.delivery?.expectedDeliveryAt ?? data.delivery?.expectedDate)} />
                 </div>
-                {data.delivery?.address && <div className="mt-3 text-xs text-muted-foreground">{data.delivery.address}</div>}
               </div>
               <div className="p-4 lg:p-6">
                 <h4 className="text-sm font-medium text-foreground mb-3">Delivery Status</h4>
-                {(data.delivery?.updates ?? []).length === 0 ? <Empty>No delivery updates.</Empty> : (
-                  <ul className="space-y-2 text-sm">
-                    {data.delivery.updates.map((u: any) => (
-                      <li key={u.id} className="flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-foreground">{titleCase(u.status)}</p>
-                          <p className="text-xs text-muted-foreground">{fmtDate(u.at)}{u.notes ? ` — ${u.notes}` : ""}</p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {(() => {
+                  const shippedAt = data.delivery?.shippedAt ?? null;
+                  const deliveredAt = data.delivery?.deliveredAt ?? null;
+                  const updates: any[] = data.delivery?.updates ?? [];
+                  const inTransitUpd = updates.find((u) => {
+                    const at = new Date(u.at).getTime();
+                    const sa = shippedAt ? new Date(shippedAt).getTime() : 0;
+                    const da = deliveredAt ? new Date(deliveredAt).getTime() : Infinity;
+                    return at > sa && at < da;
+                  });
+                  const inTransitAt = inTransitUpd?.at ?? null;
+                  const milestones = [
+                    { label: "Package shipped", at: shippedAt },
+                    { label: "In transit", at: inTransitAt },
+                    { label: "Delivered", at: deliveredAt },
+                  ];
+                  if (!shippedAt && !deliveredAt) return <Empty>No delivery updates.</Empty>;
+                  return (
+                    <ul className="space-y-3 text-sm">
+                      {milestones.map((m, i) => (
+                        <li key={i} className="flex items-center gap-3">
+                          <div className={cn("w-3 h-3 rounded-full shrink-0", m.at ? "bg-emerald-400" : "bg-muted")} />
+                          <div className="min-w-0">
+                            <p className={cn("text-foreground", !m.at && "text-muted-foreground")}>{m.label}</p>
+                            <p className="text-xs text-muted-foreground">{m.at ? fmtDate(m.at) : "Pending"}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()}
                 {dispute && data.delivery?.deliveredAt && (() => {
                   const diff = new Date(dispute.openedAt).getTime() - new Date(data.delivery.deliveredAt).getTime();
                   return diff >= 0 && diff < 24 * 3600 * 1000;
