@@ -373,9 +373,24 @@ export default function AdminTransactionDetail() {
 
           {/* Quick actions (mobile grid) */}
           <div className="lg:hidden grid grid-cols-2 gap-2">
+            {adminCan.canOpenInvestigation && (
+              <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-red-500/40 text-red-300">
+                <Search className="h-4 w-4 mr-1.5" /> Investigate
+              </Button>
+            )}
             {adminCan.canFreeze && (
               <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-cyan-500/40 text-cyan-300">
                 <Snowflake className="h-4 w-4 mr-1.5" /> Freeze
+              </Button>
+            )}
+            {adminCan.canUnfreeze && (
+              <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300">
+                <Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze
+              </Button>
+            )}
+            {adminCan.canFlagForReview && (
+              <Button variant="outline" size="sm" onClick={() => setFlagOpen(true)} className="border-yellow-500/40 text-yellow-300">
+                <Flag className="h-4 w-4 mr-1.5" /> Flag
               </Button>
             )}
             {adminCan.canAddNote && (
