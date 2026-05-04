@@ -459,42 +459,92 @@ export default function AdminTransactionDetail() {
             </div>
           </Card>
 
-          {/* Quick actions (mobile grid) */}
-          <div className="lg:hidden grid grid-cols-2 gap-2">
-            {adminCan.canOpenInvestigation && (
-              <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-red-500/40 text-red-300">
-                <Search className="h-4 w-4 mr-1.5" /> Investigate
-              </Button>
-            )}
-            {adminCan.canFreeze && (
-              <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-cyan-500/40 text-cyan-300">
-                <Snowflake className="h-4 w-4 mr-1.5" /> Freeze
-              </Button>
-            )}
-            {adminCan.canUnfreeze && (
-              <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300">
-                <Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze
-              </Button>
-            )}
-            {adminCan.canFlagForReview && (
-              <Button variant="outline" size="sm" onClick={() => setFlagOpen(true)} className="border-yellow-500/40 text-yellow-300">
-                <Flag className="h-4 w-4 mr-1.5" /> Flag
-              </Button>
-            )}
-            {adminCan.canAddNote && (
-              <Button variant="outline" size="sm" onClick={() => setNoteOpen(true)}>
-                <StickyNote className="h-4 w-4 mr-1.5" /> Add Note
-              </Button>
-            )}
-            {adminCan.canExport && (
-              <Button variant="outline" size="sm" onClick={exportData}><Download className="h-4 w-4 mr-1.5" /> Export</Button>
-            )}
-            {adminCan.canManageDispute && dispute && (
-              <Button variant="outline" size="sm" onClick={() => navigate(`/admin/disputes/${dispute.id}`)} className="border-orange-500/40 text-orange-300">
-                <Scale className="h-4 w-4 mr-1.5" /> Dispute
-              </Button>
-            )}
+          {/* Quick actions (mobile, wrapped in card) */}
+          <div className="lg:hidden">
+            <Card>
+              <div className="px-4 py-4 border-b border-border">
+                <h3 className="text-sm font-semibold text-foreground">Quick Actions</h3>
+              </div>
+              <div className="p-4 grid grid-cols-2 gap-2">
+                {adminCan.canOpenInvestigation && (
+                  <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-blue-500/40 text-blue-300">
+                    <Search className="h-4 w-4 mr-1.5" /> Investigate
+                  </Button>
+                )}
+                {adminCan.canFreeze && (
+                  <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-red-500/40 text-red-300">
+                    <Lock className="h-4 w-4 mr-1.5" /> Freeze
+                  </Button>
+                )}
+                {adminCan.canUnfreeze && (
+                  <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300">
+                    <Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze
+                  </Button>
+                )}
+                {adminCan.canExport && (
+                  <Button variant="outline" size="sm" onClick={exportData}><Download className="h-4 w-4 mr-1.5" /> Export</Button>
+                )}
+                {adminCan.canManageDispute && dispute && (
+                  <Button size="sm" onClick={() => navigate(`/admin/disputes/${dispute.id}`)} className="bg-orange-500 hover:bg-orange-600 text-white">
+                    <Scale className="h-4 w-4 mr-1.5" /> Manage
+                  </Button>
+                )}
+              </div>
+            </Card>
           </div>
+
+          {/* Mobile Dispute Status card */}
+          {dispute && (
+            <div className="lg:hidden">
+              <CollapsibleCard title="Dispute Status">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Scale className="h-4 w-4 text-orange-400" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Dispute Opened</p>
+                        <p className="text-xs text-muted-foreground">{fmtDate(dispute.openedAt)}</p>
+                      </div>
+                    </div>
+                    <StatusBadge value={dispute.status} />
+                  </div>
+                  {dispute.sellerResponseDueAt && (
+                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Deadline</p>
+                          <p className="text-xs text-muted-foreground">{fmtDate(dispute.sellerResponseDueAt)}</p>
+                        </div>
+                      </div>
+                      {dispute.overdue && <span className="text-xs font-bold text-red-400">OVERDUE</span>}
+                    </div>
+                  )}
+                  {(dispute.evidence ?? []).length > 0 && (
+                    <div className="p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-foreground">Evidence</span>
+                      </div>
+                      <div className="space-y-2">
+                        {dispute.evidence.map((e: any) => (
+                          <div key={e.id} className="flex items-center gap-2">
+                            <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center shrink-0">
+                              <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-foreground truncate">{titleCase(e.evidenceType)}</p>
+                              <p className="text-xs text-muted-foreground">{fmtDate(e.at)}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CollapsibleCard>
+            </div>
+          )}
 
           {/* Items */}
           <Card>
