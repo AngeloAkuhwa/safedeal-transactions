@@ -1,51 +1,80 @@
 
 ## Goal
 
-Replace remaining hardcoded/empty financial values in the admin dashboard with real database-driven data, surfaced through the existing `admin-dashboard` edge function.
-
-## Scope
-
-Only data wiring. No visual redesign. Money stays in NGN with 2 decimals via `formatMoney(value, "NGN")`.
+Wire the remaining admin dashboard pieces (Trend chart switcher, Recent Activity, Critical Alerts, Sidebar Badges) to real database values. No demo data.
 
 ## Changes
 
-### 1. `supabase/functions/admin-dashboard/index.ts`
+### 1. New edge function: `supabase/functions/admin-dashboard-trend/index.ts`
 
-**Payment Health** (replace existing counts with correct status sets):
-- Successful Payments: `payments` where `status in ('success','paid','completed','succeeded')`.
-- Failed Payments: `payments` where `status in ('failed','cancelled')`.
-- Webhook Failures: `payment_webhook_logs` where `processed_successfully = false` (last 30d).
-- Reconciliation Mismatches: count successful payments in last 30d that have **no matching** `escrow_ledger_entries` deposit (`entry_type in ('deposit','escrow_credit')`) for the same `transaction_id`. Also flag held-amount vs payment-amount mismatch on `escrow_states` for those tx. If the join surface returns no candidates, return `0`. Add a `// TODO: extend reconciliation rules` comment for future duplicate-webhook detection.
+- Accepts `?window=7D|30D|90D` (default `7D`).
+- Auth: same JWT + `has_role('admin')` check as `admin-dashboard`.
+- Loads `transactions(created_at)` and `disputes(created_at)` over the window via service role.
+- Buckets rows into daily UTC dates; zero-fills missing days.
+- Response:
+  ```json
+  {
+    "primary_label": "Transactions",
+    "secondary_label": "Disputes",
+    "points": [{ "label": "MM-DD", "date": "YYYY-MM-DD", "primary": n, "secondary": n }]
+  }
+  ```
+- CORS: `Access-Control-Allow-Methods: GET, OPTIONS`.
 
-**Payout Health**:
-- `pending_payouts_amount`: `sum(amount)` from `payouts` where `status in ('awaiting_admin_release','awaiting_release','pending','processing')`. Use whichever statuses exist (try the broader set; safeSum tolerates missing).
-- `avg_payout_hours`: average of `(completed_at - released_at)` in hours, over `payouts` where `status='completed'` and both timestamps present in last 30d. Fallback to `(completed_at - last_release_attempt_at)` then `(completed_at - updated_at)` only if `released_at` null. Return `null` if no rows.
-- `spark`: 9-day buckets of completed payout counts (oldest→newest), built like the identity sparkline.
+### 2. `supabase/functions/admin-dashboard/index.ts`
 
-**Escrow/Releases/Refunds Trend** (`trends.escrow_releases_refunds`):
-- Pull `escrow_ledger_entries` rows with `created_at >= now() - 30d`, fields `created_at, entry_type, amount`.
-- Group by day (UTC `YYYY-MM-DD`).
-- Map entry_types:
-  - primary (Escrow Held): `entry_type in ('deposit','escrow_credit','escrow_hold')` → sum `amount`.
-  - secondary (Released): `entry_type in ('payout_debit','release')` → sum `abs(amount)`.
-  - tertiary (Refunded): `entry_type in ('refund_debit','refund')` → sum `abs(amount)`.
-- Output 30 points `{label: 'MM-DD', primary, secondary, tertiary}` (zero-fill missing days).
-- Replace the current `emptyEscrowTrend` placeholder.
+**Recent Activity** (replace current 3-item history block) — pull and merge latest from:
+- `transactions` where `status='completed'` ordered by `updated_at` desc, limit 10 → `transaction_completed`.
+- `money_status_history` where `new_status='funds_released'` desc, limit 10 → `escrow_released`.
+- `profiles` ordered by `created_at` desc, limit 10 → `user_registered`.
+- `disputes` ordered by `opened_at` desc, limit 10 → `dispute_opened`.
+- `disputes` where `resolved_at is not null` desc, limit 10 → `dispute_resolved`.
+- `payouts` where `status='failed'` ordered by `failed_at` desc, limit 10 → `payout_failed`.
+- `refunds` where `status='completed'` ordered by `completed_at` desc, limit 10 → `refund_issued`.
 
-Keep `trends.transactions_vs_disputes` as-is for this step (separate scope).
+Map each to:
+```ts
+{ id, kind, title, subtitle, amount?: number, currency?: 'NGN', at_iso, action_href? }
+```
+Sort by `at_iso` desc, slice 10.
 
-### 2. No frontend changes required
+**Critical Alerts** — generate dynamically. Read thresholds from `system_settings` (keys: `escrow_balance_min_threshold`, `dispute_queue_overflow_threshold`, `webhook_failure_spike_threshold`, `failed_payout_spike_threshold`, `stale_transaction_spike_threshold`). Fallbacks: dispute=30, webhook=5, failed_payout=5, stale=10. Escrow alert only if a threshold setting exists. Produce alerts only when condition is met. Each alert: `{id, title, description, severity, at_iso}`.
 
-`TrendCharts.tsx`, `RiskAndPaymentHealth.tsx`, `IdentityAndPayoutHealth.tsx`, and `admin-dashboard.service.ts` already render these fields and are NGN/2-decimal correct via `formatMoney`. No new types.
+**Sidebar Badges** — replace current values:
+- `disputes`: open + under_review + seller_response_pending count.
+- `identity`: `identity_submissions where status='pending_review'` count.
+- `payouts`: failed (retry_allowed=true) + awaiting_release count.
+- `flagged_users`: distinct `target_user_id` from `admin_actions` in last 7 days where action_type in ('flag_user','freeze_transaction','escalate_case'); fallback 0.
+- `exports`: 0 (no exports table).
 
-### 3. Deploy
+### 3. `src/services/admin-dashboard.service.ts`
 
-Redeploy the `admin-dashboard` edge function.
+- Extend `AdminActivityItem.kind` union to include: `dispute_opened`, `dispute_resolved`, `payout_failed`, `refund_issued`. Add optional `amount?: number`, `currency?: string`, `action_href?: string | null`.
+- Extend `AdminAlert.severity` already supports red/yellow/blue (no change).
+- Replace `buildTransactionsDisputesTrend` with real fetch:
+  ```ts
+  export async function getAdminDashboardTrend(window: '7D'|'30D'|'90D'): Promise<TrendSeries>
+  ```
+  → invokes `admin-dashboard-trend` with `?window=...` and current session token. Reuses 401/403 handling.
 
-## Acceptance criteria
+### 4. `src/components/admin/dashboard/TrendCharts.tsx`
 
-- Payment Health rows reflect live counts from `payments` + `payment_webhook_logs` + reconciliation check.
-- Payout Health shows live pending NGN amount, avg hours (or `—`), and 9-day completed sparkline.
-- Escrow/Releases/Refunds chart renders 30 days of grouped ledger movements.
-- No hardcoded money values remain anywhere on `/admin/dashboard`.
-- Zero-data case renders cleanly (0 / `—` / flat chart).
+- Use React Query: `useQuery({ queryKey: ['admin-dashboard-trend', win], queryFn: () => getAdminDashboardTrend(win), staleTime: 30_000 })`.
+- Initial 7D data still seeded by `initialTransactions` via React Query `initialData` when `win === '7D'`.
+- Show small inline spinner overlay inside the chart card while fetching a new window; the rest of the dashboard does not reload.
+
+### 5. `src/components/admin/dashboard/RecentActivity.tsx`
+
+- Extend `ICONS` mapping for new kinds (`dispute_opened` → AlertTriangle red, `dispute_resolved` → CheckCircle emerald, `payout_failed` → XCircle red, `refund_issued` → Undo2 yellow).
+- Render optional `amount` formatted with `formatMoney(amount, currency || 'NGN')` next to the title when present.
+- Clicking the row navigates via `useAdminNav` if `action_href` present.
+
+### 6. Deploy `admin-dashboard` and `admin-dashboard-trend`
+
+## Acceptance
+
+- 7D / 30D / 90D switcher refetches from `admin-dashboard-trend` only; chart card shows local loading; rest of dashboard stays put.
+- Recent Activity lists up to 10 real events from 7 sources, newest first.
+- Critical Alerts only render when DB-backed conditions are exceeded; empty state shown otherwise.
+- Sidebar badges reflect real counts.
+- No demo/hardcoded values remain in these sections.
