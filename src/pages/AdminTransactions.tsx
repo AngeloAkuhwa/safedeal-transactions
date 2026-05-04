@@ -419,14 +419,14 @@ export default function AdminTransactions() {
                 <h1 className="text-xl font-semibold leading-tight text-foreground">Transaction Monitor</h1>
                 <p className="text-xs text-muted-foreground">Monitor and investigate all platform transactions</p>
               </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-400">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                Live
-              </span>
+              <LiveSyncPill state={liveSync} />
             </div>
             <div className="flex items-center gap-2">
               <AdminReadingModeControl variant="desktop" />
               <ThemeToggle />
+              <span className="hidden text-[11px] text-muted-foreground xl:inline">
+                Updated {lastUpdatedLabel}
+              </span>
               <button
                 type="button"
                 onClick={handleExport}
