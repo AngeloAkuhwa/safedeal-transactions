@@ -625,9 +625,8 @@ export default function AdminTransactions() {
             )}
           </h3>
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5 text-emerald-400">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> Live sync
-            </span>
+            <span>Updated {lastUpdatedLabel}</span>
+            <LiveSyncPill state={liveSync} compact />
           </div>
         </div>
         <div className="overflow-x-auto">
