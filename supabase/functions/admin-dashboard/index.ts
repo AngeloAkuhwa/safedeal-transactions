@@ -157,11 +157,9 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       q.eq("needs_release_review", true).gte("created_at", prev30dStart).lt("created_at", since30d),
     ),
     safeCount(client, "release_review_queue", (q) => q.eq("status", "pending")),
-    safeCount(client, "payouts", (q) => q.eq("status", "failed")),
-    safeCount(client, "disputes", (q) => q.in("status", ["open", "under_review"])),
-    safeCount(client, "transactions", (q) =>
-      q.eq("status", "awaiting_payment").lt("created_at", since24h),
-    ),
+    safeCount(client, "payouts", (q) => q.eq("status", "failed").eq("retry_allowed", true)),
+    safeCount(client, "disputes", (q) => q.in("status", ["open", "under_review", "seller_response_pending"])),
+    safeCount(client, "release_review_queue", (q) => q.eq("queue_type", "stuck").eq("status", "pending")),
     safeCount(client, "identity_submissions", (q) => q.eq("status", "pending_review")),
     safeCount(client, "payment_webhook_logs", (q) => q.eq("processed_successfully", false)),
     safeCount(client, "disputes", (q) =>
