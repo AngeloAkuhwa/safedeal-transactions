@@ -160,6 +160,9 @@ export default function AdminTransactionDetail() {
   const [actionSheetOpen, setActionSheetOpen] = useState(false);
   const [freezeOpen, setFreezeOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [unfreezeOpen, setUnfreezeOpen] = useState(false);
+  const [flagOpen, setFlagOpen] = useState(false);
+  const [investigateOpen, setInvestigateOpen] = useState(false);
 
   useEffect(() => {
     if (!transactionId) { setNotFound(true); setLoading(false); return; }
