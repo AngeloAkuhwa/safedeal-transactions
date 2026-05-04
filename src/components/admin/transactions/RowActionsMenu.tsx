@@ -37,12 +37,21 @@ export function RowActionsMenu({ row, handlers, align = "end", trigger }: { row:
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           {trigger ?? (
-            <button type="button" aria-label="More actions" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+            <button
+              type="button"
+              aria-label="More actions"
+              onClick={(e) => e.stopPropagation()}
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
               <MoreVertical className="h-4 w-4" />
             </button>
           )}
         </DropdownMenuTrigger>
-        <DropdownMenuContent align={align} className="w-56">
+        <DropdownMenuContent
+          align={align}
+          className="w-56"
+          onClick={(e) => e.stopPropagation()}
+        >
           <DropdownMenuLabel className="text-xs">#{row.transactionCode}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <MenuItem icon={Eye} label="View Details" onSelect={handlers.onView} />

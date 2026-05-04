@@ -32,7 +32,7 @@ import {
   FileText,
   Hourglass,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminReadingModeControl } from "@/components/admin/AdminReadingModeControl";
@@ -278,6 +278,7 @@ function relativeMinutes(from: Date | null): string {
 
 export default function AdminTransactions() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeQuick, setActiveQuick] = useState<AdminTxQuickFilter>("all");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -316,7 +317,7 @@ export default function AdminTransactions() {
   const closeDrawer = () => { setDrawerSection(null); };
 
   const buildHandlers = (row: AdminTxRow) => ({
-    onView: () => navigate(`/admin/transactions/${row.transactionId}`),
+    onView: () => goToDetail(row),
     onAddNote: () => { setActionRow(row); setActionKind("note"); },
     onMessages: () => { setActionRow(row); setDrawerSection("messages"); },
     onTimeline: () => { setActionRow(row); setDrawerSection("timeline"); },
@@ -326,6 +327,19 @@ export default function AdminTransactions() {
     onFlagForReview: () => { setActionRow(row); setActionKind("flag"); },
     onEscalateDispute: () => { setActionRow(row); setActionKind("escalate"); },
   });
+
+  const goToDetail = (row: AdminTxRow) => {
+    navigate(`/admin/transactions/${row.transactionId}`, {
+      state: { returnTo: `${location.pathname}${location.search}` },
+    });
+  };
+
+  const handleRowKeyDown = (e: React.KeyboardEvent, row: AdminTxRow) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      goToDetail(row);
+    }
+  };
 
   const runAction = async (kind: typeof actionKind, reason: string) => {
     if (!actionRow || !kind) return;
@@ -814,7 +828,12 @@ export default function AdminTransactions() {
                 rows.map((t, i) => (
                   <tr
                     key={t.transactionId}
-                    className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} border-b border-border/60 transition-colors hover:bg-muted/40 motion-reduce:transition-none`}
+                    onClick={() => goToDetail(t)}
+                    onKeyDown={(e) => handleRowKeyDown(e, t)}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open transaction ${t.transactionCode}`}
+                    className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} border-b border-border/60 transition-colors hover:bg-muted/60 active:bg-muted/80 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/50 motion-reduce:transition-none`}
                   >
                     <td className="px-3 py-2.5 align-middle">
                       <div className="flex items-center gap-2">
@@ -905,8 +924,11 @@ export default function AdminTransactions() {
                       </span>
                     </td>
                     <td className="w-[120px] px-3 py-2.5 align-middle">
-                      <div className="flex items-center justify-start gap-1 text-muted-foreground">
-                        <IconBtn label="View details" onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}>
+                       <div
+                         className="flex items-center justify-start gap-1 text-muted-foreground"
+                         onClick={(e) => e.stopPropagation()}
+                       >
+                         <IconBtn label="View details" onClick={() => goToDetail(t)}>
                           <Eye className="h-4 w-4" />
                         </IconBtn>
                         <IconBtn label="Add internal note" onClick={() => { setActionRow(t); setActionKind("note"); }}>
@@ -960,7 +982,12 @@ export default function AdminTransactions() {
           rows.map((t, i) => (
             <article
               key={t.transactionId}
-              className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} rounded-xl border border-border bg-card p-3`}
+              onClick={() => goToDetail(t)}
+              onKeyDown={(e) => handleRowKeyDown(e, t)}
+              tabIndex={0}
+              role="button"
+              aria-label={`Open transaction ${t.transactionCode}`}
+              className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} rounded-xl border border-border bg-card p-3 cursor-pointer transition-colors hover:bg-muted/30 active:scale-[0.998] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50`}
             >
               <header className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
@@ -1032,10 +1059,13 @@ export default function AdminTransactions() {
                 </div>
               )}
 
-              <div className="mt-2 flex items-center justify-end gap-1 border-t border-border/60 pt-2 text-muted-foreground">
+              <div
+                className="mt-2 flex items-center justify-end gap-1 border-t border-border/60 pt-2 text-muted-foreground"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   type="button"
-                  onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}
+                  onClick={(e) => { e.stopPropagation(); goToDetail(t); }}
                   className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
                   aria-label={`View details for ${t.transactionCode}`}
                 >
@@ -1180,7 +1210,7 @@ function IconBtn({ children, onClick, label }: { children: React.ReactNode; onCl
         <button
           type="button"
           aria-label={label}
-          onClick={onClick}
+          onClick={(e) => { e.stopPropagation(); onClick(); }}
           className="rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 motion-reduce:transition-none"
         >
           {children}
