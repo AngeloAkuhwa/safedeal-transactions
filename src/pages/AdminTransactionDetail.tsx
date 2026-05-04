@@ -326,6 +326,9 @@ export default function AdminTransactionDetail() {
               <StatusBadge value={summary?.status} />
               <StatusBadge value={summary?.moneyStatus} />
               {hasDispute && <StatusBadge value="disputed" />}
+              {summary?.deadlineOverdue && (
+                <span className="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/15 text-red-300 px-2 py-0.5 text-[11px] font-semibold">Overdue</span>
+              )}
             </div>
           </div>
 
@@ -391,7 +394,7 @@ export default function AdminTransactionDetail() {
                 <div className="hidden lg:flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={exportData}><Download className="h-3.5 w-3.5 mr-1.5" /> Export Data</Button>
                   <Button variant="outline" size="sm"><Search className="h-3.5 w-3.5 mr-1.5" /> Open Investigation</Button>
-                  <Button variant="outline" size="sm" disabled={summary?.moneyStatus !== "funds_held_in_escrow"} className="text-red-300 border-red-500/30 hover:bg-red-500/10">
+                  <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} disabled={summary?.moneyStatus !== "funds_held_in_escrow"} className="text-red-300 border-red-500/30 hover:bg-red-500/10">
                     <Snowflake className="h-3.5 w-3.5 mr-1.5" /> Freeze Funds
                   </Button>
                   {hasDispute && (
@@ -403,6 +406,45 @@ export default function AdminTransactionDetail() {
               </div>
             </div>
           </Card>
+
+          {/* High-Risk Banner */}
+          {data.risk && (data.risk.level === "high" || data.risk.level === "escalated") && (
+            <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-red-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="text-red-300 font-semibold text-sm mb-2">High Risk{data.risk.level === "escalated" ? " – Escalated" : ""}</h4>
+                  <ul className="space-y-1.5">
+                    {(data.risk.signals ?? []).map((sig: any, i: number) => (
+                      <li key={i} className="text-xs text-foreground/90 flex items-start gap-2">
+                        <Flag className="h-3 w-3 text-orange-400 mt-0.5 flex-shrink-0" />
+                        <span>{sig.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Quick Actions */}
+          <div className="lg:hidden rounded-xl border border-border bg-card p-4">
+            <h3 className="text-foreground text-sm font-semibold mb-3">Quick Actions</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => toast.info("Investigation tools coming soon")} className="px-3 py-2.5 bg-blue-500/15 text-blue-300 border border-blue-500/30 rounded-lg text-xs font-medium flex items-center justify-center gap-2">
+                <Search className="h-3.5 w-3.5" /> Investigate
+              </button>
+              <button onClick={() => setFreezeOpen(true)} disabled={summary?.moneyStatus !== "funds_held_in_escrow"} className="px-3 py-2.5 bg-red-500/15 text-red-300 border border-red-500/30 rounded-lg text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-50">
+                <Snowflake className="h-3.5 w-3.5" /> Freeze
+              </button>
+              <button onClick={exportData} className="px-3 py-2.5 bg-muted text-foreground rounded-lg text-xs font-medium flex items-center justify-center gap-2">
+                <Download className="h-3.5 w-3.5" /> Export
+              </button>
+              <button onClick={() => hasDispute ? navigate(`/admin/disputes/${dispute.id}`) : toast.info("No dispute to manage")} className={cn("px-3 py-2.5 rounded-lg text-xs font-medium flex items-center justify-center gap-2", hasDispute ? "bg-orange-500 text-white" : "bg-muted text-muted-foreground")}>
+                <Scale className="h-3.5 w-3.5" /> Manage
+              </button>
+            </div>
+          </div>
 
           {/* 2. Risk & Investigation */}
           {data.risk && (
@@ -450,6 +492,21 @@ export default function AdminTransactionDetail() {
                   </div>
                 </div>
               </div>
+              {!!data.risk.escalationHistory?.length && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Escalation History</h3>
+                  <ul className="space-y-1.5 text-sm">
+                    {data.risk.escalationHistory.map((h: any, i: number) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-2 flex-shrink-0" />
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">{fmtDate(h.at)}</span>
+                        <span className="text-foreground capitalize">{h.label}</span>
+                        {h.note && <span className="text-muted-foreground">— {h.note}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </CollapsibleCard>
           )}
 
@@ -528,6 +585,9 @@ export default function AdminTransactionDetail() {
                       <div className="text-sm font-medium truncate">{summary?.buyer?.name ?? "—"}</div>
                       <div className="text-[11px] text-muted-foreground truncate">{summary?.buyer?.email ?? ""}</div>
                     </div>
+                    {data.linked?.buyer?.flagged && (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-red-500/30 bg-red-500/15 text-red-300 px-1.5 py-0.5 text-[10px] font-semibold"><Flag className="h-3 w-3" />Flagged</span>
+                    )}
                     {summary?.buyer?.id && (
                       <button onClick={() => navigate(`/admin/users/${summary.buyer.id}`)} className="text-muted-foreground hover:text-foreground"><ExternalLink className="h-3.5 w-3.5" /></button>
                     )}
@@ -541,6 +601,9 @@ export default function AdminTransactionDetail() {
                       <div className="text-sm font-medium truncate">{summary?.seller?.name ?? "—"}</div>
                       <div className="text-[11px] text-muted-foreground truncate">{summary?.seller?.email ?? ""}</div>
                     </div>
+                    {data.linked?.seller?.verified && (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/15 text-emerald-300 px-1.5 py-0.5 text-[10px] font-semibold"><ShieldCheck className="h-3 w-3" />Verified</span>
+                    )}
                     {summary?.seller?.id && (
                       <button onClick={() => navigate(`/admin/users/${summary.seller.id}`)} className="text-muted-foreground hover:text-foreground"><ExternalLink className="h-3.5 w-3.5" /></button>
                     )}
@@ -595,7 +658,7 @@ export default function AdminTransactionDetail() {
           )}
 
           {/* 7. Items */}
-          {!!data.items?.length && (
+          {!!data.items?.length && (() => { const itemTotal0 = itemTotal; return (
             <CollapsibleCard title="Transaction Items">
               <div className="overflow-x-auto rounded-md border border-border">
                 <table className="w-full text-sm">
@@ -604,10 +667,13 @@ export default function AdminTransactionDetail() {
                       <th className="text-left p-2">Item</th>
                       <th className="text-left p-2">Condition</th>
                       <th className="text-right p-2">Qty</th>
+                      <th className="text-right p-2">Total</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.items.map((it: any) => (
+                    {data.items.map((it: any) => {
+                      const itemTotal = data.items.length === 1 ? itemTotal0 : (it.unit_amount ? Number(it.unit_amount) * (it.quantity ?? 1) : null);
+                      return (
                       <tr key={it.id} className="border-t border-border">
                         <td className="p-2">
                           <div className="font-medium text-foreground">{it.title}</div>
@@ -615,13 +681,15 @@ export default function AdminTransactionDetail() {
                         </td>
                         <td className="p-2 capitalize">{it.condition_label?.replace(/_/g, " ")}</td>
                         <td className="p-2 text-right tabular-nums">{it.quantity}</td>
+                        <td className="p-2 text-right tabular-nums font-medium">{itemTotal != null ? ngn(itemTotal) : "—"}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             </CollapsibleCard>
-          )}
+          ); })()}
 
           {/* 8. Payment & Escrow */}
           <CollapsibleCard title="Payment & Escrow">
@@ -661,7 +729,15 @@ export default function AdminTransactionDetail() {
             <CollapsibleCard title="Delivery & Fulfillment">
               <dl className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Stat label="Method" value={<span className="capitalize">{data.delivery.terms?.delivery_method?.replace(/_/g, " ") ?? "—"}</span>} />
+                <Stat label="Carrier" value={data.delivery.tracking?.courier_name ?? "—"} />
+                <Stat label="Tracking" value={data.delivery.tracking?.tracking_number ? (
+                  <span className="flex items-center gap-1 font-mono text-xs">
+                    <span className="truncate">{data.delivery.tracking.tracking_number}</span>
+                    <button onClick={() => copy(data.delivery.tracking.tracking_number)} className="text-muted-foreground hover:text-foreground"><Copy className="h-3 w-3" /></button>
+                  </span>
+                ) : "—"} />
                 <Stat label="Expected" value={data.delivery.terms?.expected_delivery_date ?? "—"} />
+                <Stat label="Shipped" value={fmtDate(data.delivery.tracking?.shipped_at)} />
                 <Stat label="Delivered" value={fmtDate(data.delivery.deliveredAt)} />
                 <Stat label="Verification Deadline" value={fmtDate(data.delivery.verificationDeadlineAt)} />
               </dl>
@@ -685,7 +761,11 @@ export default function AdminTransactionDetail() {
           )}
 
           {/* 10. Internal Activity (Notes + Messages) */}
-          <CollapsibleCard title="Admin Notes / Internal Activity">
+          <CollapsibleCard title="Admin Notes / Internal Activity" action={
+            <Button size="sm" variant="outline" onClick={() => setNoteOpen(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Add Note
+            </Button>
+          }>
             <div className="grid gap-4 lg:grid-cols-2">
               <div>
                 <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Internal Notes</h3>
@@ -765,6 +845,62 @@ export default function AdminTransactionDetail() {
           </DropdownMenu>
         </div>
       )}
+
+      {/* Action sheet (mobile Take Action) */}
+      <Sheet open={actionSheetOpen} onOpenChange={setActionSheetOpen}>
+        <SheetContent side="bottom" className="rounded-t-xl">
+          <SheetHeader><SheetTitle>Take Action</SheetTitle></SheetHeader>
+          <div className="mt-4 grid gap-2">
+            <Button variant="outline" className="justify-start" onClick={() => { setActionSheetOpen(false); toast.info("Investigation tools coming soon"); }}>
+              <Search className="h-4 w-4 mr-2" /> Investigate
+            </Button>
+            <Button variant="outline" className="justify-start text-red-300 border-red-500/30" disabled={summary?.moneyStatus !== "funds_held_in_escrow"} onClick={() => { setActionSheetOpen(false); setFreezeOpen(true); }}>
+              <Snowflake className="h-4 w-4 mr-2" /> Freeze Funds
+            </Button>
+            {hasDispute && (
+              <Button variant="outline" className="justify-start" onClick={() => { setActionSheetOpen(false); navigate(`/admin/disputes/${dispute.id}`); }}>
+                <Scale className="h-4 w-4 mr-2" /> Manage Dispute
+              </Button>
+            )}
+            <Button variant="outline" className="justify-start" onClick={() => { setActionSheetOpen(false); setNoteOpen(true); }}>
+              <StickyNote className="h-4 w-4 mr-2" /> Add Internal Note
+            </Button>
+            <Button variant="outline" className="justify-start" onClick={() => { setActionSheetOpen(false); exportData(); }}>
+              <Download className="h-4 w-4 mr-2" /> Export Data
+            </Button>
+            <Button variant="outline" className="justify-start" onClick={() => { setActionSheetOpen(false); copy(summary?.transactionCode ?? ""); }}>
+              <Copy className="h-4 w-4 mr-2" /> Copy Code
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <ActionConfirmDialog
+        open={freezeOpen}
+        onOpenChange={setFreezeOpen}
+        title="Freeze funds"
+        description={`Freeze escrow funds for #${code}. The seller payout will be paused.`}
+        reasonLabel="Reason for freezing"
+        confirmLabel="Freeze funds"
+        confirmTone="danger"
+        typeToConfirm="FREEZE"
+        onConfirm={async (reason) => {
+          if (!transactionId) return;
+          try { await freezeTransaction(transactionId, reason); toast.success("Funds frozen"); setReloadKey(k => k+1); }
+          catch (e) { toast.error((e as Error).message ?? "Freeze failed"); }
+        }}
+      />
+
+      <InternalNoteDialog
+        open={noteOpen}
+        onOpenChange={setNoteOpen}
+        transactionCode={code ?? ""}
+        onSubmit={async (note) => {
+          if (!transactionId) return;
+          try { await addInternalNote(transactionId, note); toast.success("Note saved"); setReloadKey(k => k+1); }
+          catch (e) { toast.error((e as Error).message ?? "Save failed"); }
+        }}
+      />
     </AdminLayout>
   );
 }
