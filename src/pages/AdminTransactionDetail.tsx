@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   ArrowLeft, AlertTriangle, Download, Scale, ShieldCheck,
   Snowflake, MoreVertical, ExternalLink, Truck, Package,
   CreditCard, Lock, Circle, StickyNote, Search, Flag, MoreHorizontal,
   User, Wallet, Receipt, Clock, Vault, Handshake, Gavel, Image as ImageIcon, Coins, Banknote,
-  FileText, Video, ChevronDown, ChevronUp, Eye, FileSignature,
+  FileText, Video, ChevronDown, ChevronUp, Eye, FileSignature, Copy, ChevronRight,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { supabase } from "@/integrations/supabase/client";
 import {
   getAdminTransactionDetailFull,
   AdminAccessRequiredError,
@@ -193,12 +194,23 @@ export default function AdminTransactionDetail() {
   const [showFullTimeline, setShowFullTimeline] = useState(false);
   const [tlFilter, setTlFilter] = useState<string>("all");
   const [tlNewest, setTlNewest] = useState(true);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [, setSyncTick] = useState(0);
+  const [liveSync, setLiveSync] = useState<"connecting" | "live" | "off">("connecting");
+  const [activeAnchor, setActiveAnchor] = useState<string>("summary");
+  const realtimeDebounceRef = useRef<number | null>(null);
+  const lastRealtimeToastRef = useRef<number>(0);
+
+  const motionOk = typeof window !== "undefined"
+    ? !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    : true;
+  const anim = (cls: string) => (motionOk ? cls : "");
 
   useEffect(() => {
     if (!transactionId) { setNotFound(true); setLoading(false); return; }
     setLoading(true); setErr(null); setDenied(false); setNotFound(false);
     getAdminTransactionDetailFull(transactionId)
-      .then(setData)
+      .then((d) => { setData(d); setLastSyncedAt(new Date()); })
       .catch((e) => {
         if (e instanceof AdminAccessRequiredError) setDenied(true);
         else if (e instanceof TransactionNotFoundError) setNotFound(true);
@@ -206,6 +218,77 @@ export default function AdminTransactionDetail() {
       })
       .finally(() => setLoading(false));
   }, [transactionId, reloadKey]);
+
+  // Tick relative "Synced …" label every 30s
+  useEffect(() => {
+    const id = setInterval(() => setSyncTick((n) => n + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Realtime subscription for this transaction
+  useEffect(() => {
+    if (!transactionId || denied) return;
+    setLiveSync("connecting");
+    const channel = supabase.channel(`admin-tx-detail-${transactionId}`);
+    const tables = [
+      { table: "transactions", filter: `id=eq.${transactionId}` },
+      { table: "transaction_events", filter: `transaction_id=eq.${transactionId}` },
+      { table: "money_status_history", filter: `transaction_id=eq.${transactionId}` },
+      { table: "disputes", filter: `transaction_id=eq.${transactionId}` },
+      { table: "dispute_responses", filter: undefined as string | undefined },
+      { table: "payments", filter: `transaction_id=eq.${transactionId}` },
+      { table: "payouts", filter: `transaction_id=eq.${transactionId}` },
+      { table: "escrow_ledger_entries", filter: `transaction_id=eq.${transactionId}` },
+      { table: "admin_actions", filter: `transaction_id=eq.${transactionId}` },
+    ];
+    const onChange = () => {
+      if (realtimeDebounceRef.current) window.clearTimeout(realtimeDebounceRef.current);
+      realtimeDebounceRef.current = window.setTimeout(() => {
+        setReloadKey((k) => k + 1);
+        const now = Date.now();
+        if (now - lastRealtimeToastRef.current > 5000) {
+          lastRealtimeToastRef.current = now;
+          toast("Transaction updated", { duration: 2500 });
+        }
+      }, 700);
+    };
+    for (const t of tables) {
+      channel.on(
+        "postgres_changes" as any,
+        t.filter
+          ? { event: "*", schema: "public", table: t.table, filter: t.filter }
+          : { event: "*", schema: "public", table: t.table },
+        onChange,
+      );
+    }
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") setLiveSync("live");
+      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") setLiveSync("off");
+    });
+    return () => {
+      if (realtimeDebounceRef.current) window.clearTimeout(realtimeDebounceRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [transactionId, denied]);
+
+  // Active section anchor (desktop)
+  useEffect(() => {
+    if (!data || loading) return;
+    const ids = ["summary", "risk", "timeline", "linked-records", "agreement", "escrow-ledger", "delivery", "audit"];
+    const els = ids.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+    if (els.length === 0) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => (a.boundingClientRect.top - b.boundingClientRect.top))[0];
+        if (visible) setActiveAnchor(visible.target.id);
+      },
+      { rootMargin: "-160px 0px -60% 0px", threshold: 0 },
+    );
+    els.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, [data, loading]);
 
   const tx = data?.transaction;
   const dispute = data?.dispute;
@@ -316,20 +399,49 @@ export default function AdminTransactionDetail() {
     !!dispute ||
     allFlagsCount > 0;
 
+  const liveDotCls =
+    liveSync === "live" ? "bg-emerald-400" :
+    liveSync === "connecting" ? "bg-amber-400" : "bg-slate-500";
+  const liveDotTitle =
+    liveSync === "live" ? "Live updates connected" :
+    liveSync === "connecting" ? "Connecting…" : "Live updates offline";
+
   // Header (desktop)
   const headerSlot = (
-    <header className="sticky top-0 z-30 hidden lg:block border-b border-border bg-background/95 backdrop-blur">
-      <div className="flex items-center justify-between gap-4 px-6 py-4">
+    <header className={cn("sticky top-0 z-30 hidden lg:block border-b border-border bg-background/95 backdrop-blur", anim("animate-fade-in"))}>
+      <div className="flex items-center justify-between gap-4 px-6 pt-3 pb-3">
         <div className="flex items-center gap-3 min-w-0">
           <button type="button" onClick={() => navigate(returnTo)} className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted" aria-label="Back">
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-lg font-semibold text-foreground truncate">Transaction #{code}</h1>
+            <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-[11px] text-muted-foreground mb-0.5">
+              <span>Admin</span>
+              <ChevronRight className="h-3 w-3" />
+              <button type="button" onClick={() => navigate(returnTo)} className="hover:text-foreground transition-colors">Transactions</button>
+              <ChevronRight className="h-3 w-3" />
+              <span className="text-foreground font-medium truncate max-w-[220px]">#{code}</span>
+            </nav>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h1 className="text-lg font-semibold text-foreground truncate">Transaction #{code}</h1>
+              <button
+                type="button"
+                onClick={() => { navigator.clipboard.writeText(code); toast.success("Code copied"); }}
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
+                title="Copy code"
+                aria-label="Copy transaction code"
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+            </div>
             <p className="text-xs text-muted-foreground truncate">{itemTitle} {tx?.status ? `— ${titleCase(tx.status)}` : ""}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <div className="hidden xl:flex items-center gap-1.5 text-[11px] text-muted-foreground mr-1" title={liveDotTitle}>
+            <span className={cn("h-2 w-2 rounded-full", liveDotCls, liveSync === "live" && motionOk && "animate-pulse")} />
+            <span>Synced {lastSyncedAt ? relTime(lastSyncedAt.toISOString()) : "—"}</span>
+          </div>
           {adminCan.canExport && (
             <Button variant="outline" size="sm" onClick={exportData}>
               <Download className="h-4 w-4 mr-1.5" /> Export
@@ -382,6 +494,38 @@ export default function AdminTransactionDetail() {
           </DropdownMenu>
         </div>
       </div>
+      {/* Section anchor strip */}
+      {data && (
+        <div className="border-t border-border/60 px-6 py-1.5 overflow-x-auto">
+          <ul className="flex items-center gap-1 text-xs">
+            {[
+              { id: "summary", label: "Summary" },
+              { id: "risk", label: "Risk" },
+              { id: "timeline", label: "Timeline" },
+              { id: "linked-records", label: "Records" },
+              { id: "agreement", label: "Agreement" },
+              { id: "escrow-ledger", label: "Payment" },
+              { id: "delivery", label: "Delivery" },
+              { id: "audit", label: "Audit" },
+            ].map((s) => (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  onClick={() => scrollToId(s.id)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md whitespace-nowrap transition-colors",
+                    activeAnchor === s.id
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                  )}
+                >
+                  {s.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </header>
   );
 
@@ -400,8 +544,14 @@ export default function AdminTransactionDetail() {
   return (
     <AdminLayout title={`Transaction #${code}`} subtitle={itemTitle} headerSlot={headerSlot} mobileHeaderSlot={mobileHeaderSlot}>
       {loading && (
-        <div className="space-y-3">
-          {[0, 1, 2].map((i) => <div key={i} className="h-32 rounded-xl border border-border bg-card animate-pulse" />)}
+        <div className="space-y-4 max-w-[1440px] mx-auto">
+          <div className="h-10 rounded-md bg-muted/40 animate-pulse w-1/2" />
+          <div className="h-48 rounded-xl border border-border bg-card animate-pulse" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="h-40 rounded-xl border border-border bg-card animate-pulse" />
+            <div className="h-40 rounded-xl border border-border bg-card animate-pulse" />
+          </div>
+          <div className="h-64 rounded-xl border border-border bg-card animate-pulse" />
         </div>
       )}
 
@@ -473,7 +623,7 @@ export default function AdminTransactionDetail() {
           )}
 
           {/* === Summary Card === */}
-          <Card accent={accent}>
+          <div id="summary" className={anim("animate-fade-in")}><Card accent={accent}>
             <div className="p-4 lg:p-6 bg-gradient-to-br from-card to-card/50 rounded-xl">
               {/* Primary Info Row */}
               <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6 mb-6">
@@ -588,11 +738,10 @@ export default function AdminTransactionDetail() {
                 </div>
               </div>
             </div>
-          </Card>
+          </Card></div>
 
-          {/* === Locked Agreement preview card === */}
           {/* === Risk & Investigation === */}
-          <Card>
+          <div id="risk" className={cn(anim("animate-fade-in"), showHighRisk && "ring-1 ring-red-500/30 rounded-xl")}><Card>
             <CardHeader
               title="Risk & Investigation"
               action={
@@ -675,10 +824,10 @@ export default function AdminTransactionDetail() {
                 </div>
               </div>
             )}
-          </Card>
+          </Card></div>
 
           {/* === Complete Transaction Timeline === */}
-          <Card>
+          <div id="timeline"><Card>
             <CardHeader
               title="Complete Transaction Timeline"
               subtitle="All events, status changes, and interventions"
@@ -742,7 +891,7 @@ export default function AdminTransactionDetail() {
                 </div>
               )}
             </div>
-          </Card>
+          </Card></div>
 
           {/* === Linked Records === */}
           <div id="linked-records"><Card>
@@ -791,6 +940,7 @@ export default function AdminTransactionDetail() {
                   const inner = (
                     <div className={cn(
                       "p-4 bg-muted/30 border border-border rounded-lg hover:border-blue-500/50 transition-all h-full flex flex-col",
+                      motionOk && "hover:-translate-y-0.5",
                       isEmptyPayout && "opacity-60",
                     )}>
                       <div className="flex items-center justify-between mb-3">
@@ -847,7 +997,7 @@ export default function AdminTransactionDetail() {
             <div className="xl:col-span-2 space-y-5 lg:space-y-6">
 
               {/* Locked Agreement */}
-              <Card>
+              <div id="agreement"><Card>
                 <CardHeader
                   title="Locked Agreement"
                   subtitle={lockedAgreement?.lockedAt ? `Locked ${fmtDate(lockedAgreement.lockedAt)}` : "Original terms when payment was made"}
@@ -892,7 +1042,7 @@ export default function AdminTransactionDetail() {
                     </div>
                   )}
                 </div>
-              </Card>
+              </Card></div>
 
               {/* Transaction Items */}
               <Card>
@@ -977,7 +1127,7 @@ export default function AdminTransactionDetail() {
           </Card></div>
 
               {/* Delivery & Fulfillment */}
-              <Card>
+              <div id="delivery"><Card>
             <CardHeader title="Delivery & Fulfillment" />
             <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
               <div className="p-4 lg:p-6">
@@ -1033,7 +1183,7 @@ export default function AdminTransactionDetail() {
                 )}
               </div>
             </div>
-          </Card>
+          </Card></div>
 
             </div>
 
@@ -1113,7 +1263,7 @@ export default function AdminTransactionDetail() {
           </div>
 
           {/* === Supplementary admin-only sections === */}
-          <Card>
+          <div id="audit"><Card>
             <details className="group">
               <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 lg:px-6 py-4 border-b border-border">
                 <div>
@@ -1193,7 +1343,7 @@ export default function AdminTransactionDetail() {
                 )}
               </div>
             </details>
-          </Card>
+          </Card></div>
 
         </div>
       )}

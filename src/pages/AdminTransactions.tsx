@@ -32,7 +32,7 @@ import {
   FileText,
   Hourglass,
 } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminReadingModeControl } from "@/components/admin/AdminReadingModeControl";
@@ -279,22 +279,30 @@ function relativeMinutes(from: Date | null): string {
 export default function AdminTransactions() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeQuick, setActiveQuick] = useState<AdminTxQuickFilter>("all");
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Hydrate initial state from URL so direct URLs / refresh / browser back restore filters.
+  const initialSort = (() => {
+    const raw = searchParams.get("sort");
+    if (!raw) return { by: "urgency" as SortKey, dir: "desc" as SortDir };
+    const [k, d] = raw.split(":");
+    return { by: (k || "urgency") as SortKey, dir: ((d as SortDir) || "desc") };
+  })();
+  const [activeQuick, setActiveQuick] = useState<AdminTxQuickFilter>(((searchParams.get("quick") as AdminTxQuickFilter) || "all"));
+  const [search, setSearch] = useState(searchParams.get("q") ?? "");
+  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get("q") ?? "");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
-  const [page, setPage] = useState(1);
-  const [txStatus, setTxStatus] = useState<string>("");
-  const [moneyStatus, setMoneyStatus] = useState<string>("");
-  const [disputeStatus, setDisputeStatus] = useState<string>("");
-  const [riskLevel, setRiskLevel] = useState<string>("");
-  const [amountMin, setAmountMin] = useState<string>("");
-  const [amountMax, setAmountMax] = useState<string>("");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
-  const [sortBy, setSortBy] = useState<SortKey>("urgency");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [page, setPage] = useState(Number(searchParams.get("page") ?? "1") || 1);
+  const [txStatus, setTxStatus] = useState<string>(searchParams.get("txStatus") ?? "");
+  const [moneyStatus, setMoneyStatus] = useState<string>(searchParams.get("moneyStatus") ?? "");
+  const [disputeStatus, setDisputeStatus] = useState<string>(searchParams.get("disputeStatus") ?? "");
+  const [riskLevel, setRiskLevel] = useState<string>(searchParams.get("risk") ?? "");
+  const [amountMin, setAmountMin] = useState<string>(searchParams.get("amountMin") ?? "");
+  const [amountMax, setAmountMax] = useState<string>(searchParams.get("amountMax") ?? "");
+  const [dateFrom, setDateFrom] = useState<string>(searchParams.get("dateFrom") ?? "");
+  const [dateTo, setDateTo] = useState<string>(searchParams.get("dateTo") ?? "");
+  const [sortBy, setSortBy] = useState<SortKey>(initialSort.by);
+  const [sortDir, setSortDir] = useState<SortDir>(initialSort.dir);
 
   const [data, setData] = useState<AdminTxMonitorResponse | null>(null);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -365,6 +373,24 @@ export default function AdminTransactions() {
     const h = setTimeout(() => setDebouncedSearch(search.trim()), 400);
     return () => clearTimeout(h);
   }, [search]);
+
+  // Mirror state into URL (replace so browser back stays clean)
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (debouncedSearch) next.set("q", debouncedSearch);
+    if (activeQuick && activeQuick !== "all") next.set("quick", activeQuick);
+    if (page && page !== 1) next.set("page", String(page));
+    if (txStatus) next.set("txStatus", txStatus);
+    if (moneyStatus) next.set("moneyStatus", moneyStatus);
+    if (disputeStatus) next.set("disputeStatus", disputeStatus);
+    if (riskLevel) next.set("risk", riskLevel);
+    if (amountMin) next.set("amountMin", amountMin);
+    if (amountMax) next.set("amountMax", amountMax);
+    if (dateFrom) next.set("dateFrom", dateFrom);
+    if (dateTo) next.set("dateTo", dateTo);
+    if (sortBy !== "urgency" || sortDir !== "desc") next.set("sort", `${sortBy}:${sortDir}`);
+    setSearchParams(next, { replace: true });
+  }, [debouncedSearch, activeQuick, page, txStatus, moneyStatus, disputeStatus, riskLevel, amountMin, amountMax, dateFrom, dateTo, sortBy, sortDir, setSearchParams]);
 
   // Reset page when filters change
   useEffect(() => {

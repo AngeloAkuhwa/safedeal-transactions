@@ -1,190 +1,170 @@
-## Context: what is already in place (do NOT touch design)
 
-After reading `src/pages/AdminTransactionDetail.tsx`, the action service `src/services/admin-transaction-actions.service.ts`, and the edge function `supabase/functions/admin-transaction-actions/index.ts`, most of the spec is already implemented. The page already renders the existing layout exactly as designed and we will keep it intact:
+# Polish Admin Transaction Monitor → Detail Navigation
 
-- Desktop summary action row already shows: Export Data, Open Investigation, Freeze Funds, Unfreeze Funds, Manage Dispute (when present).
-- Desktop "More" dropdown already shows: Open Investigation, Freeze, Unfreeze, Add Internal Note, Flag for Review, View Buyer, View Seller, Copy Code.
-- Mobile sticky bottom bar already exists with `Take Action` + `More` opening the same bottom sheet.
-- `ActionConfirmDialog` already enforces reason min length, danger tone, type-to-confirm (FREEZE), loading state, and toast on success.
-- `InternalNoteDialog` already supports the 6 note types (note, escalation, risk, payment, dispute, payout) and writes to `admin_transaction_notes` + `admin_actions` + `audit_logs` server-side.
-- Edge function explicitly refuses `release_funds` / `refund_buyer` and validates state for freeze/unfreeze/flag.
-- `adminActionsAvailable` is computed server-side and already gates the buttons.
+Goal: make the monitor and detail page feel like one connected SaaS workflow, without redesigning the detail page. All structural/visual additions are flagged in **"New UI elements"** below.
 
-## What is missing / partial vs the new spec
+---
 
-1. **No quick actions for "View Payment Record / View Escrow Ledger / View Payout Record"** in the More menu or mobile sheet. The data is already rendered on the page (Linked Records, Escrow Ledger, Payouts sections), so these actions should *jump to* those existing sections — no new design.
-2. **Manage Dispute is hidden when no dispute exists.** Spec asks for "hide or disable with tooltip"; we currently just hide. Add a disabled entry in the More menu / sheet with a tooltip explaining why.
-3. **Mobile bottom sheet does not respect ordering** described in the spec (primary state-aware actions first, secondary navigation last) and shows every enabled item in one undifferentiated grid. Spec wants "only actions allowed for the current state" — already true via `adminCan`, but we should re-order and group with a thin section divider (not a redesign — same Sheet, same buttons).
-4. **Flag for Review confirmation modal** description does not show `transaction code + current money status + warning copy`. Spec is explicit. Same for Freeze.
-5. **Export Data** currently produces a JSON of summary/timeline. Spec requires it to include payment/escrow summary, dispute evidence metadata, and admin audit trail. Need to widen the payload assembled in `exportData()` to include `data.linked`, `data.ledger`, `data.dispute?.evidence` (metadata only — file ids, names, types, hashes, no binary), `data.audit`, and `data.notes`.
-6. **`canFlagForReview` rule** today is `!tx.needs_release_review`. Spec says "Available when not already flagged" — same intent, but we should also exclude terminal statuses on the client (already enforced server-side, but the client should not show the button for completed/refunded/cancelled). Mirror the server check in the computed flag returned from the detail edge function so the UI stays clean.
-7. **Investigation rule** today fires when risk != clean OR dispute OR needs_release_review. Spec also says "admin wants manual review" — that's a permanent capability for admins, so we should let the action always be available unless an investigation already exists. Add a server-side check: if there is already an `[investigation]` note open, the button label flips to "Update Investigation" (still uses `open_investigation` action and appends a new note + audit).
-8. **No success refetch** consistency — most actions call `setReloadKey`, but `addInternalNoteTyped` does too; verify all paths refetch the detail. Current code does. Just confirm the `View Payment Record` link doesn't accidentally trigger a refetch loop.
+## 1. Preserve monitor state across navigation (no UI change)
 
-The screen design itself stays exactly as it is. Everything below is wiring + server gating + small text/copy changes inside existing dialogs.
+Today the monitor only passes `returnTo` via `location.state`. If the user opens the detail page directly, hits browser back, or refreshes the monitor, all filters are lost.
 
-## Implementation plan
+**Fix in `src/pages/AdminTransactions.tsx`:**
+- Mirror filter state into the URL using `useSearchParams`:
+  - `q` (search), `quick`, `tab`, `page`, `sort` (`key:dir`), `txStatus`, `moneyStatus`, `disputeStatus`, `risk`, `amountMin`, `amountMax`, `dateFrom`, `dateTo`.
+- On mount, hydrate state from URL params (fallbacks = current defaults).
+- On change, debounce-update params with `setSearchParams(..., { replace: true })` so browser back stays clean.
+- `goToDetail(row)` keeps passing `returnTo: location.pathname + location.search` so the detail Back button restores everything; URL params guarantee restoration even after refresh or direct entry.
 
-### A. Edge function — `supabase/functions/admin-transaction-detail/index.ts`
+**Detail page Back behavior (`AdminTransactionDetail.tsx`):**
+- Keep `returnTo` from `location.state`; if absent, fall back to `/admin/transactions`.
+- Browser back works automatically because we use `navigate(returnTo)` (push) and the monitor is now URL-driven.
 
-Update the `adminActionsAvailable` block (around line 578) to:
+---
 
-```ts
-const TERMINAL = ["completed", "cancelled", "refunded", "timed_out"];
-const isTerminal = TERMINAL.includes(tx.status);
-const hasOpenInvestigation = !!(notes ?? []).find(n => /^\[investigation\]/.test(n.note));
+## 2. Direct URL access + states (already mostly present, verify)
 
-const adminActionsAvailable = {
-  canExport: true,
-  canAddNote: true,
-  canFreeze: tx.money_status === "funds_held_in_escrow" && !isTerminal,
-  canUnfreeze: tx.money_status === "funds_frozen",
-  canFlagForReview: !tx.needs_release_review && !isTerminal,
-  canManageDispute: !!disputeOut && disputeOut.status !== "closed",
-  hasDispute: !!disputeOut,                 // NEW — drives disabled tooltip
-  canOpenInvestigation: !isTerminal,        // always available for non-terminal
-  investigationAlreadyOpen: hasOpenInvestigation, // NEW — flips label
-  canViewBuyer: !!parties.buyer,
-  canViewSeller: !!parties.seller,
-  canViewPayment: !!linked?.payment,        // NEW
-  canViewEscrowLedger: Array.isArray(ledger) && ledger.length > 0, // NEW
-  canViewPayout: !!linked?.payout,          // NEW
-};
-```
+Already working: skeleton on load, `AdminAccessRequiredError` → forbidden card, `TransactionNotFoundError` → not-found card.
 
-No other server change is needed; the existing `admin-transaction-actions` edge function already accepts and audits all required actions.
+**Polish:**
+- Tighten skeleton to mirror the actual layout (header strip + summary card + 2 stacked section blocks) instead of three identical 32h boxes.
+- Forbidden / not-found cards get a consistent "Back to Transactions" button using `navigate(returnTo)`.
 
-### B. Page — `src/pages/AdminTransactionDetail.tsx`
+---
 
-All changes here are to existing controls — no layout, no new sections, no new cards, no design tokens.
+## 3. Desktop header polish — small additions (NEW UI, additive only)
 
-1. **More menu (desktop) — extend the existing `<DropdownMenuContent>` only**
+Inside the existing sticky desktop header strip (no layout overhaul), add to the left cluster:
 
-Add three navigation items after `View Seller`, before the final separator:
+- **Breadcrumb row** above the H1: `Admin / Transactions / {transactionCode}` — text-xs muted, last segment highlighted. Replaces the current secondary subtitle line position; subtitle (item title + status) stays directly under H1 unchanged.
+- **Compact copy button** next to the H1 transaction code: small icon button (`Copy` icon, h-3.5), tooltip "Copy code", success toast. (We already have a copy item in the dropdown — this surfaces it.)
+- **Last synced indicator**: text-xs muted on the right side of the header, before the action buttons: `Synced {relTime(lastFetchedAt)}` with a small dot.
+- **Live update dot**: small colored dot before "Synced …" — green pulse if realtime channel `SUBSCRIBED`, amber if `connecting`, gray if off. Reuses `liveSync` pattern already present in the monitor.
 
-```tsx
-{adminCan.canViewPayment && (
-  <DropdownMenuItem onClick={() => scrollToId("linked-records")}>
-    <CreditCard className="h-4 w-4 mr-2" /> View Payment Record
-  </DropdownMenuItem>
-)}
-{adminCan.canViewEscrowLedger && (
-  <DropdownMenuItem onClick={() => scrollToId("escrow-ledger")}>
-    <Coins className="h-4 w-4 mr-2" /> View Escrow Ledger
-  </DropdownMenuItem>
-)}
-{adminCan.canViewPayout && (
-  <DropdownMenuItem onClick={() => scrollToId("payouts")}>
-    <Banknote className="h-4 w-4 mr-2" /> View Payout Record
-  </DropdownMenuItem>
-)}
-```
+No other header restyling.
 
-`scrollToId` is a tiny inline helper: `document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })`. The Linked Records, Escrow Ledger, and Payouts cards are already on the page; we just give each its existing wrapper an `id="linked-records"`, `id="escrow-ledger"`, `id="payouts"`. No visual change.
+---
 
-2. **Manage Dispute — disabled-with-tooltip variant**
+## 4. Section anchor nav on desktop (NEW UI, additive only)
 
-Wrap the existing Manage Dispute item so it stays in the menu when there is no dispute, but is disabled with a tooltip:
+Add a single thin sub-header strip directly under the sticky desktop header (still sticky, `top-[Xpx]` to sit below it). Contains horizontal scroll-spy links:
 
-```tsx
-<DropdownMenuItem
-  disabled={!adminCan.canManageDispute}
-  onClick={() => dispute && navigate(`/admin/disputes/${dispute.id}`)}
-  title={!adminCan.canManageDispute ? "No active dispute on this transaction" : undefined}
->
-  <Scale className="h-4 w-4 mr-2" /> Manage Dispute
-</DropdownMenuItem>
-```
+`Summary · Risk · Timeline · Records · Agreement · Payment · Delivery · Audit`
 
-3. **Open Investigation label flip**
+- Implementation: each existing section gets an `id` (most already do — `linked-records`, `escrow-ledger`, `payouts`; add `summary`, `risk`, `timeline`, `agreement`, `delivery`, `audit`).
+- Click → `scrollToId` (already exists).
+- Active link computed via `IntersectionObserver` on the section ids.
+- Hidden on mobile (`hidden lg:flex`).
 
-Use `adminCan.investigationAlreadyOpen` to switch the button label between "Open Investigation" and "Update Investigation" in both the summary action row and the More menu. The action handler is unchanged.
+This is the only new structural strip on desktop.
 
-4. **Mobile bottom sheet — re-order existing buttons only**
+---
 
-Inside the existing `<Sheet>` `grid-cols-2`, render in this order, each gated by its `adminCan` flag (no new components):
+## 5. Mobile
 
-- Row 1 (state-aware critical): Freeze / Unfreeze, Flag for Review
-- Row 2 (case work): Manage Dispute (disabled when none), Open Investigation
-- Row 3 (records — new wiring): View Payment Record, View Escrow Ledger, View Payout Record (each calls `scrollToId(...)` and closes the sheet)
-- Row 4 (people + utility): View Buyer, View Seller, Add Note, Export, Copy Code
+- No layout change. Sections already use `MobileAccordion` (collapsible).
+- Sticky bottom action bar (Take Action + More) already exists — keep.
+- Mobile header keeps Back / brand / menu trigger.
+- Add small "Synced {relTime}" line as an unobtrusive caption inside the existing summary card subtitle area (text-[10px] muted) — no new bar.
 
-This is purely re-ordering; no styling changes.
+---
 
-5. **Confirmation modal copy — Freeze and Flag for Review**
+## 6. Realtime subscription on detail page
 
-Update the `description` props passed to `ActionConfirmDialog`:
+Add a `useEffect` in `AdminTransactionDetail.tsx` that subscribes to a single Supabase channel `admin-tx-detail-${transactionId}` listening to `postgres_changes` on these tables, filtered by `transaction_id=eq.${transactionId}` where the column exists:
 
-```tsx
-// Freeze
-description={`Transaction #${code} — current money status: ${titleCase(tx.moneyStatus)}.
-Freezing prevents any release or refund until you unfreeze. Type FREEZE to confirm.`}
+- `transactions` (filter `id=eq.${transactionId}`)
+- `transaction_events`
+- `money_status_history`
+- `disputes` (filter `transaction_id=eq.${transactionId}`)
+- `dispute_responses` (filter via dispute id if present, else listen to all and ignore non-matching in handler)
+- `payments`
+- `payouts`
+- `escrow_ledger_entries`
+- `admin_actions`
 
-// Flag for Review
-description={`Transaction #${code} — current money status: ${titleCase(tx.moneyStatus)}.
-This adds the transaction to the admin review queue and sets needs_release_review=true.`}
-```
+Behavior:
+- Debounce changes (500–800 ms) to coalesce bursts.
+- On change: bump `reloadKey` to trigger refetch; preserve scroll (do not call `scrollTo`).
+- Toast: `toast("Transaction updated", { duration: 2500 })` — throttled to once per 5 s.
+- Channel state drives `liveSync` (`connecting | live | off`) used by the header dot.
+- Cleanup: `supabase.removeChannel(channel)` on unmount or transactionId change.
 
-These are string changes inside the existing dialogs.
+---
 
-6. **Export Data payload widening — `exportData()` only**
+## 7. Animations (respect `prefers-reduced-motion`)
 
-Expand the existing JSON download to include the dispute evidence metadata, escrow ledger, linked records, audit trail, and admin notes:
+Use existing tailwind animation utilities (`animate-fade-in`, `animate-scale-in`). Wrap each application in a small helper:
 
 ```ts
-const payload = {
-  exportedAt: new Date().toISOString(),
-  transaction: data.summary,
-  parties: data.parties,
-  agreement: data.agreement,
-  delivery: data.delivery,
-  timeline: data.timeline,
-  linked: data.linked,                   // payment + payout summary
-  ledger: data.ledger,                   // escrow ledger
-  dispute: data.dispute && {
-    ...data.dispute,
-    evidence: (data.dispute.evidence ?? []).map(e => ({
-      id: e.id, kind: e.kind, title: e.title, mimeType: e.mimeType,
-      uploadedAt: e.uploadedAt, uploadedByRole: e.uploadedByRole, fileHash: e.fileHash,
-    })), // metadata only — never raw URLs/binary
-  },
-  notes: data.notes,
-  audit: data.audit,
-};
+const motionOk = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const anim = (cls: string) => motionOk ? cls : "";
 ```
 
-The existing download logic (Blob → anchor click) is unchanged. Filename stays `transaction-${code}.json`.
+Apply:
+- Page header: `anim("animate-fade-in")`.
+- Summary card: `anim("animate-fade-in")` (already uses `translateY`).
+- Risk section when high risk: add a one-time subtle ring pulse — `anim("animate-fade-in ring-1 ring-red-500/30")` (no looping pulse, no shake).
+- Timeline items: stagger via inline `style={{ animationDelay: i * 40ms }}` capped at 10 items, class `anim("animate-fade-in")`.
+- Linked record cards: add `transition-transform hover:-translate-y-0.5` (subtle lift). No scale on money values.
+- Action buttons: rely on existing shadcn hover.
 
-7. **No money-movement actions added**
+No animation on monetary numbers.
 
-Continue to omit any "Release Funds" / "Refund Buyer" buttons. The edge function already refuses those actions. The Linked Records cards remain read-only.
+---
 
-### C. Acceptance check (manual)
+## 8. Money formatting + label consistency
 
-- On `funds_held_in_escrow`: Freeze visible+enabled, Unfreeze hidden, Flag visible (if not already flagged).
-- On `funds_frozen`: Unfreeze visible+enabled, Freeze hidden.
-- On `completed/refunded/cancelled/timed_out`: Freeze, Unfreeze, Flag for Review hidden; Export, Add Note, View Buyer/Seller, View Payment/Escrow/Payout still available; Manage Dispute disabled with tooltip.
-- Manage Dispute is always visible in More menu; disabled with tooltip when no dispute, navigates when dispute exists.
-- Open Investigation always visible for non-terminal txns; label switches to "Update Investigation" when an investigation note already exists.
-- View Payment/Escrow/Payout smooth-scroll to the existing cards on the same page; never opens any new screen and never mutates data.
-- Freeze and Flag confirmation dialogs show transaction code + current money status + warning + reason field with min length; submit is disabled until reason is entered (and FREEZE typed for freeze).
-- Every successful action toasts, increments `reloadKey`, and the detail re-fetches from the edge function.
-- Export Data downloads a JSON containing summary, timeline, linked/payment/escrow/payout summaries, evidence metadata (no URLs/binaries), audit logs, and admin notes.
-- Mobile sticky bar untouched visually; sheet shows the same buttons in the new order, each respecting `adminCan`.
-- No design tokens, spacing, colors, sections, or cards changed anywhere on the page.
+- Confirm every money render uses `formatMoney(value, "NGN")` — no `toFixed`, no shortening, no `K`/`M`.
+- Replace any `tx?.status` raw rendering with the same `StatusPill` / `MoneyPill` used in the monitor row (already imported via `MoneyStatus.ts`). Add a quick audit: scan `AdminTransactionDetail.tsx` for raw `titleCase(tx?.status)` text usages and swap for `<StatusPill>` where appropriate (header subtitle stays as plain text since it's secondary).
+- Empty linked records: keep existing `<Empty>` component; ensure Payment / Escrow / Payout / Delivery / Agreement sections all render `<Empty>No payment record yet.</Empty>` style copy when fields are null instead of "—" placeholders that look like data.
 
-## Files touched
+---
 
-- `supabase/functions/admin-transaction-detail/index.ts` — extend `adminActionsAvailable` (new flags + label hint).
-- `src/pages/AdminTransactionDetail.tsx` — add `scrollToId` helper, wire the three "View …" menu items + mobile sheet items, disabled Manage Dispute fallback, label flip for Open/Update Investigation, expand `exportData()` payload, update Freeze/Flag dialog descriptions, attach `id="linked-records" / "escrow-ledger" / "payouts"` to the three already-rendered card wrappers.
-- `src/services/admin-transaction-actions.service.ts` — no change.
-- `supabase/functions/admin-transaction-actions/index.ts` — no change (already audits and refuses money movement).
+## 9. Monitor row → detail data parity
 
-## Design changes I would need from you (none required, but flagging)
+- Row click already navigates by `transactionId` — no change needed.
+- Verify the monitor row's displayed `transactionCode`, `buyerTotal`, `txStatus`, `moneyStatus`, and `disputeStatus` come from the same fields the detail page uses (`tx.transactionCode`, `pricing.buyerTotal`, `tx.status`, `tx.moneyStatus`, `dispute.status`). They do — both endpoints read from `transactions` + `escrow_states` + `disputes`.
+- Add a defensive log if `transactionCode` mismatches the monitor expectation (dev only, behind `import.meta.env.DEV`).
 
-The spec does not require a new section, badge, or layout. Two optional questions worth raising before we ship:
+---
 
-- Do you want the three new "View Payment / Escrow / Payout" actions to *also* appear as small inline buttons on the existing Linked Records / Escrow Ledger / Payouts card headers? Today they only live in the More menu / sheet. (Default: no — keep design unchanged.)
-- Do you want a small "Investigation open" pill added to the existing Risk & Investigation card header when `investigationAlreadyOpen` is true? (Default: no — keep design unchanged; the label flip on the Open/Update Investigation button is enough.)
+## 10. Files to change
 
-If you want either of those, say the word and I'll add it; otherwise this plan is design-preserving.
+- `src/pages/AdminTransactions.tsx` — URL-sync filter state via `useSearchParams`, hydrate on mount.
+- `src/pages/AdminTransactionDetail.tsx` —
+  - Realtime channel subscription + `liveSync` state.
+  - `lastSyncedAt` state, updated on every successful refetch.
+  - Breadcrumb, copy-code button, last-synced + live dot in desktop header.
+  - New sticky desktop "section anchor" sub-strip with `IntersectionObserver`.
+  - Section `id`s on Summary / Risk / Timeline / Agreement / Delivery / Audit cards.
+  - Reduced-motion-aware animation classes.
+  - Tighter skeleton matching real layout.
+  - Mobile: tiny "Synced …" caption in summary subtitle.
+- No edge function changes required.
+- No DB migrations required.
+
+---
+
+## 11. New visual elements summary (all additive, no redesign)
+
+1. Breadcrumb line in desktop header (text-xs).
+2. Inline copy-code icon button next to H1.
+3. "Synced {relTime}" + colored live dot in desktop header right side.
+4. Thin sticky section-anchor nav strip below desktop header.
+5. Subtle one-shot ring on the Risk card when high risk.
+6. Hover lift on linked record cards.
+7. Tiny "Synced …" caption on mobile summary subtitle.
+
+Nothing else moves, no colors change, no card structure changes.
+
+---
+
+## Acceptance check
+
+- Monitor filters survive: row click → back, browser back, page refresh, direct URL.
+- Detail page: skeleton matches layout; clean forbidden / not-found states; breadcrumb + copy + last-synced + live dot visible on desktop.
+- Realtime updates show subtle toast and refetch without scroll jump.
+- Animations honor `prefers-reduced-motion`.
+- All money values formatted as `₦` exact NGN, no abbreviations.
+- Status labels on detail match monitor pills exactly.
