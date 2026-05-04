@@ -979,7 +979,12 @@ export default function AdminTransactions() {
           rows.map((t, i) => (
             <article
               key={t.transactionId}
-              className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} rounded-xl border border-border bg-card p-3`}
+              onClick={() => goToDetail(t)}
+              onKeyDown={(e) => handleRowKeyDown(e, t)}
+              tabIndex={0}
+              role="button"
+              aria-label={`Open transaction ${t.transactionCode}`}
+              className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} rounded-xl border border-border bg-card p-3 cursor-pointer transition-colors hover:bg-muted/30 active:scale-[0.998] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50`}
             >
               <header className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
