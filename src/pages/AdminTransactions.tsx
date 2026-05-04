@@ -1039,6 +1039,23 @@ function FilterSelect({
   );
 }
 
+function LiveSyncPill({ state, compact = false }: { state: "connecting" | "live" | "off"; compact?: boolean }) {
+  const conf =
+    state === "live"
+      ? { dot: "bg-emerald-400", border: "border-emerald-500/30", bg: "bg-emerald-500/10", text: "text-emerald-400", label: "Live sync", pulse: true }
+      : state === "connecting"
+      ? { dot: "bg-amber-400", border: "border-amber-500/30", bg: "bg-amber-500/10", text: "text-amber-400", label: "Connecting…", pulse: true }
+      : { dot: "bg-muted-foreground", border: "border-border", bg: "bg-muted/40", text: "text-muted-foreground", label: "Offline", pulse: false };
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border ${conf.border} ${conf.bg} ${compact ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-0.5 text-[11px]"} font-medium ${conf.text}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${conf.dot} ${conf.pulse ? "animate-pulse" : ""}`} />
+      {conf.label}
+    </span>
+  );
+}
+
 function FilterInput({
   label, value, onChange, type,
 }: {
