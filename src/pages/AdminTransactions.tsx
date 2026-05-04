@@ -1210,7 +1210,7 @@ function IconBtn({ children, onClick, label }: { children: React.ReactNode; onCl
         <button
           type="button"
           aria-label={label}
-          onClick={onClick}
+          onClick={(e) => { e.stopPropagation(); onClick(); }}
           className="rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 motion-reduce:transition-none"
         >
           {children}
