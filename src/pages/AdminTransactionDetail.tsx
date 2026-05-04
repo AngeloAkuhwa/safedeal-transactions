@@ -1218,7 +1218,11 @@ export default function AdminTransactionDetail() {
             {adminCan.canFreeze && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setFreezeOpen(true); }}><Snowflake className="h-4 w-4 mr-1.5" /> Freeze Funds</Button>}
             {adminCan.canUnfreeze && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setUnfreezeOpen(true); }}><Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze</Button>}
             {adminCan.canFlagForReview && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setFlagOpen(true); }}><Flag className="h-4 w-4 mr-1.5" /> Flag for Review</Button>}
-            {adminCan.canManageDispute && dispute && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/disputes/${dispute.id}`); }}><Scale className="h-4 w-4 mr-1.5" /> Manage Dispute</Button>}
+            <Button variant="outline" disabled={!adminCan.canManageDispute} title={!adminCan.canManageDispute ? "No active dispute on this transaction" : undefined} onClick={() => { if (!dispute) return; setActionSheetOpen(false); navigate(`/admin/disputes/${dispute.id}`); }}><Scale className="h-4 w-4 mr-1.5" /> Manage Dispute</Button>
+            {adminCan.canOpenInvestigation && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setInvestigateOpen(true); }}><Search className="h-4 w-4 mr-1.5" /> {adminCan.investigationAlreadyOpen ? "Update Investigation" : "Open Investigation"}</Button>}
+            {adminCan.canViewPayment && <Button variant="outline" onClick={() => { setActionSheetOpen(false); scrollToId("linked-records"); }}><CreditCard className="h-4 w-4 mr-1.5" /> View Payment</Button>}
+            {adminCan.canViewEscrow && <Button variant="outline" onClick={() => { setActionSheetOpen(false); scrollToId("escrow-ledger"); }}><Coins className="h-4 w-4 mr-1.5" /> Escrow Ledger</Button>}
+            {adminCan.canViewPayout && <Button variant="outline" onClick={() => { setActionSheetOpen(false); scrollToId("payouts"); }}><Banknote className="h-4 w-4 mr-1.5" /> View Payout</Button>}
             {adminCan.canAddNote && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setNoteOpen(true); }}><StickyNote className="h-4 w-4 mr-1.5" /> Add Note</Button>}
             {adminCan.canViewBuyer && data?.parties?.buyer?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/users/${data.parties.buyer!.id}`); }}><User className="h-4 w-4 mr-1.5" /> View Buyer</Button>}
             {adminCan.canViewSeller && data?.parties?.seller?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/users/${data.parties.seller!.id}`); }}><User className="h-4 w-4 mr-1.5" /> View Seller</Button>}
@@ -1235,7 +1239,7 @@ export default function AdminTransactionDetail() {
         open={freezeOpen}
         onOpenChange={setFreezeOpen}
         title="Freeze Funds"
-        description="Type FREEZE to confirm freezing the escrow funds for this transaction."
+        description={`Transaction #${code} — current money status: ${titleCase(tx?.moneyStatus ?? "—")}. Freezing prevents any release or refund until you unfreeze. Type FREEZE to confirm.`}
         typeToConfirm="FREEZE"
         confirmLabel="Freeze Funds"
         confirmTone="danger"
@@ -1264,7 +1268,7 @@ export default function AdminTransactionDetail() {
         open={flagOpen}
         onOpenChange={setFlagOpen}
         title="Flag for Review"
-        description={`Flag #${code} for the admin review queue. Provide a reason.`}
+        description={`Transaction #${code} — current money status: ${titleCase(tx?.moneyStatus ?? "—")}. This adds the transaction to the admin review queue and marks it as needing release review.`}
         confirmLabel="Flag for Review"
         confirmTone="danger"
         onConfirm={async (reason) => {
