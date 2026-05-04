@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   RefreshCw,
   Download,
@@ -21,189 +21,56 @@ import {
   User,
   Home,
   Menu,
-  ShieldCheck,
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminReadingModeControl } from "@/components/admin/AdminReadingModeControl";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatMoney, formatMoneyCompact } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
+import {
+  AdminAccessRequiredError,
+  getAdminTransactionsMonitor,
+  type AdminTxMonitorResponse,
+  type AdminTxQuickFilter,
+  type AdminTxRow,
+} from "@/services/admin-transactions-monitor.service";
 
-/* ---------------- Mock data (temporary; structured for future API) ---------------- */
+/* ---------------- Visual helpers ---------------- */
 
-type TxStatus =
-  | "completed"
-  | "awaiting_payment"
-  | "in_dispute"
-  | "pending_verification"
-  | "frozen"
-  | "pending_review"
-  | "refunded"
-  | "failed"
-  | "overdue";
+const STATUS_BADGE_CLS: Record<string, string> = {
+  awaiting_payment: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
+  funds_held: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+  in_fulfillment: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+  dispatched: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+  delivered: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  completed: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  cancelled: "bg-muted text-muted-foreground border-border",
+  in_dispute: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+  refunded: "bg-muted text-muted-foreground border-border",
+  failed: "bg-red-500/15 text-red-400 border-red-500/30",
+};
 
-type EscrowState = "released" | "held" | "refunded" | "frozen" | "pending";
-type FlagKind = "clean" | "escalated" | "high_risk" | "fraud_watch";
+const ESCROW_BADGE_CLS: Record<string, string> = {
+  released: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  held: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+  refunded: "bg-muted text-muted-foreground border-border",
+  frozen: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
+  pending: "bg-muted text-muted-foreground border-border",
+};
 
-interface AdminTxRow {
-  id: string;
-  code: string;
-  date_iso: string;
-  item_name: string;
-  item_category: string;
-  buyer_name: string;
-  seller_name: string;
-  amount: number;
-  protection_fee: number;
-  currency: "NGN";
-  status: TxStatus;
-  status_sub?: string;
-  escrow: EscrowState;
-  flag: FlagKind;
-  last_activity_label: string;
-  last_activity_tone?: "muted" | "warn" | "danger";
-}
+const FLAG_META: Record<string, { label: string; cls: string; Icon?: typeof Flag }> = {
+  clean: { label: "Clean", cls: "bg-muted text-muted-foreground border-border" },
+  escalated: { label: "Escalated", cls: "bg-orange-500/15 text-orange-300 border-orange-500/30", Icon: Flag },
+  high_risk: { label: "High Risk", cls: "bg-red-500/15 text-red-400 border-red-500/30", Icon: ShieldAlert },
+  fraud_watch: { label: "Fraud Watch", cls: "bg-red-500/15 text-red-400 border-red-500/30", Icon: Flame },
+};
 
-const MOCK_TXS: AdminTxRow[] = [
-  {
-    id: "1",
-    code: "TXN-2024-001247",
-    date_iso: "2024-01-15",
-    item_name: 'MacBook Pro 16" M2',
-    item_category: "Electronics",
-    buyer_name: "John Smith",
-    seller_name: "TechStore Inc",
-    amount: 2_499_000,
-    protection_fee: 74_970,
-    currency: "NGN",
-    status: "completed",
-    status_sub: "Payment Confirmed",
-    escrow: "released",
-    flag: "clean",
-    last_activity_label: "2 hours ago",
-    last_activity_tone: "muted",
-  },
-  {
-    id: "2",
-    code: "TXN-2024-001246",
-    date_iso: "2024-01-15",
-    item_name: "Vintage Guitar Collection",
-    item_category: "Musical Instruments",
-    buyer_name: "Mike Johnson",
-    seller_name: "MusicMaster",
-    amount: 5_200_000,
-    protection_fee: 156_000,
-    currency: "NGN",
-    status: "in_dispute",
-    status_sub: "Buyer Claim Filed",
-    escrow: "held",
-    flag: "escalated",
-    last_activity_label: "45 min ago",
-    last_activity_tone: "warn",
-  },
-  {
-    id: "3",
-    code: "TXN-2024-001245",
-    date_iso: "2024-01-14",
-    item_name: "Luxury Watch - Rolex",
-    item_category: "Luxury Goods",
-    buyer_name: "Sarah Chen",
-    seller_name: "WatchDealer99",
-    amount: 12_500_000,
-    protection_fee: 375_000,
-    currency: "NGN",
-    status: "pending_verification",
-    status_sub: "Awaiting Seller Action",
-    escrow: "held",
-    flag: "high_risk",
-    last_activity_label: "3 days overdue",
-    last_activity_tone: "danger",
-  },
-  {
-    id: "4",
-    code: "TXN-2024-001244",
-    date_iso: "2024-01-14",
-    item_name: "Gaming Console Bundle",
-    item_category: "Electronics",
-    buyer_name: "Alex Turner",
-    seller_name: "GameZone Pro",
-    amount: 850_000,
-    protection_fee: 25_500,
-    currency: "NGN",
-    status: "frozen",
-    status_sub: "Payout Blocked",
-    escrow: "held",
-    flag: "fraud_watch",
-    last_activity_label: "5 hours ago",
-    last_activity_tone: "muted",
-  },
-  {
-    id: "5",
-    code: "TXN-2024-001243",
-    date_iso: "2024-01-14",
-    item_name: "iPhone 15 Pro Max",
-    item_category: "Electronics",
-    buyer_name: "Emma Davis",
-    seller_name: "MobileMart",
-    amount: 1_199_000,
-    protection_fee: 35_970,
-    currency: "NGN",
-    status: "pending_review",
-    escrow: "released",
-    flag: "clean",
-    last_activity_label: "1 day ago",
-    last_activity_tone: "muted",
-  },
-  {
-    id: "6",
-    code: "TXN-2024-001242",
-    date_iso: "2024-01-13",
-    item_name: "Designer Handbag - LV",
-    item_category: "Fashion",
-    buyer_name: "Lisa Park",
-    seller_name: "LuxBags",
-    amount: 3_400_000,
-    protection_fee: 102_000,
-    currency: "NGN",
-    status: "refunded",
-    status_sub: "Buyer Refunded",
-    escrow: "refunded",
-    flag: "clean",
-    last_activity_label: "2 days ago",
-    last_activity_tone: "muted",
-  },
-  {
-    id: "7",
-    code: "TXN-2024-001241",
-    date_iso: "2024-01-13",
-    item_name: "Camera DSLR Kit",
-    item_category: "Photography",
-    buyer_name: "Tom Wilson",
-    seller_name: "PhotoPro",
-    amount: 1_850_000,
-    protection_fee: 55_500,
-    currency: "NGN",
-    status: "failed",
-    status_sub: "Card Declined",
-    escrow: "pending",
-    flag: "clean",
-    last_activity_label: "3 days ago",
-    last_activity_tone: "muted",
-  },
-];
-
-const SUMMARY_TILES = [
-  { key: "total_tx", icon: Receipt, label: "Total Transactions", value: "24,583", subtitle: null, iconCls: "bg-blue-500/15 text-blue-400" },
-  { key: "total_amount", icon: Banknote, label: "Total Amount", value: formatMoneyCompact(2_400_000_000), exact: formatMoney(2_400_000_000), iconCls: "bg-emerald-500/15 text-emerald-400" },
-  { key: "in_escrow", icon: Landmark, label: "In Escrow", value: formatMoneyCompact(124_000_000), exact: formatMoney(124_000_000), iconCls: "bg-purple-500/15 text-purple-400" },
-  { key: "in_dispute", icon: Scale, label: "In Dispute", value: "23", subtitle: null, iconCls: "bg-orange-500/15 text-orange-400" },
-  { key: "awaiting", icon: Clock, label: "Awaiting Action", value: "47", subtitle: null, iconCls: "bg-yellow-500/15 text-yellow-400" },
-  { key: "flagged", icon: Flag, label: "Flagged", value: "12", subtitle: null, iconCls: "bg-red-500/15 text-red-400" },
-];
-
-const QUICK_FILTERS = [
+const QUICK_FILTERS: { key: AdminTxQuickFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "awaiting_payment", label: "Awaiting Payment" },
   { key: "funds_held", label: "Funds Held" },
@@ -211,36 +78,9 @@ const QUICK_FILTERS = [
   { key: "overdue", label: "Overdue" },
   { key: "refunded", label: "Refunded" },
   { key: "failed", label: "Failed" },
+  { key: "flagged", label: "Flagged" },
+  { key: "frozen", label: "Frozen" },
 ];
-
-/* ---------------- Visual helpers ---------------- */
-
-const STATUS_BADGE: Record<TxStatus, { label: string; cls: string }> = {
-  completed: { label: "Completed", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-  awaiting_payment: { label: "Awaiting Payment", cls: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30" },
-  in_dispute: { label: "In Dispute", cls: "bg-orange-500/15 text-orange-400 border-orange-500/30" },
-  pending_verification: { label: "Pending Verification", cls: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30" },
-  frozen: { label: "Frozen", cls: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30" },
-  pending_review: { label: "Pending Review", cls: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30" },
-  refunded: { label: "Refunded", cls: "bg-muted text-muted-foreground border-border" },
-  failed: { label: "Failed", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
-  overdue: { label: "Overdue", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
-};
-
-const ESCROW_BADGE: Record<EscrowState, { label: string; cls: string }> = {
-  released: { label: "Released", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
-  held: { label: "Held", cls: "bg-purple-500/15 text-purple-300 border-purple-500/30" },
-  refunded: { label: "Refunded", cls: "bg-muted text-muted-foreground border-border" },
-  frozen: { label: "Frozen", cls: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30" },
-  pending: { label: "Pending", cls: "bg-muted text-muted-foreground border-border" },
-};
-
-const FLAG_BADGE: Record<FlagKind, { label: string; cls: string; icon?: typeof Flag }> = {
-  clean: { label: "Clean", cls: "bg-muted text-muted-foreground border-border" },
-  escalated: { label: "Escalated", cls: "bg-orange-500/15 text-orange-300 border-orange-500/30", icon: Flag },
-  high_risk: { label: "High Risk", cls: "bg-red-500/15 text-red-400 border-red-500/30", icon: ShieldAlert },
-  fraud_watch: { label: "Fraud Watch", cls: "bg-red-500/15 text-red-400 border-red-500/30", icon: Flame },
-};
 
 function Badge({ label, cls, Icon }: { label: string; cls: string; Icon?: typeof Flag }) {
   return (
@@ -251,54 +91,150 @@ function Badge({ label, cls, Icon }: { label: string; cls: string; Icon?: typeof
   );
 }
 
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" });
+  } catch {
+    return iso;
+  }
+}
+
 /* ---------------- Page ---------------- */
 
 const SIDEBAR_BADGES = {
-  disputes: 12,
-  identity: 8,
-  payouts: 3,
+  disputes: 0,
+  identity: 0,
+  payouts: 0,
   flagged_users: 0,
   exports: 0,
 } as const;
 
+const PAGE_SIZE = 25;
+
 export default function AdminTransactions() {
   const navigate = useNavigate();
-  const [activeQuick, setActiveQuick] = useState<string>("all");
+  const [activeQuick, setActiveQuick] = useState<AdminTxQuickFilter>("all");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return MOCK_TXS.filter((t) => {
-      if (q) {
-        const hay = `${t.code} ${t.item_name} ${t.buyer_name} ${t.seller_name}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      switch (activeQuick) {
-        case "all":
-          return true;
-        case "awaiting_payment":
-          return t.status === "awaiting_payment";
-        case "funds_held":
-          return t.escrow === "held";
-        case "in_dispute":
-          return t.status === "in_dispute";
-        case "overdue":
-          return t.last_activity_tone === "danger";
-        case "refunded":
-          return t.status === "refunded";
-        case "failed":
-          return t.status === "failed";
-        default:
-          return true;
-      }
-    });
-  }, [activeQuick, search]);
+  const [data, setData] = useState<AdminTxMonitorResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const reqIdRef = useRef(0);
 
-  const handleRefresh = () => toast({ title: "Refreshed", description: "Transaction monitor reloaded." });
-  const handleExport = () => toast({ title: "Export queued", description: "Your export will appear in /admin/exports when ready." });
+  // Debounce search
+  useEffect(() => {
+    const h = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => clearTimeout(h);
+  }, [search]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [activeQuick, debouncedSearch]);
+
+  const fetchData = useCallback(async () => {
+    const reqId = ++reqIdRef.current;
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await getAdminTransactionsMonitor({
+        search: debouncedSearch || undefined,
+        quickFilter: activeQuick,
+        page,
+        pageSize: PAGE_SIZE,
+        sortBy: "created_at",
+        sortDirection: "desc",
+      });
+      if (reqIdRef.current !== reqId) return;
+      setData(resp);
+    } catch (e) {
+      if (reqIdRef.current !== reqId) return;
+      if (e instanceof AdminAccessRequiredError) {
+        setAccessDenied(true);
+      } else {
+        setError((e as Error).message || "Failed to load transactions");
+      }
+    } finally {
+      if (reqIdRef.current === reqId) setLoading(false);
+    }
+  }, [debouncedSearch, activeQuick, page]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleRefresh = () => {
+    fetchData();
+    toast({ title: "Refreshing", description: "Loading latest transaction data." });
+  };
+  const handleExport = () =>
+    toast({ title: "Export queued", description: "Your export will appear in /admin/exports when ready." });
   const handleRowAction = (label: string, code: string) =>
     toast({ title: label, description: `${code} — coming soon` });
+
+  const summary = data?.summary;
+  const rows = data?.rows ?? [];
+  const pagination = data?.pagination;
+
+  const summaryTiles = useMemo(
+    () => [
+      {
+        key: "total_tx", icon: Receipt, label: "Total Transactions",
+        value: summary ? summary.totalTransactions.toLocaleString("en-NG") : "—",
+        exact: null,
+        iconCls: "bg-blue-500/15 text-blue-400",
+      },
+      {
+        key: "total_amount", icon: Banknote, label: "Total Amount",
+        value: summary ? formatMoneyCompact(summary.totalAmount) : "—",
+        exact: summary ? formatMoney(summary.totalAmount) : null,
+        iconCls: "bg-emerald-500/15 text-emerald-400",
+      },
+      {
+        key: "in_escrow", icon: Landmark, label: "In Escrow",
+        value: summary ? formatMoneyCompact(summary.inEscrowAmount) : "—",
+        exact: summary ? formatMoney(summary.inEscrowAmount) : null,
+        iconCls: "bg-purple-500/15 text-purple-400",
+      },
+      {
+        key: "in_dispute", icon: Scale, label: "In Dispute",
+        value: summary ? summary.inDisputeCount.toLocaleString("en-NG") : "—",
+        exact: null,
+        iconCls: "bg-orange-500/15 text-orange-400",
+      },
+      {
+        key: "awaiting", icon: Clock, label: "Awaiting Action",
+        value: summary ? summary.awaitingActionCount.toLocaleString("en-NG") : "—",
+        exact: null,
+        iconCls: "bg-yellow-500/15 text-yellow-400",
+      },
+      {
+        key: "flagged", icon: Flag, label: "Flagged",
+        value: summary ? summary.flaggedCount.toLocaleString("en-NG") : "—",
+        exact: null,
+        iconCls: "bg-red-500/15 text-red-400",
+      },
+    ],
+    [summary],
+  );
+
+  if (accessDenied) {
+    return (
+      <AdminLayout title="Transaction Monitor" subtitle="Admin access required" badges={SIDEBAR_BADGES}>
+        <div className="rounded-xl border border-border bg-card p-10 text-center">
+          <ShieldAlert className="mx-auto mb-3 h-8 w-8 text-red-400" />
+          <h2 className="text-base font-semibold text-foreground">Admin access required</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            You don't have permission to view the Transaction Monitor.
+          </p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout
@@ -332,9 +268,10 @@ export default function AdminTransactions() {
               <button
                 type="button"
                 onClick={handleRefresh}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-500"
+                disabled={loading}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-500 disabled:opacity-60"
               >
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
                 Refresh
               </button>
             </div>
@@ -362,20 +299,37 @@ export default function AdminTransactions() {
             <button
               type="button"
               onClick={handleRefresh}
+              disabled={loading}
               aria-label="Refresh"
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-foreground/90 hover:bg-muted/70"
+              className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-foreground/90 hover:bg-muted/70 disabled:opacity-60"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </button>
           </div>
         </header>
       )}
     >
+      {/* Error banner */}
+      {error && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
+          <div className="inline-flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            <span>Failed to load transactions: {error}</span>
+          </div>
+          <button
+            type="button"
+            onClick={fetchData}
+            className="rounded-md border border-red-500/40 px-3 py-1 text-xs font-medium hover:bg-red-500/15"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Summary KPI cards */}
       <TooltipProvider delayDuration={150}>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {SUMMARY_TILES.map((t, i) => {
+          {summaryTiles.map((t, i) => {
             const Icon = t.icon;
             const card = (
               <div
@@ -386,10 +340,12 @@ export default function AdminTransactions() {
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="text-[11px] text-muted-foreground">{t.label}</div>
-                <div className="mt-1 truncate text-2xl font-semibold tracking-tight text-foreground">{t.value}</div>
+                <div className="mt-1 truncate text-2xl font-semibold tracking-tight text-foreground">
+                  {loading && !summary ? <span className="inline-block h-6 w-16 animate-pulse rounded bg-muted" /> : t.value}
+                </div>
               </div>
             );
-            if ("exact" in t && t.exact) {
+            if (t.exact) {
               return (
                 <Tooltip key={t.key}>
                   <TooltipTrigger asChild>{card}</TooltipTrigger>
@@ -430,12 +386,6 @@ export default function AdminTransactions() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <ResponsiveSearchInput value={search} onChange={setSearch} />
           </div>
-
-          <div className="hidden gap-2 lg:flex">
-            <Select label="All Statuses" />
-            <Select label="All Amounts" />
-          </div>
-
           <button
             type="button"
             onClick={() => setFiltersOpen((s) => !s)}
@@ -447,16 +397,7 @@ export default function AdminTransactions() {
           </button>
         </div>
 
-        <div
-          className={`mt-3 flex-wrap gap-2 ${filtersOpen ? "flex" : "hidden"} lg:flex`}
-        >
-          <Select label="Money Status" />
-          <Select label="Dispute Status" />
-          <Select label="Risk Level" />
-          <input
-            type="date"
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-          />
+        <div className={`mt-3 flex-wrap gap-2 ${filtersOpen ? "flex" : "hidden"} lg:flex`}>
           <button
             type="button"
             onClick={() => {
@@ -473,9 +414,15 @@ export default function AdminTransactions() {
       {/* Desktop table */}
       <div className="hidden rounded-xl border border-border bg-card lg:block">
         <div className="flex items-center justify-between border-b border-border p-3">
-          <h3 className="text-sm font-semibold text-foreground">Transactions</h3>
+          <h3 className="text-sm font-semibold text-foreground">
+            Transactions
+            {pagination && (
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                ({pagination.totalCount.toLocaleString("en-NG")} total)
+              </span>
+            )}
+          </h3>
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-            <span>Last updated: 2 minutes ago</span>
             <span className="inline-flex items-center gap-1.5 text-emerald-400">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> Live sync
             </span>
@@ -497,93 +444,113 @@ export default function AdminTransactions() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {loading && rows.length === 0 ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="border-b border-border/60">
+                    <td colSpan={9} className="px-3 py-3">
+                      <div className="h-6 w-full animate-pulse rounded bg-muted/60" />
+                    </td>
+                  </tr>
+                ))
+              ) : rows.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-3 py-10 text-center text-sm text-muted-foreground">
                     No transactions match the current filters.
                   </td>
                 </tr>
               ) : (
-                filtered.map((t, i) => (
+                rows.map((t, i) => (
                   <tr
-                    key={t.id}
+                    key={t.transactionId}
                     className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} border-b border-border/60 transition-colors hover:bg-muted/40`}
                   >
                     <td className="px-3 py-3 align-top">
                       <div className="flex items-start gap-2">
-                        {t.flag === "fraud_watch" || t.status === "frozen" ? (
-                          <Snowflake className="mt-0.5 h-3.5 w-3.5 text-cyan-400" />
-                        ) : null}
+                        {t.isFrozen ? <Snowflake className="mt-0.5 h-3.5 w-3.5 text-cyan-400" /> : null}
                         <div>
-                          <div className="font-medium text-foreground">#{t.code}</div>
-                          <div className="text-xs text-muted-foreground">{formatDate(t.date_iso)}</div>
+                          <div className="font-medium text-foreground">#{t.transactionCode}</div>
+                          <div className="text-xs text-muted-foreground">{formatDate(t.createdAt)}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-3 py-3 align-top">
-                      <div className="font-medium text-foreground">{t.item_name}</div>
-                      <div className="text-xs text-muted-foreground">{t.item_category}</div>
+                      <div className="font-medium text-foreground">{t.itemTitle}</div>
+                      {t.itemCategory ? (
+                        <div className="text-xs text-muted-foreground">{t.itemCategory}</div>
+                      ) : null}
                     </td>
                     <td className="px-3 py-3 align-top">
                       <div className="text-xs">
                         <span className="text-muted-foreground">Buyer:</span>{" "}
-                        <span className="text-foreground">{t.buyer_name}</span>
+                        <span className="text-foreground">{t.buyerName}</span>
                       </div>
                       <div className="text-xs">
                         <span className="text-muted-foreground">Seller:</span>{" "}
-                        <span className="text-foreground">{t.seller_name}</span>
+                        <span className="text-foreground">{t.sellerName}</span>
                       </div>
                     </td>
                     <td className="px-3 py-3 align-top">
-                      <div className="font-semibold text-foreground tabular-nums">{formatMoney(t.amount, t.currency)}</div>
+                      <div className="font-semibold text-foreground tabular-nums">
+                        {formatMoney(t.amount, t.currency)}
+                      </div>
                       <div className="text-[11px] text-muted-foreground">
-                        {t.status === "completed" ? "Fee:" : "Protection Fee:"} {formatMoney(t.protection_fee, t.currency)}
+                        Protection Fee: {formatMoney(t.protectionFee, t.currency)}
                       </div>
                     </td>
                     <td className="px-3 py-3 align-top">
-                      <Badge label={STATUS_BADGE[t.status].label} cls={STATUS_BADGE[t.status].cls} />
-                      {t.status_sub ? (
-                        <div className="mt-1 text-[11px] text-muted-foreground">{t.status_sub}</div>
-                      ) : null}
+                      <Badge
+                        label={t.transactionStatus.label}
+                        cls={STATUS_BADGE_CLS[t.transactionStatus.key] ?? "bg-muted text-muted-foreground border-border"}
+                      />
+                      <div className="mt-1 text-[11px] text-muted-foreground">{t.moneyStatus.label}</div>
                     </td>
                     <td className="px-3 py-3 align-top">
-                      <Badge label={ESCROW_BADGE[t.escrow].label} cls={ESCROW_BADGE[t.escrow].cls} />
+                      <Badge
+                        label={t.escrowStatus.label}
+                        cls={ESCROW_BADGE_CLS[t.escrowStatus.key] ?? "bg-muted text-muted-foreground border-border"}
+                      />
                     </td>
                     <td className="px-3 py-3 align-top">
-                      <Badge label={FLAG_BADGE[t.flag].label} cls={FLAG_BADGE[t.flag].cls} Icon={FLAG_BADGE[t.flag].icon} />
+                      <Badge
+                        label={FLAG_META[t.riskLevel].label}
+                        cls={FLAG_META[t.riskLevel].cls}
+                        Icon={FLAG_META[t.riskLevel].Icon}
+                      />
                     </td>
                     <td className="px-3 py-3 align-top">
                       <span
                         className={`text-xs ${
-                          t.last_activity_tone === "danger"
+                          t.lastActivityTone === "danger"
                             ? "text-red-400"
-                            : t.last_activity_tone === "warn"
+                            : t.lastActivityTone === "warn"
                               ? "text-orange-300"
                               : "text-muted-foreground"
                         }`}
                       >
-                        {t.last_activity_label}
+                        {t.lastActivityLabel}
                       </span>
                     </td>
                     <td className="px-3 py-3 align-top">
                       <div className="flex items-center justify-start gap-1.5 text-muted-foreground">
-                        <IconBtn label="View" onClick={() => handleRowAction("View transaction", t.code)}>
+                        <IconBtn label="View" onClick={() => handleRowAction("View transaction", t.transactionCode)}>
                           <Eye className="h-4 w-4" />
                         </IconBtn>
-                        {t.flag !== "clean" || t.status === "in_dispute" ? (
+                        {t.riskLevel !== "clean" || t.transactionStatus.key === "in_dispute" ? (
                           <>
-                            <IconBtn label="Notes" onClick={() => handleRowAction("Open notes", t.code)}>
+                            <IconBtn label="Notes" onClick={() => handleRowAction("Open notes", t.transactionCode)}>
                               <MessageSquare className="h-4 w-4" />
                             </IconBtn>
-                            <IconBtn label="Trace funds" onClick={() => handleRowAction("Trace funds", t.code)}>
+                            <IconBtn label="Trace funds" onClick={() => handleRowAction("Trace funds", t.transactionCode)}>
                               <ArrowLeftRight className="h-4 w-4" />
                             </IconBtn>
-                            <IconBtn label="Freeze" onClick={() => handleRowAction("Freeze transaction", t.code)}>
-                              <Snowflake className="h-4 w-4" />
-                            </IconBtn>
+                            {t.actionAvailability.canFreeze && (
+                              <IconBtn label="Freeze" onClick={() => handleRowAction("Freeze transaction", t.transactionCode)}>
+                                <Snowflake className="h-4 w-4" />
+                              </IconBtn>
+                            )}
                           </>
                         ) : null}
-                        <IconBtn label="More" onClick={() => handleRowAction("More actions", t.code)}>
+                        <IconBtn label="More" onClick={() => handleRowAction("More actions", t.transactionCode)}>
                           <MoreVertical className="h-4 w-4" />
                         </IconBtn>
                       </div>
@@ -594,60 +561,90 @@ export default function AdminTransactions() {
             </tbody>
           </table>
         </div>
+        {/* Pagination footer */}
+        {pagination && pagination.totalCount > 0 && (
+          <PaginationBar
+            page={pagination.page}
+            pageSize={pagination.pageSize}
+            totalCount={pagination.totalCount}
+            hasNext={pagination.hasNextPage}
+            hasPrev={pagination.hasPreviousPage}
+            onPrev={() => setPage((p) => Math.max(1, p - 1))}
+            onNext={() => setPage((p) => p + 1)}
+          />
+        )}
       </div>
 
       {/* Mobile card list */}
       <div className="space-y-3 lg:hidden pb-20">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-sm font-semibold text-foreground">Recent Transactions</h3>
-          <span className="text-[11px] text-muted-foreground">Updated 2m ago</span>
+          {pagination ? (
+            <span className="text-[11px] text-muted-foreground">
+              {pagination.totalCount.toLocaleString("en-NG")} total
+            </span>
+          ) : null}
         </div>
-        {filtered.length === 0 ? (
+        {loading && rows.length === 0 ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-card" />
+          ))
+        ) : rows.length === 0 ? (
           <div className="rounded-xl border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
             No transactions match.
           </div>
         ) : (
-          filtered.map((t, i) => (
+          rows.map((t, i) => (
             <article
-              key={t.id}
+              key={t.transactionId}
               className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} rounded-xl border border-border bg-card p-3`}
             >
               <header className="flex items-start justify-between">
                 <div className="flex items-start gap-2">
-                  {t.flag === "fraud_watch" || t.status === "frozen" ? (
-                    <Snowflake className="mt-0.5 h-3.5 w-3.5 text-cyan-400" />
-                  ) : null}
+                  {t.isFrozen ? <Snowflake className="mt-0.5 h-3.5 w-3.5 text-cyan-400" /> : null}
                   <div>
-                    <div className="text-sm font-semibold text-foreground">#{t.code}</div>
-                    <div className="text-[11px] text-muted-foreground">{formatDate(t.date_iso)}</div>
+                    <div className="text-sm font-semibold text-foreground">#{t.transactionCode}</div>
+                    <div className="text-[11px] text-muted-foreground">{formatDate(t.createdAt)}</div>
                   </div>
                 </div>
-                <Badge label={STATUS_BADGE[t.status].label} cls={STATUS_BADGE[t.status].cls} />
+                <Badge
+                  label={t.transactionStatus.label}
+                  cls={STATUS_BADGE_CLS[t.transactionStatus.key] ?? "bg-muted text-muted-foreground border-border"}
+                />
               </header>
 
               <div className="mt-2">
-                <div className="text-sm font-medium text-foreground">{t.item_name}</div>
-                <div className="text-[11px] text-muted-foreground">{t.item_category}</div>
+                <div className="text-sm font-medium text-foreground">{t.itemTitle}</div>
+                {t.itemCategory ? (
+                  <div className="text-[11px] text-muted-foreground">{t.itemCategory}</div>
+                ) : null}
               </div>
 
               <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border pt-2 text-[11px]">
                 <div>
                   <div className="text-muted-foreground">Buyer</div>
-                  <div className="truncate text-foreground">{t.buyer_name}</div>
+                  <div className="truncate text-foreground">{t.buyerName}</div>
                 </div>
                 <div className="text-right">
                   <div className="text-muted-foreground">Seller</div>
-                  <div className="truncate text-foreground">{t.seller_name}</div>
+                  <div className="truncate text-foreground">{t.sellerName}</div>
                 </div>
               </div>
 
-              {(t.flag !== "clean" || t.escrow === "held" || t.escrow === "frozen") && (
+              {(t.riskLevel !== "clean" || t.isFrozen) && (
                 <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
-                  {t.escrow !== "pending" && t.escrow !== "released" && (
-                    <Badge label={ESCROW_BADGE[t.escrow].label} cls={ESCROW_BADGE[t.escrow].cls} />
+                  {t.escrowStatus.key !== "pending" && t.escrowStatus.key !== "released" && (
+                    <Badge
+                      label={t.escrowStatus.label}
+                      cls={ESCROW_BADGE_CLS[t.escrowStatus.key] ?? "bg-muted text-muted-foreground border-border"}
+                    />
                   )}
-                  {t.flag !== "clean" && (
-                    <Badge label={FLAG_BADGE[t.flag].label} cls={FLAG_BADGE[t.flag].cls} Icon={FLAG_BADGE[t.flag].icon} />
+                  {t.riskLevel !== "clean" && (
+                    <Badge
+                      label={FLAG_META[t.riskLevel].label}
+                      cls={FLAG_META[t.riskLevel].cls}
+                      Icon={FLAG_META[t.riskLevel].Icon}
+                    />
                   )}
                 </div>
               )}
@@ -657,24 +654,39 @@ export default function AdminTransactions() {
                   <div className="text-base font-semibold text-foreground tabular-nums">
                     {formatMoney(t.amount, t.currency)}
                   </div>
-                  <div className={`text-[11px] ${t.last_activity_tone === "danger" ? "text-red-400" : "text-muted-foreground"}`}>
-                    {t.status === "completed" ? "Fee" : "Protection"}: {formatMoney(t.protection_fee, t.currency)}
+                  <div
+                    className={`text-[11px] ${
+                      t.lastActivityTone === "danger" ? "text-red-400" : "text-muted-foreground"
+                    }`}
+                  >
+                    Protection: {formatMoney(t.protectionFee, t.currency)}
                   </div>
-                  {t.last_activity_tone === "danger" ? (
-                    <div className="mt-0.5 text-[11px] text-red-400">{t.last_activity_label}</div>
+                  {t.lastActivityTone === "danger" ? (
+                    <div className="mt-0.5 text-[11px] text-red-400">{t.lastActivityLabel}</div>
                   ) : null}
                 </div>
                 <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <IconBtn label="View" onClick={() => handleRowAction("View transaction", t.code)}>
+                  <IconBtn label="View" onClick={() => handleRowAction("View transaction", t.transactionCode)}>
                     <Eye className="h-4 w-4 text-blue-400" />
                   </IconBtn>
-                  <IconBtn label="More" onClick={() => handleRowAction("More actions", t.code)}>
+                  <IconBtn label="More" onClick={() => handleRowAction("More actions", t.transactionCode)}>
                     <MoreVertical className="h-4 w-4" />
                   </IconBtn>
                 </div>
               </div>
             </article>
           ))
+        )}
+        {pagination && pagination.totalCount > 0 && (
+          <PaginationBar
+            page={pagination.page}
+            pageSize={pagination.pageSize}
+            totalCount={pagination.totalCount}
+            hasNext={pagination.hasNextPage}
+            hasPrev={pagination.hasPreviousPage}
+            onPrev={() => setPage((p) => Math.max(1, p - 1))}
+            onNext={() => setPage((p) => p + 1)}
+          />
         )}
       </div>
 
@@ -685,7 +697,7 @@ export default function AdminTransactions() {
       >
         <div className="grid grid-cols-4">
           <BottomNav active label="Transactions" Icon={Receipt} onClick={() => {}} />
-          <BottomNav label="Disputes" Icon={Scale} badge={SIDEBAR_BADGES.disputes} onClick={() => navigate("/admin/dashboard")} />
+          <BottomNav label="Disputes" Icon={Scale} onClick={() => navigate("/admin/dashboard")} />
           <BottomNav label="Dashboard" Icon={LineChart} onClick={() => navigate("/admin/dashboard")} />
           <BottomNav label="Profile" Icon={User} onClick={() => toast({ title: "Profile", description: "Coming soon" })} />
         </div>
@@ -694,41 +706,7 @@ export default function AdminTransactions() {
   );
 }
 
-/* ---------------- Tiny inline subcomponents ---------------- */
-
-function Select({ label }: { label: string }) {
-  return (
-    <select
-      defaultValue=""
-      className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-blue-500/50 focus:outline-none"
-    >
-      <option value="">{label}</option>
-    </select>
-  );
-}
-
-function ResponsiveSearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [isLg, setIsLg] = useState<boolean>(() =>
-    typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)").matches : false,
-  );
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const handler = (e: MediaQueryListEvent) => setIsLg(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-  return (
-    <input
-      type="text"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={isLg ? "Search transaction code, buyer, seller, or item..." : "Search transactions..."}
-      aria-label="Search transactions"
-      className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
-    />
-  );
-}
+/* ---------------- Subcomponents ---------------- */
 
 function IconBtn({ children, onClick, label }: { children: React.ReactNode; onClick: () => void; label: string }) {
   return (
@@ -775,10 +753,60 @@ function BottomNav({
   );
 }
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" });
-  } catch {
-    return iso;
-  }
+function PaginationBar({
+  page, pageSize, totalCount, hasNext, hasPrev, onPrev, onNext,
+}: {
+  page: number; pageSize: number; totalCount: number;
+  hasNext: boolean; hasPrev: boolean;
+  onPrev: () => void; onNext: () => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-border p-3 text-xs text-muted-foreground">
+      <span>
+        Page {page} of {totalPages}
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onPrev}
+          disabled={!hasPrev}
+          className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" /> Prev
+        </button>
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={!hasNext}
+          className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+        >
+          Next <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ResponsiveSearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [isLg, setIsLg] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)").matches : false,
+  );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const handler = (e: MediaQueryListEvent) => setIsLg(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={isLg ? "Search transaction code..." : "Search transactions..."}
+      aria-label="Search transactions"
+      className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+    />
+  );
 }

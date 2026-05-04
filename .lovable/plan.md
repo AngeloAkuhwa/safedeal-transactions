@@ -1,63 +1,109 @@
-
 ## Goal
-The admin area (`/admin/*`) is currently hardcoded to a dark slate palette (`bg-slate-950`, `text-slate-100`, `border-slate-800`, etc.). Make it fully theme-aware so it follows the same light/dark toggle used by the buyer/seller areas via `next-themes`.
 
-## Approach
-Replace hardcoded `slate-*` / `white` colors with semantic Tailwind tokens already defined in `src/index.css` (`bg-background`, `bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-muted`, `bg-popover`, etc.). These tokens flip automatically when the `.dark` class is applied to `<html>`. Then add the existing `<ThemeToggle />` component into the admin headers.
+Replace the mock data in `/admin/transactions` with real DB-driven data via a new admin-only edge function, mirroring the patterns used by `admin-dashboard`.
 
-Accent colors (blue/red/orange/yellow/cyan/purple/green) used for KPIs, badges, and chart strokes stay as-is — they read well on both backgrounds — but their soft fill (`bg-X-500/15`) and border (`border-X-500/30`) opacities will be lightly tuned where contrast is poor on white.
+## Files
 
-## Files to change
+1. **NEW** `supabase/functions/admin-transactions-monitor/index.ts`
+2. **NEW** `src/services/admin-transactions-monitor.service.ts`
+3. **EDIT** `src/pages/AdminTransactions.tsx` — wire to service; remove mock rows; keep UI shell (KPIs / chips / table / mobile cards / empty + loading + error states).
 
-### Layout & chrome
-- `src/components/admin/AdminLayout.tsx` — change `bg-slate-950 text-slate-100` → `bg-background text-foreground`; sidebar wrapper border → `border-border`.
-- `src/components/admin/AdminSidebar.tsx` — `bg-slate-900` → `bg-card`; section headers and item text → `text-muted-foreground` / `text-foreground`; active state → `bg-primary/10 text-primary border-primary/30`; hover → `hover:bg-muted`; profile footer + logo divider → `border-border`; tooltip → use default token classes.
-- `src/components/admin/AdminHeader.tsx` — sticky bar → `bg-background/85 border-border`; title → `text-foreground`; subtitle → `text-muted-foreground`; "Filters" button → `border-border bg-muted/60 text-foreground hover:bg-muted`; insert `<ThemeToggle />` next to the reading-mode control.
-- `src/components/admin/AdminMobileHeader.tsx` — `bg-card/95 border-border`; menu/export buttons → `bg-muted text-muted-foreground hover:bg-muted/70`; insert `<ThemeToggle />`.
-- `src/components/admin/AdminReadingModeControl.tsx` — swap any `slate-*` references for tokens (popover/menu surfaces).
+## Edge Function: `admin-transactions-monitor`
 
-### Dashboard cards (all under `src/components/admin/dashboard/`)
-Apply the same token mapping across:
-- `KpiCards.tsx`
-- `AdminActionRequired.tsx`
-- `TrendCharts.tsx` (chart container, axis text color via CSS var `hsl(var(--muted-foreground))`, grid lines via `hsl(var(--border))`)
-- `OperationalHotspots.tsx`
-- `RiskAndPaymentHealth.tsx`
-- `IdentityAndPayoutHealth.tsx`
-- `AuditComplianceSignal.tsx`
-- `CriticalAlerts.tsx`
-- `RecentActivity.tsx`
-- `PerformanceMetrics.tsx`
+### Auth (mirror `admin-dashboard`)
+- Reject if no `Authorization: Bearer …` → 401.
+- `auth.getUser(token)` → 401 on invalid.
+- `rpc("has_role", { _user_id, _role: "admin" })` → 403 if false.
+- After admin confirmation, use service-role client for queries.
 
-Mapping reference:
-```text
-bg-slate-950           → bg-background
-bg-slate-900           → bg-card
-bg-slate-900/60        → bg-card/60
-bg-slate-800/60        → bg-muted/60
-text-white             → text-foreground
-text-slate-100/200/300 → text-foreground
-text-slate-400/500     → text-muted-foreground
-border-slate-700/800   → border-border
-hover:bg-slate-800     → hover:bg-muted
+### Input (POST JSON body, all optional)
+```
+{ search, transactionStatus, moneyStatus, disputeStatus, riskLevel,
+  amountMin, amountMax, dateFrom, dateTo, quickFilter,
+  page=1, pageSize=25, sortBy="created_at", sortDirection="desc" }
+```
+Validate with zod; clamp `pageSize` to 1–100; whitelist `sortBy` to `created_at | updated_at | transaction_code`.
+
+### Quick filter mapping
+- `awaiting_payment` → `status='awaiting_payment'`
+- `funds_held` → `money_status='funds_held_in_escrow'`
+- `in_dispute` → `dispute_status in ('open','seller_response_pending','under_review')`
+- `overdue` → join disputes overdue OR `status='awaiting_payment' AND created_at < now()-24h`
+- `refunded` → `money_status in ('refund_pending','refund_issued') OR status='refunded'`
+- `failed` → exists failed payment for tx
+- `flagged` → `needs_release_review=true`
+- `frozen` → `money_status='funds_frozen'`
+
+### Query plan
+1. Build base `transactions` query with all filters; get `count: 'exact'` and ordered/paginated rows (id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, needs_release_review, payment_received_at, completed_at, created_at, updated_at).
+2. For the page's tx ids, batch fetch in parallel:
+   - `transaction_items` (title, description, condition_label) — pick first item per tx as headline.
+   - `transaction_pricing` (item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount, currency_code).
+   - `escrow_states` (state, held_amount, frozen_amount, released_amount, refunded_amount, last_changed_at).
+   - `disputes` open per tx (id, status, opened_at, seller_response_due_at).
+   - `money_status_history` latest per tx (changed_at).
+   - `transaction_events` latest per tx (created_at, event_type) — last activity fallback.
+   - `payments` latest per tx (status).
+   - `profiles` for buyer_id+seller_id (id, full_name, email).
+3. Map raw enums → display labels (per spec `Status mapping` and `Money status mapping`). Inside admin portal use "Awaiting Release" / "Release Review" — never "admin release".
+4. Compute per-row:
+   - `lastActivityAt = max(money_status_history.changed_at, transaction_events.created_at, updated_at)` + relative label.
+   - `isOverdue` = open dispute with `seller_response_due_at < now()` OR `status='awaiting_payment' AND created_at < now()-24h`.
+   - `isFrozen` = `money_status='funds_frozen'`.
+   - `riskLevel` derived: `fraud_watch` if `needs_release_review && money_status='funds_frozen'`; `high_risk` if `needs_release_review`; `escalated` if open dispute; else `clean`.
+   - `flags`: array combining the above.
+   - `actionAvailability`: `{ canFreeze, canTrace, canViewNotes, canMore }` based on state.
+   - `buyerEmailMasked / sellerEmailMasked`: only mask local part (`a***@domain`); names stay full.
+
+### Summary block (uses same filters EXCEPT pagination)
+- `totalTransactions` = filtered count.
+- `totalAmount` = SUM(`transaction_pricing.buyer_total_amount`) for filtered tx (paged-in-server using `.in('transaction_id', filteredIds)` chunks, OR a single SQL via service-role + RPC; first cut: fetch all filtered ids in chunks of 1000 and sum via `transaction_pricing` rows).
+- `inEscrowAmount` = SUM(`escrow_states.held_amount + frozen_amount`) for filtered tx.
+- `inDisputeCount` = filtered count where dispute_status in active set.
+- `awaitingActionCount` = union of: `release_review_queue.status='pending'`, `payouts.status='failed'` (filtered tx scope), overdue disputes, stuck (`status='awaiting_payment' < now()-24h`), `needs_release_review=true`. Counted as distinct tx ids.
+- `flaggedCount` = filtered count where `needs_release_review=true`.
+
+To keep cost bounded, summary scope is the same filter as the list (without page/pageSize). For "no filters" path we just count all transactions and aggregate from `escrow_states` / `disputes` directly.
+
+### Response shape
+```
+{ summary: { totalTransactions, totalAmount, inEscrowAmount,
+             inDisputeCount, awaitingActionCount, flaggedCount, currency: "NGN" },
+  rows: AdminTxRow[],
+  pagination: { page, pageSize, totalCount, hasNextPage, hasPreviousPage } }
 ```
 
-### Page shell
-- `src/pages/AdminDashboard.tsx` — skeletons `bg-slate-900` → `bg-muted`; error/empty cards → `bg-card border-border text-foreground`, helper text → `text-muted-foreground`.
+### CORS / errors
+- Same `corsHeaders` as `admin-dashboard` (POST, OPTIONS).
+- Catch-all returns 500 with message; log via `edge_function_errors`.
 
-## Theme toggle wiring
-`next-themes` `ThemeProvider` is already mounted globally (it powers buyer/seller toggles), and `ThemeToggle` already exists at `src/components/ThemeToggle.tsx`. We simply render it:
-- in `AdminHeader` (desktop, beside Filters)
-- in `AdminMobileHeader` (mobile, beside the menu/export icons)
+## Service: `admin-transactions-monitor.service.ts`
 
-No new dependencies, no new context, no localStorage code — `next-themes` persists the choice automatically and matches the rest of the app.
+- Export TypeScript interfaces matching the response.
+- `getAdminTransactionsMonitor(params)` →
+  - `supabase.auth.getSession()`; redirect to `/auth` if missing.
+  - `supabase.functions.invoke("admin-transactions-monitor", { body: params, headers: { Authorization } })`.
+  - Map 401 → redirect; 403 → throw `AdminAccessRequiredError`.
+- Re-export `AdminAccessRequiredError` (or import from a shared file; first cut: local copy matching the existing pattern).
 
-## Out of scope
-- Other admin pages (`AdminOffers`, `AdminOfferDetail`) — same token swap can follow if requested; this plan focuses on `/admin/dashboard` chrome + cards as that is what the user is viewing.
-- Chart color palette redesign — strokes stay the same hues; only background/grid/axis adapt.
+## Page: `src/pages/AdminTransactions.tsx`
 
-## Acceptance
-- Toggling theme in the admin header instantly switches the entire admin dashboard between light and dark.
-- All text remains WCAG-AA legible in both modes.
-- No hardcoded `slate-*` / raw `white` / `black` colors remain in the touched files (accent hues like `blue-500`, `red-400` for status remain).
-- Sidebar badges, KPI deltas, alerts, and chart series remain visually distinct in both themes.
+- Replace `MOCK_TXS` and `SUMMARY_TILES` constants with state from `getAdminTransactionsMonitor`.
+- Use `useEffect` keyed on `{search, activeQuick, page, pageSize, sortBy, sortDirection, advanced filters}` with debounced search.
+- Show skeleton rows while loading; error banner on failure (with retry); existing empty-state copy when `rows.length === 0`.
+- Pagination footer (Prev / Next + "Page X of Y") on both desktop table and mobile list.
+- Action icons keep current callbacks (toasts) — no behavior change requested.
+- Keep KPI tiles: bind to `summary` fields. Keep tooltips with exact NGN value via `formatMoney`.
+- Sidebar `badges` continues to use the static `SIDEBAR_BADGES` for now (sidebar will be wired separately to the dashboard service in a follow-up).
+
+## Out of scope (this iteration)
+- Action handlers (Freeze / Notes / Trace) — still toasts.
+- Realtime updates — manual Refresh button only.
+- Admin-side detail drawer.
+
+## Acceptance check
+- Non-admin user gets 403 → page shows "Admin access required".
+- Logged-out user redirected to `/auth`.
+- All KPI numbers + rows are computed from DB; no hardcoded NGN values remain.
+- Filters/search/pagination round-trip to backend.
+- Mobile cards and desktop table render the same row data.
