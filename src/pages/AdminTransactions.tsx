@@ -463,7 +463,7 @@ export default function AdminTransactions() {
               setActiveQuick("all");
               setSearch("");
             }}
-            className="ml-auto rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
+            className="rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
           >
             Clear Filters
           </button>
