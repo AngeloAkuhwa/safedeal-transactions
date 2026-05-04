@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronUp, Snowflake, MoreVertical, ExternalLink,
   Truck, Package, CreditCard, Lock, Circle, StickyNote, RefreshCcw,
   Search, Flag, Eye, MoreHorizontal, User, Wallet, Receipt, BookOpen,
-  Clock, Vault, Handshake,
+  Clock, Vault, Handshake, Gavel, Image as ImageIcon,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
@@ -85,9 +85,9 @@ function Card({ children, className, accent }: { children: React.ReactNode; clas
 
 function CardHeader({ title, subtitle, action, collapsible, open, onToggle }: any) {
   return (
-    <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3">
+    <div className="flex items-start justify-between gap-3 px-4 lg:px-6 py-4 border-b border-border">
       <div>
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        <h2 className="text-sm lg:text-lg font-semibold text-foreground">{title}</h2>
         {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
       </div>
       <div className="flex items-center gap-2">
@@ -114,7 +114,7 @@ function CollapsibleCard({ title, subtitle, accent, action, children }: any) {
   return (
     <Card accent={accent}>
       <CardHeader title={title} subtitle={subtitle} action={action} collapsible open={open} onToggle={() => setOpen(v => !v)} />
-      <div className={cn("px-4 pb-4", !open && "hidden lg:block")}>{children}</div>
+      <div className={cn("p-4 lg:p-6", !open && "hidden lg:block")}>{children}</div>
     </Card>
   );
 }
@@ -328,14 +328,16 @@ export default function AdminTransactionDetail() {
             </div>
           )}
 
-          {/* Mobile mini header */}
-          <div className="lg:hidden px-1">
+          {/* Mobile mini header strip */}
+          <div className="lg:hidden -mx-4 -mt-4 px-4 py-4 bg-card border-b border-border">
             <h1 className="text-lg font-semibold text-foreground">#{code}</h1>
-            <p className="text-sm text-muted-foreground">{itemTitle}</p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <p className="text-sm text-muted-foreground mt-1">{itemTitle}</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
               <StatusBadge value={tx.status} />
-              <StatusBadge value={tx.moneyStatus} />
               {dispute && <StatusBadge value={dispute.status} />}
+              {dispute?.overdue && (
+                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-red-500/20 text-red-400">Overdue</span>
+              )}
             </div>
           </div>
 
@@ -457,47 +459,143 @@ export default function AdminTransactionDetail() {
             </div>
           </Card>
 
-          {/* Quick actions (mobile grid) */}
-          <div className="lg:hidden grid grid-cols-2 gap-2">
-            {adminCan.canOpenInvestigation && (
-              <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-red-500/40 text-red-300">
-                <Search className="h-4 w-4 mr-1.5" /> Investigate
-              </Button>
-            )}
-            {adminCan.canFreeze && (
-              <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-cyan-500/40 text-cyan-300">
-                <Snowflake className="h-4 w-4 mr-1.5" /> Freeze
-              </Button>
-            )}
-            {adminCan.canUnfreeze && (
-              <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300">
-                <Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze
-              </Button>
-            )}
-            {adminCan.canFlagForReview && (
-              <Button variant="outline" size="sm" onClick={() => setFlagOpen(true)} className="border-yellow-500/40 text-yellow-300">
-                <Flag className="h-4 w-4 mr-1.5" /> Flag
-              </Button>
-            )}
-            {adminCan.canAddNote && (
-              <Button variant="outline" size="sm" onClick={() => setNoteOpen(true)}>
-                <StickyNote className="h-4 w-4 mr-1.5" /> Add Note
-              </Button>
-            )}
-            {adminCan.canExport && (
-              <Button variant="outline" size="sm" onClick={exportData}><Download className="h-4 w-4 mr-1.5" /> Export</Button>
-            )}
-            {adminCan.canManageDispute && dispute && (
-              <Button variant="outline" size="sm" onClick={() => navigate(`/admin/disputes/${dispute.id}`)} className="border-orange-500/40 text-orange-300">
-                <Scale className="h-4 w-4 mr-1.5" /> Dispute
-              </Button>
-            )}
+          {/* Quick actions (mobile, wrapped in card) */}
+          <div className="lg:hidden">
+            <Card>
+              <div className="px-4 py-4 border-b border-border">
+                <h3 className="text-sm font-semibold text-foreground">Quick Actions</h3>
+              </div>
+              <div className="p-4 grid grid-cols-2 gap-2">
+                {adminCan.canOpenInvestigation && (
+                  <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-blue-500/40 text-blue-300">
+                    <Search className="h-4 w-4 mr-1.5" /> Investigate
+                  </Button>
+                )}
+                {adminCan.canFreeze && (
+                  <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-red-500/40 text-red-300">
+                    <Lock className="h-4 w-4 mr-1.5" /> Freeze
+                  </Button>
+                )}
+                {adminCan.canUnfreeze && (
+                  <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300">
+                    <Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze
+                  </Button>
+                )}
+                {adminCan.canExport && (
+                  <Button variant="outline" size="sm" onClick={exportData}><Download className="h-4 w-4 mr-1.5" /> Export</Button>
+                )}
+                {adminCan.canManageDispute && dispute && (
+                  <Button size="sm" onClick={() => navigate(`/admin/disputes/${dispute.id}`)} className="bg-orange-500 hover:bg-orange-600 text-white">
+                    <Scale className="h-4 w-4 mr-1.5" /> Manage
+                  </Button>
+                )}
+              </div>
+            </Card>
           </div>
+
+          {/* Mobile Dispute Status card */}
+          {dispute && (
+            <div className="lg:hidden">
+              <CollapsibleCard title="Dispute Status">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Scale className="h-4 w-4 text-orange-400" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Dispute Opened</p>
+                        <p className="text-xs text-muted-foreground">{fmtDate(dispute.openedAt)}</p>
+                      </div>
+                    </div>
+                    <StatusBadge value={dispute.status} />
+                  </div>
+                  {dispute.sellerResponseDueAt && (
+                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Deadline</p>
+                          <p className="text-xs text-muted-foreground">{fmtDate(dispute.sellerResponseDueAt)}</p>
+                        </div>
+                      </div>
+                      {dispute.overdue && <span className="text-xs font-bold text-red-400">OVERDUE</span>}
+                    </div>
+                  )}
+                  {(dispute.evidence ?? []).length > 0 && (
+                    <div className="p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-foreground">Evidence</span>
+                      </div>
+                      <div className="space-y-2">
+                        {dispute.evidence.map((e: any) => (
+                          <div key={e.id} className="flex items-center gap-2">
+                            <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center shrink-0">
+                              <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-foreground truncate">{titleCase(e.evidenceType)}</p>
+                              <p className="text-xs text-muted-foreground">{fmtDate(e.at)}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CollapsibleCard>
+            </div>
+          )}
+
+          {/* Locked Agreement */}
+          {((data as any).agreement || data.transaction?.agreementLockedAt) && (
+            <Card>
+              <CardHeader title="Locked Agreement" subtitle="Original terms when payment was made" />
+              <div className="p-4 lg:p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="text-sm font-medium text-foreground mb-3">Item Details</h4>
+                    <div className="space-y-1.5">
+                      <p className="text-sm text-foreground">{itemTitle}</p>
+                      {data.items?.[0]?.description && (
+                        <p className="text-xs text-muted-foreground">{data.items[0].description}</p>
+                      )}
+                      {data.items?.[0]?.condition && (
+                        <p className="text-xs text-muted-foreground">Condition: {titleCase(data.items[0].condition)}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-foreground mb-3">Terms</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Agreed Price:</span>
+                        <span className="text-foreground tabular-nums">{ngn(data.pricing?.itemTotal)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Delivery:</span>
+                        <span className="text-foreground">{titleCase(data.delivery?.method) || "—"}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Verification Window:</span>
+                        <span className="text-foreground">{data.delivery?.verificationWindowHours ? `${data.delivery.verificationWindowHours}h` : "—"}</span>
+                      </div>
+                      {((data as any).agreement?.lockedAt || data.transaction?.agreementLockedAt) && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Locked At:</span>
+                          <span className="text-foreground">{fmtDate((data as any).agreement?.lockedAt ?? data.transaction.agreementLockedAt)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Items */}
           <Card>
             <CardHeader title="Items" subtitle={`${data.items.length} item${data.items.length === 1 ? "" : "s"}`} />
-            <div className="px-4 pb-4 space-y-3">
+            <div className="p-4 lg:p-6 space-y-3">
               {data.items.length === 0 && <Empty>No items recorded.</Empty>}
               {data.items.map((it) => (
                 <div key={it.id} className="flex gap-3 items-start border-t border-border pt-3 first:border-t-0 first:pt-0">
@@ -525,7 +623,7 @@ export default function AdminTransactionDetail() {
           {/* Pricing */}
           <Card>
             <CardHeader title="Pricing & Fees" />
-            <div className="px-4 pb-4">
+            <div className="p-4 lg:p-6">
               {!data.pricing && <Empty>No pricing recorded.</Empty>}
               {data.pricing && (
                 <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -544,7 +642,7 @@ export default function AdminTransactionDetail() {
             {/* Payment */}
             <Card>
               <CardHeader title="Payment" />
-              <div className="px-4 pb-4">
+              <div className="p-4 lg:p-6">
                 {!data.payment && <Empty>No payment recorded.</Empty>}
                 {data.payment && (
                   <dl className="grid grid-cols-2 gap-4">
@@ -563,7 +661,7 @@ export default function AdminTransactionDetail() {
             {/* Escrow */}
             <Card>
               <CardHeader title="Escrow" />
-              <div className="px-4 pb-4">
+              <div className="p-4 lg:p-6">
                 {!data.escrow && <Empty>No escrow record.</Empty>}
                 {data.escrow && (
                   <dl className="grid grid-cols-2 gap-4">
@@ -581,7 +679,7 @@ export default function AdminTransactionDetail() {
             {/* Payout */}
             <Card>
               <CardHeader title="Payout" />
-              <div className="px-4 pb-4">
+              <div className="p-4 lg:p-6">
                 {!data.payout && <Empty>No payout recorded.</Empty>}
                 {data.payout && (
                   <dl className="grid grid-cols-2 gap-4">
@@ -602,7 +700,7 @@ export default function AdminTransactionDetail() {
             {/* Delivery */}
             <Card>
               <CardHeader title="Delivery" />
-              <div className="px-4 pb-4">
+              <div className="p-4 lg:p-6">
                 <dl className="grid grid-cols-2 gap-4">
                   <Stat label="Method" value={titleCase(data.delivery?.method)} />
                   <Stat label="Courier" value={data.delivery?.courier ?? "—"} />
@@ -639,7 +737,7 @@ export default function AdminTransactionDetail() {
           {dispute && (
             <Card accent="orange">
               <CardHeader title="Dispute" subtitle={titleCase(dispute.claimType)} action={<StatusBadge value={dispute.status} />} />
-              <div className="px-4 pb-4 space-y-3">
+              <div className="p-4 lg:p-6 space-y-3">
                 <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <Stat label="Opened" value={fmtDate(dispute.openedAt)} />
                   <Stat label="Seller Response Due" value={<><span>{fmtDate(dispute.sellerResponseDueAt)}</span>{dispute.overdue && <span className="ml-1.5 text-[10px] rounded bg-red-500/20 text-red-300 px-1.5 py-0.5">Overdue</span>}</>} />
@@ -744,7 +842,7 @@ export default function AdminTransactionDetail() {
                 </div>
               }
             />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 px-4 pb-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 lg:p-6">
               {/* Assessment */}
               <div className="space-y-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Risk Assessment</div>
@@ -798,7 +896,7 @@ export default function AdminTransactionDetail() {
               </div>
             </div>
             {(data.risk?.escalationHistory ?? []).length > 0 && (
-              <div className="px-4 pb-4">
+              <div className="p-4 lg:p-6">
                 <div className="border-t border-border pt-4">
                   <h4 className="text-sm font-medium text-foreground mb-3">Escalation History</h4>
                   <ul className="space-y-2">
@@ -822,10 +920,25 @@ export default function AdminTransactionDetail() {
           {/* Linked Records */}
           <Card>
             <CardHeader title="Linked Records" />
-            <div className="px-4 pb-4">
+            <div className="p-4 lg:p-6">
               {data.linkedRecords.length === 0 && <Empty>No linked records.</Empty>}
               <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {data.linkedRecords.map((r, i) => {
+                {(() => {
+                  const records = [...data.linkedRecords];
+                  const hasPayout = records.some((r) => (r.type ?? "").toLowerCase() === "payout");
+                  if (!hasPayout && dispute) {
+                    records.push({
+                      type: "payout",
+                      label: "No payout yet",
+                      subtitle: "Pending resolution",
+                      status: null,
+                      amount: null,
+                      currency: null,
+                      route: null,
+                    } as any);
+                  }
+                  return records;
+                })().map((r, i) => {
                   const typeKey = (r.type ?? "").toLowerCase();
                   const ICON_MAP: Record<string, { Icon: any; cls: string }> = {
                     payment: { Icon: CreditCard, cls: "bg-emerald-500/20 text-emerald-400" },
@@ -837,8 +950,12 @@ export default function AdminTransactionDetail() {
                   const isParty = typeKey === "buyer" || typeKey === "seller";
                   const iconMeta = ICON_MAP[typeKey];
                   const party = isParty ? data.parties[typeKey as "buyer" | "seller"] : null;
+                  const isEmptyPayout = typeKey === "payout" && r.label === "No payout yet";
                   const inner = (
-                    <div className="p-4 bg-muted/30 border border-border rounded-lg hover:border-blue-500/50 transition-all h-full flex flex-col">
+                    <div className={cn(
+                      "p-4 bg-muted/30 border border-border rounded-lg hover:border-blue-500/50 transition-all h-full flex flex-col",
+                      isEmptyPayout && "opacity-60",
+                    )}>
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">{titleCase(r.type)}</span>
                         <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
@@ -894,7 +1011,7 @@ export default function AdminTransactionDetail() {
       {!loading && !denied && !notFound && data && (
         <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur px-3 py-2 flex items-center gap-2">
           <Button size="sm" className="flex-1 bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setActionSheetOpen(true)}>
-            <Search className="h-4 w-4 mr-1.5" /> Take Action
+            <Gavel className="h-4 w-4 mr-1.5" /> Take Action
           </Button>
           <Button size="sm" variant="outline" onClick={() => setActionSheetOpen(true)} aria-label="More" className="px-3">
             <MoreVertical className="h-4 w-4" />

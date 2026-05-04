@@ -1,66 +1,43 @@
 ## Goal
 
-Bring `src/pages/AdminTransactionDetail.tsx` to 100% visual parity with the two uploaded mockups (`Transaction_Detail-5.html` desktop + `Transaction_Details-5.html` mobile + the two screenshots). Logic, data wiring, RLS, and admin actions are already correct — this pass is purely visual / structural polish. No backend or service changes.
+Audit shows `src/pages/AdminTransactionDetail.tsx` is ~85% aligned with the uploaded desktop + mobile mockups. This pass closes the remaining visual gaps. No backend or service changes — pure presentational polish in one file.
 
-Currency stays NGN (per project memory). Avatars/users come from real data, never hardcoded names.
+## Gaps identified vs mockups
 
----
+### Mobile (mockup `Transaction_Details_1-2.html` + screenshot)
 
-## Gaps vs mockups (what we'll change)
+1. **Transaction header strip is too plain.** Mockup renders a dedicated `bg-card` strip below the sticky header with `#TXN-...`, item title, and a row of pill badges (`In Dispute`, `Overdue`). Current impl uses bare `px-1` text without a card background. → wrap in `-mx-4 -mt-4 px-4 py-4 bg-card border-b border-border` so it visually separates from content.
 
-### 1. Status badges — pill shape
-Mockup uses `rounded-full px-3 py-1.5 text-xs font-bold` pills. Current `StatusBadge` uses `rounded-md`.
-- Update `STATUS_CLS` styling and the wrapper to `rounded-full` with `px-3 py-1`, `font-bold`, slightly larger text.
-- Same for the Escalated / Overdue pills inside the summary action row.
+2. **Mobile summary card layout mismatch.** Mockup mobile summary shows: 2-col primary (Transaction / Total Amount) → parties stacked → 2×2 status grid (Status / Escrow / Provider / Payout). Current code reuses the desktop 5-col grid which collapses awkwardly on mobile. → conditional mobile layout: on `<lg` show 2-col primary + stacked parties + 2×2 grid; on `lg+` keep current desktop layout.
 
-### 2. Summary card — gradient + larger primary stats
-Mockup: `bg-gradient-to-br from-slate-900 to-slate-900/50`, larger numbers (`text-xl font-bold` for code/amount, `text-lg font-semibold` for activity/provider), and the dispute accent is `border-l-4 border-l-orange-500` already (kept).
-- Apply the gradient via theme-aware classes (`from-card to-card/50`).
-- Increase Stat sizes for the top primary row only (Transaction code, Total Amount).
-- Add a second internal divider so layout matches: Primary row → Parties row → Status grid (6 cols) → Action row. Currently we collapse Status into the first row; split into two rows on `lg:` to mirror the mockup.
+3. **Quick Actions not wrapped in a card.** Mockup shows a card titled "Quick Actions" containing the 2×2 action grid. Current impl renders raw buttons. → wrap in `<Card>` with `<CardHeader title="Quick Actions" />` (mobile only).
 
-### 3. Linked Records — card grid
-Mockup renders each record as a card with: top label + external arrow, middle row (avatar/icon + name + sub), bottom row (status pill on left, amount on right). 4-column grid on `xl`.
-- Replace current 2-col list with `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4` of cards.
-- Each card shows: type label (uppercase, slate-500), `<ExternalLink>` icon, then content area (avatar for buyer/seller, colored icon tile for payment/escrow/payout/dispute), then a `border-t` footer with status badge + amount.
-- Hover: `hover:border-blue-500/50`.
+4. **Dedicated Dispute Status card missing on mobile.** Mockup has a collapsible card with rows for "Dispute Opened" (status pill), "Deadline" (with `OVERDUE` flag if past due), and an Evidence list (icon tile + title + timestamp). Current code only shows the generic Dispute card (which is fine for desktop). → add a `lg:hidden CollapsibleCard` that consumes `data.dispute` and `data.dispute.evidence` to mirror the mockup exactly.
 
-### 4. Timeline — connector rail
-Mockup has a continuous vertical line `absolute left-4 top-0 bottom-0 w-0.5 bg-slate-800` behind the 8px nodes (32px on desktop, 24px on mobile).
-- Wrap the `<ol>` in `relative` and add the rail.
-- Keep the existing icon mapping; ensure each item uses `pb-6` spacing on desktop and `pb-4` on mobile.
-- Header on the timeline card gains a subtitle "All events, status changes, and interventions".
+5. **Sticky bar icon.** Mockup uses a `gavel` icon with "Take Action". Current uses `Search`. → swap to `Gavel` from lucide-react.
 
-### 5. Risk & Investigation — split Escalation History out
-Mockup shows: 2-col grid (Risk Assessment | Investigation Log) on top, then a divider, then "Escalation History" on its own row underneath with colored dots (red/orange/slate).
-- Move `escalationHistory` rendering out of the Investigation Log column and into a new bottom row inside the same card (full width).
-- Each row: small colored dot (`w-2 h-2 rounded-full`) + timestamp + label + by-line.
+### Desktop (mockup `Transaction_Detail_1.html` + screenshot)
 
-### 6. Mobile — match mockup exactly
-- Add a **Dispute Status** collapsible card (mobile only) showing: Dispute Opened (with status pill), Deadline (with OVERDUE flag if applicable), Evidence list. Driven by `data.dispute` and `data.dispute.evidence`.
-- Mobile **Quick Actions** card (already a 2x2 grid) — wrap it in a card with heading "Quick Actions" to mirror the mockup.
-- Mobile **High Risk card**: keep the existing red-bordered card but tighten copy to mockup ("High Risk - Escalated") and use bullet rows with a flag icon prefix.
-- Mobile **sticky bottom bar**: change from "Investigate / More" combo to a single primary blue **Take Action** button + a 3-dot icon button. `Take Action` opens the action sheet; `⋮` also opens the same sheet. This matches the screenshot exactly.
-- Mobile **header** keeps the back arrow + shield logo + 3-dot menu (already correct).
+6. **Locked Agreement card missing.** Mockup shows a "Locked Agreement / Original terms when payment was made" card with item details, terms (agreed price / delivery / verification window), and seller notes block. → render a new `<Card>` that reads from `data.agreement` (locked snapshot) when present; show `Empty` otherwise. Use `data.transaction.agreementLockedAt`, `data.delivery.method`, `data.delivery.verificationWindowHours`, `data.pricing.itemTotal`.
 
-### 7. Desktop header
-Already correct (Back + title + Export + View Dispute + More menu). Keep as-is. Move all four "Export Data / Open Investigation / Freeze Funds / Manage Dispute" CTAs to the summary card bottom action row only (currently duplicated in header). Header keeps just `Export` and `View Dispute` (when a dispute exists) + the More menu — matching the mockup.
+7. **Dispute panel as a right-rail in mockup.** Mockup places "Dispute Status" + "Dispute Evidence" as right-column cards on `xl+`. We currently render Dispute full-width. → on `xl+` move Dispute + new Locked Agreement into a 2-col layout (`xl:grid-cols-3` with agreement/items spanning 2 cols and dispute sidebar in 1 col). Below `xl` keep the current stacked layout.
 
-### 8. Spacing + typography
-- Cards: `bg-card border border-border rounded-xl` — already correct in dark mode.
-- Section headers: `px-6 py-4 border-b border-border` for desktop sections to mirror mockup's heavier section header.
-- Stat labels: `text-xs font-semibold uppercase` (already), but bump label color to `text-muted-foreground` and value to larger sizes inside the summary card.
+8. **Linked record footer for payment/payout cards.** Mockup payment card footer shows `Jan 15, 14:35` on left and `$5,356.00` on right (date + amount, no status badge). Current code shows status + amount. → for `payment` and `payout` types: prefer `at` timestamp (from new `r.subtitle`-style or use existing payment.paidAt) over status badge; keep status badge for `escrow` / `dispute` / `payout-without-date`. To do this without backend changes, add an optional `at` field consumer: read it from `r.subtitle` if it parses as ISO, else fall back to status. Cleanest: extend rendering to show the existing `r.status` only when no amount + no party badge applies — the date/timestamp already lives in `r.subtitle` for payment/payout records, render it inline at the footer left.
 
----
+9. **"Payout Record" empty card opacity-60.** When `payout` is not yet created, mockup renders the card greyed out with "No payout yet / Pending resolution / Awaiting dispute outcome". Currently we omit the card entirely. → if a dispute exists and no payout, push a synthetic linked record with `type: "payout"`, `label: "No payout yet"`, `subtitle: "Pending resolution"`, no route, and apply `opacity-60`.
+
+10. **Section header heaviness.** Mockup section headers use `px-6 py-4 border-b border-border` (heavier divider). Our `CardHeader` uses `px-4 pt-4 pb-3` with no border. → adjust `CardHeader` to `px-4 lg:px-6 py-4 border-b border-border` and add corresponding `pt-4` to body containers; keep collapsible chevron alignment.
 
 ## Files touched
 
-1. `src/pages/AdminTransactionDetail.tsx` — all visual changes above. No prop/data shape changes.
-2. *(no service or backend changes)*
+1. `src/pages/AdminTransactionDetail.tsx` — all changes above.
+
+No backend, service, types, or route changes.
 
 ## Acceptance criteria
-- Side-by-side, the page matches the two mockups: pill badges, gradient summary card, two-stat-row + parties + status grid, timeline rail, 4-col Linked Records cards, separate Escalation History block.
-- Mobile shows: header, transaction header strip, summary card, High Risk card, Quick Actions card, Dispute Status collapsible, Timeline collapsible, Linked Records, sticky `Take Action` + `⋮` bar.
-- All values still render from the backend; no hardcoded amounts/users.
-- Currency stays NGN. Empty states preserved.
-- No regressions to admin actions, confirmations, or audit logging.
+
+- Mobile view matches the screenshot: header strip → gradient summary → high-risk card → Quick Actions card → Dispute Status card (with deadline + evidence) → Timeline → Linked Records → Transaction Details → sticky `Take Action` (gavel) + `⋮`.
+- Desktop view matches the screenshot: header → summary card with action row → Risk & Investigation (split + escalation history) → Timeline → Linked Records grid (4-col, with greyed payout card if none) → main grid with Locked Agreement + Items + Payment & Escrow on left and Dispute Status + Evidence on right (xl+).
+- All values still come from `getAdminTransactionDetailFull`; no hardcoded amounts/users.
+- Currency stays NGN.
+- Admin actions, confirmations, and audit logging unchanged.
