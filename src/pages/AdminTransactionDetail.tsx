@@ -4,7 +4,7 @@ import {
   ArrowLeft, AlertTriangle, Download, Scale, ShieldCheck,
   Snowflake, MoreVertical, ExternalLink, Truck, Package,
   CreditCard, Lock, Circle, StickyNote, Search, Flag, MoreHorizontal,
-  User, Wallet, Receipt, Clock, Vault, Handshake, Gavel, Image as ImageIcon,
+  User, Wallet, Receipt, Clock, Vault, Handshake, Gavel, Image as ImageIcon, Coins, Banknote,
   FileText, Video, ChevronDown, ChevronUp, Eye, FileSignature,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -254,11 +254,48 @@ export default function AdminTransactionDetail() {
 
   const exportData = () => {
     if (!data) return;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      transaction: (data as any).transaction ?? (data as any).summary ?? null,
+      parties: (data as any).parties ?? null,
+      items: (data as any).items ?? null,
+      pricing: (data as any).pricing ?? null,
+      payment: (data as any).payment ?? null,
+      escrow: (data as any).escrow ?? null,
+      escrowLedger: (data as any).escrowLedger ?? (data as any).ledger ?? null,
+      payout: (data as any).payout ?? null,
+      delivery: (data as any).delivery ?? null,
+      timeline: (data as any).timeline ?? [],
+      linkedRecords: (data as any).linkedRecords ?? null,
+      agreement: (data as any).lockedAgreement ?? (data as any).agreement ?? null,
+      risk: (data as any).risk ?? null,
+      dispute: (() => {
+        const d: any = (data as any).dispute;
+        if (!d) return null;
+        const ev = Array.isArray((data as any).evidence) ? (data as any).evidence : (d.evidence ?? []);
+        return {
+          ...d,
+          evidence: (ev ?? []).map((e: any) => ({
+            id: e.id, kind: e.kind ?? e.evidenceType, title: e.title,
+            mimeType: e.mimeType ?? null, uploadedAt: e.uploadedAt ?? e.at ?? null,
+            uploadedByRole: e.uploadedByRole ?? e.submittedByRole ?? null,
+            fileHash: e.fileHash ?? null,
+          })),
+        };
+      })(),
+      adminNotes: (data as any).adminNotes ?? (data as any).notes ?? null,
+      auditTrail: (data as any).auditTrail ?? (data as any).audit ?? null,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = `transaction-${code}.json`; a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const scrollToId = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const filteredTimeline = useMemo(() => {
@@ -310,16 +347,32 @@ export default function AdminTransactionDetail() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {adminCan.canOpenInvestigation && <DropdownMenuItem onClick={() => setInvestigateOpen(true)}><Search className="h-4 w-4 mr-2" /> Open Investigation</DropdownMenuItem>}
+              {adminCan.canOpenInvestigation && <DropdownMenuItem onClick={() => setInvestigateOpen(true)}><Search className="h-4 w-4 mr-2" /> {adminCan.investigationAlreadyOpen ? "Update Investigation" : "Open Investigation"}</DropdownMenuItem>}
               {adminCan.canFreeze && <DropdownMenuItem onClick={() => setFreezeOpen(true)}><Snowflake className="h-4 w-4 mr-2" /> Freeze Funds</DropdownMenuItem>}
               {adminCan.canUnfreeze && <DropdownMenuItem onClick={() => setUnfreezeOpen(true)}><Snowflake className="h-4 w-4 mr-2" /> Unfreeze Funds</DropdownMenuItem>}
               {adminCan.canAddNote && <DropdownMenuItem onClick={() => setNoteOpen(true)}><StickyNote className="h-4 w-4 mr-2" /> Add Internal Note</DropdownMenuItem>}
               {adminCan.canFlagForReview && <DropdownMenuItem onClick={() => setFlagOpen(true)}><Flag className="h-4 w-4 mr-2" /> Flag for Review</DropdownMenuItem>}
+              <DropdownMenuItem
+                disabled={!adminCan.canManageDispute}
+                onClick={() => dispute && navigate(`/admin/disputes/${dispute.id}`)}
+                title={!adminCan.canManageDispute ? "No active dispute on this transaction" : undefined}
+              >
+                <Scale className="h-4 w-4 mr-2" /> Manage Dispute
+              </DropdownMenuItem>
               {adminCan.canViewBuyer && data?.parties?.buyer?.id && (
                 <DropdownMenuItem onClick={() => navigate(`/admin/users/${data.parties.buyer!.id}`)}><User className="h-4 w-4 mr-2" /> View Buyer</DropdownMenuItem>
               )}
               {adminCan.canViewSeller && data?.parties?.seller?.id && (
                 <DropdownMenuItem onClick={() => navigate(`/admin/users/${data.parties.seller!.id}`)}><User className="h-4 w-4 mr-2" /> View Seller</DropdownMenuItem>
+              )}
+              {adminCan.canViewPayment && (
+                <DropdownMenuItem onClick={() => scrollToId("linked-records")}><CreditCard className="h-4 w-4 mr-2" /> View Payment Record</DropdownMenuItem>
+              )}
+              {adminCan.canViewEscrow && (
+                <DropdownMenuItem onClick={() => scrollToId("escrow-ledger")}><Coins className="h-4 w-4 mr-2" /> View Escrow Ledger</DropdownMenuItem>
+              )}
+              {adminCan.canViewPayout && (
+                <DropdownMenuItem onClick={() => scrollToId("payouts")}><Banknote className="h-4 w-4 mr-2" /> View Payout Record</DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(code); toast.success("Code copied"); }}>
@@ -524,7 +577,7 @@ export default function AdminTransactionDetail() {
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   {adminCan.canExport && <Button variant="outline" size="sm" onClick={exportData}><Download className="h-4 w-4 mr-1.5" /> Export Data</Button>}
-                  {adminCan.canOpenInvestigation && <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-blue-500/40 text-blue-300 hover:text-blue-200"><Search className="h-4 w-4 mr-1.5" /> Open Investigation</Button>}
+                  {adminCan.canOpenInvestigation && <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-blue-500/40 text-blue-300 hover:text-blue-200"><Search className="h-4 w-4 mr-1.5" /> {adminCan.investigationAlreadyOpen ? "Update Investigation" : "Open Investigation"}</Button>}
                   {adminCan.canFreeze && <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200"><Lock className="h-4 w-4 mr-1.5" /> Freeze Funds</Button>}
                   {adminCan.canUnfreeze && <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200"><Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze Funds</Button>}
                   {adminCan.canManageDispute && dispute && (
@@ -692,7 +745,7 @@ export default function AdminTransactionDetail() {
           </Card>
 
           {/* === Linked Records === */}
-          <Card>
+          <div id="linked-records"><Card>
             <CardHeader title="Linked Records" />
             <div className="p-4 lg:p-6">
               <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -787,7 +840,7 @@ export default function AdminTransactionDetail() {
                 })}
               </ul>
             </div>
-          </Card>
+          </Card></div>
 
           {/* === Lower 2/1 grid === */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 lg:gap-6">
@@ -870,7 +923,7 @@ export default function AdminTransactionDetail() {
           </Card>
 
               {/* Payment & Escrow */}
-              <Card>
+              <div id="escrow-ledger"><Card>
             <CardHeader title="Payment & Escrow" />
             <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
               <div className="p-4 lg:p-6">
@@ -921,7 +974,7 @@ export default function AdminTransactionDetail() {
                 )}
               </div>
             </div>
-          </Card>
+          </Card></div>
 
               {/* Delivery & Fulfillment */}
               <Card>
@@ -1093,7 +1146,7 @@ export default function AdminTransactionDetail() {
                   </dl>
                 </div>
 
-                <div>
+                <div id="payouts">
                   <h3 className="text-sm font-medium text-foreground mb-3">Payout</h3>
               {!data.payout ? (
                 <div className="text-sm text-muted-foreground">
@@ -1165,7 +1218,11 @@ export default function AdminTransactionDetail() {
             {adminCan.canFreeze && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setFreezeOpen(true); }}><Snowflake className="h-4 w-4 mr-1.5" /> Freeze Funds</Button>}
             {adminCan.canUnfreeze && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setUnfreezeOpen(true); }}><Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze</Button>}
             {adminCan.canFlagForReview && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setFlagOpen(true); }}><Flag className="h-4 w-4 mr-1.5" /> Flag for Review</Button>}
-            {adminCan.canManageDispute && dispute && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/disputes/${dispute.id}`); }}><Scale className="h-4 w-4 mr-1.5" /> Manage Dispute</Button>}
+            <Button variant="outline" disabled={!adminCan.canManageDispute} title={!adminCan.canManageDispute ? "No active dispute on this transaction" : undefined} onClick={() => { if (!dispute) return; setActionSheetOpen(false); navigate(`/admin/disputes/${dispute.id}`); }}><Scale className="h-4 w-4 mr-1.5" /> Manage Dispute</Button>
+            {adminCan.canOpenInvestigation && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setInvestigateOpen(true); }}><Search className="h-4 w-4 mr-1.5" /> {adminCan.investigationAlreadyOpen ? "Update Investigation" : "Open Investigation"}</Button>}
+            {adminCan.canViewPayment && <Button variant="outline" onClick={() => { setActionSheetOpen(false); scrollToId("linked-records"); }}><CreditCard className="h-4 w-4 mr-1.5" /> View Payment</Button>}
+            {adminCan.canViewEscrow && <Button variant="outline" onClick={() => { setActionSheetOpen(false); scrollToId("escrow-ledger"); }}><Coins className="h-4 w-4 mr-1.5" /> Escrow Ledger</Button>}
+            {adminCan.canViewPayout && <Button variant="outline" onClick={() => { setActionSheetOpen(false); scrollToId("payouts"); }}><Banknote className="h-4 w-4 mr-1.5" /> View Payout</Button>}
             {adminCan.canAddNote && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setNoteOpen(true); }}><StickyNote className="h-4 w-4 mr-1.5" /> Add Note</Button>}
             {adminCan.canViewBuyer && data?.parties?.buyer?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/users/${data.parties.buyer!.id}`); }}><User className="h-4 w-4 mr-1.5" /> View Buyer</Button>}
             {adminCan.canViewSeller && data?.parties?.seller?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/users/${data.parties.seller!.id}`); }}><User className="h-4 w-4 mr-1.5" /> View Seller</Button>}
@@ -1182,7 +1239,7 @@ export default function AdminTransactionDetail() {
         open={freezeOpen}
         onOpenChange={setFreezeOpen}
         title="Freeze Funds"
-        description="Type FREEZE to confirm freezing the escrow funds for this transaction."
+        description={`Transaction #${code} — current money status: ${titleCase(tx?.moneyStatus ?? "—")}. Freezing prevents any release or refund until you unfreeze. Type FREEZE to confirm.`}
         typeToConfirm="FREEZE"
         confirmLabel="Freeze Funds"
         confirmTone="danger"
@@ -1211,7 +1268,7 @@ export default function AdminTransactionDetail() {
         open={flagOpen}
         onOpenChange={setFlagOpen}
         title="Flag for Review"
-        description={`Flag #${code} for the admin review queue. Provide a reason.`}
+        description={`Transaction #${code} — current money status: ${titleCase(tx?.moneyStatus ?? "—")}. This adds the transaction to the admin review queue and marks it as needing release review.`}
         confirmLabel="Flag for Review"
         confirmTone="danger"
         onConfirm={async (reason) => {
@@ -1224,7 +1281,7 @@ export default function AdminTransactionDetail() {
       <ActionConfirmDialog
         open={investigateOpen}
         onOpenChange={setInvestigateOpen}
-        title="Open Investigation"
+        title={adminCan.investigationAlreadyOpen ? "Update Investigation" : "Open Investigation"}
         description={`Create an investigation record for #${code}. This is logged in the audit trail.`}
         reasonMin={1}
         confirmLabel="Open Investigation"
