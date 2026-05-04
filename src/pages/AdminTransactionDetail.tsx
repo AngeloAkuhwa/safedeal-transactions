@@ -668,28 +668,38 @@ export default function AdminTransactionDetail() {
           )}
 
           {/* Timeline */}
-          <CollapsibleCard title="Timeline" subtitle={`${data.timeline.length} events`}>
+          <CollapsibleCard title="Complete Transaction Timeline" subtitle="All events, status changes, and interventions">
             {data.timeline.length === 0 && <Empty>No events recorded.</Empty>}
-            <ol className="relative space-y-4">
-              {data.timeline.map((e) => {
-                const m = timelineMeta(e.icon, e.severity);
-                const Icon = m.Icon;
-                return (
-                  <li key={e.id} className="flex gap-3">
-                    <div className={cn("h-8 w-8 rounded-full border flex items-center justify-center shrink-0", m.cls)}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-foreground">{titleCase(e.title)}</div>
-                      {e.description && <div className="text-xs text-muted-foreground line-clamp-2">{e.description}</div>}
-                      <div className="text-[11px] text-muted-foreground mt-0.5">
-                        {fmtDate(e.at)} {e.actorName ? `· ${e.actorName}` : (e.actorType ? `· ${e.actorType}` : "")}
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
+            {data.timeline.length > 0 && (
+              <div className="relative">
+                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" aria-hidden />
+                <ol className="relative space-y-5">
+                  {data.timeline.map((e) => {
+                    const m = timelineMeta(e.icon, e.severity);
+                    const Icon = m.Icon;
+                    return (
+                      <li key={e.id} className="flex gap-4">
+                        <div className={cn("h-8 w-8 rounded-full border-2 flex items-center justify-center shrink-0 relative z-10", m.cls)}>
+                          <Icon className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0 pb-1">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h4 className="text-sm font-medium text-foreground">{titleCase(e.title)}</h4>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">{fmtDate(e.at)}</span>
+                          </div>
+                          {e.description && <p className="text-xs text-muted-foreground">{e.description}</p>}
+                          {(e.actorName || e.actorType) && (
+                            <div className="text-[11px] text-muted-foreground mt-0.5">
+                              by {e.actorName ?? e.actorType}
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            )}
           </CollapsibleCard>
 
           {/* Escrow Ledger */}
