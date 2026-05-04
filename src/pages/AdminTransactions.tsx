@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   RefreshCw,
   Download,
@@ -711,12 +711,7 @@ function ResponsiveSearchInput({ value, onChange }: { value: string; onChange: (
   const [isLg, setIsLg] = useState<boolean>(() =>
     typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)").matches : false,
   );
-  if (typeof window !== "undefined") {
-    // initialize listener once
-  }
-  // Subscribe to viewport changes
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useMemo(() => {
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(min-width: 1024px)");
     const handler = (e: MediaQueryListEvent) => setIsLg(e.matches);
