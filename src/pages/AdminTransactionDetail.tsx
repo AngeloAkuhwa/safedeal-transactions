@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   ArrowLeft, AlertTriangle, Download, Scale, ShieldCheck,
   Snowflake, MoreVertical, ExternalLink, Truck, Package,
   CreditCard, Lock, Circle, StickyNote, Search, Flag, MoreHorizontal,
   User, Wallet, Receipt, Clock, Vault, Handshake, Gavel, Image as ImageIcon, Coins, Banknote,
-  FileText, Video, ChevronDown, ChevronUp, Eye, FileSignature,
+  FileText, Video, ChevronDown, ChevronUp, Eye, FileSignature, Copy, ChevronRight,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { supabase } from "@/integrations/supabase/client";
 import {
   getAdminTransactionDetailFull,
   AdminAccessRequiredError,
@@ -193,12 +194,23 @@ export default function AdminTransactionDetail() {
   const [showFullTimeline, setShowFullTimeline] = useState(false);
   const [tlFilter, setTlFilter] = useState<string>("all");
   const [tlNewest, setTlNewest] = useState(true);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [, setSyncTick] = useState(0);
+  const [liveSync, setLiveSync] = useState<"connecting" | "live" | "off">("connecting");
+  const [activeAnchor, setActiveAnchor] = useState<string>("summary");
+  const realtimeDebounceRef = useRef<number | null>(null);
+  const lastRealtimeToastRef = useRef<number>(0);
+
+  const motionOk = typeof window !== "undefined"
+    ? !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    : true;
+  const anim = (cls: string) => (motionOk ? cls : "");
 
   useEffect(() => {
     if (!transactionId) { setNotFound(true); setLoading(false); return; }
     setLoading(true); setErr(null); setDenied(false); setNotFound(false);
     getAdminTransactionDetailFull(transactionId)
-      .then(setData)
+      .then((d) => { setData(d); setLastSyncedAt(new Date()); })
       .catch((e) => {
         if (e instanceof AdminAccessRequiredError) setDenied(true);
         else if (e instanceof TransactionNotFoundError) setNotFound(true);
@@ -206,6 +218,77 @@ export default function AdminTransactionDetail() {
       })
       .finally(() => setLoading(false));
   }, [transactionId, reloadKey]);
+
+  // Tick relative "Synced …" label every 30s
+  useEffect(() => {
+    const id = setInterval(() => setSyncTick((n) => n + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Realtime subscription for this transaction
+  useEffect(() => {
+    if (!transactionId || denied) return;
+    setLiveSync("connecting");
+    const channel = supabase.channel(`admin-tx-detail-${transactionId}`);
+    const tables = [
+      { table: "transactions", filter: `id=eq.${transactionId}` },
+      { table: "transaction_events", filter: `transaction_id=eq.${transactionId}` },
+      { table: "money_status_history", filter: `transaction_id=eq.${transactionId}` },
+      { table: "disputes", filter: `transaction_id=eq.${transactionId}` },
+      { table: "dispute_responses", filter: undefined as string | undefined },
+      { table: "payments", filter: `transaction_id=eq.${transactionId}` },
+      { table: "payouts", filter: `transaction_id=eq.${transactionId}` },
+      { table: "escrow_ledger_entries", filter: `transaction_id=eq.${transactionId}` },
+      { table: "admin_actions", filter: `transaction_id=eq.${transactionId}` },
+    ];
+    const onChange = () => {
+      if (realtimeDebounceRef.current) window.clearTimeout(realtimeDebounceRef.current);
+      realtimeDebounceRef.current = window.setTimeout(() => {
+        setReloadKey((k) => k + 1);
+        const now = Date.now();
+        if (now - lastRealtimeToastRef.current > 5000) {
+          lastRealtimeToastRef.current = now;
+          toast("Transaction updated", { duration: 2500 });
+        }
+      }, 700);
+    };
+    for (const t of tables) {
+      channel.on(
+        "postgres_changes" as any,
+        t.filter
+          ? { event: "*", schema: "public", table: t.table, filter: t.filter }
+          : { event: "*", schema: "public", table: t.table },
+        onChange,
+      );
+    }
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") setLiveSync("live");
+      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") setLiveSync("off");
+    });
+    return () => {
+      if (realtimeDebounceRef.current) window.clearTimeout(realtimeDebounceRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [transactionId, denied]);
+
+  // Active section anchor (desktop)
+  useEffect(() => {
+    if (!data || loading) return;
+    const ids = ["summary", "risk", "timeline", "linked-records", "agreement", "escrow-ledger", "delivery", "audit"];
+    const els = ids.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+    if (els.length === 0) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => (a.boundingClientRect.top - b.boundingClientRect.top))[0];
+        if (visible) setActiveAnchor(visible.target.id);
+      },
+      { rootMargin: "-160px 0px -60% 0px", threshold: 0 },
+    );
+    els.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, [data, loading]);
 
   const tx = data?.transaction;
   const dispute = data?.dispute;
