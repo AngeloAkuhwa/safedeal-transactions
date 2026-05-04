@@ -103,6 +103,7 @@ Deno.serve(async (req) => {
       payment,
       payout,
       dispute: openDisputeRes.data ?? null,
+      deadlineOverdue: !!(openDisputeRes.data?.seller_response_due_at && new Date(openDisputeRes.data.seller_response_due_at).getTime() < Date.now() && !openDisputeRes.data?.resolved_at),
     };
   }
 
@@ -118,11 +119,15 @@ Deno.serve(async (req) => {
     let level: "clean" | "elevated" | "high" | "escalated" = "clean";
     if (signals.some(s => s.severity === "high")) level = signals.length > 1 ? "escalated" : "high";
     else if (signals.length > 0) level = "elevated";
+    const escalationHistory = ((aaRes.data ?? []) as any[])
+      .filter((a) => /escalat|flag|freeze|review/i.test(a.action_type ?? ""))
+      .map((a) => ({ at: a.created_at, label: (a.action_type ?? "").replace(/_/g, " "), by: a.admin_user_id, note: a.action_notes }));
     out.risk = {
       level,
       signals,
       adminActions: aaRes.data ?? [],
       auditLog: alRes.data ?? [],
+      escalationHistory,
     };
   }
 
@@ -137,15 +142,32 @@ Deno.serve(async (req) => {
   }
 
   if (wanted.has("linked")) {
-    const [paymentsRes, payoutsRes, refundsRes] = await Promise.all([
+    const userIds = [tx.buyer_id, tx.seller_id].filter(Boolean) as string[];
+    const [paymentsRes, payoutsRes, refundsRes, profsRes, vRes] = await Promise.all([
       admin.from("payments").select("id, provider, provider_reference, status, amount, currency_code, created_at").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(20),
       admin.from("payouts").select("id, status, amount, currency_code, provider_reference, created_at, completed_at").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(20),
       admin.from("refunds").select("id, status, refund_amount, currency_code, reason, created_at, completed_at").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(20),
+      userIds.length ? admin.from("profiles").select("id, full_name, email, avatar_url, status").in("id", userIds) : Promise.resolve({ data: [] as any[] }),
+      userIds.length ? admin.from("account_verifications").select("user_id, verification_level, identity_verified, email_verified, phone_verified").in("user_id", userIds) : Promise.resolve({ data: [] as any[] }),
     ]);
+    const profById = new Map(((profsRes as any).data ?? []).map((p: any) => [p.id, p]));
+    const vById = new Map(((vRes as any).data ?? []).map((v: any) => [v.user_id, v]));
+    const enrich = (uid: string | null) => {
+      if (!uid) return null;
+      const p = profById.get(uid); const v = vById.get(uid);
+      return p ? {
+        id: p.id, name: p.full_name, email: maskEmail(p.email), avatarUrl: p.avatar_url ?? null,
+        flagged: p.status && p.status !== "active",
+        verified: !!(v && (v.identity_verified || v.verification_level === "verified" || v.verification_level === "trusted")),
+        verificationLevel: v?.verification_level ?? "unverified",
+      } : null;
+    };
     out.linked = {
       payments: paymentsRes.data ?? [],
       payouts: payoutsRes.data ?? [],
       refunds: refundsRes.data ?? [],
+      buyer: enrich(tx.buyer_id),
+      seller: enrich(tx.seller_id),
     };
   }
 
@@ -159,14 +181,16 @@ Deno.serve(async (req) => {
   }
 
   if (wanted.has("delivery")) {
-    const [termsRes, updatesRes] = await Promise.all([
+    const [termsRes, updatesRes, trackRes] = await Promise.all([
       admin.from("transaction_delivery_terms").select("delivery_method, expected_delivery_date, verification_window_hours, delivery_address_line1, delivery_address_line2, delivery_city, delivery_state, delivery_country_code, delivery_postal_code").eq("transaction_id", txId).maybeSingle(),
       admin.from("delivery_updates").select("id, created_at, status, notes").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(50),
+      admin.from("delivery_tracking_details").select("courier_name, tracking_number, tracking_url, shipped_at, delivered_at, expected_delivery_at").eq("transaction_id", txId).maybeSingle(),
     ]);
     out.delivery = {
       terms: termsRes.data ?? null,
       updates: updatesRes.data ?? [],
-      deliveredAt: tx.delivered_at ?? null,
+      tracking: trackRes.data ?? null,
+      deliveredAt: tx.delivered_at ?? trackRes.data?.delivered_at ?? null,
       verificationDeadlineAt: tx.verification_deadline_at ?? null,
     };
   }
