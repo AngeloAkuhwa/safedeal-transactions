@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronUp, Snowflake, MoreVertical, ExternalLink,
   Truck, Package, CreditCard, Lock, Circle, StickyNote, RefreshCcw,
   Search, Flag, Eye, MoreHorizontal, User, Wallet, Receipt, BookOpen,
-  Clock, Vault, Handshake,
+  Clock, Vault, Handshake, Gavel, Image as ImageIcon,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
@@ -85,9 +85,9 @@ function Card({ children, className, accent }: { children: React.ReactNode; clas
 
 function CardHeader({ title, subtitle, action, collapsible, open, onToggle }: any) {
   return (
-    <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3">
+    <div className="flex items-start justify-between gap-3 px-4 lg:px-6 py-4 border-b border-border">
       <div>
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        <h2 className="text-sm lg:text-lg font-semibold text-foreground">{title}</h2>
         {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
       </div>
       <div className="flex items-center gap-2">
@@ -114,7 +114,7 @@ function CollapsibleCard({ title, subtitle, accent, action, children }: any) {
   return (
     <Card accent={accent}>
       <CardHeader title={title} subtitle={subtitle} action={action} collapsible open={open} onToggle={() => setOpen(v => !v)} />
-      <div className={cn("px-4 pb-4", !open && "hidden lg:block")}>{children}</div>
+      <div className={cn("p-4 lg:p-6", !open && "hidden lg:block")}>{children}</div>
     </Card>
   );
 }
