@@ -294,24 +294,9 @@ export default function AdminTransactionDetail() {
               <Download className="h-4 w-4 mr-1.5" /> Export
             </Button>
           )}
-          {adminCan.canOpenInvestigation && (
-            <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200">
-              <Search className="h-4 w-4 mr-1.5" /> Investigate
-            </Button>
-          )}
-          {adminCan.canFreeze && (
-            <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-cyan-500/40 text-cyan-300 hover:text-cyan-200">
-              <Snowflake className="h-4 w-4 mr-1.5" /> Freeze
-            </Button>
-          )}
-          {adminCan.canUnfreeze && (
-            <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200">
-              <Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze
-            </Button>
-          )}
-          {adminCan.canManageDispute && dispute && (
+          {dispute && (
             <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
-              <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
+              <Scale className="h-4 w-4 mr-1.5" /> View Dispute
             </Button>
           )}
           <DropdownMenu>
@@ -321,6 +306,9 @@ export default function AdminTransactionDetail() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              {adminCan.canOpenInvestigation && <DropdownMenuItem onClick={() => setInvestigateOpen(true)}><Search className="h-4 w-4 mr-2" /> Open Investigation</DropdownMenuItem>}
+              {adminCan.canFreeze && <DropdownMenuItem onClick={() => setFreezeOpen(true)}><Snowflake className="h-4 w-4 mr-2" /> Freeze Funds</DropdownMenuItem>}
+              {adminCan.canUnfreeze && <DropdownMenuItem onClick={() => setUnfreezeOpen(true)}><Snowflake className="h-4 w-4 mr-2" /> Unfreeze Funds</DropdownMenuItem>}
               {adminCan.canAddNote && <DropdownMenuItem onClick={() => setNoteOpen(true)}><StickyNote className="h-4 w-4 mr-2" /> Add Internal Note</DropdownMenuItem>}
               {adminCan.canFlagForReview && <DropdownMenuItem onClick={() => setFlagOpen(true)}><Flag className="h-4 w-4 mr-2" /> Flag for Review</DropdownMenuItem>}
               {adminCan.canViewBuyer && data?.parties?.buyer?.id && (
