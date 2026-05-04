@@ -1,170 +1,98 @@
 
-# Polish Admin Transaction Monitor → Detail Navigation
+# Admin Monitor ↔ Detail Data Consistency Pass
 
-Goal: make the monitor and detail page feel like one connected SaaS workflow, without redesigning the detail page. All structural/visual additions are flagged in **"New UI elements"** below.
+## Goal
+Guarantee every field shown for a transaction in the Admin Transaction Monitor list matches the corresponding field on the Admin Transaction Detail page. Today both sides have their own inline `mapTxStatus` / `mapMoneyStatus` / `mapDisputeStatus` / `mapEscrowState` / risk-flag / formatting logic, which is the root cause of label drift risk.
 
----
+No UI redesign. No new sections. No visual changes to either page. Only:
+- shared mapping helpers,
+- a dev-only consistency checker,
+- unit tests,
+- minor wiring so both APIs return the same shapes for the consistency-critical fields.
 
-## 1. Preserve monitor state across navigation (no UI change)
-
-Today the monitor only passes `returnTo` via `location.state`. If the user opens the detail page directly, hits browser back, or refreshes the monitor, all filters are lost.
-
-**Fix in `src/pages/AdminTransactions.tsx`:**
-- Mirror filter state into the URL using `useSearchParams`:
-  - `q` (search), `quick`, `tab`, `page`, `sort` (`key:dir`), `txStatus`, `moneyStatus`, `disputeStatus`, `risk`, `amountMin`, `amountMax`, `dateFrom`, `dateTo`.
-- On mount, hydrate state from URL params (fallbacks = current defaults).
-- On change, debounce-update params with `setSearchParams(..., { replace: true })` so browser back stays clean.
-- `goToDetail(row)` keeps passing `returnTo: location.pathname + location.search` so the detail Back button restores everything; URL params guarantee restoration even after refresh or direct entry.
-
-**Detail page Back behavior (`AdminTransactionDetail.tsx`):**
-- Keep `returnTo` from `location.state`; if absent, fall back to `/admin/transactions`.
-- Browser back works automatically because we use `navigate(returnTo)` (push) and the monitor is now URL-driven.
+## Scope of fields covered
+`id`, `code`, `itemTitle`, `buyerName`, `sellerName`, `totalAmount`, `protectionFee`, `sellerNetAmount`, `moneyStatus`, `transactionStatus`, `disputeStatus`, `escrowStatus`, `riskFlags`, `lastActivity`, `paymentProvider`, `payoutStatus`.
 
 ---
 
-## 2. Direct URL access + states (already mostly present, verify)
+## 1. Shared admin mapper module (single source of truth)
 
-Already working: skeleton on load, `AdminAccessRequiredError` → forbidden card, `TransactionNotFoundError` → not-found card.
+Create **`supabase/functions/_shared/admin-mappers.ts`** (Deno-side) and a mirrored **`src/lib/admin-mappers.ts`** (browser-side). Both files export the same pure functions with identical outputs:
 
-**Polish:**
-- Tighten skeleton to mirror the actual layout (header strip + summary card + 2 stacked section blocks) instead of three identical 32h boxes.
-- Forbidden / not-found cards get a consistent "Back to Transactions" button using `navigate(returnTo)`.
+- `mapTransactionStatus(status)` → `{ key, label, tone }`
+- `mapMoneyStatus(status)` → `{ key, label, tone }` (e.g. `funds_held_in_escrow` → `{ key: "held", label: "Held in Escrow" }`)
+- `mapDisputeStatus(status)` → `{ key, label, tone }`
+- `mapEscrowState(state)` → `{ key, label, tone }`
+- `mapPayoutStatus(status)` → `{ key, label, tone }`
+- `mapRiskLevel(tx)` → `{ level: "clean"|"escalated"|"high_risk"|"fraud_watch", flags: string[] }`
+- `formatCurrencyNGN(amount)` → always `₦x,xxx.xx` (2 decimals, no abbreviation)
+- `getLastActivity(tx, events?)` → `{ iso, label, tone }`
+- `buildRiskFlags(tx, parties, disputeOverdue)` → `{ label, severity }[]`
 
----
+Resolution rule: the **detail label is canonical** and the **monitor short label is derived from it**. Specifically the monitor "Held" stays as "Held" by reading the same entry's `short` field; on the detail page the full `label` ("Held in Escrow") is shown. Both come from the same record. This eliminates drift while preserving the existing column compactness.
 
-## 3. Desktop header polish — small additions (NEW UI, additive only)
+Both files import / re-export the same constants. The Deno file is a verbatim copy (no shared bundler between edge functions and Vite). A short comment at the top of each says: "Mirror of the other; keep in sync. CI test guards against divergence."
 
-Inside the existing sticky desktop header strip (no layout overhaul), add to the left cluster:
+## 2. Wire monitor & detail edge functions to the shared mappers
 
-- **Breadcrumb row** above the H1: `Admin / Transactions / {transactionCode}` — text-xs muted, last segment highlighted. Replaces the current secondary subtitle line position; subtitle (item title + status) stays directly under H1 unchanged.
-- **Compact copy button** next to the H1 transaction code: small icon button (`Copy` icon, h-3.5), tooltip "Copy code", success toast. (We already have a copy item in the dropdown — this surfaces it.)
-- **Last synced indicator**: text-xs muted on the right side of the header, before the action buttons: `Synced {relTime(lastFetchedAt)}` with a small dot.
-- **Live update dot**: small colored dot before "Synced …" — green pulse if realtime channel `SUBSCRIBED`, amber if `connecting`, gray if off. Reuses `liveSync` pattern already present in the monitor.
+- `supabase/functions/admin-transactions-monitor/index.ts`: delete inline `mapTxStatus`, `mapMoneyStatus`, `mapDisputeStatus`, `mapEscrowState`, `relativeTimeLabel`; import from `_shared/admin-mappers.ts`. Each row now also returns `consistencyKey` fields (raw enum + label + key) so the detail can be compared 1:1.
+- `supabase/functions/admin-transaction-detail/index.ts`: replace ad-hoc `tx.dispute_status.replace(/_/g," ")`, escrow `(escrow.state ?? "").replace(/_/g," ")`, etc., and the inline `flags` builder, with calls to the shared mappers / `buildRiskFlags`. Also add `numeric` versions of `totalAmount`, `protectionFee`, `sellerNetAmount` (already numeric — confirm) so values match the monitor row exactly.
 
-No other header restyling.
+## 3. Frontend integration
 
----
+- `src/pages/AdminTransactions.tsx` and `src/pages/AdminTransactionDetail.tsx`: when rendering status/money/dispute/escrow/payout pills, route through `src/lib/admin-mappers.ts` rather than locally inferred strings. Existing `<StatusPill>` / `<MoneyPill>` components are kept; they just receive the shared label + tone.
+- `src/services/admin-transactions-monitor.service.ts` and `admin-transaction-detail.service.ts`: type the responses to include the canonical raw + key fields so the consistency hook can compare without re-deriving.
 
-## 4. Section anchor nav on desktop (NEW UI, additive only)
+## 4. Dev-only consistency check
 
-Add a single thin sub-header strip directly under the sticky desktop header (still sticky, `top-[Xpx]` to sit below it). Contains horizontal scroll-spy links:
+Add **`src/lib/admin-consistency.ts`** exporting `assertMonitorDetailConsistent(monitorRow, detailPayload)`.
 
-`Summary · Risk · Timeline · Records · Agreement · Payment · Delivery · Audit`
+- Compares all 16 fields listed above.
+- In `import.meta.env.DEV`, logs a single grouped `console.warn("[admin-consistency] mismatch", { field, monitor, detail })` per drift; in prod the function is a no-op.
+- Wire it into `AdminTransactionDetail.tsx`: when the user navigates from the monitor (we already pass state via the row click), the prior row snapshot is read from `location.state.monitorRow`. After the detail loads we call the assertion.
+- No UI is added — it is purely a console-time guard.
 
-- Implementation: each existing section gets an `id` (most already do — `linked-records`, `escrow-ledger`, `payouts`; add `summary`, `risk`, `timeline`, `agreement`, `delivery`, `audit`).
-- Click → `scrollToId` (already exists).
-- Active link computed via `IntersectionObserver` on the section ids.
-- Hidden on mobile (`hidden lg:flex`).
+## 5. Unit tests
 
-This is the only new structural strip on desktop.
+Add **`src/lib/__tests__/admin-mappers.test.ts`** (Vitest) covering:
+- Every `TxStatus`, `MoneyStatus`, `DisputeStatus`, `EscrowState`, `PayoutStatus` enum value maps to a non-empty label and a known tone.
+- `formatCurrencyNGN(5356)` === `"₦5,356.00"`, `formatCurrencyNGN(0)` === `"₦0.00"`, `formatCurrencyNGN(null)` === `"—"`.
+- Cross-check helper: for each known money status, the monitor `short` and detail `label` describe the same state (e.g. `held` short ↔ "Held in Escrow" full).
+- 7 realistic mocked transactions are fed through both `mapMonitorRow` and `mapDetailPayload` adapters and asserted to produce matching values for the 16 fields:
+  1. completed
+  2. awaiting_payment
+  3. funds_held (`payment_secured` + `funds_held_in_escrow`)
+  4. in_dispute (`disputed` + active dispute)
+  5. frozen (`funds_frozen`)
+  6. refunded (`refund_issued`)
+  7. failed (timed_out / payment failure)
 
----
+Add **`supabase/functions/admin-transactions-monitor/admin_mappers.test.ts`** (Deno) running the same enum-coverage assertions on the Deno copy to prevent server/client drift.
 
-## 5. Mobile
+## 6. Acceptance verification
 
-- No layout change. Sections already use `MobileAccordion` (collapsible).
-- Sticky bottom action bar (Take Action + More) already exists — keep.
-- Mobile header keeps Back / brand / menu trigger.
-- Add small "Synced {relTime}" line as an unobtrusive caption inside the existing summary card subtitle area (text-[10px] muted) — no new bar.
+- Manual: open `/admin/transactions`, click each of the 7 fixtures, confirm zero `[admin-consistency]` warnings in dev console.
+- Tests: `bunx vitest run src/lib/__tests__/admin-mappers.test.ts` and Deno test for the edge mapper both green.
+- Money: every NGN value rendered on both pages comes from `formatCurrencyNGN` (2 decimals, no abbreviation).
 
----
+## Files touched
 
-## 6. Realtime subscription on detail page
+New
+- `supabase/functions/_shared/admin-mappers.ts`
+- `supabase/functions/admin-transactions-monitor/admin_mappers.test.ts`
+- `src/lib/admin-mappers.ts`
+- `src/lib/admin-consistency.ts`
+- `src/lib/__tests__/admin-mappers.test.ts`
 
-Add a `useEffect` in `AdminTransactionDetail.tsx` that subscribes to a single Supabase channel `admin-tx-detail-${transactionId}` listening to `postgres_changes` on these tables, filtered by `transaction_id=eq.${transactionId}` where the column exists:
+Modified (logic only, no visual change)
+- `supabase/functions/admin-transactions-monitor/index.ts` — replace inline mappers
+- `supabase/functions/admin-transaction-detail/index.ts` — replace inline mappers / risk flag builder
+- `src/services/admin-transactions-monitor.service.ts` — extend response types
+- `src/services/admin-transaction-detail.service.ts` — extend response types
+- `src/pages/AdminTransactions.tsx` — render via shared mappers; pass row snapshot in nav state
+- `src/pages/AdminTransactionDetail.tsx` — render via shared mappers; call dev-only assertion
 
-- `transactions` (filter `id=eq.${transactionId}`)
-- `transaction_events`
-- `money_status_history`
-- `disputes` (filter `transaction_id=eq.${transactionId}`)
-- `dispute_responses` (filter via dispute id if present, else listen to all and ignore non-matching in handler)
-- `payments`
-- `payouts`
-- `escrow_ledger_entries`
-- `admin_actions`
-
-Behavior:
-- Debounce changes (500–800 ms) to coalesce bursts.
-- On change: bump `reloadKey` to trigger refetch; preserve scroll (do not call `scrollTo`).
-- Toast: `toast("Transaction updated", { duration: 2500 })` — throttled to once per 5 s.
-- Channel state drives `liveSync` (`connecting | live | off`) used by the header dot.
-- Cleanup: `supabase.removeChannel(channel)` on unmount or transactionId change.
-
----
-
-## 7. Animations (respect `prefers-reduced-motion`)
-
-Use existing tailwind animation utilities (`animate-fade-in`, `animate-scale-in`). Wrap each application in a small helper:
-
-```ts
-const motionOk = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const anim = (cls: string) => motionOk ? cls : "";
-```
-
-Apply:
-- Page header: `anim("animate-fade-in")`.
-- Summary card: `anim("animate-fade-in")` (already uses `translateY`).
-- Risk section when high risk: add a one-time subtle ring pulse — `anim("animate-fade-in ring-1 ring-red-500/30")` (no looping pulse, no shake).
-- Timeline items: stagger via inline `style={{ animationDelay: i * 40ms }}` capped at 10 items, class `anim("animate-fade-in")`.
-- Linked record cards: add `transition-transform hover:-translate-y-0.5` (subtle lift). No scale on money values.
-- Action buttons: rely on existing shadcn hover.
-
-No animation on monetary numbers.
-
----
-
-## 8. Money formatting + label consistency
-
-- Confirm every money render uses `formatMoney(value, "NGN")` — no `toFixed`, no shortening, no `K`/`M`.
-- Replace any `tx?.status` raw rendering with the same `StatusPill` / `MoneyPill` used in the monitor row (already imported via `MoneyStatus.ts`). Add a quick audit: scan `AdminTransactionDetail.tsx` for raw `titleCase(tx?.status)` text usages and swap for `<StatusPill>` where appropriate (header subtitle stays as plain text since it's secondary).
-- Empty linked records: keep existing `<Empty>` component; ensure Payment / Escrow / Payout / Delivery / Agreement sections all render `<Empty>No payment record yet.</Empty>` style copy when fields are null instead of "—" placeholders that look like data.
-
----
-
-## 9. Monitor row → detail data parity
-
-- Row click already navigates by `transactionId` — no change needed.
-- Verify the monitor row's displayed `transactionCode`, `buyerTotal`, `txStatus`, `moneyStatus`, and `disputeStatus` come from the same fields the detail page uses (`tx.transactionCode`, `pricing.buyerTotal`, `tx.status`, `tx.moneyStatus`, `dispute.status`). They do — both endpoints read from `transactions` + `escrow_states` + `disputes`.
-- Add a defensive log if `transactionCode` mismatches the monitor expectation (dev only, behind `import.meta.env.DEV`).
-
----
-
-## 10. Files to change
-
-- `src/pages/AdminTransactions.tsx` — URL-sync filter state via `useSearchParams`, hydrate on mount.
-- `src/pages/AdminTransactionDetail.tsx` —
-  - Realtime channel subscription + `liveSync` state.
-  - `lastSyncedAt` state, updated on every successful refetch.
-  - Breadcrumb, copy-code button, last-synced + live dot in desktop header.
-  - New sticky desktop "section anchor" sub-strip with `IntersectionObserver`.
-  - Section `id`s on Summary / Risk / Timeline / Agreement / Delivery / Audit cards.
-  - Reduced-motion-aware animation classes.
-  - Tighter skeleton matching real layout.
-  - Mobile: tiny "Synced …" caption in summary subtitle.
-- No edge function changes required.
-- No DB migrations required.
-
----
-
-## 11. New visual elements summary (all additive, no redesign)
-
-1. Breadcrumb line in desktop header (text-xs).
-2. Inline copy-code icon button next to H1.
-3. "Synced {relTime}" + colored live dot in desktop header right side.
-4. Thin sticky section-anchor nav strip below desktop header.
-5. Subtle one-shot ring on the Risk card when high risk.
-6. Hover lift on linked record cards.
-7. Tiny "Synced …" caption on mobile summary subtitle.
-
-Nothing else moves, no colors change, no card structure changes.
-
----
-
-## Acceptance check
-
-- Monitor filters survive: row click → back, browser back, page refresh, direct URL.
-- Detail page: skeleton matches layout; clean forbidden / not-found states; breadcrumb + copy + last-synced + live dot visible on desktop.
-- Realtime updates show subtle toast and refetch without scroll jump.
-- Animations honor `prefers-reduced-motion`.
-- All money values formatted as `₦` exact NGN, no abbreviations.
-- Status labels on detail match monitor pills exactly.
+## Design changes
+None. The transaction detail page UI stays exactly as-is. Only label strings sourced from the shared mapper may change in two minor places to align with the canonical copy:
+- Monitor money column for `funds_held_in_escrow` continues to show "Held" (uses `short`); detail continues to show "Held in Escrow" (uses `label`).
+- Detail dispute subtitle stops using `replace(/_/g," ")` raw text and uses the canonical dispute label (e.g. "Awaiting Seller" instead of "seller response pending"). This is a copy correction, not a redesign — flagging here per your instruction.
