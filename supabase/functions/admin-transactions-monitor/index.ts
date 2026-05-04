@@ -1,4 +1,13 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  mapTransactionStatus as sharedMapTx,
+  mapMoneyStatus as sharedMapMoney,
+  mapDisputeStatus as sharedMapDispute,
+  mapEscrowState as sharedMapEscrow,
+  mapPayoutStatus as sharedMapPayout,
+  mapRiskLevel as sharedMapRisk,
+  getLastActivity as sharedLastActivity,
+} from "../_shared/admin-mappers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,59 +66,25 @@ interface MonitorParams {
 }
 
 /* ---------------- Status mapping ---------------- */
-function mapTxStatus(s: string): { key: string; label: string } {
-  switch (s) {
-    case "awaiting_payment": return { key: "awaiting_payment", label: "Awaiting Payment" };
-    case "payment_secured": return { key: "funds_held", label: "Funds Held" };
-    case "seller_preparing_delivery": return { key: "in_fulfillment", label: "In Fulfillment" };
-    case "seller_dispatched": return { key: "dispatched", label: "Dispatched" };
-    case "delivered_awaiting_verification": return { key: "delivered", label: "Delivered" };
-    case "completed": return { key: "completed", label: "Completed" };
-    case "cancelled": return { key: "cancelled", label: "Cancelled" };
-    case "disputed": return { key: "in_dispute", label: "In Dispute" };
-    case "refunded": return { key: "refunded", label: "Refunded" };
-    case "timed_out": return { key: "failed", label: "Timed Out" };
-    case "draft": return { key: "draft", label: "Draft" };
-    case "awaiting_buyer": return { key: "awaiting_buyer", label: "Awaiting Buyer" };
-    case "resolved": return { key: "resolved", label: "Resolved" };
-    default: return { key: s, label: s };
-  }
+/* Local thin adapters: monitor uses the shared mapper's `short` form so the
+   compact column copy ("Held", "Frozen") is preserved while the detail page
+   uses the full `label` ("Held in Escrow", "Funds Frozen"). Both sides share
+   the same `key` for consistency comparison. */
+function mapTxStatus(s: string) {
+  const r = sharedMapTx(s);
+  return { key: r.key, label: r.short, tone: r.tone, raw: s, fullLabel: r.label };
 }
-function mapMoneyStatus(s: string): { key: string; label: string } {
-  switch (s) {
-    case "not_secured": return { key: "not_secured", label: "Not Secured" };
-    case "payment_pending": return { key: "payment_pending", label: "Payment Pending" };
-    case "funds_held_in_escrow": return { key: "held", label: "Held" };
-    case "funds_frozen": return { key: "frozen", label: "Frozen" };
-    case "funds_pending_release": return { key: "awaiting_release", label: "Awaiting Release" };
-    case "funds_releasing": return { key: "releasing", label: "Releasing" };
-    case "funds_released": return { key: "released", label: "Released" };
-    case "refund_pending": return { key: "refund_pending", label: "Refund Pending" };
-    case "refund_issued": return { key: "refunded", label: "Refunded" };
-    default: return { key: s, label: s };
-  }
+function mapMoneyStatus(s: string) {
+  const r = sharedMapMoney(s);
+  return { key: r.key, label: r.short, tone: r.tone, raw: s, fullLabel: r.label };
 }
-function mapDisputeStatus(s: string): { key: string; label: string } {
-  switch (s) {
-    case "none": return { key: "none", label: "None" };
-    case "open": return { key: "open", label: "Open" };
-    case "seller_response_pending": return { key: "awaiting_seller", label: "Awaiting Seller" };
-    case "under_review": return { key: "under_review", label: "Under Review" };
-    case "resolved": return { key: "resolved", label: "Resolved" };
-    default: return { key: s, label: s };
-  }
+function mapDisputeStatus(s: string) {
+  const r = sharedMapDispute(s);
+  return { key: r.key, label: r.short, tone: r.tone, raw: s, fullLabel: r.label };
 }
-function mapEscrowState(s: string | null): { key: string; label: string } {
-  switch (s) {
-    case "awaiting_payment": return { key: "pending", label: "Pending" };
-    case "held": return { key: "held", label: "Held" };
-    case "frozen": return { key: "frozen", label: "Frozen" };
-    case "released":
-    case "released_to_seller": return { key: "released", label: "Released" };
-    case "refunded":
-    case "refunded_to_buyer": return { key: "refunded", label: "Refunded" };
-    default: return { key: s ?? "pending", label: "Pending" };
-  }
+function mapEscrowState(s: string | null) {
+  const r = sharedMapEscrow(s);
+  return { key: r.key, label: r.short, tone: r.tone, raw: s, fullLabel: r.label };
 }
 
 function maskEmail(email: string | null | undefined): string | null {
@@ -122,20 +97,8 @@ function maskEmail(email: string | null | undefined): string | null {
   return `${visible}${local.length > visible.length ? "***" : ""}${domain}`;
 }
 
-function relativeTimeLabel(iso: string | null): { iso: string | null; label: string; tone: "muted" | "warn" | "danger" } {
-  if (!iso) return { iso: null, label: "—", tone: "muted" };
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return { iso, label: "—", tone: "muted" };
-  const diffMs = Date.now() - t;
-  const mins = Math.round(diffMs / 60000);
-  let label: string;
-  if (mins < 1) label = "just now";
-  else if (mins < 60) label = `${mins} min ago`;
-  else if (mins < 60 * 24) label = `${Math.round(mins / 60)} hr ago`;
-  else label = `${Math.round(mins / (60 * 24))} day(s) ago`;
-  const days = diffMs / (1000 * 60 * 60 * 24);
-  const tone: "muted" | "warn" | "danger" = days >= 3 ? "danger" : days >= 1 ? "warn" : "muted";
-  return { iso, label, tone };
+function relativeTimeLabel(iso: string | null) {
+  return sharedLastActivity({ updatedAt: iso });
 }
 
 /* ---------------- Filter application ---------------- */
