@@ -824,7 +824,7 @@ export default function AdminTransactionDetail() {
                 })}
               </ul>
             </div>
-          </Card>
+          </Card></div>
 
           {/* === Lower 2/1 grid === */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 lg:gap-6">
