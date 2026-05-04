@@ -518,6 +518,11 @@ Deno.serve(async (req) => {
     canViewSeller: !!parties.seller,
     canRetryPayout: !!(payout && payout.retryAllowed && (payout.status === "failed")),
     canApproveRelease: tx.needs_release_review === true,
+    canOpenInvestigation: (riskLevel !== "clean") || !!disputeOut || !!tx.needs_release_review,
+    canFlagForReview: !tx.needs_release_review,
+    canViewPayment: !!payment,
+    canViewEscrow: !!escrow,
+    canViewPayout: !!payout,
   };
 
   return json({
