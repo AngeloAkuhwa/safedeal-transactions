@@ -438,10 +438,10 @@ export default function AdminTransactions() {
               <button
                 type="button"
                 onClick={handleRefresh}
-                disabled={loading}
+                disabled={isFetching}
                 className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-500 disabled:opacity-60"
               >
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                 Refresh
               </button>
             </div>
@@ -469,11 +469,11 @@ export default function AdminTransactions() {
             <button
               type="button"
               onClick={handleRefresh}
-              disabled={loading}
+              disabled={isFetching}
               aria-label="Refresh"
               className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-foreground/90 hover:bg-muted/70 disabled:opacity-60"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             </button>
           </div>
         </header>
@@ -511,7 +511,7 @@ export default function AdminTransactions() {
                 </div>
                 <div className="text-[11px] text-muted-foreground">{t.label}</div>
                 <div className="mt-1 truncate text-2xl font-semibold tracking-tight text-foreground">
-                  {loading && !summary ? <span className="inline-block h-6 w-16 animate-pulse rounded bg-muted" /> : t.value}
+                  {isFetching && !summary ? <span className="inline-block h-6 w-16 animate-pulse rounded bg-muted" /> : t.value}
                 </div>
               </div>
             );
@@ -649,7 +649,7 @@ export default function AdminTransactions() {
               </tr>
             </thead>
             <tbody>
-              {loading && rows.length === 0 ? (
+              {isFetching && rows.length === 0 ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i} className="border-b border-border/60">
                     <td colSpan={9} className="px-3 py-3">
@@ -790,7 +790,7 @@ export default function AdminTransactions() {
             </span>
           ) : null}
         </div>
-        {loading && rows.length === 0 ? (
+        {isFetching && rows.length === 0 ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-card" />
           ))
