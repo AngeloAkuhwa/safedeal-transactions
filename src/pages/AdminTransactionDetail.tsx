@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Loader2, AlertTriangle, Download, Scale, ShieldAlert,
   ChevronDown, ChevronUp, Snowflake, Search, Flag, MoreVertical, Copy, ExternalLink, ShieldCheck,
+  Truck, Package, CreditCard, Lock, Circle, StickyNote, Plus, Pause,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
@@ -17,6 +18,10 @@ import { cn } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
+import { InternalNoteDialog } from "@/components/admin/transactions/InternalNoteDialog";
+import { freezeTransaction, addInternalNote } from "@/services/admin-transaction-actions.service";
 
 const ngn = (v: number | string | null | undefined) => {
   if (v == null || v === "") return "—";
@@ -166,6 +171,18 @@ const copy = async (val?: string | null) => {
   try { await navigator.clipboard.writeText(val); toast.success("Copied"); } catch { toast.error("Copy failed"); }
 };
 
+const TIMELINE_ICONS: Record<string, { Icon: any; cls: string; ring: string }> = {
+  admin_action: { Icon: AlertTriangle, cls: "text-red-400", ring: "border-red-500 bg-red-500/15" },
+  dispute: { Icon: Scale, cls: "text-orange-400", ring: "border-orange-500 bg-orange-500/15" },
+  delivery: { Icon: Package, cls: "text-emerald-400", ring: "border-emerald-500 bg-emerald-500/15" },
+  money_status: { Icon: Lock, cls: "text-purple-400", ring: "border-purple-500 bg-purple-500/15" },
+  transaction_status: { Icon: Truck, cls: "text-blue-400", ring: "border-blue-500 bg-blue-500/15" },
+  event: { Icon: CreditCard, cls: "text-emerald-400", ring: "border-emerald-500 bg-emerald-500/15" },
+};
+function timelineMeta(kind?: string) {
+  return TIMELINE_ICONS[kind ?? ""] ?? { Icon: Circle, cls: "text-slate-400", ring: "border-slate-500 bg-slate-500/15" };
+}
+
 export default function AdminTransactionDetail() {
   const { transactionId } = useParams<{ transactionId: string }>();
   const navigate = useNavigate();
@@ -176,6 +193,10 @@ export default function AdminTransactionDetail() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [denied, setDenied] = useState(false);
+  const [actionSheetOpen, setActionSheetOpen] = useState(false);
+  const [freezeOpen, setFreezeOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const sections = useMemo(() => [
     "summary", "risk", "dispute", "linked", "items", "delivery", "agreement",
@@ -192,7 +213,7 @@ export default function AdminTransactionDetail() {
         else setErr((e as Error).message ?? "Failed to load transaction");
       })
       .finally(() => setLoading(false));
-  }, [transactionId, sections]);
+  }, [transactionId, sections, reloadKey]);
 
   const summary = data?.summary ?? null;
   const dispute = data?.dispute ?? summary?.dispute ?? null;
@@ -463,22 +484,36 @@ export default function AdminTransactionDetail() {
 
           {/* 4. Timeline */}
           <CollapsibleCard title="Complete Transaction Timeline" subtitle="All events, status changes, and interventions">
-            <ul className="space-y-3 text-sm">
-              {(data.timeline ?? []).length === 0 && <li className="text-muted-foreground">No events recorded.</li>}
-              {(data.timeline ?? []).map((e: any, i: number) => (
-                <li key={i} className="border-l-2 border-border pl-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-foreground capitalize">
-                      {e.from ? <><span className="text-muted-foreground">{e.from?.replace(/_/g, " ")}</span> → </> : null}
-                      {e.to?.replace(/_/g, " ")}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">{fmtDate(e.at)}</span>
-                  </div>
-                  <div className="text-[11px] text-muted-foreground capitalize">{e.kind?.replace(/_/g, " ")}</div>
-                  {e.note && <div className="text-xs text-muted-foreground mt-0.5">{e.note}</div>}
-                </li>
-              ))}
-            </ul>
+            {(data.timeline ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No events recorded.</p>
+            ) : (
+              <div className="relative">
+                <div className="absolute left-3 top-2 bottom-2 w-px bg-border" />
+                <ul className="space-y-4">
+                  {(data.timeline ?? []).map((e: any, i: number) => {
+                    const m = timelineMeta(e.kind);
+                    return (
+                      <li key={i} className="flex gap-3 relative">
+                        <div className={cn("relative z-10 flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center", m.ring)}>
+                          <m.Icon className={cn("h-3 w-3", m.cls)} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <h4 className="text-sm font-medium text-foreground capitalize truncate">
+                              {e.from ? <><span className="text-muted-foreground">{e.from?.replace(/_/g, " ")}</span> → </> : null}
+                              {e.to?.replace(/_/g, " ")}
+                            </h4>
+                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">{fmtDate(e.at)}</span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground capitalize">{e.kind?.replace(/_/g, " ")}</p>
+                          {e.note && <p className="text-xs text-muted-foreground mt-0.5">{e.note}</p>}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
           </CollapsibleCard>
 
           {/* 5. Linked Records */}
@@ -713,7 +748,7 @@ export default function AdminTransactionDetail() {
       {/* Mobile sticky action bar */}
       {!loading && !err && !denied && data && (
         <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur px-3 py-2.5 flex items-center gap-2">
-          <Button className="flex-1 bg-blue-500 hover:bg-blue-600 text-white" onClick={() => navigate(returnTo)}>
+          <Button className="flex-1 bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setActionSheetOpen(true)}>
             Take Action
           </Button>
           <DropdownMenu>
