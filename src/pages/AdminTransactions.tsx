@@ -53,6 +53,17 @@ import {
   type AdminTxRow,
   type AdminTxMonitorParams,
 } from "@/services/admin-transactions-monitor.service";
+import {
+  addInternalNote,
+  freezeTransaction,
+  unfreezeTransaction,
+  flagForReview,
+  escalateDispute,
+} from "@/services/admin-transaction-actions.service";
+import { RowActionsMenu } from "@/components/admin/transactions/RowActionsMenu";
+import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
+import { InternalNoteDialog } from "@/components/admin/transactions/InternalNoteDialog";
+import { DetailDrawer } from "@/components/admin/transactions/DetailDrawer";
 
 /* ---------------- Visual helpers ---------------- */
 
