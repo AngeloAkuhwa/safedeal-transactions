@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ShieldCheck, FileText, Image as ImageIcon, Video, Receipt, Truck } from "lucide-react";
+import { ShieldCheck, FileText, Image as ImageIcon, Video, Receipt, Truck, ExternalLink } from "lucide-react";
 import type { AdminTxEvidenceItem } from "@/services/admin-transaction-detail.service";
 
 interface Props {
@@ -11,7 +11,9 @@ interface Props {
 }
 
 export function EvidencePreviewDialog({ open, onOpenChange, item, transactionCode }: Props) {
+  const [iframeFailed, setIframeFailed] = useState(false);
   useEffect(() => {
+    setIframeFailed(false);
     if (!open) return;
     const blockKeys = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && (e.key === "p" || e.key === "P" || e.key === "s" || e.key === "S")) {
@@ -32,9 +34,21 @@ export function EvidencePreviewDialog({ open, onOpenChange, item, transactionCod
 
   const url = item?.secureUrl ?? null;
   const mime = (item?.mimeType ?? "").toLowerCase();
-  const isImage = mime.startsWith("image/") || item?.kind === "image";
-  const isVideo = mime.startsWith("video/") || item?.kind === "video";
-  const isPdf = mime === "application/pdf";
+  const urlLower = (url ?? "").toLowerCase();
+  const isPdf =
+    mime === "application/pdf" ||
+    /\.pdf(\?|$)/i.test(urlLower) ||
+    item?.evidenceType === "pdf";
+  const isImage = !isPdf && (mime.startsWith("image/") || item?.kind === "image");
+  const isVideo = !isPdf && (mime.startsWith("video/") || item?.kind === "video");
+
+  // Force Cloudinary to deliver PDFs inline (not as attachment download)
+  const pdfUrl = (() => {
+    if (!url || !isPdf) return url;
+    if (!/res\.cloudinary\.com/.test(url)) return url;
+    if (url.includes("fl_attachment")) return url;
+    return url.replace(/\/(image|raw)\/upload\//, "/$1/upload/fl_attachment:false/");
+  })();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -82,11 +96,27 @@ export function EvidencePreviewDialog({ open, onOpenChange, item, transactionCod
                 className="max-h-[68vh] max-w-full rounded shadow-lg"
               />
             ) : isPdf ? (
-              <iframe
-                src={`${url}#toolbar=0&navpanes=0`}
-                title="document"
-                className="w-full h-[68vh] rounded bg-white"
-              />
+              iframeFailed ? (
+                <div className="flex flex-col items-center gap-3 text-muted-foreground py-12">
+                  <FileText className="h-10 w-10" />
+                  <div className="text-sm">Inline preview blocked by browser.</div>
+                  <a
+                    href={pdfUrl ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 underline"
+                  >
+                    Open PDF in new tab <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </div>
+              ) : (
+                <iframe
+                  src={`${pdfUrl}#toolbar=0&navpanes=0`}
+                  title="document"
+                  onError={() => setIframeFailed(true)}
+                  className="w-full h-[68vh] rounded bg-white"
+                />
+              )
             ) : (
               <UnsupportedFallback item={item} />
             )}

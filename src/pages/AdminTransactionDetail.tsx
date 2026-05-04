@@ -150,9 +150,11 @@ function timelineMeta(icon?: string, severity?: string) {
   if (severity === "success") return { ...base, cls: "border-emerald-500 bg-emerald-500/15 text-emerald-400" };
   return base;
 }
-function evidenceIcon(kind: string) {
-  if (kind === "image") return ImageIcon;
-  if (kind === "video") return Video;
+function evidenceIcon(kind: string, mime?: string | null) {
+  const m = (mime ?? "").toLowerCase();
+  if (m.startsWith("image/") || kind === "image") return ImageIcon;
+  if (m.startsWith("video/") || kind === "video") return Video;
+  if (m === "application/pdf") return FileText;
   if (kind === "receipt") return Receipt;
   if (kind === "delivery_proof") return Truck;
   return FileText;
@@ -269,11 +271,13 @@ export default function AdminTransactionDetail() {
   }, [data?.timeline, tlFilter, tlNewest]);
 
   const visibleTimeline = showFullTimeline ? filteredTimeline : filteredTimeline.slice(0, 8);
+  const allFlagsCount = (data?.risk?.flags?.length ?? 0);
   const showHighRisk =
     data?.risk?.level === "high" ||
     data?.risk?.level === "escalated" ||
     tx?.moneyStatus === "funds_frozen" ||
-    !!(dispute?.overdue);
+    !!dispute ||
+    allFlagsCount > 0;
 
   // Header (desktop)
   const headerSlot = (
@@ -1022,24 +1026,25 @@ export default function AdminTransactionDetail() {
                         </div>
                         <ul className="space-y-2">
                         {evidence.map((ev) => {
-                          const Icon = evidenceIcon(ev.kind);
+                          const Icon = evidenceIcon(ev.kind, ev.mimeType);
+                          const unavailable = !ev.secureUrl;
                           return (
                             <li key={ev.id}>
                               <button
                                 type="button"
-                                onClick={() => setEvidencePreview(ev)}
-                                className="w-full text-left flex items-center gap-2 rounded-md p-1.5 hover:bg-muted/50 transition-all"
+                                onClick={() => !unavailable && setEvidencePreview(ev)}
+                                disabled={unavailable}
+                                className="w-full text-left flex items-center gap-2 rounded-md p-1.5 hover:bg-muted/50 transition-all disabled:cursor-not-allowed disabled:hover:bg-transparent"
                               >
-                                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
-                                  {ev.kind === "image" && ev.secureUrl ? (
-                                    <img src={ev.secureUrl} alt={ev.title} draggable={false} className="w-full h-full object-cover pointer-events-none" />
-                                  ) : (
-                                    <Icon className="h-4 w-4 text-muted-foreground" />
-                                  )}
+                                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                  <Icon className="h-4 w-4 text-muted-foreground" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="text-sm text-muted-foreground truncate">{ev.title}</div>
-                                  <div className="text-xs text-muted-foreground truncate">{fmtDate(ev.uploadedAt)}</div>
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    {fmtDate(ev.uploadedAt)}
+                                    {unavailable && <span className="ml-2 text-red-400">Unavailable</span>}
+                                  </div>
                                 </div>
                               </button>
                             </li>
@@ -1056,13 +1061,13 @@ export default function AdminTransactionDetail() {
 
           {/* === Supplementary admin-only sections === */}
           <Card>
-            <details>
+            <details className="group">
               <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 lg:px-6 py-4 border-b border-border">
                 <div>
                   <h2 className="text-sm lg:text-base font-semibold text-foreground">Admin extras</h2>
                   <p className="text-xs text-muted-foreground mt-0.5">Pricing breakdown, payout details, and full escrow ledger</p>
                 </div>
-                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
               <div className="p-4 lg:p-6 space-y-6">
                 <div>
