@@ -300,10 +300,30 @@ export default function AdminTransactionDetail() {
         <div className="space-y-4 pb-28 lg:pb-6">
           {/* High-risk banner */}
           {(data.risk?.level === "high" || data.risk?.level === "escalated") && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="font-semibold">High-risk transaction.</span>
-              <span className="text-red-300/80">{data.risk?.adminReviewReason ?? "Review required."}</span>
+            <div className="rounded-xl border border-red-500/40 bg-red-500/15 p-4 flex items-start gap-3">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-300">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-red-200">
+                  {data.risk?.level === "escalated" ? "High Risk — Escalated" : "High Risk Transaction"}
+                </div>
+                <div className="mt-0.5 text-xs text-red-300/90">
+                  {data.risk?.adminReviewReason ?? "Manual review required before any release."}
+                </div>
+                {(data.risk?.flags ?? []).length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {data.risk.flags.slice(0, 4).map((f: any, i: number) => (
+                      <span key={i} className="rounded border border-red-500/30 bg-red-500/15 px-1.5 py-0.5 text-[10px] text-red-200">{f.label}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {adminCan.canOpenInvestigation && (
+                <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white" onClick={() => setInvestigateOpen(true)}>
+                  <Search className="h-4 w-4 mr-1.5" /> Investigate
+                </Button>
+              )}
             </div>
           )}
 
