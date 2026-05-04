@@ -4,6 +4,7 @@ import {
   ArrowLeft, Loader2, AlertTriangle, Download, Scale, ShieldCheck,
   ChevronDown, ChevronUp, Snowflake, MoreVertical, ExternalLink,
   Truck, Package, CreditCard, Lock, Circle, StickyNote, RefreshCcw,
+  Search, Flag, Eye, MoreHorizontal, User, Wallet, Receipt, BookOpen,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
@@ -12,10 +13,20 @@ import {
   TransactionNotFoundError,
   type AdminTxDetailResponse,
 } from "@/services/admin-transaction-detail.service";
-import { freezeTransaction, addInternalNote } from "@/services/admin-transaction-actions.service";
+import {
+  freezeTransaction,
+  unfreezeTransaction,
+  flagForReview,
+  openInvestigation,
+  addInternalNoteTyped,
+} from "@/services/admin-transaction-actions.service";
 import { formatMoney } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
 import { InternalNoteDialog } from "@/components/admin/transactions/InternalNoteDialog";
 import { cn } from "@/lib/utils";
@@ -149,6 +160,9 @@ export default function AdminTransactionDetail() {
   const [actionSheetOpen, setActionSheetOpen] = useState(false);
   const [freezeOpen, setFreezeOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [unfreezeOpen, setUnfreezeOpen] = useState(false);
+  const [flagOpen, setFlagOpen] = useState(false);
+  const [investigateOpen, setInvestigateOpen] = useState(false);
 
   useEffect(() => {
     if (!transactionId) { setNotFound(true); setLoading(false); return; }
@@ -193,14 +207,48 @@ export default function AdminTransactionDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {adminCan.canExport && (
-            <Button variant="outline" size="sm" onClick={exportData}><Download className="h-4 w-4 mr-1.5" /> Export</Button>
+          {adminCan.canOpenInvestigation && (
+            <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200">
+              <Search className="h-4 w-4 mr-1.5" /> Investigate
+            </Button>
+          )}
+          {adminCan.canFreeze && (
+            <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-cyan-500/40 text-cyan-300 hover:text-cyan-200">
+              <Snowflake className="h-4 w-4 mr-1.5" /> Freeze Funds
+            </Button>
+          )}
+          {adminCan.canUnfreeze && (
+            <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200">
+              <Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze
+            </Button>
           )}
           {adminCan.canManageDispute && dispute && (
             <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
-              <Scale className="h-4 w-4 mr-1.5" /> View Dispute
+              <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
             </Button>
           )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" aria-label="More actions"><MoreHorizontal className="h-4 w-4" /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {adminCan.canAddNote && <DropdownMenuItem onClick={() => setNoteOpen(true)}><StickyNote className="h-4 w-4 mr-2" /> Add Internal Note</DropdownMenuItem>}
+              {adminCan.canFlagForReview && <DropdownMenuItem onClick={() => setFlagOpen(true)}><Flag className="h-4 w-4 mr-2" /> Flag for Review</DropdownMenuItem>}
+              {adminCan.canViewBuyer && data?.parties?.buyer?.id && (
+                <DropdownMenuItem onClick={() => navigate(`/admin/users/${data.parties.buyer!.id}`)}><User className="h-4 w-4 mr-2" /> View Buyer Profile</DropdownMenuItem>
+              )}
+              {adminCan.canViewSeller && data?.parties?.seller?.id && (
+                <DropdownMenuItem onClick={() => navigate(`/admin/users/${data.parties.seller!.id}`)}><User className="h-4 w-4 mr-2" /> View Seller Profile</DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              {adminCan.canExport && <DropdownMenuItem onClick={exportData}><Download className="h-4 w-4 mr-2" /> Export Data</DropdownMenuItem>}
+              <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(code); toast.success("Code copied"); }}>
+                <Receipt className="h-4 w-4 mr-2" /> Copy Transaction Code
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
@@ -252,10 +300,30 @@ export default function AdminTransactionDetail() {
         <div className="space-y-4 pb-28 lg:pb-6">
           {/* High-risk banner */}
           {(data.risk?.level === "high" || data.risk?.level === "escalated") && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="font-semibold">High-risk transaction.</span>
-              <span className="text-red-300/80">{data.risk?.adminReviewReason ?? "Review required."}</span>
+            <div className="rounded-xl border border-red-500/40 bg-red-500/15 p-4 flex items-start gap-3">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-300">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-red-200">
+                  {data.risk?.level === "escalated" ? "High Risk — Escalated" : "High Risk Transaction"}
+                </div>
+                <div className="mt-0.5 text-xs text-red-300/90">
+                  {data.risk?.adminReviewReason ?? "Manual review required before any release."}
+                </div>
+                {(data.risk?.flags ?? []).length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {data.risk.flags.slice(0, 4).map((f: any, i: number) => (
+                      <span key={i} className="rounded border border-red-500/30 bg-red-500/15 px-1.5 py-0.5 text-[10px] text-red-200">{f.label}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {adminCan.canOpenInvestigation && (
+                <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white" onClick={() => setInvestigateOpen(true)}>
+                  <Search className="h-4 w-4 mr-1.5" /> Investigate
+                </Button>
+              )}
             </div>
           )}
 
@@ -305,9 +373,24 @@ export default function AdminTransactionDetail() {
 
           {/* Quick actions (mobile grid) */}
           <div className="lg:hidden grid grid-cols-2 gap-2">
+            {adminCan.canOpenInvestigation && (
+              <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-red-500/40 text-red-300">
+                <Search className="h-4 w-4 mr-1.5" /> Investigate
+              </Button>
+            )}
             {adminCan.canFreeze && (
               <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-cyan-500/40 text-cyan-300">
                 <Snowflake className="h-4 w-4 mr-1.5" /> Freeze
+              </Button>
+            )}
+            {adminCan.canUnfreeze && (
+              <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300">
+                <Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze
+              </Button>
+            )}
+            {adminCan.canFlagForReview && (
+              <Button variant="outline" size="sm" onClick={() => setFlagOpen(true)} className="border-yellow-500/40 text-yellow-300">
+                <Flag className="h-4 w-4 mr-1.5" /> Flag
               </Button>
             )}
             {adminCan.canAddNote && (
@@ -550,44 +633,77 @@ export default function AdminTransactionDetail() {
             )}
           </CollapsibleCard>
 
-          {/* Risk & Investigation */}
+          {/* Risk & Investigation — split into Assessment + Log */}
           <Card>
-            <CardHeader title="Risk & Investigation" action={<StatusBadge value={data.risk?.level} />} />
-            <div className="px-4 pb-4 space-y-3">
-              {(data.risk?.flags ?? []).length === 0 && <Empty>No risk flags.</Empty>}
-              {(data.risk?.flags ?? []).length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {data.risk.flags.map((f: any, i: number) => (
-                    <span key={i} className={cn("rounded-md border px-2 py-0.5 text-[11px]",
-                      f.severity === "high" ? "border-red-500/30 bg-red-500/15 text-red-300" :
-                      f.severity === "medium" ? "border-orange-500/30 bg-orange-500/15 text-orange-300" :
-                      "border-yellow-500/30 bg-yellow-500/15 text-yellow-300")}>{f.label}</span>
-                  ))}
+            <CardHeader
+              title="Risk & Investigation"
+              action={
+                <div className="flex items-center gap-2">
+                  <StatusBadge value={data.risk?.level} />
+                  {adminCan.canOpenInvestigation && (
+                    <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)}>
+                      <Search className="h-3.5 w-3.5 mr-1.5" /> Investigate
+                    </Button>
+                  )}
                 </div>
-              )}
-              {(data.risk?.escalationHistory ?? []).length > 0 && (
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Escalation History</div>
+              }
+            />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 px-4 pb-4">
+              {/* Assessment */}
+              <div className="space-y-3">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Risk Assessment</div>
+                {(data.risk?.flags ?? []).length === 0 && <Empty>No risk flags raised.</Empty>}
+                {(data.risk?.flags ?? []).length > 0 && (
+                  <ul className="space-y-1.5">
+                    {data.risk.flags.map((f: any, i: number) => (
+                      <li key={i} className={cn("flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-[11px]",
+                        f.severity === "high" ? "border-red-500/30 bg-red-500/10 text-red-300" :
+                        f.severity === "medium" ? "border-orange-500/30 bg-orange-500/10 text-orange-300" :
+                        "border-yellow-500/30 bg-yellow-500/10 text-yellow-300")}>
+                        <Flag className="h-3 w-3 mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="font-medium">{f.label}</div>
+                          {f.detail && <div className="text-[10px] opacity-80 truncate">{f.detail}</div>}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {data.risk?.adminReviewReason && (
+                  <div className="rounded-md border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground">
+                    <span className="text-foreground font-medium">Reason:</span> {data.risk.adminReviewReason}
+                  </div>
+                )}
+              </div>
+              {/* Investigation Log */}
+              <div className="space-y-3 lg:border-l lg:border-border lg:pl-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Investigation Log</div>
+                  {adminCan.canAddNote && (
+                    <button type="button" onClick={() => setNoteOpen(true)} className="text-[11px] text-primary hover:underline">+ Add note</button>
+                  )}
+                </div>
+                {(data.risk?.escalationHistory ?? []).length > 0 && (
                   <ul className="text-xs space-y-1">
                     {data.risk.escalationHistory.map((h: any, i: number) => (
                       <li key={i} className="text-muted-foreground"><span className="text-foreground">{titleCase(h.label)}</span> · {fmtDate(h.at)}{h.by ? ` · ${h.by}` : ""}{h.note ? ` — ${h.note}` : ""}</li>
                     ))}
                   </ul>
-                </div>
-              )}
-              {(data.risk?.investigationNotes ?? []).length > 0 && (
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Investigation Notes</div>
+                )}
+                {(data.risk?.investigationNotes ?? []).length === 0 && (data.risk?.escalationHistory ?? []).length === 0 && (
+                  <Empty>No investigation activity yet.</Empty>
+                )}
+                {(data.risk?.investigationNotes ?? []).length > 0 && (
                   <ul className="space-y-2">
                     {data.risk.investigationNotes.map((n: any) => (
                       <li key={n.id} className="rounded-md border border-border bg-muted/30 p-2 text-xs">
                         <div className="text-muted-foreground">{fmtDate(n.at)} {n.author?.full_name ? `· ${n.author.full_name}` : ""}</div>
-                        <div className="text-foreground mt-0.5">{n.note}</div>
+                        <div className="text-foreground mt-0.5 whitespace-pre-wrap">{n.note}</div>
                       </li>
                     ))}
                   </ul>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </Card>
 
@@ -623,14 +739,44 @@ export default function AdminTransactionDetail() {
         </div>
       )}
 
+      {/* Mobile sticky action bar */}
+      {!loading && !denied && !notFound && data && (
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur px-3 py-2 flex items-center gap-2">
+          {adminCan.canOpenInvestigation ? (
+            <Button size="sm" className="flex-1 bg-red-500 hover:bg-red-600 text-white" onClick={() => setInvestigateOpen(true)}>
+              <Search className="h-4 w-4 mr-1.5" /> Investigate
+            </Button>
+          ) : adminCan.canManageDispute && dispute ? (
+            <Button size="sm" className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
+              <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" className="flex-1" onClick={() => setNoteOpen(true)}>
+              <StickyNote className="h-4 w-4 mr-1.5" /> Add Note
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={() => setActionSheetOpen(true)} aria-label="More">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Mobile actions sheet */}
       <Sheet open={actionSheetOpen} onOpenChange={setActionSheetOpen}>
         <SheetContent side="bottom" className="rounded-t-xl">
           <SheetHeader><SheetTitle>Actions</SheetTitle></SheetHeader>
           <div className="mt-4 grid grid-cols-2 gap-2">
-            {adminCan.canFreeze && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setFreezeOpen(true); }}><Snowflake className="h-4 w-4 mr-1.5" /> Freeze</Button>}
-            {adminCan.canAddNote && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setNoteOpen(true); }}><StickyNote className="h-4 w-4 mr-1.5" /> Note</Button>}
+            {adminCan.canFreeze && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setFreezeOpen(true); }}><Snowflake className="h-4 w-4 mr-1.5" /> Freeze Funds</Button>}
+            {adminCan.canUnfreeze && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setUnfreezeOpen(true); }}><Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze</Button>}
+            {adminCan.canFlagForReview && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setFlagOpen(true); }}><Flag className="h-4 w-4 mr-1.5" /> Flag for Review</Button>}
+            {adminCan.canManageDispute && dispute && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/disputes/${dispute.id}`); }}><Scale className="h-4 w-4 mr-1.5" /> Manage Dispute</Button>}
+            {adminCan.canAddNote && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setNoteOpen(true); }}><StickyNote className="h-4 w-4 mr-1.5" /> Add Note</Button>}
+            {adminCan.canViewBuyer && data?.parties?.buyer?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/users/${data.parties.buyer!.id}`); }}><User className="h-4 w-4 mr-1.5" /> View Buyer</Button>}
+            {adminCan.canViewSeller && data?.parties?.seller?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/users/${data.parties.seller!.id}`); }}><User className="h-4 w-4 mr-1.5" /> View Seller</Button>}
             {adminCan.canExport && <Button variant="outline" onClick={() => { setActionSheetOpen(false); exportData(); }}><Download className="h-4 w-4 mr-1.5" /> Export</Button>}
+            <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigator.clipboard.writeText(code); toast.success("Code copied"); }}>
+              <Receipt className="h-4 w-4 mr-1.5" /> Copy Code
+            </Button>
           </div>
         </SheetContent>
       </Sheet>
@@ -650,13 +796,56 @@ export default function AdminTransactionDetail() {
           setReloadKey((k) => k + 1);
         }}
       />
+      <ActionConfirmDialog
+        open={unfreezeOpen}
+        onOpenChange={setUnfreezeOpen}
+        title="Unfreeze Funds"
+        description={`Move funds for #${code} back to pending release. No money is moved out yet.`}
+        confirmLabel="Unfreeze"
+        confirmTone="primary"
+        onConfirm={async (reason) => {
+          if (!transactionId) return;
+          await unfreezeTransaction(transactionId, reason);
+          toast.success("Funds unfrozen");
+          setReloadKey((k) => k + 1);
+        }}
+      />
+      <ActionConfirmDialog
+        open={flagOpen}
+        onOpenChange={setFlagOpen}
+        title="Flag for Review"
+        description={`Flag #${code} for the admin review queue. Provide a reason.`}
+        confirmLabel="Flag for Review"
+        confirmTone="danger"
+        onConfirm={async (reason) => {
+          if (!transactionId) return;
+          await flagForReview(transactionId, reason);
+          toast.success("Flagged for review");
+          setReloadKey((k) => k + 1);
+        }}
+      />
+      <ActionConfirmDialog
+        open={investigateOpen}
+        onOpenChange={setInvestigateOpen}
+        title="Open Investigation"
+        description={`Create an investigation record for #${code}. This is logged in the audit trail.`}
+        reasonMin={1}
+        confirmLabel="Open Investigation"
+        confirmTone="primary"
+        onConfirm={async (reason) => {
+          if (!transactionId) return;
+          await openInvestigation(transactionId, reason);
+          toast.success("Investigation opened");
+          setReloadKey((k) => k + 1);
+        }}
+      />
       <InternalNoteDialog
         open={noteOpen}
         onOpenChange={setNoteOpen}
         transactionCode={code}
-        onSubmit={async (note) => {
+        onSubmit={async (note, noteType) => {
           if (!transactionId) return;
-          await addInternalNote(transactionId, note);
+          await addInternalNoteTyped(transactionId, note, noteType);
           toast.success("Note added");
           setReloadKey((k) => k + 1);
         }}

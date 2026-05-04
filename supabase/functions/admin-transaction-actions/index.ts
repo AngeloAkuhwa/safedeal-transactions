@@ -20,7 +20,8 @@ type ActionName =
   | "freeze"
   | "unfreeze"
   | "flag_for_review"
-  | "escalate_dispute";
+  | "escalate_dispute"
+  | "open_investigation";
 
 interface Body {
   action: ActionName;
@@ -90,8 +91,13 @@ Deno.serve(async (req) => {
   try {
     switch (body.action) {
       case "add_internal_note": {
-        const note = String(payload.note ?? "").trim();
-        if (note.length < 1 || note.length > 2000) return badRequest("note_invalid");
+        const rawNote = String(payload.note ?? "").trim();
+        if (rawNote.length < 1 || rawNote.length > 2000) return badRequest("note_invalid");
+        const allowedTypes = ["note", "escalation", "risk", "payment", "dispute", "payout"];
+        const noteType = allowedTypes.includes(String(payload.note_type ?? ""))
+          ? String(payload.note_type)
+          : "note";
+        const note = noteType === "note" ? rawNote : `[${noteType}] ${rawNote}`;
         const { error } = await admin.from("admin_transaction_notes").insert({
           transaction_id: txId,
           admin_user_id: userId,
@@ -109,6 +115,7 @@ Deno.serve(async (req) => {
           actor_user_id: userId,
           transaction_id: txId,
           description: `Admin added internal note to ${tx.transaction_code}`,
+          metadata: { note_type: noteType },
         });
         return json({ ok: true });
       }
@@ -247,6 +254,30 @@ Deno.serve(async (req) => {
           actor_user_id: userId,
           transaction_id: txId,
           description: `Admin escalated ${tx.transaction_code}: ${reason}`,
+        });
+        return json({ ok: true });
+      }
+
+      case "open_investigation": {
+        const reason = String(payload.reason ?? "").trim() || "Investigation opened from transaction detail";
+        // Tag the transaction note as investigation
+        await admin.from("admin_transaction_notes").insert({
+          transaction_id: txId,
+          admin_user_id: userId,
+          note: `[investigation] ${reason}`,
+        });
+        await admin.from("admin_actions").insert({
+          admin_user_id: userId,
+          transaction_id: txId,
+          action_type: "escalate_case",
+          action_notes: `open_investigation: ${reason}`,
+        });
+        await admin.from("audit_logs").insert({
+          action: "admin_escalate_dispute",
+          actor_user_id: userId,
+          transaction_id: txId,
+          description: `Admin opened investigation on ${tx.transaction_code}: ${reason}`,
+          metadata: { kind: "open_investigation" },
         });
         return json({ ok: true });
       }
