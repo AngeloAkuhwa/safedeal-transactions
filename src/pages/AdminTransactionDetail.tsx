@@ -546,10 +546,56 @@ export default function AdminTransactionDetail() {
             </div>
           )}
 
+          {/* Locked Agreement */}
+          {(data.agreement || data.transaction?.agreementLockedAt) && (
+            <Card>
+              <CardHeader title="Locked Agreement" subtitle="Original terms when payment was made" />
+              <div className="p-4 lg:p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="text-sm font-medium text-foreground mb-3">Item Details</h4>
+                    <div className="space-y-1.5">
+                      <p className="text-sm text-foreground">{itemTitle}</p>
+                      {data.items?.[0]?.description && (
+                        <p className="text-xs text-muted-foreground">{data.items[0].description}</p>
+                      )}
+                      {data.items?.[0]?.condition && (
+                        <p className="text-xs text-muted-foreground">Condition: {titleCase(data.items[0].condition)}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-foreground mb-3">Terms</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Agreed Price:</span>
+                        <span className="text-foreground tabular-nums">{ngn(data.pricing?.itemTotal)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Delivery:</span>
+                        <span className="text-foreground">{titleCase(data.delivery?.method) || "—"}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Verification Window:</span>
+                        <span className="text-foreground">{data.delivery?.verificationWindowHours ? `${data.delivery.verificationWindowHours}h` : "—"}</span>
+                      </div>
+                      {(data.agreement?.lockedAt || data.transaction?.agreementLockedAt) && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Locked At:</span>
+                          <span className="text-foreground">{fmtDate(data.agreement?.lockedAt ?? data.transaction.agreementLockedAt)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Items */}
           <Card>
             <CardHeader title="Items" subtitle={`${data.items.length} item${data.items.length === 1 ? "" : "s"}`} />
-            <div className="px-4 pb-4 space-y-3">
+            <div className="p-4 lg:p-6 space-y-3">
               {data.items.length === 0 && <Empty>No items recorded.</Empty>}
               {data.items.map((it) => (
                 <div key={it.id} className="flex gap-3 items-start border-t border-border pt-3 first:border-t-0 first:pt-0">
