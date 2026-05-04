@@ -157,11 +157,9 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       q.eq("needs_release_review", true).gte("created_at", prev30dStart).lt("created_at", since30d),
     ),
     safeCount(client, "release_review_queue", (q) => q.eq("status", "pending")),
-    safeCount(client, "payouts", (q) => q.eq("status", "failed")),
-    safeCount(client, "disputes", (q) => q.in("status", ["open", "under_review"])),
-    safeCount(client, "transactions", (q) =>
-      q.eq("status", "awaiting_payment").lt("created_at", since24h),
-    ),
+    safeCount(client, "payouts", (q) => q.eq("status", "failed").eq("retry_allowed", true)),
+    safeCount(client, "disputes", (q) => q.in("status", ["open", "under_review", "seller_response_pending"])),
+    safeCount(client, "release_review_queue", (q) => q.eq("queue_type", "stuck").eq("status", "pending")),
     safeCount(client, "identity_submissions", (q) => q.eq("status", "pending_review")),
     safeCount(client, "payment_webhook_logs", (q) => q.eq("processed_successfully", false)),
     safeCount(client, "disputes", (q) =>
@@ -308,12 +306,12 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       flagged_activity_delta_pct: calculateDeltaPct(flaggedActivity, flaggedActivityPrev),
     },
     action_required: [
-      { key: "awaiting_release", label: "Awaiting Release", count: awaitingRelease, severity: "blue", action_label: "Open Release Queue", action_href: null },
-      { key: "failed_payouts", label: "Failed Payouts", count: failedPayouts, severity: "red", action_label: "Investigate", action_href: null },
-      { key: "disputes_needing_decision", label: "Disputes Needing Decision", count: disputesOpen, severity: "orange", action_label: "Decide", action_href: null },
-      { key: "stuck_transactions", label: "Stuck Transactions", count: stuckTx, severity: "purple", action_label: "Review Queue", action_href: null },
-      { key: "identity_reviews_pending", label: "Identity Reviews Pending", count: identityPending, severity: "cyan", action_label: "Open Reviews", action_href: null },
-      { key: "webhook_recon_issues", label: "Webhook & Reconciliation", count: webhookFailures, severity: "yellow", action_label: "Investigate", action_href: null },
+      { key: "awaiting_release", label: "Awaiting Release", count: awaitingRelease, severity: "blue", action_label: "Open Release Queue", action_href: "/admin/release-queue" },
+      { key: "failed_payouts", label: "Failed Payouts", count: failedPayouts, severity: "red", action_label: "Investigate", action_href: "/admin/payouts" },
+      { key: "disputes_needing_decision", label: "Disputes Needing Decision", count: disputesOpen, severity: "orange", action_label: "Decide", action_href: "/admin/disputes" },
+      { key: "stuck_transactions", label: "Stuck Transactions", count: stuckTx > 0 ? stuckTx : flaggedNeedsReview, severity: "purple", action_label: "Review Queue", action_href: "/admin/transactions/stuck" },
+      { key: "identity_reviews_pending", label: "Identity Reviews Pending", count: identityPending, severity: "cyan", action_label: "Open Reviews", action_href: "/admin/identity-reviews" },
+      { key: "webhook_recon_issues", label: "Webhook & Reconciliation", count: webhookFailures, severity: "yellow", action_label: "Investigate", action_href: "/admin/webhooks" },
     ],
     trends: {
       transactions_vs_disputes: emptyTrend,
