@@ -254,11 +254,48 @@ export default function AdminTransactionDetail() {
 
   const exportData = () => {
     if (!data) return;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      transaction: (data as any).transaction ?? (data as any).summary ?? null,
+      parties: (data as any).parties ?? null,
+      items: (data as any).items ?? null,
+      pricing: (data as any).pricing ?? null,
+      payment: (data as any).payment ?? null,
+      escrow: (data as any).escrow ?? null,
+      escrowLedger: (data as any).escrowLedger ?? (data as any).ledger ?? null,
+      payout: (data as any).payout ?? null,
+      delivery: (data as any).delivery ?? null,
+      timeline: (data as any).timeline ?? [],
+      linkedRecords: (data as any).linkedRecords ?? null,
+      agreement: (data as any).lockedAgreement ?? (data as any).agreement ?? null,
+      risk: (data as any).risk ?? null,
+      dispute: (() => {
+        const d: any = (data as any).dispute;
+        if (!d) return null;
+        const ev = Array.isArray((data as any).evidence) ? (data as any).evidence : (d.evidence ?? []);
+        return {
+          ...d,
+          evidence: (ev ?? []).map((e: any) => ({
+            id: e.id, kind: e.kind ?? e.evidenceType, title: e.title,
+            mimeType: e.mimeType ?? null, uploadedAt: e.uploadedAt ?? e.at ?? null,
+            uploadedByRole: e.uploadedByRole ?? e.submittedByRole ?? null,
+            fileHash: e.fileHash ?? null,
+          })),
+        };
+      })(),
+      adminNotes: (data as any).adminNotes ?? (data as any).notes ?? null,
+      auditTrail: (data as any).auditTrail ?? (data as any).audit ?? null,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = `transaction-${code}.json`; a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const scrollToId = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const filteredTimeline = useMemo(() => {
