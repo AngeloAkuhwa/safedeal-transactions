@@ -1,0 +1,505 @@
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+function errResponse(message: string, status = 500) {
+  return jsonResponse({ error: message }, status);
+}
+
+/* ---------------- Types & enums ---------------- */
+const ACTIVE_DISPUTE_STATUSES = ["open", "seller_response_pending", "under_review"] as const;
+
+type QuickFilter =
+  | "all"
+  | "awaiting_payment"
+  | "funds_held"
+  | "in_dispute"
+  | "overdue"
+  | "refunded"
+  | "failed"
+  | "flagged"
+  | "frozen";
+
+interface MonitorParams {
+  search?: string;
+  transactionStatus?: string;
+  moneyStatus?: string;
+  disputeStatus?: string;
+  riskLevel?: string;
+  amountMin?: number;
+  amountMax?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  quickFilter?: QuickFilter;
+  page?: number;
+  pageSize?: number;
+  sortBy?: "created_at" | "updated_at" | "transaction_code";
+  sortDirection?: "asc" | "desc";
+}
+
+/* ---------------- Status mapping ---------------- */
+function mapTxStatus(s: string): { key: string; label: string } {
+  switch (s) {
+    case "awaiting_payment": return { key: "awaiting_payment", label: "Awaiting Payment" };
+    case "payment_secured": return { key: "funds_held", label: "Funds Held" };
+    case "seller_preparing_delivery": return { key: "in_fulfillment", label: "In Fulfillment" };
+    case "seller_dispatched": return { key: "dispatched", label: "Dispatched" };
+    case "delivered_awaiting_verification": return { key: "delivered", label: "Delivered" };
+    case "completed": return { key: "completed", label: "Completed" };
+    case "cancelled": return { key: "cancelled", label: "Cancelled" };
+    case "disputed": return { key: "in_dispute", label: "In Dispute" };
+    case "refunded": return { key: "refunded", label: "Refunded" };
+    case "timed_out": return { key: "failed", label: "Timed Out" };
+    case "draft": return { key: "draft", label: "Draft" };
+    case "awaiting_buyer": return { key: "awaiting_buyer", label: "Awaiting Buyer" };
+    case "resolved": return { key: "resolved", label: "Resolved" };
+    default: return { key: s, label: s };
+  }
+}
+function mapMoneyStatus(s: string): { key: string; label: string } {
+  switch (s) {
+    case "not_secured": return { key: "not_secured", label: "Not Secured" };
+    case "payment_pending": return { key: "payment_pending", label: "Payment Pending" };
+    case "funds_held_in_escrow": return { key: "held", label: "Held" };
+    case "funds_frozen": return { key: "frozen", label: "Frozen" };
+    case "funds_pending_release": return { key: "awaiting_release", label: "Awaiting Release" };
+    case "funds_releasing": return { key: "releasing", label: "Releasing" };
+    case "funds_released": return { key: "released", label: "Released" };
+    case "refund_pending": return { key: "refund_pending", label: "Refund Pending" };
+    case "refund_issued": return { key: "refunded", label: "Refunded" };
+    default: return { key: s, label: s };
+  }
+}
+function mapDisputeStatus(s: string): { key: string; label: string } {
+  switch (s) {
+    case "none": return { key: "none", label: "None" };
+    case "open": return { key: "open", label: "Open" };
+    case "seller_response_pending": return { key: "awaiting_seller", label: "Awaiting Seller" };
+    case "under_review": return { key: "under_review", label: "Under Review" };
+    case "resolved": return { key: "resolved", label: "Resolved" };
+    default: return { key: s, label: s };
+  }
+}
+function mapEscrowState(s: string | null): { key: string; label: string } {
+  switch (s) {
+    case "awaiting_payment": return { key: "pending", label: "Pending" };
+    case "held": return { key: "held", label: "Held" };
+    case "frozen": return { key: "frozen", label: "Frozen" };
+    case "released_to_seller": return { key: "released", label: "Released" };
+    case "refunded_to_buyer": return { key: "refunded", label: "Refunded" };
+    default: return { key: s ?? "pending", label: "Pending" };
+  }
+}
+
+function maskEmail(email: string | null | undefined): string | null {
+  if (!email) return null;
+  const idx = email.indexOf("@");
+  if (idx <= 0) return email;
+  const local = email.slice(0, idx);
+  const domain = email.slice(idx);
+  const visible = local.slice(0, Math.min(2, local.length));
+  return `${visible}${local.length > visible.length ? "***" : ""}${domain}`;
+}
+
+function relativeTimeLabel(iso: string | null): { iso: string | null; label: string; tone: "muted" | "warn" | "danger" } {
+  if (!iso) return { iso: null, label: "—", tone: "muted" };
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return { iso, label: "—", tone: "muted" };
+  const diffMs = Date.now() - t;
+  const mins = Math.round(diffMs / 60000);
+  let label: string;
+  if (mins < 1) label = "just now";
+  else if (mins < 60) label = `${mins} min ago`;
+  else if (mins < 60 * 24) label = `${Math.round(mins / 60)} hr ago`;
+  else label = `${Math.round(mins / (60 * 24))} day(s) ago`;
+  const days = diffMs / (1000 * 60 * 60 * 24);
+  const tone: "muted" | "warn" | "danger" = days >= 3 ? "danger" : days >= 1 ? "warn" : "muted";
+  return { iso, label, tone };
+}
+
+/* ---------------- Filter application ---------------- */
+function applyFilters(qb: any, p: MonitorParams, failedTxIds: Set<string> | null): any {
+  let q = qb;
+
+  // Search (transaction_code only at the SQL level; item/party search would require joins)
+  if (p.search && p.search.trim()) {
+    const s = p.search.trim().replace(/[%_]/g, "");
+    q = q.ilike("transaction_code", `%${s}%`);
+  }
+
+  // Quick filters
+  switch (p.quickFilter) {
+    case "awaiting_payment":
+      q = q.eq("status", "awaiting_payment");
+      break;
+    case "funds_held":
+      q = q.eq("money_status", "funds_held_in_escrow");
+      break;
+    case "in_dispute":
+      q = q.in("dispute_status", ACTIVE_DISPUTE_STATUSES as unknown as string[]);
+      break;
+    case "overdue":
+      // crude: stuck awaiting_payment > 24h
+      q = q.eq("status", "awaiting_payment").lt("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+      break;
+    case "refunded":
+      q = q.in("money_status", ["refund_pending", "refund_issued"]);
+      break;
+    case "failed":
+      if (failedTxIds && failedTxIds.size > 0) {
+        q = q.in("id", Array.from(failedTxIds));
+      } else {
+        q = q.eq("id", "00000000-0000-0000-0000-000000000000");
+      }
+      break;
+    case "flagged":
+      q = q.eq("needs_release_review", true);
+      break;
+    case "frozen":
+      q = q.eq("money_status", "funds_frozen");
+      break;
+  }
+
+  // Explicit filters
+  if (p.transactionStatus) q = q.eq("status", p.transactionStatus);
+  if (p.moneyStatus) q = q.eq("money_status", p.moneyStatus);
+  if (p.disputeStatus) q = q.eq("dispute_status", p.disputeStatus);
+  if (p.dateFrom) q = q.gte("created_at", p.dateFrom);
+  if (p.dateTo) q = q.lte("created_at", p.dateTo);
+  return q;
+}
+
+/* ---------------- Build payload ---------------- */
+async function buildPayload(client: SupabaseClient, params: MonitorParams) {
+  const page = Math.max(1, Math.floor(params.page ?? 1));
+  const pageSize = Math.min(100, Math.max(1, Math.floor(params.pageSize ?? 25)));
+  const sortBy: "created_at" | "updated_at" | "transaction_code" =
+    params.sortBy === "updated_at" || params.sortBy === "transaction_code" ? params.sortBy : "created_at";
+  const sortDirection = params.sortDirection === "asc" ? "asc" : "desc";
+
+  // Pre-compute failed-payment tx ids if needed for quickFilter or row enrichment
+  let failedTxIds: Set<string> | null = null;
+  if (params.quickFilter === "failed") {
+    const { data } = await client.from("payments").select("transaction_id").eq("status", "failed").limit(5000);
+    failedTxIds = new Set((data ?? []).map((r: any) => r.transaction_id).filter(Boolean));
+  }
+
+  /* ---- Filtered transactions: list page + count ---- */
+  let listQ = client
+    .from("transactions")
+    .select(
+      "id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, needs_release_review, payment_received_at, completed_at, created_at, updated_at",
+      { count: "exact" },
+    );
+  listQ = applyFilters(listQ, params, failedTxIds);
+  listQ = listQ
+    .order(sortBy, { ascending: sortDirection === "asc" })
+    .range((page - 1) * pageSize, page * pageSize - 1);
+  const { data: txRows, count: totalCount, error: listErr } = await listQ;
+  if (listErr) throw new Error(`tx_list_failed: ${listErr.message}`);
+
+  const rows = (txRows ?? []) as any[];
+  const txIds = rows.map((r) => r.id);
+
+  /* ---- Side data for displayed rows ---- */
+  const userIds = Array.from(new Set([
+    ...rows.map((r) => r.buyer_id).filter(Boolean),
+    ...rows.map((r) => r.seller_id).filter(Boolean),
+  ]));
+
+  const empty: any[] = [];
+  const [
+    itemsRes, pricingRes, escrowRes, disputesRes, msHistRes, eventsRes, paymentsRes, profilesRes,
+  ] = txIds.length === 0
+    ? [
+        { data: empty }, { data: empty }, { data: empty }, { data: empty },
+        { data: empty }, { data: empty }, { data: empty }, { data: empty },
+      ]
+    : await Promise.all([
+        client.from("transaction_items").select("transaction_id, title, condition_label, created_at").in("transaction_id", txIds),
+        client.from("transaction_pricing").select("transaction_id, currency_code, item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount").in("transaction_id", txIds),
+        client.from("escrow_states").select("transaction_id, state, held_amount, frozen_amount, released_amount, refunded_amount, last_changed_at").in("transaction_id", txIds),
+        client.from("disputes").select("id, transaction_id, status, opened_at, seller_response_due_at").in("transaction_id", txIds),
+        client.from("money_status_history").select("transaction_id, changed_at, new_status").in("transaction_id", txIds).order("changed_at", { ascending: false }).limit(2000),
+        client.from("transaction_events").select("transaction_id, created_at, event_type").in("transaction_id", txIds).order("created_at", { ascending: false }).limit(2000),
+        client.from("payments").select("transaction_id, status, created_at").in("transaction_id", txIds).order("created_at", { ascending: false }).limit(2000),
+        userIds.length === 0
+          ? Promise.resolve({ data: empty })
+          : client.from("profiles").select("id, full_name, email").in("id", userIds),
+      ]);
+
+  // Index helpers
+  const itemsByTx = new Map<string, any>();
+  for (const it of (itemsRes.data ?? []) as any[]) {
+    if (!itemsByTx.has(it.transaction_id)) itemsByTx.set(it.transaction_id, it);
+  }
+  const pricingByTx = new Map<string, any>();
+  for (const p of (pricingRes.data ?? []) as any[]) pricingByTx.set(p.transaction_id, p);
+  const escrowByTx = new Map<string, any>();
+  for (const e of (escrowRes.data ?? []) as any[]) escrowByTx.set(e.transaction_id, e);
+  const disputesByTx = new Map<string, any[]>();
+  for (const d of (disputesRes.data ?? []) as any[]) {
+    const list = disputesByTx.get(d.transaction_id) ?? [];
+    list.push(d);
+    disputesByTx.set(d.transaction_id, list);
+  }
+  const lastMoneyChangeByTx = new Map<string, string>();
+  for (const m of (msHistRes.data ?? []) as any[]) {
+    if (!lastMoneyChangeByTx.has(m.transaction_id)) lastMoneyChangeByTx.set(m.transaction_id, m.changed_at);
+  }
+  const lastEventByTx = new Map<string, { created_at: string; event_type: string }>();
+  for (const e of (eventsRes.data ?? []) as any[]) {
+    if (!lastEventByTx.has(e.transaction_id)) lastEventByTx.set(e.transaction_id, e);
+  }
+  const lastPaymentByTx = new Map<string, any>();
+  for (const p of (paymentsRes.data ?? []) as any[]) {
+    if (!lastPaymentByTx.has(p.transaction_id)) lastPaymentByTx.set(p.transaction_id, p);
+  }
+  const profileById = new Map<string, any>();
+  for (const p of (profilesRes.data ?? []) as any[]) profileById.set(p.id, p);
+
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+
+  const outRows = rows.map((t) => {
+    const item = itemsByTx.get(t.id);
+    const pricing = pricingByTx.get(t.id);
+    const escrow = escrowByTx.get(t.id);
+    const txDisputes = disputesByTx.get(t.id) ?? [];
+    const activeDispute = txDisputes.find((d) => (ACTIVE_DISPUTE_STATUSES as readonly string[]).includes(d.status));
+    const lastMoney = lastMoneyChangeByTx.get(t.id) ?? null;
+    const lastEvt = lastEventByTx.get(t.id) ?? null;
+    const lastPayment = lastPaymentByTx.get(t.id) ?? null;
+    const buyer = t.buyer_id ? profileById.get(t.buyer_id) : null;
+    const seller = t.seller_id ? profileById.get(t.seller_id) : null;
+
+    const lastActivityCandidates = [t.updated_at, lastMoney, lastEvt?.created_at]
+      .filter(Boolean)
+      .map((d) => new Date(d as string).getTime())
+      .filter((n) => Number.isFinite(n));
+    const lastActivityIso = lastActivityCandidates.length
+      ? new Date(Math.max(...lastActivityCandidates)).toISOString()
+      : t.updated_at;
+    const last = relativeTimeLabel(lastActivityIso);
+
+    const isOverdue =
+      (activeDispute?.seller_response_due_at && new Date(activeDispute.seller_response_due_at).getTime() < now) ||
+      (t.status === "awaiting_payment" && new Date(t.created_at).getTime() < now - day);
+    const isFrozen = t.money_status === "funds_frozen";
+
+    let riskLevel: "clean" | "escalated" | "high_risk" | "fraud_watch" = "clean";
+    const flags: string[] = [];
+    if (t.needs_release_review && isFrozen) {
+      riskLevel = "fraud_watch";
+      flags.push("fraud_watch");
+    } else if (t.needs_release_review) {
+      riskLevel = "high_risk";
+      flags.push("high_risk");
+    } else if (activeDispute) {
+      riskLevel = "escalated";
+      flags.push("escalated");
+    }
+    if (isFrozen && !flags.includes("fraud_watch")) flags.push("frozen");
+    if (isOverdue) flags.push("overdue");
+    if (lastPayment?.status === "failed") flags.push("payment_failed");
+
+    const txStatus = mapTxStatus(t.status);
+    const moneyStatus = mapMoneyStatus(t.money_status);
+    const disputeStatus = mapDisputeStatus(t.dispute_status);
+    const escrowStatus = mapEscrowState(escrow?.state ?? null);
+
+    const amount = pricing ? Number(pricing.buyer_total_amount ?? 0) : 0;
+    const protectionFee = pricing
+      ? Number(pricing.platform_fee_amount ?? 0) + Number(pricing.processing_fee_amount ?? 0)
+      : 0;
+    const sellerNet = pricing ? Number(pricing.seller_net_amount ?? 0) : null;
+
+    return {
+      transactionId: t.id,
+      transactionCode: t.transaction_code,
+      createdAt: t.created_at,
+      itemTitle: item?.title ?? "—",
+      itemCategory: item?.condition_label ?? null,
+      buyerName: buyer?.full_name || (buyer?.email ? buyer.email.split("@")[0] : "—"),
+      buyerEmailMasked: maskEmail(buyer?.email ?? null),
+      sellerName: seller?.full_name || (seller?.email ? seller.email.split("@")[0] : "—"),
+      sellerEmailMasked: maskEmail(seller?.email ?? null),
+      amount: Number(amount.toFixed(2)),
+      protectionFee: Number(protectionFee.toFixed(2)),
+      sellerNetAmount: sellerNet === null ? null : Number(sellerNet.toFixed(2)),
+      currency: pricing?.currency_code ?? "NGN",
+      transactionStatus: txStatus,
+      moneyStatus,
+      disputeStatus,
+      escrowStatus,
+      riskLevel,
+      flags,
+      lastActivityAt: last.iso,
+      lastActivityLabel: last.label,
+      lastActivityTone: last.tone,
+      hasUnreadMessages: false,
+      isOverdue: !!isOverdue,
+      isFrozen,
+      needsReleaseReview: !!t.needs_release_review,
+      actionAvailability: {
+        canView: true,
+        canViewNotes: true,
+        canTrace: true,
+        canFreeze: !isFrozen && t.money_status === "funds_held_in_escrow",
+        canMore: true,
+      },
+    };
+  });
+
+  /* ---- Summary (filter scope, ignoring page) ---- */
+  // Total count is already known.
+  // For sums we need ALL filtered ids (chunked).
+  let allIds: string[] = [];
+  if ((totalCount ?? 0) > 0) {
+    // Cap for safety
+    const cap = 5000;
+    const want = Math.min(totalCount ?? 0, cap);
+    let from = 0;
+    while (from < want) {
+      const to = Math.min(from + 1000, want) - 1;
+      let idsQ = client.from("transactions").select("id");
+      idsQ = applyFilters(idsQ, params, failedTxIds);
+      idsQ = idsQ.order(sortBy, { ascending: sortDirection === "asc" }).range(from, to);
+      const { data: idRows, error: idErr } = await idsQ;
+      if (idErr) break;
+      allIds = allIds.concat(((idRows ?? []) as any[]).map((r) => r.id));
+      from += 1000;
+    }
+  }
+
+  let totalAmount = 0;
+  let inEscrowAmount = 0;
+  let inDisputeCount = 0;
+  let flaggedCount = 0;
+  let awaitingActionCount = 0;
+
+  if (allIds.length) {
+    // Sum buyer_total in chunks
+    for (let i = 0; i < allIds.length; i += 1000) {
+      const chunk = allIds.slice(i, i + 1000);
+      const { data: pr } = await client
+        .from("transaction_pricing")
+        .select("buyer_total_amount")
+        .in("transaction_id", chunk);
+      for (const r of (pr ?? []) as any[]) totalAmount += Number(r.buyer_total_amount ?? 0);
+
+      const { data: er } = await client
+        .from("escrow_states")
+        .select("held_amount, frozen_amount")
+        .in("transaction_id", chunk);
+      for (const r of (er ?? []) as any[]) {
+        inEscrowAmount += Number(r.held_amount ?? 0) + Number(r.frozen_amount ?? 0);
+      }
+
+      const { count: disputeC } = await client
+        .from("transactions")
+        .select("id", { count: "exact", head: true })
+        .in("id", chunk)
+        .in("dispute_status", ACTIVE_DISPUTE_STATUSES as unknown as string[]);
+      inDisputeCount += disputeC ?? 0;
+
+      const { count: flagC } = await client
+        .from("transactions")
+        .select("id", { count: "exact", head: true })
+        .in("id", chunk)
+        .eq("needs_release_review", true);
+      flaggedCount += flagC ?? 0;
+
+      // awaiting action: needs_release_review OR active dispute OR stuck awaiting payment
+      const { data: stuck } = await client
+        .from("transactions")
+        .select("id, status, created_at, needs_release_review, dispute_status")
+        .in("id", chunk);
+      const dayAgo = now - day;
+      const awaitingSet = new Set<string>();
+      for (const r of (stuck ?? []) as any[]) {
+        if (r.needs_release_review) awaitingSet.add(r.id);
+        if ((ACTIVE_DISPUTE_STATUSES as readonly string[]).includes(r.dispute_status)) awaitingSet.add(r.id);
+        if (r.status === "awaiting_payment" && new Date(r.created_at).getTime() < dayAgo) awaitingSet.add(r.id);
+      }
+      awaitingActionCount += awaitingSet.size;
+    }
+  }
+
+  return {
+    summary: {
+      totalTransactions: totalCount ?? 0,
+      totalAmount: Number(totalAmount.toFixed(2)),
+      inEscrowAmount: Number(inEscrowAmount.toFixed(2)),
+      inDisputeCount,
+      awaitingActionCount,
+      flaggedCount,
+      currency: "NGN",
+    },
+    rows: outRows,
+    pagination: {
+      page,
+      pageSize,
+      totalCount: totalCount ?? 0,
+      hasNextPage: page * pageSize < (totalCount ?? 0),
+      hasPreviousPage: page > 1,
+    },
+  };
+}
+
+/* ---------------- Handler ---------------- */
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return errResponse("Not authenticated", 401);
+    }
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const token = authHeader.replace("Bearer ", "");
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const { data: userData, error: userError } = await adminClient.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return errResponse("Invalid session", 401);
+    }
+    const userId = userData.user.id;
+
+    const { data: hasRole, error: roleError } = await adminClient.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    if (roleError || !hasRole) {
+      return errResponse("Admin role required", 403);
+    }
+
+    let body: MonitorParams = {};
+    if (req.method === "POST") {
+      try {
+        body = (await req.json()) ?? {};
+      } catch {
+        body = {};
+      }
+    }
+
+    const payload = await buildPayload(adminClient, body);
+    return jsonResponse(payload);
+  } catch (e) {
+    return errResponse(`Unexpected error: ${(e as Error).message}`, 500);
+  }
+});
