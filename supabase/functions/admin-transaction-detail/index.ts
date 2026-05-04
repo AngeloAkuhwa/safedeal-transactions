@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
     itemsRes, productRes, paymentRes, payoutRes, refundsRes,
     deliveryTermsRes, deliveryTrackingRes, deliveryUpdatesRes, deliveryProofRes,
     disputeRes, txStatusRes, moneyStatusRes, eventsRes, adminActionsRes, auditRes,
-    productMediaRes,
+    productMediaRes, agreementSnapRes,
   ] = await Promise.all([
     userIds.length
       ? admin.from("profiles").select("id, full_name, email, phone, avatar_url, status, store_slug").in("id", userIds)
@@ -122,6 +122,7 @@ Deno.serve(async (req) => {
     tx.source_product_id
       ? admin.from("product_media").select("file_id, is_primary, sort_order").eq("product_id", tx.source_product_id).order("is_primary", { ascending: false }).order("sort_order", { ascending: true }).limit(1)
       : Promise.resolve({ data: [] as any[] }),
+    admin.from("transaction_agreement_snapshots").select("snapshot_json, locked_at, locked_by_user_id").eq("transaction_id", txId).maybeSingle(),
   ]);
 
   // Profiles map + verification map
@@ -204,6 +205,72 @@ Deno.serve(async (req) => {
     disputeOutcome = doRes.data ?? null;
     disputeResponses = drRes.data ?? [];
   }
+
+  // ===== Resolve evidence + delivery proof files =====
+  const evFileIds = Array.from(new Set([
+    ...evidence.map((e: any) => e.file_id).filter(Boolean),
+    ...((deliveryProofRes as any).data ?? []).map((p: any) => p.file_id).filter(Boolean),
+  ]));
+  let filesById = new Map<string, any>();
+  if (evFileIds.length) {
+    const { data: fs } = await admin
+      .from("files")
+      .select("id, secure_url, file_url, mime_type, original_file_name, resource_type")
+      .in("id", evFileIds);
+    filesById = new Map((fs ?? []).map((f: any) => [f.id, f]));
+  }
+  const evUserIds = Array.from(new Set(evidence.map((e: any) => e.submitted_by_user_id).filter(Boolean)));
+  let evUserById = new Map<string, any>();
+  if (evUserIds.length) {
+    const { data: us } = await admin.from("profiles").select("id, full_name").in("id", evUserIds);
+    evUserById = new Map((us ?? []).map((u: any) => [u.id, u]));
+  }
+  const inferKind = (mime?: string | null, evType?: string | null): string => {
+    const m = (mime ?? "").toLowerCase();
+    if (m.startsWith("image/")) return "image";
+    if (m.startsWith("video/")) return "video";
+    if (m === "application/pdf") return "document";
+    if ((evType ?? "").includes("receipt")) return "receipt";
+    if ((evType ?? "").includes("tracking") || (evType ?? "").includes("delivery")) return "delivery_proof";
+    return "document";
+  };
+  const evidenceOut = [
+    ...evidence.map((e: any) => {
+      const f = filesById.get(e.file_id);
+      const url = f?.secure_url ?? f?.file_url ?? null;
+      const u = evUserById.get(e.submitted_by_user_id);
+      return {
+        id: e.id,
+        kind: inferKind(f?.mime_type, e.evidence_type),
+        title: f?.original_file_name ?? (e.evidence_type ?? "evidence").replace(/_/g, " "),
+        secureUrl: url,
+        mimeType: f?.mime_type ?? null,
+        evidenceType: e.evidence_type,
+        uploadedByRole: e.submitted_by_role,
+        uploadedByName: u?.full_name ?? null,
+        uploadedAt: e.created_at,
+        status: "pending",
+        note: e.notes ?? null,
+      };
+    }),
+    ...((deliveryProofRes as any).data ?? []).map((p: any) => {
+      const f = filesById.get(p.file_id);
+      const url = f?.secure_url ?? f?.file_url ?? null;
+      return {
+        id: `dp-${p.id}`,
+        kind: inferKind(f?.mime_type, p.proof_type),
+        title: f?.original_file_name ?? (p.proof_type ?? "delivery proof").replace(/_/g, " "),
+        secureUrl: url,
+        mimeType: f?.mime_type ?? null,
+        evidenceType: p.proof_type,
+        uploadedByRole: "seller",
+        uploadedByName: null,
+        uploadedAt: p.created_at,
+        status: "verified",
+        note: null,
+      };
+    }),
+  ];
 
   // ===== Build response sections =====
 
@@ -539,5 +606,35 @@ Deno.serve(async (req) => {
     risk,
     linkedRecords,
     adminActionsAvailable,
+    evidence: evidenceOut,
+    lockedAgreement: (() => {
+      const snap = (agreementSnapRes as any)?.data ?? null;
+      if (!snap && !tx.agreement_locked_at) return null;
+      const j = snap?.snapshot_json ?? {};
+      return {
+        lockedAt: snap?.locked_at ?? tx.agreement_locked_at ?? null,
+        transactionCode: tx.transaction_code,
+        buyerName: parties.buyer?.name ?? null,
+        sellerName: parties.seller?.name ?? null,
+        item: {
+          title: items[0]?.title ?? j?.item?.title ?? null,
+          description: items[0]?.description ?? j?.item?.description ?? null,
+          condition: items[0]?.condition ?? j?.item?.condition ?? null,
+          quantity: items[0]?.quantity ?? j?.item?.quantity ?? null,
+        },
+        agreedPrice: pricingOut?.itemTotal ?? null,
+        protectionFee: pricingOut?.protectionFee ?? null,
+        total: pricingOut?.buyerTotal ?? null,
+        currency: pricingOut?.currency ?? "NGN",
+        deliveryMethod: delivery.method,
+        verificationWindowHours: delivery.verificationWindowHours,
+        sellerNotes: j?.seller_notes ?? j?.sellerNotes ?? null,
+        buyerNotes: j?.buyer_notes ?? j?.buyerNotes ?? null,
+        rules: j?.rules ?? j?.terms ?? null,
+        hash: j?.hash ?? null,
+        version: j?.version ?? null,
+        snapshot: snap?.snapshot_json ?? null,
+      };
+    })(),
   });
 });
