@@ -44,7 +44,15 @@ interface MonitorParams {
   quickFilter?: QuickFilter;
   page?: number;
   pageSize?: number;
-  sortBy?: "created_at" | "updated_at" | "transaction_code";
+  sortBy?:
+    | "created_at"
+    | "updated_at"
+    | "transaction_code"
+    | "amount"
+    | "last_activity_at"
+    | "status"
+    | "risk_level"
+    | "urgency";
   sortDirection?: "asc" | "desc";
 }
 
@@ -201,8 +209,12 @@ function applyFilters(
 async function buildPayload(client: SupabaseClient, params: MonitorParams) {
   const page = Math.max(1, Math.floor(params.page ?? 1));
   const pageSize = Math.min(100, Math.max(1, Math.floor(params.pageSize ?? 25)));
-  const sortBy: "created_at" | "updated_at" | "transaction_code" =
-    params.sortBy === "updated_at" || params.sortBy === "transaction_code" ? params.sortBy : "created_at";
+  const requestedSort = params.sortBy ?? "urgency";
+  const dbSortable = new Set(["created_at", "updated_at", "transaction_code", "status"]);
+  const sortBy: "created_at" | "updated_at" | "transaction_code" | "status" =
+    dbSortable.has(requestedSort)
+      ? (requestedSort as "created_at" | "updated_at" | "transaction_code" | "status")
+      : "created_at";
   const sortDirection = params.sortDirection === "asc" ? "asc" : "desc";
 
   // Pre-compute failed-payment tx ids if needed for quickFilter or row enrichment
@@ -247,14 +259,25 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
     const raw = params.search.trim();
     const s = raw.replace(/[%_]/g, "");
     const like = `%${s}%`;
-    const [byCodeRes, byItemRes, partyProfilesRes] = await Promise.all([
+    const digits = s.replace(/\D/g, "");
+    const phoneOr = digits.length >= 3 ? `,phone.ilike.%${digits}%` : "";
+    const [byCodeRes, byItemTitleRes, byItemCatRes, partyProfilesRes] = await Promise.all([
       client.from("transactions").select("id").ilike("transaction_code", like).limit(1000),
       client.from("transaction_items").select("transaction_id").ilike("title", like).limit(2000),
-      client.from("profiles").select("id").or(`full_name.ilike.${like},email.ilike.${like}`).limit(500),
+      client.from("transaction_items").select("transaction_id").ilike("category", like).limit(2000).then(
+        (r: any) => r,
+        () => ({ data: [] as any[] }),
+      ),
+      client
+        .from("profiles")
+        .select("id")
+        .or(`full_name.ilike.${like},email.ilike.${like}${phoneOr}`)
+        .limit(500),
     ]);
     const ids = new Set<string>();
     for (const r of ((byCodeRes.data ?? []) as any[])) if (r.id) ids.add(r.id);
-    for (const r of ((byItemRes.data ?? []) as any[])) if (r.transaction_id) ids.add(r.transaction_id);
+    for (const r of ((byItemTitleRes.data ?? []) as any[])) if (r.transaction_id) ids.add(r.transaction_id);
+    for (const r of ((byItemCatRes.data ?? []) as any[])) if (r.transaction_id) ids.add(r.transaction_id);
     const partyIds = ((partyProfilesRes.data ?? []) as any[]).map((r: any) => r.id).filter(Boolean);
     if (partyIds.length > 0) {
       const { data: partyTxRes } = await client
@@ -571,6 +594,35 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
       flaggedCount += flaggedSet.size;
       awaitingActionCount += awaitingSet.size;
     }
+  }
+
+  // In-memory sort for non-DB-native keys
+  const dir = sortDirection === "asc" ? 1 : -1;
+  const cmp = (a: number, b: number) => (a === b ? 0 : a < b ? -1 : 1) * dir;
+  const riskRank: Record<string, number> = { fraud_watch: 4, high_risk: 3, escalated: 2, clean: 1 };
+  if (requestedSort === "amount") {
+    outRows.sort((a, b) => cmp(a.amount, b.amount));
+  } else if (requestedSort === "last_activity_at") {
+    outRows.sort((a, b) => cmp(
+      a.lastActivityAt ? new Date(a.lastActivityAt).getTime() : 0,
+      b.lastActivityAt ? new Date(b.lastActivityAt).getTime() : 0,
+    ));
+  } else if (requestedSort === "risk_level") {
+    outRows.sort((a, b) => cmp(riskRank[a.riskLevel] ?? 0, riskRank[b.riskLevel] ?? 0));
+  } else if (requestedSort === "urgency") {
+    const score = (r: any) => {
+      let s = 0;
+      if (r.disputeStatus.key && ["open", "awaiting_seller", "under_review"].includes(r.disputeStatus.key)) s += 1000;
+      if (r.isFrozen) s += 500;
+      if (r.riskLevel === "fraud_watch") s += 400;
+      else if (r.riskLevel === "high_risk") s += 300;
+      if (r.needsReleaseReview) s += 200;
+      if (r.isOverdue) s += 100;
+      if (r.flags?.includes("payment_failed") || r.flags?.includes("payout_failed")) s += 80;
+      const t = r.lastActivityAt ? new Date(r.lastActivityAt).getTime() : 0;
+      return s * 1e13 + t;
+    };
+    outRows.sort((a, b) => cmp(score(a), score(b)));
   }
 
   return {

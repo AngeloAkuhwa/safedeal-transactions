@@ -24,6 +24,8 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  ArrowUpDown,
+  Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -32,12 +34,24 @@ import { AdminReadingModeControl } from "@/components/admin/AdminReadingModeCont
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatMoney, formatMoneyCompact } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AdminAccessRequiredError,
   getAdminTransactionsMonitor,
   type AdminTxMonitorResponse,
   type AdminTxQuickFilter,
   type AdminTxRow,
+  type AdminTxMonitorParams,
 } from "@/services/admin-transactions-monitor.service";
 
 /* ---------------- Visual helpers ---------------- */
@@ -140,6 +154,46 @@ const DISPUTE_STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "under_review", label: "Under Review" },
   { value: "resolved", label: "Resolved" },
 ];
+const RISK_LEVEL_OPTIONS: { value: string; label: string }[] = [
+  { value: "clean", label: "Clean" },
+  { value: "escalated", label: "Escalated" },
+  { value: "high_risk", label: "High Risk" },
+  { value: "fraud_watch", label: "Fraud Watch" },
+];
+
+type SortKey = NonNullable<AdminTxMonitorParams["sortBy"]>;
+type SortDir = NonNullable<AdminTxMonitorParams["sortDirection"]>;
+const SORT_OPTIONS: { key: SortKey; dir: SortDir; label: string }[] = [
+  { key: "urgency", dir: "desc", label: "Urgency (default)" },
+  { key: "created_at", dir: "desc", label: "Newest" },
+  { key: "created_at", dir: "asc", label: "Oldest" },
+  { key: "amount", dir: "desc", label: "Amount: High → Low" },
+  { key: "amount", dir: "asc", label: "Amount: Low → High" },
+  { key: "last_activity_at", dir: "desc", label: "Last activity" },
+  { key: "status", dir: "asc", label: "Status" },
+  { key: "risk_level", dir: "desc", label: "Risk level" },
+];
+
+const REALTIME_TABLES = [
+  "transactions",
+  "transaction_events",
+  "money_status_history",
+  "disputes",
+  "payments",
+  "payouts",
+  "release_review_queue",
+] as const;
+
+function relativeMinutes(from: Date | null): string {
+  if (!from) return "—";
+  const ms = Date.now() - from.getTime();
+  const m = Math.round(ms / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} hr ago`;
+  return `${Math.round(h / 24)} day(s) ago`;
+}
 
 export default function AdminTransactions() {
   const navigate = useNavigate();
@@ -147,35 +201,45 @@ export default function AdminTransactions() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [txStatus, setTxStatus] = useState<string>("");
   const [moneyStatus, setMoneyStatus] = useState<string>("");
   const [disputeStatus, setDisputeStatus] = useState<string>("");
+  const [riskLevel, setRiskLevel] = useState<string>("");
   const [amountMin, setAmountMin] = useState<string>("");
   const [amountMax, setAmountMax] = useState<string>("");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+  const [sortBy, setSortBy] = useState<SortKey>("urgency");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const [data, setData] = useState<AdminTxMonitorResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [lastUpdatedTick, setLastUpdatedTick] = useState(0);
+  const [liveSync, setLiveSync] = useState<"connecting" | "live" | "off">("connecting");
   const reqIdRef = useRef(0);
+  const realtimeDebounceRef = useRef<number | null>(null);
+  const lastRealtimeToastRef = useRef<number>(0);
 
   // Debounce search
   useEffect(() => {
-    const h = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    const h = setTimeout(() => setDebouncedSearch(search.trim()), 400);
     return () => clearTimeout(h);
   }, [search]);
 
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [activeQuick, debouncedSearch, txStatus, moneyStatus, disputeStatus, amountMin, amountMax, dateFrom, dateTo]);
+  }, [activeQuick, debouncedSearch, txStatus, moneyStatus, disputeStatus, riskLevel, amountMin, amountMax, dateFrom, dateTo, sortBy, sortDir]);
 
   const fetchData = useCallback(async () => {
     const reqId = ++reqIdRef.current;
-    setLoading(true);
+    setIsFetching(true);
     setError(null);
     try {
       const resp = await getAdminTransactionsMonitor({
@@ -184,17 +248,19 @@ export default function AdminTransactions() {
         transactionStatus: txStatus || undefined,
         moneyStatus: moneyStatus || undefined,
         disputeStatus: disputeStatus || undefined,
+        riskLevel: riskLevel || undefined,
         amountMin: amountMin ? Number(amountMin) : undefined,
         amountMax: amountMax ? Number(amountMax) : undefined,
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
         page,
         pageSize: PAGE_SIZE,
-        sortBy: "created_at",
-        sortDirection: "desc",
+        sortBy,
+        sortDirection: sortDir,
       });
       if (reqIdRef.current !== reqId) return;
       setData(resp);
+      setLastUpdated(new Date());
     } catch (e) {
       if (reqIdRef.current !== reqId) return;
       if (e instanceof AdminAccessRequiredError) {
@@ -203,22 +269,82 @@ export default function AdminTransactions() {
         setError((e as Error).message || "Failed to load transactions");
       }
     } finally {
-      if (reqIdRef.current === reqId) setLoading(false);
+      if (reqIdRef.current === reqId) {
+        setIsFetching(false);
+        setInitialLoad(false);
+      }
     }
-  }, [debouncedSearch, activeQuick, page, txStatus, moneyStatus, disputeStatus, amountMin, amountMax, dateFrom, dateTo]);
+  }, [debouncedSearch, activeQuick, page, txStatus, moneyStatus, disputeStatus, riskLevel, amountMin, amountMax, dateFrom, dateTo, sortBy, sortDir]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  // Tick "last updated" label every 30s
+  useEffect(() => {
+    const id = setInterval(() => setLastUpdatedTick((n) => n + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Realtime subscription
+  useEffect(() => {
+    if (accessDenied) return;
+    setLiveSync("connecting");
+    const channel = supabase.channel("admin-tx-monitor");
+    for (const table of REALTIME_TABLES) {
+      channel.on(
+        "postgres_changes" as any,
+        { event: "*", schema: "public", table },
+        () => {
+          if (realtimeDebounceRef.current) window.clearTimeout(realtimeDebounceRef.current);
+          realtimeDebounceRef.current = window.setTimeout(() => {
+            fetchData();
+            const now = Date.now();
+            if (now - lastRealtimeToastRef.current > 5000) {
+              lastRealtimeToastRef.current = now;
+              sonnerToast("Transaction monitor updated", { duration: 2500 });
+            }
+          }, 1500);
+        },
+      );
+    }
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") setLiveSync("live");
+      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") setLiveSync("off");
+    });
+    return () => {
+      if (realtimeDebounceRef.current) window.clearTimeout(realtimeDebounceRef.current);
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessDenied]);
+
   const handleRefresh = () => {
     fetchData();
-    toast({ title: "Refreshing", description: "Loading latest transaction data." });
   };
   const handleExport = () =>
     toast({ title: "Export queued", description: "Your export will appear in /admin/exports when ready." });
   const handleRowAction = (label: string, code: string) =>
     toast({ title: label, description: `${code} — coming soon` });
+
+  const clearAllFilters = useCallback(() => {
+    setActiveQuick("all");
+    setSearch("");
+    setTxStatus("");
+    setMoneyStatus("");
+    setDisputeStatus("");
+    setRiskLevel("");
+    setAmountMin("");
+    setAmountMax("");
+    setDateFrom("");
+    setDateTo("");
+  }, []);
+
+  const lastUpdatedLabel = useMemo(() => relativeMinutes(lastUpdated), [lastUpdated, lastUpdatedTick]);
+  const currentSortLabel = useMemo(
+    () => SORT_OPTIONS.find((o) => o.key === sortBy && o.dir === sortDir)?.label ?? "Custom",
+    [sortBy, sortDir],
+  );
 
   const summary = data?.summary;
   const rows = data?.rows ?? [];
@@ -293,14 +419,14 @@ export default function AdminTransactions() {
                 <h1 className="text-xl font-semibold leading-tight text-foreground">Transaction Monitor</h1>
                 <p className="text-xs text-muted-foreground">Monitor and investigate all platform transactions</p>
               </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-400">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                Live
-              </span>
+              <LiveSyncPill state={liveSync} />
             </div>
             <div className="flex items-center gap-2">
               <AdminReadingModeControl variant="desktop" />
               <ThemeToggle />
+              <span className="hidden text-[11px] text-muted-foreground xl:inline">
+                Updated {lastUpdatedLabel}
+              </span>
               <button
                 type="button"
                 onClick={handleExport}
@@ -312,10 +438,10 @@ export default function AdminTransactions() {
               <button
                 type="button"
                 onClick={handleRefresh}
-                disabled={loading}
+                disabled={isFetching}
                 className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-500 disabled:opacity-60"
               >
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                 Refresh
               </button>
             </div>
@@ -335,19 +461,18 @@ export default function AdminTransactions() {
             </button>
             <div className="min-w-0 flex-1 text-center">
               <div className="truncate text-sm font-semibold leading-tight text-foreground">Transaction Monitor</div>
-              <div className="inline-flex items-center gap-1.5 text-[10px] font-medium text-emerald-400">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                Live
+              <div className="inline-flex items-center justify-center">
+                <LiveSyncPill state={liveSync} compact />
               </div>
             </div>
             <button
               type="button"
               onClick={handleRefresh}
-              disabled={loading}
+              disabled={isFetching}
               aria-label="Refresh"
               className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-foreground/90 hover:bg-muted/70 disabled:opacity-60"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             </button>
           </div>
         </header>
@@ -385,7 +510,7 @@ export default function AdminTransactions() {
                 </div>
                 <div className="text-[11px] text-muted-foreground">{t.label}</div>
                 <div className="mt-1 truncate text-2xl font-semibold tracking-tight text-foreground">
-                  {loading && !summary ? <span className="inline-block h-6 w-16 animate-pulse rounded bg-muted" /> : t.value}
+                  {initialLoad && !summary ? <span className="inline-block h-6 w-16 animate-pulse rounded bg-muted" /> : t.value}
                 </div>
               </div>
             );
@@ -429,10 +554,14 @@ export default function AdminTransactions() {
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <ResponsiveSearchInput value={search} onChange={setSearch} />
+            {isFetching && search !== debouncedSearch && (
+              <Loader2 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+            )}
           </div>
+          <SortMenu value={`${sortBy}:${sortDir}`} label={currentSortLabel} onChange={(k, d) => { setSortBy(k); setSortDir(d); }} />
           <button
             type="button"
-            onClick={() => setFiltersOpen((s) => !s)}
+            onClick={() => setMobileSheetOpen(true)}
             className="inline-flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted lg:hidden"
           >
             <span className="inline-flex items-center gap-2">
@@ -441,9 +570,7 @@ export default function AdminTransactions() {
           </button>
         </div>
 
-        <div
-          className={`mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 ${filtersOpen ? "" : "hidden"} lg:grid`}
-        >
+        <div className="mt-3 hidden grid-cols-1 gap-2 sm:grid-cols-2 lg:grid lg:grid-cols-4">
           <FilterSelect
             label="Transaction Status"
             value={txStatus}
@@ -462,26 +589,22 @@ export default function AdminTransactions() {
             onChange={setDisputeStatus}
             options={DISPUTE_STATUS_OPTIONS}
           />
+          <FilterSelect
+            label="Risk Level"
+            value={riskLevel}
+            onChange={setRiskLevel}
+            options={RISK_LEVEL_OPTIONS}
+          />
           <div className="grid grid-cols-2 gap-2">
             <FilterInput label="Min ₦" type="number" value={amountMin} onChange={setAmountMin} />
             <FilterInput label="Max ₦" type="number" value={amountMax} onChange={setAmountMax} />
           </div>
           <FilterInput label="From" type="date" value={dateFrom} onChange={setDateFrom} />
           <FilterInput label="To" type="date" value={dateTo} onChange={setDateTo} />
-          <div className="flex items-end justify-end sm:col-span-2 lg:col-span-2">
+          <div className="flex items-end sm:col-span-2 lg:col-span-1">
             <button
               type="button"
-              onClick={() => {
-                setActiveQuick("all");
-                setSearch("");
-                setTxStatus("");
-                setMoneyStatus("");
-                setDisputeStatus("");
-                setAmountMin("");
-                setAmountMax("");
-                setDateFrom("");
-                setDateTo("");
-              }}
+              onClick={clearAllFilters}
               className="rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
             >
               Clear Filters
@@ -502,9 +625,8 @@ export default function AdminTransactions() {
             )}
           </h3>
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5 text-emerald-400">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> Live sync
-            </span>
+            <span>Updated {lastUpdatedLabel}</span>
+            <LiveSyncPill state={liveSync} compact />
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -523,7 +645,7 @@ export default function AdminTransactions() {
               </tr>
             </thead>
             <tbody>
-              {loading && rows.length === 0 ? (
+              {initialLoad && rows.length === 0 ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i} className="border-b border-border/60">
                     <td colSpan={9} className="px-3 py-3">
@@ -664,7 +786,7 @@ export default function AdminTransactions() {
             </span>
           ) : null}
         </div>
-        {loading && rows.length === 0 ? (
+        {initialLoad && rows.length === 0 ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-card" />
           ))
@@ -781,6 +903,41 @@ export default function AdminTransactions() {
           <BottomNav label="Profile" Icon={User} onClick={() => toast({ title: "Profile", description: "Coming soon" })} />
         </div>
       </nav>
+
+      {/* Mobile filters sheet */}
+      <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
+        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto bg-card">
+          <SheetHeader>
+            <SheetTitle>Filters</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <FilterSelect label="Transaction Status" value={txStatus} onChange={setTxStatus} options={TX_STATUS_OPTIONS} />
+            <FilterSelect label="Money Status" value={moneyStatus} onChange={setMoneyStatus} options={MONEY_STATUS_OPTIONS} />
+            <FilterSelect label="Dispute Status" value={disputeStatus} onChange={setDisputeStatus} options={DISPUTE_STATUS_OPTIONS} />
+            <FilterSelect label="Risk Level" value={riskLevel} onChange={setRiskLevel} options={RISK_LEVEL_OPTIONS} />
+            <FilterInput label="Min ₦" type="number" value={amountMin} onChange={setAmountMin} />
+            <FilterInput label="Max ₦" type="number" value={amountMax} onChange={setAmountMax} />
+            <FilterInput label="From" type="date" value={dateFrom} onChange={setDateFrom} />
+            <FilterInput label="To" type="date" value={dateTo} onChange={setDateTo} />
+          </div>
+          <SheetFooter className="mt-4 flex flex-row gap-2 sm:justify-between">
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="flex-1 rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileSheetOpen(false)}
+              className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
+            >
+              Apply
+            </button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </AdminLayout>
   );
 }
@@ -911,6 +1068,65 @@ function FilterSelect({
         ))}
       </select>
     </label>
+  );
+}
+
+function SortMenu({
+  value,
+  label,
+  onChange,
+}: {
+  value: string;
+  label: string;
+  onChange: (key: SortKey, dir: SortDir) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/60 px-3 py-2 text-sm text-foreground hover:bg-muted"
+        >
+          <span className="inline-flex items-center gap-2">
+            <ArrowUpDown className="h-4 w-4" />
+            <span className="hidden sm:inline">Sort:</span> <span className="truncate max-w-[140px]">{label}</span>
+          </span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Sort transactions</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {SORT_OPTIONS.map((opt) => {
+          const key = `${opt.key}:${opt.dir}`;
+          return (
+            <DropdownMenuItem
+              key={key}
+              onSelect={() => onChange(opt.key, opt.dir)}
+              className={value === key ? "bg-muted" : ""}
+            >
+              {opt.label}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function LiveSyncPill({ state, compact = false }: { state: "connecting" | "live" | "off"; compact?: boolean }) {
+  const conf =
+    state === "live"
+      ? { dot: "bg-emerald-400", border: "border-emerald-500/30", bg: "bg-emerald-500/10", text: "text-emerald-400", label: "Live sync", pulse: true }
+      : state === "connecting"
+      ? { dot: "bg-amber-400", border: "border-amber-500/30", bg: "bg-amber-500/10", text: "text-amber-400", label: "Connecting…", pulse: true }
+      : { dot: "bg-muted-foreground", border: "border-border", bg: "bg-muted/40", text: "text-muted-foreground", label: "Offline", pulse: false };
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border ${conf.border} ${conf.bg} ${compact ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-0.5 text-[11px]"} font-medium ${conf.text}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${conf.dot} ${conf.pulse ? "animate-pulse" : ""}`} />
+      {conf.label}
+    </span>
   );
 }
 
