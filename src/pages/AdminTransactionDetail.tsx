@@ -176,6 +176,7 @@ export default function AdminTransactionDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const returnTo = (location.state as { returnTo?: string } | null)?.returnTo ?? "/admin/transactions";
+  const monitorRowSnapshot = (location.state as { monitorRow?: unknown } | null)?.monitorRow ?? null;
 
   const [data, setData] = useState<AdminTxDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -210,7 +211,16 @@ export default function AdminTransactionDetail() {
     if (!transactionId) { setNotFound(true); setLoading(false); return; }
     setLoading(true); setErr(null); setDenied(false); setNotFound(false);
     getAdminTransactionDetailFull(transactionId)
-      .then((d) => { setData(d); setLastSyncedAt(new Date()); })
+      .then((d) => {
+        setData(d);
+        setLastSyncedAt(new Date());
+        // Dev-only: warn if the row snapshot we navigated from disagrees with detail.
+        if (import.meta.env.DEV && monitorRowSnapshot) {
+          import("@/lib/admin-consistency").then((m) => {
+            try { m.assertMonitorDetailConsistent(monitorRowSnapshot as never, d as never); } catch {}
+          });
+        }
+      })
       .catch((e) => {
         if (e instanceof AdminAccessRequiredError) setDenied(true);
         else if (e instanceof TransactionNotFoundError) setNotFound(true);

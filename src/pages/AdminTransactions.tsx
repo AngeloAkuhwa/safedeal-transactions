@@ -338,7 +338,10 @@ export default function AdminTransactions() {
 
   const goToDetail = (row: AdminTxRow) => {
     navigate(`/admin/transactions/${row.transactionId}`, {
-      state: { returnTo: `${location.pathname}${location.search}` },
+      state: {
+        returnTo: `${location.pathname}${location.search}`,
+        monitorRow: row,
+      },
     });
   };
 
