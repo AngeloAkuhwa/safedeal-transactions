@@ -4,6 +4,7 @@ import {
   ArrowLeft, Loader2, AlertTriangle, Download, Scale, ShieldCheck,
   ChevronDown, ChevronUp, Snowflake, MoreVertical, ExternalLink,
   Truck, Package, CreditCard, Lock, Circle, StickyNote, RefreshCcw,
+  Search, Flag, Eye, MoreHorizontal, User, Wallet, Receipt, BookOpen,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
@@ -12,10 +13,20 @@ import {
   TransactionNotFoundError,
   type AdminTxDetailResponse,
 } from "@/services/admin-transaction-detail.service";
-import { freezeTransaction, addInternalNote } from "@/services/admin-transaction-actions.service";
+import {
+  freezeTransaction,
+  unfreezeTransaction,
+  flagForReview,
+  openInvestigation,
+  addInternalNoteTyped,
+} from "@/services/admin-transaction-actions.service";
 import { formatMoney } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
 import { InternalNoteDialog } from "@/components/admin/transactions/InternalNoteDialog";
 import { cn } from "@/lib/utils";
