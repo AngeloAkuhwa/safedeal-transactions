@@ -1183,7 +1183,7 @@ export default function AdminTransactionDetail() {
                 )}
               </div>
             </div>
-          </Card>
+          </Card></div>
 
             </div>
 
