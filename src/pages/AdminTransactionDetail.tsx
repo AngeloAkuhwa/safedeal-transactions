@@ -399,20 +399,49 @@ export default function AdminTransactionDetail() {
     !!dispute ||
     allFlagsCount > 0;
 
+  const liveDotCls =
+    liveSync === "live" ? "bg-emerald-400" :
+    liveSync === "connecting" ? "bg-amber-400" : "bg-slate-500";
+  const liveDotTitle =
+    liveSync === "live" ? "Live updates connected" :
+    liveSync === "connecting" ? "Connecting…" : "Live updates offline";
+
   // Header (desktop)
   const headerSlot = (
-    <header className="sticky top-0 z-30 hidden lg:block border-b border-border bg-background/95 backdrop-blur">
-      <div className="flex items-center justify-between gap-4 px-6 py-4">
+    <header className={cn("sticky top-0 z-30 hidden lg:block border-b border-border bg-background/95 backdrop-blur", anim("animate-fade-in"))}>
+      <div className="flex items-center justify-between gap-4 px-6 pt-3 pb-3">
         <div className="flex items-center gap-3 min-w-0">
           <button type="button" onClick={() => navigate(returnTo)} className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted" aria-label="Back">
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-lg font-semibold text-foreground truncate">Transaction #{code}</h1>
+            <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-[11px] text-muted-foreground mb-0.5">
+              <span>Admin</span>
+              <ChevronRight className="h-3 w-3" />
+              <button type="button" onClick={() => navigate(returnTo)} className="hover:text-foreground transition-colors">Transactions</button>
+              <ChevronRight className="h-3 w-3" />
+              <span className="text-foreground font-medium truncate max-w-[220px]">#{code}</span>
+            </nav>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h1 className="text-lg font-semibold text-foreground truncate">Transaction #{code}</h1>
+              <button
+                type="button"
+                onClick={() => { navigator.clipboard.writeText(code); toast.success("Code copied"); }}
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
+                title="Copy code"
+                aria-label="Copy transaction code"
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+            </div>
             <p className="text-xs text-muted-foreground truncate">{itemTitle} {tx?.status ? `— ${titleCase(tx.status)}` : ""}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <div className="hidden xl:flex items-center gap-1.5 text-[11px] text-muted-foreground mr-1" title={liveDotTitle}>
+            <span className={cn("h-2 w-2 rounded-full", liveDotCls, liveSync === "live" && motionOk && "animate-pulse")} />
+            <span>Synced {lastSyncedAt ? relTime(lastSyncedAt.toISOString()) : "—"}</span>
+          </div>
           {adminCan.canExport && (
             <Button variant="outline" size="sm" onClick={exportData}>
               <Download className="h-4 w-4 mr-1.5" /> Export
@@ -465,6 +494,38 @@ export default function AdminTransactionDetail() {
           </DropdownMenu>
         </div>
       </div>
+      {/* Section anchor strip */}
+      {data && (
+        <div className="border-t border-border/60 px-6 py-1.5 overflow-x-auto">
+          <ul className="flex items-center gap-1 text-xs">
+            {[
+              { id: "summary", label: "Summary" },
+              { id: "risk", label: "Risk" },
+              { id: "timeline", label: "Timeline" },
+              { id: "linked-records", label: "Records" },
+              { id: "agreement", label: "Agreement" },
+              { id: "escrow-ledger", label: "Payment" },
+              { id: "delivery", label: "Delivery" },
+              { id: "audit", label: "Audit" },
+            ].map((s) => (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  onClick={() => scrollToId(s.id)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md whitespace-nowrap transition-colors",
+                    activeAnchor === s.id
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                  )}
+                >
+                  {s.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </header>
   );
 
