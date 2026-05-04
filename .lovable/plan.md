@@ -1,61 +1,77 @@
-# Fix: "Flagged" quick filter returns no rows
+## Plan: Make admin transaction rows/cards clickable → detail page
 
-## Root cause
+### 1. New route + page
 
-The Flags column in the UI surfaces many signals: `frozen`, `overdue`, `payment_failed`, `payout_failed`, `escalated` (active dispute), `risk_flagged`, `admin_frozen`, `high_risk`, `fraud_watch`.
-
-But in `supabase/functions/admin-transactions-monitor/index.ts` the **"flagged" quick filter** is much narrower — it only matches:
-
-- `transactions.needs_release_review = true`, OR
-- transactions referenced by `admin_actions` of type `freeze_funds` / `escalate_case`, OR
-- recent `audit_logs` whose `action` contains `risk|fraud|suspicious|flag`.
-
-In current data none of those conditions are satisfied, so the query returns 0 rows even though the UI shows orange/red pills like "Frozen", "Overdue", "Payment Failed", "In Dispute" on many rows. That mismatch is the bug.
-
-There is also a secondary bug at line 189:
-```ts
-q = q.or(`needs_release_review.eq.true,id.in.(${ids})`);
+**`src/App.tsx`** — register:
+```tsx
+<Route path="/admin/transactions/:transactionId" element={<AdminTransactionDetail />} />
 ```
-The commas inside `id.in.(uuid,uuid,...)` collide with the comma that separates OR clauses in PostgREST — the filter has to be wrapped so the parser doesn't split it.
+inside the existing admin `ProtectedRoute requireRole="admin"` block.
 
-## Fix (edge function only)
+**New file `src/pages/AdminTransactionDetail.tsx`**:
+- Reads `transactionId` from `useParams()`.
+- Calls existing `getAdminTransactionDetail(transactionId, ["timeline","ledger","messages","summary"])` from `src/services/admin-transaction-actions.service.ts` (already used by `DetailDrawer`).
+- Layout uses `AdminLayout` (same shell as `AdminTransactions`).
+- Sections: header (back button, code, status pills, key amounts), Timeline, Ledger, Messages, Linked Records (buyer/seller, payment ref, escrow). Reuses `Badge`/status helpers from `AdminTransactions.tsx` (extracted minimally inline; no styling overhaul — V1 mirrors the DetailDrawer data plus a richer header).
+- Back button: `navigate(returnTo ?? "/admin/transactions")` where `returnTo` is taken from `location.state.returnTo` (full path with query string) — preserves filters.
+- Loading / error states + 403 → admin denied message.
 
-**File: `supabase/functions/admin-transactions-monitor/index.ts`**
+### 2. Make rows clickable (`src/pages/AdminTransactions.tsx`)
 
-1. **Broaden the `flagged` quick filter** so it matches every signal the Flags column can render:
-   - `needs_release_review = true`
-   - `money_status = 'funds_frozen'`
-   - `dispute_status` in active dispute statuses
-   - any tx id present in `admin_actions` with `action_type` in `('freeze_funds','escalate_case','flag_for_review')`
-   - any tx id with a recent (<=30 days) `audit_logs.action` matching `risk|fraud|suspicious|flag`
-   - any tx id with a `payments.status = 'failed'` row
-   - any tx id with a `payouts.status = 'failed'` row
-   - any tx id that is currently overdue (`status='awaiting_payment'` and `created_at < now()-24h`)
+Add a helper inside the component:
+```ts
+const goToDetail = (t: AdminTxRow) => {
+  navigate(`/admin/transactions/${t.transactionId}`, {
+    state: { returnTo: `${location.pathname}${location.search}` },
+  });
+};
+```
+(`useLocation` already importable from `react-router-dom`; `navigate` already in scope.)
 
-2. **Implementation pattern**: in `buildPayload`, when `params.quickFilter === 'flagged'`, run the existing pre-compute block plus extra lookups (`payments.failed`, `payouts.failed`) and build a single `flaggedTxIds: Set<string>`. Then in `buildBaseQuery` switch case `flagged`, restrict by that set:
-   ```ts
-   case "flagged": {
-     const ids = Array.from(flaggedTxIds);
-     // Two paths so we still cover money_status=funds_frozen, active disputes, and overdue
-     // even if those rows weren't pre-collected.
-     const orParts = [
-       "needs_release_review.eq.true",
-       "money_status.eq.funds_frozen",
-       `dispute_status.in.(${ACTIVE_DISPUTE_STATUSES.join(",")})`,
-     ];
-     if (ids.length) orParts.push(`id.in.(${ids.join(",")})`);
-     q = q.or(orParts.join(","));
-     break;
-   }
-   ```
-   PostgREST tolerates commas inside `in.(...)` within `.or()` because the parens balance; the existing single-`or` form is the right shape, just expanded.
+**Desktop `<tr>` (line ~815)**:
+- Add `onClick={() => goToDetail(t)}`, `onKeyDown` handler (Enter/Space → goToDetail), `tabIndex={0}`, `role="button"`, `aria-label={`Open transaction ${t.transactionCode}`}`.
+- Append classes: `cursor-pointer hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 active:bg-muted/80` (keeps existing `rowStateClass(t)` risk styling because it's applied first).
 
-3. **Keep the summary `flaggedCount` consistent**: extend the existing `flaggedSet` block (lines ~602–624) to also add tx ids from `payments.failed`, `payouts.failed`, `money_status=funds_frozen`, active dispute, and overdue awaiting_payment, so the "Flagged" tile and the "Flagged" filter agree on the same population.
+**Mobile `<article>` (line ~961)**:
+- Same pattern: `onClick`, `onKeyDown`, `tabIndex={0}`, `role="button"`, `aria-label`. Classes add `cursor-pointer hover:bg-muted/30 active:scale-[0.998] transition-colors focus-visible:ring-2 focus-visible:ring-blue-500/50`.
 
-4. No UI changes required — the chip already calls `quickFilter=flagged`; once the backend honors the broader definition, results will appear.
+### 3. Stop propagation on action controls
 
-## Acceptance
+To prevent action buttons from triggering row navigation:
 
-- Clicking the **Flagged** chip on `/admin/transactions` returns every row that displays any non-neutral pill in the Flags column (Frozen, Overdue, Payment Failed, Payout Failed, In Dispute, High Risk, Fraud Watch, Risk Flagged, Admin Frozen, Needs Review).
-- The "Flagged" KPI card count equals the number of rows returned by the Flagged filter (when no other filters are active).
-- All other quick filters (Awaiting Payment, Funds Held, In Dispute, Overdue, Refunded, Failed, Frozen) continue to behave as today.
+- **`IconBtn`** (line ~1175 in `AdminTransactions.tsx`) — wrap its `onClick`:
+  ```ts
+  onClick={(e) => { e.stopPropagation(); onClick(); }}
+  ```
+  Update prop type to accept the event. This covers View, Add Internal Note icons used in the table.
+- **Mobile "View" `<button>`** (line ~1036) — add `e.stopPropagation()` in its onClick.
+- **`RowActionsMenu`** (`src/components/admin/transactions/RowActionsMenu.tsx`) — wrap the trigger button (kebab) `onClick` with `e.stopPropagation()`, and add `onClick={(e) => e.stopPropagation()}` on the `DropdownMenuContent` so menu-item clicks don't bubble to the row.
+- **Snowflake icon / Badges** are non-interactive → no change needed.
+
+### 4. Accessibility / UX detail
+
+- Use `onKeyDown` matching `Enter` and `Space` (preventDefault on Space to avoid page scroll).
+- `aria-label="Open transaction {transactionCode}"` on both row and card.
+- Keep existing eye-icon View button (still works, just stops propagation).
+- High-risk row tints (`rowStateClass`) remain — hover layer is `bg-muted/60` over the tint so risk color stays visible.
+
+### 5. State preservation
+
+- Outbound: pass `state: { returnTo }` containing the current `pathname + search` (filters/page/sort are already mirrored to URL search params in many flows; if not, the `returnTo` still preserves whatever URL the user is on). No new query-param plumbing required for v1 because filters live in component state — but pressing Back via the new detail page restores the same `/admin/transactions` URL.
+- Optional follow-up (not in this change): persist filters to URL search params for true cross-tab durability.
+
+### 6. Files touched
+
+- `src/App.tsx` — add route.
+- `src/pages/AdminTransactionDetail.tsx` — new page.
+- `src/pages/AdminTransactions.tsx` — clickable row + card, `IconBtn` stopPropagation, navigation helper with `returnTo` state.
+- `src/components/admin/transactions/RowActionsMenu.tsx` — stopPropagation on trigger + content.
+
+### Acceptance check (after build)
+
+- Click anywhere on a desktop row (outside the action column buttons) → navigates to `/admin/transactions/:id`.
+- Click anywhere on a mobile card (outside View/kebab) → navigates.
+- Eye icon, note icon, kebab menu and its items do NOT navigate.
+- Enter on a focused row navigates.
+- Back from detail returns to `/admin/transactions` with prior URL state.
+- Risk-tinted rows still show their tint and respond to hover.
