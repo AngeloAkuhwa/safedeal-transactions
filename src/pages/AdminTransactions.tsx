@@ -828,7 +828,12 @@ export default function AdminTransactions() {
                 rows.map((t, i) => (
                   <tr
                     key={t.transactionId}
-                    className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} border-b border-border/60 transition-colors hover:bg-muted/40 motion-reduce:transition-none`}
+                    onClick={() => goToDetail(t)}
+                    onKeyDown={(e) => handleRowKeyDown(e, t)}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open transaction ${t.transactionCode}`}
+                    className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} border-b border-border/60 transition-colors hover:bg-muted/60 active:bg-muted/80 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/50 motion-reduce:transition-none`}
                   >
                     <td className="px-3 py-2.5 align-middle">
                       <div className="flex items-center gap-2">
