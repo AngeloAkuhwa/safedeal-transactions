@@ -923,7 +923,22 @@ export default function AdminTransactionDetail() {
             <div className="p-4 lg:p-6">
               {data.linkedRecords.length === 0 && <Empty>No linked records.</Empty>}
               <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {data.linkedRecords.map((r, i) => {
+                {(() => {
+                  const records = [...data.linkedRecords];
+                  const hasPayout = records.some((r) => (r.type ?? "").toLowerCase() === "payout");
+                  if (!hasPayout && dispute) {
+                    records.push({
+                      type: "payout",
+                      label: "No payout yet",
+                      subtitle: "Pending resolution",
+                      status: null,
+                      amount: null,
+                      currency: null,
+                      route: null,
+                    } as any);
+                  }
+                  return records;
+                })().map((r, i) => {
                   const typeKey = (r.type ?? "").toLowerCase();
                   const ICON_MAP: Record<string, { Icon: any; cls: string }> = {
                     payment: { Icon: CreditCard, cls: "bg-emerald-500/20 text-emerald-400" },
@@ -935,8 +950,12 @@ export default function AdminTransactionDetail() {
                   const isParty = typeKey === "buyer" || typeKey === "seller";
                   const iconMeta = ICON_MAP[typeKey];
                   const party = isParty ? data.parties[typeKey as "buyer" | "seller"] : null;
+                  const isEmptyPayout = typeKey === "payout" && r.label === "No payout yet";
                   const inner = (
-                    <div className="p-4 bg-muted/30 border border-border rounded-lg hover:border-blue-500/50 transition-all h-full flex flex-col">
+                    <div className={cn(
+                      "p-4 bg-muted/30 border border-border rounded-lg hover:border-blue-500/50 transition-all h-full flex flex-col",
+                      isEmptyPayout && "opacity-60",
+                    )}>
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">{titleCase(r.type)}</span>
                         <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
