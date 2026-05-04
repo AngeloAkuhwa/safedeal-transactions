@@ -1,81 +1,51 @@
+
 ## Goal
-Make the four KPI cards on `/admin/dashboard` 100% database-driven, with safe handling of zero/missing data and proper NGN money formatting.
 
-## Schema findings
-- `transactions` has **no `needs_admin_review`** column. Closest equivalent is `needs_release_review` (boolean) plus `dispute_status`. We will use these as flagged signals.
-- `user_sessions` has `last_seen_at` and `is_active` — usable for the preferred "Active Users" source.
-- `escrow_states` exposes `held_amount` and `frozen_amount` — already what the spec requires.
-- `profiles` exists as a fallback for "registered users".
+Replace remaining hardcoded/empty financial values in the admin dashboard with real database-driven data, surfaced through the existing `admin-dashboard` edge function.
 
-## Backend changes — `supabase/functions/admin-dashboard/index.ts`
+## Scope
 
-Update `buildDashboardPayload` so the four KPIs match the spec exactly.
+Only data wiring. No visual redesign. Money stays in NGN with 2 decimals via `formatMoney(value, "NGN")`.
 
-1. **Total Transactions**
-   - `total_transactions` = `count(*)` from `transactions`.
-   - `total_transactions_delta_pct`: compare last 30 days vs the prior 30 days using `created_at`. Existing `calculateDeltaPct` is fine, but treat "no previous data" as `null` (unavailable), not `0` or `100`.
+## Changes
 
-2. **Escrow Balance**
-   - `escrow_balance_amount` = `sum(held_amount) + sum(frozen_amount)` from `escrow_states` (already correct — keep, ensure 2 dp via `toFixed(2)`).
-   - `escrow_balance_delta_pct`: compute by snapshotting today's vs 30‑days‑ago value using `escrow_ledger_entries` (`balance_after` at cutoff). If no historical data, return `null`.
-   - Explicitly do NOT include `released_amount` or `refunded_amount`.
+### 1. `supabase/functions/admin-dashboard/index.ts`
 
-3. **Active Users**
-   - Preferred: `count(distinct user_id)` from `user_sessions where last_seen_at >= now() - 30d`.
-   - Implement via service-role `select user_id` with a Set (Supabase JS has no `count distinct`). Cap rows with a windowed query and dedupe in code.
-   - Delta: same window vs prior 30 days; `null` if previous = 0.
-   - Fallback: if the preferred query errors or returns 0 rows total, use `count(*)` from `profiles` and add an `active_users_is_fallback: true` flag in the payload.
+**Payment Health** (replace existing counts with correct status sets):
+- Successful Payments: `payments` where `status in ('success','paid','completed','succeeded')`.
+- Failed Payments: `payments` where `status in ('failed','cancelled')`.
+- Webhook Failures: `payment_webhook_logs` where `processed_successfully = false` (last 30d).
+- Reconciliation Mismatches: count successful payments in last 30d that have **no matching** `escrow_ledger_entries` deposit (`entry_type in ('deposit','escrow_credit')`) for the same `transaction_id`. Also flag held-amount vs payment-amount mismatch on `escrow_states` for those tx. If the join surface returns no candidates, return `0`. Add a `// TODO: extend reconciliation rules` comment for future duplicate-webhook detection.
 
-4. **Flagged Activity**
-   - Sum of:
-     - `count(transactions where needs_release_review = true)`
-     - `count(disputes where status in ('open','under_review','seller_response_pending'))`
-     - `count(audit_logs where action ~ flagged/risk action types)` if any rows exist; otherwise contributes 0.
-   - Delta: same metric calculated over last 30d vs prior 30d using `created_at` / `opened_at` filters; `null` if no previous.
+**Payout Health**:
+- `pending_payouts_amount`: `sum(amount)` from `payouts` where `status in ('awaiting_admin_release','awaiting_release','pending','processing')`. Use whichever statuses exist (try the broader set; safeSum tolerates missing).
+- `avg_payout_hours`: average of `(completed_at - released_at)` in hours, over `payouts` where `status='completed'` and both timestamps present in last 30d. Fallback to `(completed_at - last_release_attempt_at)` then `(completed_at - updated_at)` only if `released_at` null. Return `null` if no rows.
+- `spark`: 9-day buckets of completed payout counts (oldest→newest), built like the identity sparkline.
 
-5. **Delta semantics**
-   - Change `calculateDeltaPct` (or wrap it) to return `number | null`. `null` means "unavailable" → frontend renders `—`.
-   - Update `AdminKpis` type in `src/services/admin-dashboard.service.ts` to allow `number | null` for all four `*_delta_pct` fields.
+**Escrow/Releases/Refunds Trend** (`trends.escrow_releases_refunds`):
+- Pull `escrow_ledger_entries` rows with `created_at >= now() - 30d`, fields `created_at, entry_type, amount`.
+- Group by day (UTC `YYYY-MM-DD`).
+- Map entry_types:
+  - primary (Escrow Held): `entry_type in ('deposit','escrow_credit','escrow_hold')` → sum `amount`.
+  - secondary (Released): `entry_type in ('payout_debit','release')` → sum `abs(amount)`.
+  - tertiary (Refunded): `entry_type in ('refund_debit','refund')` → sum `abs(amount)`.
+- Output 30 points `{label: 'MM-DD', primary, secondary, tertiary}` (zero-fill missing days).
+- Replace the current `emptyEscrowTrend` placeholder.
 
-6. **Type / contract update**
-   - Extend `AdminKpis` with optional `active_users_is_fallback?: boolean` so the UI can label the tile as "Registered Users" when needed.
+Keep `trends.transactions_vs_disputes` as-is for this step (separate scope).
 
-7. **Caching / safety**
-   - Keep the 20s in-memory cache.
-   - Keep `safeCount` / `safeSum` so any single failed query yields `0` and the card still renders.
-   - Log any per-KPI failure to `edge_function_errors` via existing `logEdgeError`.
+### 2. No frontend changes required
 
-## Frontend changes
+`TrendCharts.tsx`, `RiskAndPaymentHealth.tsx`, `IdentityAndPayoutHealth.tsx`, and `admin-dashboard.service.ts` already render these fields and are NGN/2-decimal correct via `formatMoney`. No new types.
 
-### `src/services/admin-dashboard.service.ts`
-- Update `AdminKpis`:
-  ```ts
-  total_transactions_delta_pct: number | null;
-  escrow_balance_delta_pct:    number | null;
-  active_users_delta_pct:      number | null;
-  flagged_activity_delta_pct:  number | null;
-  active_users_is_fallback?:   boolean;
-  ```
-- No other service changes — still calls the same edge function.
+### 3. Deploy
 
-### `src/components/admin/dashboard/KpiCards.tsx`
-- Keep current visual design, icons, grid, and stagger animations.
-- Render delta:
-  - If `delta === null` → show `—` in neutral slate color, no up/down arrow.
-  - Else keep existing up/down + colored chip behavior.
-- Money:
-  - Escrow tile keeps `formatMoney(kpis.escrow_balance_amount, "NGN")` (already 2 dp, no `$`).
-- Active Users tile:
-  - If `kpis.active_users_is_fallback`, change label to "Registered Users" and tooltip explains the fallback.
-- Zero-data safety:
-  - All values default to `0` from the edge function; cards render normally.
-  - Use `(value ?? 0).toLocaleString("en-NG")` defensively for counts.
+Redeploy the `admin-dashboard` edge function.
 
-## Out of scope
-- No layout / visual redesign.
-- No changes to other dashboard sections (action_required, trends, hotspots, etc.).
-- No new tables or migrations.
+## Acceptance criteria
 
-## Acceptance verification
-- Curl the `admin-dashboard` edge function as an admin, confirm payload contains numeric KPIs and either numeric or `null` deltas.
-- Visually confirm `/admin/dashboard` shows NGN with 2 decimal places, `—` where deltas are unavailable, and `0` where data is empty.
+- Payment Health rows reflect live counts from `payments` + `payment_webhook_logs` + reconciliation check.
+- Payout Health shows live pending NGN amount, avg hours (or `—`), and 9-day completed sparkline.
+- Escrow/Releases/Refunds chart renders 30 days of grouped ledger movements.
+- No hardcoded money values remain anywhere on `/admin/dashboard`.
+- Zero-data case renders cleanly (0 / `—` / flat chart).
