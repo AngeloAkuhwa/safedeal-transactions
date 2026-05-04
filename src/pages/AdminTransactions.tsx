@@ -5,13 +5,11 @@ import {
   Search,
   SlidersHorizontal,
   Eye,
-  MoreVertical,
   Snowflake,
   Flame,
   Flag,
   ShieldAlert,
   MessageSquare,
-  ArrowLeftRight,
   Receipt,
   Banknote,
   Landmark,
@@ -64,6 +62,8 @@ import { RowActionsMenu } from "@/components/admin/transactions/RowActionsMenu";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
 import { InternalNoteDialog } from "@/components/admin/transactions/InternalNoteDialog";
 import { DetailDrawer } from "@/components/admin/transactions/DetailDrawer";
+import { TransactionsEmptyState } from "@/components/admin/transactions/TransactionsEmptyState";
+import { rowStateClass, pickEmptyVariant } from "@/components/admin/transactions/rowState";
 
 /* ---------------- Visual helpers ---------------- */
 
@@ -268,7 +268,10 @@ export default function AdminTransactions() {
       sonnerToast.success("Action completed", { description: `#${actionRow.transactionCode}` });
       fetchData();
     } catch (e) {
-      sonnerToast.error("Action failed", { description: (e as Error).message });
+      sonnerToast.error("Action failed", {
+        description: `#${actionRow.transactionCode}: ${(e as Error).message}`,
+        action: { label: "Retry", onClick: () => void runAction(kind, reason) },
+      });
       throw e;
     }
   };
@@ -313,7 +316,14 @@ export default function AdminTransactions() {
       if (e instanceof AdminAccessRequiredError) {
         setAccessDenied(true);
       } else {
-        setError((e as Error).message || "Failed to load transactions");
+        const msg = (e as Error).message || "Failed to load Transaction Monitor";
+        setError(msg);
+        if (reqId > 1) {
+          sonnerToast.error("Failed to refresh", {
+            description: msg,
+            action: { label: "Retry", onClick: () => void fetchData() },
+          });
+        }
       }
     } finally {
       if (reqIdRef.current === reqId) {
@@ -371,8 +381,6 @@ export default function AdminTransactions() {
   };
   const handleExport = () =>
     toast({ title: "Export queued", description: "Your export will appear in /admin/exports when ready." });
-  const handleRowAction = (label: string, code: string) =>
-    toast({ title: label, description: `${code} — coming soon` });
 
   const clearAllFilters = useCallback(() => {
     setActiveQuick("all");
@@ -396,6 +404,16 @@ export default function AdminTransactions() {
   const summary = data?.summary;
   const rows = data?.rows ?? [];
   const pagination = data?.pagination;
+
+  const hasFilters = Boolean(
+    txStatus || moneyStatus || disputeStatus || riskLevel || amountMin || amountMax || dateFrom || dateTo,
+  );
+  const emptyVariant = pickEmptyVariant({
+    hasSearch: Boolean(debouncedSearch),
+    hasFilters,
+    quick: activeQuick,
+  });
+  const listDimmed = isFetching && !initialLoad;
 
   const summaryTiles = useMemo(
     () => [
@@ -477,7 +495,8 @@ export default function AdminTransactions() {
               <button
                 type="button"
                 onClick={handleExport}
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+                aria-label="Export transactions"
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
               >
                 <Download className="h-4 w-4" />
                 Export
@@ -486,7 +505,8 @@ export default function AdminTransactions() {
                 type="button"
                 onClick={handleRefresh}
                 disabled={isFetching}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-500 disabled:opacity-60"
+                aria-label="Refresh transactions"
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-500 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
               >
                 <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                 Refresh
@@ -544,20 +564,24 @@ export default function AdminTransactions() {
 
       {/* Summary KPI cards */}
       <TooltipProvider delayDuration={150}>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6 motion-reduce:[&>*]:!animate-none">
           {summaryTiles.map((t, i) => {
             const Icon = t.icon;
             const card = (
               <div
                 key={t.key}
-                className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-foreground/10`}
+                className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} flex min-h-[104px] flex-col rounded-xl border border-border bg-card p-3.5 transition-all motion-safe:hover:-translate-y-px hover:border-foreground/10`}
               >
-                <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${t.iconCls}`}>
-                  <Icon className="h-5 w-5" />
+                <div className={`mb-2.5 flex h-8 w-8 items-center justify-center rounded-lg ${t.iconCls}`}>
+                  <Icon className="h-4 w-4" aria-hidden />
                 </div>
                 <div className="text-[11px] text-muted-foreground">{t.label}</div>
-                <div className="mt-1 truncate text-2xl font-semibold tracking-tight text-foreground">
-                  {initialLoad && !summary ? <span className="inline-block h-6 w-16 animate-pulse rounded bg-muted" /> : t.value}
+                <div className="mt-1 truncate text-xl font-semibold tracking-tight text-foreground tabular-nums">
+                  {initialLoad && !summary ? (
+                    <span className="inline-block h-5 w-20 animate-pulse rounded bg-muted" />
+                  ) : (
+                    t.value
+                  )}
                 </div>
               </div>
             );
@@ -575,15 +599,21 @@ export default function AdminTransactions() {
       </TooltipProvider>
 
       {/* Quick filter chips */}
-      <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 animate-fade-in">
+      <div
+        className="-mx-1 flex snap-x snap-mandatory items-center gap-2 overflow-x-auto px-1 pb-1 motion-safe:animate-fade-in [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="tablist"
+        aria-label="Quick filters"
+      >
         {QUICK_FILTERS.map((f) => {
           const active = activeQuick === f.key;
           return (
             <button
               key={f.key}
               type="button"
+              role="tab"
+              aria-selected={active}
               onClick={() => setActiveQuick(f.key)}
-              className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`shrink-0 snap-start rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
                 active
                   ? "border-blue-500/40 bg-blue-500/15 text-blue-300"
                   : "border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -661,7 +691,7 @@ export default function AdminTransactions() {
       </div>
 
       {/* Desktop table */}
-      <div className="hidden rounded-xl border border-border bg-card lg:block">
+      <div className="hidden overflow-hidden rounded-xl border border-border bg-card lg:block">
         <div className="flex items-center justify-between border-b border-border p-3">
           <h3 className="text-sm font-semibold text-foreground">
             Transactions
@@ -676,9 +706,13 @@ export default function AdminTransactions() {
             <LiveSyncPill state={liveSync} compact />
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div
+          className={`max-h-[calc(100vh-360px)] overflow-auto transition-opacity ${listDimmed ? "opacity-60 pointer-events-none" : ""}`}
+          aria-busy={listDimmed || undefined}
+        >
           <table className="w-full text-sm">
-            <thead>
+            <caption className="sr-only">Platform transactions, sortable and filterable</caption>
+            <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
                 <th className="px-3 py-2 text-left font-semibold">Transaction</th>
                 <th className="px-3 py-2 text-left font-semibold">Item</th>
@@ -688,7 +722,7 @@ export default function AdminTransactions() {
                 <th className="px-3 py-2 text-left font-semibold">Escrow</th>
                 <th className="px-3 py-2 text-left font-semibold">Flags</th>
                 <th className="px-3 py-2 text-left font-semibold">Last Activity</th>
-                <th className="px-3 py-2 text-left font-semibold">Actions</th>
+                <th className="w-[120px] px-3 py-2 text-left font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -702,32 +736,32 @@ export default function AdminTransactions() {
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-3 py-10 text-center text-sm text-muted-foreground">
-                    No transactions match the current filters.
+                  <td colSpan={9} className="px-3 py-2">
+                    <TransactionsEmptyState variant={emptyVariant} onClearFilters={clearAllFilters} />
                   </td>
                 </tr>
               ) : (
                 rows.map((t, i) => (
                   <tr
                     key={t.transactionId}
-                    className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} border-b border-border/60 transition-colors hover:bg-muted/40`}
+                    className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} border-b border-border/60 transition-colors hover:bg-muted/40 motion-reduce:transition-none`}
                   >
-                    <td className="px-3 py-3 align-top">
-                      <div className="flex items-start gap-2">
-                        {t.isFrozen ? <Snowflake className="mt-0.5 h-3.5 w-3.5 text-cyan-400" /> : null}
+                    <td className="px-3 py-2.5 align-middle">
+                      <div className="flex items-center gap-2">
+                        {t.isFrozen ? <Snowflake className="h-3.5 w-3.5 text-cyan-400" aria-hidden /> : null}
                         <div>
                           <div className="font-medium text-foreground">#{t.transactionCode}</div>
                           <div className="text-xs text-muted-foreground">{formatDate(t.createdAt)}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-3 align-top">
-                      <div className="font-medium text-foreground">{t.itemTitle}</div>
+                    <td className="px-3 py-2.5 align-middle">
+                      <div className="line-clamp-1 font-medium text-foreground" title={t.itemTitle}>{t.itemTitle}</div>
                       {t.itemCategory ? (
                         <div className="text-xs text-muted-foreground">{t.itemCategory}</div>
                       ) : null}
                     </td>
-                    <td className="px-3 py-3 align-top">
+                    <td className="px-3 py-2.5 align-middle">
                       <div className="text-xs">
                         <span className="text-muted-foreground">Buyer:</span>{" "}
                         <span className="text-foreground">{t.buyerName}</span>
@@ -737,7 +771,7 @@ export default function AdminTransactions() {
                         <span className="text-foreground">{t.sellerName}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-3 align-top">
+                    <td className="px-3 py-2.5 align-middle">
                       <div className="font-semibold text-foreground tabular-nums">
                         {formatMoney(t.amount, t.currency)}
                       </div>
@@ -745,27 +779,35 @@ export default function AdminTransactions() {
                         Protection Fee: {formatMoney(t.protectionFee, t.currency)}
                       </div>
                     </td>
-                    <td className="px-3 py-3 align-top">
+                    <td className="px-3 py-2.5 align-middle">
                       <Badge
                         label={t.transactionStatus.label}
                         cls={STATUS_BADGE_CLS[t.transactionStatus.key] ?? "bg-muted text-muted-foreground border-border"}
                       />
                       <div className="mt-1 text-[11px] text-muted-foreground">{t.moneyStatus.label}</div>
                     </td>
-                    <td className="px-3 py-3 align-top">
-                      <Badge
-                        label={t.escrowStatus.label}
-                        cls={ESCROW_BADGE_CLS[t.escrowStatus.key] ?? "bg-muted text-muted-foreground border-border"}
-                      />
+                    <td className="px-3 py-2.5 align-middle">
+                      {t.escrowStatus.key === "pending" || t.escrowStatus.key === "released" ? (
+                        <span className="text-[11px] text-muted-foreground">{t.escrowStatus.label}</span>
+                      ) : (
+                        <Badge
+                          label={t.escrowStatus.label}
+                          cls={ESCROW_BADGE_CLS[t.escrowStatus.key] ?? "bg-muted text-muted-foreground border-border"}
+                        />
+                      )}
                     </td>
-                    <td className="px-3 py-3 align-top">
-                      <Badge
-                        label={FLAG_META[t.riskLevel].label}
-                        cls={FLAG_META[t.riskLevel].cls}
-                        Icon={FLAG_META[t.riskLevel].Icon}
-                      />
+                    <td className="px-3 py-2.5 align-middle">
+                      {t.riskLevel === "clean" ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <Badge
+                          label={FLAG_META[t.riskLevel].label}
+                          cls={FLAG_META[t.riskLevel].cls}
+                          Icon={FLAG_META[t.riskLevel].Icon}
+                        />
+                      )}
                     </td>
-                    <td className="px-3 py-3 align-top">
+                    <td className="px-3 py-2.5 align-middle">
                       <span
                         className={`text-xs ${
                           t.lastActivityTone === "danger"
@@ -778,16 +820,13 @@ export default function AdminTransactions() {
                         {t.lastActivityLabel}
                       </span>
                     </td>
-                    <td className="px-3 py-3 align-top">
-                      <div className="flex items-center justify-start gap-1.5 text-muted-foreground">
-                        <IconBtn label="View" onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}>
+                    <td className="w-[120px] px-3 py-2.5 align-middle">
+                      <div className="flex items-center justify-start gap-1 text-muted-foreground">
+                        <IconBtn label="View details" onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}>
                           <Eye className="h-4 w-4" />
                         </IconBtn>
-                        <IconBtn label="Notes" onClick={() => { setActionRow(t); setActionKind("note"); }}>
+                        <IconBtn label="Add internal note" onClick={() => { setActionRow(t); setActionKind("note"); }}>
                           <MessageSquare className="h-4 w-4" />
-                        </IconBtn>
-                        <IconBtn label="Ledger" onClick={() => { setActionRow(t); setDrawerSection("ledger"); }}>
-                          <ArrowLeftRight className="h-4 w-4" />
                         </IconBtn>
                         <RowActionsMenu row={t} handlers={buildHandlers(t)} />
                       </div>
@@ -813,7 +852,10 @@ export default function AdminTransactions() {
       </div>
 
       {/* Mobile card list */}
-      <div className="space-y-3 lg:hidden pb-20">
+      <div
+        className={`space-y-2.5 lg:hidden transition-opacity ${listDimmed ? "opacity-60 pointer-events-none" : ""}`}
+        aria-busy={listDimmed || undefined}
+      >
         <div className="flex items-center justify-between px-1">
           <h3 className="text-sm font-semibold text-foreground">Recent Transactions</h3>
           {pagination ? (
@@ -824,21 +866,21 @@ export default function AdminTransactions() {
         </div>
         {initialLoad && rows.length === 0 ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-card" />
+            <div key={i} className="h-32 animate-pulse rounded-xl border border-border bg-card" />
           ))
         ) : rows.length === 0 ? (
-          <div className="rounded-xl border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
-            No transactions match.
+          <div className="rounded-xl border border-border bg-card">
+            <TransactionsEmptyState variant={emptyVariant} onClearFilters={clearAllFilters} />
           </div>
         ) : (
           rows.map((t, i) => (
             <article
               key={t.transactionId}
-              className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} rounded-xl border border-border bg-card p-3`}
+              className={`${initialLoad && i < 6 ? `sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)}` : ""} ${rowStateClass(t)} rounded-xl border border-border bg-card p-3`}
             >
-              <header className="flex items-start justify-between">
-                <div className="flex items-start gap-2">
-                  {t.isFrozen ? <Snowflake className="mt-0.5 h-3.5 w-3.5 text-cyan-400" /> : null}
+              <header className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  {t.isFrozen ? <Snowflake className="h-3.5 w-3.5 shrink-0 text-cyan-400" aria-hidden /> : null}
                   <div>
                     <div className="text-sm font-semibold text-foreground">#{t.transactionCode}</div>
                     <div className="text-[11px] text-muted-foreground">{formatDate(t.createdAt)}</div>
@@ -850,26 +892,26 @@ export default function AdminTransactions() {
                 />
               </header>
 
-              <div className="mt-2">
-                <div className="text-sm font-medium text-foreground">{t.itemTitle}</div>
-                {t.itemCategory ? (
-                  <div className="text-[11px] text-muted-foreground">{t.itemCategory}</div>
-                ) : null}
-              </div>
-
-              <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border pt-2 text-[11px]">
-                <div>
-                  <div className="text-muted-foreground">Buyer</div>
-                  <div className="truncate text-foreground">{t.buyerName}</div>
+              <div className="mt-2 flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="line-clamp-1 text-sm font-medium text-foreground" title={t.itemTitle}>{t.itemTitle}</div>
+                  <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                    {t.buyerName} <span aria-hidden>•</span> {t.sellerName}
+                  </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-muted-foreground">Seller</div>
-                  <div className="truncate text-foreground">{t.sellerName}</div>
+                  <div className="text-base font-semibold text-foreground tabular-nums">
+                    {formatMoney(t.amount, t.currency)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    Protection {formatMoney(t.protectionFee, t.currency)}
+                  </div>
                 </div>
               </div>
 
-              {(t.riskLevel !== "clean" || t.isFrozen) && (
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
+              {(t.riskLevel !== "clean" ||
+                (t.escrowStatus.key !== "pending" && t.escrowStatus.key !== "released")) && (
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   {t.escrowStatus.key !== "pending" && t.escrowStatus.key !== "released" && (
                     <Badge
                       label={t.escrowStatus.label}
@@ -886,28 +928,26 @@ export default function AdminTransactions() {
                 </div>
               )}
 
-              <div className="mt-2 flex items-end justify-between border-t border-border pt-2">
-                <div>
-                  <div className="text-base font-semibold text-foreground tabular-nums">
-                    {formatMoney(t.amount, t.currency)}
-                  </div>
-                  <div
-                    className={`text-[11px] ${
-                      t.lastActivityTone === "danger" ? "text-red-400" : "text-muted-foreground"
-                    }`}
-                  >
-                    Protection: {formatMoney(t.protectionFee, t.currency)}
-                  </div>
-                  {t.lastActivityTone === "danger" ? (
-                    <div className="mt-0.5 text-[11px] text-red-400">{t.lastActivityLabel}</div>
-                  ) : null}
+              {(t.lastActivityTone === "warn" || t.lastActivityTone === "danger") && (
+                <div
+                  className={`mt-2 text-[11px] ${
+                    t.lastActivityTone === "danger" ? "text-red-400" : "text-orange-300"
+                  }`}
+                >
+                  {t.lastActivityLabel}
                 </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <IconBtn label="View" onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}>
-                    <Eye className="h-4 w-4 text-blue-400" />
-                  </IconBtn>
-                  <RowActionsMenu row={t} handlers={buildHandlers(t)} />
-                </div>
+              )}
+
+              <div className="mt-2 flex items-center justify-end gap-1 border-t border-border/60 pt-2 text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/admin/transactions/${t.transactionId}`)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                  aria-label={`View details for ${t.transactionCode}`}
+                >
+                  <Eye className="h-3.5 w-3.5" aria-hidden /> View
+                </button>
+                <RowActionsMenu row={t} handlers={buildHandlers(t)} />
               </div>
             </article>
           ))
@@ -937,6 +977,8 @@ export default function AdminTransactions() {
           <BottomNav label="Profile" Icon={User} onClick={() => toast({ title: "Profile", description: "Coming soon" })} />
         </div>
       </nav>
+      {/* Mobile spacer to keep last content above fixed bottom nav */}
+      <div className="h-20 lg:hidden" aria-hidden />
 
       {/* Mobile filters sheet */}
       <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
@@ -1038,14 +1080,21 @@ export default function AdminTransactions() {
 
 function IconBtn({ children, onClick, label }: { children: React.ReactNode; onClick: () => void; label: string }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      className="rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground"
-    >
-      {children}
-    </button>
+    <TooltipProvider delayDuration={200}>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          onClick={onClick}
+          className="rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 motion-reduce:transition-none"
+        >
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -1066,11 +1115,13 @@ function BottomNav({
     <button
       type="button"
       onClick={onClick}
-      className={`relative flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+      aria-label={label}
+      aria-current={active ? "page" : undefined}
+      className={`relative flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
         active ? "text-blue-400" : "text-muted-foreground hover:text-foreground"
       }`}
     >
-      <Icon className="h-5 w-5" />
+      <Icon className="h-5 w-5" aria-hidden />
       {label}
       {badge && badge > 0 ? (
         <span className="absolute right-[28%] top-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-orange-500 px-1 text-[9px] font-bold text-white">
