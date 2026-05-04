@@ -347,16 +347,32 @@ export default function AdminTransactionDetail() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {adminCan.canOpenInvestigation && <DropdownMenuItem onClick={() => setInvestigateOpen(true)}><Search className="h-4 w-4 mr-2" /> Open Investigation</DropdownMenuItem>}
+              {adminCan.canOpenInvestigation && <DropdownMenuItem onClick={() => setInvestigateOpen(true)}><Search className="h-4 w-4 mr-2" /> {adminCan.investigationAlreadyOpen ? "Update Investigation" : "Open Investigation"}</DropdownMenuItem>}
               {adminCan.canFreeze && <DropdownMenuItem onClick={() => setFreezeOpen(true)}><Snowflake className="h-4 w-4 mr-2" /> Freeze Funds</DropdownMenuItem>}
               {adminCan.canUnfreeze && <DropdownMenuItem onClick={() => setUnfreezeOpen(true)}><Snowflake className="h-4 w-4 mr-2" /> Unfreeze Funds</DropdownMenuItem>}
               {adminCan.canAddNote && <DropdownMenuItem onClick={() => setNoteOpen(true)}><StickyNote className="h-4 w-4 mr-2" /> Add Internal Note</DropdownMenuItem>}
               {adminCan.canFlagForReview && <DropdownMenuItem onClick={() => setFlagOpen(true)}><Flag className="h-4 w-4 mr-2" /> Flag for Review</DropdownMenuItem>}
+              <DropdownMenuItem
+                disabled={!adminCan.canManageDispute}
+                onClick={() => dispute && navigate(`/admin/disputes/${dispute.id}`)}
+                title={!adminCan.canManageDispute ? "No active dispute on this transaction" : undefined}
+              >
+                <Scale className="h-4 w-4 mr-2" /> Manage Dispute
+              </DropdownMenuItem>
               {adminCan.canViewBuyer && data?.parties?.buyer?.id && (
                 <DropdownMenuItem onClick={() => navigate(`/admin/users/${data.parties.buyer!.id}`)}><User className="h-4 w-4 mr-2" /> View Buyer</DropdownMenuItem>
               )}
               {adminCan.canViewSeller && data?.parties?.seller?.id && (
                 <DropdownMenuItem onClick={() => navigate(`/admin/users/${data.parties.seller!.id}`)}><User className="h-4 w-4 mr-2" /> View Seller</DropdownMenuItem>
+              )}
+              {adminCan.canViewPayment && (
+                <DropdownMenuItem onClick={() => scrollToId("linked-records")}><CreditCard className="h-4 w-4 mr-2" /> View Payment Record</DropdownMenuItem>
+              )}
+              {adminCan.canViewEscrow && (
+                <DropdownMenuItem onClick={() => scrollToId("escrow-ledger")}><Coins className="h-4 w-4 mr-2" /> View Escrow Ledger</DropdownMenuItem>
+              )}
+              {adminCan.canViewPayout && (
+                <DropdownMenuItem onClick={() => scrollToId("payouts")}><Banknote className="h-4 w-4 mr-2" /> View Payout Record</DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(code); toast.success("Code copied"); }}>
