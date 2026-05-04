@@ -714,13 +714,6 @@ export default function AdminTransactionDetail() {
                     });
                   }
                   // Add Locked Agreement card
-                  if (lockedAgreement) {
-                    records.push({
-                      type: "agreement", label: "Locked Agreement",
-                      subtitle: lockedAgreement.lockedAt ? fmtDate(lockedAgreement.lockedAt) : null,
-                      status: null, amount: null, currency: null, route: null,
-                    });
-                  }
                   return records;
                 })().map((r, i) => {
                   const typeKey = (r.type ?? "").toLowerCase();
