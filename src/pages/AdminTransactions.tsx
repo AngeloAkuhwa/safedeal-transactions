@@ -380,13 +380,13 @@ export default function AdminTransactions() {
             const card = (
               <div
                 key={t.key}
-                className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} rounded-xl border border-border bg-card p-3 transition-all hover:-translate-y-0.5 hover:border-foreground/10`}
+                className={`sd-fade-in-stagger sd-delay-${Math.min(i + 1, 6)} rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-foreground/10`}
               >
-                <div className={`mb-2 flex h-9 w-9 items-center justify-center rounded-lg ${t.iconCls}`}>
-                  <Icon className="h-4 w-4" />
+                <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${t.iconCls}`}>
+                  <Icon className="h-5 w-5" />
                 </div>
                 <div className="text-[11px] text-muted-foreground">{t.label}</div>
-                <div className="mt-0.5 truncate text-lg font-semibold tracking-tight text-foreground">{t.value}</div>
+                <div className="mt-1 truncate text-2xl font-semibold tracking-tight text-foreground">{t.value}</div>
               </div>
             );
             if ("exact" in t && t.exact) {
