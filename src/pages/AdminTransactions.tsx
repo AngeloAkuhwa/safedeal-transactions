@@ -461,9 +461,8 @@ export default function AdminTransactions() {
             </button>
             <div className="min-w-0 flex-1 text-center">
               <div className="truncate text-sm font-semibold leading-tight text-foreground">Transaction Monitor</div>
-              <div className="inline-flex items-center gap-1.5 text-[10px] font-medium text-emerald-400">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                Live
+              <div className="inline-flex items-center justify-center">
+                <LiveSyncPill state={liveSync} compact />
               </div>
             </div>
             <button
