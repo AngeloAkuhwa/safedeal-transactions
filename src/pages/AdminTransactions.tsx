@@ -201,35 +201,45 @@ export default function AdminTransactions() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [txStatus, setTxStatus] = useState<string>("");
   const [moneyStatus, setMoneyStatus] = useState<string>("");
   const [disputeStatus, setDisputeStatus] = useState<string>("");
+  const [riskLevel, setRiskLevel] = useState<string>("");
   const [amountMin, setAmountMin] = useState<string>("");
   const [amountMax, setAmountMax] = useState<string>("");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+  const [sortBy, setSortBy] = useState<SortKey>("urgency");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const [data, setData] = useState<AdminTxMonitorResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [lastUpdatedTick, setLastUpdatedTick] = useState(0);
+  const [liveSync, setLiveSync] = useState<"connecting" | "live" | "off">("connecting");
   const reqIdRef = useRef(0);
+  const realtimeDebounceRef = useRef<number | null>(null);
+  const lastRealtimeToastRef = useRef<number>(0);
 
   // Debounce search
   useEffect(() => {
-    const h = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    const h = setTimeout(() => setDebouncedSearch(search.trim()), 400);
     return () => clearTimeout(h);
   }, [search]);
 
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [activeQuick, debouncedSearch, txStatus, moneyStatus, disputeStatus, amountMin, amountMax, dateFrom, dateTo]);
+  }, [activeQuick, debouncedSearch, txStatus, moneyStatus, disputeStatus, riskLevel, amountMin, amountMax, dateFrom, dateTo, sortBy, sortDir]);
 
   const fetchData = useCallback(async () => {
     const reqId = ++reqIdRef.current;
-    setLoading(true);
+    setIsFetching(true);
     setError(null);
     try {
       const resp = await getAdminTransactionsMonitor({
@@ -238,17 +248,19 @@ export default function AdminTransactions() {
         transactionStatus: txStatus || undefined,
         moneyStatus: moneyStatus || undefined,
         disputeStatus: disputeStatus || undefined,
+        riskLevel: riskLevel || undefined,
         amountMin: amountMin ? Number(amountMin) : undefined,
         amountMax: amountMax ? Number(amountMax) : undefined,
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
         page,
         pageSize: PAGE_SIZE,
-        sortBy: "created_at",
-        sortDirection: "desc",
+        sortBy,
+        sortDirection: sortDir,
       });
       if (reqIdRef.current !== reqId) return;
       setData(resp);
+      setLastUpdated(new Date());
     } catch (e) {
       if (reqIdRef.current !== reqId) return;
       if (e instanceof AdminAccessRequiredError) {
@@ -257,22 +269,82 @@ export default function AdminTransactions() {
         setError((e as Error).message || "Failed to load transactions");
       }
     } finally {
-      if (reqIdRef.current === reqId) setLoading(false);
+      if (reqIdRef.current === reqId) {
+        setIsFetching(false);
+        setInitialLoad(false);
+      }
     }
-  }, [debouncedSearch, activeQuick, page, txStatus, moneyStatus, disputeStatus, amountMin, amountMax, dateFrom, dateTo]);
+  }, [debouncedSearch, activeQuick, page, txStatus, moneyStatus, disputeStatus, riskLevel, amountMin, amountMax, dateFrom, dateTo, sortBy, sortDir]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  // Tick "last updated" label every 30s
+  useEffect(() => {
+    const id = setInterval(() => setLastUpdatedTick((n) => n + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Realtime subscription
+  useEffect(() => {
+    if (accessDenied) return;
+    setLiveSync("connecting");
+    const channel = supabase.channel("admin-tx-monitor");
+    for (const table of REALTIME_TABLES) {
+      channel.on(
+        "postgres_changes" as any,
+        { event: "*", schema: "public", table },
+        () => {
+          if (realtimeDebounceRef.current) window.clearTimeout(realtimeDebounceRef.current);
+          realtimeDebounceRef.current = window.setTimeout(() => {
+            fetchData();
+            const now = Date.now();
+            if (now - lastRealtimeToastRef.current > 5000) {
+              lastRealtimeToastRef.current = now;
+              sonnerToast("Transaction monitor updated", { duration: 2500 });
+            }
+          }, 1500);
+        },
+      );
+    }
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") setLiveSync("live");
+      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") setLiveSync("off");
+    });
+    return () => {
+      if (realtimeDebounceRef.current) window.clearTimeout(realtimeDebounceRef.current);
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessDenied]);
+
   const handleRefresh = () => {
     fetchData();
-    toast({ title: "Refreshing", description: "Loading latest transaction data." });
   };
   const handleExport = () =>
     toast({ title: "Export queued", description: "Your export will appear in /admin/exports when ready." });
   const handleRowAction = (label: string, code: string) =>
     toast({ title: label, description: `${code} — coming soon` });
+
+  const clearAllFilters = useCallback(() => {
+    setActiveQuick("all");
+    setSearch("");
+    setTxStatus("");
+    setMoneyStatus("");
+    setDisputeStatus("");
+    setRiskLevel("");
+    setAmountMin("");
+    setAmountMax("");
+    setDateFrom("");
+    setDateTo("");
+  }, []);
+
+  const lastUpdatedLabel = useMemo(() => relativeMinutes(lastUpdated), [lastUpdated, lastUpdatedTick]);
+  const currentSortLabel = useMemo(
+    () => SORT_OPTIONS.find((o) => o.key === sortBy && o.dir === sortDir)?.label ?? "Custom",
+    [sortBy, sortDir],
+  );
 
   const summary = data?.summary;
   const rows = data?.rows ?? [];
