@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
-  ArrowLeft, Loader2, AlertTriangle, Download, Scale, ShieldCheck,
-  ChevronDown, ChevronUp, Snowflake, MoreVertical, ExternalLink,
-  Truck, Package, CreditCard, Lock, Circle, StickyNote, RefreshCcw,
-  Search, Flag, Eye, MoreHorizontal, User, Wallet, Receipt, BookOpen,
-  Clock, Vault, Handshake, Gavel, Image as ImageIcon,
+  ArrowLeft, AlertTriangle, Download, Scale, ShieldCheck,
+  Snowflake, MoreVertical, ExternalLink, Truck, Package,
+  CreditCard, Lock, Circle, StickyNote, Search, Flag, MoreHorizontal,
+  User, Wallet, Receipt, Clock, Vault, Handshake, Gavel, Image as ImageIcon,
+  FileText, Video, ChevronDown, ChevronUp, Eye, FileSignature,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
@@ -13,13 +13,11 @@ import {
   AdminAccessRequiredError,
   TransactionNotFoundError,
   type AdminTxDetailResponse,
+  type AdminTxEvidenceItem,
 } from "@/services/admin-transaction-detail.service";
 import {
-  freezeTransaction,
-  unfreezeTransaction,
-  flagForReview,
-  openInvestigation,
-  addInternalNoteTyped,
+  freezeTransaction, unfreezeTransaction, flagForReview,
+  openInvestigation, addInternalNoteTyped,
 } from "@/services/admin-transaction-actions.service";
 import { formatMoney } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -30,13 +28,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
 import { InternalNoteDialog } from "@/components/admin/transactions/InternalNoteDialog";
+import { AgreementPreviewDialog } from "@/components/admin/transactions/AgreementPreviewDialog";
+import { EvidencePreviewDialog } from "@/components/admin/transactions/EvidencePreviewDialog";
+import {
+  MONEY_STATUS_META, moneyStatusLabel, activeEscrowDisplay,
+} from "@/components/admin/transactions/MoneyStatus";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const ngn = (v: number | null | undefined) => {
-  if (v == null || Number.isNaN(Number(v))) return "—";
-  return formatMoney(Number(v), "NGN");
-};
+const ngn = (v: number | null | undefined) => formatMoney(v ?? 0, "NGN");
+
 const fmtDate = (iso?: string | null) => {
   if (!iso) return "—";
   try { return new Date(iso).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" }); } catch { return iso; }
@@ -51,29 +52,42 @@ const relTime = (iso?: string | null) => {
   const d = Math.round(h / 24);
   return `${d} day${d === 1 ? "" : "s"} ago`;
 };
-const titleCase = (s?: string | null) => (s ?? "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const titleCase = (s?: string | null) =>
+  (s ?? "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-const STATUS_CLS: Record<string, string> = {
+const TX_STATUS_CLS: Record<string, string> = {
   draft: "bg-slate-500/15 text-slate-300 border-slate-500/30",
   awaiting_payment: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
   payment_secured: "bg-blue-500/15 text-blue-300 border-blue-500/30",
-  funds_held_in_escrow: "bg-purple-500/15 text-purple-300 border-purple-500/30",
-  funds_pending_release: "bg-blue-500/15 text-blue-300 border-blue-500/30",
-  funds_released: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  funds_frozen: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
+  seller_preparing_delivery: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+  seller_dispatched: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+  delivered_awaiting_verification: "bg-purple-500/15 text-purple-300 border-purple-500/30",
   completed: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
   cancelled: "bg-slate-500/15 text-slate-300 border-slate-500/30",
-  failed: "bg-red-500/15 text-red-300 border-red-500/30",
-  open: "bg-orange-500/15 text-orange-300 border-orange-500/30",
-  under_review: "bg-orange-500/15 text-orange-300 border-orange-500/30",
+  refunded: "bg-slate-500/15 text-slate-300 border-slate-500/30",
+  disputed: "bg-orange-500/15 text-orange-300 border-orange-500/30",
+  resolved: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  timed_out: "bg-red-500/15 text-red-300 border-red-500/30",
 };
 
-function StatusBadge({ value }: { value?: string | null }) {
+function StatusPill({ value, cls }: { value?: string | null; cls?: string }) {
   if (!value) return <span className="text-xs text-muted-foreground">—</span>;
-  const cls = STATUS_CLS[value] ?? "bg-slate-500/15 text-slate-300 border-slate-500/30";
+  const klass = cls ?? TX_STATUS_CLS[value] ?? "bg-slate-500/15 text-slate-300 border-slate-500/30";
   return (
-    <span className={cn("inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold whitespace-nowrap", cls)}>
+    <span className={cn("inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold whitespace-nowrap", klass)}>
       {titleCase(value)}
+    </span>
+  );
+}
+function MoneyPill({ value }: { value?: string | null }) {
+  if (!value) return <span className="text-xs text-muted-foreground">—</span>;
+  const meta = MONEY_STATUS_META[value];
+  return (
+    <span className={cn(
+      "inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold whitespace-nowrap",
+      meta?.classes ?? "bg-slate-500/15 text-slate-300 border-slate-500/30",
+    )}>
+      {moneyStatusLabel(value)}
     </span>
   );
 }
@@ -82,44 +96,35 @@ function Card({ children, className, accent }: { children: React.ReactNode; clas
   const a = accent === "orange" ? "border-l-4 border-l-orange-500" : accent === "red" ? "border-l-4 border-l-red-500" : "";
   return <section className={cn("rounded-xl border border-border bg-card", a, className)}>{children}</section>;
 }
-
-function CardHeader({ title, subtitle, action, collapsible, open, onToggle }: any) {
+function CardHeader({ title, subtitle, action }: { title: React.ReactNode; subtitle?: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-3 px-4 lg:px-6 py-4 border-b border-border">
-      <div>
-        <h2 className="text-sm lg:text-lg font-semibold text-foreground">{title}</h2>
+      <div className="min-w-0">
+        <h2 className="text-sm lg:text-base font-semibold text-foreground">{title}</h2>
         {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
       </div>
-      <div className="flex items-center gap-2">
+      {action && <div className="flex items-center gap-2 shrink-0">{action}</div>}
+    </div>
+  );
+}
+function MobileAccordion({ title, defaultOpen, action, children }: { title: string; defaultOpen?: boolean; action?: React.ReactNode; children: React.ReactNode }) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  return (
+    <Card>
+      <button type="button" onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between gap-3 px-4 py-3 border-b border-border lg:hidden">
+        <span className="text-sm font-semibold text-foreground">{title}</span>
+        <div className="flex items-center gap-2">{action}{open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}</div>
+      </button>
+      <div className="hidden lg:flex items-center justify-between gap-3 px-6 py-4 border-b border-border">
+        <h2 className="text-sm lg:text-base font-semibold text-foreground">{title}</h2>
         {action}
-        {collapsible && (
-          <button type="button" onClick={onToggle} className="lg:hidden p-1 text-muted-foreground" aria-label="Toggle">
-            {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
-        )}
       </div>
-    </div>
-  );
-}
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</dt>
-      <dd className="mt-1 text-sm font-medium text-foreground">{value ?? "—"}</dd>
-    </div>
-  );
-}
-function CollapsibleCard({ title, subtitle, accent, action, children }: any) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Card accent={accent}>
-      <CardHeader title={title} subtitle={subtitle} action={action} collapsible open={open} onToggle={() => setOpen(v => !v)} />
       <div className={cn("p-4 lg:p-6", !open && "hidden lg:block")}>{children}</div>
     </Card>
   );
 }
 function Avatar({ name, src, size = 32 }: { name?: string | null; src?: string | null; size?: number }) {
-  const initials = (name ?? "?").split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+  const initials = (name ?? "?").split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
   return src ? (
     <img src={src} alt={name ?? ""} className="rounded-full object-cover" style={{ width: size, height: size }} />
   ) : (
@@ -145,6 +150,23 @@ function timelineMeta(icon?: string, severity?: string) {
   if (severity === "success") return { ...base, cls: "border-emerald-500 bg-emerald-500/15 text-emerald-400" };
   return base;
 }
+function evidenceIcon(kind: string) {
+  if (kind === "image") return ImageIcon;
+  if (kind === "video") return Video;
+  if (kind === "receipt") return Receipt;
+  if (kind === "delivery_proof") return Truck;
+  return FileText;
+}
+
+const TL_FILTERS = [
+  { key: "all", label: "All" },
+  { key: "payment", label: "Payment" },
+  { key: "escrow_ledger", label: "Escrow" },
+  { key: "delivery", label: "Delivery" },
+  { key: "dispute", label: "Dispute" },
+  { key: "admin_action", label: "Admin" },
+  { key: "money_status", label: "Money" },
+] as const;
 
 export default function AdminTransactionDetail() {
   const { transactionId } = useParams<{ transactionId: string }>();
@@ -160,10 +182,15 @@ export default function AdminTransactionDetail() {
   const [reloadKey, setReloadKey] = useState(0);
   const [actionSheetOpen, setActionSheetOpen] = useState(false);
   const [freezeOpen, setFreezeOpen] = useState(false);
-  const [noteOpen, setNoteOpen] = useState(false);
   const [unfreezeOpen, setUnfreezeOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
   const [flagOpen, setFlagOpen] = useState(false);
   const [investigateOpen, setInvestigateOpen] = useState(false);
+  const [agreementOpen, setAgreementOpen] = useState(false);
+  const [evidencePreview, setEvidencePreview] = useState<AdminTxEvidenceItem | null>(null);
+  const [showFullTimeline, setShowFullTimeline] = useState(false);
+  const [tlFilter, setTlFilter] = useState<string>("all");
+  const [tlNewest, setTlNewest] = useState(true);
 
   useEffect(() => {
     if (!transactionId) { setNotFound(true); setLoading(false); return; }
@@ -181,10 +208,47 @@ export default function AdminTransactionDetail() {
   const tx = data?.transaction;
   const dispute = data?.dispute;
   const adminCan = data?.adminActionsAvailable ?? {};
-  const accent: "red" | "orange" | "none" =
-    tx?.moneyStatus === "funds_frozen" ? "red" : (dispute && dispute.status !== "resolved" && dispute.status !== "closed") ? "orange" : "none";
+  const evidence: AdminTxEvidenceItem[] = data?.evidence ?? [];
+  const lockedAgreement = data?.lockedAgreement ?? null;
+
   const code = tx?.transactionCode ?? transactionId?.slice(0, 8) ?? "";
   const itemTitle = data?.items?.[0]?.title ?? "Transaction";
+
+  const accent: "red" | "orange" | "none" =
+    tx?.moneyStatus === "funds_frozen" ? "red"
+    : (dispute && dispute.status !== "resolved" && dispute.status !== "closed") ? "orange"
+    : "none";
+
+  const escrowDisplay = useMemo(
+    () => activeEscrowDisplay(tx?.moneyStatus, data?.escrow, data?.pricing?.buyerTotal ?? null),
+    [tx?.moneyStatus, data?.escrow, data?.pricing?.buyerTotal],
+  );
+
+  // Synthesize risk flags so the page never says "no activity" when state implies risk
+  const synthesizedFlags = useMemo(() => {
+    if (!data) return [];
+    const out: { label: string; severity: "low" | "medium" | "high" }[] = [];
+    if (tx?.moneyStatus === "funds_frozen") out.push({ label: "Funds frozen", severity: "high" });
+    if (dispute && dispute.status !== "resolved" && dispute.status !== "closed") {
+      out.push({ label: "Dispute open", severity: "medium" });
+    }
+    if (dispute?.overdue) out.push({ label: "Dispute response overdue", severity: "high" });
+    const total = Number(data.pricing?.buyerTotal ?? 0);
+    if (total >= 500_000) out.push({ label: "High-value transaction", severity: "medium" });
+    if (data.parties?.buyer?.flagged) out.push({ label: "Buyer account flagged", severity: "high" });
+    return out;
+  }, [data, tx?.moneyStatus, dispute]);
+
+  const allFlags = useMemo(() => {
+    const seen = new Set<string>();
+    const merged = [...(data?.risk?.flags ?? []), ...synthesizedFlags];
+    return merged.filter((f: any) => {
+      const k = (f.label ?? "").toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [data?.risk?.flags, synthesizedFlags]);
 
   const exportData = () => {
     if (!data) return;
@@ -195,6 +259,23 @@ export default function AdminTransactionDetail() {
     URL.revokeObjectURL(url);
   };
 
+  const filteredTimeline = useMemo(() => {
+    const list = [...(data?.timeline ?? [])];
+    list.sort((a, b) => {
+      const t = new Date(b.at).getTime() - new Date(a.at).getTime();
+      return tlNewest ? t : -t;
+    });
+    return tlFilter === "all" ? list : list.filter((e) => (e.type ?? "").includes(tlFilter));
+  }, [data?.timeline, tlFilter, tlNewest]);
+
+  const visibleTimeline = showFullTimeline ? filteredTimeline : filteredTimeline.slice(0, 8);
+  const showHighRisk =
+    data?.risk?.level === "high" ||
+    data?.risk?.level === "escalated" ||
+    tx?.moneyStatus === "funds_frozen" ||
+    !!(dispute?.overdue);
+
+  // Header (desktop)
   const headerSlot = (
     <header className="sticky top-0 z-30 hidden lg:block border-b border-border bg-background/95 backdrop-blur">
       <div className="flex items-center justify-between gap-4 px-6 py-4">
@@ -208,6 +289,11 @@ export default function AdminTransactionDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {adminCan.canExport && (
+            <Button variant="outline" size="sm" onClick={exportData}>
+              <Download className="h-4 w-4 mr-1.5" /> Export
+            </Button>
+          )}
           {adminCan.canOpenInvestigation && (
             <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200">
               <Search className="h-4 w-4 mr-1.5" /> Investigate
@@ -215,7 +301,7 @@ export default function AdminTransactionDetail() {
           )}
           {adminCan.canFreeze && (
             <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-cyan-500/40 text-cyan-300 hover:text-cyan-200">
-              <Snowflake className="h-4 w-4 mr-1.5" /> Freeze Funds
+              <Snowflake className="h-4 w-4 mr-1.5" /> Freeze
             </Button>
           )}
           {adminCan.canUnfreeze && (
@@ -238,15 +324,14 @@ export default function AdminTransactionDetail() {
               {adminCan.canAddNote && <DropdownMenuItem onClick={() => setNoteOpen(true)}><StickyNote className="h-4 w-4 mr-2" /> Add Internal Note</DropdownMenuItem>}
               {adminCan.canFlagForReview && <DropdownMenuItem onClick={() => setFlagOpen(true)}><Flag className="h-4 w-4 mr-2" /> Flag for Review</DropdownMenuItem>}
               {adminCan.canViewBuyer && data?.parties?.buyer?.id && (
-                <DropdownMenuItem onClick={() => navigate(`/admin/users/${data.parties.buyer!.id}`)}><User className="h-4 w-4 mr-2" /> View Buyer Profile</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`/admin/users/${data.parties.buyer!.id}`)}><User className="h-4 w-4 mr-2" /> View Buyer</DropdownMenuItem>
               )}
               {adminCan.canViewSeller && data?.parties?.seller?.id && (
-                <DropdownMenuItem onClick={() => navigate(`/admin/users/${data.parties.seller!.id}`)}><User className="h-4 w-4 mr-2" /> View Seller Profile</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`/admin/users/${data.parties.seller!.id}`)}><User className="h-4 w-4 mr-2" /> View Seller</DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              {adminCan.canExport && <DropdownMenuItem onClick={exportData}><Download className="h-4 w-4 mr-2" /> Export Data</DropdownMenuItem>}
               <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(code); toast.success("Code copied"); }}>
-                <Receipt className="h-4 w-4 mr-2" /> Copy Transaction Code
+                <Receipt className="h-4 w-4 mr-2" /> Copy Code
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -271,7 +356,7 @@ export default function AdminTransactionDetail() {
     <AdminLayout title={`Transaction #${code}`} subtitle={itemTitle} headerSlot={headerSlot} mobileHeaderSlot={mobileHeaderSlot}>
       {loading && (
         <div className="space-y-3">
-          {[0,1,2].map(i => <div key={i} className="h-32 rounded-xl border border-border bg-card animate-pulse" />)}
+          {[0, 1, 2].map((i) => <div key={i} className="h-32 rounded-xl border border-border bg-card animate-pulse" />)}
         </div>
       )}
 
@@ -293,14 +378,28 @@ export default function AdminTransactionDetail() {
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300 flex items-start gap-2">
           <AlertTriangle className="mt-0.5 h-4 w-4" />
           <div className="flex-1">{err}</div>
-          <Button variant="outline" size="sm" onClick={() => setReloadKey(k => k + 1)}>Retry</Button>
+          <Button variant="outline" size="sm" onClick={() => setReloadKey((k) => k + 1)}>Retry</Button>
         </div>
       )}
 
       {!loading && !denied && !notFound && !err && data && tx && (
-        <div className="space-y-4 pb-28 lg:pb-6">
+        <div className="space-y-5 lg:space-y-6 pb-28 lg:pb-6 max-w-[1440px] mx-auto">
+
+          {/* Mobile mini-header strip */}
+          <div className="lg:hidden -mx-4 -mt-4 px-4 py-4 bg-card border-b border-border">
+            <h1 className="text-lg font-semibold text-foreground">#{code}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{itemTitle}</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <StatusPill value={tx.status} />
+              <MoneyPill value={tx.moneyStatus} />
+              {dispute?.overdue && (
+                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-red-500/20 text-red-400">Overdue</span>
+              )}
+            </div>
+          </div>
+
           {/* High-risk banner */}
-          {(data.risk?.level === "high" || data.risk?.level === "escalated") && (
+          {showHighRisk && (
             <div className="rounded-xl border border-red-500/40 bg-red-500/15 p-4 flex items-start gap-3">
               <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-300">
                 <AlertTriangle className="h-4 w-4" />
@@ -312,36 +411,23 @@ export default function AdminTransactionDetail() {
                 <div className="mt-0.5 text-xs text-red-300/90">
                   {data.risk?.adminReviewReason ?? "Manual review required before any release."}
                 </div>
-                {(data.risk?.flags ?? []).length > 0 && (
+                {allFlags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {data.risk.flags.slice(0, 4).map((f: any, i: number) => (
+                    {allFlags.slice(0, 4).map((f: any, i: number) => (
                       <span key={i} className="rounded border border-red-500/30 bg-red-500/15 px-1.5 py-0.5 text-[10px] text-red-200">{f.label}</span>
                     ))}
                   </div>
                 )}
               </div>
               {adminCan.canOpenInvestigation && (
-                <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white" onClick={() => setInvestigateOpen(true)}>
+                <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white shrink-0" onClick={() => setInvestigateOpen(true)}>
                   <Search className="h-4 w-4 mr-1.5" /> Investigate
                 </Button>
               )}
             </div>
           )}
 
-          {/* Mobile mini header strip */}
-          <div className="lg:hidden -mx-4 -mt-4 px-4 py-4 bg-card border-b border-border">
-            <h1 className="text-lg font-semibold text-foreground">#{code}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{itemTitle}</p>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              <StatusBadge value={tx.status} />
-              {dispute && <StatusBadge value={dispute.status} />}
-              {dispute?.overdue && (
-                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-red-500/20 text-red-400">Overdue</span>
-              )}
-            </div>
-          </div>
-
-          {/* Summary */}
+          {/* === Summary Card === */}
           <Card accent={accent}>
             <div className="p-4 lg:p-6 bg-gradient-to-br from-card to-card/50 rounded-xl">
               {/* Primary Info Row */}
@@ -357,13 +443,13 @@ export default function AdminTransactionDetail() {
                   <div className="text-muted-foreground text-xs mt-1">{fmtDate(tx.lastActivityAt)}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Amount</div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Charged</div>
                   <div className="text-foreground text-base lg:text-xl font-bold tabular-nums">{ngn(data.pricing?.buyerTotal)}</div>
                   <div className="text-muted-foreground text-xs mt-1">Fee: {ngn(data.pricing?.protectionFee)}</div>
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Payout Status</div>
-                  <div><StatusBadge value={data.payout?.status} /></div>
+                  <div><StatusPill value={data.payout?.status ?? "—"} /></div>
                   {data.payout?.blockedReason && <div className="text-muted-foreground text-xs mt-1 truncate">{data.payout.blockedReason}</div>}
                 </div>
                 <div className="min-w-0">
@@ -372,9 +458,10 @@ export default function AdminTransactionDetail() {
                   <div className="text-muted-foreground text-xs mt-1 font-mono truncate">{data.payment?.providerReference ?? "—"}</div>
                 </div>
               </dl>
+
               {/* Parties Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 mb-6 pb-6 border-b border-border">
-                {(["buyer","seller"] as const).map((k) => {
+                {(["buyer", "seller"] as const).map((k) => {
                   const p = data.parties[k];
                   return (
                     <div key={k} className="flex items-center gap-3">
@@ -386,21 +473,22 @@ export default function AdminTransactionDetail() {
                           {p?.verification?.identity && <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />}
                           {p?.flagged && <span className="text-[10px] rounded bg-red-500/20 text-red-300 px-1.5 py-0.5">{p.accountStatus}</span>}
                         </div>
-                        <div className="text-xs text-muted-foreground truncate">{p?.maskedEmail ?? p?.maskedPhone ?? `User #${(p?.id ?? "").slice(0,8)}`}</div>
+                        <div className="text-xs text-muted-foreground truncate">{p?.maskedEmail ?? p?.maskedPhone ?? `User #${(p?.id ?? "").slice(0, 8)}`}</div>
                       </div>
                     </div>
                   );
                 })}
               </div>
+
               {/* Status Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Transaction Status</div>
-                  <StatusBadge value={tx.status} />
+                  <StatusPill value={tx.status} />
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Money Status</div>
-                  <StatusBadge value={tx.moneyStatus} />
+                  <MoneyPill value={tx.moneyStatus} />
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Item Total</div>
@@ -415,10 +503,14 @@ export default function AdminTransactionDetail() {
                   <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.buyerTotal)}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Held in Escrow</div>
-                  <div className="text-purple-400 text-base lg:text-lg font-semibold tabular-nums">{ngn(data.escrow?.heldAmount)}</div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">{escrowDisplay.label}</div>
+                  <div className={cn(
+                    "text-base lg:text-lg font-semibold tabular-nums",
+                    tx.moneyStatus === "funds_frozen" ? "text-cyan-300" : "text-purple-400",
+                  )}>{ngn(escrowDisplay.value)}</div>
                 </div>
               </div>
+
               {/* Action Row (desktop) */}
               <div className="hidden lg:flex items-center justify-between mt-6 pt-6 border-t border-border gap-4 flex-wrap">
                 <div className="flex items-center gap-3 flex-wrap">
@@ -434,21 +526,10 @@ export default function AdminTransactionDetail() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {adminCan.canExport && (
-                    <Button variant="outline" size="sm" onClick={exportData}>
-                      <Download className="h-4 w-4 mr-1.5" /> Export Data
-                    </Button>
-                  )}
-                  {adminCan.canOpenInvestigation && (
-                    <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-blue-500/40 text-blue-300 hover:text-blue-200">
-                      <Search className="h-4 w-4 mr-1.5" /> Open Investigation
-                    </Button>
-                  )}
-                  {adminCan.canFreeze && (
-                    <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200">
-                      <Lock className="h-4 w-4 mr-1.5" /> Freeze Funds
-                    </Button>
-                  )}
+                  {adminCan.canExport && <Button variant="outline" size="sm" onClick={exportData}><Download className="h-4 w-4 mr-1.5" /> Export Data</Button>}
+                  {adminCan.canOpenInvestigation && <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-blue-500/40 text-blue-300 hover:text-blue-200"><Search className="h-4 w-4 mr-1.5" /> Open Investigation</Button>}
+                  {adminCan.canFreeze && <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200"><Lock className="h-4 w-4 mr-1.5" /> Freeze Funds</Button>}
+                  {adminCan.canUnfreeze && <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200"><Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze Funds</Button>}
                   {adminCan.canManageDispute && dispute && (
                     <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
                       <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
@@ -459,140 +540,391 @@ export default function AdminTransactionDetail() {
             </div>
           </Card>
 
-          {/* Quick actions (mobile, wrapped in card) */}
-          <div className="lg:hidden">
-            <Card>
-              <div className="px-4 py-4 border-b border-border">
-                <h3 className="text-sm font-semibold text-foreground">Quick Actions</h3>
-              </div>
-              <div className="p-4 grid grid-cols-2 gap-2">
-                {adminCan.canOpenInvestigation && (
-                  <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-blue-500/40 text-blue-300">
-                    <Search className="h-4 w-4 mr-1.5" /> Investigate
-                  </Button>
-                )}
-                {adminCan.canFreeze && (
-                  <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-red-500/40 text-red-300">
-                    <Lock className="h-4 w-4 mr-1.5" /> Freeze
-                  </Button>
-                )}
-                {adminCan.canUnfreeze && (
-                  <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300">
-                    <Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze
-                  </Button>
-                )}
-                {adminCan.canExport && (
-                  <Button variant="outline" size="sm" onClick={exportData}><Download className="h-4 w-4 mr-1.5" /> Export</Button>
-                )}
-                {adminCan.canManageDispute && dispute && (
-                  <Button size="sm" onClick={() => navigate(`/admin/disputes/${dispute.id}`)} className="bg-orange-500 hover:bg-orange-600 text-white">
-                    <Scale className="h-4 w-4 mr-1.5" /> Manage
-                  </Button>
-                )}
-              </div>
-            </Card>
-          </div>
-
-          {/* Mobile Dispute Status card */}
-          {dispute && (
-            <div className="lg:hidden">
-              <CollapsibleCard title="Dispute Status">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Scale className="h-4 w-4 text-orange-400" />
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Dispute Opened</p>
-                        <p className="text-xs text-muted-foreground">{fmtDate(dispute.openedAt)}</p>
-                      </div>
-                    </div>
-                    <StatusBadge value={dispute.status} />
-                  </div>
-                  {dispute.sellerResponseDueAt && (
-                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium text-foreground">Deadline</p>
-                          <p className="text-xs text-muted-foreground">{fmtDate(dispute.sellerResponseDueAt)}</p>
-                        </div>
-                      </div>
-                      {dispute.overdue && <span className="text-xs font-bold text-red-400">OVERDUE</span>}
-                    </div>
-                  )}
-                  {(dispute.evidence ?? []).length > 0 && (
-                    <div className="p-3 bg-muted/30 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-foreground">Evidence</span>
-                      </div>
-                      <div className="space-y-2">
-                        {dispute.evidence.map((e: any) => (
-                          <div key={e.id} className="flex items-center gap-2">
-                            <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center shrink-0">
-                              <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs text-foreground truncate">{titleCase(e.evidenceType)}</p>
-                              <p className="text-xs text-muted-foreground">{fmtDate(e.at)}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+          {/* === Locked Agreement preview card === */}
+          <Card>
+            <CardHeader
+              title="Locked Agreement"
+              subtitle={lockedAgreement?.lockedAt ? `Locked ${fmtDate(lockedAgreement.lockedAt)}` : "Original terms when payment was made"}
+              action={
+                <Button size="sm" variant="outline" onClick={() => setAgreementOpen(true)}>
+                  <Eye className="h-4 w-4 mr-1.5" /> Preview Agreement
+                </Button>
+              }
+            />
+            <div className="p-4 lg:p-6">
+              {!lockedAgreement ? (
+                <div className="rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-300">
+                  Agreement snapshot missing. Review this transaction for data integrity.
                 </div>
-              </CollapsibleCard>
-            </div>
-          )}
-
-          {/* Locked Agreement */}
-          {((data as any).agreement || data.transaction?.agreementLockedAt) && (
-            <Card>
-              <CardHeader title="Locked Agreement" subtitle="Original terms when payment was made" />
-              <div className="p-4 lg:p-6">
+              ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h4 className="text-sm font-medium text-foreground mb-3">Item Details</h4>
-                    <div className="space-y-1.5">
-                      <p className="text-sm text-foreground">{itemTitle}</p>
-                      {data.items?.[0]?.description && (
-                        <p className="text-xs text-muted-foreground">{data.items[0].description}</p>
-                      )}
-                      {data.items?.[0]?.condition && (
-                        <p className="text-xs text-muted-foreground">Condition: {titleCase(data.items[0].condition)}</p>
-                      )}
+                    <div className="space-y-1.5 text-sm">
+                      <p className="text-foreground">{lockedAgreement.item.title ?? "—"}</p>
+                      {lockedAgreement.item.description && <p className="text-xs text-muted-foreground">{lockedAgreement.item.description}</p>}
+                      {lockedAgreement.item.condition && <p className="text-xs text-muted-foreground">Condition: {titleCase(lockedAgreement.item.condition)}</p>}
+                      {lockedAgreement.item.quantity != null && <p className="text-xs text-muted-foreground">Quantity: {lockedAgreement.item.quantity}</p>}
                     </div>
                   </div>
                   <div>
                     <h4 className="text-sm font-medium text-foreground mb-3">Terms</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Agreed Price:</span>
-                        <span className="text-foreground tabular-nums">{ngn(data.pricing?.itemTotal)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Delivery:</span>
-                        <span className="text-foreground">{titleCase(data.delivery?.method) || "—"}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Verification Window:</span>
-                        <span className="text-foreground">{data.delivery?.verificationWindowHours ? `${data.delivery.verificationWindowHours}h` : "—"}</span>
-                      </div>
-                      {((data as any).agreement?.lockedAt || data.transaction?.agreementLockedAt) && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Locked At:</span>
-                          <span className="text-foreground">{fmtDate((data as any).agreement?.lockedAt ?? data.transaction.agreementLockedAt)}</span>
-                        </div>
-                      )}
+                    <div className="space-y-2 text-sm">
+                      <RowKV k="Agreed Price" v={ngn(lockedAgreement.agreedPrice)} />
+                      <RowKV k="Protection Fee" v={ngn(lockedAgreement.protectionFee)} />
+                      <RowKV k="Total" v={ngn(lockedAgreement.total)} bold />
+                      <RowKV k="Delivery" v={titleCase(lockedAgreement.deliveryMethod) || "—"} />
+                      <RowKV k="Verification Window" v={lockedAgreement.verificationWindowHours ? `${lockedAgreement.verificationWindowHours}h` : "—"} />
                     </div>
                   </div>
+                  {lockedAgreement.sellerNotes && (
+                    <div className="md:col-span-2 rounded-md bg-muted/30 p-3">
+                      <h5 className="text-sm font-medium text-foreground mb-1">Seller Notes</h5>
+                      <p className="text-sm text-muted-foreground">{lockedAgreement.sellerNotes}</p>
+                    </div>
+                  )}
                 </div>
+              )}
+            </div>
+          </Card>
+
+          {/* === Dispute Evidence & Media (HIGH on the page when dispute exists) === */}
+          {(evidence.length > 0 || dispute) && (
+            <Card>
+              <CardHeader
+                title="Dispute Evidence & Media"
+                subtitle={`${evidence.length} item${evidence.length === 1 ? "" : "s"}`}
+              />
+              <div className="p-4 lg:p-6">
+                {evidence.length === 0 ? (
+                  <Empty>No evidence files uploaded yet.</Empty>
+                ) : (
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {evidence.map((ev) => {
+                      const Icon = evidenceIcon(ev.kind);
+                      return (
+                        <li key={ev.id} className="rounded-lg border border-border bg-muted/20 overflow-hidden flex flex-col">
+                          <div className="aspect-video bg-muted/40 flex items-center justify-center relative">
+                            {ev.kind === "image" && ev.secureUrl ? (
+                              <img src={ev.secureUrl} alt={ev.title} draggable={false} className="w-full h-full object-cover pointer-events-none" />
+                            ) : (
+                              <Icon className="h-8 w-8 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="p-3 flex-1 flex flex-col gap-1.5">
+                            <div className="text-sm font-medium text-foreground truncate">{ev.title}</div>
+                            <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground">
+                              <span className="rounded bg-muted px-1.5 py-0.5">{titleCase(ev.kind)}</span>
+                              {ev.uploadedByRole && <span>by {ev.uploadedByRole}</span>}
+                              <span>·</span>
+                              <span>{fmtDate(ev.uploadedAt)}</span>
+                            </div>
+                            {ev.note && <p className="text-xs text-muted-foreground line-clamp-2">{ev.note}</p>}
+                            <div className="mt-auto pt-2 flex items-center justify-between gap-2">
+                              <StatusPill value={ev.status} />
+                              <Button size="sm" variant="outline" onClick={() => setEvidencePreview(ev)}>
+                                <Eye className="h-3.5 w-3.5 mr-1.5" /> Preview
+                              </Button>
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
             </Card>
           )}
 
-          {/* Items */}
+          {/* === Dispute Status === */}
+          {dispute && (
+            <Card accent="orange">
+              <CardHeader
+                title="Dispute Status"
+                subtitle={titleCase(dispute.claimType)}
+                action={<StatusPill value={dispute.status} />}
+              />
+              <div className="p-4 lg:p-6 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <DStatusRow icon={Scale} label="Dispute Opened" value={fmtDate(dispute.openedAt)} pill={<StatusPill value={dispute.status} />} />
+                  {dispute.sellerResponseDueAt && (
+                    <DStatusRow
+                      icon={Clock}
+                      label="Resolution Deadline"
+                      value={fmtDate(dispute.sellerResponseDueAt)}
+                      pill={dispute.overdue ? <span className="text-xs font-bold text-red-400">OVERDUE</span> : null}
+                    />
+                  )}
+                  <DStatusRow icon={User} label="Dispute Type" value={titleCase(dispute.claimType)} pill={null} />
+                </div>
+                {dispute.summary && <p className="text-sm text-foreground/90">{dispute.summary}</p>}
+                {dispute.outcome && (
+                  <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
+                    <div className="font-semibold text-foreground">Outcome: {titleCase(dispute.outcome.type)}</div>
+                    <div className="text-muted-foreground mt-1">{dispute.outcome.summary}</div>
+                    <div className="text-muted-foreground mt-1">Refund {ngn(dispute.outcome.refundAmount)} · Release {ngn(dispute.outcome.releaseAmount)}</div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* === Risk & Investigation === */}
+          <Card>
+            <CardHeader
+              title="Risk & Investigation"
+              action={
+                <div className="flex items-center gap-2">
+                  <StatusPill value={data.risk?.level} />
+                  {adminCan.canAddNote && (
+                    <Button size="sm" variant="outline" onClick={() => setNoteOpen(true)}>
+                      <StickyNote className="h-4 w-4 mr-1.5" /> Add note
+                    </Button>
+                  )}
+                </div>
+              }
+            />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 lg:p-6">
+              <div className="space-y-3">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Risk Assessment</div>
+                {allFlags.length === 0 ? (
+                  <Empty>No risk flags.</Empty>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {allFlags.map((f: any, i: number) => (
+                      <li key={i} className={cn(
+                        "flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-[11px]",
+                        f.severity === "high" ? "border-red-500/30 bg-red-500/10 text-red-300" :
+                        f.severity === "medium" ? "border-orange-500/30 bg-orange-500/10 text-orange-300" :
+                        "border-yellow-500/30 bg-yellow-500/10 text-yellow-300",
+                      )}>
+                        <Flag className="h-3 w-3 mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="font-medium">{f.label}</div>
+                          {f.detail && <div className="text-[10px] opacity-80 truncate">{f.detail}</div>}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="space-y-3 lg:border-l lg:border-border lg:pl-4">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Investigation Log</div>
+                {(data.risk?.investigationNotes ?? []).length === 0 ? (
+                  <div className="text-xs text-muted-foreground">
+                    {allFlags.length > 0
+                      ? "No admin notes yet. Risk flags were generated automatically from transaction state."
+                      : "No investigation activity yet."}
+                  </div>
+                ) : (
+                  <ul className="space-y-2">
+                    {data.risk.investigationNotes.map((n: any) => (
+                      <li key={n.id} className="rounded-md border border-border bg-muted/30 p-3 text-xs">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <span className="text-muted-foreground text-[11px]">{fmtDate(n.at)} {n.author?.full_name ? `· ${n.author.full_name}` : ""}</span>
+                        </div>
+                        <p className="text-foreground whitespace-pre-wrap">{n.note}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+            {(data.risk?.escalationHistory ?? []).length > 0 && (
+              <div className="px-4 lg:px-6 pb-4 lg:pb-6">
+                <div className="border-t border-border pt-4">
+                  <h4 className="text-sm font-medium text-foreground mb-3">Escalation History</h4>
+                  <ul className="space-y-2">
+                    {data.risk.escalationHistory.map((h: any, i: number) => {
+                      const dot = h.severity === "critical" ? "bg-red-400" : h.severity === "warning" ? "bg-orange-400" : "bg-slate-400";
+                      return (
+                        <li key={i} className="flex items-center gap-3 text-sm flex-wrap">
+                          <div className={cn("w-2 h-2 rounded-full shrink-0", dot)} />
+                          <span className="text-muted-foreground text-xs whitespace-nowrap">{fmtDate(h.at)}</span>
+                          <span className="text-foreground">{titleCase(h.label)}</span>
+                          {h.by && <span className="text-muted-foreground text-xs">by {h.by}</span>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </Card>
+
+          {/* === Complete Transaction Timeline === */}
+          <Card>
+            <CardHeader
+              title="Complete Transaction Timeline"
+              subtitle="All events, status changes, and interventions"
+              action={
+                <Button size="sm" variant="ghost" onClick={() => setTlNewest((v) => !v)}>
+                  {tlNewest ? "Newest first" : "Oldest first"}
+                </Button>
+              }
+            />
+            <div className="p-4 lg:p-6">
+              <div className="flex flex-wrap items-center gap-1.5 mb-4">
+                {TL_FILTERS.map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setTlFilter(f.key)}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs border",
+                      tlFilter === f.key
+                        ? "bg-primary/15 border-primary/40 text-primary"
+                        : "border-border text-muted-foreground hover:text-foreground",
+                    )}
+                  >{f.label}</button>
+                ))}
+              </div>
+              {filteredTimeline.length === 0 ? (
+                <Empty>No events recorded.</Empty>
+              ) : (
+                <div className="relative">
+                  <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" aria-hidden />
+                  <ol className="relative space-y-5">
+                    {visibleTimeline.map((e) => {
+                      const m = timelineMeta(e.icon, e.severity);
+                      const Icon = m.Icon;
+                      return (
+                        <li key={e.id} className="flex gap-4">
+                          <div className={cn("h-8 w-8 rounded-full border-2 flex items-center justify-center shrink-0 relative z-10", m.cls)}>
+                            <Icon className="h-3.5 w-3.5" />
+                          </div>
+                          <div className="flex-1 min-w-0 pb-1">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <h4 className="text-sm font-medium text-foreground">{titleCase(e.title)}</h4>
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">{fmtDate(e.at)}</span>
+                            </div>
+                            {e.description && <p className="text-xs text-muted-foreground">{e.description}</p>}
+                            {(e.actorName || e.actorType) && (
+                              <div className="text-[11px] text-muted-foreground mt-0.5">by {e.actorName ?? e.actorType}</div>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+              )}
+              {filteredTimeline.length > 8 && (
+                <div className="mt-4 text-center">
+                  <Button size="sm" variant="outline" onClick={() => setShowFullTimeline((v) => !v)}>
+                    {showFullTimeline ? "Show less" : `Show full timeline (${filteredTimeline.length})`}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* === Linked Records === */}
+          <Card>
+            <CardHeader title="Linked Records" />
+            <div className="p-4 lg:p-6">
+              <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {(() => {
+                  const records = [...(data.linkedRecords ?? [])];
+                  // Adjust escrow card to reflect frozen state
+                  const idxEscrow = records.findIndex((r) => (r.type ?? "").toLowerCase() === "escrow");
+                  if (idxEscrow >= 0 && tx.moneyStatus === "funds_frozen") {
+                    records[idxEscrow] = {
+                      ...records[idxEscrow],
+                      label: "Escrow",
+                      subtitle: "Frozen",
+                      status: "funds_frozen",
+                      amount: escrowDisplay.value,
+                    };
+                  }
+                  // Synthesize No Payout placeholder if dispute open
+                  const hasPayout = records.some((r) => (r.type ?? "").toLowerCase() === "payout");
+                  if (!hasPayout && dispute) {
+                    records.push({
+                      type: "payout", label: "No payout yet", subtitle: "Pending dispute resolution",
+                      status: null, amount: null, currency: null, route: null,
+                    });
+                  }
+                  // Add Locked Agreement card
+                  if (lockedAgreement) {
+                    records.push({
+                      type: "agreement", label: "Locked Agreement",
+                      subtitle: lockedAgreement.lockedAt ? fmtDate(lockedAgreement.lockedAt) : null,
+                      status: null, amount: null, currency: null, route: null,
+                    });
+                  }
+                  return records;
+                })().map((r, i) => {
+                  const typeKey = (r.type ?? "").toLowerCase();
+                  const ICON_MAP: Record<string, { Icon: any; cls: string }> = {
+                    payment: { Icon: CreditCard, cls: "bg-emerald-500/20 text-emerald-400" },
+                    escrow: { Icon: Vault, cls: tx.moneyStatus === "funds_frozen" ? "bg-cyan-500/20 text-cyan-400" : "bg-purple-500/20 text-purple-400" },
+                    payout: { Icon: Wallet, cls: "bg-blue-500/20 text-blue-400" },
+                    dispute: { Icon: Scale, cls: "bg-orange-500/20 text-orange-400" },
+                    agreement: { Icon: FileSignature, cls: "bg-slate-500/20 text-slate-300" },
+                  };
+                  const isParty = typeKey === "buyer" || typeKey === "seller";
+                  const iconMeta = ICON_MAP[typeKey];
+                  const party = isParty ? data.parties[typeKey as "buyer" | "seller"] : null;
+                  const isEmptyPayout = typeKey === "payout" && r.label === "No payout yet";
+                  const onClick =
+                    typeKey === "agreement" ? () => setAgreementOpen(true) :
+                    r.route ? () => navigate(r.route!) : undefined;
+                  const inner = (
+                    <div className={cn(
+                      "p-4 bg-muted/30 border border-border rounded-lg hover:border-blue-500/50 transition-all h-full flex flex-col",
+                      isEmptyPayout && "opacity-60",
+                    )}>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">{titleCase(r.type)}</span>
+                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {isParty ? (
+                          <Avatar name={party?.name ?? r.label} src={party?.avatarUrl ?? null} size={40} />
+                        ) : iconMeta ? (
+                          <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", iconMeta.cls)}>
+                            <iconMeta.Icon className="h-4 w-4" />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0"><Circle className="h-4 w-4 text-muted-foreground" /></div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-foreground font-medium text-sm truncate">{r.label}</p>
+                          {r.subtitle && <p className="text-muted-foreground text-xs truncate font-mono">{r.subtitle}</p>}
+                        </div>
+                      </div>
+                      {(r.status || r.amount != null || (isParty && (party?.flagged || party?.verification?.identity))) && (
+                        <div className="mt-3 pt-3 border-t border-border flex items-center justify-between gap-2">
+                          {isParty ? (
+                            party?.flagged ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
+                                <Flag className="h-3 w-3 mr-1" /> Flagged
+                              </span>
+                            ) : party?.verification?.identity ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400">
+                                <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                              </span>
+                            ) : <span />
+                          ) : (
+                            r.status ? (typeKey === "escrow" ? <MoneyPill value={r.status} /> : <StatusPill value={r.status} />) : <span />
+                          )}
+                          {r.amount != null && <span className="text-sm font-semibold tabular-nums text-foreground">{ngn(r.amount)}</span>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                  return (
+                    <li key={i}>
+                      {onClick ? <button type="button" onClick={onClick} className="w-full text-left h-full">{inner}</button> : inner}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </Card>
+
+          {/* === Items === */}
           <Card>
             <CardHeader title="Items" subtitle={`${data.items.length} item${data.items.length === 1 ? "" : "s"}`} />
             <div className="p-4 lg:p-6 space-y-3">
@@ -620,394 +952,149 @@ export default function AdminTransactionDetail() {
             </div>
           </Card>
 
-          {/* Pricing */}
+          {/* === Pricing & Fees === */}
           <Card>
             <CardHeader title="Pricing & Fees" />
             <div className="p-4 lg:p-6">
-              {!data.pricing && <Empty>No pricing recorded.</Empty>}
-              {data.pricing && (
+              {!data.pricing ? <Empty>No pricing recorded.</Empty> : (
                 <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <Stat label="Item Total" value={<span className="tabular-nums">{ngn(data.pricing.itemTotal)}</span>} />
-                  <Stat label="Protection Fee" value={<span className="tabular-nums">{ngn(data.pricing.protectionFee)}</span>} />
-                  <Stat label="Processing Fee" value={<span className="tabular-nums">{ngn(data.pricing.processingFee)}</span>} />
-                  <Stat label="Refunded" value={<span className="tabular-nums">{ngn(data.pricing.refundedTotal)}</span>} />
-                  <Stat label="Seller Net" value={<span className="tabular-nums">{ngn(data.pricing.sellerNet)}</span>} />
-                  <Stat label="Buyer Total" value={<span className="tabular-nums font-semibold">{ngn(data.pricing.buyerTotal)}</span>} />
+                  <KV label="Item Total" value={ngn(data.pricing.itemTotal)} />
+                  <KV label="Protection Fee" value={ngn(data.pricing.protectionFee)} />
+                  <KV label="Processing Fee" value={ngn(data.pricing.processingFee)} />
+                  <KV label="Refunded" value={ngn(data.pricing.refundedTotal)} />
+                  <KV label="Seller Net" value={ngn(data.pricing.sellerNet)} />
+                  <KV label="Buyer Total" value={ngn(data.pricing.buyerTotal)} bold />
                 </dl>
               )}
             </div>
           </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Payment */}
-            <Card>
-              <CardHeader title="Payment" />
-              <div className="p-4 lg:p-6">
-                {!data.payment && <Empty>No payment recorded.</Empty>}
-                {data.payment && (
-                  <dl className="grid grid-cols-2 gap-4">
-                    <Stat label="Provider" value={<span className="capitalize">{data.payment.provider}</span>} />
-                    <Stat label="Status" value={<StatusBadge value={data.payment.status} />} />
-                    <Stat label="Amount" value={<span className="tabular-nums">{ngn(data.payment.amount)}</span>} />
-                    <Stat label="Method" value={titleCase(data.payment.paymentMethodType)} />
-                    <Stat label="Reference" value={<span className="font-mono text-xs break-all">{data.payment.providerReference}</span>} />
-                    <Stat label="Paid At" value={fmtDate(data.payment.paidAt)} />
-                    {data.payment.failureReason && <div className="col-span-2"><Stat label="Failure" value={<span className="text-red-300">{data.payment.failureReason}</span>} /></div>}
-                  </dl>
-                )}
-              </div>
-            </Card>
-
-            {/* Escrow */}
-            <Card>
-              <CardHeader title="Escrow" />
-              <div className="p-4 lg:p-6">
-                {!data.escrow && <Empty>No escrow record.</Empty>}
-                {data.escrow && (
-                  <dl className="grid grid-cols-2 gap-4">
-                    <Stat label="State" value={<StatusBadge value={data.escrow.state} />} />
-                    <Stat label="Held" value={<span className="tabular-nums">{ngn(data.escrow.heldAmount)}</span>} />
-                    <Stat label="Frozen" value={<span className="tabular-nums">{ngn(data.escrow.frozenAmount)}</span>} />
-                    <Stat label="Released" value={<span className="tabular-nums">{ngn(data.escrow.releasedAmount)}</span>} />
-                    <Stat label="Refunded" value={<span className="tabular-nums">{ngn(data.escrow.refundedAmount)}</span>} />
-                    <Stat label="Last Changed" value={fmtDate(data.escrow.lastChangedAt)} />
-                  </dl>
-                )}
-              </div>
-            </Card>
-
-            {/* Payout */}
-            <Card>
-              <CardHeader title="Payout" />
-              <div className="p-4 lg:p-6">
-                {!data.payout && <Empty>No payout recorded.</Empty>}
-                {data.payout && (
-                  <dl className="grid grid-cols-2 gap-4">
-                    <Stat label="Status" value={<StatusBadge value={data.payout.status} />} />
-                    <Stat label="Amount" value={<span className="tabular-nums">{ngn(data.payout.amount)}</span>} />
-                    <Stat label="Reference" value={<span className="font-mono text-xs break-all">{data.payout.providerReference ?? "—"}</span>} />
-                    <Stat label="Released At" value={fmtDate(data.payout.releasedAt ?? data.payout.completedAt)} />
-                    {data.payout.failureReason && <div className="col-span-2"><Stat label="Failure" value={<span className="text-red-300">{data.payout.failureReason}</span>} /></div>}
-                    {data.payout.blocked && <div className="col-span-2"><Stat label="Blocked" value={<span className="text-orange-300">{data.payout.blockedReason ?? "Blocked"}</span>} /></div>}
-                    {data.payout.retryAllowed && (
-                      <div className="col-span-2"><Button size="sm" variant="outline"><RefreshCcw className="h-3.5 w-3.5 mr-1.5" /> Retry available</Button></div>
-                    )}
-                  </dl>
-                )}
-              </div>
-            </Card>
-
-            {/* Delivery */}
-            <Card>
-              <CardHeader title="Delivery" />
-              <div className="p-4 lg:p-6">
-                <dl className="grid grid-cols-2 gap-4">
-                  <Stat label="Method" value={titleCase(data.delivery?.method)} />
-                  <Stat label="Courier" value={data.delivery?.courier ?? "—"} />
-                  <Stat label="Tracking #" value={data.delivery?.trackingNumber ?? "—"} />
-                  <Stat label="Tracking URL" value={data.delivery?.trackingUrl ? (
-                    <a href={data.delivery.trackingUrl} target="_blank" rel="noreferrer" className="text-blue-400 inline-flex items-center gap-1">Open <ExternalLink className="h-3 w-3" /></a>
-                  ) : "—"} />
-                  <Stat label="Shipped" value={fmtDate(data.delivery?.shippedAt)} />
-                  <Stat label="Delivered" value={fmtDate(data.delivery?.deliveredAt)} />
-                  <Stat label="Expected" value={fmtDate(data.delivery?.expectedDeliveryAt ?? data.delivery?.expectedDate)} />
-                  <Stat label="Verification Window" value={data.delivery?.verificationWindowHours ? `${data.delivery.verificationWindowHours}h` : "—"} />
-                </dl>
-                {data.delivery?.address && (
-                  <div className="mt-3 text-xs text-muted-foreground">{data.delivery.address}</div>
-                )}
-                {(data.delivery?.updates ?? []).length > 0 && (
-                  <div className="mt-4">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Updates</div>
-                    <ul className="space-y-1.5">
-                      {data.delivery.updates.map((u: any) => (
-                        <li key={u.id} className="text-xs text-muted-foreground">
-                          <span className="text-foreground">{titleCase(u.status)}</span> · {fmtDate(u.at)}
-                          {u.notes && <span> — {u.notes}</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </Card>
-          </div>
-
-          {/* Dispute */}
-          {dispute && (
-            <Card accent="orange">
-              <CardHeader title="Dispute" subtitle={titleCase(dispute.claimType)} action={<StatusBadge value={dispute.status} />} />
-              <div className="p-4 lg:p-6 space-y-3">
-                <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <Stat label="Opened" value={fmtDate(dispute.openedAt)} />
-                  <Stat label="Seller Response Due" value={<><span>{fmtDate(dispute.sellerResponseDueAt)}</span>{dispute.overdue && <span className="ml-1.5 text-[10px] rounded bg-red-500/20 text-red-300 px-1.5 py-0.5">Overdue</span>}</>} />
-                  <Stat label="Resolved" value={fmtDate(dispute.resolvedAt)} />
-                </dl>
-                {dispute.summary && <div className="text-sm text-foreground/90">{dispute.summary}</div>}
-                {dispute.outcome && (
-                  <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
-                    <div className="font-semibold text-foreground">Outcome: {titleCase(dispute.outcome.type)}</div>
-                    <div className="text-muted-foreground mt-1">{dispute.outcome.summary}</div>
-                    <div className="text-muted-foreground mt-1">Refund {ngn(dispute.outcome.refundAmount)} · Release {ngn(dispute.outcome.releaseAmount)}</div>
-                  </div>
-                )}
-                {(dispute.evidence ?? []).length > 0 && (
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Evidence ({dispute.evidence.length})</div>
-                    <ul className="text-xs text-muted-foreground space-y-1">
-                      {dispute.evidence.map((e: any) => (
-                        <li key={e.id}>· {titleCase(e.evidenceType)} by {e.submittedByRole} — {fmtDate(e.at)}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </Card>
-          )}
-
-          {/* Timeline */}
-          <CollapsibleCard title="Complete Transaction Timeline" subtitle="All events, status changes, and interventions">
-            {data.timeline.length === 0 && <Empty>No events recorded.</Empty>}
-            {data.timeline.length > 0 && (
-              <div className="relative">
-                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" aria-hidden />
-                <ol className="relative space-y-5">
-                  {data.timeline.map((e) => {
-                    const m = timelineMeta(e.icon, e.severity);
-                    const Icon = m.Icon;
-                    return (
-                      <li key={e.id} className="flex gap-4">
-                        <div className={cn("h-8 w-8 rounded-full border-2 flex items-center justify-center shrink-0 relative z-10", m.cls)}>
-                          <Icon className="h-3.5 w-3.5" />
-                        </div>
-                        <div className="flex-1 min-w-0 pb-1">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <h4 className="text-sm font-medium text-foreground">{titleCase(e.title)}</h4>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">{fmtDate(e.at)}</span>
-                          </div>
-                          {e.description && <p className="text-xs text-muted-foreground">{e.description}</p>}
-                          {(e.actorName || e.actorType) && (
-                            <div className="text-[11px] text-muted-foreground mt-0.5">
-                              by {e.actorName ?? e.actorType}
-                            </div>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </div>
-            )}
-          </CollapsibleCard>
-
-          {/* Escrow Ledger */}
-          <CollapsibleCard title="Escrow Ledger" subtitle={`${data.escrow?.ledger?.length ?? 0} entries`}>
-            {(!data.escrow?.ledger || data.escrow.ledger.length === 0) && <Empty>No ledger entries.</Empty>}
-            {data.escrow && data.escrow.ledger.length > 0 && (
-              <div className="overflow-x-auto rounded-md border border-border">
-                <table className="w-full text-xs">
-                  <thead className="bg-muted/40 text-muted-foreground"><tr>
-                    <th className="p-2 text-left">Date</th><th className="p-2 text-left">Type</th>
-                    <th className="p-2 text-right">Amount</th><th className="p-2 text-right">Balance</th>
-                    <th className="p-2 text-left">Notes</th>
-                  </tr></thead>
-                  <tbody>
-                    {data.escrow.ledger.map((r) => (
-                      <tr key={r.id} className="border-t border-border">
-                        <td className="p-2 align-top whitespace-nowrap">{fmtDate(r.at)}</td>
-                        <td className="p-2 align-top">{titleCase(r.entryType)}</td>
-                        <td className="p-2 text-right tabular-nums align-top">{ngn(r.amount)}</td>
-                        <td className="p-2 text-right tabular-nums align-top">{ngn(r.balanceAfter)}</td>
-                        <td className="p-2 align-top text-muted-foreground">{r.notes ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CollapsibleCard>
-
-          {/* Risk & Investigation — split into Assessment + Log */}
+          {/* === Payment & Escrow === */}
           <Card>
-            <CardHeader
-              title="Risk & Investigation"
-              action={
-                <div className="flex items-center gap-2">
-                  <StatusBadge value={data.risk?.level} />
-                  {adminCan.canOpenInvestigation && (
-                    <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)}>
-                      <Search className="h-3.5 w-3.5 mr-1.5" /> Investigate
-                    </Button>
-                  )}
-                </div>
-              }
-            />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 lg:p-6">
-              {/* Assessment */}
-              <div className="space-y-3">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Risk Assessment</div>
-                {(data.risk?.flags ?? []).length === 0 && <Empty>No risk flags raised.</Empty>}
-                {(data.risk?.flags ?? []).length > 0 && (
-                  <ul className="space-y-1.5">
-                    {data.risk.flags.map((f: any, i: number) => (
-                      <li key={i} className={cn("flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-[11px]",
-                        f.severity === "high" ? "border-red-500/30 bg-red-500/10 text-red-300" :
-                        f.severity === "medium" ? "border-orange-500/30 bg-orange-500/10 text-orange-300" :
-                        "border-yellow-500/30 bg-yellow-500/10 text-yellow-300")}>
-                        <Flag className="h-3 w-3 mt-0.5 shrink-0" />
-                        <div className="min-w-0">
-                          <div className="font-medium">{f.label}</div>
-                          {f.detail && <div className="text-[10px] opacity-80 truncate">{f.detail}</div>}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {data.risk?.adminReviewReason && (
-                  <div className="rounded-md border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground">
-                    <span className="text-foreground font-medium">Reason:</span> {data.risk.adminReviewReason}
+            <CardHeader title="Payment & Escrow" />
+            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
+              <div className="p-4 lg:p-6">
+                <h4 className="text-sm font-medium text-foreground mb-3">Payment Details</h4>
+                {!data.payment ? <Empty>No payment recorded.</Empty> : (
+                  <div className="space-y-2 text-sm">
+                    <RowKV k="Provider" v={titleCase(data.payment.provider)} />
+                    <RowKV k="Status" v={<StatusPill value={data.payment.status} />} />
+                    <RowKV k="Amount" v={ngn(data.payment.amount)} />
+                    <RowKV k="Method" v={titleCase(data.payment.paymentMethodType) || "—"} />
+                    <RowKV k="Reference" v={<span className="font-mono text-xs break-all">{data.payment.providerReference ?? "—"}</span>} />
+                    <RowKV k="Paid At" v={fmtDate(data.payment.paidAt)} />
                   </div>
                 )}
               </div>
-              {/* Investigation Log */}
-              <div className="space-y-3 lg:border-l lg:border-border lg:pl-4">
-                <div className="flex items-center justify-between">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Investigation Log</div>
-                  {adminCan.canAddNote && (
-                    <button type="button" onClick={() => setNoteOpen(true)} className="text-[11px] text-primary hover:underline">+ Add note</button>
-                  )}
-                </div>
-                {(data.risk?.investigationNotes ?? []).length === 0 && (data.risk?.escalationHistory ?? []).length === 0 && (
-                  <Empty>No investigation activity yet.</Empty>
-                )}
-                {(data.risk?.investigationNotes ?? []).length > 0 && (
-                  <ul className="space-y-2">
-                    {data.risk.investigationNotes.map((n: any) => (
-                      <li key={n.id} className="rounded-md border border-border bg-muted/30 p-3 text-xs">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <span className="text-muted-foreground text-[11px]">{fmtDate(n.at)} {n.author?.full_name ? `· ${n.author.full_name}` : ""}</span>
-                          {n.tag && <span className="text-[10px] font-semibold uppercase text-orange-400">{n.tag}</span>}
-                        </div>
-                        <p className="text-foreground whitespace-pre-wrap">{n.note}</p>
-                      </li>
-                    ))}
-                  </ul>
+              <div className="p-4 lg:p-6">
+                <h4 className="text-sm font-medium text-foreground mb-3">Escrow</h4>
+                {!data.escrow ? <Empty>No escrow record.</Empty> : (
+                  <div className="space-y-2 text-sm">
+                    <RowKV k="State" v={<MoneyPill value={tx.moneyStatus} />} />
+                    <RowKV k="Held" v={ngn(data.escrow.heldAmount)} />
+                    <RowKV k="Frozen" v={<span className={tx.moneyStatus === "funds_frozen" ? "text-cyan-300 font-semibold" : ""}>{ngn(data.escrow.frozenAmount || (tx.moneyStatus === "funds_frozen" ? escrowDisplay.value : 0))}</span>} />
+                    <RowKV k="Released" v={ngn(data.escrow.releasedAmount)} />
+                    <RowKV k="Refunded" v={ngn(data.escrow.refundedAmount)} />
+                    <RowKV k="Last Changed" v={fmtDate(data.escrow.lastChangedAt)} />
+                  </div>
                 )}
               </div>
             </div>
-            {(data.risk?.escalationHistory ?? []).length > 0 && (
-              <div className="p-4 lg:p-6">
-                <div className="border-t border-border pt-4">
-                  <h4 className="text-sm font-medium text-foreground mb-3">Escalation History</h4>
-                  <ul className="space-y-2">
-                    {data.risk.escalationHistory.map((h: any, i: number) => {
-                      const dot = h.severity === "critical" ? "bg-red-400" : h.severity === "warning" ? "bg-orange-400" : "bg-slate-400";
-                      return (
-                        <li key={i} className="flex items-center gap-3 text-sm">
-                          <div className={cn("w-2 h-2 rounded-full shrink-0", dot)} />
-                          <span className="text-muted-foreground text-xs whitespace-nowrap">{fmtDate(h.at)}</span>
-                          <span className="text-foreground">{titleCase(h.label)}</span>
-                          {h.by && <span className="text-muted-foreground text-xs">by {h.by}</span>}
-                        </li>
-                      );
-                    })}
-                  </ul>
+            {(data.escrow?.ledger?.length ?? 0) > 0 && (
+              <div className="border-t border-border p-4 lg:p-6">
+                <h4 className="text-sm font-medium text-foreground mb-3">Escrow Ledger</h4>
+                <div className="overflow-x-auto rounded-md border border-border">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/40 text-muted-foreground"><tr>
+                      <th className="p-2 text-left">Date</th>
+                      <th className="p-2 text-left">Type</th>
+                      <th className="p-2 text-right">Amount</th>
+                      <th className="p-2 text-right">Balance</th>
+                      <th className="p-2 text-left">Notes</th>
+                    </tr></thead>
+                    <tbody>
+                      {data.escrow!.ledger.map((r) => (
+                        <tr key={r.id} className="border-t border-border">
+                          <td className="p-2 align-top whitespace-nowrap">{fmtDate(r.at)}</td>
+                          <td className="p-2 align-top">{titleCase(r.entryType)}</td>
+                          <td className="p-2 text-right tabular-nums align-top">{ngn(r.amount)}</td>
+                          <td className="p-2 text-right tabular-nums align-top">{ngn(r.balanceAfter)}</td>
+                          <td className="p-2 align-top text-muted-foreground">{r.notes ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
           </Card>
 
-          {/* Linked Records */}
+          {/* === Payout === */}
           <Card>
-            <CardHeader title="Linked Records" />
+            <CardHeader title="Payout" />
             <div className="p-4 lg:p-6">
-              {data.linkedRecords.length === 0 && <Empty>No linked records.</Empty>}
-              <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {(() => {
-                  const records = [...data.linkedRecords];
-                  const hasPayout = records.some((r) => (r.type ?? "").toLowerCase() === "payout");
-                  if (!hasPayout && dispute) {
-                    records.push({
-                      type: "payout",
-                      label: "No payout yet",
-                      subtitle: "Pending resolution",
-                      status: null,
-                      amount: null,
-                      currency: null,
-                      route: null,
-                    } as any);
-                  }
-                  return records;
-                })().map((r, i) => {
-                  const typeKey = (r.type ?? "").toLowerCase();
-                  const ICON_MAP: Record<string, { Icon: any; cls: string }> = {
-                    payment: { Icon: CreditCard, cls: "bg-emerald-500/20 text-emerald-400" },
-                    escrow: { Icon: Vault, cls: "bg-purple-500/20 text-purple-400" },
-                    payout: { Icon: Wallet, cls: "bg-blue-500/20 text-blue-400" },
-                    dispute: { Icon: Scale, cls: "bg-orange-500/20 text-orange-400" },
-                    agreement: { Icon: Handshake, cls: "bg-slate-500/20 text-slate-400" },
-                  };
-                  const isParty = typeKey === "buyer" || typeKey === "seller";
-                  const iconMeta = ICON_MAP[typeKey];
-                  const party = isParty ? data.parties[typeKey as "buyer" | "seller"] : null;
-                  const isEmptyPayout = typeKey === "payout" && r.label === "No payout yet";
-                  const inner = (
-                    <div className={cn(
-                      "p-4 bg-muted/30 border border-border rounded-lg hover:border-blue-500/50 transition-all h-full flex flex-col",
-                      isEmptyPayout && "opacity-60",
-                    )}>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">{titleCase(r.type)}</span>
-                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-                      </div>
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {isParty ? (
-                          <Avatar name={party?.name ?? r.label} src={party?.avatarUrl ?? null} size={40} />
-                        ) : iconMeta ? (
-                          <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", iconMeta.cls)}>
-                            <iconMeta.Icon className="h-4 w-4" />
-                          </div>
-                        ) : (
-                          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0"><Circle className="h-4 w-4 text-muted-foreground" /></div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-foreground font-medium text-sm truncate">{r.label}</p>
-                          {r.subtitle && <p className="text-muted-foreground text-xs truncate font-mono">{r.subtitle}</p>}
-                        </div>
-                      </div>
-                      {(r.status || r.amount != null || (isParty && party?.flagged)) && (
-                        <div className="mt-3 pt-3 border-t border-border flex items-center justify-between gap-2">
-                          {isParty ? (
-                            party?.flagged ? (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
-                                <Flag className="h-3 w-3 mr-1" /> Flagged
-                              </span>
-                            ) : party?.verification?.identity ? (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400">
-                                <ShieldCheck className="h-3 w-3 mr-1" /> Verified
-                              </span>
-                            ) : <span />
-                          ) : (
-                            r.status ? <StatusBadge value={r.status} /> : <span />
-                          )}
-                          {r.amount != null && <span className="text-sm font-semibold tabular-nums text-foreground">{ngn(r.amount)}</span>}
-                        </div>
-                      )}
-                    </div>
-                  );
-                  return (
-                    <li key={i}>
-                      {r.route ? <button type="button" onClick={() => navigate(r.route!)} className="w-full text-left h-full">{inner}</button> : inner}
-                    </li>
-                  );
-                })}
-              </ul>
+              {!data.payout ? (
+                <div className="text-sm text-muted-foreground">
+                  {dispute ? "No payout yet — pending dispute resolution." : "No payout recorded."}
+                </div>
+              ) : (
+                <dl className="grid grid-cols-2 gap-4">
+                  <KV label="Status" value={<StatusPill value={data.payout.status} />} />
+                  <KV label="Amount" value={ngn(data.payout.amount)} />
+                  <KV label="Reference" value={<span className="font-mono text-xs break-all">{data.payout.providerReference ?? "—"}</span>} />
+                  <KV label="Released At" value={fmtDate(data.payout.releasedAt ?? data.payout.completedAt)} />
+                  {data.payout.failureReason && <div className="col-span-2"><KV label="Failure" value={<span className="text-red-300">{data.payout.failureReason}</span>} /></div>}
+                  {data.payout.blocked && <div className="col-span-2"><KV label="Blocked" value={<span className="text-orange-300">{data.payout.blockedReason ?? "Blocked"}</span>} /></div>}
+                </dl>
+              )}
             </div>
           </Card>
+
+          {/* === Delivery & Fulfillment === */}
+          <Card>
+            <CardHeader title="Delivery & Fulfillment" />
+            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
+              <div className="p-4 lg:p-6">
+                <h4 className="text-sm font-medium text-foreground mb-3">Shipping Details</h4>
+                <div className="space-y-2 text-sm">
+                  <RowKV k="Method" v={titleCase(data.delivery?.method)} />
+                  <RowKV k="Carrier" v={data.delivery?.courier ?? "—"} />
+                  <RowKV k="Tracking" v={<span className="font-mono text-xs">{data.delivery?.trackingNumber ?? "—"}</span>} />
+                  <RowKV k="Shipped" v={fmtDate(data.delivery?.shippedAt)} />
+                  <RowKV k="Delivered" v={fmtDate(data.delivery?.deliveredAt)} />
+                  <RowKV k="Expected" v={fmtDate(data.delivery?.expectedDeliveryAt ?? data.delivery?.expectedDate)} />
+                </div>
+                {data.delivery?.address && <div className="mt-3 text-xs text-muted-foreground">{data.delivery.address}</div>}
+              </div>
+              <div className="p-4 lg:p-6">
+                <h4 className="text-sm font-medium text-foreground mb-3">Delivery Status</h4>
+                {(data.delivery?.updates ?? []).length === 0 ? <Empty>No delivery updates.</Empty> : (
+                  <ul className="space-y-2 text-sm">
+                    {data.delivery.updates.map((u: any) => (
+                      <li key={u.id} className="flex items-center gap-3">
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-foreground">{titleCase(u.status)}</p>
+                          <p className="text-xs text-muted-foreground">{fmtDate(u.at)}{u.notes ? ` — ${u.notes}` : ""}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {dispute?.overdue && (
+                  <div className="mt-4 rounded-md border border-red-500/20 bg-red-500/10 p-2.5 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
+                    <span className="text-red-400 text-xs">Dispute opened — funds frozen</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+
         </div>
       )}
 
-      {/* Mobile sticky action bar */}
+      {/* Mobile sticky bottom bar */}
       {!loading && !denied && !notFound && data && (
         <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur px-3 py-2 flex items-center gap-2">
           <Button size="sm" className="flex-1 bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setActionSheetOpen(true)}>
@@ -1039,6 +1126,7 @@ export default function AdminTransactionDetail() {
         </SheetContent>
       </Sheet>
 
+      {/* Dialogs */}
       <ActionConfirmDialog
         open={freezeOpen}
         onOpenChange={setFreezeOpen}
@@ -1108,6 +1196,49 @@ export default function AdminTransactionDetail() {
           setReloadKey((k) => k + 1);
         }}
       />
+      <AgreementPreviewDialog
+        open={agreementOpen}
+        onOpenChange={setAgreementOpen}
+        agreement={lockedAgreement}
+        transactionCode={code}
+      />
+      <EvidencePreviewDialog
+        open={!!evidencePreview}
+        onOpenChange={(v) => !v && setEvidencePreview(null)}
+        item={evidencePreview}
+        transactionCode={code}
+      />
     </AdminLayout>
+  );
+}
+
+function KV({ label, value, bold }: { label: string; value: React.ReactNode; bold?: boolean }) {
+  return (
+    <div>
+      <dt className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</dt>
+      <dd className={cn("mt-1 text-sm tabular-nums text-foreground", bold && "font-semibold")}>{value ?? "—"}</dd>
+    </div>
+  );
+}
+function RowKV({ k, v, bold }: { k: string; v: React.ReactNode; bold?: boolean }) {
+  return (
+    <div className="flex justify-between gap-3 text-sm">
+      <span className="text-muted-foreground">{k}</span>
+      <span className={cn("text-foreground text-right tabular-nums", bold && "font-semibold")}>{v}</span>
+    </div>
+  );
+}
+function DStatusRow({ icon: Icon, label, value, pill }: { icon: any; label: string; value: string; pill: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 p-3 bg-muted/30 rounded-lg">
+      <div className="flex items-center gap-3 min-w-0">
+        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground truncate">{label}</p>
+          <p className="text-xs text-muted-foreground truncate">{value}</p>
+        </div>
+      </div>
+      {pill}
+    </div>
   );
 }
