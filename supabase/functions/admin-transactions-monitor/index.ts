@@ -607,13 +607,14 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
 
       // Pull risk + ops signals for this chunk in parallel
       const sinceIso = new Date(now - 30 * day).toISOString();
-      const [stuckRes, queueRes, payoutFailedRes, overdueDispRes, adminActsChunkRes, auditChunkRes] = await Promise.all([
+      const [stuckRes, queueRes, payoutFailedRes, overdueDispRes, adminActsChunkRes, auditChunkRes, paymentsFailedChunkRes] = await Promise.all([
         client.from("transactions").select("id, status, created_at, needs_release_review, dispute_status").in("id", chunk),
         client.from("release_review_queue").select("transaction_id, status").in("transaction_id", chunk).in("status", ["pending", "claimed", "processing", "awaiting_info", "held", "failed"]),
         client.from("payouts").select("transaction_id, status").in("transaction_id", chunk).eq("status", "failed"),
         client.from("disputes").select("transaction_id, seller_response_due_at, status").in("transaction_id", chunk).in("status", ACTIVE_DISPUTE_STATUSES as unknown as string[]).lt("seller_response_due_at", new Date(now).toISOString()),
         client.from("admin_actions").select("transaction_id, action_type").in("transaction_id", chunk).in("action_type", ["freeze_funds", "escalate_case"]),
         client.from("audit_logs").select("transaction_id, action").in("transaction_id", chunk).gte("created_at", sinceIso),
+        client.from("payments").select("transaction_id, status").in("transaction_id", chunk).eq("status", "failed"),
       ]);
 
       const dayAgo = now - day;
@@ -624,12 +625,27 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
           flaggedSet.add(r.id);
           awaitingSet.add(r.id);
         }
-        if ((ACTIVE_DISPUTE_STATUSES as readonly string[]).includes(r.dispute_status)) awaitingSet.add(r.id);
-        if (r.status === "awaiting_payment" && new Date(r.created_at).getTime() < dayAgo) awaitingSet.add(r.id);
+        if ((ACTIVE_DISPUTE_STATUSES as readonly string[]).includes(r.dispute_status)) {
+          awaitingSet.add(r.id);
+          flaggedSet.add(r.id);
+        }
+        if (r.status === "awaiting_payment" && new Date(r.created_at).getTime() < dayAgo) {
+          awaitingSet.add(r.id);
+          flaggedSet.add(r.id);
+        }
       }
       for (const r of ((queueRes.data ?? []) as any[])) awaitingSet.add(r.transaction_id);
-      for (const r of ((payoutFailedRes.data ?? []) as any[])) awaitingSet.add(r.transaction_id);
-      for (const r of ((overdueDispRes.data ?? []) as any[])) awaitingSet.add(r.transaction_id);
+      for (const r of ((payoutFailedRes.data ?? []) as any[])) {
+        awaitingSet.add(r.transaction_id);
+        flaggedSet.add(r.transaction_id);
+      }
+      for (const r of ((overdueDispRes.data ?? []) as any[])) {
+        awaitingSet.add(r.transaction_id);
+        flaggedSet.add(r.transaction_id);
+      }
+      for (const r of ((paymentsFailedChunkRes.data ?? []) as any[])) {
+        flaggedSet.add(r.transaction_id);
+      }
       for (const r of ((adminActsChunkRes.data ?? []) as any[])) {
         flaggedSet.add(r.transaction_id);
         awaitingSet.add(r.transaction_id);
