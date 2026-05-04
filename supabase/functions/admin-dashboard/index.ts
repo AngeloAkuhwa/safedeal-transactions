@@ -120,6 +120,11 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
   const since24h = new Date(now.getTime() - ms24h).toISOString();
   const since30d = new Date(now.getTime() - ms30d).toISOString();
   const prev30dStart = new Date(now.getTime() - 2 * ms30d).toISOString();
+  const in24hIso = new Date(now.getTime() + ms24h).toISOString();
+  const startOfToday = new Date(
+    now.getFullYear(), now.getMonth(), now.getDate(),
+  ).toISOString();
+  const since9d = new Date(now.getTime() - 9 * 24 * 60 * 60 * 1000).toISOString();
 
   const [
     txTotal,
@@ -163,18 +168,27 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     safeCount(client, "identity_submissions", (q) => q.eq("status", "pending_review")),
     safeCount(client, "payment_webhook_logs", (q) => q.eq("processed_successfully", false)),
     safeCount(client, "disputes", (q) =>
-      q.lt("seller_response_due_at", now.toISOString()).eq("status", "seller_response_pending"),
+      q
+        .lt("seller_response_due_at", now.toISOString())
+        .in("status", ["open", "under_review", "seller_response_pending"]),
     ),
-    safeCount(client, "escrow_states", (q) => q.gt("frozen_amount", 0)),
-    safeCount(client, "disputes", (q) => q.gte("created_at", since24h)),
+    safeCount(client, "transactions", (q) => q.eq("money_status", "funds_frozen")),
+    safeCount(client, "transactions", (q) =>
+      q.eq("needs_release_review", true).gte("updated_at", startOfToday),
+    ),
     safeCount(client, "transactions", (q) =>
       q.eq("status", "awaiting_payment").lt("created_at", since24h),
     ),
     safeCount(client, "disputes", (q) =>
-      q.gte("seller_response_due_at", now.toISOString()).eq("status", "seller_response_pending"),
+      q
+        .gte("seller_response_due_at", now.toISOString())
+        .lte("seller_response_due_at", in24hIso)
+        .in("status", ["open", "under_review", "seller_response_pending"]),
     ),
     safeCount(client, "disputes", (q) =>
-      q.lt("seller_response_due_at", now.toISOString()).eq("status", "seller_response_pending"),
+      q
+        .lt("seller_response_due_at", now.toISOString())
+        .in("status", ["open", "under_review", "seller_response_pending"]),
     ),
     safeCount(client, "disputes", (q) => q.eq("status", "under_review")),
     safeCount(client, "payments", (q) => q.eq("status", "succeeded")),
@@ -229,6 +243,50 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
   const pendingPayoutsAmount = await safeSum(client, "payouts", "amount", (q) =>
     q.in("status", ["pending", "processing"]),
   );
+
+  // Identity review health (avg time + 9-day sparkline)
+  let avgReviewHours: number | null = null;
+  let identitySpark: number[] = [];
+  try {
+    const { data: reviewed } = await client
+      .from("identity_submissions")
+      .select("submitted_at, reviewed_at")
+      .gte("reviewed_at", since30d)
+      .not("reviewed_at", "is", null)
+      .limit(2000);
+    if (reviewed && reviewed.length) {
+      const hrs = (reviewed as any[])
+        .map((r) =>
+          (new Date(r.reviewed_at).getTime() - new Date(r.submitted_at).getTime()) /
+          (1000 * 60 * 60),
+        )
+        .filter((n) => Number.isFinite(n) && n >= 0);
+      if (hrs.length) {
+        avgReviewHours = Number(
+          (hrs.reduce((a, b) => a + b, 0) / hrs.length).toFixed(1),
+        );
+      }
+    }
+    const { data: subs9d } = await client
+      .from("identity_submissions")
+      .select("submitted_at")
+      .gte("submitted_at", since9d)
+      .limit(5000);
+    const buckets: number[] = Array(9).fill(0);
+    const today0 = new Date(startOfToday).getTime();
+    for (const r of (subs9d ?? []) as any[]) {
+      const t = new Date(r.submitted_at).getTime();
+      const dayIdx = 8 - Math.floor((today0 - new Date(
+        new Date(r.submitted_at).getFullYear(),
+        new Date(r.submitted_at).getMonth(),
+        new Date(r.submitted_at).getDate(),
+      ).getTime()) / (24 * 60 * 60 * 1000));
+      if (dayIdx >= 0 && dayIdx < 9) buckets[dayIdx]++;
+    }
+    identitySpark = buckets;
+  } catch (e) {
+    await logEdgeError(client, `identity_health_failed: ${(e as Error).message}`, userId);
+  }
 
   // Recent activity: last 3 status history entries we can show
   let recentActivity: any[] = [];
@@ -337,8 +395,8 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     ],
     identity_health: {
       pending_reviews: identityPending,
-      avg_review_hours: null as number | null,
-      spark: [] as number[],
+      avg_review_hours: avgReviewHours,
+      spark: identitySpark,
     },
     payout_health: {
       pending_payouts_amount: Number(pendingPayoutsAmount.toFixed(2)),
