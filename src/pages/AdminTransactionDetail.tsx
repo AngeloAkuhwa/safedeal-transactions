@@ -1130,7 +1130,7 @@ export default function AdminTransactionDetail() {
                   </dl>
                 </div>
 
-                <div>
+                <div id="payouts">
                   <h3 className="text-sm font-medium text-foreground mb-3">Payout</h3>
               {!data.payout ? (
                 <div className="text-sm text-muted-foreground">
