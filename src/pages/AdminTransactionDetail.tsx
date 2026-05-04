@@ -1281,7 +1281,7 @@ export default function AdminTransactionDetail() {
       <ActionConfirmDialog
         open={investigateOpen}
         onOpenChange={setInvestigateOpen}
-        title="Open Investigation"
+        title={adminCan.investigationAlreadyOpen ? "Update Investigation" : "Open Investigation"}
         description={`Create an investigation record for #${code}. This is logged in the audit trail.`}
         reasonMin={1}
         confirmLabel="Open Investigation"
