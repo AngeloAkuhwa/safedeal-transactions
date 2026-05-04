@@ -1,136 +1,66 @@
-
 ## Goal
 
-Bring the Admin Transaction Detail page to 100% visual parity with the uploaded desktop + mobile designs, and wire a complete suite of **state-aware, safely-audited admin actions** with confirmation modals. No money-movement actions are introduced.
+Bring `src/pages/AdminTransactionDetail.tsx` to 100% visual parity with the two uploaded mockups (`Transaction_Detail-5.html` desktop + `Transaction_Details-5.html` mobile + the two screenshots). Logic, data wiring, RLS, and admin actions are already correct — this pass is purely visual / structural polish. No backend or service changes.
+
+Currency stays NGN (per project memory). Avatars/users come from real data, never hardcoded names.
 
 ---
 
-## Part A — UI alignment (vs. mockups)
+## Gaps vs mockups (what we'll change)
 
-Audit of current page vs. the two reference designs revealed these gaps:
+### 1. Status badges — pill shape
+Mockup uses `rounded-full px-3 py-1.5 text-xs font-bold` pills. Current `StatusBadge` uses `rounded-md`.
+- Update `STATUS_CLS` styling and the wrapper to `rounded-full` with `px-3 py-1`, `font-bold`, slightly larger text.
+- Same for the Escalated / Overdue pills inside the summary action row.
 
-### 1. Desktop summary card — bottom action row
-The mockup shows, inside the summary card and below the stat grid:
-- **Left:** pill `🚩 Escalated Dispute` and pill `🕒 Overdue: 2 days past resolution deadline`
-- **Right:** four buttons: `Export Data`, `Open Investigation`, `Freeze Funds`, `Manage Dispute`
+### 2. Summary card — gradient + larger primary stats
+Mockup: `bg-gradient-to-br from-slate-900 to-slate-900/50`, larger numbers (`text-xl font-bold` for code/amount, `text-lg font-semibold` for activity/provider), and the dispute accent is `border-l-4 border-l-orange-500` already (kept).
+- Apply the gradient via theme-aware classes (`from-card to-card/50`).
+- Increase Stat sizes for the top primary row only (Transaction code, Total Amount).
+- Add a second internal divider so layout matches: Primary row → Parties row → Status grid (6 cols) → Action row. Currently we collapse Status into the first row; split into two rows on `lg:` to mirror the mockup.
 
-Currently those buttons live only in the page header. **Add this row inside the summary card**, conditionally:
-- Pills shown only when escalated / overdue (driven by `risk.level` and `dispute.overdue`).
-- Buttons only when corresponding `adminActionsAvailable.*` flag is true.
+### 3. Linked Records — card grid
+Mockup renders each record as a card with: top label + external arrow, middle row (avatar/icon + name + sub), bottom row (status pill on left, amount on right). 4-column grid on `xl`.
+- Replace current 2-col list with `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4` of cards.
+- Each card shows: type label (uppercase, slate-500), `<ExternalLink>` icon, then content area (avatar for buyer/seller, colored icon tile for payment/escrow/payout/dispute), then a `border-t` footer with status badge + amount.
+- Hover: `hover:border-blue-500/50`.
 
-### 2. Header action set
-Header keeps `Export` and `View Dispute` (matches mockup) but adds a **More Actions** dropdown (desktop only) for less-used items: `Add Internal Note`, `Flag for Review`, `View Buyer`, `View Seller`, `View Payment`, `View Escrow`, `View Payout`.
+### 4. Timeline — connector rail
+Mockup has a continuous vertical line `absolute left-4 top-0 bottom-0 w-0.5 bg-slate-800` behind the 8px nodes (32px on desktop, 24px on mobile).
+- Wrap the `<ol>` in `relative` and add the rail.
+- Keep the existing icon mapping; ensure each item uses `pb-6` spacing on desktop and `pb-4` on mobile.
+- Header on the timeline card gains a subtitle "All events, status changes, and interventions".
 
-### 3. Risk & Investigation card — two-column layout
-Mockup splits this card into:
-- **Left:** "Risk Assessment" with the big red banner `⚠ High Risk Transaction — ESCALATED` and the flag bullet list.
-- **Right:** "Investigation Log" with timestamped admin notes (each row showing `Jan 20, 10:15 - Admin Sarah` + tag like `ESCALATION` / `NOTE` and the note text).
-- **Below both:** "Escalation History" timeline with colored dots.
+### 5. Risk & Investigation — split Escalation History out
+Mockup shows: 2-col grid (Risk Assessment | Investigation Log) on top, then a divider, then "Escalation History" on its own row underneath with colored dots (red/orange/slate).
+- Move `escalationHistory` rendering out of the Investigation Log column and into a new bottom row inside the same card (full width).
+- Each row: small colored dot (`w-2 h-2 rounded-full`) + timestamp + label + by-line.
 
-Refactor the Risk card into a 2-column responsive grid and surface the existing `risk.investigationNotes` as the Investigation Log (with type tag derived from note content / pinned status).
+### 6. Mobile — match mockup exactly
+- Add a **Dispute Status** collapsible card (mobile only) showing: Dispute Opened (with status pill), Deadline (with OVERDUE flag if applicable), Evidence list. Driven by `data.dispute` and `data.dispute.evidence`.
+- Mobile **Quick Actions** card (already a 2x2 grid) — wrap it in a card with heading "Quick Actions" to mirror the mockup.
+- Mobile **High Risk card**: keep the existing red-bordered card but tighten copy to mockup ("High Risk - Escalated") and use bullet rows with a flag icon prefix.
+- Mobile **sticky bottom bar**: change from "Investigate / More" combo to a single primary blue **Take Action** button + a 3-dot icon button. `Take Action` opens the action sheet; `⋮` also opens the same sheet. This matches the screenshot exactly.
+- Mobile **header** keeps the back arrow + shield logo + 3-dot menu (already correct).
 
-### 4. Mobile sticky action bar
-Mockup shows a bottom blue button **Take Action** + 3-dot menu. We currently render the top quick-action grid only.
-- Add a **sticky bottom action bar** (mobile only, `lg:hidden`): primary blue `Take Action` button + a `⋮` button.
-- `Take Action` opens the existing action sheet (already wired). `⋮` opens the same sheet (kept for the "More" affordance shown in the design).
-- Keep the top mobile Quick Actions grid (Investigate / Freeze / Export / Manage) — that matches the mockup too.
-- Remove the mini header's redundant "Take Action" placeholder if any; ensure page bottom padding (`pb-28`) keeps content above the sticky bar.
+### 7. Desktop header
+Already correct (Back + title + Export + View Dispute + More menu). Keep as-is. Move all four "Export Data / Open Investigation / Freeze Funds / Manage Dispute" CTAs to the summary card bottom action row only (currently duplicated in header). Header keeps just `Export` and `View Dispute` (when a dispute exists) + the More menu — matching the mockup.
 
-### 5. High-risk banner on mobile
-Reference shows a prominent red bordered card with an icon and 3 bullet flag lines (`Buyer account flagged…`, `High-value transaction…`, `Dispute opened within 24hrs…`).
-- Replace the small red banner with a fuller card on mobile (icon + title + bullet list of flags from `risk.flags`), still gated on `risk.level === high|escalated`.
-
-### 6. Polish
-- Ensure each pill / icon color matches mockup exactly: status colors already mapped — no change beyond adding `escalated_dispute` orange pill and `overdue` red icon pill.
-- Linked Records cards already render the buyer/seller/payment/escrow/payout/dispute — keep, but ensure the external arrow icon appears in the corner.
-
----
-
-## Part B — Safe admin actions
-
-Single source of truth: `adminActionsAvailable` returned from the edge function. The frontend renders actions only when its flag is `true`.
-
-### Action catalog (state-aware visibility)
-
-| Action | Visibility (server-derived flag) | UI placement | Confirm? | Backend |
-|---|---|---|---|---|
-| Export Data | always (`canExport`) | Header + summary row + sheet | no | client-only JSON dump (current behavior, expanded payload) |
-| Open Investigation | `canOpenInvestigation` (new flag: `risk.level !== clean` OR `dispute` exists OR `needs_admin_review`) | Summary row + More menu + sheet | no (creates record + audit) | new action `open_investigation` |
-| Freeze Funds | `canFreeze` (`money_status = funds_held_in_escrow` AND not released/refunded) | Summary row + More menu + sheet | **yes** — reason + type `FREEZE` | existing `freeze` |
-| Manage Dispute | `canManageDispute` (dispute exists & not closed) | Summary row + Header + sheet | no (navigates) | navigate `/admin/disputes/:disputeId` |
-| Add Internal Note | `canAddNote` (always true) | More menu + sheet | modal | existing `add_internal_note` (extend payload to include `note_type`) |
-| Flag for Review | `canFlagForReview` (true when `needs_admin_review !== true`) | More menu + sheet | **yes** — reason | existing `flag_for_review` |
-| Unfreeze | `canUnfreeze` (`money_status = funds_frozen`) | More menu + sheet | **yes** — reason | existing `unfreeze` |
-| View Buyer | `canViewBuyer` | More menu | no | navigate `/admin/users/:buyerId` (fallback: open Linked Record) |
-| View Seller | `canViewSeller` | More menu | no | same |
-| View Payment | `canViewPayment` (payment present) | More menu | no | scroll-to / linked record |
-| View Escrow Ledger | `canViewEscrow` (escrow present) | More menu | no | scroll-to ledger card |
-| View Payout | `canViewPayout` (payout present) | More menu | no | scroll-to payout card |
-
-**Explicitly excluded** (per spec): release funds, refund buyer. Backend already refuses these actions.
-
-### Confirmation modal rules (Freeze Funds, Flag for Review, Unfreeze)
-- Show transaction code, current money status, warning text.
-- Reason textarea (min 8 chars). Confirm disabled until reason valid.
-- For Freeze: also require typing `FREEZE`.
-- Loading spinner while invoking. Success/error toast. On success: refetch detail (`reloadKey++`).
-
-### Open Investigation — minimum behavior (no dedicated investigation table yet)
-Server: writes `admin_actions { action_type: 'open_investigation', action_notes: reason || 'opened from tx detail' }`, writes `audit_logs`, and writes a transaction event. Frontend: success toast and reload.
-
-### Add Internal Note — note types
-Extend dialog with a small select: `note | escalation | risk | payment | dispute | payout`. Stored as a JSON `metadata` on `admin_actions` and prefixed in `admin_transaction_notes.note` (e.g. `[escalation] …`) since the table has no `note_type` column today.
+### 8. Spacing + typography
+- Cards: `bg-card border border-border rounded-xl` — already correct in dark mode.
+- Section headers: `px-6 py-4 border-b border-border` for desktop sections to mirror mockup's heavier section header.
+- Stat labels: `text-xs font-semibold uppercase` (already), but bump label color to `text-muted-foreground` and value to larger sizes inside the summary card.
 
 ---
 
-## Part C — Backend changes
+## Files touched
 
-### `supabase/functions/admin-transaction-detail/index.ts`
-Extend `adminActionsAvailable` with new derived flags:
-- `canOpenInvestigation`
-- `canFlagForReview`
-- `canViewPayment`, `canViewEscrow`, `canViewPayout`
+1. `src/pages/AdminTransactionDetail.tsx` — all visual changes above. No prop/data shape changes.
+2. *(no service or backend changes)*
 
-(Keep existing `canFreeze`, `canUnfreeze`, `canManageDispute`, `canExport`, `canAddNote`, `canViewBuyer`, `canViewSeller`, `canRetryPayout`, `canApproveRelease`.)
-
-### `supabase/functions/admin-transaction-actions/index.ts`
-Add one new case:
-- `open_investigation` — verifies admin, inserts into `admin_actions`, `audit_logs`, optionally an entry into `admin_transaction_notes` tagged `[investigation]`. Returns `{ ok: true }`.
-
-Extend `add_internal_note` to accept optional `note_type` and store it as a prefix in `note` and as `metadata` on the matching `admin_actions` row.
-
-Continue rejecting `release_funds` / `refund_buyer` (already enforced).
-
-### `src/services/admin-transaction-actions.service.ts`
-Add:
-```ts
-export const openInvestigation = (txId: string, reason?: string) =>
-  invokeAction("open_investigation", txId, { reason });
-export const addInternalNoteTyped = (txId: string, note: string, note_type?: string) =>
-  invokeAction("add_internal_note", txId, { note, note_type });
-```
-
----
-
-## Part D — Frontend wiring summary
-
-Files touched:
-1. `src/pages/AdminTransactionDetail.tsx`
-   - Summary card: add bottom action row + pills.
-   - Header: add `More Actions` `DropdownMenu` (desktop).
-   - Mobile: full High-Risk card; sticky bottom `Take Action` bar; expanded action sheet (all available actions).
-   - Risk & Investigation: 2-column layout; Investigation Log surfaced from `risk.investigationNotes`.
-   - New dialogs: `flagForReview` confirm, `unfreeze` confirm, `openInvestigation` confirm-light (no type-to-confirm), `addInternalNoteTyped` (extended note dialog with type select).
-2. `src/components/admin/transactions/InternalNoteDialog.tsx` — add optional `noteType` select.
-3. `src/components/admin/transactions/ActionConfirmDialog.tsx` — no breaking change; allow `reasonMin = 8` default override per call.
-
----
-
-## Acceptance criteria checklist
-- ✅ Visual parity with desktop + mobile mockups (summary action row, two-column risk card, mobile sticky bar, full red high-risk card).
-- ✅ All 11 listed actions present and gated by server-derived flags.
-- ✅ Freeze / Flag / Unfreeze require reason + confirmation; loading state + toast + refetch on success.
-- ✅ Mobile sticky action bar with Take Action + More menu; sheet shows only allowed actions.
-- ✅ All admin actions write to `admin_actions` + `audit_logs` (and `money_status_history` for freeze/unfreeze via existing RPC paths).
-- ✅ No release/refund actions rendered or accepted.
-- ✅ All currency in NGN with 2 decimals; no hardcoded values remain.
+## Acceptance criteria
+- Side-by-side, the page matches the two mockups: pill badges, gradient summary card, two-stat-row + parties + status grid, timeline rail, 4-col Linked Records cards, separate Escalation History block.
+- Mobile shows: header, transaction header strip, summary card, High Risk card, Quick Actions card, Dispute Status collapsible, Timeline collapsible, Linked Records, sticky `Take Action` + `⋮` bar.
+- All values still render from the backend; no hardcoded amounts/users.
+- Currency stays NGN. Empty states preserved.
+- No regressions to admin actions, confirmations, or audit logging.
