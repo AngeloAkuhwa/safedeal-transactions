@@ -33,11 +33,11 @@ function ChartCard({ title, right, children }: { title: string; right?: React.Re
 }
 
 const tooltipStyle = {
-  backgroundColor: "rgb(15 23 42)",
-  border: "1px solid rgb(51 65 85)",
+  backgroundColor: "hsl(var(--popover))",
+  border: "1px solid hsl(var(--border))",
   borderRadius: 8,
   fontSize: 12,
-  color: "white",
+  color: "hsl(var(--popover-foreground))",
 };
 
 interface TrendChartsProps {
@@ -86,9 +86,9 @@ export function TrendCharts({ initialTransactions, escrow }: TrendChartsProps) {
       >
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={txSeries.points} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-            <CartesianGrid stroke="rgb(30 41 59)" strokeDasharray="3 3" />
-            <XAxis dataKey="label" stroke="rgb(100 116 139)" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis stroke="rgb(100 116 139)" fontSize={11} tickLine={false} axisLine={false} />
+            <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
+            <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
             <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: "rgb(59 130 246)", strokeOpacity: 0.2 }} />
             <Line type="monotone" dataKey="primary" name={txSeries.primary_label} stroke="rgb(59 130 246)" strokeWidth={2} dot={false} />
             <Line type="monotone" dataKey="secondary" name={txSeries.secondary_label} stroke="rgb(249 115 22)" strokeWidth={2} dot={false} />
@@ -116,9 +116,9 @@ export function TrendCharts({ initialTransactions, escrow }: TrendChartsProps) {
                 <stop offset="100%" stopColor="rgb(239 68 68)" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid stroke="rgb(30 41 59)" strokeDasharray="3 3" />
-            <XAxis dataKey="label" stroke="rgb(100 116 139)" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis stroke="rgb(100 116 139)" fontSize={11} tickLine={false} axisLine={false} />
+            <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
+            <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
             <Area type="monotone" dataKey="primary" name={escrow.primary_label} stroke="rgb(16 185 129)" fill="url(#held)" strokeWidth={2} />
             <Area type="monotone" dataKey="secondary" name={escrow.secondary_label} stroke="rgb(59 130 246)" fill="url(#released)" strokeWidth={2} />

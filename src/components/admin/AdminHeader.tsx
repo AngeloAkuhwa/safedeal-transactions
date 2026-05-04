@@ -1,6 +1,7 @@
 import { Filter, Download } from "lucide-react";
 import { useAdminNav } from "./useAdminNav";
 import { AdminReadingModeControl } from "./AdminReadingModeControl";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface AdminHeaderProps {
   title: string;
@@ -18,6 +19,7 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
         </div>
         <div className="flex items-center gap-2">
           <AdminReadingModeControl variant="desktop" />
+          <ThemeToggle />
           <button
             type="button"
             onClick={() => go(null, "Filters")}

@@ -1,6 +1,7 @@
 import { Menu, ShieldCheck, Download } from "lucide-react";
 import { useAdminNav } from "./useAdminNav";
 import { AdminReadingModeControl } from "./AdminReadingModeControl";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface AdminMobileHeaderProps {
   onOpenMenu: () => void;
@@ -32,6 +33,7 @@ export function AdminMobileHeader({ onOpenMenu }: AdminMobileHeaderProps) {
         </div>
         <div className="flex items-center gap-2">
           <AdminReadingModeControl variant="mobile-trigger" />
+          <ThemeToggle />
           <button
           type="button"
           onClick={() => go("/admin/exports", "Exports")}
