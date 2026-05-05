@@ -1,98 +1,285 @@
+# Admin Transaction Detail — Real Action Workflows (v2)
 
-# Admin Monitor ↔ Detail Data Consistency Pass
+Goal: every action on `/admin/transactions/:transactionId` triggers a real, permission-gated, audited admin workflow. No decorative buttons, no fake data. All money in NGN with 2 decimals. No redesign of the detail page; only new dialogs/drawer in the existing visual style.
 
-## Goal
-Guarantee every field shown for a transaction in the Admin Transaction Monitor list matches the corresponding field on the Admin Transaction Detail page. Today both sides have their own inline `mapTxStatus` / `mapMoneyStatus` / `mapDisputeStatus` / `mapEscrowState` / risk-flag / formatting logic, which is the root cause of label drift risk.
+## Design changes (called out)
 
-No UI redesign. No new sections. No visual changes to either page. Only:
-- shared mapping helpers,
-- a dev-only consistency checker,
-- unit tests,
-- minor wiring so both APIs return the same shapes for the consistency-critical fields.
+New components only — no layout/section redesign:
 
-## Scope of fields covered
-`id`, `code`, `itemTitle`, `buyerName`, `sellerName`, `totalAmount`, `protectionFee`, `sellerNetAmount`, `moneyStatus`, `transactionStatus`, `disputeStatus`, `escrowStatus`, `riskFlags`, `lastActivity`, `paymentProvider`, `payoutStatus`.
+1. `InvestigationDrawer` — right-side `Sheet` on desktop, full-screen on mobile.
+2. `FreezeFundsDialog`, `UnfreezeFundsDialog`, `ExportDataDialog` — replace generic confirm dialog usage.
+3. `InternalNoteDialog` — extended (categories + follow-up) in place.
+
+All use existing shadcn primitives, dark theme tokens, and tone classes already on the page.
 
 ---
 
-## 1. Shared admin mapper module (single source of truth)
+## 1. Database migration
 
-Create **`supabase/functions/_shared/admin-mappers.ts`** (Deno-side) and a mirrored **`src/lib/admin-mappers.ts`** (browser-side). Both files export the same pure functions with identical outputs:
+```sql
+-- Investigations
+create type public.admin_investigation_status as enum
+  ('open','under_review','escalated','resolved','dismissed');
+create type public.admin_investigation_priority as enum
+  ('low','medium','high','critical');
 
-- `mapTransactionStatus(status)` → `{ key, label, tone }`
-- `mapMoneyStatus(status)` → `{ key, label, tone }` (e.g. `funds_held_in_escrow` → `{ key: "held", label: "Held in Escrow" }`)
-- `mapDisputeStatus(status)` → `{ key, label, tone }`
-- `mapEscrowState(state)` → `{ key, label, tone }`
-- `mapPayoutStatus(status)` → `{ key, label, tone }`
-- `mapRiskLevel(tx)` → `{ level: "clean"|"escalated"|"high_risk"|"fraud_watch", flags: string[] }`
-- `formatCurrencyNGN(amount)` → always `₦x,xxx.xx` (2 decimals, no abbreviation)
-- `getLastActivity(tx, events?)` → `{ iso, label, tone }`
-- `buildRiskFlags(tx, parties, disputeOverdue)` → `{ label, severity }[]`
+create table public.admin_investigations (
+  id uuid primary key default gen_random_uuid(),
+  transaction_id uuid not null unique
+    references public.transactions(id) on delete restrict,
+  status admin_investigation_status not null default 'open',
+  priority admin_investigation_priority not null default 'medium',
+  assigned_admin_id uuid references auth.users(id),
+  tags text[] not null default '{}',
+  opened_by_user_id uuid not null references auth.users(id),
+  opened_at timestamptz not null default now(),
+  resolved_at timestamptz,
+  last_updated_by uuid references auth.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.admin_investigations enable row level security;
+create policy "admins read investigations" on public.admin_investigations
+  for select to authenticated using (public.has_role(auth.uid(),'admin'));
+create policy "admins write investigations" on public.admin_investigations
+  for all to authenticated using (public.has_role(auth.uid(),'admin'))
+  with check (public.has_role(auth.uid(),'admin'));
+create trigger trg_admin_investigations_uat before update on public.admin_investigations
+  for each row execute function public.update_updated_at_column();
 
-Resolution rule: the **detail label is canonical** and the **monitor short label is derived from it**. Specifically the monitor "Held" stays as "Held" by reading the same entry's `short` field; on the detail page the full `label` ("Held in Escrow") is shown. Both come from the same record. This eliminates drift while preserving the existing column compactness.
+-- Money transition: allow unfreeze back to held; do NOT allow released → frozen
+create or replace function public.validate_money_transition(_old money_status,_new money_status)
+returns boolean language plpgsql immutable security definer set search_path=public as $$
+begin
+  if _old = 'refund_issued' then return false; end if;
+  return case _old
+    when 'not_secured'          then _new in ('payment_pending')
+    when 'payment_pending'      then _new in ('funds_held_in_escrow','not_secured')
+    when 'funds_held_in_escrow' then _new in ('funds_pending_release','funds_frozen')
+    when 'funds_pending_release'then _new in ('funds_releasing','funds_frozen','refund_pending')
+    when 'funds_frozen'         then _new in ('funds_held_in_escrow','funds_pending_release','refund_pending')
+    when 'funds_releasing'      then _new in ('funds_released','funds_pending_release')
+    when 'funds_released'       then false  -- terminal: no freeze after release
+    when 'refund_pending'       then _new in ('refund_issued')
+    else false end;
+end$$;
 
-Both files import / re-export the same constants. The Deno file is a verbatim copy (no shared bundler between edge functions and Vite). A short comment at the top of each says: "Mirror of the other; keep in sync. CI test guards against divergence."
+-- Atomic unfreeze that preserves the frozen amount
+create or replace function public.unfreeze_funds_atomic(
+  p_transaction_id uuid,
+  p_actor uuid,
+  p_target money_status,
+  p_reason text
+) returns money_status language plpgsql security definer set search_path=public as $$
+declare
+  v_old money_status;
+  v_frozen numeric;
+  v_new_state escrow_state;
+begin
+  if p_target not in ('funds_held_in_escrow','funds_pending_release') then
+    raise exception 'invalid_target:%', p_target;
+  end if;
 
-## 2. Wire monitor & detail edge functions to the shared mappers
+  select money_status into v_old from public.transactions
+    where id = p_transaction_id for update;
+  if v_old is null then raise exception 'transaction_not_found'; end if;
+  if v_old <> 'funds_frozen' then raise exception 'not_frozen:%', v_old; end if;
 
-- `supabase/functions/admin-transactions-monitor/index.ts`: delete inline `mapTxStatus`, `mapMoneyStatus`, `mapDisputeStatus`, `mapEscrowState`, `relativeTimeLabel`; import from `_shared/admin-mappers.ts`. Each row now also returns `consistencyKey` fields (raw enum + label + key) so the detail can be compared 1:1.
-- `supabase/functions/admin-transaction-detail/index.ts`: replace ad-hoc `tx.dispute_status.replace(/_/g," ")`, escrow `(escrow.state ?? "").replace(/_/g," ")`, etc., and the inline `flags` builder, with calls to the shared mappers / `buildRiskFlags`. Also add `numeric` versions of `totalAmount`, `protectionFee`, `sellerNetAmount` (already numeric — confirm) so values match the monitor row exactly.
+  select coalesce(frozen_amount,0) into v_frozen
+    from public.escrow_states where transaction_id = p_transaction_id for update;
 
-## 3. Frontend integration
+  v_new_state := case
+    when p_target = 'funds_pending_release' then 'pending_release'::escrow_state
+    else 'held'::escrow_state
+  end;
 
-- `src/pages/AdminTransactions.tsx` and `src/pages/AdminTransactionDetail.tsx`: when rendering status/money/dispute/escrow/payout pills, route through `src/lib/admin-mappers.ts` rather than locally inferred strings. Existing `<StatusPill>` / `<MoneyPill>` components are kept; they just receive the shared label + tone.
-- `src/services/admin-transactions-monitor.service.ts` and `admin-transaction-detail.service.ts`: type the responses to include the canonical raw + key fields so the consistency hook can compare without re-deriving.
+  -- Move the frozen amount back to held_amount (single secured pool).
+  -- The money_status itself signals whether the held amount is held or pending release.
+  update public.escrow_states
+     set held_amount   = coalesce(held_amount,0) + v_frozen,
+         frozen_amount = greatest(0, coalesce(frozen_amount,0) - v_frozen),
+         state         = v_new_state,
+         last_changed_at = now(),
+         updated_at    = now()
+   where transaction_id = p_transaction_id;
 
-## 4. Dev-only consistency check
+  update public.transactions
+     set money_status = p_target,
+         needs_release_review = false,
+         release_review_reason = null,
+         updated_at = now()
+   where id = p_transaction_id;
 
-Add **`src/lib/admin-consistency.ts`** exporting `assertMonitorDetailConsistent(monitorRow, detailPayload)`.
+  insert into public.money_status_history(transaction_id,old_status,new_status,changed_by_user_id,reason)
+    values (p_transaction_id, v_old, p_target, p_actor, coalesce(p_reason,'admin_unfreeze'));
 
-- Compares all 16 fields listed above.
-- In `import.meta.env.DEV`, logs a single grouped `console.warn("[admin-consistency] mismatch", { field, monitor, detail })` per drift; in prod the function is a no-op.
-- Wire it into `AdminTransactionDetail.tsx`: when the user navigates from the monitor (we already pass state via the row click), the prior row snapshot is read from `location.state.monitorRow`. After the detail loads we call the assertion.
-- No UI is added — it is purely a console-time guard.
+  -- Audit ledger entry to keep internal truth balanced (zero-sum reclassification)
+  insert into public.escrow_ledger_entries(
+    transaction_id, entry_type, amount, currency_code, reference_type, reference_id, notes
+  ) values (
+    p_transaction_id, 'adjustment', 0,
+    coalesce((select currency_code from public.transactions where id=p_transaction_id),'NGN'),
+    'admin_unfreeze', p_transaction_id,
+    concat('unfreeze: ', v_frozen::text, ' moved frozen→', p_target::text)
+  );
 
-## 5. Unit tests
+  return p_target;
+end$$;
+```
 
-Add **`src/lib/__tests__/admin-mappers.test.ts`** (Vitest) covering:
-- Every `TxStatus`, `MoneyStatus`, `DisputeStatus`, `EscrowState`, `PayoutStatus` enum value maps to a non-empty label and a known tone.
-- `formatCurrencyNGN(5356)` === `"₦5,356.00"`, `formatCurrencyNGN(0)` === `"₦0.00"`, `formatCurrencyNGN(null)` === `"—"`.
-- Cross-check helper: for each known money status, the monitor `short` and detail `label` describe the same state (e.g. `held` short ↔ "Held in Escrow" full).
-- 7 realistic mocked transactions are fed through both `mapMonitorRow` and `mapDetailPayload` adapters and asserted to produce matching values for the 16 fields:
-  1. completed
-  2. awaiting_payment
-  3. funds_held (`payment_secured` + `funds_held_in_escrow`)
-  4. in_dispute (`disputed` + active dispute)
-  5. frozen (`funds_frozen`)
-  6. refunded (`refund_issued`)
-  7. failed (timed_out / payment failure)
+Released funds becoming terminal removes the existing `reverse_payout_atomic` path of `funds_released → funds_frozen`. That function will be updated to instead set `transactions.needs_release_review = true` with `release_review_reason = 'transfer_reversed'` (already done elsewhere in that function) without changing `money_status`. Post-release reviews use that flag, not the money state.
 
-Add **`supabase/functions/admin-transactions-monitor/admin_mappers.test.ts`** (Deno) running the same enum-coverage assertions on the Deno copy to prevent server/client drift.
+---
 
-## 6. Acceptance verification
+## 2. Edge function changes
 
-- Manual: open `/admin/transactions`, click each of the 7 fixtures, confirm zero `[admin-consistency]` warnings in dev console.
-- Tests: `bunx vitest run src/lib/__tests__/admin-mappers.test.ts` and Deno test for the edge mapper both green.
-- Money: every NGN value rendered on both pages comes from `formatCurrencyNGN` (2 decimals, no abbreviation).
+### `admin-transaction-actions/index.ts` (extend)
+
+All cases continue to: gate on `has_role('admin')`, write `admin_actions`, `audit_logs`, and a `transaction_events` row.
+
+- `upsert_investigation` — payload `{ status, priority, assigned_admin_id?, tags?, note? }`.
+  - Validate enums. UPSERT into `admin_investigations` keyed by `transaction_id`.
+  - First insert sets `opened_by_user_id`, `opened_at`. Updates set `last_updated_by`. Status `resolved`/`dismissed` sets `resolved_at = now()`; other statuses clear it.
+  - History: insert `admin_actions` (`open_investigation` or `update_investigation`), `audit_logs` (with full diff in `metadata`: prev/next status, priority, assignee, tags), `transaction_events` (`admin_investigation_opened` / `admin_investigation_updated`). If `note` provided, also insert `admin_transaction_notes` with prefix `[investigation]`.
+  - The drawer reads this audit history to render the timeline of investigation changes; the row stays unique per tx.
+
+- `freeze` (extend) — payload `{ reason, category, severity, note? }`.
+  - Reject if `tx.money_status` is `funds_released` or `refund_issued` → `Funds already released; cannot be frozen.`
+  - Reject if already `funds_frozen` → `Funds are already frozen.`
+  - Reject if no escrowed amount: `held_amount + (any pending) <= 0` → `No escrowed funds available to freeze.`
+  - Otherwise call existing `freeze_funds_atomic` (already idempotent and preserves amount via state machine).
+  - Audit: `admin_actions` (`freeze_transaction`), `audit_logs` (`admin_freeze`, metadata = category/severity/reason), `transaction_events` (`admin_funds_frozen`).
+
+- `unfreeze` (replace) — payload `{ reason, target_money_status, note?, acknowledge_open_dispute? }`.
+  - Reject if `tx.money_status <> 'funds_frozen'` → `Funds are not currently frozen.`
+  - If active dispute exists AND target is `funds_pending_release` AND `acknowledge_open_dispute !== true` → `Active dispute requires acknowledgement before moving to pending release.`
+  - Call `unfreeze_funds_atomic(tx_id, admin_id, target, reason)`.
+  - Never triggers payout. Never sets `funds_releasing` / `funds_released`.
+  - Audit: `admin_actions` (`unfreeze_transaction`), `audit_logs` (`admin_unfreeze`, metadata = target/reason), `transaction_events` (`admin_funds_unfrozen`).
+
+- `add_internal_note` (extend) — payload `{ note, category, follow_up_required?, follow_up_priority? }`.
+  - Categories: `general | payment | escrow | dispute | delivery | evidence | payout | risk`.
+  - 5–2000 chars. Stores note prefixed `[category]`. Metadata in `audit_logs` includes follow-up flags.
+  - If `follow_up_required` and tx is non-terminal, also call `flag_for_release_review(tx, 'manual_hold', admin, note)`.
+  - Always inserts `transaction_events` (`admin_note_added`).
+
+### New `admin-export-transaction-data/index.ts`
+
+- POST only; same admin-gate pattern as siblings; CORS `POST, OPTIONS`.
+- Body:
+  ```ts
+  {
+    transaction_id: string;
+    include_summary: boolean;
+    include_agreement: boolean;          // summary/snapshot only
+    include_payment_ledger: boolean;
+    include_timeline: boolean;
+    include_dispute_summary: boolean;
+    include_evidence_metadata: boolean;
+    include_admin_notes: boolean;
+    reason: string;                      // required, min 8 chars
+  }
+  ```
+- Server-side composes ONLY the requested slices via service-role queries that already exist for `admin-transaction-detail`.
+- Strict redaction:
+  - **No raw evidence files.** Evidence entries include only: `id, kind, title, mime_type, uploaded_at, uploaded_by_role, verification_status, file_hash` if present. No `storage_path`, `signed_url`, `download_url`, `cloudinary_url`, or any URL field.
+  - **No downloadable agreement file.** Agreement section returns the immutable JSONB snapshot summary (terms, locked_at, parties), no PDF link or file URL.
+  - Payment ledger uses `escrow_ledger_entries` rows (already non-PII) plus payment summary; no Paystack secrets.
+- Audit: insert `admin_actions` (`export_data`), `audit_logs` (`admin_export`, metadata = chosen sections + reason + byte size), `transaction_events` (`admin_export_generated`). Repeated exports each create their own audit rows.
+- Response: `{ filename, generatedAt, payload }`. Client downloads as a JSON blob built from the response.
+
+### `admin-transaction-detail/index.ts`
+
+- Add `investigation` slice: latest `admin_investigations` row joined with assignee profile + last 50 `transaction_events` whose type starts with `admin_investigation_`.
+- Confirm `adminActionsAvailable` flags reflect the new freeze rules: `canFreeze` only when `money_status ∈ {funds_held_in_escrow, funds_pending_release}` AND not already frozen AND not released/refunded; `canUnfreeze` only when `money_status = 'funds_frozen'`.
+
+---
+
+## 3. Service layer (`src/services/admin-transaction-actions.service.ts`)
+
+Add typed helpers wrapping the existing `invokeAction` and a new `exportTransactionData` that calls `admin-export-transaction-data`:
+
+```ts
+upsertInvestigation(transactionId, { status, priority, assigned_admin_id?, tags?, note? })
+freezeTransactionDetailed(transactionId, { reason, category, severity, note? })
+unfreezeTransactionDetailed(transactionId, { reason, target_money_status, note?, acknowledge_open_dispute? })
+addInternalNoteDetailed(transactionId, { note, category, follow_up_required?, follow_up_priority? })
+exportTransactionData(transactionId, options)
+```
+
+All errors propagate the server message into the dialog, which surfaces a `toast.error`.
+
+---
+
+## 4. UI
+
+New under `src/components/admin/transactions/`:
+
+- **`InvestigationDrawer.tsx`** — `Sheet` (right on `lg`, full-screen on mobile).
+  - Top: tx code, status pills, money pill, parties, item, risk flags, dispute snippet, escrow amount.
+  - Form: status (5 enum values), priority (4 enum values), assignee (admin combobox; falls back to current admin), tag multi-select (fixed list: `payment | dispute | delivery | user_risk | fraud_risk | evidence_conflict | payout_risk`), note textarea, save / cancel.
+  - History list below the form: renders the `audit_logs` + `admin_actions` returned by the detail edge function for `admin_investigation_*` events (who/when/what changed). This satisfies "drawer must show current status plus historical changes."
+  - Pre-populates from `data.investigation` when present; otherwise fields show defaults (`status=open`, `priority=medium`).
+
+- **`FreezeFundsDialog.tsx`**
+  - Reasons: Dispute opened / Suspicious buyer activity / Suspicious seller activity / Conflicting evidence / Payment risk / Delivery risk / Manual admin review / Other (free text required).
+  - Severity: low/medium/high/critical.
+  - Note (≤1000), confirmation checkbox required.
+  - Copy: *"Freezing funds pauses payout/refund movement while the transaction is reviewed. It does not move money out of SafeDeal escrow."*
+
+- **`UnfreezeFundsDialog.tsx`**
+  - Reasons: Dispute resolved / Risk cleared / Evidence reviewed / False flag / Manual correction / Other.
+  - Target state radio. Default: if both `buyer_confirmed_at` and `seller_confirmed_at` present → `funds_pending_release`, else `funds_held_in_escrow`.
+  - If active dispute exists and target = `funds_pending_release`, show warning banner with checkbox `acknowledge_open_dispute`.
+  - Required confirm checkbox: *"I understand this does not release funds."*
+  - Copy: *"Unfreezing removes the manual hold. It does not release funds to the seller. Release still follows the normal SafeDeal release process."*
+
+- **`InternalNoteDialog.tsx`** (extend)
+  - Category select with 8 options.
+  - `follow_up_required` checkbox + priority select (low/medium/high/urgent).
+  - 5–2000 char validation, internal-only badge.
+
+- **`ExportDataDialog.tsx`**
+  - Eight checkboxes (defaults: summary on, agreement summary on, payment ledger on, timeline on, dispute summary on, evidence metadata on, admin notes off; "include raw evidence/file" is **not an option**).
+  - Reason textarea (min 8 chars), required.
+  - Warning banner: *"Exports may contain sensitive transaction information. This action is audited."*
+  - On submit: call `exportTransactionData`, build a blob from the response payload, trigger a download, then `toast.success("Export generated")`.
+
+`AdminTransactionDetail.tsx` updates:
+
+- Replace freeze/unfreeze/investigate `ActionConfirmDialog` usages with the four new dialogs/drawer.
+- Replace client-only `exportData()` with `setExportOpen(true)` + `ExportDataDialog`.
+- Keep the high-risk red banner CTA "Investigate" — it calls `setInvestigateOpen(true)` (same handler as "Open Investigation"). Everywhere else use "Open Investigation" / "Update Investigation".
+- After every action handler resolves: `setReloadKey(k => k + 1)` to refetch detail. Realtime channel already auto-refetches but the manual refetch removes any race.
+- Refresh covers: summary, money pill, escrow card, risk flags, investigation drawer history, timeline, action button visibility (since the edge function recomputes `adminActionsAvailable`).
+- Toasts via `sonner` with success/error messages from server.
+
+Permissions: all gating uses `data.adminActionsAvailable` flags from the detail edge function (server-derived from `has_role` + state). No client-only checks.
+
+---
+
+## 5. Acceptance verification
+
+- `funds_released → funds_frozen` is rejected by `validate_money_transition` (DB test).
+- Unfreezing preserves the frozen amount: `escrow_states.held_amount` increases by the previously frozen amount; `frozen_amount` becomes 0; the secured-amount UI reads correctly.
+- Unfreeze never triggers payout (no `payouts` row mutation, no `funds_releasing` transition).
+- Investigation history is readable in the drawer (audit logs + admin actions for `admin_investigation_*`).
+- Export: payload contains no `storage_path`, no `signed_url`, no `download_url`, no agreement file URL; evidence entries only contain metadata fields.
+- Every successful action produces a `transaction_events` row with the correct type and the detail page updates without a manual reload.
+- `formatMoney(value, "NGN")` is the only money formatter on both pages.
 
 ## Files touched
 
-New
-- `supabase/functions/_shared/admin-mappers.ts`
-- `supabase/functions/admin-transactions-monitor/admin_mappers.test.ts`
-- `src/lib/admin-mappers.ts`
-- `src/lib/admin-consistency.ts`
-- `src/lib/__tests__/admin-mappers.test.ts`
+- `supabase/migrations/<new>_admin_investigations_freeze_workflow.sql`
+- `supabase/functions/admin-transaction-actions/index.ts` (extend)
+- `supabase/functions/admin-transaction-detail/index.ts` (add `investigation` slice)
+- `supabase/functions/admin-export-transaction-data/index.ts` (new)
+- `src/services/admin-transaction-actions.service.ts` (extend)
+- `src/components/admin/transactions/InvestigationDrawer.tsx` (new)
+- `src/components/admin/transactions/FreezeFundsDialog.tsx` (new)
+- `src/components/admin/transactions/UnfreezeFundsDialog.tsx` (new)
+- `src/components/admin/transactions/ExportDataDialog.tsx` (new)
+- `src/components/admin/transactions/InternalNoteDialog.tsx` (extend)
+- `src/pages/AdminTransactionDetail.tsx` (swap dialogs, remove client-side export)
 
-Modified (logic only, no visual change)
-- `supabase/functions/admin-transactions-monitor/index.ts` — replace inline mappers
-- `supabase/functions/admin-transaction-detail/index.ts` — replace inline mappers / risk flag builder
-- `src/services/admin-transactions-monitor.service.ts` — extend response types
-- `src/services/admin-transaction-detail.service.ts` — extend response types
-- `src/pages/AdminTransactions.tsx` — render via shared mappers; pass row snapshot in nav state
-- `src/pages/AdminTransactionDetail.tsx` — render via shared mappers; call dev-only assertion
-
-## Design changes
-None. The transaction detail page UI stays exactly as-is. Only label strings sourced from the shared mapper may change in two minor places to align with the canonical copy:
-- Monitor money column for `funds_held_in_escrow` continues to show "Held" (uses `short`); detail continues to show "Held in Escrow" (uses `label`).
-- Detail dispute subtitle stops using `replace(/_/g," ")` raw text and uses the canonical dispute label (e.g. "Awaiting Seller" instead of "seller response pending"). This is a copy correction, not a redesign — flagging here per your instruction.
+No other pages or layouts are redesigned.
