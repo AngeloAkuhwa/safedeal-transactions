@@ -1,42 +1,48 @@
 import { useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
+import type { NoteCategory } from "@/services/admin-transaction-actions.service";
 
-export type AdminNoteType = "note" | "escalation" | "risk" | "payment" | "dispute" | "payout";
+const CATEGORIES: { value: NoteCategory; label: string }[] = [
+  { value: "general", label: "General" },
+  { value: "payment", label: "Payment" },
+  { value: "escrow", label: "Escrow" },
+  { value: "dispute", label: "Dispute" },
+  { value: "delivery", label: "Delivery" },
+  { value: "evidence", label: "Evidence" },
+  { value: "payout", label: "Payout" },
+  { value: "risk", label: "Risk" },
+];
+const FOLLOW_UP_PRIORITIES = ["low", "medium", "high", "urgent"] as const;
+
+export interface InternalNotePayload {
+  note: string;
+  category: NoteCategory;
+  follow_up_required?: boolean;
+  follow_up_priority?: typeof FOLLOW_UP_PRIORITIES[number];
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   transactionCode: string;
-  onSubmit: (note: string, noteType: AdminNoteType) => Promise<void>;
+  onSubmit: (payload: InternalNotePayload) => Promise<void> | void;
 }
-
-const TYPES: { value: AdminNoteType; label: string }[] = [
-  { value: "note", label: "Note" },
-  { value: "escalation", label: "Escalation" },
-  { value: "risk", label: "Risk" },
-  { value: "payment", label: "Payment" },
-  { value: "dispute", label: "Dispute" },
-  { value: "payout", label: "Payout" },
-];
 
 export function InternalNoteDialog({ open, onOpenChange, transactionCode, onSubmit }: Props) {
   const [note, setNote] = useState("");
-  const [noteType, setNoteType] = useState<AdminNoteType>("note");
+  const [category, setCategory] = useState<NoteCategory>("general");
+  const [followUp, setFollowUp] = useState(false);
+  const [followUpPriority, setFollowUpPriority] = useState<typeof FOLLOW_UP_PRIORITIES[number]>("medium");
   const [submitting, setSubmitting] = useState(false);
   const trimmed = note.trim();
-  const canSubmit = trimmed.length >= 1 && trimmed.length <= 2000 && !submitting;
+  const canSubmit = trimmed.length >= 5 && trimmed.length <= 2000 && !submitting;
 
   const close = (v: boolean) => {
     if (submitting) return;
-    if (!v) { setNote(""); setNoteType("note"); }
+    if (!v) { setNote(""); setCategory("general"); setFollowUp(false); setFollowUpPriority("medium"); }
     onOpenChange(v);
   };
 
@@ -44,9 +50,13 @@ export function InternalNoteDialog({ open, onOpenChange, transactionCode, onSubm
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      await onSubmit(trimmed, noteType);
-      setNote(""); setNoteType("note");
-      onOpenChange(false);
+      await onSubmit({
+        note: trimmed,
+        category,
+        follow_up_required: followUp,
+        follow_up_priority: followUp ? followUpPriority : undefined,
+      });
+      close(false);
     } finally { setSubmitting(false); }
   };
 
@@ -54,32 +64,47 @@ export function InternalNoteDialog({ open, onOpenChange, transactionCode, onSubm
     <Dialog open={open} onOpenChange={close}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add internal note</DialogTitle>
-          <DialogDescription>Internal note for {transactionCode}. Visible to admins only.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <Lock className="h-4 w-4" /> Add internal note
+          </DialogTitle>
+          <DialogDescription>Internal note for #{transactionCode}. Visible to admins only.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <label className="block text-sm">
-            <span className="mb-1 block text-foreground">Type</span>
+            <span className="mb-1 block text-foreground">Category</span>
             <select
-              value={noteType}
-              onChange={(e) => setNoteType(e.target.value as AdminNoteType)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+              value={category}
+              onChange={(e) => setCategory(e.target.value as NoteCategory)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
             >
-              {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {CATEGORIES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-foreground">Note</span>
+            <span className="mb-1 block text-foreground">Note (5–2000 chars)</span>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               maxLength={2000}
               rows={4}
               placeholder="Visible to admins only…"
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
             />
             <span className="mt-1 block text-[11px] text-muted-foreground">{trimmed.length}/2000</span>
           </label>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" checked={followUp} onChange={(e) => setFollowUp(e.target.checked)} className="mt-1" />
+            <span>Requires follow-up (flags transaction for release review)</span>
+          </label>
+          {followUp && (
+            <label className="block text-sm">
+              <span className="mb-1 block">Follow-up priority</span>
+              <select value={followUpPriority} onChange={(e) => setFollowUpPriority(e.target.value as typeof FOLLOW_UP_PRIORITIES[number])}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                {FOLLOW_UP_PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </label>
+          )}
         </div>
         <DialogFooter>
           <button type="button" onClick={() => close(false)} disabled={submitting}

@@ -17,8 +17,10 @@ import {
   type AdminTxEvidenceItem,
 } from "@/services/admin-transaction-detail.service";
 import {
-  freezeTransaction, unfreezeTransaction, flagForReview,
-  openInvestigation, addInternalNoteTyped,
+  flagForReview,
+  freezeTransactionDetailed, unfreezeTransactionDetailed,
+  upsertInvestigation, addInternalNoteDetailed,
+  exportTransactionData,
 } from "@/services/admin-transaction-actions.service";
 import { formatMoney } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,10 @@ import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfi
 import { InternalNoteDialog } from "@/components/admin/transactions/InternalNoteDialog";
 import { AgreementPreviewDialog } from "@/components/admin/transactions/AgreementPreviewDialog";
 import { EvidencePreviewDialog } from "@/components/admin/transactions/EvidencePreviewDialog";
+import { FreezeFundsDialog } from "@/components/admin/transactions/FreezeFundsDialog";
+import { UnfreezeFundsDialog } from "@/components/admin/transactions/UnfreezeFundsDialog";
+import { ExportDataDialog } from "@/components/admin/transactions/ExportDataDialog";
+import { InvestigationDrawer } from "@/components/admin/transactions/InvestigationDrawer";
 import {
   MONEY_STATUS_META, moneyStatusLabel, activeEscrowDisplay,
 } from "@/components/admin/transactions/MoneyStatus";
@@ -191,6 +197,7 @@ export default function AdminTransactionDetail() {
   const [flagOpen, setFlagOpen] = useState(false);
   const [investigateOpen, setInvestigateOpen] = useState(false);
   const [agreementOpen, setAgreementOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [evidencePreview, setEvidencePreview] = useState<AdminTxEvidenceItem | null>(null);
   const [showFullTimeline, setShowFullTimeline] = useState(false);
   const [tlFilter, setTlFilter] = useState<string>("all");
@@ -453,7 +460,7 @@ export default function AdminTransactionDetail() {
             <span>Synced {lastSyncedAt ? relTime(lastSyncedAt.toISOString()) : "—"}</span>
           </div>
           {adminCan.canExport && (
-            <Button variant="outline" size="sm" onClick={exportData}>
+            <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
               <Download className="h-4 w-4 mr-1.5" /> Export
             </Button>
           )}
@@ -736,7 +743,7 @@ export default function AdminTransactionDetail() {
                   })()}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {adminCan.canExport && <Button variant="outline" size="sm" onClick={exportData}><Download className="h-4 w-4 mr-1.5" /> Export Data</Button>}
+                  {adminCan.canExport && <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}><Download className="h-4 w-4 mr-1.5" /> Export Data</Button>}
                   {adminCan.canOpenInvestigation && <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-blue-500/40 text-blue-300 hover:text-blue-200"><Search className="h-4 w-4 mr-1.5" /> {adminCan.investigationAlreadyOpen ? "Update Investigation" : "Open Investigation"}</Button>}
                   {adminCan.canFreeze && <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200"><Lock className="h-4 w-4 mr-1.5" /> Freeze Funds</Button>}
                   {adminCan.canUnfreeze && <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200"><Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze Funds</Button>}
@@ -1386,7 +1393,7 @@ export default function AdminTransactionDetail() {
             {adminCan.canAddNote && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setNoteOpen(true); }}><StickyNote className="h-4 w-4 mr-1.5" /> Add Note</Button>}
             {adminCan.canViewBuyer && data?.parties?.buyer?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/users/${data.parties.buyer!.id}`); }}><User className="h-4 w-4 mr-1.5" /> View Buyer</Button>}
             {adminCan.canViewSeller && data?.parties?.seller?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/users/${data.parties.seller!.id}`); }}><User className="h-4 w-4 mr-1.5" /> View Seller</Button>}
-            {adminCan.canExport && <Button variant="outline" onClick={() => { setActionSheetOpen(false); exportData(); }}><Download className="h-4 w-4 mr-1.5" /> Export</Button>}
+            {adminCan.canExport && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setExportOpen(true); }}><Download className="h-4 w-4 mr-1.5" /> Export</Button>}
             <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigator.clipboard.writeText(code); toast.success("Code copied"); }}>
               <Receipt className="h-4 w-4 mr-1.5" /> Copy Code
             </Button>
@@ -1395,33 +1402,30 @@ export default function AdminTransactionDetail() {
       </Sheet>
 
       {/* Dialogs */}
-      <ActionConfirmDialog
+      <FreezeFundsDialog
         open={freezeOpen}
         onOpenChange={setFreezeOpen}
-        title="Freeze Funds"
-        description={`Transaction #${code} — current money status: ${titleCase(tx?.moneyStatus ?? "—")}. Freezing prevents any release or refund until you unfreeze. Type FREEZE to confirm.`}
-        typeToConfirm="FREEZE"
-        confirmLabel="Freeze Funds"
-        confirmTone="danger"
-        onConfirm={async (reason) => {
+        onConfirm={async (p) => {
           if (!transactionId) return;
-          await freezeTransaction(transactionId, reason ?? "manual_hold");
-          toast.success("Funds frozen");
-          setReloadKey((k) => k + 1);
+          try {
+            await freezeTransactionDetailed(transactionId, p);
+            toast.success("Funds frozen");
+            setReloadKey((k) => k + 1);
+          } catch (e) { toast.error((e as Error).message ?? "Failed to freeze funds"); throw e; }
         }}
       />
-      <ActionConfirmDialog
+      <UnfreezeFundsDialog
         open={unfreezeOpen}
         onOpenChange={setUnfreezeOpen}
-        title="Unfreeze Funds"
-        description={`Move funds for #${code} back to pending release. No money is moved out yet.`}
-        confirmLabel="Unfreeze"
-        confirmTone="primary"
-        onConfirm={async (reason) => {
+        bothPartiesConfirmed={!!(tx?.buyerConfirmedAt && tx?.sellerConfirmedAt)}
+        hasActiveDispute={!!dispute && !["resolved","closed"].includes(dispute.status)}
+        onConfirm={async (p) => {
           if (!transactionId) return;
-          await unfreezeTransaction(transactionId, reason);
-          toast.success("Funds unfrozen");
-          setReloadKey((k) => k + 1);
+          try {
+            await unfreezeTransactionDetailed(transactionId, p);
+            toast.success("Funds unfrozen");
+            setReloadKey((k) => k + 1);
+          } catch (e) { toast.error((e as Error).message ?? "Failed to unfreeze funds"); throw e; }
         }}
       />
       <ActionConfirmDialog
@@ -1438,30 +1442,50 @@ export default function AdminTransactionDetail() {
           setReloadKey((k) => k + 1);
         }}
       />
-      <ActionConfirmDialog
+      <InvestigationDrawer
         open={investigateOpen}
         onOpenChange={setInvestigateOpen}
-        title={adminCan.investigationAlreadyOpen ? "Update Investigation" : "Open Investigation"}
-        description={`Create an investigation record for #${code}. This is logged in the audit trail.`}
-        reasonMin={1}
-        confirmLabel="Open Investigation"
-        confirmTone="primary"
-        onConfirm={async (reason) => {
+        transactionCode={code}
+        investigation={(data as any)?.investigation ?? null}
+        onSubmit={async (p) => {
           if (!transactionId) return;
-          await openInvestigation(transactionId, reason);
-          toast.success("Investigation opened");
-          setReloadKey((k) => k + 1);
+          try {
+            await upsertInvestigation(transactionId, p);
+            toast.success(adminCan.investigationAlreadyOpen ? "Investigation updated" : "Investigation opened");
+            setReloadKey((k) => k + 1);
+          } catch (e) { toast.error((e as Error).message ?? "Failed to save investigation"); throw e; }
         }}
       />
       <InternalNoteDialog
         open={noteOpen}
         onOpenChange={setNoteOpen}
         transactionCode={code}
-        onSubmit={async (note, noteType) => {
+        onSubmit={async (payload) => {
           if (!transactionId) return;
-          await addInternalNoteTyped(transactionId, note, noteType);
-          toast.success("Note added");
-          setReloadKey((k) => k + 1);
+          try {
+            await addInternalNoteDetailed(transactionId, payload);
+            toast.success("Note added");
+            setReloadKey((k) => k + 1);
+          } catch (e) { toast.error((e as Error).message ?? "Failed to add note"); throw e; }
+        }}
+      />
+      <ExportDataDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        transactionCode={code}
+        onSubmit={async (opts) => {
+          if (!transactionId) return;
+          try {
+            const res = await exportTransactionData(transactionId, opts) as { filename?: string; payload?: unknown };
+            const blob = new Blob([JSON.stringify(res?.payload ?? res, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = res?.filename ?? `transaction-${code}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success("Export generated");
+          } catch (e) { toast.error((e as Error).message ?? "Export failed"); throw e; }
         }}
       />
       <AgreementPreviewDialog
