@@ -17,8 +17,10 @@ import {
   type AdminTxEvidenceItem,
 } from "@/services/admin-transaction-detail.service";
 import {
-  freezeTransaction, unfreezeTransaction, flagForReview,
-  openInvestigation, addInternalNoteTyped,
+  flagForReview,
+  freezeTransactionDetailed, unfreezeTransactionDetailed,
+  upsertInvestigation, addInternalNoteDetailed,
+  exportTransactionData,
 } from "@/services/admin-transaction-actions.service";
 import { formatMoney } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,10 @@ import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfi
 import { InternalNoteDialog } from "@/components/admin/transactions/InternalNoteDialog";
 import { AgreementPreviewDialog } from "@/components/admin/transactions/AgreementPreviewDialog";
 import { EvidencePreviewDialog } from "@/components/admin/transactions/EvidencePreviewDialog";
+import { FreezeFundsDialog } from "@/components/admin/transactions/FreezeFundsDialog";
+import { UnfreezeFundsDialog } from "@/components/admin/transactions/UnfreezeFundsDialog";
+import { ExportDataDialog } from "@/components/admin/transactions/ExportDataDialog";
+import { InvestigationDrawer } from "@/components/admin/transactions/InvestigationDrawer";
 import {
   MONEY_STATUS_META, moneyStatusLabel, activeEscrowDisplay,
 } from "@/components/admin/transactions/MoneyStatus";
