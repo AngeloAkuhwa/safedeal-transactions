@@ -144,6 +144,73 @@ export type Database = {
           },
         ]
       }
+      admin_investigations: {
+        Row: {
+          assigned_admin_id: string | null
+          created_at: string
+          id: string
+          last_updated_by: string | null
+          opened_at: string
+          opened_by_user_id: string
+          priority: Database["public"]["Enums"]["admin_investigation_priority"]
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["admin_investigation_status"]
+          tags: string[]
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_admin_id?: string | null
+          created_at?: string
+          id?: string
+          last_updated_by?: string | null
+          opened_at?: string
+          opened_by_user_id: string
+          priority?: Database["public"]["Enums"]["admin_investigation_priority"]
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["admin_investigation_status"]
+          tags?: string[]
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_admin_id?: string | null
+          created_at?: string
+          id?: string
+          last_updated_by?: string | null
+          opened_at?: string
+          opened_by_user_id?: string
+          priority?: Database["public"]["Enums"]["admin_investigation_priority"]
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["admin_investigation_status"]
+          tags?: string[]
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_investigations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_investigations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_investigations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_transaction_notes: {
         Row: {
           admin_user_id: string
@@ -4028,6 +4095,15 @@ export type Database = {
         Returns: string
       }
       timeout_transaction_atomic: { Args: { p_tx_id: string }; Returns: Json }
+      unfreeze_funds_atomic: {
+        Args: {
+          p_actor: string
+          p_reason: string
+          p_target: Database["public"]["Enums"]["money_status"]
+          p_transaction_id: string
+        }
+        Returns: Database["public"]["Enums"]["money_status"]
+      }
       validate_money_transition: {
         Args: {
           _new_status: Database["public"]["Enums"]["money_status"]
@@ -4058,6 +4134,16 @@ export type Database = {
         | "add_internal_note"
         | "flag_for_review"
         | "unfreeze_transaction"
+        | "open_investigation"
+        | "update_investigation"
+        | "export_data"
+      admin_investigation_priority: "low" | "medium" | "high" | "critical"
+      admin_investigation_status:
+        | "open"
+        | "under_review"
+        | "escalated"
+        | "resolved"
+        | "dismissed"
       audit_action_type:
         | "profile_update"
         | "profile_suspend"
@@ -4256,6 +4342,13 @@ export type Database = {
         | "auto_cancelled"
         | "auto_released"
         | "handoff_code_verified"
+        | "admin_investigation_opened"
+        | "admin_investigation_updated"
+        | "admin_note_added"
+        | "admin_funds_frozen"
+        | "admin_funds_unfrozen"
+        | "admin_export_generated"
+        | "admin_flagged_for_review"
       transaction_media_type: "image" | "video"
       transaction_party_role: "buyer" | "seller"
       transaction_status:
@@ -4419,6 +4512,17 @@ export const Constants = {
         "add_internal_note",
         "flag_for_review",
         "unfreeze_transaction",
+        "open_investigation",
+        "update_investigation",
+        "export_data",
+      ],
+      admin_investigation_priority: ["low", "medium", "high", "critical"],
+      admin_investigation_status: [
+        "open",
+        "under_review",
+        "escalated",
+        "resolved",
+        "dismissed",
       ],
       audit_action_type: [
         "profile_update",
@@ -4640,6 +4744,13 @@ export const Constants = {
         "auto_cancelled",
         "auto_released",
         "handoff_code_verified",
+        "admin_investigation_opened",
+        "admin_investigation_updated",
+        "admin_note_added",
+        "admin_funds_frozen",
+        "admin_funds_unfrozen",
+        "admin_export_generated",
+        "admin_flagged_for_review",
       ],
       transaction_media_type: ["image", "video"],
       transaction_party_role: ["buyer", "seller"],
