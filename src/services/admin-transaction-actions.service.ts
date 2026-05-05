@@ -51,6 +51,67 @@ export const addInternalNoteTyped = (
   note_type?: "note" | "escalation" | "risk" | "payment" | "dispute" | "payout",
 ) => invokeAction("add_internal_note", transactionId, { note, note_type });
 
+export type InvestigationStatus = "open" | "under_review" | "escalated" | "resolved" | "dismissed";
+export type InvestigationPriority = "low" | "medium" | "high" | "critical";
+export type NoteCategory = "general" | "payment" | "escrow" | "dispute" | "delivery" | "evidence" | "payout" | "risk";
+export type FreezeSeverity = "low" | "medium" | "high" | "critical";
+
+export const upsertInvestigation = (
+  transactionId: string,
+  payload: { status: InvestigationStatus; priority: InvestigationPriority; assigned_admin_id?: string | null; tags?: string[]; note?: string },
+) => invokeAction("upsert_investigation", transactionId, payload);
+
+export const freezeTransactionDetailed = (
+  transactionId: string,
+  payload: { reason: string; category: string; severity: FreezeSeverity; note?: string },
+) => invokeAction("freeze", transactionId, payload);
+
+export const unfreezeTransactionDetailed = (
+  transactionId: string,
+  payload: { reason: string; target_money_status: "funds_held_in_escrow" | "funds_pending_release"; note?: string; acknowledge_open_dispute?: boolean },
+) => invokeAction("unfreeze", transactionId, payload);
+
+export const addInternalNoteDetailed = (
+  transactionId: string,
+  payload: { note: string; category: NoteCategory; follow_up_required?: boolean; follow_up_priority?: "low" | "medium" | "high" | "urgent" },
+) => invokeAction("add_internal_note", transactionId, payload);
+
+export interface ExportTransactionOptions {
+  include_summary: boolean;
+  include_agreement: boolean;
+  include_payment_ledger: boolean;
+  include_timeline: boolean;
+  include_dispute_summary: boolean;
+  include_evidence_metadata: boolean;
+  include_admin_notes: boolean;
+  reason: string;
+}
+
+export async function exportTransactionData(transactionId: string, options: ExportTransactionOptions) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const session = sessionData?.session;
+  if (!session) {
+    if (typeof window !== "undefined") window.location.replace("/auth");
+    return new Promise(() => {});
+  }
+  const { data, error } = await supabase.functions.invoke<{ filename: string; generatedAt: string; payload: unknown }>(
+    "admin-export-transaction-data",
+    { body: { transaction_id: transactionId, ...options }, headers: { Authorization: `Bearer ${session.access_token}` } },
+  );
+  if (error) {
+    const ctx = (error as unknown as { context?: Response }).context;
+    if (ctx?.status === 403) throw new AdminAccessRequiredError();
+    try {
+      const body = ctx ? await ctx.clone().json() : null;
+      throw new Error(body?.error ?? error.message);
+    } catch (e) {
+      if (e instanceof AdminAccessRequiredError) throw e;
+      throw new Error((e as Error).message ?? "Export failed");
+    }
+  }
+  return data!;
+}
+
 export interface AdminTxDetail {
   summary?: any;
   timeline?: any[];

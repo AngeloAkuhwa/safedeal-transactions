@@ -541,6 +541,58 @@ Deno.serve(async (req) => {
       note: a.action_notes,
     }));
 
+  // ===== Investigation =====
+  const { data: invRow } = await admin
+    .from("admin_investigations")
+    .select("id, status, priority, assigned_admin_id, tags, opened_by_user_id, opened_at, resolved_at, last_updated_by, updated_at, created_at")
+    .eq("transaction_id", txId)
+    .maybeSingle();
+  const invUserIds = Array.from(new Set([
+    invRow?.assigned_admin_id, invRow?.opened_by_user_id, invRow?.last_updated_by,
+  ].filter(Boolean) as string[]));
+  let invProfById = new Map<string, any>();
+  if (invUserIds.length) {
+    const { data: ips } = await admin.from("profiles").select("id, full_name").in("id", invUserIds);
+    invProfById = new Map((ips ?? []).map((p: any) => [p.id, p]));
+  }
+  const invHistory = [
+    ...((adminActionsRes.data ?? []) as any[])
+      .filter((a) => ["open_investigation","update_investigation","escalate_case"].includes(a.action_type))
+      .map((a) => ({
+        at: a.created_at,
+        kind: a.action_type,
+        by: profById.get(a.admin_user_id)?.full_name ?? null,
+        note: a.action_notes ?? null,
+      })),
+    ...((auditRes.data ?? []) as any[])
+      .filter((a) => ["admin_investigation_open","admin_investigation_update"].includes(a.action))
+      .map((a) => ({
+        at: a.created_at,
+        kind: a.action,
+        by: profById.get(a.actor_user_id)?.full_name ?? null,
+        note: a.description,
+        metadata: a.metadata ?? null,
+      })),
+  ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, 100);
+  const investigation = invRow ? {
+    id: invRow.id,
+    status: invRow.status,
+    priority: invRow.priority,
+    tags: invRow.tags ?? [],
+    assignedAdmin: invRow.assigned_admin_id ? {
+      id: invRow.assigned_admin_id,
+      name: invProfById.get(invRow.assigned_admin_id)?.full_name ?? null,
+    } : null,
+    openedBy: invRow.opened_by_user_id ? {
+      id: invRow.opened_by_user_id,
+      name: invProfById.get(invRow.opened_by_user_id)?.full_name ?? null,
+    } : null,
+    openedAt: invRow.opened_at,
+    updatedAt: invRow.updated_at,
+    resolvedAt: invRow.resolved_at,
+    history: invHistory,
+  } : { history: invHistory };
+
   const risk = {
     level: riskLevel,
     flags,
@@ -599,7 +651,12 @@ Deno.serve(async (req) => {
     /^\[investigation\]/i.test(String(n?.note ?? ""))
   );
   const adminActionsAvailable = {
-    canFreeze: tx.money_status === "funds_held_in_escrow" && !isTerminal,
+    canFreeze: ["funds_held_in_escrow","funds_pending_release"].includes(tx.money_status as string)
+      && tx.money_status !== "funds_frozen"
+      && tx.money_status !== "funds_released"
+      && tx.money_status !== "refund_issued"
+      && Number(escrow?.held_amount ?? 0) > 0
+      && !isTerminal,
     canUnfreeze: tx.money_status === "funds_frozen",
     canManageDispute: !!disputeOut && disputeOut.status !== "closed",
     hasDispute: !!disputeOut,
@@ -610,7 +667,7 @@ Deno.serve(async (req) => {
     canRetryPayout: !!(payout && payout.retryAllowed && (payout.status === "failed")),
     canApproveRelease: tx.needs_release_review === true,
     canOpenInvestigation: !isTerminal,
-    investigationAlreadyOpen: hasOpenInvestigation,
+    investigationAlreadyOpen: !!invRow && !["resolved","dismissed"].includes(invRow.status as string),
     canFlagForReview: !tx.needs_release_review && !isTerminal,
     canViewPayment: !!payment,
     canViewEscrow: !!escrow,
@@ -634,6 +691,7 @@ Deno.serve(async (req) => {
     linkedRecords,
     adminActionsAvailable,
     evidence: evidenceOut,
+    investigation,
     lockedAgreement: (() => {
       const snap = (agreementSnapRes as any)?.data ?? null;
       if (!snap && !tx.agreement_locked_at) return null;
