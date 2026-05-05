@@ -1175,7 +1175,7 @@ export default function AdminTransactions() {
             open={actionKind === "note"}
             onOpenChange={(o) => !o && closeAction()}
             transactionCode={actionRow.transactionCode}
-            onSubmit={(note) => runAction("note", note)}
+            onSubmit={(payload) => runAction("note", payload.note)}
           />
           <ActionConfirmDialog
             open={actionKind === "freeze"}
