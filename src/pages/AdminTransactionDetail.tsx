@@ -460,7 +460,7 @@ export default function AdminTransactionDetail() {
             <span>Synced {lastSyncedAt ? relTime(lastSyncedAt.toISOString()) : "—"}</span>
           </div>
           {adminCan.canExport && (
-            <Button variant="outline" size="sm" onClick={exportData}>
+            <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
               <Download className="h-4 w-4 mr-1.5" /> Export
             </Button>
           )}
@@ -743,7 +743,7 @@ export default function AdminTransactionDetail() {
                   })()}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {adminCan.canExport && <Button variant="outline" size="sm" onClick={exportData}><Download className="h-4 w-4 mr-1.5" /> Export Data</Button>}
+                  {adminCan.canExport && <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}><Download className="h-4 w-4 mr-1.5" /> Export Data</Button>}
                   {adminCan.canOpenInvestigation && <Button variant="outline" size="sm" onClick={() => setInvestigateOpen(true)} className="border-blue-500/40 text-blue-300 hover:text-blue-200"><Search className="h-4 w-4 mr-1.5" /> {adminCan.investigationAlreadyOpen ? "Update Investigation" : "Open Investigation"}</Button>}
                   {adminCan.canFreeze && <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200"><Lock className="h-4 w-4 mr-1.5" /> Freeze Funds</Button>}
                   {adminCan.canUnfreeze && <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200"><Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze Funds</Button>}
@@ -1393,7 +1393,7 @@ export default function AdminTransactionDetail() {
             {adminCan.canAddNote && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setNoteOpen(true); }}><StickyNote className="h-4 w-4 mr-1.5" /> Add Note</Button>}
             {adminCan.canViewBuyer && data?.parties?.buyer?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/users/${data.parties.buyer!.id}`); }}><User className="h-4 w-4 mr-1.5" /> View Buyer</Button>}
             {adminCan.canViewSeller && data?.parties?.seller?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/users/${data.parties.seller!.id}`); }}><User className="h-4 w-4 mr-1.5" /> View Seller</Button>}
-            {adminCan.canExport && <Button variant="outline" onClick={() => { setActionSheetOpen(false); exportData(); }}><Download className="h-4 w-4 mr-1.5" /> Export</Button>}
+            {adminCan.canExport && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setExportOpen(true); }}><Download className="h-4 w-4 mr-1.5" /> Export</Button>}
             <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigator.clipboard.writeText(code); toast.success("Code copied"); }}>
               <Receipt className="h-4 w-4 mr-1.5" /> Copy Code
             </Button>
