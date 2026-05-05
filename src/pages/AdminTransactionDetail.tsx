@@ -197,6 +197,7 @@ export default function AdminTransactionDetail() {
   const [flagOpen, setFlagOpen] = useState(false);
   const [investigateOpen, setInvestigateOpen] = useState(false);
   const [agreementOpen, setAgreementOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [evidencePreview, setEvidencePreview] = useState<AdminTxEvidenceItem | null>(null);
   const [showFullTimeline, setShowFullTimeline] = useState(false);
   const [tlFilter, setTlFilter] = useState<string>("all");
