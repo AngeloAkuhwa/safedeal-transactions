@@ -39,9 +39,9 @@ async function gateAdmin(req: Request): Promise<{ admin: any; userId: string } |
     { global: { headers: { Authorization: authHeader } } },
   );
   const token = authHeader.replace("Bearer ", "");
-  const { data, error } = await userClient.auth.getClaims(token);
-  if (error || !data?.claims) return json({ error: "unauthorized" }, 401);
-  const userId = data.claims.sub as string;
+  const { data: userData, error: userErr } = await userClient.auth.getUser(token);
+  if (userErr || !userData?.user) return json({ error: "unauthorized" }, 401);
+  const userId = userData.user.id;
   const { data: isAdmin, error: roleErr } = await userClient.rpc("has_role", {
     _user_id: userId,
     _role: "admin",
