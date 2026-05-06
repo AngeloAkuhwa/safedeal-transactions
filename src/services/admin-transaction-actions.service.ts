@@ -21,13 +21,14 @@ async function invokeAction(action: string, transactionId: string, payload?: Rec
   if (error) {
     const ctx = (error as unknown as { context?: Response }).context;
     if (ctx?.status === 403) throw new AdminAccessRequiredError();
-    // Try to surface server message
     try {
-      const body = ctx ? await ctx.clone().json() : null;
-      throw new Error(body?.error ?? error.message);
+      const body = ctx && typeof (ctx as any).clone === "function"
+        ? await (ctx as Response).clone().json()
+        : null;
+      throw new Error(body?.error ?? error.message ?? "Action failed");
     } catch (e) {
       if (e instanceof AdminAccessRequiredError) throw e;
-      throw new Error((e as Error).message ?? "Action failed");
+      throw new Error((e as Error)?.message ?? error.message ?? "Action failed");
     }
   }
   return data;
@@ -102,11 +103,13 @@ export async function exportTransactionData(transactionId: string, options: Expo
     const ctx = (error as unknown as { context?: Response }).context;
     if (ctx?.status === 403) throw new AdminAccessRequiredError();
     try {
-      const body = ctx ? await ctx.clone().json() : null;
-      throw new Error(body?.error ?? error.message);
+      const body = ctx && typeof (ctx as any).clone === "function"
+        ? await (ctx as Response).clone().json()
+        : null;
+      throw new Error(body?.error ?? error.message ?? "Export failed");
     } catch (e) {
       if (e instanceof AdminAccessRequiredError) throw e;
-      throw new Error((e as Error).message ?? "Export failed");
+      throw new Error((e as Error)?.message ?? error.message ?? "Export failed");
     }
   }
   return data!;
