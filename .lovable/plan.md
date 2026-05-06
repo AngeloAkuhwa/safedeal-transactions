@@ -1,51 +1,42 @@
-# Fix: "l.clone is not a function" on Unfreeze / Open Investigation
+# Fix: "Failed to fetch" on Admin Transaction Detail
 
 ## Root cause
 
-Edge function logs show the real failure:
-
+Edge function `admin-transaction-detail` crashes with:
 ```
-TypeError: userClient.auth.getClaims is not a function
-  at gateAdmin (admin-transaction-actions/index.ts:32)
+ReferenceError: Cannot access 'escrow' before initialization
+  at index.ts:370 (compiled, source line 325)
 ```
 
-`supabase-js@2.49.1` (used by `supabase/functions/admin-transaction-actions/index.ts`) does **not** expose `auth.getClaims()`. Every call to that function (Unfreeze, Open Investigation, Add Note, Freeze, Export-adjacent flows) crashes inside `gateAdmin` before any business logic runs, returning a non-standard error envelope from the Functions runtime.
+In `supabase/functions/admin-transaction-detail/index.ts`:
+- Line 325: `const escrowStateLabel = escrow ? mapEscrowState(escrow.state) : null;`
+- Line 326: `const payoutStatusLabel = payout ? mapPayoutStatus(payout.status) : null;`
 
-The client toast `"l.clone is not a function"` is a secondary symptom: in `src/services/admin-transaction-actions.service.ts` we do `ctx.clone().json()` on the error context, but in this failure mode `ctx` is not a real `Response` instance (it's the FunctionsHttpError shape after minification), so `.clone()` throws and masks the real server error.
+But `escrow` is declared on line 344 and `payout` on line 364. The labels reference variables that don't exist yet (TypeScript `const` temporal dead zone), so every call to the function 500s, and the browser surfaces it as "Failed to fetch" / "Failed to send a request to the Edge Function".
+
+This was likely introduced when label helpers were added.
 
 ## Fix
 
-### 1. `supabase/functions/admin-transaction-actions/index.ts`
-Replace `getClaims` with the standard token validation used elsewhere in the project:
+Move the two label computations to **after** the `escrow` and `payout` constant declarations (just after line 379). No other logic changes — both variables are read later (lines 494, 626, 627, 683 for `escrow`; line 326 was the only premature use of `payout`).
 
+Resulting order:
 ```ts
-const { data: userData, error: userErr } = await userClient.auth.getUser(token);
-if (userErr || !userData?.user) return json({ error: "unauthorized" }, 401);
-const userId = userData.user.id;
+const payment = paymentRes.data ? { ... } : null;
+const escrow  = escrowRes.data  ? { ... } : null;
+const payout  = payoutRes.data  ? { ... } : null;
+const escrowStateLabel = escrow ? mapEscrowState(escrow.state) : null;
+const payoutStatusLabel = payout ? mapPayoutStatus(payout.status) : null;
 ```
 
-Keep the existing `has_role` admin check unchanged.
-
-### 2. `src/services/admin-transaction-actions.service.ts`
-Make error parsing defensive so a malformed error context never throws a second error that hides the first:
-
-- Guard `ctx?.clone` with `typeof ctx?.clone === "function"` before calling.
-- Fall back to `error.message` when context can't be parsed.
-- Apply the same guard in both `invokeAction` and `exportTransactionData`.
-
-No other files change. No DB migration. No UI/business-logic change.
+Then deploy the function.
 
 ## Verification
 
-1. From the Admin Transaction Detail page (current route `/admin/transactions/b1000001-...`), trigger:
-   - Unfreeze Funds
-   - Open Investigation (upsert_investigation)
-   - Add Internal Note
-   - Freeze Funds
-2. Confirm each returns success and the detail page refreshes (no `l.clone` toast).
-3. Tail `admin-transaction-actions` edge function logs to confirm no more `getClaims is not a function` errors.
+1. `curl` POST `admin-transaction-detail` with the failing tx id `b1000001-0003-4000-8000-000000000003` → expect 200.
+2. Reload `/admin/transactions/b1000001-0003-4000-8000-000000000003` in preview → detail page renders.
+3. Check edge function logs → no more `Cannot access 'escrow' before initialization`.
 
 ## Out of scope
 
-- No changes to `validate_money_transition`, `unfreeze_funds_atomic`, investigations table, or any UI component.
-- No changes to other edge functions (they already use `getUser`).
+No DB, RLS, UI, or business-logic changes.
