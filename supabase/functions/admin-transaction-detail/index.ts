@@ -322,9 +322,6 @@ Deno.serve(async (req) => {
       .filter((r: any) => r.status === "completed")
       .reduce((acc: number, r: any) => acc + Number(r.refund_amount ?? 0), 0),
   } : null;
-  const escrowStateLabel = escrow ? mapEscrowState(escrow.state) : null;
-  const payoutStatusLabel = payout ? mapPayoutStatus(payout.status) : null;
-
   const payment = paymentRes.data ? {
     id: paymentRes.data.id,
     provider: paymentRes.data.provider,
@@ -377,6 +374,9 @@ Deno.serve(async (req) => {
     blockedReason: payoutRes.data.payout_blocked_reason,
     awaitingRelease: payoutRes.data.status === "pending" || payoutRes.data.status === "awaiting_release",
   } : null;
+
+  const escrowStateLabel = escrow ? mapEscrowState(escrow.state) : null;
+  const payoutStatusLabel = payout ? mapPayoutStatus(payout.status) : null;
 
   const delivery = {
     method: deliveryTermsRes.data?.delivery_method ?? null,
