@@ -69,7 +69,7 @@ export const freezeTransactionDetailed = (
 
 export const unfreezeTransactionDetailed = (
   transactionId: string,
-  payload: { reason: string; target_money_status: "funds_held_in_escrow" | "funds_pending_release"; note?: string; acknowledge_open_dispute?: boolean },
+  payload: { reason: string; target_money_status: "funds_held_in_escrow" | "funds_pending_release"; note?: string; acknowledge_open_dispute?: boolean; notify_parties?: boolean },
 ) => invokeAction("unfreeze", transactionId, payload);
 
 export const addInternalNoteDetailed = (
