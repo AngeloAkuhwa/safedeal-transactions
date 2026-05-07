@@ -1423,7 +1423,11 @@ export default function AdminTransactionDetail() {
           if (!transactionId) return;
           try {
             await unfreezeTransactionDetailed(transactionId, p);
-            toast.success("Funds unfrozen");
+            toast.success(
+              p.target_money_status === "funds_held_in_escrow"
+                ? "Funds returned to held escrow"
+                : "Funds moved to pending release",
+            );
             setReloadKey((k) => k + 1);
           } catch (e) { toast.error((e as Error).message ?? "Failed to unfreeze funds"); throw e; }
         }}
