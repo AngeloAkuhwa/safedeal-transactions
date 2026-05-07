@@ -1355,6 +1355,7 @@ export type Database = {
           currency_code: string
           entry_type: Database["public"]["Enums"]["escrow_ledger_entry_type"]
           id: string
+          metadata: Json | null
           notes: string | null
           reference_id: string | null
           reference_type: string | null
@@ -1368,6 +1369,7 @@ export type Database = {
           currency_code: string
           entry_type: Database["public"]["Enums"]["escrow_ledger_entry_type"]
           id?: string
+          metadata?: Json | null
           notes?: string | null
           reference_id?: string | null
           reference_type?: string | null
@@ -1381,6 +1383,7 @@ export type Database = {
           currency_code?: string
           entry_type?: Database["public"]["Enums"]["escrow_ledger_entry_type"]
           id?: string
+          metadata?: Json | null
           notes?: string | null
           reference_id?: string | null
           reference_type?: string | null
@@ -3662,6 +3665,7 @@ export type Database = {
       }
       transactions: {
         Row: {
+          admin_review_reason: string | null
           agreement_locked_at: string | null
           buyer_confirmed_at: string | null
           buyer_contact_email: string | null
@@ -3677,6 +3681,7 @@ export type Database = {
           dispute_status: Database["public"]["Enums"]["dispute_status"]
           id: string
           money_status: Database["public"]["Enums"]["money_status"]
+          needs_admin_review: boolean
           needs_release_review: boolean
           payment_received_at: string | null
           region_id: string | null
@@ -3696,6 +3701,7 @@ export type Database = {
           verification_deadline_at: string | null
         }
         Insert: {
+          admin_review_reason?: string | null
           agreement_locked_at?: string | null
           buyer_confirmed_at?: string | null
           buyer_contact_email?: string | null
@@ -3711,6 +3717,7 @@ export type Database = {
           dispute_status?: Database["public"]["Enums"]["dispute_status"]
           id?: string
           money_status?: Database["public"]["Enums"]["money_status"]
+          needs_admin_review?: boolean
           needs_release_review?: boolean
           payment_received_at?: string | null
           region_id?: string | null
@@ -3730,6 +3737,7 @@ export type Database = {
           verification_deadline_at?: string | null
         }
         Update: {
+          admin_review_reason?: string | null
           agreement_locked_at?: string | null
           buyer_confirmed_at?: string | null
           buyer_contact_email?: string | null
@@ -3745,6 +3753,7 @@ export type Database = {
           dispute_status?: Database["public"]["Enums"]["dispute_status"]
           id?: string
           money_status?: Database["public"]["Enums"]["money_status"]
+          needs_admin_review?: boolean
           needs_release_review?: boolean
           payment_received_at?: string | null
           region_id?: string | null
