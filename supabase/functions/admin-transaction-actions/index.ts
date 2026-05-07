@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { notifyUser } from "../_shared/notify.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -206,18 +207,25 @@ Deno.serve(async (req) => {
         if (!["funds_held_in_escrow","funds_pending_release"].includes(target)) {
           return badRequest("Invalid target money status");
         }
-        // If active dispute and target is pending release, require explicit acknowledgement
-        if (target === "funds_pending_release") {
-          const { data: openD } = await admin
-            .from("disputes")
-            .select("id, status")
-            .eq("transaction_id", txId)
-            .in("status", ACTIVE_DISPUTE)
-            .limit(1);
-          if ((openD ?? []).length > 0 && payload.acknowledge_open_dispute !== true) {
-            return badRequest("Active dispute requires acknowledgement before moving to pending release");
-          }
+        // Look up active dispute (used for ack on pending_release + response payload)
+        const { data: openD } = await admin
+          .from("disputes")
+          .select("id, status")
+          .eq("transaction_id", txId)
+          .in("status", ACTIVE_DISPUTE)
+          .limit(1);
+        const hasActiveDispute = (openD ?? []).length > 0;
+        if (target === "funds_pending_release" && hasActiveDispute && payload.acknowledge_open_dispute !== true) {
+          return badRequest("Active dispute requires acknowledgement before moving to pending release");
         }
+        // Pre-read frozen amount for response
+        const { data: escPre } = await admin
+          .from("escrow_states")
+          .select("frozen_amount")
+          .eq("transaction_id", txId)
+          .maybeSingle();
+        const movedAmount = Number(escPre?.frozen_amount ?? 0);
+
         const { error: rpcErr } = await admin.rpc("unfreeze_funds_atomic", {
           p_transaction_id: txId,
           p_actor: userId,
@@ -236,16 +244,37 @@ Deno.serve(async (req) => {
           actor_user_id: userId,
           transaction_id: txId,
           description: `Admin unfroze ${tx.transaction_code}: ${reason}`,
-          metadata: { target_money_status: target, reason, note: payload.note ?? null },
+          metadata: { target_money_status: target, reason, note: payload.note ?? null, moved_amount: movedAmount },
         });
         await admin.from("transaction_events").insert({
           transaction_id: txId,
           event_type: "admin_funds_unfrozen",
           actor_user_id: userId,
           actor_role: "admin",
-          event_data: { target_money_status: target, reason },
+          event_data: { target_money_status: target, reason, moved_amount: movedAmount },
         });
-        return json({ ok: true });
+
+        // Optional neutral notifications
+        if (payload.notify_parties === true) {
+          const { data: parties } = await admin
+            .from("transactions")
+            .select("buyer_id, seller_id, transaction_code")
+            .eq("id", txId)
+            .single();
+          const recipients = [parties?.buyer_id, parties?.seller_id].filter(Boolean) as string[];
+          await Promise.all(recipients.map((uid) =>
+            notifyUser(admin, {
+              user_id: uid,
+              type: "transaction_update",
+              title: "Transaction status updated",
+              message: "The transaction review status has been updated. Funds remain protected while the transaction continues.",
+              related_transaction_id: txId,
+              metadata: { transaction_code: parties?.transaction_code, neutral: true },
+            })
+          ));
+        }
+
+        return json({ ok: true, target, moved_amount: movedAmount, active_dispute: hasActiveDispute });
       }
 
       case "flag_for_review": {
