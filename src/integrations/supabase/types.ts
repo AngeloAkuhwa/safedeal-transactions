@@ -4037,6 +4037,15 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["verification_level_type"]
       }
+      dispute_request_more_info_atomic: {
+        Args: {
+          p_actor: string
+          p_dispute_id: string
+          p_message: string
+          p_new_due_at: string
+        }
+        Returns: Json
+      }
       expire_stale_offers: { Args: never; Returns: number }
       fail_payout_atomic: {
         Args: { p_max_retries?: number; p_payout_id: string; p_reason: string }
@@ -4082,6 +4091,18 @@ export type Database = {
           p_notes: string
           p_payout_id: string
           p_transaction_id: string
+        }
+        Returns: Json
+      }
+      resolve_dispute_atomic: {
+        Args: {
+          p_actor: string
+          p_also_close_investigation?: boolean
+          p_decision_summary: string
+          p_dispute_id: string
+          p_outcome: Database["public"]["Enums"]["dispute_outcome_type"]
+          p_refund_amount: number
+          p_release_amount: number
         }
         Returns: Json
       }
