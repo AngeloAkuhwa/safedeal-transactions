@@ -751,9 +751,16 @@ export default function AdminTransactionDetail() {
                   {adminCan.canFreeze && <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200"><Lock className="h-4 w-4 mr-1.5" /> Freeze Funds</Button>}
                   {adminCan.canUnfreeze && <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200"><Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze Funds</Button>}
                   {adminCan.canManageDispute && dispute && (
-                    <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
-                      <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
-                    </Button>
+                    <>
+                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
+                        <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
+                      </Button>
+                      {dispute.status !== "resolved" && dispute.status !== "closed" && (
+                        <Button size="sm" variant="outline" className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200" onClick={() => setResolveDisputeOpen(true)}>
+                          <Scale className="h-4 w-4 mr-1.5" /> Resolve Dispute
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
