@@ -96,7 +96,7 @@ export interface ResolveDisputePayload {
 }
 
 export const resolveDispute = (transactionId: string, payload: ResolveDisputePayload) =>
-  invokeAction("resolve_dispute", transactionId, payload);
+  invokeAction("resolve_dispute", transactionId, payload as unknown as Record<string, unknown>);
 
 export interface DisputeRequestMoreInfoPayload {
   message: string;
@@ -105,7 +105,7 @@ export interface DisputeRequestMoreInfoPayload {
 }
 
 export const disputeRequestMoreInfo = (transactionId: string, payload: DisputeRequestMoreInfoPayload) =>
-  invokeAction("dispute_request_more_info", transactionId, payload);
+  invokeAction("dispute_request_more_info", transactionId, payload as unknown as Record<string, unknown>);
 
 export interface ExportTransactionOptions {
   include_summary: boolean;
