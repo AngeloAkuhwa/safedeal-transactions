@@ -77,6 +77,36 @@ export const addInternalNoteDetailed = (
   payload: { note: string; category: NoteCategory; follow_up_required?: boolean; follow_up_priority?: "low" | "medium" | "high" | "urgent" },
 ) => invokeAction("add_internal_note", transactionId, payload);
 
+export type DisputeOutcomeType =
+  | "refund_buyer"
+  | "release_funds_to_seller"
+  | "partial_refund_release"
+  | "dismissed_seller_favor"
+  | "dismissed_buyer_favor"
+  | "close_case_without_resolution";
+
+export interface ResolveDisputePayload {
+  outcome_type: DisputeOutcomeType;
+  decision_summary: string;
+  refund_amount: number;
+  release_amount: number;
+  internal_note?: string;
+  notify_parties?: boolean;
+  also_close_investigation?: boolean;
+}
+
+export const resolveDispute = (transactionId: string, payload: ResolveDisputePayload) =>
+  invokeAction("resolve_dispute", transactionId, payload);
+
+export interface DisputeRequestMoreInfoPayload {
+  message: string;
+  new_due_at: string;
+  notify_seller?: boolean;
+}
+
+export const disputeRequestMoreInfo = (transactionId: string, payload: DisputeRequestMoreInfoPayload) =>
+  invokeAction("dispute_request_more_info", transactionId, payload);
+
 export interface ExportTransactionOptions {
   include_summary: boolean;
   include_agreement: boolean;
