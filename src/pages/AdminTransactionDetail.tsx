@@ -1483,6 +1483,31 @@ export default function AdminTransactionDetail() {
           } catch (e) { toast.error((e as Error).message ?? "Failed to add note"); throw e; }
         }}
       />
+      <ResolveDisputeDialog
+        open={resolveDisputeOpen}
+        onOpenChange={setResolveDisputeOpen}
+        moneyStatus={tx?.moneyStatus ?? null}
+        heldAmount={Number((data as any)?.escrow?.heldAmount ?? 0)}
+        frozenAmount={Number((data as any)?.escrow?.frozenAmount ?? 0)}
+        currencyCode={(data as any)?.pricing?.currencyCode ?? "NGN"}
+        hasActiveInvestigation={!!(data as any)?.investigation && !["resolved","dismissed"].includes(((data as any)?.investigation?.status ?? ""))}
+        onResolve={async (payload) => {
+          if (!transactionId) return;
+          try {
+            await resolveDispute(transactionId, payload);
+            toast.success("Dispute resolved");
+            setReloadKey((k) => k + 1);
+          } catch (e) { toast.error((e as Error).message ?? "Failed to resolve dispute"); throw e; }
+        }}
+        onRequestMoreInfo={async (payload) => {
+          if (!transactionId) return;
+          try {
+            await disputeRequestMoreInfo(transactionId, payload);
+            toast.success("Request sent to seller");
+            setReloadKey((k) => k + 1);
+          } catch (e) { toast.error((e as Error).message ?? "Failed to send request"); throw e; }
+        }}
+      />
       <ExportDataDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
