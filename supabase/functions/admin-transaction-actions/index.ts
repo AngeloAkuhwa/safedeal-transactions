@@ -23,7 +23,9 @@ type ActionName =
   | "flag_for_review"
   | "escalate_dispute"
   | "open_investigation"
-  | "upsert_investigation";
+  | "upsert_investigation"
+  | "resolve_dispute"
+  | "dispute_request_more_info";
 
 interface Body {
   action: ActionName;
@@ -371,6 +373,144 @@ Deno.serve(async (req) => {
 
       case "upsert_investigation": {
         return await handleUpsertInvestigation(admin, userId, txId, tx, payload);
+      }
+
+      case "resolve_dispute": {
+        const allowedOutcomes = [
+          "refund_buyer",
+          "release_funds_to_seller",
+          "partial_refund_release",
+          "dismissed_seller_favor",
+          "dismissed_buyer_favor",
+          "close_case_without_resolution",
+        ];
+        const outcome = String(payload.outcome_type ?? "");
+        if (!allowedOutcomes.includes(outcome)) return badRequest("invalid_outcome");
+        const summary = String(payload.decision_summary ?? "").trim();
+        if (summary.length < 10 || summary.length > 4000) return badRequest("Decision summary must be 10–4000 characters");
+        const refundAmount = Number(payload.refund_amount ?? 0);
+        const releaseAmount = Number(payload.release_amount ?? 0);
+        if (!Number.isFinite(refundAmount) || refundAmount < 0) return badRequest("invalid_refund_amount");
+        if (!Number.isFinite(releaseAmount) || releaseAmount < 0) return badRequest("invalid_release_amount");
+        const notifyParties = payload.notify_parties === true;
+        const alsoCloseInvestigation = payload.also_close_investigation === true;
+        const internalNote = typeof payload.internal_note === "string" ? payload.internal_note.trim() : "";
+
+        const { data: disputeRow } = await admin
+          .from("disputes")
+          .select("id, status")
+          .eq("transaction_id", txId)
+          .in("status", ACTIVE_DISPUTE)
+          .order("opened_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!disputeRow) return json({ error: "no_active_dispute" }, 409);
+
+        const { data: rpc, error: rpcErr } = await admin.rpc("resolve_dispute_atomic", {
+          p_dispute_id: disputeRow.id,
+          p_actor: userId,
+          p_outcome: outcome,
+          p_refund_amount: Math.round(refundAmount * 100) / 100,
+          p_release_amount: Math.round(releaseAmount * 100) / 100,
+          p_decision_summary: summary,
+          p_also_close_investigation: alsoCloseInvestigation,
+        });
+        if (rpcErr) {
+          const msg = String(rpcErr.message ?? "");
+          if (msg.includes("already_resolved")) return json({ error: "already_resolved" }, 409);
+          if (msg.startsWith("invalid_") || msg.startsWith("partial_") || msg.startsWith("no_")) return badRequest(msg);
+          throw rpcErr;
+        }
+        if (rpc && (rpc as any).ok === false && (rpc as any).code === "already_resolved") {
+          return json({ error: "already_resolved" }, 409);
+        }
+
+        if (internalNote.length > 0) {
+          await admin.from("admin_transaction_notes").insert({
+            transaction_id: txId,
+            admin_user_id: userId,
+            note: `[dispute:${outcome}] ${internalNote.slice(0, 1900)}`,
+          });
+        }
+
+        if (notifyParties) {
+          const { data: parties } = await admin
+            .from("transactions")
+            .select("buyer_id, seller_id, transaction_code")
+            .eq("id", txId)
+            .single();
+          const message =
+            outcome === "release_funds_to_seller" || outcome === "dismissed_seller_favor"
+              ? "The dispute has been resolved. The transaction is now awaiting release review."
+              : outcome === "refund_buyer" || outcome === "dismissed_buyer_favor"
+              ? "The dispute has been resolved. A refund process has been started."
+              : outcome === "partial_refund_release"
+              ? "The dispute has been resolved with a partial refund/release decision."
+              : "The dispute case has been closed. The transaction will continue based on its current state.";
+          const recipients = [parties?.buyer_id, parties?.seller_id].filter(Boolean) as string[];
+          await Promise.all(recipients.map((uid) =>
+            notifyUser(admin, {
+              user_id: uid,
+              type: "dispute_update",
+              title: "Dispute resolution update",
+              message,
+              related_transaction_id: txId,
+              metadata: { transaction_code: parties?.transaction_code, outcome, neutral: true },
+            })
+          ));
+        }
+
+        return json({ ok: true, ...(rpc ?? {}) });
+      }
+
+      case "dispute_request_more_info": {
+        const message = String(payload.message ?? "").trim();
+        if (message.length < 10 || message.length > 2000) return badRequest("Message must be 10–2000 characters");
+        const newDueAt = String(payload.new_due_at ?? "");
+        const parsedDue = newDueAt ? new Date(newDueAt) : null;
+        if (!parsedDue || isNaN(parsedDue.getTime()) || parsedDue.getTime() <= Date.now()) {
+          return badRequest("new_due_at must be a future ISO date");
+        }
+        const { data: disputeRow } = await admin
+          .from("disputes")
+          .select("id, status")
+          .eq("transaction_id", txId)
+          .in("status", ACTIVE_DISPUTE)
+          .order("opened_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!disputeRow) return json({ error: "no_active_dispute" }, 409);
+
+        const { data: rpc, error: rpcErr } = await admin.rpc("dispute_request_more_info_atomic", {
+          p_dispute_id: disputeRow.id,
+          p_actor: userId,
+          p_new_due_at: parsedDue.toISOString(),
+          p_message: message,
+        });
+        if (rpcErr) throw rpcErr;
+        if (rpc && (rpc as any).ok === false && (rpc as any).code === "already_resolved") {
+          return json({ error: "already_resolved" }, 409);
+        }
+
+        if (payload.notify_seller === true) {
+          const { data: parties } = await admin
+            .from("transactions")
+            .select("seller_id, transaction_code")
+            .eq("id", txId)
+            .single();
+          if (parties?.seller_id) {
+            await notifyUser(admin, {
+              user_id: parties.seller_id,
+              type: "dispute_update",
+              title: "Additional information requested",
+              message: "An admin requested more information about your dispute. Please review the case.",
+              related_transaction_id: txId,
+              metadata: { transaction_code: parties.transaction_code, new_due_at: parsedDue.toISOString() },
+            });
+          }
+        }
+
+        return json({ ok: true });
       }
 
       default:

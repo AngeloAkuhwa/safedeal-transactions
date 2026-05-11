@@ -21,6 +21,7 @@ import {
   freezeTransactionDetailed, unfreezeTransactionDetailed,
   upsertInvestigation, addInternalNoteDetailed,
   exportTransactionData,
+  resolveDispute, disputeRequestMoreInfo,
 } from "@/services/admin-transaction-actions.service";
 import { formatMoney } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import { AgreementPreviewDialog } from "@/components/admin/transactions/Agreemen
 import { EvidencePreviewDialog } from "@/components/admin/transactions/EvidencePreviewDialog";
 import { FreezeFundsDialog } from "@/components/admin/transactions/FreezeFundsDialog";
 import { UnfreezeFundsDialog } from "@/components/admin/transactions/UnfreezeFundsDialog";
+import { ResolveDisputeDialog } from "@/components/admin/transactions/ResolveDisputeDialog";
 import { ExportDataDialog } from "@/components/admin/transactions/ExportDataDialog";
 import { InvestigationDrawer } from "@/components/admin/transactions/InvestigationDrawer";
 import {
@@ -196,6 +198,7 @@ export default function AdminTransactionDetail() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [flagOpen, setFlagOpen] = useState(false);
   const [investigateOpen, setInvestigateOpen] = useState(false);
+  const [resolveDisputeOpen, setResolveDisputeOpen] = useState(false);
   const [agreementOpen, setAgreementOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [evidencePreview, setEvidencePreview] = useState<AdminTxEvidenceItem | null>(null);
@@ -748,9 +751,16 @@ export default function AdminTransactionDetail() {
                   {adminCan.canFreeze && <Button variant="outline" size="sm" onClick={() => setFreezeOpen(true)} className="border-red-500/40 text-red-300 hover:text-red-200"><Lock className="h-4 w-4 mr-1.5" /> Freeze Funds</Button>}
                   {adminCan.canUnfreeze && <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200"><Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze Funds</Button>}
                   {adminCan.canManageDispute && dispute && (
-                    <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
-                      <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
-                    </Button>
+                    <>
+                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
+                        <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
+                      </Button>
+                      {dispute.status !== "resolved" && dispute.status !== "closed" && (
+                        <Button size="sm" variant="outline" className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200" onClick={() => setResolveDisputeOpen(true)}>
+                          <Scale className="h-4 w-4 mr-1.5" /> Resolve Dispute
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -1471,6 +1481,31 @@ export default function AdminTransactionDetail() {
             toast.success("Note added");
             setReloadKey((k) => k + 1);
           } catch (e) { toast.error((e as Error).message ?? "Failed to add note"); throw e; }
+        }}
+      />
+      <ResolveDisputeDialog
+        open={resolveDisputeOpen}
+        onOpenChange={setResolveDisputeOpen}
+        moneyStatus={tx?.moneyStatus ?? null}
+        heldAmount={Number((data as any)?.escrow?.heldAmount ?? 0)}
+        frozenAmount={Number((data as any)?.escrow?.frozenAmount ?? 0)}
+        currencyCode={(data as any)?.pricing?.currencyCode ?? "NGN"}
+        hasActiveInvestigation={!!(data as any)?.investigation && !["resolved","dismissed"].includes(((data as any)?.investigation?.status ?? ""))}
+        onResolve={async (payload) => {
+          if (!transactionId) return;
+          try {
+            await resolveDispute(transactionId, payload);
+            toast.success("Dispute resolved");
+            setReloadKey((k) => k + 1);
+          } catch (e) { toast.error((e as Error).message ?? "Failed to resolve dispute"); throw e; }
+        }}
+        onRequestMoreInfo={async (payload) => {
+          if (!transactionId) return;
+          try {
+            await disputeRequestMoreInfo(transactionId, payload);
+            toast.success("Request sent to seller");
+            setReloadKey((k) => k + 1);
+          } catch (e) { toast.error((e as Error).message ?? "Failed to send request"); throw e; }
         }}
       />
       <ExportDataDialog
