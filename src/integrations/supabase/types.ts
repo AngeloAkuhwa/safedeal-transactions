@@ -4213,6 +4213,9 @@ export type Database = {
         | "refund_buyer"
         | "release_funds_to_seller"
         | "close_case_without_resolution"
+        | "partial_refund_release"
+        | "dismissed_seller_favor"
+        | "dismissed_buyer_favor"
       dispute_reason_type:
         | "wrong_item_received"
         | "damaged_item_received"
@@ -4236,6 +4239,9 @@ export type Database = {
         | "fee_record"
         | "adjustment"
         | "payout_awaiting_release"
+        | "dispute_refund_reserved"
+        | "dispute_release_approved_pending_admin_release"
+        | "dispute_no_action"
       escrow_state:
         | "awaiting_payment"
         | "held"
@@ -4358,6 +4364,8 @@ export type Database = {
         | "admin_funds_unfrozen"
         | "admin_export_generated"
         | "admin_flagged_for_review"
+        | "dispute_resolved"
+        | "dispute_more_info_requested"
       transaction_media_type: "image" | "video"
       transaction_party_role: "buyer" | "seller"
       transaction_status:
@@ -4599,6 +4607,9 @@ export const Constants = {
         "refund_buyer",
         "release_funds_to_seller",
         "close_case_without_resolution",
+        "partial_refund_release",
+        "dismissed_seller_favor",
+        "dismissed_buyer_favor",
       ],
       dispute_reason_type: [
         "wrong_item_received",
@@ -4625,6 +4636,9 @@ export const Constants = {
         "fee_record",
         "adjustment",
         "payout_awaiting_release",
+        "dispute_refund_reserved",
+        "dispute_release_approved_pending_admin_release",
+        "dispute_no_action",
       ],
       escrow_state: [
         "awaiting_payment",
@@ -4760,6 +4774,8 @@ export const Constants = {
         "admin_funds_unfrozen",
         "admin_export_generated",
         "admin_flagged_for_review",
+        "dispute_resolved",
+        "dispute_more_info_requested",
       ],
       transaction_media_type: ["image", "video"],
       transaction_party_role: ["buyer", "seller"],
