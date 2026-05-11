@@ -21,6 +21,7 @@ import {
   freezeTransactionDetailed, unfreezeTransactionDetailed,
   upsertInvestigation, addInternalNoteDetailed,
   exportTransactionData,
+  resolveDispute, disputeRequestMoreInfo,
 } from "@/services/admin-transaction-actions.service";
 import { formatMoney } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import { AgreementPreviewDialog } from "@/components/admin/transactions/Agreemen
 import { EvidencePreviewDialog } from "@/components/admin/transactions/EvidencePreviewDialog";
 import { FreezeFundsDialog } from "@/components/admin/transactions/FreezeFundsDialog";
 import { UnfreezeFundsDialog } from "@/components/admin/transactions/UnfreezeFundsDialog";
+import { ResolveDisputeDialog } from "@/components/admin/transactions/ResolveDisputeDialog";
 import { ExportDataDialog } from "@/components/admin/transactions/ExportDataDialog";
 import { InvestigationDrawer } from "@/components/admin/transactions/InvestigationDrawer";
 import {
