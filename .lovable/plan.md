@@ -1,196 +1,140 @@
+# Dispute Resolution — Final Adjustments Plan
 
-## Resolve Dispute — Corrected Plan
-
-Aligns with SafeDeal's rule: **resolving a dispute never moves money into `funds_releasing`**. Seller-favor outcomes only make funds **eligible for release review**; the central admin release workflow performs the actual payout.
-
----
-
-### 1. Schema migration
-
-**Extend `public.dispute_outcome_type` enum** (add values, keep existing):
-- `partial_refund_release`
-- `dismissed_seller_favor`
-- `dismissed_buyer_favor`
-
-`refund_buyer`, `release_funds_to_seller`, `close_case_without_resolution` already exist.
-
-**Extend `public.escrow_ledger_entry_type` enum**:
-- `dispute_refund_reserved`
-- `dispute_release_approved_pending_admin_release`
-- `dispute_no_action` (audit-only, amount 0)
-
-**Extend `public.validate_money_transition`** to permit:
-- `funds_frozen → funds_pending_release` (already allowed — keep)
-- `funds_frozen → refund_pending` (already allowed — keep)
-- `funds_held_in_escrow → refund_pending` (new — required for buyer-favor without bridging)
-
-`release_review_queue.queue_type` accepts free-text reasons today, so `dispute_resolved_seller_favor` and `dispute_resolved_dismissed_seller_favor` need no enum change.
+This revision builds on the existing `resolve_dispute_atomic` implementation. It does **not** change the central release model (no Paystack calls happen at resolve time). It tightens the UI so what the admin sees matches what the backend stored, and it strengthens the partial and no-action outcomes.
 
 ---
 
-### 2. Atomic RPC: `public.resolve_dispute_atomic(p_dispute_id, p_actor, p_outcome, p_refund_amount, p_release_amount, p_decision_summary, p_also_close_investigation)`
+## 1. Backend — RPC contract changes
 
-`SECURITY DEFINER`. Single transaction, all-or-nothing.
+### `resolve_dispute_atomic` (update)
+Confirm and enforce:
+- `release_funds_to_seller` and `dismissed_seller_favor` → `money_status = funds_pending_release` (NOT `funds_releasing`).
+- No Paystack transfer is initiated. Only `release_review_queue` row is inserted with status `pending`.
+- `partial_refund_release` → splits into `refund_pending` for refund portion + `release_review_queue` row for release portion. Money status reported as `refund_pending` while a `held_for_release` amount remains tracked on `escrow_states`.
 
-**Pre-checks**
-1. Lock `disputes` row. If `status = 'resolved'` → return `{ ok:false, code:'already_resolved' }` (caller maps to HTTP 409).
-2. Validate `outcome ∈ {refund_buyer, release_funds_to_seller, partial_refund_release, dismissed_seller_favor, dismissed_buyer_favor, close_case_without_resolution}`. (`request_more_information` is handled by a separate non-resolving path — see §6.)
-3. Load `transactions` + `escrow_states` rows `FOR UPDATE`.
-4. Compute `escrow_available = held_amount + frozen_amount`. For split outcomes require `refund_amount + release_amount ≤ escrow_available` and both `> 0`. For single-bucket outcomes require the relevant amount equals `escrow_available` (no leftover).
-5. `money_status` must be in `{funds_held_in_escrow, funds_pending_release, funds_frozen}`. Reject otherwise.
+### Return payload (new)
+The RPC must return a structured object so the edge function and UI can render linked records without a second round-trip:
 
-**Outcome branches** (see table below). For every branch:
-- Insert `dispute_status_history (old, 'resolved', actor, "Outcome: {outcome}")`.
-- Update `disputes`: `status='resolved'`, `resolved_at=now()`, `updated_at=now()`.
-- Insert immutable `dispute_outcomes` row (UNIQUE on `dispute_id` enforces idempotency at DB level too).
-- Update `transactions.status` `disputed → resolved`, set `dispute_status='resolved'`, recompute `needs_admin_review` (true only if investigation remains open and not co-closed).
-- Insert `transaction_events`, `admin_actions`, `audit_logs`.
-- If `p_also_close_investigation`: update open `admin_investigations` rows to `status='resolved', resolved_at=now()` and append `admin_action`.
+```json
+{
+  "outcome_type": "...",
+  "dispute_outcome_id": "uuid",
+  "money_status": "refund_pending | funds_pending_release | funds_held_in_escrow | funds_frozen",
+  "refund_id": "uuid | null",
+  "release_queue_id": "uuid | null",
+  "ledger_entry_ids": ["uuid", ...],
+  "remaining_held_amount": "numeric",
+  "remaining_frozen_amount": "numeric",
+  "refund_amount": "numeric",
+  "release_amount": "numeric"
+}
+```
 
-**Money/escrow/ledger/queue per outcome**
+### `close_case_without_resolution`
+- If `money_status = funds_frozen` at resolve time, RPC requires `acknowledge_frozen_funds = true` in payload, else raises `frozen_funds_acknowledgement_required`.
+- Writes `dispute_outcomes` row with `refund_amount=0`, `release_amount=0`.
+- Inserts a `transaction_events` entry `dispute_closed_no_action` with the residual money state captured in metadata for traceability.
+
+---
+
+## 2. Edge function — `admin-transaction-actions`
+
+`resolve_dispute` case:
+- Pass through new `acknowledge_frozen_funds` flag.
+- Forward the RPC return payload to the client unchanged under `result`.
+- After RPC, also append linked-record references to the response so `setReloadKey` is not the only refresh path:
+  - `dispute_outcome_id`, `refund_id`, `release_queue_id`, `escrow_ledger_entry_ids`, `admin_action_id`, `timeline_event_id`.
+
+---
+
+## 3. Frontend — Display derivation
+
+### New helper `src/lib/dispute-display-status.ts`
+Single source of truth used by both admin and party UIs:
 
 ```text
-outcome                      money_status target          escrow_states delta                         ledger entry                                    release_review_queue
----------------------------- ------------------------------ -------------------------------------------- ------------------------------------------------- ---------------------------------
-refund_buyer                 refund_pending                 held -= refund; frozen -= remaining_frozen   dispute_refund_reserved   amount = -refund     n/a (refund worker path)
-                                                              (whichever bucket held the money)
-release_funds_to_seller      funds_pending_release          frozen -> held (if frozen);                  dispute_release_approved_pending_admin_release  INSERT pending,
-                                                              state='held'                                amount = +release                              queue_type='dispute_resolved_seller_favor'
-partial_refund_release       refund_pending (primary)       held -= refund; remaining stays held;        TWO entries:                                    INSERT pending for release portion,
-                             (release portion waits for     state='held' with remaining = release_amt    dispute_refund_reserved   amount = -refund     queue_type='dispute_resolved_partial'
-                             refund completion, then         (frozen unwound first if any)               dispute_release_approved_pending_admin_release  notes include both amounts
-                             refund worker / cron rolls                                                   amount = +release
-                             money_status to
-                             funds_pending_release)
-dismissed_seller_favor       funds_pending_release          same as release_funds_to_seller              dispute_release_approved_pending_admin_release  INSERT pending,
-                                                                                                          amount = +escrow_available                    queue_type='dispute_resolved_dismissed_seller'
-dismissed_buyer_favor        refund_pending                 same as refund_buyer (full amount)           dispute_refund_reserved   amount = -available  n/a
-close_case_without_resolution UNCHANGED                     UNCHANGED                                    dispute_no_action          amount = 0          n/a
+deriveDisputeDisplay({ disputeStatus, outcome, moneyStatus, escrow }):
+  if disputeStatus !== 'resolved' → return existing dispute badge logic
+  switch outcome.outcome_type:
+    release_funds_to_seller, dismissed_seller_favor →
+      { label: 'Awaiting Release', tone: 'info', moneyStatus: 'funds_pending_release' }
+    refund_buyer, dismissed_buyer_favor →
+      { label: 'Refund Pending', tone: 'warning', moneyStatus: 'refund_pending' }
+    partial_refund_release →
+      { label: 'Partially Resolved', tone: 'info',
+        parts: [
+          { label: 'Refund Pending', amount: outcome.refund_amount },
+          { label: 'Release Pending', amount: outcome.release_amount }
+        ] }
+    close_case_without_resolution →
+      if escrow.frozenAmount > 0 → { label: 'Manual Action Required', tone: 'danger' }
+      else if moneyStatus === 'funds_pending_release' → { label: 'Awaiting Release', tone: 'info' }
+      else → { label: 'Funds Held in Escrow', tone: 'info' }
 ```
 
-Notes:
-- For any outcome that needs to act on frozen funds, the RPC unwinds `frozen_amount → held_amount` in the **same transaction** before performing the bucket math, and writes a synthetic `adjustment` ledger row with `reference_type='dispute_unfreeze'` so the audit trail is explicit. No separate unfreeze is required.
-- `money_status_history` is written for every status change (including the implicit frozen→held bridge when applicable, using reason `dispute_resolve_unfreeze_bridge`).
-- `partial_refund_release` keeps `money_status='refund_pending'` so the refund worker runs first; when `complete_refund_atomic` flips to `refund_issued`, a small follow-up step (extend `complete_refund_atomic` to read `dispute_outcomes.release_amount > 0`) transitions to `funds_pending_release` and leaves the existing release queue row in place. This keeps the central release workflow as the sole payout authority.
-- All amounts `NUMERIC(18,2)`, currency forced to NGN.
+Key rule: **never show "In Dispute" once `disputes.status = resolved`** — derive purely from outcome + money/escrow.
 
-**Return**: `jsonb { ok:true, outcome, money_status, refund_id?, release_queue_id? }`.
+### `AdminTransactionDetail.tsx`
+- Replace any "In Dispute" badge fallback with `deriveDisputeDisplay`.
+- For `partial_refund_release`, render a two-row breakdown card:
+  - Refund: amount + refund record status (from `refunds` table via linked records)
+  - Release: amount + queue status (from `release_review_queue`)
+  - Remaining escrow balance (held + frozen) shown as a third line if `> 0`.
+- Linked Records panel must include, when present:
+  - Dispute Outcome
+  - Refund Record
+  - Release Queue Record
+  - Escrow Ledger (latest dispute-related entries)
+  - Admin Action
+  - Timeline Event
 
----
+### `ResolveDisputeDialog.tsx`
+- For `close_case_without_resolution`, always show:
+  > Closing without resolution will not move money. If funds are frozen or held, another admin action may still be required.
+- If current `money_status === 'funds_frozen'`, require a mandatory checkbox:
+  > I understand funds will remain frozen until another admin action is taken.
+  Submit button disabled until checked. Pass `acknowledge_frozen_funds: true` to the action.
+- For `partial_refund_release`, validate `refund_amount + release_amount ≤ held + frozen` and show the split inline before submit. Both amounts NGN, 2dp.
 
-### 3. Edge function: `supabase/functions/admin-transaction-actions/index.ts`
-
-Add `case "resolve_dispute"`:
-- Zod validate payload: `outcome_type`, `decision_summary` (min 10 chars), `refund_amount` (≥0), `release_amount` (≥0), `internal_note?`, `notify_parties?`, `also_close_investigation?`.
-- Call `resolve_dispute_atomic`. Map `already_resolved` → 409; validation errors → 400.
-- Post-RPC (best-effort, non-fatal):
-  - If `notify_parties`: insert two `notifications` rows with outcome-specific neutral copy (see §9 of spec — never "Admin released funds").
-  - If `internal_note`: insert `admin_transaction_notes` with category `dispute`.
-- Audit row already written inside RPC; edge fn returns `{ ok, outcome, money_status }`.
-
-Add separate `case "dispute_request_more_info"` (for outcome `request_more_information`):
-- Does **not** call resolve RPC.
-- Updates `disputes.status='seller_response_pending'`, sets new `seller_response_due_at = now() + interval`, inserts `dispute_status_history`, `admin_actions`, optional notification to seller.
-
-CORS already permits POST + OPTIONS; no change.
-
----
-
-### 4. Service layer
-
-`src/services/admin-transaction-actions.service.ts`:
-```ts
-export type DisputeOutcome =
-  | "refund_buyer" | "release_funds_to_seller" | "partial_refund_release"
-  | "dismissed_seller_favor" | "dismissed_buyer_favor"
-  | "close_case_without_resolution";
-
-export const resolveDispute = (transactionId, payload: {
-  outcome_type: DisputeOutcome;
-  decision_summary: string;
-  refund_amount: number;
-  release_amount: number;
-  internal_note?: string;
-  notify_parties?: boolean;
-  also_close_investigation?: boolean;
-}) => invokeAction("resolve_dispute", transactionId, payload);
-
-export const disputeRequestMoreInfo = (transactionId, payload: {
-  message: string; new_due_at: string; notify_seller?: boolean;
-}) => invokeAction("dispute_request_more_info", transactionId, payload);
-```
+### Party-facing UI (buyer + seller)
+- `DisputeMoneyStatusBadge` / `DisputeStatusBadge`: route through `deriveDisputeDisplay` so resolved disputes never render "In Dispute".
+- `DisputeResolutionSection`: add `partial_refund_release`, `dismissed_seller_favor`, `dismissed_buyer_favor` label entries.
 
 ---
 
-### 5. UI: `ResolveDisputeDialog`
+## 4. Tests — display + amount rules
 
-New `src/components/admin/transactions/ResolveDisputeDialog.tsx` opened from the dispute card in `/admin/transactions/:id`. Visible when `dispute.status ∈ {open, seller_response_pending, under_review}` and `money_status ∈ {funds_held_in_escrow, funds_pending_release, funds_frozen}`.
+Add `src/lib/__tests__/dispute-display-status.test.ts` covering:
+- seller-favor outcome → "Awaiting Release"
+- buyer-favor outcome → "Refund Pending"
+- partial outcome → "Partially Resolved" with two amount rows
+- no-action + `funds_frozen` → "Manual Action Required"
+- no-action + `funds_held_in_escrow` → "Funds Held in Escrow"
+- resolved dispute never returns "In Dispute"
+- all money values formatted via `formatMoney(..., 'NGN')` with exactly 2 decimals (e.g. `₦1,500.00`)
 
-Fields:
-- **Outcome** (radio): the 6 final outcomes + `request_more_information`.
-- **Decision summary** (textarea, required ≥10 chars, hidden for `request_more_information`).
-- **Refund amount** / **Release amount** numeric inputs (NGN, 2dp): visible per outcome. Auto-fill `escrow_available` for single-bucket outcomes; both editable for `partial_refund_release` with live validation `refund + release ≤ available`.
-- **Internal note** (optional).
-- **Notify parties** checkbox (default on).
-- **Investigation co-close** checkbox — shown only when an open investigation exists, with the spec warning text.
-- **Frozen-funds banner** when `money_status='funds_frozen'`: "Frozen funds will be routed into the selected outcome bucket. No separate unfreeze needed."
-- For `request_more_information`: shows message + new due-date pickers instead, calls `disputeRequestMoreInfo`.
-
-Submit → service call → toast → `setReloadKey` refetch.
+Optional: a small RPC contract test (Deno) asserting the new return payload shape for each outcome.
 
 ---
 
-### 6. Display logic after resolution
+## 5. Files to change
 
-`AdminTransactionDetail.tsx`: stop showing "In Dispute" once `disputes.status='resolved'`. Drive display from `(transaction.status, money_status, dispute_outcomes)`:
-
-```text
-dispute_outcomes.outcome_type             primary banner
------------------------------------------  ------------------------------------------------------
-release_funds_to_seller / dismissed_seller Dispute resolved. Funds are awaiting SafeDeal release review.
-refund_buyer / dismissed_buyer            Dispute resolved. Refund is pending processing.
-partial_refund_release                    Dispute resolved. Refund and release actions are pending processing.
-close_case_without_resolution             Dispute closed. Funds remain {held|frozen} — manual action may be required.
-```
-
-Update `DisputeResolutionSection`, money status badge, release-readiness panel, escrow card, timeline (new event types `dispute_resolved`, `dispute_more_info_requested`), linked records, action buttons, risk flags, investigation badge.
+- `supabase/migrations/<ts>_resolve_dispute_display_contract.sql` — update `resolve_dispute_atomic` to return structured JSON, enforce frozen-funds ack, ensure `funds_pending_release` for seller-favor.
+- `supabase/functions/admin-transaction-actions/index.ts` — pass-through new flag and return payload.
+- `src/services/admin-transaction-actions.service.ts` — extend `ResolveDisputePayload` with `acknowledge_frozen_funds`; type the return payload.
+- `src/lib/dispute-display-status.ts` — new helper.
+- `src/lib/__tests__/dispute-display-status.test.ts` — new tests.
+- `src/components/admin/transactions/ResolveDisputeDialog.tsx` — warning, ack checkbox, partial split validation.
+- `src/pages/AdminTransactionDetail.tsx` — use helper, render partial breakdown, expanded Linked Records.
+- `src/components/disputes/DisputeMoneyStatusBadge.tsx`, `DisputeStatusBadge.tsx`, `DisputeResolutionSection.tsx` — route through helper, add new outcome labels.
 
 ---
 
-### 7. Notifications (neutral copy per outcome)
+## Acceptance
 
-Insert into `notifications` with `type='dispute_update'`, in-app channel, for both buyer and seller:
-- Seller-favor / dismissed_seller_favor: "The dispute has been resolved. The transaction is now awaiting release review."
-- Buyer-favor / dismissed_buyer_favor: "The dispute has been resolved. A refund process has been started."
-- Partial: "The dispute has been resolved with a partial refund/release decision."
-- Close-no-action: "The dispute case has been closed. The transaction will continue based on its current state."
-
-Never "Admin released funds".
-
----
-
-### 8. Tests / acceptance
-
-Deno tests for the edge function cover:
-- Idempotency: second `resolve_dispute` → 409.
-- Seller-favor sets `money_status='funds_pending_release'` (never `funds_releasing`) and inserts release-queue row.
-- Buyer-favor sets `money_status='refund_pending'`.
-- Partial: split sums validated; two ledger rows; queue row present; money stays `refund_pending` until refund completes.
-- Frozen funds routed correctly without manual unfreeze.
-- Close-no-action: no money_status change, ledger row with amount 0.
-- Investigation co-close updates `admin_investigations` only when checked.
-- All amounts NGN with 2dp; `transactions.status='resolved'`, UI stops showing In Dispute.
-
----
-
-### Files to add / change
-
-- `supabase/migrations/<ts>_resolve_dispute.sql` — enum extensions + `resolve_dispute_atomic` + `validate_money_transition` patch + (small) `complete_refund_atomic` follow-up for partial outcome.
-- `supabase/functions/admin-transaction-actions/index.ts` — `resolve_dispute`, `dispute_request_more_info` cases.
-- `src/services/admin-transaction-actions.service.ts` — new exports.
-- `src/components/admin/transactions/ResolveDisputeDialog.tsx` (new).
-- `src/pages/AdminTransactionDetail.tsx` — wire dialog + post-resolution display logic.
-- `src/components/disputes/DisputeResolutionSection.tsx` — render new outcome types.
-- Edge-function tests.
-
-No Paystack call is made in this flow. The central admin release workflow remains the only payout authority.
+- Seller-favor and dismissed-seller-favor land in `funds_pending_release` only; central release flow remains the sole payout path.
+- Partial outcomes display refund + release amounts, statuses, and remaining escrow.
+- Closing without resolution warns clearly and blocks on frozen-funds acknowledgement.
+- No UI surface shows "In Dispute" once the dispute is resolved.
+- Linked Records panel exposes all six artifacts when applicable.
+- All amounts render NGN with 2 decimals; tests cover each display branch.

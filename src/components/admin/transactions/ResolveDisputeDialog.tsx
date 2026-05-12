@@ -39,6 +39,7 @@ interface Props {
     internal_note?: string;
     notify_parties?: boolean;
     also_close_investigation?: boolean;
+    acknowledge_frozen_funds?: boolean;
   }) => Promise<void> | void;
   onRequestMoreInfo: (payload: {
     message: string;
@@ -65,6 +66,7 @@ export function ResolveDisputeDialog({
   const [newDueAt, setNewDueAt] = useState<string>("");
 
   const [submitting, setSubmitting] = useState(false);
+  const [ackFrozen, setAckFrozen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -76,6 +78,7 @@ export function ResolveDisputeDialog({
     setNotifyParties(true);
     setCloseInvestigation(false);
     setMoreInfoMessage("");
+    setAckFrozen(false);
     const due = new Date(Date.now() + defaultSellerDueDays * 86400_000);
     setNewDueAt(due.toISOString().slice(0, 16));
   }, [open, available, defaultSellerDueDays]);
@@ -105,6 +108,8 @@ export function ResolveDisputeDialog({
   const releaseNum = Number(releaseAmount) || 0;
   const isFrozen = moneyStatus === "funds_frozen";
   const isFinal = mode !== "request_more_information";
+  const closeNoAction = mode === "close_case_without_resolution";
+  const requiresFrozenAck = closeNoAction && isFrozen;
 
   const amountsValid = !isFinal ? true : (() => {
     if (mode === "refund_buyer" || mode === "dismissed_buyer_favor")
@@ -118,7 +123,7 @@ export function ResolveDisputeDialog({
 
   const canSubmit = !submitting && (
     isFinal
-      ? summary.trim().length >= 10 && amountsValid
+      ? summary.trim().length >= 10 && amountsValid && (!requiresFrozenAck || ackFrozen)
       : moreInfoMessage.trim().length >= 10 && newDueAt && new Date(newDueAt).getTime() > Date.now()
   );
 
@@ -137,6 +142,7 @@ export function ResolveDisputeDialog({
           internal_note: note.trim() || undefined,
           notify_parties: notifyParties,
           also_close_investigation: hasActiveInvestigation ? closeInvestigation : false,
+          acknowledge_frozen_funds: requiresFrozenAck ? ackFrozen : false,
         });
       } else {
         await onRequestMoreInfo({
@@ -237,6 +243,30 @@ export function ResolveDisputeDialog({
               {!amountsValid && (
                 <div className="text-xs text-destructive flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3" /> Amounts exceed available escrow or are invalid.
+                </div>
+              )}
+
+              {closeNoAction && (
+                <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <span>
+                      Closing without resolution will not move money. If funds are frozen or held,
+                      another admin action may still be required.
+                    </span>
+                  </div>
+                  {requiresFrozenAck && (
+                    <div className="flex items-start gap-2 pt-1 border-t border-amber-500/30">
+                      <Checkbox
+                        id="ack_frozen"
+                        checked={ackFrozen}
+                        onCheckedChange={(v) => setAckFrozen(v === true)}
+                      />
+                      <Label htmlFor="ack_frozen" className="text-sm font-normal cursor-pointer">
+                        I understand funds will remain frozen until another admin action is taken.
+                      </Label>
+                    </div>
+                  )}
                 </div>
               )}
 

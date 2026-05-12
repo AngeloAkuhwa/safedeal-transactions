@@ -44,6 +44,7 @@ import {
 } from "@/components/admin/transactions/MoneyStatus";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { deriveDisputeDisplay } from "@/lib/dispute-display-status";
 
 const ngn = (v: number | null | undefined) => formatMoney(v ?? 0, "NGN");
 
@@ -316,12 +317,46 @@ export default function AdminTransactionDetail() {
   const evidence: AdminTxEvidenceItem[] = data?.evidence ?? [];
   const lockedAgreement = data?.lockedAgreement ?? null;
 
+  const disputeOutcome = (dispute?.outcome ?? null) as
+    | { type?: string; outcome_type?: string; refundAmount?: number; releaseAmount?: number; refund_amount?: number; release_amount?: number; summary?: string }
+    | null;
+  const disputeDisplay = useMemo(() => {
+    if (!dispute) return null;
+    return deriveDisputeDisplay({
+      disputeStatus: dispute.status ?? null,
+      outcome: disputeOutcome
+        ? {
+            outcome_type: (disputeOutcome.outcome_type ?? disputeOutcome.type ?? "") as string,
+            refund_amount: disputeOutcome.refund_amount ?? disputeOutcome.refundAmount ?? 0,
+            release_amount: disputeOutcome.release_amount ?? disputeOutcome.releaseAmount ?? 0,
+          }
+        : null,
+      moneyStatus: tx?.moneyStatus ?? null,
+      escrow: {
+        heldAmount: Number((data?.escrow as any)?.heldAmount ?? 0),
+        frozenAmount: Number((data?.escrow as any)?.frozenAmount ?? 0),
+      },
+    });
+  }, [dispute, disputeOutcome, tx?.moneyStatus, data?.escrow]);
+  const disputeResolved = !!disputeDisplay?.resolved;
+  const disputeOpen = !!dispute && !disputeResolved && dispute.status !== "closed";
+
+  const toneToClasses = (tone: string | undefined) => {
+    switch (tone) {
+      case "danger": return "bg-red-500/15 text-red-300 border-red-500/30";
+      case "warning": return "bg-orange-500/15 text-orange-300 border-orange-500/30";
+      case "success": return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
+      case "info": return "bg-blue-500/15 text-blue-300 border-blue-500/30";
+      default: return "bg-slate-500/15 text-slate-300 border-slate-500/30";
+    }
+  };
+
   const code = tx?.transactionCode ?? transactionId?.slice(0, 8) ?? "";
   const itemTitle = data?.items?.[0]?.title ?? "Transaction";
 
   const accent: "red" | "orange" | "none" =
     tx?.moneyStatus === "funds_frozen" ? "red"
-    : (dispute && dispute.status !== "resolved" && dispute.status !== "closed") ? "orange"
+    : disputeOpen ? "orange"
     : "none";
 
   const escrowDisplay = useMemo(
@@ -334,7 +369,7 @@ export default function AdminTransactionDetail() {
     if (!data) return [];
     const out: { label: string; severity: "low" | "medium" | "high" }[] = [];
     if (tx?.moneyStatus === "funds_frozen") out.push({ label: "Funds frozen", severity: "high" });
-    if (dispute && dispute.status !== "resolved" && dispute.status !== "closed") {
+    if (disputeOpen) {
       out.push({ label: "Dispute open", severity: "medium" });
     }
     if (dispute?.overdue) out.push({ label: "Dispute response overdue", severity: "high" });
@@ -342,7 +377,7 @@ export default function AdminTransactionDetail() {
     if (total >= 500_000) out.push({ label: "High-value transaction", severity: "medium" });
     if (data.parties?.buyer?.flagged) out.push({ label: "Buyer account flagged", severity: "high" });
     return out;
-  }, [data, tx?.moneyStatus, dispute]);
+  }, [data, tx?.moneyStatus, dispute, disputeOpen]);
 
   const allFlags = useMemo(() => {
     const seen = new Set<string>();
@@ -729,16 +764,24 @@ export default function AdminTransactionDetail() {
               {/* Action Row (desktop) */}
               <div className="hidden lg:flex items-center justify-between mt-6 pt-6 border-t border-border gap-4 flex-wrap">
                 <div className="flex items-center gap-3 flex-wrap">
-                  {dispute && dispute.status !== "resolved" && dispute.status !== "closed" && (
+                  {disputeOpen && (
                     <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30">
                       <Flag className="h-3 w-3 mr-1.5" /> Escalated Dispute
+                    </span>
+                  )}
+                  {disputeResolved && disputeDisplay && (
+                    <span className={cn(
+                      "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border",
+                      toneToClasses(disputeDisplay.tone),
+                    )}>
+                      <Scale className="h-3 w-3 mr-1.5" /> {disputeDisplay.label}
                     </span>
                   )}
                   {dispute?.overdue && (() => {
                     const due = dispute.sellerResponseDueAt ? new Date(dispute.sellerResponseDueAt).getTime() : null;
                     const days = due ? Math.max(1, Math.floor((Date.now() - due) / (24 * 3600 * 1000))) : null;
                     return (
-                      <span className="text-red-400 text-sm font-medium inline-flex items-center">
+                      !disputeResolved && <span className="text-red-400 text-sm font-medium inline-flex items-center">
                         <Clock className="h-3.5 w-3.5 mr-1" />
                         {days ? `Overdue: ${days} day${days === 1 ? "" : "s"} past resolution deadline` : "Overdue: past resolution deadline"}
                       </span>
@@ -755,7 +798,7 @@ export default function AdminTransactionDetail() {
                       <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
                         <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
                       </Button>
-                      {dispute.status !== "resolved" && dispute.status !== "closed" && (
+                      {!disputeResolved && dispute.status !== "closed" && (
                         <Button size="sm" variant="outline" className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200" onClick={() => setResolveDisputeOpen(true)}>
                           <Scale className="h-4 w-4 mr-1.5" /> Resolve Dispute
                         </Button>
@@ -1217,11 +1260,23 @@ export default function AdminTransactionDetail() {
             {/* Right rail */}
             <aside className="space-y-5 lg:space-y-6">
               {dispute && (
-                <Card accent="orange">
+                <Card accent={disputeResolved ? "none" : "orange"}>
                   <CardHeader title="Dispute Status" />
                   <div className="p-4 lg:p-6 space-y-3">
-                    <DStatusRow icon={Scale} label="Dispute Opened" value={fmtDate(dispute.openedAt)} pill={<StatusPill value={dispute.status} />} />
-                    {dispute.sellerResponseDueAt && (
+                    <DStatusRow
+                      icon={Scale}
+                      label="Dispute Opened"
+                      value={fmtDate(dispute.openedAt)}
+                      pill={
+                        disputeResolved && disputeDisplay ? (
+                          <span className={cn(
+                            "inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold whitespace-nowrap",
+                            toneToClasses(disputeDisplay.tone),
+                          )}>{disputeDisplay.label}</span>
+                        ) : <StatusPill value={dispute.status} />
+                      }
+                    />
+                    {!disputeResolved && dispute.sellerResponseDueAt && (
                       <DStatusRow
                         icon={Clock}
                         label="Resolution Deadline"
@@ -1235,7 +1290,24 @@ export default function AdminTransactionDetail() {
                       <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
                         <div className="font-semibold text-foreground">Outcome: {titleCase(dispute.outcome.type)}</div>
                         <div className="text-muted-foreground mt-1">{dispute.outcome.summary}</div>
-                        <div className="text-muted-foreground mt-1">Refund {ngn(dispute.outcome.refundAmount)} · Release {ngn(dispute.outcome.releaseAmount)}</div>
+                        {disputeDisplay?.parts ? (
+                          <ul className="mt-2 space-y-0.5">
+                            {disputeDisplay.parts.map((p) => (
+                              <li key={p.label} className="flex justify-between gap-2">
+                                <span className="text-muted-foreground">{p.label}</span>
+                                <span className="tabular-nums font-medium text-foreground">{ngn(p.amount)}</span>
+                              </li>
+                            ))}
+                            {(Number((data?.escrow as any)?.heldAmount ?? 0) + Number((data?.escrow as any)?.frozenAmount ?? 0)) > 0 && (
+                              <li className="flex justify-between gap-2 pt-1 mt-1 border-t border-border text-muted-foreground">
+                                <span>Remaining escrow</span>
+                                <span className="tabular-nums">{ngn(Number((data?.escrow as any)?.heldAmount ?? 0) + Number((data?.escrow as any)?.frozenAmount ?? 0))}</span>
+                              </li>
+                            )}
+                          </ul>
+                        ) : (
+                          <div className="text-muted-foreground mt-1">Refund {ngn(dispute.outcome.refundAmount)} · Release {ngn(dispute.outcome.releaseAmount)}</div>
+                        )}
                       </div>
                     )}
                   </div>
