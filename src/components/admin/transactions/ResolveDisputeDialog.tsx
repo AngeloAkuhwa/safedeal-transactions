@@ -39,6 +39,7 @@ interface Props {
     internal_note?: string;
     notify_parties?: boolean;
     also_close_investigation?: boolean;
+    acknowledge_frozen_funds?: boolean;
   }) => Promise<void> | void;
   onRequestMoreInfo: (payload: {
     message: string;
