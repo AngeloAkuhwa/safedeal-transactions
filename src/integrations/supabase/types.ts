@@ -4094,18 +4094,32 @@ export type Database = {
         }
         Returns: Json
       }
-      resolve_dispute_atomic: {
-        Args: {
-          p_actor: string
-          p_also_close_investigation?: boolean
-          p_decision_summary: string
-          p_dispute_id: string
-          p_outcome: Database["public"]["Enums"]["dispute_outcome_type"]
-          p_refund_amount: number
-          p_release_amount: number
-        }
-        Returns: Json
-      }
+      resolve_dispute_atomic:
+        | {
+            Args: {
+              p_actor: string
+              p_also_close_investigation?: boolean
+              p_decision_summary: string
+              p_dispute_id: string
+              p_outcome: Database["public"]["Enums"]["dispute_outcome_type"]
+              p_refund_amount: number
+              p_release_amount: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_acknowledge_frozen_funds?: boolean
+              p_actor: string
+              p_also_close_investigation?: boolean
+              p_decision_summary: string
+              p_dispute_id: string
+              p_outcome: Database["public"]["Enums"]["dispute_outcome_type"]
+              p_refund_amount: number
+              p_release_amount: number
+            }
+            Returns: Json
+          }
       retry_payout_atomic: {
         Args: { p_actor_user_id: string; p_notes: string; p_payout_id: string }
         Returns: Json
