@@ -394,6 +394,7 @@ Deno.serve(async (req) => {
         if (!Number.isFinite(releaseAmount) || releaseAmount < 0) return badRequest("invalid_release_amount");
         const notifyParties = payload.notify_parties === true;
         const alsoCloseInvestigation = payload.also_close_investigation === true;
+        const acknowledgeFrozenFunds = payload.acknowledge_frozen_funds === true;
         const internalNote = typeof payload.internal_note === "string" ? payload.internal_note.trim() : "";
 
         const { data: disputeRow } = await admin
@@ -414,10 +415,14 @@ Deno.serve(async (req) => {
           p_release_amount: Math.round(releaseAmount * 100) / 100,
           p_decision_summary: summary,
           p_also_close_investigation: alsoCloseInvestigation,
+          p_acknowledge_frozen_funds: acknowledgeFrozenFunds,
         });
         if (rpcErr) {
           const msg = String(rpcErr.message ?? "");
           if (msg.includes("already_resolved")) return json({ error: "already_resolved" }, 409);
+          if (msg.includes("frozen_funds_acknowledgement_required")) {
+            return json({ error: "frozen_funds_acknowledgement_required" }, 400);
+          }
           if (msg.startsWith("invalid_") || msg.startsWith("partial_") || msg.startsWith("no_")) return badRequest(msg);
           throw rpcErr;
         }
