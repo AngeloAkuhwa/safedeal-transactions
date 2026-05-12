@@ -93,10 +93,31 @@ export interface ResolveDisputePayload {
   internal_note?: string;
   notify_parties?: boolean;
   also_close_investigation?: boolean;
+  acknowledge_frozen_funds?: boolean;
 }
 
-export const resolveDispute = (transactionId: string, payload: ResolveDisputePayload) =>
-  invokeAction("resolve_dispute", transactionId, payload as unknown as Record<string, unknown>);
+export interface ResolveDisputeResult {
+  ok: boolean;
+  outcome_type?: string;
+  dispute_outcome_id?: string | null;
+  money_status?: string | null;
+  refund_id?: string | null;
+  release_queue_id?: string | null;
+  ledger_entry_ids?: string[];
+  admin_action_id?: string | null;
+  timeline_event_id?: string | null;
+  remaining_held_amount?: number;
+  remaining_frozen_amount?: number;
+  refund_amount?: number;
+  release_amount?: number;
+  investigation_closed?: boolean;
+}
+
+export const resolveDispute = (
+  transactionId: string,
+  payload: ResolveDisputePayload,
+): Promise<ResolveDisputeResult> =>
+  invokeAction("resolve_dispute", transactionId, payload as unknown as Record<string, unknown>) as Promise<ResolveDisputeResult>;
 
 export interface DisputeRequestMoreInfoPayload {
   message: string;
