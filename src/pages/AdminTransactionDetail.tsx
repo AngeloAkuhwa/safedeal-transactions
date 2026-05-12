@@ -1260,11 +1260,23 @@ export default function AdminTransactionDetail() {
             {/* Right rail */}
             <aside className="space-y-5 lg:space-y-6">
               {dispute && (
-                <Card accent="orange">
+                <Card accent={disputeResolved ? "none" : "orange"}>
                   <CardHeader title="Dispute Status" />
                   <div className="p-4 lg:p-6 space-y-3">
-                    <DStatusRow icon={Scale} label="Dispute Opened" value={fmtDate(dispute.openedAt)} pill={<StatusPill value={dispute.status} />} />
-                    {dispute.sellerResponseDueAt && (
+                    <DStatusRow
+                      icon={Scale}
+                      label="Dispute Opened"
+                      value={fmtDate(dispute.openedAt)}
+                      pill={
+                        disputeResolved && disputeDisplay ? (
+                          <span className={cn(
+                            "inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold whitespace-nowrap",
+                            toneToClasses(disputeDisplay.tone),
+                          )}>{disputeDisplay.label}</span>
+                        ) : <StatusPill value={dispute.status} />
+                      }
+                    />
+                    {!disputeResolved && dispute.sellerResponseDueAt && (
                       <DStatusRow
                         icon={Clock}
                         label="Resolution Deadline"
@@ -1278,7 +1290,24 @@ export default function AdminTransactionDetail() {
                       <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
                         <div className="font-semibold text-foreground">Outcome: {titleCase(dispute.outcome.type)}</div>
                         <div className="text-muted-foreground mt-1">{dispute.outcome.summary}</div>
-                        <div className="text-muted-foreground mt-1">Refund {ngn(dispute.outcome.refundAmount)} · Release {ngn(dispute.outcome.releaseAmount)}</div>
+                        {disputeDisplay?.parts ? (
+                          <ul className="mt-2 space-y-0.5">
+                            {disputeDisplay.parts.map((p) => (
+                              <li key={p.label} className="flex justify-between gap-2">
+                                <span className="text-muted-foreground">{p.label}</span>
+                                <span className="tabular-nums font-medium text-foreground">{ngn(p.amount)}</span>
+                              </li>
+                            ))}
+                            {(Number((data?.escrow as any)?.heldAmount ?? 0) + Number((data?.escrow as any)?.frozenAmount ?? 0)) > 0 && (
+                              <li className="flex justify-between gap-2 pt-1 mt-1 border-t border-border text-muted-foreground">
+                                <span>Remaining escrow</span>
+                                <span className="tabular-nums">{ngn(Number((data?.escrow as any)?.heldAmount ?? 0) + Number((data?.escrow as any)?.frozenAmount ?? 0))}</span>
+                              </li>
+                            )}
+                          </ul>
+                        ) : (
+                          <div className="text-muted-foreground mt-1">Refund {ngn(dispute.outcome.refundAmount)} · Release {ngn(dispute.outcome.releaseAmount)}</div>
+                        )}
                       </div>
                     )}
                   </div>
