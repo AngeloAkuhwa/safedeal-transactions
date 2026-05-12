@@ -764,16 +764,24 @@ export default function AdminTransactionDetail() {
               {/* Action Row (desktop) */}
               <div className="hidden lg:flex items-center justify-between mt-6 pt-6 border-t border-border gap-4 flex-wrap">
                 <div className="flex items-center gap-3 flex-wrap">
-                  {dispute && dispute.status !== "resolved" && dispute.status !== "closed" && (
+                  {disputeOpen && (
                     <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30">
                       <Flag className="h-3 w-3 mr-1.5" /> Escalated Dispute
+                    </span>
+                  )}
+                  {disputeResolved && disputeDisplay && (
+                    <span className={cn(
+                      "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border",
+                      toneToClasses(disputeDisplay.tone),
+                    )}>
+                      <Scale className="h-3 w-3 mr-1.5" /> {disputeDisplay.label}
                     </span>
                   )}
                   {dispute?.overdue && (() => {
                     const due = dispute.sellerResponseDueAt ? new Date(dispute.sellerResponseDueAt).getTime() : null;
                     const days = due ? Math.max(1, Math.floor((Date.now() - due) / (24 * 3600 * 1000))) : null;
                     return (
-                      <span className="text-red-400 text-sm font-medium inline-flex items-center">
+                      !disputeResolved && <span className="text-red-400 text-sm font-medium inline-flex items-center">
                         <Clock className="h-3.5 w-3.5 mr-1" />
                         {days ? `Overdue: ${days} day${days === 1 ? "" : "s"} past resolution deadline` : "Overdue: past resolution deadline"}
                       </span>
@@ -790,7 +798,7 @@ export default function AdminTransactionDetail() {
                       <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
                         <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
                       </Button>
-                      {dispute.status !== "resolved" && dispute.status !== "closed" && (
+                      {!disputeResolved && dispute.status !== "closed" && (
                         <Button size="sm" variant="outline" className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200" onClick={() => setResolveDisputeOpen(true)}>
                           <Scale className="h-4 w-4 mr-1.5" /> Resolve Dispute
                         </Button>
