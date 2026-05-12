@@ -44,6 +44,7 @@ import {
 } from "@/components/admin/transactions/MoneyStatus";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { deriveDisputeDisplay } from "@/lib/dispute-display-status";
 
 const ngn = (v: number | null | undefined) => formatMoney(v ?? 0, "NGN");
 
@@ -316,12 +317,46 @@ export default function AdminTransactionDetail() {
   const evidence: AdminTxEvidenceItem[] = data?.evidence ?? [];
   const lockedAgreement = data?.lockedAgreement ?? null;
 
+  const disputeOutcome = (dispute?.outcome ?? null) as
+    | { type?: string; outcome_type?: string; refundAmount?: number; releaseAmount?: number; refund_amount?: number; release_amount?: number; summary?: string }
+    | null;
+  const disputeDisplay = useMemo(() => {
+    if (!dispute) return null;
+    return deriveDisputeDisplay({
+      disputeStatus: dispute.status ?? null,
+      outcome: disputeOutcome
+        ? {
+            outcome_type: (disputeOutcome.outcome_type ?? disputeOutcome.type ?? "") as string,
+            refund_amount: disputeOutcome.refund_amount ?? disputeOutcome.refundAmount ?? 0,
+            release_amount: disputeOutcome.release_amount ?? disputeOutcome.releaseAmount ?? 0,
+          }
+        : null,
+      moneyStatus: tx?.moneyStatus ?? null,
+      escrow: {
+        heldAmount: Number((data?.escrow as any)?.heldAmount ?? 0),
+        frozenAmount: Number((data?.escrow as any)?.frozenAmount ?? 0),
+      },
+    });
+  }, [dispute, disputeOutcome, tx?.moneyStatus, data?.escrow]);
+  const disputeResolved = !!disputeDisplay?.resolved;
+  const disputeOpen = !!dispute && !disputeResolved && dispute.status !== "closed";
+
+  const toneToClasses = (tone: string | undefined) => {
+    switch (tone) {
+      case "danger": return "bg-red-500/15 text-red-300 border-red-500/30";
+      case "warning": return "bg-orange-500/15 text-orange-300 border-orange-500/30";
+      case "success": return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
+      case "info": return "bg-blue-500/15 text-blue-300 border-blue-500/30";
+      default: return "bg-slate-500/15 text-slate-300 border-slate-500/30";
+    }
+  };
+
   const code = tx?.transactionCode ?? transactionId?.slice(0, 8) ?? "";
   const itemTitle = data?.items?.[0]?.title ?? "Transaction";
 
   const accent: "red" | "orange" | "none" =
     tx?.moneyStatus === "funds_frozen" ? "red"
-    : (dispute && dispute.status !== "resolved" && dispute.status !== "closed") ? "orange"
+    : disputeOpen ? "orange"
     : "none";
 
   const escrowDisplay = useMemo(
@@ -334,7 +369,7 @@ export default function AdminTransactionDetail() {
     if (!data) return [];
     const out: { label: string; severity: "low" | "medium" | "high" }[] = [];
     if (tx?.moneyStatus === "funds_frozen") out.push({ label: "Funds frozen", severity: "high" });
-    if (dispute && dispute.status !== "resolved" && dispute.status !== "closed") {
+    if (disputeOpen) {
       out.push({ label: "Dispute open", severity: "medium" });
     }
     if (dispute?.overdue) out.push({ label: "Dispute response overdue", severity: "high" });
@@ -342,7 +377,7 @@ export default function AdminTransactionDetail() {
     if (total >= 500_000) out.push({ label: "High-value transaction", severity: "medium" });
     if (data.parties?.buyer?.flagged) out.push({ label: "Buyer account flagged", severity: "high" });
     return out;
-  }, [data, tx?.moneyStatus, dispute]);
+  }, [data, tx?.moneyStatus, dispute, disputeOpen]);
 
   const allFlags = useMemo(() => {
     const seen = new Set<string>();
