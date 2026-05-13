@@ -28,8 +28,8 @@ export function DisputeResolutionSection({ outcome, currencyCode }: DisputeResol
             </div>
             <h3 className="text-lg font-bold text-foreground">Final Resolution</h3>
           </div>
-          <Badge variant="outline" className={outcomeConfig.className}>
-            {outcomeConfig.label}
+          <Badge variant="outline" className={TONE_CLASSNAMES[outcomeEntry.tone]}>
+            {outcomeEntry.label}
           </Badge>
         </div>
       </CardHeader>
@@ -40,17 +40,21 @@ export function DisputeResolutionSection({ outcome, currencyCode }: DisputeResol
         </div>
 
         <div className="grid sm:grid-cols-3 gap-4 pt-2 border-t border-border">
-          {outcome.refund_amount > 0 && (
+          {(outcome.refund_amount > 0 || isPartial) && (
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Refund Amount</p>
+              <p className="text-xs text-muted-foreground mb-1">
+                {isPartial ? "Refund Pending" : "Refund Amount"}
+              </p>
               <p className="text-base font-bold text-success">
                 {formatAmount(outcome.refund_amount, currencyCode)}
               </p>
             </div>
           )}
-          {outcome.release_amount > 0 && (
+          {(outcome.release_amount > 0 || isPartial) && (
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Released to Seller</p>
+              <p className="text-xs text-muted-foreground mb-1">
+                {isPartial ? "Release Pending" : "Released to Seller"}
+              </p>
               <p className="text-base font-bold text-foreground">
                 {formatAmount(outcome.release_amount, currencyCode)}
               </p>
