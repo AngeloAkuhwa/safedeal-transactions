@@ -1,11 +1,20 @@
 import { Scale, Clock, Hourglass, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { resolveDisputeLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
+import { resolveDisputeLabel, TONE_CLASSNAMES, type Tone } from "@/lib/status-labels";
+import {
+  deriveDisputeDisplay,
+  type DisputeOutcomeInput,
+  type DisputeDisplayTone,
+} from "@/lib/dispute-display-status";
 
 interface DisputeStatusBadgeProps {
   status: string;
   audience?: "seller" | "buyer";
+  /** When provided + status is "resolved", render the derived outcome label. */
+  outcome?: DisputeOutcomeInput | null;
+  moneyStatus?: string | null;
+  escrow?: { heldAmount?: number | null; frozenAmount?: number | null } | null;
 }
 
 const ICON_BY_STATUS: Record<string, typeof Scale> = {
@@ -22,8 +31,29 @@ const ICON_BY_STATUS: Record<string, typeof Scale> = {
   closed: CheckCircle,
 };
 
-export function DisputeStatusBadge({ status, audience = "seller" }: DisputeStatusBadgeProps) {
-  const entry = resolveDisputeLabel(status, audience);
+const DISPLAY_TONE_TO_TONE: Record<DisputeDisplayTone, Tone> = {
+  neutral: "muted",
+  info: "info",
+  warning: "warning",
+  success: "success",
+  danger: "destructive",
+};
+
+export function DisputeStatusBadge({
+  status,
+  audience = "seller",
+  outcome,
+  moneyStatus,
+  escrow,
+}: DisputeStatusBadgeProps) {
+  const derived =
+    status === "resolved"
+      ? deriveDisputeDisplay({ disputeStatus: status, outcome, moneyStatus, escrow })
+      : null;
+
+  const entry = derived
+    ? { label: derived.label, tone: DISPLAY_TONE_TO_TONE[derived.tone] }
+    : resolveDisputeLabel(status, audience);
   const Icon = ICON_BY_STATUS[status] ?? Scale;
 
   return (
