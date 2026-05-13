@@ -1,140 +1,104 @@
-# Dispute Resolution — Final Adjustments Plan
+# Close-out Plan — Linked Records + Party-Facing Labels
 
-This revision builds on the existing `resolve_dispute_atomic` implementation. It does **not** change the central release model (no Paystack calls happen at resolve time). It tightens the UI so what the admin sees matches what the backend stored, and it strengthens the partial and no-action outcomes.
+Two remaining items to finish the dispute resolution flow.
 
 ---
 
-## 1. Backend — RPC contract changes
+## 1. Linked Records expansion (admin)
 
-### `resolve_dispute_atomic` (update)
-Confirm and enforce:
-- `release_funds_to_seller` and `dismissed_seller_favor` → `money_status = funds_pending_release` (NOT `funds_releasing`).
-- No Paystack transfer is initiated. Only `release_review_queue` row is inserted with status `pending`.
-- `partial_refund_release` → splits into `refund_pending` for refund portion + `release_review_queue` row for release portion. Money status reported as `refund_pending` while a `held_for_release` amount remains tracked on `escrow_states`.
+**File:** `supabase/functions/admin-transaction-detail/index.ts`
 
-### Return payload (new)
-The RPC must return a structured object so the edge function and UI can render linked records without a second round-trip:
+The function already loads `dispute_outcomes`, `refunds`, and `escrow_ledger_entries`. We need to:
 
-```json
-{
-  "outcome_type": "...",
-  "dispute_outcome_id": "uuid",
-  "money_status": "refund_pending | funds_pending_release | funds_held_in_escrow | funds_frozen",
-  "refund_id": "uuid | null",
-  "release_queue_id": "uuid | null",
-  "ledger_entry_ids": ["uuid", ...],
-  "remaining_held_amount": "numeric",
-  "remaining_frozen_amount": "numeric",
-  "refund_amount": "numeric",
-  "release_amount": "numeric"
-}
+a. **Add a new fetch** for `release_review_queue` rows tied to this transaction:
+```ts
+admin.from("release_review_queue")
+  .select("id, status, queue_type, amount, currency_code, created_at, reviewed_at")
+  .eq("transaction_id", txId)
+  .order("created_at", { ascending: false })
+  .limit(5)
 ```
 
-### `close_case_without_resolution`
-- If `money_status = funds_frozen` at resolve time, RPC requires `acknowledge_frozen_funds = true` in payload, else raises `frozen_funds_acknowledgement_required`.
-- Writes `dispute_outcomes` row with `refund_amount=0`, `release_amount=0`.
-- Inserts a `transaction_events` entry `dispute_closed_no_action` with the residual money state captured in metadata for traceability.
+b. **Extend the `linkedRecords` builder** (lines ~610–645) to push, when present:
+- `dispute_outcome` — label "Dispute Outcome", subtitle = humanized `outcome_type`, status = `outcome_type`, amount = `refund_amount + release_amount`, route `null`.
+- `refund` — for the latest active refund row: label "Refund Record", subtitle = reason or `created_at`, status, amount, currency.
+- `release_queue` — for the latest pending review row: label "Release Review", subtitle = `queue_type`, status, amount, currency.
+- `escrow_ledger` — single summary entry: label "Escrow Ledger", subtitle = "{N} entries", status = latest `entry_type`, route `null`. (Detailed list already lives under `escrow.ledger`.)
+
+Keep existing buyer/seller/payment/escrow/payout/dispute/product entries unchanged. Order: parties → payment → escrow → escrow_ledger → payout → release_queue → refund → dispute → dispute_outcome → product.
+
+c. **Type update** — add the new optional record types to `AdminTxLinkedRecord["type"]` in `src/services/admin-transaction-detail.service.ts` (currently typed `string`, no change needed) and ensure `AdminTransactionDetail.tsx`'s Linked Records renderer has icon/label fallback for the new `type` values.
+
+**No DB migration. No business logic change.**
 
 ---
 
-## 2. Edge function — `admin-transaction-actions`
+## 2. Party-facing label coverage
 
-`resolve_dispute` case:
-- Pass through new `acknowledge_frozen_funds` flag.
-- Forward the RPC return payload to the client unchanged under `result`.
-- After RPC, also append linked-record references to the response so `setReloadKey` is not the only refresh path:
-  - `dispute_outcome_id`, `refund_id`, `release_queue_id`, `escrow_ledger_entry_ids`, `admin_action_id`, `timeline_event_id`.
+The new outcome types (`dismissed_seller_favor`, `dismissed_buyer_favor`, `partial_refund_release`) and resolved-dispute display rules currently fall through to generic copy on buyer/seller surfaces.
 
----
+### 2a. Route party badges through `deriveDisputeDisplay`
 
-## 3. Frontend — Display derivation
+**Files:**
+- `src/components/disputes/DisputeStatusBadge.tsx`
+- `src/components/disputes/DisputeMoneyStatusBadge.tsx`
 
-### New helper `src/lib/dispute-display-status.ts`
-Single source of truth used by both admin and party UIs:
+Add optional props `outcome?: DisputeOutcomeInput | null`, `moneyStatus?: string | null`, `escrow?: { heldAmount, frozenAmount } | null`. When provided AND `disputeStatus === "resolved"`, call `deriveDisputeDisplay(...)` and render its `label` + `tone` (mapping `"info" | "warning" | "danger" | "success" | "neutral"` → existing `TONE_CLASSNAMES` keys). Otherwise fall back to current `resolveDisputeLabel` / `resolveDisputeMoneyLabel` behavior (zero regressions for unresolved disputes).
 
-```text
-deriveDisputeDisplay({ disputeStatus, outcome, moneyStatus, escrow }):
-  if disputeStatus !== 'resolved' → return existing dispute badge logic
-  switch outcome.outcome_type:
-    release_funds_to_seller, dismissed_seller_favor →
-      { label: 'Awaiting Release', tone: 'info', moneyStatus: 'funds_pending_release' }
-    refund_buyer, dismissed_buyer_favor →
-      { label: 'Refund Pending', tone: 'warning', moneyStatus: 'refund_pending' }
-    partial_refund_release →
-      { label: 'Partially Resolved', tone: 'info',
-        parts: [
-          { label: 'Refund Pending', amount: outcome.refund_amount },
-          { label: 'Release Pending', amount: outcome.release_amount }
-        ] }
-    close_case_without_resolution →
-      if escrow.frozenAmount > 0 → { label: 'Manual Action Required', tone: 'danger' }
-      else if moneyStatus === 'funds_pending_release' → { label: 'Awaiting Release', tone: 'info' }
-      else → { label: 'Funds Held in Escrow', tone: 'info' }
+Add a tone→Tone map inside each badge (`danger → destructive`, `neutral → muted`, others identity).
+
+### 2b. New outcome labels in `DisputeResolutionSection`
+
+**File:** `src/components/disputes/DisputeResolutionSection.tsx`
+
+Extend `OUTCOME_LABELS` with:
+```ts
+dismissed_seller_favor: { label: "Dismissed — Seller Favor", className: "bg-warning/15 text-warning border-warning/30" }
+dismissed_buyer_favor:  { label: "Dismissed — Buyer Favor",  className: "bg-success/15 text-success border-success/30" }
+partial_refund_release: { label: "Partial Resolution",       className: "bg-primary/15 text-primary border-primary/30" }
 ```
 
-Key rule: **never show "In Dispute" once `disputes.status = resolved`** — derive purely from outcome + money/escrow.
+For `partial_refund_release`, the existing two amount blocks (refund + release) already render correctly — no structural change needed beyond confirming both are shown side-by-side with NGN 2dp via `formatMoney(..., currencyCode)`.
 
-### `AdminTransactionDetail.tsx`
-- Replace any "In Dispute" badge fallback with `deriveDisputeDisplay`.
-- For `partial_refund_release`, render a two-row breakdown card:
-  - Refund: amount + refund record status (from `refunds` table via linked records)
-  - Release: amount + queue status (from `release_review_queue`)
-  - Remaining escrow balance (held + frozen) shown as a third line if `> 0`.
-- Linked Records panel must include, when present:
-  - Dispute Outcome
-  - Refund Record
-  - Release Queue Record
-  - Escrow Ledger (latest dispute-related entries)
-  - Admin Action
-  - Timeline Event
+For `dismissed_seller_favor` show only the release amount block; for `dismissed_buyer_favor` only the refund amount.
 
-### `ResolveDisputeDialog.tsx`
-- For `close_case_without_resolution`, always show:
-  > Closing without resolution will not move money. If funds are frozen or held, another admin action may still be required.
-- If current `money_status === 'funds_frozen'`, require a mandatory checkbox:
-  > I understand funds will remain frozen until another admin action is taken.
-  Submit button disabled until checked. Pass `acknowledge_frozen_funds: true` to the action.
-- For `partial_refund_release`, validate `refund_amount + release_amount ≤ held + frozen` and show the split inline before submit. Both amounts NGN, 2dp.
+### 2c. Touch-ups in `status-labels.ts` (optional, for completeness)
 
-### Party-facing UI (buyer + seller)
-- `DisputeMoneyStatusBadge` / `DisputeStatusBadge`: route through `deriveDisputeDisplay` so resolved disputes never render "In Dispute".
-- `DisputeResolutionSection`: add `partial_refund_release`, `dismissed_seller_favor`, `dismissed_buyer_favor` label entries.
+Add a small registry so any other consumer can resolve outcome copy without re-importing the section:
+```ts
+export const DISPUTE_OUTCOME_LABELS: Record<string, LabelEntry> = {
+  refund_buyer:                 { label: "Refund to Buyer",            tone: "success" },
+  release_funds_to_seller:      { label: "Released to Seller",         tone: "info" },
+  partial_refund_release:       { label: "Partial Resolution",         tone: "info" },
+  dismissed_seller_favor:       { label: "Dismissed — Seller Favor",   tone: "warning" },
+  dismissed_buyer_favor:        { label: "Dismissed — Buyer Favor",    tone: "success" },
+  close_case_without_resolution:{ label: "Closed — No Resolution",     tone: "muted" },
+};
+export function resolveDisputeOutcomeLabel(t: string | null | undefined): LabelEntry { ... }
+```
+Used by `DisputeResolutionSection` (replaces the inline map) and any future buyer/seller dispute card.
 
 ---
 
-## 4. Tests — display + amount rules
+## 3. Tests
 
-Add `src/lib/__tests__/dispute-display-status.test.ts` covering:
-- seller-favor outcome → "Awaiting Release"
-- buyer-favor outcome → "Refund Pending"
-- partial outcome → "Partially Resolved" with two amount rows
-- no-action + `funds_frozen` → "Manual Action Required"
-- no-action + `funds_held_in_escrow` → "Funds Held in Escrow"
-- resolved dispute never returns "In Dispute"
-- all money values formatted via `formatMoney(..., 'NGN')` with exactly 2 decimals (e.g. `₦1,500.00`)
-
-Optional: a small RPC contract test (Deno) asserting the new return payload shape for each outcome.
+Extend `src/lib/__tests__/dispute-display-status.test.ts` with two cases (if not already covered): party-facing badge derivation for `dismissed_seller_favor` → "Awaiting Release" and `dismissed_buyer_favor` → "Refund Pending". Add a render snapshot or shallow assertion that `DisputeResolutionSection` renders the new three outcome labels and shows the partial split with NGN 2dp.
 
 ---
 
-## 5. Files to change
+## Files changed
 
-- `supabase/migrations/<ts>_resolve_dispute_display_contract.sql` — update `resolve_dispute_atomic` to return structured JSON, enforce frozen-funds ack, ensure `funds_pending_release` for seller-favor.
-- `supabase/functions/admin-transaction-actions/index.ts` — pass-through new flag and return payload.
-- `src/services/admin-transaction-actions.service.ts` — extend `ResolveDisputePayload` with `acknowledge_frozen_funds`; type the return payload.
-- `src/lib/dispute-display-status.ts` — new helper.
-- `src/lib/__tests__/dispute-display-status.test.ts` — new tests.
-- `src/components/admin/transactions/ResolveDisputeDialog.tsx` — warning, ack checkbox, partial split validation.
-- `src/pages/AdminTransactionDetail.tsx` — use helper, render partial breakdown, expanded Linked Records.
-- `src/components/disputes/DisputeMoneyStatusBadge.tsx`, `DisputeStatusBadge.tsx`, `DisputeResolutionSection.tsx` — route through helper, add new outcome labels.
-
----
+- `supabase/functions/admin-transaction-detail/index.ts` (fetch + linkedRecords push)
+- `src/pages/AdminTransactionDetail.tsx` (icon/label fallback for new types in Linked Records section)
+- `src/components/disputes/DisputeStatusBadge.tsx`
+- `src/components/disputes/DisputeMoneyStatusBadge.tsx`
+- `src/components/disputes/DisputeResolutionSection.tsx`
+- `src/lib/status-labels.ts` (new outcome registry + resolver)
+- `src/lib/__tests__/dispute-display-status.test.ts` (new cases)
 
 ## Acceptance
 
-- Seller-favor and dismissed-seller-favor land in `funds_pending_release` only; central release flow remains the sole payout path.
-- Partial outcomes display refund + release amounts, statuses, and remaining escrow.
-- Closing without resolution warns clearly and blocks on frozen-funds acknowledgement.
-- No UI surface shows "In Dispute" once the dispute is resolved.
-- Linked Records panel exposes all six artifacts when applicable.
-- All amounts render NGN with 2 decimals; tests cover each display branch.
+- Admin Linked Records panel shows up to 10 record types when applicable: buyer, seller, payment, escrow, escrow_ledger, payout, release_queue, refund, dispute, dispute_outcome, product.
+- Buyer and seller dispute screens never display "In Dispute" once `disputes.status = resolved` — they show derived labels (Awaiting Release / Refund Pending / Partially Resolved / Manual Action Required / Funds Held in Escrow).
+- `DisputeResolutionSection` renders human-readable headers for all six outcome types; partial outcome shows both amounts in NGN with 2 decimals.
+- No backend logic, no migration, no Paystack call introduced.
