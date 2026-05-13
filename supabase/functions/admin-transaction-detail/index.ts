@@ -691,7 +691,7 @@ Deno.serve(async (req) => {
     route: null,
   });
 
-  const ledgerRows = (escrowLedgerRes as any).data ?? [];
+  const ledgerRows = (ledgerRes as any).data ?? [];
   if (ledgerRows.length) linkedRecords.push({
     type: "escrow_ledger",
     label: "Escrow Ledger",
