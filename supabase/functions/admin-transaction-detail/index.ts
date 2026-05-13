@@ -644,6 +644,64 @@ Deno.serve(async (req) => {
     route: `/seller/products/${productRes.data.id}`,
   });
 
+  // ===== Dispute-resolution linked records =====
+  // Fetch release_review_queue rows (admin central release queue).
+  const { data: releaseQueueRows } = await admin
+    .from("release_review_queue")
+    .select("id, status, queue_type, amount, currency_code, created_at, resolved_at")
+    .eq("transaction_id", txId)
+    .order("created_at", { ascending: false })
+    .limit(5);
+  const latestQueue = (releaseQueueRows ?? [])
+    .find((r: any) => ["pending", "claimed", "processing", "awaiting_info", "held"].includes(r.status))
+    ?? (releaseQueueRows ?? [])[0]
+    ?? null;
+
+  if (latestQueue) linkedRecords.push({
+    type: "release_queue",
+    label: "Release Review",
+    subtitle: String(latestQueue.queue_type ?? "").replace(/_/g, " "),
+    status: latestQueue.status,
+    amount: latestQueue.amount != null ? Number(latestQueue.amount) : null,
+    currency: latestQueue.currency_code ?? "NGN",
+    route: null,
+  });
+
+  const latestRefund = (refundsRes.data ?? [])
+    .find((r: any) => r.status !== "cancelled")
+    ?? (refundsRes.data ?? [])[0]
+    ?? null;
+  if (latestRefund) linkedRecords.push({
+    type: "refund",
+    label: "Refund Record",
+    subtitle: latestRefund.reason ?? "Refund",
+    status: latestRefund.status,
+    amount: latestRefund.refund_amount != null ? Number(latestRefund.refund_amount) : null,
+    currency: latestRefund.currency_code ?? "NGN",
+    route: null,
+  });
+
+  if (disputeOutcome) linkedRecords.push({
+    type: "dispute_outcome",
+    label: "Dispute Outcome",
+    subtitle: String(disputeOutcome.outcome_type ?? "").replace(/_/g, " "),
+    status: disputeOutcome.outcome_type,
+    amount: Number(disputeOutcome.refund_amount ?? 0) + Number(disputeOutcome.release_amount ?? 0),
+    currency: pricingOut?.currency ?? "NGN",
+    route: null,
+  });
+
+  const ledgerRows = (escrowLedgerRes as any).data ?? [];
+  if (ledgerRows.length) linkedRecords.push({
+    type: "escrow_ledger",
+    label: "Escrow Ledger",
+    subtitle: `${ledgerRows.length} ${ledgerRows.length === 1 ? "entry" : "entries"}`,
+    status: ledgerRows[0]?.entry_type ?? null,
+    amount: null,
+    currency: pricingOut?.currency ?? "NGN",
+    route: null,
+  });
+
   // ===== Admin actions available (state-aware) =====
   const TERMINAL_TX = ["completed", "cancelled", "refunded", "timed_out"];
   const isTerminal = TERMINAL_TX.includes(tx.status as string);
