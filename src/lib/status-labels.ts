@@ -411,6 +411,27 @@ export function resolveDisputeMoneyLabel(status: string | null | undefined): Lab
 }
 
 /* ============================================================
+ * DISPUTE OUTCOME  (DB enum: dispute_outcome_type)
+ * ============================================================ */
+
+export const DISPUTE_OUTCOME_LABELS: Record<string, LabelEntry> = {
+  refund_buyer: { label: "Refund to Buyer", tone: "success" },
+  release_funds_to_seller: { label: "Released to Seller", tone: "info" },
+  partial_refund_release: { label: "Partial Resolution", tone: "info" },
+  dismissed_seller_favor: { label: "Dismissed — Seller Favor", tone: "warning" },
+  dismissed_buyer_favor: { label: "Dismissed — Buyer Favor", tone: "success" },
+  close_case_without_resolution: { label: "Closed — No Resolution", tone: "muted" },
+};
+
+export function resolveDisputeOutcomeLabel(value: string | null | undefined): LabelEntry {
+  if (!value) return { label: "—", tone: "muted" };
+  return (
+    DISPUTE_OUTCOME_LABELS[value] ??
+    ({ label: String(value).replace(/_/g, " "), tone: "muted" } satisfies LabelEntry)
+  );
+}
+
+/* ============================================================
  * IDENTITY VERIFICATION SUBMISSION STATUS  (buyer self-serve surface)
  * ============================================================ */
 
