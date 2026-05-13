@@ -999,6 +999,10 @@ export default function AdminTransactionDetail() {
                     payout: { Icon: Wallet, cls: "bg-blue-500/20 text-blue-400" },
                     dispute: { Icon: Scale, cls: "bg-orange-500/20 text-orange-400" },
                     agreement: { Icon: FileSignature, cls: "bg-slate-500/20 text-slate-300" },
+                    dispute_outcome: { Icon: Gavel, cls: "bg-amber-500/20 text-amber-400" },
+                    refund: { Icon: Coins, cls: "bg-rose-500/20 text-rose-400" },
+                    release_queue: { Icon: Banknote, cls: "bg-indigo-500/20 text-indigo-400" },
+                    escrow_ledger: { Icon: Receipt, cls: "bg-violet-500/20 text-violet-400" },
                   };
                   const isParty = typeKey === "buyer" || typeKey === "seller";
                   const iconMeta = ICON_MAP[typeKey];
