@@ -1,7 +1,12 @@
 import { Lock, Clock, ArrowLeftRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { resolveDisputeMoneyLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
+import { resolveDisputeMoneyLabel, TONE_CLASSNAMES, type Tone } from "@/lib/status-labels";
+import {
+  deriveDisputeDisplay,
+  type DisputeOutcomeInput,
+  type DisputeDisplayTone,
+} from "@/lib/dispute-display-status";
 
 const ICON_BY_MONEY: Record<string, typeof Lock> = {
   funds_frozen: Lock,
@@ -15,14 +20,38 @@ const ICON_BY_MONEY: Record<string, typeof Lock> = {
 
 interface DisputeMoneyStatusBadgeProps {
   status: string | null;
+  /** When provided + dispute is resolved, render the derived label. */
+  disputeStatus?: string | null;
+  outcome?: DisputeOutcomeInput | null;
+  escrow?: { heldAmount?: number | null; frozenAmount?: number | null } | null;
 }
 
-export function DisputeMoneyStatusBadge({ status }: DisputeMoneyStatusBadgeProps) {
-  const entry = resolveDisputeMoneyLabel(status);
+const DISPLAY_TONE_TO_TONE: Record<DisputeDisplayTone, Tone> = {
+  neutral: "muted",
+  info: "info",
+  warning: "warning",
+  success: "success",
+  danger: "destructive",
+};
+
+export function DisputeMoneyStatusBadge({
+  status,
+  disputeStatus,
+  outcome,
+  escrow,
+}: DisputeMoneyStatusBadgeProps) {
+  const derived =
+    disputeStatus === "resolved"
+      ? deriveDisputeDisplay({ disputeStatus, outcome, moneyStatus: status, escrow })
+      : null;
+  const entry = derived
+    ? { label: derived.label, tone: DISPLAY_TONE_TO_TONE[derived.tone] }
+    : resolveDisputeMoneyLabel(status);
   if (!entry) {
     return <span className="text-xs text-muted-foreground">—</span>;
   }
-  const Icon = ICON_BY_MONEY[status as string] ?? Lock;
+  const moneyKey = derived?.moneyStatus ?? status;
+  const Icon = ICON_BY_MONEY[moneyKey as string] ?? Lock;
 
   return (
     <Badge
