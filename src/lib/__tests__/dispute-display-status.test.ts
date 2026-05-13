@@ -112,3 +112,23 @@ describe("formatMoney NGN 2dp", () => {
     expect(formatMoney(1234567.5, "NGN")).toBe("₦1,234,567.50");
   });
 });
+
+import { resolveDisputeOutcomeLabel } from "@/lib/status-labels";
+
+describe("resolveDisputeOutcomeLabel", () => {
+  it("covers all six outcome types", () => {
+    const types = [
+      "refund_buyer",
+      "release_funds_to_seller",
+      "partial_refund_release",
+      "dismissed_seller_favor",
+      "dismissed_buyer_favor",
+      "close_case_without_resolution",
+    ];
+    for (const t of types) {
+      const e = resolveDisputeOutcomeLabel(t);
+      expect(e.label).toBeTruthy();
+      expect(e.label).not.toMatch(/^[a-z_]+$/); // not raw snake_case
+    }
+  });
+});
