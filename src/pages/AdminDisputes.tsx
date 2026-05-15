@@ -314,7 +314,7 @@ export default function AdminDisputes() {
   const rows = data?.rows ?? [];
 
   return (
-    <AdminLayout sidebarBadges={undefined}>
+    <AdminLayout title="Dispute Resolution Queue" subtitle="Live dispute triage and case management" hideDefaultHeaders>
       <TooltipProvider delayDuration={200}>
         <div className="space-y-6 p-4 md:p-6">
           {/* Header */}
