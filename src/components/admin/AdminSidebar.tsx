@@ -22,6 +22,9 @@ import {
   KeyRound,
   ShieldCheck,
   LogOut,
+  BarChart3,
+  FileBarChart,
+  Undo2,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -58,7 +61,11 @@ function buildGroups(badges?: AdminDashboardResponse["sidebar_badges"]): NavGrou
   return [
     {
       label: "Overview",
-      items: [{ label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard }],
+      items: [
+        { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+        { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+        { label: "Reports", href: "/admin/reports", icon: FileBarChart },
+      ],
     },
     {
       label: "Operations",
@@ -92,6 +99,7 @@ function buildGroups(badges?: AdminDashboardResponse["sidebar_badges"]): NavGrou
         },
         { label: "Payments", href: "/admin/payments", icon: CreditCard },
         { label: "Money Tracing", href: "/admin/money-tracing", icon: Activity },
+        { label: "Refunds", href: "/admin/refunds", icon: Undo2 },
       ],
     },
     {
