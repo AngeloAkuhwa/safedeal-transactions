@@ -55,6 +55,8 @@ import AdminOfferDetail from "./pages/AdminOfferDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminTransactions from "./pages/AdminTransactions";
 import AdminTransactionDetail from "./pages/AdminTransactionDetail";
+import AdminDisputes from "./pages/AdminDisputes";
+import AdminDisputeRedirect from "./pages/AdminDisputeRedirect";
 import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -113,6 +115,8 @@ const App = () => (
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/transactions" element={<AdminTransactions />} />
               <Route path="/admin/transactions/:transactionId" element={<AdminTransactionDetail />} />
+              <Route path="/admin/disputes" element={<AdminDisputes />} />
+              <Route path="/admin/disputes/:id" element={<AdminDisputeRedirect />} />
               <Route path="/admin/offers" element={<AdminOffers />} />
               <Route path="/admin/offers/:offerId" element={<AdminOfferDetail />} />
             </Route>
