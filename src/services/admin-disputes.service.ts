@@ -127,7 +127,7 @@ export async function exportAdminDisputesQueue(params: DisputeQueueParams = {}):
 
 export {
   resolveDispute,
-  requestSellerMoreInfo,
+  disputeRequestMoreInfo,
   freezeTransaction,
   unfreezeTransaction,
   addInternalNote,
