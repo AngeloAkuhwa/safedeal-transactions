@@ -1,104 +1,189 @@
-# Close-out Plan — Linked Records + Party-Facing Labels
+## Goal
 
-Two remaining items to finish the dispute resolution flow.
+Build the **Central Admin Dispute Resolution Queue** at `/admin/disputes` matching the uploaded mockup, fully wired to the existing central resolve flow (`admin-transaction-actions` → `resolve_dispute_atomic` RPC, `ResolveDisputeDialog`, `deriveDisputeDisplay`, Linked Records). Read-only aggregator only — no new write paths, no Paystack, no money movement from this page.
 
 ---
 
-## 1. Linked Records expansion (admin)
+## 1. Routing & navigation
 
-**File:** `supabase/functions/admin-transaction-detail/index.ts`
+**Routes (edit `src/App.tsx`)** — added inside the existing `requireRole="admin"` block:
+- `/admin/disputes` → new `AdminDisputes` page
+- `/admin/disputes/:id` → tiny resolver component that fetches `disputes.transaction_id` then `navigate("/admin/transactions/" + tx + "?tab=dispute&disputeId=" + id, { replace: true })`. Preserves existing dashboard Recent Activity links.
 
-The function already loads `dispute_outcomes`, `refunds`, and `escrow_ledger_entries`. We need to:
+**`src/components/admin/useAdminNav.ts`** — add `/admin/disputes` to `BUILT_ROUTES` so the existing sidebar Disputes item stops showing "Coming soon" and routes here. The dispute count badge is already wired (`badges.disputes`).
 
-a. **Add a new fetch** for `release_review_queue` rows tied to this transaction:
-```ts
-admin.from("release_review_queue")
-  .select("id, status, queue_type, amount, currency_code, created_at, reviewed_at")
-  .eq("transaction_id", txId)
-  .order("created_at", { ascending: false })
-  .limit(5)
+**Sidebar — add only missing items, do not restructure existing groups** (`src/components/admin/AdminSidebar.tsx`, `buildGroups`):
+- Overview group: append **Analytics** (`/admin/analytics`) and **Reports** (`/admin/reports`) after Dashboard.
+- Financial group: append **Refunds** (`/admin/refunds`) after Money Tracing.
+- Everything else (Operations, Risk & Compliance, Support & Tools, Settings) stays exactly as it is. Fraud Detection remains under Risk & Compliance — not duplicated. Money Tracing is not renamed.
+- The new entries are not in `BUILT_ROUTES`, so they keep the existing "Coming soon" tooltip until built — this matches current behavior for unbuilt items and changes nothing structural.
+
+---
+
+## 2. Read-only edge function: `admin-disputes-queue`
+
+`supabase/functions/admin-disputes-queue/index.ts` — admin-only, JWT-validated via `getClaims()`, service-role for read, no writes. Returns the exact payload requested:
+
+```text
+{ kpis, rows, filters, pagination }
 ```
 
-b. **Extend the `linkedRecords` builder** (lines ~610–645) to push, when present:
-- `dispute_outcome` — label "Dispute Outcome", subtitle = humanized `outcome_type`, status = `outcome_type`, amount = `refund_amount + release_amount`, route `null`.
-- `refund` — for the latest active refund row: label "Refund Record", subtitle = reason or `created_at`, status, amount, currency.
-- `release_queue` — for the latest pending review row: label "Release Review", subtitle = `queue_type`, status, amount, currency.
-- `escrow_ledger` — single summary entry: label "Escrow Ledger", subtitle = "{N} entries", status = latest `entry_type`, route `null`. (Detailed list already lives under `escrow.ledger`.)
+KPI definitions:
+- `open_disputes`: `disputes.status IN ('open','under_review','seller_response_pending','escalated')`
+- `awaiting_seller`: `status = 'seller_response_pending'`
+- `under_review`: `status = 'under_review'`
+- `overdue`: active disputes where `seller_response_due_at < now()` OR `resolution_due_at < now()`
+- `resolved_today`: `status = 'resolved' AND resolved_at >= today_start (Africa/Lagos)`
+- `escalated`: `status = 'escalated' OR priority = 'critical'`
+- `deltas.open_vs_yesterday` and `deltas.resolved_vs_target` derived from prior day + system_settings target
 
-Keep existing buyer/seller/payment/escrow/payout/dispute/product entries unchanged. Order: parties → payment → escrow → escrow_ledger → payout → release_queue → refund → dispute → dispute_outcome → product.
+Rows joined from: `disputes`, `transactions`, `transaction_items`, `transaction_pricing`, `escrow_states`, `dispute_outcomes`, buyer/seller `profiles`, assigned-admin profile.
 
-c. **Type update** — add the new optional record types to `AdminTxLinkedRecord["type"]` in `src/services/admin-transaction-detail.service.ts` (currently typed `string`, no change needed) and ensure `AdminTransactionDetail.tsx`'s Linked Records renderer has icon/label fallback for the new `type` values.
+Query params: `quick` (overdue|open|awaiting_seller|under_review|escalated|resolved|all), `q`, `reason`, `agent`, `amount_bucket`, `date_from`, `date_to`, `priority`, `money_status`, `evidence_status`, `sla_state`, `page`, `page_size`, `sort`.
 
-**No DB migration. No business logic change.**
+Hard guarantee: function only does `SELECT`. No RPC calls, no `update/insert/delete`, no Paystack, no resolve.
 
----
-
-## 2. Party-facing label coverage
-
-The new outcome types (`dismissed_seller_favor`, `dismissed_buyer_favor`, `partial_refund_release`) and resolved-dispute display rules currently fall through to generic copy on buyer/seller surfaces.
-
-### 2a. Route party badges through `deriveDisputeDisplay`
-
-**Files:**
-- `src/components/disputes/DisputeStatusBadge.tsx`
-- `src/components/disputes/DisputeMoneyStatusBadge.tsx`
-
-Add optional props `outcome?: DisputeOutcomeInput | null`, `moneyStatus?: string | null`, `escrow?: { heldAmount, frozenAmount } | null`. When provided AND `disputeStatus === "resolved"`, call `deriveDisputeDisplay(...)` and render its `label` + `tone` (mapping `"info" | "warning" | "danger" | "success" | "neutral"` → existing `TONE_CLASSNAMES` keys). Otherwise fall back to current `resolveDisputeLabel` / `resolveDisputeMoneyLabel` behavior (zero regressions for unresolved disputes).
-
-Add a tone→Tone map inside each badge (`danger → destructive`, `neutral → muted`, others identity).
-
-### 2b. New outcome labels in `DisputeResolutionSection`
-
-**File:** `src/components/disputes/DisputeResolutionSection.tsx`
-
-Extend `OUTCOME_LABELS` with:
-```ts
-dismissed_seller_favor: { label: "Dismissed — Seller Favor", className: "bg-warning/15 text-warning border-warning/30" }
-dismissed_buyer_favor:  { label: "Dismissed — Buyer Favor",  className: "bg-success/15 text-success border-success/30" }
-partial_refund_release: { label: "Partial Resolution",       className: "bg-primary/15 text-primary border-primary/30" }
-```
-
-For `partial_refund_release`, the existing two amount blocks (refund + release) already render correctly — no structural change needed beyond confirming both are shown side-by-side with NGN 2dp via `formatMoney(..., currencyCode)`.
-
-For `dismissed_seller_favor` show only the release amount block; for `dismissed_buyer_favor` only the refund amount.
-
-### 2c. Touch-ups in `status-labels.ts` (optional, for completeness)
-
-Add a small registry so any other consumer can resolve outcome copy without re-importing the section:
-```ts
-export const DISPUTE_OUTCOME_LABELS: Record<string, LabelEntry> = {
-  refund_buyer:                 { label: "Refund to Buyer",            tone: "success" },
-  release_funds_to_seller:      { label: "Released to Seller",         tone: "info" },
-  partial_refund_release:       { label: "Partial Resolution",         tone: "info" },
-  dismissed_seller_favor:       { label: "Dismissed — Seller Favor",   tone: "warning" },
-  dismissed_buyer_favor:        { label: "Dismissed — Buyer Favor",    tone: "success" },
-  close_case_without_resolution:{ label: "Closed — No Resolution",     tone: "muted" },
-};
-export function resolveDisputeOutcomeLabel(t: string | null | undefined): LabelEntry { ... }
-```
-Used by `DisputeResolutionSection` (replaces the inline map) and any future buyer/seller dispute card.
+CSV export uses the same function with `format=csv` (or a tiny sibling) — respects all current filters.
 
 ---
 
-## 3. Tests
+## 3. Service layer
 
-Extend `src/lib/__tests__/dispute-display-status.test.ts` with two cases (if not already covered): party-facing badge derivation for `dismissed_seller_favor` → "Awaiting Release" and `dismissed_buyer_favor` → "Refund Pending". Add a render snapshot or shallow assertion that `DisputeResolutionSection` renders the new three outcome labels and shows the partial split with NGN 2dp.
+`src/services/admin-disputes.service.ts`:
+- `getAdminDisputesQueue(params)` — calls `admin-disputes-queue` (GET via SDK invoke).
+- `exportAdminDisputesQueue(params)` — fetches CSV blob with same params.
+
+Re-exports the existing write actions from `src/services/admin-transaction-actions.service.ts` (resolve dispute, request more info, freeze/unfreeze, internal note, open investigation). **No new write endpoints are introduced.**
 
 ---
 
-## Files changed
+## 4. Page: `src/pages/AdminDisputes.tsx`
 
-- `supabase/functions/admin-transaction-detail/index.ts` (fetch + linkedRecords push)
-- `src/pages/AdminTransactionDetail.tsx` (icon/label fallback for new types in Linked Records section)
-- `src/components/disputes/DisputeStatusBadge.tsx`
-- `src/components/disputes/DisputeMoneyStatusBadge.tsx`
-- `src/components/disputes/DisputeResolutionSection.tsx`
-- `src/lib/status-labels.ts` (new outcome registry + resolver)
-- `src/lib/__tests__/dispute-display-status.test.ts` (new cases)
+Wraps `AdminLayout`. Uses semantic tokens (`bg-background`, `bg-card`, `border-border`, `text-foreground`, `text-muted-foreground`, sky-blue primary) — no hard-coded slate hex.
+
+Sections:
+
+**a. Header**
+- Left: H1 "Dispute Resolution Queue" + subtitle "Live dispute triage and case management".
+- Right (desktop): `Live sync` pulse (green when last fetch < 60s), `Export` button (CSV with current filters), `Open Investigation` (opens existing `InvestigationDrawer` in create mode — internal admin investigation only, never a buyer/seller dispute).
+- Mobile header: hamburger sidebar toggle, SafeDeal admin logo, compact title, refresh icon, filters icon.
+
+**b. KPI strip — 6 cards**
+Open Disputes, Awaiting Seller Response, Under Review, Overdue Cases, Resolved Today, Escalated Cases. Each: icon tile, count, label, subline (delta / "X due today" / "Immediate attention" / "+N from target" / "Senior review"). Click applies the matching `quick` filter via URL.
+Tones: open=info, awaiting=warning, under_review=muted, overdue=destructive, resolved=success, escalated=accent.
+Component: `DisputeQueueKpiStrip.tsx`.
+
+**c. Queue filters bar — `DisputeQueueFilters.tsx`**
+Quick chips (counts from KPI payload): Overdue, Open, Awaiting Seller, Under Review, Escalated, Resolved, All. Active chip uses primary surface.
+Advanced filters row (toggle): search input, dispute reason, assigned admin, amount range, date range, priority, money status, evidence status, SLA state. All synced via `useSearchParams`.
+
+**d. Active Dispute Queue — `DisputeQueueTable.tsx` + `DisputeQueueRow.tsx`**
+
+Desktop columns: Priority · Dispute · Parties · Amount · Status · SLA · Agent · Actions.
+
+- **Priority**: dot + uppercase label (overdue=red, high=orange, medium=yellow, low=emerald, resolved=emerald). Left-edge accent strip via row `:before`.
+- **Dispute**: `#DIS-...` (links `/admin/disputes/:id`), item title, `TXN-...` muted (links `/admin/transactions/:id`).
+- **Parties**: stacked buyer + seller with avatar (initials fallback), verified seller badge, risk/flag badge if flagged.
+- **Amount**: `formatMoney(amount, "NGN")` → `₦5,200,000.00` (2dp). NGN only on this admin screen — never `$`. Reason underneath: Item Condition / Not Delivered / Not as Described / Damaged / Wrong Item / Payment Issue / Other.
+- **Status**: `<DisputeStatusBadge />` driven by `deriveDisputeDisplay` so resolved rows show Awaiting Release / Refund Pending / Partially Resolved / Manual Action Required and **never "In Dispute"**. Below: escrow line — Held in Escrow / Funds Frozen / Pending Release / Refund Pending / Released / Refunded / Completed.
+- **SLA**: humanized ("2 days overdue", "Due in 4 hours", "Due in 1 day", "Resolved 2 days ago") + `Due: Jan 23, 16:00` (Africa/Lagos). Tone matches urgency.
+- **Agent**: avatar + name, or `Unassigned` chip.
+- **Actions**: primary `Review` (active) / `View Resolution` (resolved, success tone). Kebab via existing `RowActionsMenu`: Open detail, Resolve dispute, Request more info, Freeze funds, Unfreeze funds, Open investigation, Add internal note, Export data.
+
+**e. Footer meta**: `Last updated: X ago` with `aria-live="polite"`, manual refresh icon. Auto-refresh every 30s while tab visible.
+
+---
+
+## 5. Row navigation
+
+- Row click and `Review` → `/admin/transactions/:transactionId?tab=dispute&disputeId=:disputeId`
+- `View Resolution` → `/admin/transactions/:transactionId?tab=resolution&disputeId=:disputeId`
+- Kebab `Resolve dispute` → opens **the existing** `ResolveDisputeDialog` inline. The submit handler calls `resolveDispute()` from `admin-transaction-actions.service.ts` → `admin-transaction-actions` edge function → `resolve_dispute_atomic` RPC. **No duplicate logic.**
+
+`AdminTransactionDetail.tsx` already reads `tab` and `disputeId` query params (or will, via a small one-line read of `useSearchParams`) to scroll/open the correct section. If those params aren't yet honored, add only the param-read + scroll-to behavior — no business logic change.
+
+---
+
+## 6. Money & dispute flow rules — preserved (no code changes here)
+
+- Resolving a dispute does not call Paystack.
+- `release_funds_to_seller` / `dismissed_seller_favor` → `funds_pending_release` (never `funds_releasing`).
+- Central admin release workflow remains the only payout authority.
+- `refund_buyer` / `dismissed_buyer_favor` → `refund_pending`.
+- `partial_refund_release` → split refund + release rows.
+- Investigation resolution does not auto-resolve disputes.
+- Unfreezing funds does not auto-resolve disputes.
+- Active dispute blocks release; resolved disputes never display as active.
+
+---
+
+## 7. Mobile
+
+Under `lg`, the table collapses to stacked cards (`DisputeQueueRow` renders a card variant). Each card shows: dispute code, transaction code, item title, priority, status (derived), SLA, buyer, seller, amount (NGN), reason, assigned admin, primary `Review` / `View Resolution` button, kebab.
+Mobile bottom nav: Dashboard · Transactions · **Disputes (active)** · More.
+
+---
+
+## 8. States
+
+- Loading: skeleton KPI cards, skeleton filter row, skeleton table rows / cards.
+- Empty: "No disputes match these filters."
+- Error: "Unable to load dispute queue. Try again." + retry button.
+
+---
+
+## 9. CSV export columns
+
+dispute_code, transaction_code, item_name, buyer_name, seller_name, amount, currency, dispute_reason, dispute_status, derived_display_status, money_status, priority, sla_state, due_at, assigned_admin, created_at, resolved_at — generated server-side respecting current filters.
+
+---
+
+## 10. Accessibility & motion
+
+Keyboard reachable, visible focus rings via tokens, icons + labels (no color-only meaning), `prefers-reduced-motion` honored. Subtle motion only: KPI fade-in, chip transition, row hover, live-sync pulse, drawer fade, skeleton shimmer.
+
+---
+
+## 11. Tests — `src/components/admin/disputes/__tests__/DisputeQueueRow.test.tsx`
+
+1. Resolved seller-favor → row badge shows "Awaiting Release".
+2. Resolved buyer-favor → row badge shows "Refund Pending".
+3. Resolved row never renders "In Dispute".
+4. NGN amounts render with 2 decimals (e.g. `₦5,200.00`).
+5. Quick filter chips render counts from KPI payload.
+6. `Review` click navigates to `/admin/transactions/:id?tab=dispute&disputeId=:disputeId`.
+7. Mobile card variant renders all required summary fields.
+
+Existing `dispute-display-status.test.ts` already covers the derivation matrix and NGN formatting — not duplicated here.
+
+---
+
+## Files
+
+**New**
+- `src/pages/AdminDisputes.tsx`
+- `src/services/admin-disputes.service.ts`
+- `src/components/admin/disputes/DisputeQueueKpiStrip.tsx`
+- `src/components/admin/disputes/DisputeQueueFilters.tsx`
+- `src/components/admin/disputes/DisputeQueueTable.tsx`
+- `src/components/admin/disputes/DisputeQueueRow.tsx`
+- `src/components/admin/disputes/__tests__/DisputeQueueRow.test.tsx`
+- `supabase/functions/admin-disputes-queue/index.ts`
+
+**Edited (minimal, non-structural)**
+- `src/App.tsx` — add `/admin/disputes` and `/admin/disputes/:id`
+- `src/components/admin/useAdminNav.ts` — add `/admin/disputes` to `BUILT_ROUTES`
+- `src/components/admin/AdminSidebar.tsx` — append Analytics + Reports to Overview, append Refunds to Financial. No group reordering, no removals, no renames.
+
+**Reused as-is**
+- `src/components/admin/transactions/ResolveDisputeDialog.tsx`
+- `src/services/admin-transaction-actions.service.ts`
+- `src/lib/dispute-display-status.ts`, `src/lib/status-labels.ts`, `src/lib/format.ts`
+- `supabase/functions/admin-transaction-actions` (RPC + resolve flow)
+- `supabase/functions/admin-transaction-detail` (Linked Records)
+
+---
 
 ## Acceptance
 
-- Admin Linked Records panel shows up to 10 record types when applicable: buyer, seller, payment, escrow, escrow_ledger, payout, release_queue, refund, dispute, dispute_outcome, product.
-- Buyer and seller dispute screens never display "In Dispute" once `disputes.status = resolved` — they show derived labels (Awaiting Release / Refund Pending / Partially Resolved / Manual Action Required / Funds Held in Escrow).
-- `DisputeResolutionSection` renders human-readable headers for all six outcome types; partial outcome shows both amounts in NGN with 2 decimals.
-- No backend logic, no migration, no Paystack call introduced.
+`/admin/disputes` renders inside the Central Admin layout; sidebar Disputes link routes here; KPI cards reflect live data with the definitions above; quick + advanced filters work and are URL-synced; table matches the mockup; mobile uses stacked cards; amounts are NGN with 2dp; resolved rows use `deriveDisputeDisplay` and never show "In Dispute"; seller-favor → Awaiting Release; buyer-favor → Refund Pending; partial → split; row click + Review open the correct admin transaction detail with the dispute tab; Resolve Dispute reuses the existing central admin flow with no Paystack call; Export respects filters; loading/empty/error states present; admin-only access enforced; this remains a central admin operations screen.
