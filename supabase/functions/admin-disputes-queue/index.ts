@@ -186,11 +186,13 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
     .select(
       `id, transaction_id, status, reason, opened_at, resolved_at, seller_response_due_at, opened_by_user_id,
        transactions:transaction_id (
-         id, transaction_code, item_title, total_amount, currency_code, money_status,
-         buyer_id, seller_id,
-         buyer:profiles!transactions_buyer_id_fkey (id, full_name, avatar_url),
-         seller:profiles!transactions_seller_id_fkey (id, full_name, avatar_url)
-       ),
+        id, transaction_code, money_status,
+        buyer_id, seller_id,
+        buyer:profiles!transactions_buyer_id_fkey (id, full_name, avatar_url),
+        seller:profiles!transactions_seller_id_fkey (id, full_name, avatar_url),
+        items:transaction_items (title),
+        pricing:transaction_pricing (buyer_total_amount, currency_code)
+      ),
        outcome:dispute_outcomes!dispute_outcomes_dispute_id_fkey (
          outcome_type, refund_amount, release_amount
        )`,
@@ -231,10 +233,11 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
     id: string; transaction_id: string; status: string; reason: string;
     opened_at: string; resolved_at: string | null; seller_response_due_at: string | null;
     transactions: {
-      id: string; transaction_code: string; item_title: string;
-      total_amount: number | null; currency_code: string | null; money_status: string | null;
+      id: string; transaction_code: string; money_status: string | null;
       buyer: { id: string; full_name: string | null; avatar_url: string | null } | null;
       seller: { id: string; full_name: string | null; avatar_url: string | null } | null;
+      items: { title: string | null }[] | null;
+      pricing: { buyer_total_amount: number | null; currency_code: string | null }[] | null;
     } | null;
     outcome: { outcome_type: string; refund_amount: number | null; release_amount: number | null }[] | null;
   };
@@ -242,6 +245,8 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
   let rows = ((rowsRaw ?? []) as unknown as Raw[]).map((r) => {
     const tx = r.transactions;
     const outcome = (r.outcome && r.outcome[0]) || null;
+    const pricing = (tx?.pricing && tx.pricing[0]) || null;
+    const firstItem = (tx?.items && tx.items[0]) || null;
     const sla = slaFor({
       status: r.status,
       seller_response_due_at: r.seller_response_due_at,
@@ -252,7 +257,7 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
       dispute_code: `DIS-${r.id.slice(0, 8).toUpperCase()}`,
       transaction_id: r.transaction_id,
       transaction_code: tx?.transaction_code ?? "",
-      item_title: tx?.item_title ?? "(Untitled)",
+      item_title: firstItem?.title ?? "(Untitled)",
       priority: priorityFor({
         status: r.status,
         seller_response_due_at: r.seller_response_due_at,
@@ -270,8 +275,8 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
           verified: false,
         },
       },
-      amount: Number(tx?.total_amount ?? 0),
-      currency: (tx?.currency_code as "NGN") ?? "NGN",
+      amount: Number(pricing?.buyer_total_amount ?? 0),
+      currency: (pricing?.currency_code as "NGN") ?? "NGN",
       money_status: tx?.money_status ?? "",
       dispute_status: r.status,
       outcome: outcome
