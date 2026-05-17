@@ -187,9 +187,9 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
       `id, transaction_id, status, reason, opened_at, resolved_at, seller_response_due_at, opened_by_user_id,
        transactions:transaction_id (
          id, transaction_code, item_title, total_amount, currency_code, money_status,
-         buyer_user_id, seller_user_id,
-         buyer:profiles!transactions_buyer_user_id_fkey (id, full_name, avatar_url),
-         seller:profiles!transactions_seller_user_id_fkey (id, full_name, avatar_url, store_name)
+         buyer_id, seller_id,
+         buyer:profiles!transactions_buyer_id_fkey (id, full_name, avatar_url),
+         seller:profiles!transactions_seller_id_fkey (id, full_name, avatar_url)
        ),
        outcome:dispute_outcomes!dispute_outcomes_dispute_id_fkey (
          outcome_type, refund_amount, release_amount
@@ -234,7 +234,7 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
       id: string; transaction_code: string; item_title: string;
       total_amount: number | null; currency_code: string | null; money_status: string | null;
       buyer: { id: string; full_name: string | null; avatar_url: string | null } | null;
-      seller: { id: string; full_name: string | null; avatar_url: string | null; store_name: string | null } | null;
+      seller: { id: string; full_name: string | null; avatar_url: string | null } | null;
     } | null;
     outcome: { outcome_type: string; refund_amount: number | null; release_amount: number | null }[] | null;
   };
@@ -266,7 +266,7 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
         seller: {
           name: tx?.seller?.full_name ?? "Seller",
           avatar_url: tx?.seller?.avatar_url ?? null,
-          store_name: tx?.seller?.store_name ?? null,
+          store_name: null,
           verified: false,
         },
       },
