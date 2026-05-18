@@ -327,67 +327,86 @@ export default function AdminDisputes() {
   return (
     <AdminLayout title="Dispute Resolution Queue" subtitle="Live dispute triage and case management" hideDefaultHeaders>
       <TooltipProvider delayDuration={200}>
-        <div className="space-y-6 p-4 md:p-6">
-          {/* Header */}
-          <header className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground">Dispute Resolution Queue</h1>
-              <p className="text-sm text-muted-foreground">Live dispute triage and case management</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div
-                className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-xs"
-                aria-live="polite"
-              >
-                <span className={`h-2 w-2 rounded-full ${liveFresh ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`} />
-                <span className="text-muted-foreground">
-                  {lastFetch ? `Live · ${timeAgo(new Date(lastFetch).toISOString())}` : "Loading…"}
-                </span>
+        <div className="-mx-4 -my-5 sm:-mx-6 lg:-mx-8 lg:-my-6">
+          {/* Full-width header bar */}
+          <header className="border-b border-border bg-card px-6 py-6 lg:px-8">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h1 className="text-2xl font-semibold text-foreground">Dispute Resolution Queue</h1>
+                <p className="text-sm text-muted-foreground">Live dispute triage and case management</p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => void load()}>
-                <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                Refresh
-              </Button>
-              <Button variant="outline" size="sm" onClick={onExport}>
-                <Download className="mr-2 h-4 w-4" /> Export
-              </Button>
-              <Button size="sm" className="bg-blue-600 hover:bg-blue-500">
-                <ShieldAlert className="mr-2 h-4 w-4" /> Open Investigation
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void load()}
+                  className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-xs transition-colors hover:border-blue-500/40"
+                  aria-live="polite"
+                  title="Refresh"
+                >
+                  <span className={`h-2 w-2 rounded-full ${liveFresh ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`} />
+                  <span className="text-muted-foreground">Live sync</span>
+                  <RefreshCw className={`h-3 w-3 text-muted-foreground ${loading ? "animate-spin" : ""}`} />
+                </button>
+                <Button variant="outline" size="sm" onClick={onExport}>
+                  <Download className="mr-2 h-4 w-4" /> Export
+                </Button>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-500">
+                  <ShieldAlert className="mr-2 h-4 w-4" /> Open Investigation
+                </Button>
+              </div>
             </div>
           </header>
 
+        <div className="w-full max-w-none px-6 py-8 lg:px-8 space-y-6">
           {/* KPI strip */}
           <KpiStrip data={data} active={quick} onClick={(q) => setParam("quick", q)} />
 
-          {/* Filters */}
-          <section className="rounded-xl border border-border bg-card p-4 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              {QUICK_FILTERS.map((f) => {
-                const isActive = quick === f.id;
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setParam("quick", f.id)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                      isActive
-                        ? "bg-blue-600 text-white"
-                        : "border border-border bg-background text-foreground/80 hover:border-blue-500/40 hover:text-foreground"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                );
-              })}
+          {/* Queue Filters */}
+          <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-base font-semibold text-foreground">Queue Filters</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  {QUICK_FILTERS.map((f) => {
+                    const isActive = quick === f.id;
+                    const count =
+                      f.id === "overdue" ? data?.kpis.overdue :
+                      f.id === "open" ? data?.kpis.open_disputes :
+                      f.id === "awaiting_seller" ? data?.kpis.awaiting_seller :
+                      f.id === "under_review" ? data?.kpis.under_review :
+                      f.id === "escalated" ? data?.kpis.escalated :
+                      undefined;
+                    const baseInactive =
+                      f.id === "overdue" ? "border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/15" :
+                      f.id === "open" ? "border border-orange-500/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/15" :
+                      "border border-border bg-background text-foreground/80 hover:border-blue-500/40 hover:text-foreground";
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setParam("quick", f.id)}
+                        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                          isActive ? "bg-blue-600 text-white" : baseInactive
+                        }`}
+                      >
+                        {f.id === "overdue" && <AlertTriangle className="h-3 w-3" />}
+                        <span>{f.label}{count != null ? ` (${count})` : ""}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <Button variant="outline" size="sm" className="text-xs">
+                Advanced Filters
+              </Button>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <form onSubmit={onSearchSubmit} className="relative min-w-[220px] flex-1">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+              <form onSubmit={onSearchSubmit} className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="Search disputes, transactions, parties…"
+                  placeholder="Search disputes, transactions, users…"
                   className="pl-9"
                 />
               </form>
@@ -396,21 +415,31 @@ export default function AdminDisputes() {
                 onChange={(e) => setParam("reason", e.target.value || null)}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
-                <option value="">All reasons</option>
+                <option value="">All Dispute Reasons</option>
                 {(data?.filters?.reasons ?? []).map((r) => (
                   <option key={r} value={r}>{r.replace(/_/g, " ")}</option>
                 ))}
               </select>
               <select
-                value={params.priority ?? ""}
-                onChange={(e) => setParam("priority", e.target.value || null)}
+                value={params.agent ?? ""}
+                onChange={(e) => setParam("agent", e.target.value || null)}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
-                <option value="">All priorities</option>
-                <option value="overdue">Overdue</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
+                <option value="">All Agents</option>
+                {(data?.filters?.agents ?? []).map((a) => (
+                  <option key={a.user_id} value={a.user_id}>{a.name}</option>
+                ))}
+              </select>
+              <select
+                value={params.amount_bucket ?? ""}
+                onChange={(e) => setParam("amount_bucket", e.target.value || null)}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="">All Amount Ranges</option>
+                <option value="lt_100k">Under ₦100,000</option>
+                <option value="100k_1m">₦100,000 – ₦1,000,000</option>
+                <option value="1m_5m">₦1,000,000 – ₦5,000,000</option>
+                <option value="gt_5m">Over ₦5,000,000</option>
               </select>
             </div>
           </section>
