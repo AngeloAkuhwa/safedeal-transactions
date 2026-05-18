@@ -162,6 +162,7 @@ interface KpiCardDef {
   sub: string;
   Icon: typeof Scale;
   tone: string;
+  subTone?: string;
 }
 
 function KpiStrip({
