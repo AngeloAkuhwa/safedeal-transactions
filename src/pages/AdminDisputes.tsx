@@ -132,14 +132,22 @@ function statusDisplay(row: DisputeQueueRow): { label: string; tone: string } {
 }
 
 const MONEY_STATUS_LABEL: Record<string, string> = {
-  funds_held: "Held in Escrow",
+  not_secured: "Not Secured",
+  payment_pending: "Payment Pending",
+  funds_held_in_escrow: "Held in Escrow",
   funds_frozen: "Funds Frozen",
-  funds_pending_release: "Pending Release",
+  funds_pending_release: "Awaiting Release",
+  funds_releasing: "Release Processing",
+  funds_released: "Released",
   refund_pending: "Refund Pending",
-  released: "Released",
-  refunded: "Refunded",
-  completed: "Completed",
+  refund_issued: "Refunded",
 };
+
+function formatMoneyStatus(raw: string | null | undefined): string {
+  if (!raw) return "";
+  if (MONEY_STATUS_LABEL[raw]) return MONEY_STATUS_LABEL[raw];
+  return raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("") || "?";
@@ -154,6 +162,7 @@ interface KpiCardDef {
   sub: string;
   Icon: typeof Scale;
   tone: string;
+  subTone?: string;
 }
 
 function KpiStrip({
@@ -161,15 +170,15 @@ function KpiStrip({
 }: { data: DisputeQueueResponse | null; active: DisputeQueueQuick; onClick: (q: DisputeQueueQuick) => void }) {
   const k = data?.kpis;
   const cards: KpiCardDef[] = [
-    { id: "open", label: "Open Disputes", count: k?.open_disputes ?? 0, sub: k ? `${k.deltas.open_vs_yesterday >= 0 ? "+" : ""}${k.deltas.open_vs_yesterday} vs yesterday` : "", Icon: Scale, tone: "text-blue-300 bg-blue-500/10 border-blue-500/30" },
-    { id: "awaiting_seller", label: "Awaiting Seller", count: k?.awaiting_seller ?? 0, sub: "Seller response pending", Icon: Clock, tone: "text-yellow-300 bg-yellow-500/10 border-yellow-500/30" },
-    { id: "under_review", label: "Under Review", count: k?.under_review ?? 0, sub: "Active triage", Icon: Hourglass, tone: "text-purple-300 bg-purple-500/10 border-purple-500/30" },
-    { id: "overdue", label: "Overdue", count: k?.overdue ?? 0, sub: "Immediate attention", Icon: AlertTriangle, tone: "text-red-300 bg-red-500/10 border-red-500/30" },
-    { id: "resolved", label: "Resolved Today", count: k?.resolved_today ?? 0, sub: "Africa/Lagos", Icon: CheckCircle2, tone: "text-emerald-300 bg-emerald-500/10 border-emerald-500/30" },
-    { id: "escalated", label: "Escalated", count: k?.escalated ?? 0, sub: "Senior review", Icon: Flame, tone: "text-orange-300 bg-orange-500/10 border-orange-500/30" },
+    { id: "open", label: "Open Disputes", count: k?.open_disputes ?? 0, sub: k ? `${k.deltas.open_vs_yesterday >= 0 ? "+" : ""}${k.deltas.open_vs_yesterday} from yesterday` : "", Icon: Scale, tone: "text-orange-300 bg-orange-500/10 border-orange-500/30", subTone: "text-muted-foreground" },
+    { id: "awaiting_seller", label: "Awaiting Seller Response", count: k?.awaiting_seller ?? 0, sub: "Seller response pending", Icon: Clock, tone: "text-yellow-300 bg-yellow-500/10 border-yellow-500/30", subTone: "text-muted-foreground" },
+    { id: "under_review", label: "Under Review", count: k?.under_review ?? 0, sub: "Active triage", Icon: Hourglass, tone: "text-blue-300 bg-blue-500/10 border-blue-500/30", subTone: "text-muted-foreground" },
+    { id: "overdue", label: "Overdue Cases", count: k?.overdue ?? 0, sub: "Immediate attention", Icon: AlertTriangle, tone: "text-red-300 bg-red-500/10 border-red-500/30", subTone: "text-red-400" },
+    { id: "resolved", label: "Resolved Today", count: k?.resolved_today ?? 0, sub: k ? `+${k.deltas.resolved_vs_target} from target` : "", Icon: CheckCircle2, tone: "text-emerald-300 bg-emerald-500/10 border-emerald-500/30", subTone: "text-emerald-400" },
+    { id: "escalated", label: "Escalated Cases", count: k?.escalated ?? 0, sub: "Senior review", Icon: Flame, tone: "text-purple-300 bg-purple-500/10 border-purple-500/30", subTone: "text-muted-foreground" },
   ];
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
       {cards.map((c) => {
         const isActive = active === c.id;
         return (
@@ -177,16 +186,18 @@ function KpiStrip({
             key={c.id}
             type="button"
             onClick={() => onClick(c.id)}
-            className={`group rounded-xl border bg-card p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg ${
+            className={`group rounded-xl border bg-card p-5 text-left transition-all hover:-translate-y-0.5 hover:border-blue-500/40 hover:shadow-lg ${
               isActive ? "border-blue-500/50 ring-1 ring-blue-500/30" : "border-border"
             }`}
           >
-            <div className={`mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg border ${c.tone}`}>
-              <c.Icon className="h-4 w-4" />
+            <div className="flex items-start justify-between gap-2">
+              <div className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border ${c.tone}`}>
+                <c.Icon className="h-5 w-5" />
+              </div>
+              <div className="text-3xl font-semibold text-foreground leading-none">{c.count}</div>
             </div>
-            <div className="text-2xl font-semibold text-foreground">{c.count}</div>
-            <div className="text-xs font-medium text-foreground/80">{c.label}</div>
-            {c.sub && <div className="mt-1 truncate text-[11px] text-muted-foreground">{c.sub}</div>}
+            <div className="mt-4 text-sm font-medium text-foreground/90">{c.label}</div>
+            {c.sub && <div className={`mt-1 truncate text-[11px] ${c.subTone ?? "text-muted-foreground"}`}>{c.sub}</div>}
           </button>
         );
       })}
@@ -316,67 +327,86 @@ export default function AdminDisputes() {
   return (
     <AdminLayout title="Dispute Resolution Queue" subtitle="Live dispute triage and case management" hideDefaultHeaders>
       <TooltipProvider delayDuration={200}>
-        <div className="space-y-6 p-4 md:p-6">
-          {/* Header */}
-          <header className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground">Dispute Resolution Queue</h1>
-              <p className="text-sm text-muted-foreground">Live dispute triage and case management</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div
-                className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-xs"
-                aria-live="polite"
-              >
-                <span className={`h-2 w-2 rounded-full ${liveFresh ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`} />
-                <span className="text-muted-foreground">
-                  {lastFetch ? `Live · ${timeAgo(new Date(lastFetch).toISOString())}` : "Loading…"}
-                </span>
+        <div className="-mx-4 -my-5 sm:-mx-6 lg:-mx-8 lg:-my-6">
+          {/* Full-width header bar */}
+          <header className="border-b border-border bg-card px-6 py-6 lg:px-8">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h1 className="text-2xl font-semibold text-foreground">Dispute Resolution Queue</h1>
+                <p className="text-sm text-muted-foreground">Live dispute triage and case management</p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => void load()}>
-                <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                Refresh
-              </Button>
-              <Button variant="outline" size="sm" onClick={onExport}>
-                <Download className="mr-2 h-4 w-4" /> Export
-              </Button>
-              <Button size="sm" className="bg-blue-600 hover:bg-blue-500">
-                <ShieldAlert className="mr-2 h-4 w-4" /> Open Investigation
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void load()}
+                  className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-xs transition-colors hover:border-blue-500/40"
+                  aria-live="polite"
+                  title="Refresh"
+                >
+                  <span className={`h-2 w-2 rounded-full ${liveFresh ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`} />
+                  <span className="text-muted-foreground">Live sync</span>
+                  <RefreshCw className={`h-3 w-3 text-muted-foreground ${loading ? "animate-spin" : ""}`} />
+                </button>
+                <Button variant="outline" size="sm" onClick={onExport}>
+                  <Download className="mr-2 h-4 w-4" /> Export
+                </Button>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-500">
+                  <ShieldAlert className="mr-2 h-4 w-4" /> Open Investigation
+                </Button>
+              </div>
             </div>
           </header>
 
+        <div className="w-full max-w-none px-6 py-8 lg:px-8 space-y-6">
           {/* KPI strip */}
           <KpiStrip data={data} active={quick} onClick={(q) => setParam("quick", q)} />
 
-          {/* Filters */}
-          <section className="rounded-xl border border-border bg-card p-4 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              {QUICK_FILTERS.map((f) => {
-                const isActive = quick === f.id;
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setParam("quick", f.id)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                      isActive
-                        ? "bg-blue-600 text-white"
-                        : "border border-border bg-background text-foreground/80 hover:border-blue-500/40 hover:text-foreground"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                );
-              })}
+          {/* Queue Filters */}
+          <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-base font-semibold text-foreground">Queue Filters</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  {QUICK_FILTERS.map((f) => {
+                    const isActive = quick === f.id;
+                    const count =
+                      f.id === "overdue" ? data?.kpis.overdue :
+                      f.id === "open" ? data?.kpis.open_disputes :
+                      f.id === "awaiting_seller" ? data?.kpis.awaiting_seller :
+                      f.id === "under_review" ? data?.kpis.under_review :
+                      f.id === "escalated" ? data?.kpis.escalated :
+                      undefined;
+                    const baseInactive =
+                      f.id === "overdue" ? "border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/15" :
+                      f.id === "open" ? "border border-orange-500/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/15" :
+                      "border border-border bg-background text-foreground/80 hover:border-blue-500/40 hover:text-foreground";
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setParam("quick", f.id)}
+                        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                          isActive ? "bg-blue-600 text-white" : baseInactive
+                        }`}
+                      >
+                        {f.id === "overdue" && <AlertTriangle className="h-3 w-3" />}
+                        <span>{f.label}{count != null ? ` (${count})` : ""}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <Button variant="outline" size="sm" className="text-xs">
+                Advanced Filters
+              </Button>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <form onSubmit={onSearchSubmit} className="relative min-w-[220px] flex-1">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+              <form onSubmit={onSearchSubmit} className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="Search disputes, transactions, parties…"
+                  placeholder="Search disputes, transactions, users…"
                   className="pl-9"
                 />
               </form>
@@ -385,27 +415,46 @@ export default function AdminDisputes() {
                 onChange={(e) => setParam("reason", e.target.value || null)}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
-                <option value="">All reasons</option>
+                <option value="">All Dispute Reasons</option>
                 {(data?.filters?.reasons ?? []).map((r) => (
                   <option key={r} value={r}>{r.replace(/_/g, " ")}</option>
                 ))}
               </select>
               <select
-                value={params.priority ?? ""}
-                onChange={(e) => setParam("priority", e.target.value || null)}
+                value={params.agent ?? ""}
+                onChange={(e) => setParam("agent", e.target.value || null)}
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
-                <option value="">All priorities</option>
-                <option value="overdue">Overdue</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
+                <option value="">All Agents</option>
+                {(data?.filters?.agents ?? []).map((a) => (
+                  <option key={a.user_id} value={a.user_id}>{a.name}</option>
+                ))}
+              </select>
+              <select
+                value={params.amount_bucket ?? ""}
+                onChange={(e) => setParam("amount_bucket", e.target.value || null)}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="">All Amount Ranges</option>
+                <option value="lt_100k">Under ₦100,000</option>
+                <option value="100k_1m">₦100,000 – ₦1,000,000</option>
+                <option value="1m_5m">₦1,000,000 – ₦5,000,000</option>
+                <option value="gt_5m">Over ₦5,000,000</option>
               </select>
             </div>
           </section>
 
           {/* Table / cards */}
-          <section className="rounded-xl border border-border bg-card">
+          <section className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <h2 className="text-base font-semibold text-foreground">Active Dispute Queue</h2>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Last updated: {lastFetch ? timeAgo(new Date(lastFetch).toISOString()) : "—"}</span>
+                <button type="button" onClick={() => void load()} className="rounded-md p-1 hover:bg-muted">
+                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+                </button>
+              </div>
+            </div>
             {loading && !data ? (
               <div className="space-y-2 p-4">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -424,7 +473,17 @@ export default function AdminDisputes() {
               <>
                 {/* Desktop table */}
                 <div className="hidden lg:block overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full table-fixed text-sm">
+                    <colgroup>
+                      <col style={{ width: "10%" }} />
+                      <col style={{ width: "18%" }} />
+                      <col style={{ width: "18%" }} />
+                      <col style={{ width: "12%" }} />
+                      <col style={{ width: "13%" }} />
+                      <col style={{ width: "13%" }} />
+                      <col style={{ width: "9%" }} />
+                      <col style={{ width: "7%" }} />
+                    </colgroup>
                     <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
                       <tr>
                         <th className="px-4 py-3 text-left">Priority</th>
@@ -499,7 +558,7 @@ export default function AdminDisputes() {
                               </span>
                               {row.money_status && (
                                 <div className="mt-1 text-[11px] text-muted-foreground">
-                                  {MONEY_STATUS_LABEL[row.money_status] ?? row.money_status}
+                                  {formatMoneyStatus(row.money_status)}
                                 </div>
                               )}
                             </td>
@@ -643,6 +702,7 @@ export default function AdminDisputes() {
               </>
             )}
           </section>
+        </div>
         </div>
       </TooltipProvider>
 

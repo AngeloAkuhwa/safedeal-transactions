@@ -1,175 +1,213 @@
-# Central Admin Dispute Resolution Queue — Final Plan
 
-Build `/admin/disputes` as a Central Admin operations screen matching the uploaded mockup, fully wired to the existing central resolve flow (`admin-transaction-actions` → `resolve_dispute_atomic` RPC, `ResolveDisputeDialog`, `deriveDisputeDisplay`, Linked Records). Read-only aggregator only — no new write paths, no Paystack, no money movement.
+# /admin/disputes — Correction Plan (match approved reference)
 
----
-
-## 1. Routing & navigation
-
-**`src/App.tsx`** (inside the existing `requireRole="admin"` block)
-- `/admin/disputes` → `AdminDisputes` page
-- `/admin/disputes/:id` → `AdminDisputeRedirect` resolver: fetches `disputes.transaction_id` then `navigate("/admin/transactions/" + tx + "?tab=dispute&disputeId=" + id, { replace: true })`. Preserves dashboard Recent Activity links.
-
-**`src/components/admin/useAdminNav.ts`** — add `/admin/disputes` to `BUILT_ROUTES` so the sidebar Disputes item routes here and drops the "Coming soon" tooltip. Active disputes badge already wired (`badges.disputes`, orange tone).
-
-**`src/components/admin/AdminSidebar.tsx` — add ONLY missing items, no restructure**
-- Overview group: append **Analytics** (`/admin/analytics`, `BarChart3`) and **Reports** (`/admin/reports`, `FileBarChart`) after Dashboard.
-- Financial group: append **Refunds** (`/admin/refunds`, `Undo2`) after Money Tracing.
-- Existing groups (Operations, Risk & Compliance, Support & Tools, Settings) stay exactly as they are. Fraud Detection stays under Risk & Compliance (not duplicated). Money Tracing is not renamed to "Funds Tracking".
-- The 3 new entries stay out of `BUILT_ROUTES`, so they keep the existing "Coming soon" tooltip — matches current behavior for unbuilt items.
+Goal: bring the existing `/admin/disputes` page into close visual + data parity with the approved mockup. No new backend logic, no new write paths. This is a correction pass on layout, mapping, and labels.
 
 ---
 
-## 2. Read-only edge function — `supabase/functions/admin-disputes-queue/index.ts`
+## Sidebar — no changes
 
-Admin-only, JWT-validated via `getClaims()`, service-role for read, **no writes**, no RPC, no Paystack. Returns `{ kpis, rows, filters, pagination }`.
+`AdminSidebar.tsx` already includes the previously-missing items in their correct groups:
 
-**KPI definitions**
-- `open_disputes`: `status IN ('open','under_review','seller_response_pending','escalated')`
-- `awaiting_seller`: `status = 'seller_response_pending'`
-- `under_review`: `status = 'under_review'`
-- `overdue`: active disputes where `seller_response_due_at < now() OR resolution_due_at < now()`
-- `resolved_today`: `status = 'resolved' AND resolved_at >= today_start (Africa/Lagos)`
-- `escalated`: `status = 'escalated' OR priority = 'critical'`
-- `deltas.open_vs_yesterday`, `deltas.resolved_vs_target` derived from prior day + system_settings target
+- Overview: Dashboard, **Analytics**, **Reports**
+- Operations: Transactions, Disputes, Identity, Users, Investigation
+- Financial: Escrow, Payouts, Payments, Money Tracing, **Refunds**
+- Risk & Compliance / Support & Tools / Settings: unchanged
 
-Rows joined from `disputes`, `transactions`, `transaction_items`, `transaction_pricing`, `escrow_states`, `dispute_outcomes`, buyer/seller `profiles`, assigned-admin profile.
-
-**Query params**: `quick` (overdue|open|awaiting_seller|under_review|escalated|resolved|all), `q`, `reason`, `agent`, `amount_bucket`, `date_from`, `date_to`, `priority`, `money_status`, `evidence_status`, `sla_state`, `page`, `page_size`, `sort`, `format=csv` for export.
+No structural changes, no renames, no reordering this pass.
 
 ---
 
-## 3. Service layer — `src/services/admin-disputes.service.ts`
+## 1. Page shell — full-width admin workspace
 
-- `getAdminDisputesQueue(params)` — GET to `admin-disputes-queue` via authed fetch.
-- `exportAdminDisputesQueue(params)` — same fn, `format=csv`, returns Blob.
-- Re-exports write actions from `admin-transaction-actions.service.ts`: `resolveDispute`, `disputeRequestMoreInfo`, `freezeTransaction`, `unfreezeTransaction`, `addInternalNote`, `flagForReview`, `escalateDispute`. **No new write endpoints.**
+`src/pages/AdminDisputes.tsx`
 
----
-
-## 4. Page — `src/pages/AdminDisputes.tsx`
-
-Wraps `AdminLayout`. Semantic tokens only (`bg-background`, `bg-card`, `border-border`, sky-blue primary).
-
-**Header**
-- Left: H1 "Dispute Resolution Queue" + subtitle "Live dispute triage and case management".
-- Right (desktop): Live sync pulse (green when last fetch < 60s), Export (CSV with current filters), Open Investigation (opens existing `InvestigationDrawer` in create mode — internal admin investigation only).
-- Mobile: hamburger, SafeDeal admin logo, compact title, refresh, filters icon.
-
-**KPI strip — `DisputeQueueKpiStrip.tsx`** — 6 cards (Open / Awaiting Seller / Under Review / Overdue / Resolved Today / Escalated). Each: icon tile, count, label, subline (delta / due today / immediate attention / +N from target / senior review). Click applies matching `quick` filter via URL. Tones: info / warning / muted / destructive / success / accent.
-
-**Filters bar — `DisputeQueueFilters.tsx`**
-- Quick chips (counts from KPI payload): Overdue, Open, Awaiting Seller, Under Review, Escalated, Resolved, All. Active chip uses primary surface.
-- Advanced filters (toggle): search, dispute reason, assigned admin, amount range, date range, priority, money status, evidence status, SLA state. All URL-synced via `useSearchParams`.
-
-**Active Dispute Queue — `DisputeQueueTable.tsx` + `DisputeQueueRow.tsx`**
-
-Desktop columns: Priority · Dispute · Parties · Amount · Status · SLA · Agent · Actions.
-
-- **Priority**: dot + uppercase label (overdue=red, high=orange, medium=yellow, low=emerald, resolved=emerald); left-edge accent strip via `:before`.
-- **Dispute**: `#DIS-...` (→ `/admin/disputes/:id`), item title, `TXN-...` muted (→ `/admin/transactions/:id`).
-- **Parties**: stacked buyer + seller with avatar (initials fallback), verified seller badge, risk/flag badge.
-- **Amount**: `formatMoney(amount, "NGN")` → `₦5,200,000.00` (2dp, NGN only — never `$`). Reason underneath (Item Condition / Not Delivered / Not as Described / Damaged / Wrong Item / Payment Issue / Other).
-- **Status**: `<DisputeStatusBadge />` driven by `deriveDisputeDisplay` → seller-favor=Awaiting Release, buyer-favor=Refund Pending, partial=Partially Resolved, close-no-action+frozen=Manual Action Required. Resolved rows **never** show "In Dispute". Below: escrow line (Held in Escrow / Funds Frozen / Pending Release / Refund Pending / Released / Refunded / Completed).
-- **SLA**: humanized ("2 days overdue", "Due in 4 hours", "Resolved 2 days ago") + `Due: Jan 23, 16:00` (Africa/Lagos). Tone matches urgency.
-- **Agent**: avatar + name, or `Unassigned` chip.
-- **Actions**: primary `Review` (active) / `View Resolution` (resolved, success tone). Kebab via existing `RowActionsMenu`: Open detail, Resolve dispute, Request more info, Freeze/Unfreeze, Open investigation, Add note, Export.
-
-**Footer meta**: `Last updated: X ago` with `aria-live="polite"`, manual refresh icon. Auto-refresh every 30s while tab visible.
+- Render header inside `AdminLayout` with `hideDefaultHeaders` (already done) but **drop the centered/narrow padding**. Replace `p-4 md:p-6 space-y-6` with a full-width shell:
+  ```
+  <main className="min-h-screen w-full bg-background">
+    <AdminPageHeader …/>
+    <div className="w-full max-w-none px-6 lg:px-8 py-8 space-y-8">
+      <KpiStrip …/>
+      <FiltersCard …/>
+      <QueueTableCard …/>
+    </div>
+  </main>
+  ```
+- No `max-w-7xl`, no centered container. KPI strip and table must occupy the full available content width.
 
 ---
 
-## 5. Row navigation
+## 2. Header — match approved order and tone
 
-- Row click + `Review` → `/admin/transactions/:transactionId?tab=dispute&disputeId=:disputeId`
-- `View Resolution` → `/admin/transactions/:transactionId?tab=resolution&disputeId=:disputeId`
-- Kebab `Resolve dispute` → opens **the existing** `ResolveDisputeDialog` inline. Submit calls `resolveDispute()` from `admin-transaction-actions.service.ts` → `admin-transaction-actions` edge function → `resolve_dispute_atomic` RPC. No duplicate logic.
+Extract a small `AdminPageHeader` block inside the file (no new file required):
 
-`AdminTransactionDetail.tsx` reads `tab` and `disputeId` query params to scroll/open the correct section (small one-line param read only — no business logic change).
-
----
-
-## 6. Money & dispute rules — preserved (no code changes)
-
-- Resolve does not call Paystack.
-- `release_funds_to_seller` / `dismissed_seller_favor` → `funds_pending_release` (never `funds_releasing`).
-- Central admin release workflow remains the only payout authority.
-- `refund_buyer` / `dismissed_buyer_favor` → `refund_pending`.
-- `partial_refund_release` → split refund + release rows.
-- Investigation resolution does not auto-resolve disputes.
-- Unfreezing funds does not auto-resolve disputes.
-- Active dispute blocks release; resolved disputes never display as active.
+- Surface: `bg-card border-b border-border px-6 lg:px-8 py-6`
+- Left: H1 "Dispute Resolution Queue" + subtitle "Live dispute triage and case management"
+- Right (in this exact order): **Live sync** pill (green pulse when fresh) → **Export** → **Open Investigation**
+- Remove the standalone "Refresh" button; collapse refresh into the Live sync pill icon (matches reference)
+- Buttons: outline for Export, solid primary blue for Open Investigation
 
 ---
 
-## 7. Mobile
+## 3. KPI strip — 6 wide cards
 
-Under `lg`, table collapses to stacked cards (`DisputeQueueRow` card variant). Each card: dispute code, transaction code, item title, priority, derived status, SLA, buyer, seller, NGN amount, reason, assigned admin, primary `Review`/`View Resolution`, kebab. Mobile bottom nav: Dashboard · Transactions · **Disputes (active)** · More.
+`KpiStrip` component (already in file) — restyle, do not rebuild:
 
----
-
-## 8. States
-
-- Loading: skeleton KPI cards + filters + rows/cards.
-- Empty: "No disputes match these filters."
-- Error: "Unable to load dispute queue. Try again." + retry.
-
----
-
-## 9. CSV export
-
-Server-side, respects current filters. Columns: dispute_code, transaction_code, item_name, buyer_name, seller_name, amount, currency, dispute_reason, dispute_status, derived_display_status, money_status, priority, sla_state, due_at, assigned_admin, created_at, resolved_at.
+- Grid: `grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4`
+- Card: `rounded-xl border border-border bg-card p-6 hover:border-blue-500/40 transition`
+- Layout per card: icon tile top-left (40×40, rounded-lg, tonal bg) on one row with the **large number top-right** (`text-3xl font-semibold`); label underneath (`text-sm font-medium`); sub line (`text-xs text-muted-foreground` or accent for emphasis cards)
+- Tones (icon tile + number color):
+  - Open Disputes → orange
+  - Awaiting Seller → amber/yellow
+  - Under Review → blue
+  - Overdue → red (sub: "Immediate attention" in red)
+  - Resolved Today → emerald (sub: "+N from target")
+  - Escalated → purple (sub: "Senior review")
+- Card click applies the matching `quick` filter (already wired). Active card gets `ring-1 ring-blue-500/40`.
 
 ---
 
-## 10. Accessibility & motion
+## 4. Queue Filters — restore titled section
 
-Keyboard reachable, visible focus rings via tokens, icons + labels (no color-only meaning), `prefers-reduced-motion` honored. Subtle motion only: KPI fade-in, chip transition, row hover, live-sync pulse, drawer fade, skeleton shimmer.
+Replace the current flat filters block with a labeled card:
+
+- Card: `rounded-xl border border-border bg-card p-6 space-y-4`
+- Row 1: left side label `Queue Filters` (`text-base font-semibold`) + quick chips with counts pulled from KPI payload — **Overdue (N)**, **Open (N)**, **Awaiting Seller (N)**, **Under Review (N)**, **Escalated (N)**, **Resolved**, **All**. Right side: `Advanced Filters` toggle button.
+- Active chip: solid primary blue. Overdue chip uses red surface, Open uses orange surface, others use neutral. Counts use `data.kpis.*`.
+- Row 2 (always visible): `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3`
+  - Search (col-span-1 on lg, with leading icon, placeholder "Search disputes, transactions, users…")
+  - All Dispute Reasons select
+  - All Agents select (populated from `data.filters.agents`; show "All Agents" until backed by real data)
+  - All Amount Ranges select (`lt_100k`, `100k_1m`, `1m_5m`, `gt_5m` → friendly labels)
+- All filters remain URL-synced via existing `useSearchParams`.
 
 ---
 
-## 11. Tests — `src/components/admin/disputes/__tests__/`
+## 5. Active Dispute Queue table — balanced columns + richer rows
 
-1. Resolved seller-favor → "Awaiting Release".
-2. Resolved buyer-favor → "Refund Pending".
-3. Resolved row never renders "In Dispute".
-4. NGN amounts render with 2dp (`₦5,200.00`, `₦5,200,000.00`).
-5. Quick filter chips render counts from KPI payload.
-6. `Review` click navigates to `/admin/transactions/:id?tab=dispute&disputeId=:disputeId`.
-7. Mobile card variant renders all required summary fields.
+Card: `rounded-xl border border-border bg-card overflow-hidden`
 
-Existing `dispute-display-status.test.ts` covers the derivation matrix — not duplicated.
+- Card header bar: title "Active Dispute Queue" left; "Last updated: X ago" + refresh icon right; bottom border.
+- Table head: `bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground`, columns and approximate widths:
+
+  | Col | Width |
+  |---|---|
+  | Priority | 10% |
+  | Dispute | 18% |
+  | Parties | 18% |
+  | Amount | 12% |
+  | Status | 13% |
+  | SLA | 13% |
+  | Agent | 9% |
+  | Actions | 7% |
+
+- Rows: `py-4 px-4 border-b border-border/60 hover:bg-muted/30 relative`; left-edge accent strip via `before:absolute before:inset-y-0 before:left-0 before:w-1` colored by priority.
+- Per-cell content:
+  - Priority: colored dot + uppercase label (`text-xs font-bold`)
+  - Dispute: `#DIS-XXXXXXXX` (link → `/admin/disputes/:id`), item title, `TXN-…` (muted, link → `/admin/transactions/:id`)
+  - Parties: stacked buyer + seller with avatar initials, optional verified badge
+  - Amount: `formatMoney(amount, "NGN")` (₦676,000.00 format) + reason label below in muted text
+  - Status: `<DisputeStatusBadge>` driven by `deriveDisputeDisplay`; clean money-status line beneath (see §7)
+  - SLA: humanized line + `Due: Jan 23, 16:00` (Africa/Lagos)
+  - Agent: avatar + name, or `Unassigned` chip
+  - Actions: primary `Review` button (orange for active, emerald `View Resolution` for resolved) + kebab `RowActionsMenu` (Open detail, Resolve dispute, Request more info, Open investigation, Add note, Export row)
+
+Mobile (<lg): hide the table, render `DisputeQueueCard` stack — dispute code, item, txn code, priority + status badges, parties, amount + reason, SLA, agent, Review button, kebab.
+
+---
+
+## 6. Amount mapping fix (₦0.00 bug)
+
+`supabase/functions/admin-disputes-queue/index.ts`
+
+The embed `pricing:transaction_pricing (buyer_total_amount, currency_code)` returns an array — current code reads `pricing[0]?.buyer_total_amount`, which is correct, but the embed silently drops when PostgREST can't resolve the FK name. Switch to a two-step fetch to guarantee data:
+
+1. Keep the disputes + transactions + buyer/seller embed.
+2. After fetching rows, batch-query `transaction_pricing` and `transaction_items` directly by `transaction_id IN (...)` and merge by `transaction_id`.
+3. Amount fallback chain:
+   - `transaction_pricing.buyer_total_amount`
+   - else `item_amount + platform_fee_amount + processing_fee_amount`
+   - else `0`
+4. Currency defaults to `NGN`. Never emit USD unless `currency_code` is literally `USD`.
+
+This eliminates the silent `0.00` rendering.
+
+---
+
+## 7. Clean money/dispute labels
+
+`src/pages/AdminDisputes.tsx` — fix `MONEY_STATUS_LABEL` (keys currently don't match DB enum):
+
+```ts
+const MONEY_STATUS_LABEL: Record<string, string> = {
+  not_secured: "Not Secured",
+  payment_pending: "Payment Pending",
+  funds_held_in_escrow: "Held in Escrow",
+  funds_frozen: "Funds Frozen",
+  funds_pending_release: "Awaiting Release",
+  funds_releasing: "Release Processing",
+  funds_released: "Released",
+  refund_pending: "Refund Pending",
+  refund_issued: "Refunded",
+};
+```
+
+Render the money status as a small subline under the dispute status badge, never raw. Unknown values fall back to a humanized `replace(/_/g, " ")` titlecased label.
+
+Dispute status labels stay routed through `resolveDisputeLabel` / `deriveDisputeDisplay` (already correct). Resolved rows continue to never show "In Dispute"; seller-favor → Awaiting Release; buyer-favor → Refund Pending; partial → Partially Resolved; frozen close-no-action → Manual Action Required.
+
+---
+
+## 8. Interactions (unchanged contracts, verified)
+
+- KPI card click → set `quick` URL param
+- Quick chip click → set `quick` URL param
+- Row click + Review → `/admin/transactions/:transactionId?tab=dispute&disputeId=:disputeId`
+- View Resolution → `…?tab=resolution&disputeId=…`
+- Kebab Resolve dispute → opens existing `ResolveDisputeDialog`, submits via `resolveDispute()` (existing `admin-transaction-actions` → `resolve_dispute_atomic`). No Paystack call.
+- Export → existing `exportAdminDisputesQueue` with current filters.
+
+---
+
+## 9. Tests
+
+Extend `src/components/admin/disputes/__tests__/DisputeQueueDisplay.test.ts`:
+
+- `funds_held_in_escrow` → "Held in Escrow"
+- `refund_issued` → "Refunded"
+- Amount fallback: when `buyer_total_amount` is null but components exist, sum is used
+- NGN formatting: `formatMoney(676000, "NGN")` matches `/676,000\.00/`
+
+Existing seller-favor / buyer-favor / never-"In Dispute" / NGN 2dp tests stay.
 
 ---
 
 ## Files
 
-**New**
-- `src/pages/AdminDisputes.tsx`
-- `src/pages/AdminDisputeRedirect.tsx`
+**Edited only — no new files**
+- `src/pages/AdminDisputes.tsx` — full-width shell, header order, KPI restyle, labeled Queue Filters card, balanced table column widths, fixed `MONEY_STATUS_LABEL`, mobile card variant
+- `supabase/functions/admin-disputes-queue/index.ts` — two-step amount fetch with fallback chain
+- `src/components/admin/disputes/__tests__/DisputeQueueDisplay.test.ts` — extra label + amount cases
+- `.lovable/plan.md` — replaced with this corrected plan
+
+**Reused unchanged**
 - `src/services/admin-disputes.service.ts`
-- `src/components/admin/disputes/DisputeQueueKpiStrip.tsx`
-- `src/components/admin/disputes/DisputeQueueFilters.tsx`
-- `src/components/admin/disputes/DisputeQueueTable.tsx`
-- `src/components/admin/disputes/DisputeQueueRow.tsx`
-- `src/components/admin/disputes/__tests__/DisputeQueueRow.test.tsx`
-- `src/components/admin/disputes/__tests__/DisputeQueueDisplay.test.ts`
-- `supabase/functions/admin-disputes-queue/index.ts`
-
-**Edited (minimal, non-structural)**
-- `src/App.tsx` — register `/admin/disputes` and `/admin/disputes/:id`.
-- `src/components/admin/useAdminNav.ts` — add `/admin/disputes` to `BUILT_ROUTES`.
-- `src/components/admin/AdminSidebar.tsx` — append Analytics + Reports to Overview, append Refunds to Financial. No group reordering, no removals, no renames.
-
-**Reused as-is**
-- `src/components/admin/transactions/ResolveDisputeDialog.tsx`
 - `src/services/admin-transaction-actions.service.ts`
-- `src/lib/dispute-display-status.ts`, `src/lib/status-labels.ts`, `src/lib/format.ts`
-- `supabase/functions/admin-transaction-actions` (RPC + resolve flow)
-- `supabase/functions/admin-transaction-detail` (Linked Records)
+- `src/components/admin/transactions/ResolveDisputeDialog.tsx`
+- `src/lib/dispute-display-status.ts`, `src/lib/format.ts`, `src/lib/status-labels.ts`
+- `src/components/admin/AdminSidebar.tsx`, `useAdminNav.ts`, `AdminLayout.tsx`
 
 ---
 
 ## Acceptance
 
-`/admin/disputes` renders in Central Admin layout; sidebar Disputes routes here with active badge; KPI cards reflect live data with definitions above; quick + advanced filters work and are URL-synced; table matches the mockup; mobile uses stacked cards; amounts NGN 2dp; resolved rows use `deriveDisputeDisplay` and never show "In Dispute"; seller-favor → Awaiting Release; buyer-favor → Refund Pending; partial → split; row click + Review open the correct admin transaction detail with the dispute tab; Resolve Dispute reuses the existing central admin flow with no Paystack call; Export respects filters; loading/empty/error states present; admin-only access enforced; sidebar groups unchanged except for the 3 appended items.
+- `/admin/disputes` renders full-width inside Admin Portal; header matches approved order (Live sync → Export → Open Investigation).
+- KPI strip shows 6 wide cards with correct tones; click filters the queue.
+- Queue Filters card is labeled, with quick chips showing live counts and a 4-column filter row.
+- Active Dispute Queue uses balanced column widths, priority accent strip, stacked parties, NGN amounts in `₦676,000.00` format with reason underneath.
+- Money status renders as "Held in Escrow", "Refund Pending", etc. — never raw `funds_held_in_escrow`.
+- Resolved rows use derived display status; never show "In Dispute".
+- Amount mapping no longer collapses to `₦0.00` when pricing exists.
+- Review/View Resolution route correctly; Resolve Dispute reuses existing central flow with no Paystack call.
+- Mobile uses stacked cards.
+- Sidebar structure is unchanged from current state.

@@ -189,9 +189,7 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
         id, transaction_code, money_status,
         buyer_id, seller_id,
         buyer:profiles!transactions_buyer_id_fkey (id, full_name, avatar_url),
-        seller:profiles!transactions_seller_id_fkey (id, full_name, avatar_url),
-        items:transaction_items (title),
-        pricing:transaction_pricing (buyer_total_amount, currency_code)
+        seller:profiles!transactions_seller_id_fkey (id, full_name, avatar_url)
       ),
        outcome:dispute_outcomes!dispute_outcomes_dispute_id_fkey (
          outcome_type, refund_amount, release_amount
@@ -236,17 +234,42 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
       id: string; transaction_code: string; money_status: string | null;
       buyer: { id: string; full_name: string | null; avatar_url: string | null } | null;
       seller: { id: string; full_name: string | null; avatar_url: string | null } | null;
-      items: { title: string | null }[] | null;
-      pricing: { buyer_total_amount: number | null; currency_code: string | null }[] | null;
     } | null;
     outcome: { outcome_type: string; refund_amount: number | null; release_amount: number | null }[] | null;
   };
 
-  let rows = ((rowsRaw ?? []) as unknown as Raw[]).map((r) => {
+  // ---------- Batch-fetch pricing and items by transaction_id ----------
+  const rawRows = (rowsRaw ?? []) as unknown as Raw[];
+  const txIds = Array.from(new Set(rawRows.map((r) => r.transaction_id).filter(Boolean)));
+  const pricingMap = new Map<string, { buyer_total_amount: number | null; item_amount: number | null; platform_fee_amount: number | null; processing_fee_amount: number | null; currency_code: string | null }>();
+  const itemsMap = new Map<string, { title: string | null }>();
+  if (txIds.length) {
+    const [pricingRes, itemsRes] = await Promise.all([
+      adminClient.from("transaction_pricing")
+        .select("transaction_id, buyer_total_amount, item_amount, platform_fee_amount, processing_fee_amount, currency_code")
+        .in("transaction_id", txIds),
+      adminClient.from("transaction_items")
+        .select("transaction_id, title")
+        .in("transaction_id", txIds),
+    ]);
+    for (const p of (pricingRes.data ?? []) as Array<{ transaction_id: string; buyer_total_amount: number | null; item_amount: number | null; platform_fee_amount: number | null; processing_fee_amount: number | null; currency_code: string | null }>) {
+      if (!pricingMap.has(p.transaction_id)) pricingMap.set(p.transaction_id, p);
+    }
+    for (const i of (itemsRes.data ?? []) as Array<{ transaction_id: string; title: string | null }>) {
+      if (!itemsMap.has(i.transaction_id)) itemsMap.set(i.transaction_id, i);
+    }
+  }
+
+  let rows = rawRows.map((r) => {
     const tx = r.transactions;
     const outcome = (r.outcome && r.outcome[0]) || null;
-    const pricing = (tx?.pricing && tx.pricing[0]) || null;
-    const firstItem = (tx?.items && tx.items[0]) || null;
+    const pricing = pricingMap.get(r.transaction_id) || null;
+    const firstItem = itemsMap.get(r.transaction_id) || null;
+    // Amount fallback chain: buyer_total_amount → sum of components → 0
+    let amountNum = Number(pricing?.buyer_total_amount ?? 0);
+    if (!amountNum && pricing) {
+      amountNum = Number(pricing.item_amount ?? 0) + Number(pricing.platform_fee_amount ?? 0) + Number(pricing.processing_fee_amount ?? 0);
+    }
     const sla = slaFor({
       status: r.status,
       seller_response_due_at: r.seller_response_due_at,
@@ -275,7 +298,7 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
           verified: false,
         },
       },
-      amount: Number(pricing?.buyer_total_amount ?? 0),
+      amount: amountNum,
       currency: (pricing?.currency_code as "NGN") ?? "NGN",
       money_status: tx?.money_status ?? "",
       dispute_status: r.status,
@@ -288,6 +311,20 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
       resolved_at: r.resolved_at,
     };
   });
+
+  // Amount bucket filter
+  if (params.amount_bucket) {
+    rows = rows.filter((r) => {
+      const a = r.amount;
+      switch (params.amount_bucket) {
+        case "lt_100k": return a < 100000;
+        case "100k_1m": return a >= 100000 && a < 1000000;
+        case "1m_5m": return a >= 1000000 && a < 5000000;
+        case "gt_5m": return a >= 5000000;
+        default: return true;
+      }
+    });
+  }
 
   // Search filter (in-memory after fetch — small page sizes)
   if (params.q) {
