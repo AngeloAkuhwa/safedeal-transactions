@@ -684,6 +684,7 @@ export default function AdminDisputes() {
             )}
           </section>
         </div>
+        </div>
       </TooltipProvider>
 
       {resolveTarget && (
