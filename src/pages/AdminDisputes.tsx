@@ -132,14 +132,22 @@ function statusDisplay(row: DisputeQueueRow): { label: string; tone: string } {
 }
 
 const MONEY_STATUS_LABEL: Record<string, string> = {
-  funds_held: "Held in Escrow",
+  not_secured: "Not Secured",
+  payment_pending: "Payment Pending",
+  funds_held_in_escrow: "Held in Escrow",
   funds_frozen: "Funds Frozen",
-  funds_pending_release: "Pending Release",
+  funds_pending_release: "Awaiting Release",
+  funds_releasing: "Release Processing",
+  funds_released: "Released",
   refund_pending: "Refund Pending",
-  released: "Released",
-  refunded: "Refunded",
-  completed: "Completed",
+  refund_issued: "Refunded",
 };
+
+function formatMoneyStatus(raw: string | null | undefined): string {
+  if (!raw) return "";
+  if (MONEY_STATUS_LABEL[raw]) return MONEY_STATUS_LABEL[raw];
+  return raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("") || "?";
