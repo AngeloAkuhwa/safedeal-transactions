@@ -445,7 +445,16 @@ export default function AdminDisputes() {
           </section>
 
           {/* Table / cards */}
-          <section className="rounded-xl border border-border bg-card">
+          <section className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <h2 className="text-base font-semibold text-foreground">Active Dispute Queue</h2>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Last updated: {lastFetch ? timeAgo(new Date(lastFetch).toISOString()) : "—"}</span>
+                <button type="button" onClick={() => void load()} className="rounded-md p-1 hover:bg-muted">
+                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+                </button>
+              </div>
+            </div>
             {loading && !data ? (
               <div className="space-y-2 p-4">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -464,7 +473,17 @@ export default function AdminDisputes() {
               <>
                 {/* Desktop table */}
                 <div className="hidden lg:block overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full table-fixed text-sm">
+                    <colgroup>
+                      <col style={{ width: "10%" }} />
+                      <col style={{ width: "18%" }} />
+                      <col style={{ width: "18%" }} />
+                      <col style={{ width: "12%" }} />
+                      <col style={{ width: "13%" }} />
+                      <col style={{ width: "13%" }} />
+                      <col style={{ width: "9%" }} />
+                      <col style={{ width: "7%" }} />
+                    </colgroup>
                     <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
                       <tr>
                         <th className="px-4 py-3 text-left">Priority</th>
@@ -539,7 +558,7 @@ export default function AdminDisputes() {
                               </span>
                               {row.money_status && (
                                 <div className="mt-1 text-[11px] text-muted-foreground">
-                                  {MONEY_STATUS_LABEL[row.money_status] ?? row.money_status}
+                                  {formatMoneyStatus(row.money_status)}
                                 </div>
                               )}
                             </td>
