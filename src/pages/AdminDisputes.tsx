@@ -620,7 +620,8 @@ export default function AdminDisputes() {
                     const sla = humanizeSla(row.sla);
                     const isResolved = row.dispute_status === "resolved";
                     return (
-                      <div key={row.dispute_id} className={`relative rounded-lg border border-border bg-background p-3 before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:rounded-l-lg ${PRIORITY_ACCENT[row.priority]}`}>
+                      <div key={row.dispute_id} className="relative overflow-hidden rounded-lg border border-border bg-background p-3">
+                        <span className={`absolute left-0 top-0 h-full w-1 ${PRIORITY_ACCENT[row.priority]}`} />
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 pl-2">
                             <div className="flex items-center gap-2">
@@ -661,7 +662,7 @@ export default function AdminDisputes() {
                         <div className="mt-3 flex items-center justify-between pl-2">
                           <span className="text-[10px] text-muted-foreground">{row.agent?.name ?? "Unassigned"}</span>
                           <div className="flex items-center gap-1">
-                            <Button size="sm" variant={isResolved ? "outline" : "default"} className={isResolved ? "border-emerald-500/40 text-emerald-300" : "bg-blue-600 hover:bg-blue-500"} onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}>
+                            <Button size="sm" className={isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"} onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}>
                               {isResolved ? "View Resolution" : "Review"}
                             </Button>
                             <DropdownMenu>
