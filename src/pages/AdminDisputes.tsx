@@ -324,9 +324,9 @@ export default function AdminDisputes() {
   const rows = data?.rows ?? [];
 
   return (
-    <AdminLayout title="Dispute Resolution Queue" subtitle="Live dispute triage and case management" hideDefaultHeaders>
+    <AdminLayout title="Dispute Resolution Queue" subtitle="Live dispute triage and case management" hideDefaultHeaders fullBleed>
       <TooltipProvider delayDuration={200}>
-        <div className="-mx-4 -my-5 sm:-mx-6 lg:-mx-8 lg:-my-6">
+        <div className="w-full min-w-0">
           {/* Full-width header bar */}
           <header className="border-b border-border bg-card px-6 py-6 lg:px-8">
             <div className="flex flex-wrap items-start justify-between gap-3">
