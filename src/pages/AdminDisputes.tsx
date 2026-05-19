@@ -7,9 +7,8 @@ import {
   Scale,
   Clock,
   AlertTriangle,
-  CheckCircle2,
-  Hourglass,
-  Flame,
+  Check,
+  Flag,
   Loader2,
   MoreHorizontal,
   ChevronLeft,
@@ -59,11 +58,11 @@ const PRIORITY_TEXT: Record<DisputeQueueRow["priority"], string> = {
 };
 
 const PRIORITY_ACCENT: Record<DisputeQueueRow["priority"], string> = {
-  overdue: "before:bg-red-500",
-  high: "before:bg-orange-500",
-  medium: "before:bg-yellow-400",
-  low: "before:bg-emerald-500",
-  resolved: "before:bg-emerald-500",
+  overdue: "bg-red-500",
+  high: "bg-orange-500",
+  medium: "bg-yellow-400",
+  low: "bg-emerald-500",
+  resolved: "bg-emerald-500",
 };
 
 const QUICK_FILTERS: { id: DisputeQueueQuick; label: string }[] = [
