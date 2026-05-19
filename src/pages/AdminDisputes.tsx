@@ -7,9 +7,8 @@ import {
   Scale,
   Clock,
   AlertTriangle,
-  CheckCircle2,
-  Hourglass,
-  Flame,
+  Check,
+  Flag,
   Loader2,
   MoreHorizontal,
   ChevronLeft,
@@ -59,11 +58,11 @@ const PRIORITY_TEXT: Record<DisputeQueueRow["priority"], string> = {
 };
 
 const PRIORITY_ACCENT: Record<DisputeQueueRow["priority"], string> = {
-  overdue: "before:bg-red-500",
-  high: "before:bg-orange-500",
-  medium: "before:bg-yellow-400",
-  low: "before:bg-emerald-500",
-  resolved: "before:bg-emerald-500",
+  overdue: "bg-red-500",
+  high: "bg-orange-500",
+  medium: "bg-yellow-400",
+  low: "bg-emerald-500",
+  resolved: "bg-emerald-500",
 };
 
 const QUICK_FILTERS: { id: DisputeQueueQuick; label: string }[] = [
@@ -172,10 +171,10 @@ function KpiStrip({
   const cards: KpiCardDef[] = [
     { id: "open", label: "Open Disputes", count: k?.open_disputes ?? 0, sub: k ? `${k.deltas.open_vs_yesterday >= 0 ? "+" : ""}${k.deltas.open_vs_yesterday} from yesterday` : "", Icon: Scale, tone: "text-orange-300 bg-orange-500/10 border-orange-500/30", subTone: "text-muted-foreground" },
     { id: "awaiting_seller", label: "Awaiting Seller Response", count: k?.awaiting_seller ?? 0, sub: "Seller response pending", Icon: Clock, tone: "text-yellow-300 bg-yellow-500/10 border-yellow-500/30", subTone: "text-muted-foreground" },
-    { id: "under_review", label: "Under Review", count: k?.under_review ?? 0, sub: "Active triage", Icon: Hourglass, tone: "text-blue-300 bg-blue-500/10 border-blue-500/30", subTone: "text-muted-foreground" },
+    { id: "under_review", label: "Under Review", count: k?.under_review ?? 0, sub: "Active triage", Icon: Search, tone: "text-blue-300 bg-blue-500/10 border-blue-500/30", subTone: "text-muted-foreground" },
     { id: "overdue", label: "Overdue Cases", count: k?.overdue ?? 0, sub: "Immediate attention", Icon: AlertTriangle, tone: "text-red-300 bg-red-500/10 border-red-500/30", subTone: "text-red-400" },
-    { id: "resolved", label: "Resolved Today", count: k?.resolved_today ?? 0, sub: k ? `+${k.deltas.resolved_vs_target} from target` : "", Icon: CheckCircle2, tone: "text-emerald-300 bg-emerald-500/10 border-emerald-500/30", subTone: "text-emerald-400" },
-    { id: "escalated", label: "Escalated Cases", count: k?.escalated ?? 0, sub: "Senior review", Icon: Flame, tone: "text-purple-300 bg-purple-500/10 border-purple-500/30", subTone: "text-muted-foreground" },
+    { id: "resolved", label: "Resolved Today", count: k?.resolved_today ?? 0, sub: k ? `+${k.deltas.resolved_vs_target} from target` : "", Icon: Check, tone: "text-emerald-300 bg-emerald-500/10 border-emerald-500/30", subTone: "text-emerald-400" },
+    { id: "escalated", label: "Escalated Cases", count: k?.escalated ?? 0, sub: "Senior review", Icon: Flag, tone: "text-purple-300 bg-purple-500/10 border-purple-500/30", subTone: "text-muted-foreground" },
   ];
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
@@ -325,9 +324,9 @@ export default function AdminDisputes() {
   const rows = data?.rows ?? [];
 
   return (
-    <AdminLayout title="Dispute Resolution Queue" subtitle="Live dispute triage and case management" hideDefaultHeaders>
+    <AdminLayout title="Dispute Resolution Queue" subtitle="Live dispute triage and case management" hideDefaultHeaders fullBleed>
       <TooltipProvider delayDuration={200}>
-        <div className="-mx-4 -my-5 sm:-mx-6 lg:-mx-8 lg:-my-6">
+        <div className="w-full min-w-0">
           {/* Full-width header bar */}
           <header className="border-b border-border bg-card px-6 py-6 lg:px-8">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -472,16 +471,16 @@ export default function AdminDisputes() {
             ) : (
               <>
                 {/* Desktop table */}
-                <div className="hidden lg:block overflow-x-auto">
+                <div className="hidden lg:block w-full">
                   <table className="w-full table-fixed text-sm">
                     <colgroup>
-                      <col style={{ width: "10%" }} />
+                      <col style={{ width: "11%" }} />
                       <col style={{ width: "18%" }} />
                       <col style={{ width: "18%" }} />
                       <col style={{ width: "12%" }} />
                       <col style={{ width: "13%" }} />
                       <col style={{ width: "13%" }} />
-                      <col style={{ width: "9%" }} />
+                      <col style={{ width: "8%" }} />
                       <col style={{ width: "7%" }} />
                     </colgroup>
                     <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
@@ -505,11 +504,12 @@ export default function AdminDisputes() {
                           <tr
                             key={row.dispute_id}
                             onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
-                            className={`relative cursor-pointer border-t border-border transition-colors hover:bg-muted/30 before:absolute before:left-0 before:top-0 before:h-full before:w-1 ${PRIORITY_ACCENT[row.priority]}`}
+                            className="cursor-pointer border-t border-border/60 transition-colors hover:bg-muted/30"
                           >
-                            <td className="px-4 py-3 pl-5">
+                            <td className="relative px-4 py-4 pl-5">
+                              <span className={`absolute left-0 top-0 h-full w-1 ${PRIORITY_ACCENT[row.priority]}`} />
                               <div className="flex items-center gap-2">
-                                <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT[row.priority]}`} />
+                                <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT[row.priority]} ${row.priority === "overdue" ? "animate-pulse" : ""}`} />
                                 <span className={`text-xs font-bold uppercase tracking-wide ${PRIORITY_TEXT[row.priority]}`}>
                                   {row.priority}
                                 </span>
@@ -576,13 +576,12 @@ export default function AdminDisputes() {
                                 <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground">Unassigned</span>
                               )}
                             </td>
-                            <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                               <div className="inline-flex items-center gap-1">
                                 <Button
                                   size="sm"
-                                  variant={isResolved ? "outline" : "default"}
                                   onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
-                                  className={isResolved ? "border-emerald-500/40 text-emerald-300" : "bg-blue-600 hover:bg-blue-500"}
+                                  className={isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"}
                                 >
                                   {isResolved ? "View Resolution" : "Review"}
                                 </Button>
@@ -621,7 +620,8 @@ export default function AdminDisputes() {
                     const sla = humanizeSla(row.sla);
                     const isResolved = row.dispute_status === "resolved";
                     return (
-                      <div key={row.dispute_id} className={`relative rounded-lg border border-border bg-background p-3 before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:rounded-l-lg ${PRIORITY_ACCENT[row.priority]}`}>
+                      <div key={row.dispute_id} className="relative overflow-hidden rounded-lg border border-border bg-background p-3">
+                        <span className={`absolute left-0 top-0 h-full w-1 ${PRIORITY_ACCENT[row.priority]}`} />
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 pl-2">
                             <div className="flex items-center gap-2">
@@ -662,7 +662,7 @@ export default function AdminDisputes() {
                         <div className="mt-3 flex items-center justify-between pl-2">
                           <span className="text-[10px] text-muted-foreground">{row.agent?.name ?? "Unassigned"}</span>
                           <div className="flex items-center gap-1">
-                            <Button size="sm" variant={isResolved ? "outline" : "default"} className={isResolved ? "border-emerald-500/40 text-emerald-300" : "bg-blue-600 hover:bg-blue-500"} onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}>
+                            <Button size="sm" className={isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"} onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}>
                               {isResolved ? "View Resolution" : "Review"}
                             </Button>
                             <DropdownMenu>
