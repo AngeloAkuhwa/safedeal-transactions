@@ -471,16 +471,16 @@ export default function AdminDisputes() {
             ) : (
               <>
                 {/* Desktop table */}
-                <div className="hidden lg:block overflow-x-auto">
+                <div className="hidden lg:block w-full">
                   <table className="w-full table-fixed text-sm">
                     <colgroup>
-                      <col style={{ width: "10%" }} />
+                      <col style={{ width: "11%" }} />
                       <col style={{ width: "18%" }} />
                       <col style={{ width: "18%" }} />
                       <col style={{ width: "12%" }} />
                       <col style={{ width: "13%" }} />
                       <col style={{ width: "13%" }} />
-                      <col style={{ width: "9%" }} />
+                      <col style={{ width: "8%" }} />
                       <col style={{ width: "7%" }} />
                     </colgroup>
                     <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
@@ -504,11 +504,12 @@ export default function AdminDisputes() {
                           <tr
                             key={row.dispute_id}
                             onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
-                            className={`relative cursor-pointer border-t border-border transition-colors hover:bg-muted/30 before:absolute before:left-0 before:top-0 before:h-full before:w-1 ${PRIORITY_ACCENT[row.priority]}`}
+                            className="cursor-pointer border-t border-border/60 transition-colors hover:bg-muted/30"
                           >
-                            <td className="px-4 py-3 pl-5">
+                            <td className="relative px-4 py-4 pl-5">
+                              <span className={`absolute left-0 top-0 h-full w-1 ${PRIORITY_ACCENT[row.priority]}`} />
                               <div className="flex items-center gap-2">
-                                <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT[row.priority]}`} />
+                                <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT[row.priority]} ${row.priority === "overdue" ? "animate-pulse" : ""}`} />
                                 <span className={`text-xs font-bold uppercase tracking-wide ${PRIORITY_TEXT[row.priority]}`}>
                                   {row.priority}
                                 </span>
@@ -575,13 +576,12 @@ export default function AdminDisputes() {
                                 <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground">Unassigned</span>
                               )}
                             </td>
-                            <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                               <div className="inline-flex items-center gap-1">
                                 <Button
                                   size="sm"
-                                  variant={isResolved ? "outline" : "default"}
                                   onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
-                                  className={isResolved ? "border-emerald-500/40 text-emerald-300" : "bg-blue-600 hover:bg-blue-500"}
+                                  className={isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"}
                                 >
                                   {isResolved ? "View Resolution" : "Review"}
                                 </Button>
