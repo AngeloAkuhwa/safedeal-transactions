@@ -15,6 +15,7 @@ interface AdminLayoutProps {
   hideDefaultHeaders?: boolean;
   headerSlot?: ReactNode;
   mobileHeaderSlot?: ReactNode | ((opts: { onOpenMenu: () => void }) => ReactNode);
+  fullBleed?: boolean;
 }
 
 export function AdminLayout({
@@ -25,6 +26,7 @@ export function AdminLayout({
   hideDefaultHeaders,
   headerSlot,
   mobileHeaderSlot,
+  fullBleed,
 }: AdminLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -59,9 +61,13 @@ export function AdminLayout({
           {headerSlot
             ? headerSlot
             : !hideDefaultHeaders && <AdminHeader title={title} subtitle={subtitle} />}
-          <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
-            <div className="mx-auto w-full max-w-[1400px] space-y-5">{children}</div>
-          </main>
+          {fullBleed ? (
+            <main className="flex-1 min-w-0 bg-background">{children}</main>
+          ) : (
+            <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+              <div className="mx-auto w-full max-w-[1400px] space-y-5">{children}</div>
+            </main>
+          )}
         </div>
       </div>
       <AdminReadingModeControl variant="mobile-floater" />
