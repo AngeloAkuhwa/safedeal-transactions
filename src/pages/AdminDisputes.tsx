@@ -374,18 +374,28 @@ export default function AdminDisputes() {
                       f.id === "awaiting_seller" ? data?.kpis.awaiting_seller :
                       f.id === "under_review" ? data?.kpis.under_review :
                       f.id === "escalated" ? data?.kpis.escalated :
+                      f.id === "resolved" ? data?.kpis.resolved_today :
+                      f.id === "all" ? data?.pagination.total :
                       undefined;
                     const baseInactive =
                       f.id === "overdue" ? "border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/15" :
                       f.id === "open" ? "border border-orange-500/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/15" :
                       "border border-border bg-background text-foreground/80 hover:border-blue-500/40 hover:text-foreground";
+                    const baseActive =
+                      f.id === "overdue" ? "border border-red-500/50 bg-red-500/20 text-red-200" :
+                      f.id === "open" ? "border border-orange-500/50 bg-orange-500/20 text-orange-200" :
+                      f.id === "awaiting_seller" ? "border border-yellow-500/50 bg-yellow-500/20 text-yellow-200" :
+                      f.id === "under_review" ? "border border-blue-500/50 bg-blue-500/20 text-blue-200" :
+                      f.id === "escalated" ? "border border-purple-500/50 bg-purple-500/20 text-purple-200" :
+                      f.id === "resolved" ? "border border-emerald-500/50 bg-emerald-500/20 text-emerald-200" :
+                      "border border-border bg-foreground/10 text-foreground";
                     return (
                       <button
                         key={f.id}
                         type="button"
                         onClick={() => setParam("quick", f.id)}
                         className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                          isActive ? "bg-blue-600 text-white" : baseInactive
+                          isActive ? baseActive : baseInactive
                         }`}
                       >
                         {f.id === "overdue" && <AlertTriangle className="h-3 w-3" />}
@@ -395,9 +405,30 @@ export default function AdminDisputes() {
                   })}
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="text-xs">
-                Advanced Filters
-              </Button>
+              <div className="flex items-center gap-2">
+                {(params.q || params.reason || params.agent || params.amount_bucket) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-muted-foreground"
+                    onClick={() => {
+                      const next = new URLSearchParams(searchParams);
+                      next.delete("q");
+                      next.delete("reason");
+                      next.delete("agent");
+                      next.delete("amount_bucket");
+                      next.delete("page");
+                      setSearchInput("");
+                      setSearchParams(next, { replace: true });
+                    }}
+                  >
+                    Clear filters
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="text-xs">
+                  Advanced Filters
+                </Button>
+              </div>
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
               <form onSubmit={onSearchSubmit} className="relative">
@@ -406,13 +437,13 @@ export default function AdminDisputes() {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Search disputes, transactions, users…"
-                  className="pl-9"
+                  className="pl-9 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
                 />
               </form>
               <select
                 value={params.reason ?? ""}
                 onChange={(e) => setParam("reason", e.target.value || null)}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                className="appearance-none w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
               >
                 <option value="">All Dispute Reasons</option>
                 {(data?.filters?.reasons ?? []).map((r) => (
@@ -422,7 +453,7 @@ export default function AdminDisputes() {
               <select
                 value={params.agent ?? ""}
                 onChange={(e) => setParam("agent", e.target.value || null)}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                className="appearance-none w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
               >
                 <option value="">All Agents</option>
                 {(data?.filters?.agents ?? []).map((a) => (
@@ -432,7 +463,7 @@ export default function AdminDisputes() {
               <select
                 value={params.amount_bucket ?? ""}
                 onChange={(e) => setParam("amount_bucket", e.target.value || null)}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                className="appearance-none w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
               >
                 <option value="">All Amount Ranges</option>
                 <option value="lt_100k">Under ₦100,000</option>
