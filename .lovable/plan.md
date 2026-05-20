@@ -1,188 +1,123 @@
 
-# /admin/disputes — Correction Pass v3 (match approved reference exactly)
+# /admin/disputes — Final visual parity pass
 
-Goal: bring `/admin/disputes` to true visual parity with the approved screenshot. No new backend logic, no new write paths. Pure UI/layout correction.
+Goal: bring the Central Admin Dispute Resolution Queue to pixel-level parity with the approved reference. Sidebar, layout shell, KPI count logic, edge function, and routing are already correct — this pass is **visual + filter wiring only**. No backend changes.
 
----
+## Scope (files touched)
 
-## Root cause of remaining drift
+- `src/pages/AdminDisputes.tsx` — only file edited.
+- `.lovable/plan.md` — replace with this plan.
 
-1. `AdminLayout`'s `main` wraps children in `mx-auto w-full max-w-[1400px]` with `px-4 sm:px-6 lg:px-8`. `AdminDisputes.tsx` currently escapes it with `-mx-4 -my-5 sm:-mx-6 lg:-mx-8 lg:-my-6`. That negative-margin hack is unreliable and still leaves the table forced into a narrow inner column at 1246px viewport, causing the action column to clip and a horizontal scrollbar to appear.
-2. `table-fixed` + `overflow-x-auto` together let any cell content push past 100%, so the Actions column gets pushed off the visible area instead of compressing.
-3. KPI icon for "Under Review" is `Hourglass` (should be `Search`); "Escalated" uses `Flame` (should be `Flag`); "Open Disputes" tone in the reference is amber/orange tile (already orange — keep), check.
-4. Review button is solid blue today; approved design uses **orange** for active Review and **emerald** for View Resolution.
-5. Overdue priority dot needs a subtle pulse; left accent bar is currently styled via `before:` but `border-t` is fighting the absolute pseudo-element on the first cell, making the bar look offset.
+Sidebar, `AdminLayout` `fullBleed` mode, edge function, services, and KPI data are already in place and stay untouched.
 
 ---
 
-## 1. Full-width shell (fixes horizontal scroll)
+## 1. KPI strip — fixed 6-up grid, no premature compression
 
-`src/components/admin/AdminLayout.tsx`:
+Currently: `grid-cols-2 md:grid-cols-3 xl:grid-cols-6` → drops to 3-up at our 1246px viewport.
 
-- Add an opt-in `fullBleed?: boolean` prop.
-- When `fullBleed`, render `<main className="flex-1 min-w-0 bg-background">{children}</main>` (no inner `max-w-[1400px]`, no padding). Default behavior unchanged for other pages.
-
-`src/pages/AdminDisputes.tsx`:
-
-- Pass `fullBleed` to `AdminLayout`.
-- Remove the `-mx-*/-my-*` escape hack.
-- Wrap the page body as:
-  ```
-  <main className="flex-1 min-w-0 bg-background">
-    <header …/>                              // full-width header bar
-    <section className="w-full max-w-none px-6 lg:px-8 py-8 space-y-6">
-      <KpiStrip/>
-      <QueueFilters/>
-      <ActiveDisputeQueue/>
-    </section>
-  </main>
-  ```
-- `min-w-0` on main is essential so the inner table can shrink instead of forcing scroll.
-
----
-
-## 2. Active Dispute Queue table — no horizontal scroll at desktop
-
-Container:
+Change to a true single-row layout that matches the reference:
 
 ```
-<section className="rounded-xl border border-border bg-card overflow-hidden">
-  <header …/>
-  <div className="hidden lg:block w-full">            // NO overflow-x-auto on desktop
-    <table className="w-full table-fixed text-sm">…</table>
-  </div>
-  <div className="lg:hidden overflow-x-auto">…</div>  // tablet fallback
-</section>
+grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-5
 ```
 
-Column widths (sum = 100%, matches approved):
+Per card:
+- `bg-card border border-border rounded-xl p-5` (already correct)
+- Remove `hover:-translate-y-0.5` (too animated vs. approved); keep `hover:border-blue-500/40` only.
+- Active card: keep `ring-1 ring-blue-500/30 border-blue-500/50` — but only when the user explicitly selected it. `quick` defaults to `"open"`, so Open Disputes is the only one highlighted on load (matches reference). No change needed to default; just confirm Overdue is NOT pre-selected.
+- Icon tile sizes and colors already match.
 
-| Col | Width |
-|---|---|
-| Priority | 11% |
-| Dispute | 18% |
-| Parties | 18% |
-| Amount | 12% |
-| Status | 13% |
-| SLA | 13% |
-| Agent | 8% |
-| Actions | 7% |
+## 2. Queue Filters chips — palette + width parity
 
-Every cell uses `truncate` + `min-w-0` on inner flex children; long names get `title` attribute for hover. No cell uses `whitespace-nowrap` on long text. Action buttons use compact `size="sm"` icon-only `MoreHorizontal` and a short "Review" label — fits comfortably in 7%.
+Approved reference shows:
+- Overdue → red filled chip (active-looking) **when it has overdue cases**, but only the currently-selected chip uses the solid blue fill.
+- Open → orange tinted chip
+- Others → neutral slate chips
+- Active chip uses the queue's own color, not a generic blue. The reference clearly shows Open as orange filled when selected.
 
-Cell padding: `px-4 py-4` (slightly taller rows to match approved).
+Update chip rendering so:
+- Inactive chip colors stay as currently coded (overdue=red tint, open=orange tint, rest=slate).
+- Active state uses the chip's own palette at higher saturation instead of `bg-blue-600 text-white`:
+  - overdue active → `bg-red-500/20 border-red-500/50 text-red-200`
+  - open active → `bg-orange-500/20 border-orange-500/50 text-orange-200`
+  - awaiting_seller active → `bg-yellow-500/20 border-yellow-500/50 text-yellow-200`
+  - under_review active → `bg-blue-500/20 border-blue-500/50 text-blue-200`
+  - escalated active → `bg-purple-500/20 border-purple-500/50 text-purple-200`
+  - resolved active → `bg-emerald-500/20 border-emerald-500/50 text-emerald-200`
+  - all active → `bg-foreground/10 border-border text-foreground`
+- Counts: pull from `data.kpis` for the 5 status chips; for `resolved` show `resolved_today`; for `all` show `data.pagination.total`.
 
----
+## 3. Select dropdowns — fix bright white focus ring
 
-## 3. Row left accent strip + priority cell
+Currently raw `<select>` with `border-border bg-background`. The browser/native focus outline shows as bright white in dark mode.
 
-Replace the `before:` pseudo-element on `<tr>` (unreliable across browsers) with a real first-child colored strip:
+Replace the three filter selects with a unified class:
 
 ```
-<tr className="relative border-b border-border/60 hover:bg-muted/30 cursor-pointer">
-  <td className="relative px-4 py-4 pl-5">
-    <span className={`absolute left-0 top-0 h-full w-1 ${PRIORITY_BAR[row.priority]}`} />
-    <div className="flex items-center gap-2">
-      <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT[row.priority]} ${row.priority === 'overdue' ? 'animate-pulse' : ''}`} />
-      <span className={`text-[11px] font-bold uppercase tracking-wide ${PRIORITY_TEXT[row.priority]}`}>{row.priority}</span>
-    </div>
-  </td>
-  …
-</tr>
+appearance-none w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground
+focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60
+disabled:opacity-60
 ```
 
-Priority palette unchanged: OVERDUE red, HIGH orange, MEDIUM yellow, LOW emerald, RESOLVED emerald.
+Add a small chevron via background SVG (or wrap in a relative div with a `ChevronDown` icon positioned absolutely on the right) so the native arrow is hidden. Apply identically to the **Search input** so the input's focus ring also matches (currently uses shadcn defaults — fine, but verify there's no white outline; if needed add `focus-visible:ring-blue-500/40`).
 
----
+## 4. Wire Agent + Amount Range filters to URL state
 
-## 4. Dispute / Parties / Amount / Status / SLA / Agent cells
+`agent` and `amount_bucket` are already read into params for the API call but the chip-state and KPI display ignore them. No change needed in behavior; just ensure:
+- `setParam("agent", …)` and `setParam("amount_bucket", …)` are wired (already are).
+- Show a `Clear filters` ghost button when any of `q | reason | agent | amount_bucket` is set; resets all four and `quick` to `"open"`.
 
-Already mostly correct — confirm the following:
+Add `Clear filters` to the right of the search row (or next to Advanced Filters) — small `variant="ghost"` text-only button, only rendered when at least one of those four is set.
 
-- **Dispute**: `#DIS-…` (blue, semibold) → item title (`text-foreground/90 truncate`) → `TXN-…` (muted, hover→foreground). No party data here.
-- **Parties**: 24px avatar initials, stacked Buyer/Seller with role microcopy. Use `h-6 w-6 text-[10px]` `Avatar`. Verified seller: append a small `CheckCircle2 h-3 w-3 text-emerald-400` next to seller name only when `parties.seller.verified`.
-- **Amount**: `formatMoney(row.amount, row.currency || 'NGN')` bold + reason underneath muted.
-- **Status**: existing `statusDisplay()` is correct; sub-line via `formatMoneyStatus()` already correct.
-- **SLA**: existing `humanizeSla()` covers overdue / due-in / resolved; keep.
-- **Agent**: assigned → 24px avatar + name; unassigned → small muted pill `Unassigned`.
+## 5. Active Dispute Queue table — density and alignment
 
----
+Change in the desktop table only:
 
-## 5. Actions cell — orange Review, emerald View Resolution
+- `<thead>` cell padding `px-4 py-3` → `px-6 py-4` to match reference 56px header.
+- `<tbody>` row cells (`<td>`) padding `px-4 py-3` → `px-6 py-4` (priority cell keeps `pl-6` and the absolute accent strip).
+- Increase `<thead>` background contrast: `bg-muted/30` → `bg-muted/40 border-b border-border`.
+- Row hover: `hover:bg-muted/30` → `hover:bg-muted/40` (subtler in dark).
+- Adjust column widths slightly per request:
+  - Priority 11%, Dispute **19%**, Parties 18%, Amount 12%, Status 13%, SLA 13%, Agent 8%, Actions **6%**.
+- Action cell:
+  - Use `size="sm"` Review button (already correct), but tighten the kebab spacing: wrapper `inline-flex items-center gap-1.5 justify-end`.
+  - Ensure no `whitespace-nowrap` is forcing overflow.
+- Card header padding: `px-5 py-4` → `px-6 py-4` to align with header rows.
 
-```tsx
-<Button
-  size="sm"
-  onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
-  className={
-    isResolved
-      ? "bg-emerald-600 hover:bg-emerald-500 text-white"
-      : "bg-orange-600 hover:bg-orange-500 text-white"
-  }
->
-  {isResolved ? "View Resolution" : "Review"}
-</Button>
-<DropdownMenu>…kebab unchanged…</DropdownMenu>
-```
+No `overflow-x-auto` on desktop (already removed).
 
-The kebab stays as `Ghost size="icon" h-8 w-8`. Inline flex wrapper `inline-flex items-center gap-1 justify-end`.
+## 6. Header bar polish
 
----
+- Header padding: `px-6 py-6 lg:px-8` → `px-8 py-5` to match reference.
+- Title: keep `text-2xl font-semibold`.
+- Live sync pill: use `bg-muted/40 border-border` instead of `bg-background` so it reads as a subtle pill, matching the approved look.
+- Button order is already `Live sync | Export | Open Investigation` — keep.
 
-## 6. KPI icons — match approved meanings exactly
+## 7. Confirm filter behavior
 
-In `KpiStrip`:
+- `quick` chip → updates `params.quick`, edge function re-queries; KPI strip continues to show **global** KPI counts (matches reference behavior — KPIs are global, only the table filters).
+- Search submit → updates `params.q`.
+- Reason/Agent/Amount → update params.
+- Empty state already renders when `rows.length === 0`.
+- `Clear filters` resets q, reason, agent, amount_bucket but preserves `quick`.
 
-- Open Disputes → `Scale` (already correct), orange tile
-- Awaiting Seller Response → `Clock`, yellow tile (already correct)
-- **Under Review → `Search`** (replace `Hourglass`), blue tile
-- Overdue Cases → `AlertTriangle` (already correct), red tile
-- Resolved Today → `Check` (replace `CheckCircle2` for cleaner glyph), emerald tile
-- **Escalated Cases → `Flag`** (replace `Flame`), purple tile
+No backend or edge function changes — the existing `admin-disputes-queue` already handles all these filters.
 
-Remove unused imports (`Hourglass`, `Flame`).
+## 8. Acceptance
 
----
+1. At 1246×890 viewport: 6 KPI cards on one row, no horizontal scroll, Actions column fully visible.
+2. Select dropdowns no longer show a bright white focus outline — they show a soft blue ring instead.
+3. Queue Filter chips use queue-specific colors when active (Open=orange, Overdue=red, etc.), not generic blue.
+4. Open Disputes KPI is the only highlighted card on first load (because `quick` defaults to `"open"`).
+5. Table rows feel 56–60px tall (not cramped), header row is taller, dividers between rows are clean.
+6. Clear filters appears only when q/reason/agent/amount are set, and resets them when clicked.
+7. Sidebar with active Disputes item is visible at desktop (already working — confirm not regressed).
+8. Mobile (<lg) still renders card layout (already working).
 
-## 7. Queue Filters — spacing tweaks only
+## Out of scope
 
-No structural change; just tighten:
-
-- Row 1 chip gap: `gap-2`
-- Chip padding: `px-3 py-1.5 text-[11px]`
-- Active chip remains solid blue; Overdue chip keeps red surface, Open keeps orange surface.
-- Counts come from `data.kpis.*` (already wired).
-
----
-
-## 8. Sidebar
-
-No structural changes — `AdminSidebar` already correct. Confirm Disputes item gets the orange/active highlight from existing `useAdminNav` active-state styles. If the active style is currently blue, leave it (global admin convention) — the reference uses orange but global theme overrides this; user explicitly said "Disputes item active with orange highlight" — apply this only inside the Disputes nav active state via a small `aria-current='page'` selector override, no global theme change.
-
-Defer this micro-tweak: keep current active style. Will revisit if the user calls it out again.
-
----
-
-## 9. Files changed
-
-**Edited**
-- `src/components/admin/AdminLayout.tsx` — add `fullBleed?: boolean` prop.
-- `src/pages/AdminDisputes.tsx` — full-width main, remove negative-margin hack, real left accent strip, orange Review button, swap KPI icons (`Search`, `Flag`, `Check`), remove inner `overflow-x-auto` on desktop, add `min-w-0` to main.
-- `.lovable/plan.md` — replace with this corrected plan.
-
-**Untouched**
-- All services, edge functions, dispute display logic, sidebar, formats, status labels.
-
----
-
-## 10. Acceptance
-
-1. At 1246×890 viewport no horizontal scrollbar appears on `/admin/disputes`.
-2. Table columns render in order: PRIORITY | DISPUTE | PARTIES | AMOUNT | STATUS | SLA | AGENT | ACTIONS.
-3. Each row shows a left-edge colored accent bar aligned with the priority dot+label in the first cell.
-4. Overdue dot pulses subtly; non-overdue dots are static.
-5. Review button is **orange**; View Resolution is **emerald**; kebab sits to the right and is fully visible.
-6. KPI "Under Review" uses Search icon, "Escalated" uses Flag, "Resolved Today" uses Check.
-7. Amounts render in NGN format (`₦…`); raw `money_status` strings never appear.
-8. Mobile (<lg) shows stacked dispute cards.
-9. All other behavior (KPI click→quick filter, Review→route, Resolve→central admin dialog, Export, Live sync) unchanged.
+- Edge function logic, data mapping, amount fallback chain (already done in previous pass).
+- Sidebar nav items (already correct in `AdminSidebar`).
+- New animations beyond existing pulse and refresh-spin.
+- Any seller/buyer-facing UI.

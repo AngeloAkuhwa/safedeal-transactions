@@ -177,7 +177,7 @@ function KpiStrip({
     { id: "escalated", label: "Escalated Cases", count: k?.escalated ?? 0, sub: "Senior review", Icon: Flag, tone: "text-purple-300 bg-purple-500/10 border-purple-500/30", subTone: "text-muted-foreground" },
   ];
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-5">
       {cards.map((c) => {
         const isActive = active === c.id;
         return (
@@ -185,7 +185,7 @@ function KpiStrip({
             key={c.id}
             type="button"
             onClick={() => onClick(c.id)}
-            className={`group rounded-xl border bg-card p-5 text-left transition-all hover:-translate-y-0.5 hover:border-blue-500/40 hover:shadow-lg ${
+            className={`group rounded-xl border bg-card p-5 text-left transition-colors hover:border-blue-500/40 ${
               isActive ? "border-blue-500/50 ring-1 ring-blue-500/30" : "border-border"
             }`}
           >
@@ -328,7 +328,7 @@ export default function AdminDisputes() {
       <TooltipProvider delayDuration={200}>
         <div className="w-full min-w-0">
           {/* Full-width header bar */}
-          <header className="border-b border-border bg-card px-6 py-6 lg:px-8">
+          <header className="sticky top-0 z-20 border-b border-border bg-card px-6 py-5 lg:px-8">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h1 className="text-2xl font-semibold text-foreground">Dispute Resolution Queue</h1>
@@ -338,7 +338,7 @@ export default function AdminDisputes() {
                 <button
                   type="button"
                   onClick={() => void load()}
-                  className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-xs transition-colors hover:border-blue-500/40"
+                  className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs transition-colors hover:border-blue-500/40"
                   aria-live="polite"
                   title="Refresh"
                 >
@@ -374,18 +374,28 @@ export default function AdminDisputes() {
                       f.id === "awaiting_seller" ? data?.kpis.awaiting_seller :
                       f.id === "under_review" ? data?.kpis.under_review :
                       f.id === "escalated" ? data?.kpis.escalated :
+                      f.id === "resolved" ? data?.kpis.resolved_today :
+                      f.id === "all" ? data?.pagination.total :
                       undefined;
                     const baseInactive =
                       f.id === "overdue" ? "border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/15" :
                       f.id === "open" ? "border border-orange-500/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/15" :
                       "border border-border bg-background text-foreground/80 hover:border-blue-500/40 hover:text-foreground";
+                    const baseActive =
+                      f.id === "overdue" ? "border border-red-500/50 bg-red-500/20 text-red-200" :
+                      f.id === "open" ? "border border-orange-500/50 bg-orange-500/20 text-orange-200" :
+                      f.id === "awaiting_seller" ? "border border-yellow-500/50 bg-yellow-500/20 text-yellow-200" :
+                      f.id === "under_review" ? "border border-blue-500/50 bg-blue-500/20 text-blue-200" :
+                      f.id === "escalated" ? "border border-purple-500/50 bg-purple-500/20 text-purple-200" :
+                      f.id === "resolved" ? "border border-emerald-500/50 bg-emerald-500/20 text-emerald-200" :
+                      "border border-border bg-foreground/10 text-foreground";
                     return (
                       <button
                         key={f.id}
                         type="button"
                         onClick={() => setParam("quick", f.id)}
                         className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                          isActive ? "bg-blue-600 text-white" : baseInactive
+                          isActive ? baseActive : baseInactive
                         }`}
                       >
                         {f.id === "overdue" && <AlertTriangle className="h-3 w-3" />}
@@ -395,9 +405,30 @@ export default function AdminDisputes() {
                   })}
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="text-xs">
-                Advanced Filters
-              </Button>
+              <div className="flex items-center gap-2">
+                {(params.q || params.reason || params.agent || params.amount_bucket) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-muted-foreground"
+                    onClick={() => {
+                      const next = new URLSearchParams(searchParams);
+                      next.delete("q");
+                      next.delete("reason");
+                      next.delete("agent");
+                      next.delete("amount_bucket");
+                      next.delete("page");
+                      setSearchInput("");
+                      setSearchParams(next, { replace: true });
+                    }}
+                  >
+                    Clear filters
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="text-xs">
+                  Advanced Filters
+                </Button>
+              </div>
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
               <form onSubmit={onSearchSubmit} className="relative">
@@ -406,13 +437,13 @@ export default function AdminDisputes() {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Search disputes, transactions, users…"
-                  className="pl-9"
+                  className="pl-9 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
                 />
               </form>
               <select
                 value={params.reason ?? ""}
                 onChange={(e) => setParam("reason", e.target.value || null)}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                className="appearance-none w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
               >
                 <option value="">All Dispute Reasons</option>
                 {(data?.filters?.reasons ?? []).map((r) => (
@@ -422,7 +453,7 @@ export default function AdminDisputes() {
               <select
                 value={params.agent ?? ""}
                 onChange={(e) => setParam("agent", e.target.value || null)}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                className="appearance-none w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
               >
                 <option value="">All Agents</option>
                 {(data?.filters?.agents ?? []).map((a) => (
@@ -432,7 +463,7 @@ export default function AdminDisputes() {
               <select
                 value={params.amount_bucket ?? ""}
                 onChange={(e) => setParam("amount_bucket", e.target.value || null)}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                className="appearance-none w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
               >
                 <option value="">All Amount Ranges</option>
                 <option value="lt_100k">Under ₦100,000</option>
@@ -445,7 +476,7 @@ export default function AdminDisputes() {
 
           {/* Table / cards */}
           <section className="rounded-xl border border-border bg-card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <div className="flex items-center justify-between border-b border-border px-6 py-4">
               <h2 className="text-base font-semibold text-foreground">Active Dispute Queue</h2>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>Last updated: {lastFetch ? timeAgo(new Date(lastFetch).toISOString()) : "—"}</span>
@@ -475,24 +506,24 @@ export default function AdminDisputes() {
                   <table className="w-full table-fixed text-sm">
                     <colgroup>
                       <col style={{ width: "11%" }} />
-                      <col style={{ width: "18%" }} />
+                      <col style={{ width: "19%" }} />
                       <col style={{ width: "18%" }} />
                       <col style={{ width: "12%" }} />
                       <col style={{ width: "13%" }} />
                       <col style={{ width: "13%" }} />
                       <col style={{ width: "8%" }} />
-                      <col style={{ width: "7%" }} />
+                      <col style={{ width: "6%" }} />
                     </colgroup>
-                    <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
+                    <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                       <tr>
-                        <th className="px-4 py-3 text-left">Priority</th>
-                        <th className="px-4 py-3 text-left">Dispute</th>
-                        <th className="px-4 py-3 text-left">Parties</th>
-                        <th className="px-4 py-3 text-left">Amount</th>
-                        <th className="px-4 py-3 text-left">Status</th>
-                        <th className="px-4 py-3 text-left">SLA</th>
-                        <th className="px-4 py-3 text-left">Agent</th>
-                        <th className="px-4 py-3 text-right">Actions</th>
+                        <th className="px-6 py-4 text-left">Priority</th>
+                        <th className="px-6 py-4 text-left">Dispute</th>
+                        <th className="px-6 py-4 text-left">Parties</th>
+                        <th className="px-6 py-4 text-left">Amount</th>
+                        <th className="px-6 py-4 text-left">Status</th>
+                        <th className="px-6 py-4 text-left">SLA</th>
+                        <th className="px-6 py-4 text-left">Agent</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -504,9 +535,9 @@ export default function AdminDisputes() {
                           <tr
                             key={row.dispute_id}
                             onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
-                            className="cursor-pointer border-t border-border/60 transition-colors hover:bg-muted/30"
+                            className="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
                           >
-                            <td className="relative px-4 py-4 pl-5">
+                            <td className="relative px-6 py-4 pl-6">
                               <span className={`absolute left-0 top-0 h-full w-1 ${PRIORITY_ACCENT[row.priority]}`} />
                               <div className="flex items-center gap-2">
                                 <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT[row.priority]} ${row.priority === "overdue" ? "animate-pulse" : ""}`} />
@@ -515,7 +546,7 @@ export default function AdminDisputes() {
                                 </span>
                               </div>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-6 py-4">
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes/${row.dispute_id}`); }}
@@ -532,7 +563,7 @@ export default function AdminDisputes() {
                                 {row.transaction_code}
                               </button>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-6 py-4">
                               <div className="flex items-center gap-2">
                                 <Avatar name={row.parties.buyer.name} url={row.parties.buyer.avatar_url} />
                                 <div className="min-w-0">
@@ -548,11 +579,11 @@ export default function AdminDisputes() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-6 py-4">
                               <div className="font-semibold text-foreground">{formatMoney(row.amount, row.currency)}</div>
                               <div className="text-[11px] text-muted-foreground">{row.reason_label}</div>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-6 py-4">
                               <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold ${sd.tone}`}>
                                 {sd.label}
                               </span>
@@ -562,11 +593,11 @@ export default function AdminDisputes() {
                                 </div>
                               )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-6 py-4">
                               <div className={`text-xs font-medium ${sla.tone}`}>{sla.label}</div>
                               {sla.sub && <div className="text-[10px] text-muted-foreground">{sla.sub}</div>}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-6 py-4">
                               {row.agent ? (
                                 <div className="flex items-center gap-2">
                                   <Avatar name={row.agent.name} url={row.agent.avatar_url} />
@@ -576,8 +607,8 @@ export default function AdminDisputes() {
                                 <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground">Unassigned</span>
                               )}
                             </td>
-                            <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                              <div className="inline-flex items-center gap-1">
+                            <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                              <div className="inline-flex items-center gap-1.5 justify-end">
                                 <Button
                                   size="sm"
                                   onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
