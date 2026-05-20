@@ -476,7 +476,7 @@ export default function AdminDisputes() {
 
           {/* Table / cards */}
           <section className="rounded-xl border border-border bg-card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <div className="flex items-center justify-between border-b border-border px-6 py-4">
               <h2 className="text-base font-semibold text-foreground">Active Dispute Queue</h2>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>Last updated: {lastFetch ? timeAgo(new Date(lastFetch).toISOString()) : "—"}</span>
@@ -506,24 +506,24 @@ export default function AdminDisputes() {
                   <table className="w-full table-fixed text-sm">
                     <colgroup>
                       <col style={{ width: "11%" }} />
-                      <col style={{ width: "18%" }} />
+                      <col style={{ width: "19%" }} />
                       <col style={{ width: "18%" }} />
                       <col style={{ width: "12%" }} />
                       <col style={{ width: "13%" }} />
                       <col style={{ width: "13%" }} />
                       <col style={{ width: "8%" }} />
-                      <col style={{ width: "7%" }} />
+                      <col style={{ width: "6%" }} />
                     </colgroup>
-                    <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground">
+                    <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                       <tr>
-                        <th className="px-4 py-3 text-left">Priority</th>
-                        <th className="px-4 py-3 text-left">Dispute</th>
-                        <th className="px-4 py-3 text-left">Parties</th>
-                        <th className="px-4 py-3 text-left">Amount</th>
-                        <th className="px-4 py-3 text-left">Status</th>
-                        <th className="px-4 py-3 text-left">SLA</th>
-                        <th className="px-4 py-3 text-left">Agent</th>
-                        <th className="px-4 py-3 text-right">Actions</th>
+                        <th className="px-6 py-4 text-left">Priority</th>
+                        <th className="px-6 py-4 text-left">Dispute</th>
+                        <th className="px-6 py-4 text-left">Parties</th>
+                        <th className="px-6 py-4 text-left">Amount</th>
+                        <th className="px-6 py-4 text-left">Status</th>
+                        <th className="px-6 py-4 text-left">SLA</th>
+                        <th className="px-6 py-4 text-left">Agent</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -535,9 +535,9 @@ export default function AdminDisputes() {
                           <tr
                             key={row.dispute_id}
                             onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
-                            className="cursor-pointer border-t border-border/60 transition-colors hover:bg-muted/30"
+                            className="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
                           >
-                            <td className="relative px-4 py-4 pl-5">
+                            <td className="relative px-6 py-4 pl-6">
                               <span className={`absolute left-0 top-0 h-full w-1 ${PRIORITY_ACCENT[row.priority]}`} />
                               <div className="flex items-center gap-2">
                                 <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT[row.priority]} ${row.priority === "overdue" ? "animate-pulse" : ""}`} />
@@ -546,7 +546,7 @@ export default function AdminDisputes() {
                                 </span>
                               </div>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-6 py-4">
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes/${row.dispute_id}`); }}
@@ -563,7 +563,7 @@ export default function AdminDisputes() {
                                 {row.transaction_code}
                               </button>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-6 py-4">
                               <div className="flex items-center gap-2">
                                 <Avatar name={row.parties.buyer.name} url={row.parties.buyer.avatar_url} />
                                 <div className="min-w-0">
@@ -579,11 +579,11 @@ export default function AdminDisputes() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-6 py-4">
                               <div className="font-semibold text-foreground">{formatMoney(row.amount, row.currency)}</div>
                               <div className="text-[11px] text-muted-foreground">{row.reason_label}</div>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-6 py-4">
                               <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold ${sd.tone}`}>
                                 {sd.label}
                               </span>
@@ -593,11 +593,11 @@ export default function AdminDisputes() {
                                 </div>
                               )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-6 py-4">
                               <div className={`text-xs font-medium ${sla.tone}`}>{sla.label}</div>
                               {sla.sub && <div className="text-[10px] text-muted-foreground">{sla.sub}</div>}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-6 py-4">
                               {row.agent ? (
                                 <div className="flex items-center gap-2">
                                   <Avatar name={row.agent.name} url={row.agent.avatar_url} />
@@ -607,8 +607,8 @@ export default function AdminDisputes() {
                                 <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground">Unassigned</span>
                               )}
                             </td>
-                            <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                              <div className="inline-flex items-center gap-1">
+                            <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                              <div className="inline-flex items-center gap-1.5 justify-end">
                                 <Button
                                   size="sm"
                                   onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
