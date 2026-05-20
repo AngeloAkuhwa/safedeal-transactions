@@ -328,7 +328,7 @@ export default function AdminDisputes() {
       <TooltipProvider delayDuration={200}>
         <div className="w-full min-w-0">
           {/* Full-width header bar */}
-          <header className="border-b border-border bg-card px-6 py-6 lg:px-8">
+          <header className="sticky top-0 z-20 border-b border-border bg-card px-6 py-5 lg:px-8">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h1 className="text-2xl font-semibold text-foreground">Dispute Resolution Queue</h1>
@@ -338,7 +338,7 @@ export default function AdminDisputes() {
                 <button
                   type="button"
                   onClick={() => void load()}
-                  className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-xs transition-colors hover:border-blue-500/40"
+                  className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs transition-colors hover:border-blue-500/40"
                   aria-live="polite"
                   title="Refresh"
                 >
