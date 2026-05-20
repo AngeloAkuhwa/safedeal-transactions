@@ -177,7 +177,7 @@ function KpiStrip({
     { id: "escalated", label: "Escalated Cases", count: k?.escalated ?? 0, sub: "Senior review", Icon: Flag, tone: "text-purple-300 bg-purple-500/10 border-purple-500/30", subTone: "text-muted-foreground" },
   ];
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-5">
       {cards.map((c) => {
         const isActive = active === c.id;
         return (
@@ -185,7 +185,7 @@ function KpiStrip({
             key={c.id}
             type="button"
             onClick={() => onClick(c.id)}
-            className={`group rounded-xl border bg-card p-5 text-left transition-all hover:-translate-y-0.5 hover:border-blue-500/40 hover:shadow-lg ${
+            className={`group rounded-xl border bg-card p-5 text-left transition-colors hover:border-blue-500/40 ${
               isActive ? "border-blue-500/50 ring-1 ring-blue-500/30" : "border-border"
             }`}
           >
