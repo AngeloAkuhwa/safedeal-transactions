@@ -506,13 +506,13 @@ export default function AdminDisputes() {
                   <table className="w-full table-fixed text-sm">
                     <colgroup>
                       <col style={{ width: "11%" }} />
+                      <col style={{ width: "20%" }} />
                       <col style={{ width: "19%" }} />
-                      <col style={{ width: "18%" }} />
                       <col style={{ width: "12%" }} />
                       <col style={{ width: "13%" }} />
-                      <col style={{ width: "13%" }} />
-                      <col style={{ width: "8%" }} />
-                      <col style={{ width: "6%" }} />
+                      <col style={{ width: "12%" }} />
+                      <col style={{ width: "120px" }} />
+                      <col style={{ width: "150px" }} />
                     </colgroup>
                     <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                       <tr>
@@ -522,8 +522,8 @@ export default function AdminDisputes() {
                         <th className="px-6 py-4 text-left">Amount</th>
                         <th className="px-6 py-4 text-left">Status</th>
                         <th className="px-6 py-4 text-left">SLA</th>
-                        <th className="px-6 py-4 text-left">Agent</th>
-                        <th className="px-6 py-4 text-right">Actions</th>
+                        <th className="px-4 py-4 text-left">Agent</th>
+                        <th className="px-4 py-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -550,15 +550,15 @@ export default function AdminDisputes() {
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes/${row.dispute_id}`); }}
-                                className="text-sm font-semibold text-blue-300 hover:underline"
+                                className="block max-w-full truncate text-sm font-semibold text-blue-300 hover:underline"
                               >
                                 #{row.dispute_code}
                               </button>
-                              <div className="truncate text-xs text-foreground/80 max-w-[260px]">{row.item_title}</div>
+                              <div className="truncate text-xs text-foreground/80">{row.item_title}</div>
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); navigate(`/admin/transactions/${row.transaction_id}`); }}
-                                className="text-[11px] text-muted-foreground hover:text-foreground"
+                                className="block max-w-full truncate text-[11px] text-muted-foreground hover:text-foreground"
                               >
                                 {row.transaction_code}
                               </button>
@@ -580,7 +580,7 @@ export default function AdminDisputes() {
                               </div>
                             </td>
                             <td className="px-6 py-4">
-                              <div className="font-semibold text-foreground">{formatMoney(row.amount, row.currency)}</div>
+                              <div className="whitespace-nowrap font-semibold text-foreground">{formatMoney(row.amount, row.currency)}</div>
                               <div className="text-[11px] text-muted-foreground">{row.reason_label}</div>
                             </td>
                             <td className="px-6 py-4">
@@ -594,31 +594,31 @@ export default function AdminDisputes() {
                               )}
                             </td>
                             <td className="px-6 py-4">
-                              <div className={`text-xs font-medium ${sla.tone}`}>{sla.label}</div>
+                              <div className={`whitespace-nowrap text-xs font-medium ${sla.tone}`}>{sla.label}</div>
                               {sla.sub && <div className="text-[10px] text-muted-foreground">{sla.sub}</div>}
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-4 py-4">
                               {row.agent ? (
-                                <div className="flex items-center gap-2">
-                                  <Avatar name={row.agent.name} url={row.agent.avatar_url} />
-                                  <span className="text-xs">{row.agent.name}</span>
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="shrink-0"><Avatar name={row.agent.name} url={row.agent.avatar_url} /></div>
+                                  <span className="truncate text-xs">{row.agent.name}</span>
                                 </div>
                               ) : (
                                 <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground">Unassigned</span>
                               )}
                             </td>
-                            <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                              <div className="inline-flex items-center gap-1.5 justify-end">
+                            <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                              <div className={`inline-flex items-center gap-2 justify-end ${isResolved ? "min-w-[160px]" : "min-w-[132px]"}`}>
                                 <Button
                                   size="sm"
                                   onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
-                                  className={isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"}
+                                  className={`h-9 whitespace-nowrap px-4 ${isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"}`}
                                 >
                                   {isResolved ? "View Resolution" : "Review"}
                                 </Button>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button size="icon" variant="ghost" className="h-8 w-8">
+                                    <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={(e) => e.stopPropagation()}>
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
