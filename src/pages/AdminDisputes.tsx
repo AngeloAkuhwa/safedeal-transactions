@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -72,7 +73,6 @@ const QUICK_FILTERS: { id: DisputeQueueQuick; label: string }[] = [
   { id: "under_review", label: "Under Review" },
   { id: "escalated", label: "Escalated" },
   { id: "resolved", label: "Resolved" },
-  { id: "all", label: "All" },
 ];
 
 function timeAgo(iso: string | null | undefined): string {
