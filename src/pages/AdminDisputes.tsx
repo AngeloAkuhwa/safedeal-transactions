@@ -329,6 +329,22 @@ export default function AdminDisputes() {
   const quick = (params.quick ?? "open") as DisputeQueueQuick;
   const rows = data?.rows ?? [];
 
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+  }, []);
+
+  const todayLagos = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+  const dueTodayCount = rows.filter(
+    (r) =>
+      r.dispute_status === "seller_response_pending" &&
+      r.sla.due_at_iso &&
+      new Date(r.sla.due_at_iso).toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" }) === todayLagos,
+  ).length;
+  const assignedToMeCount = rows.filter(
+    (r) => r.dispute_status === "under_review" && r.agent?.user_id === currentUserId,
+  ).length;
+
   return (
     <AdminLayout title="Dispute Resolution Queue" subtitle="Live dispute triage and case management" hideDefaultHeaders fullBleed>
       <TooltipProvider delayDuration={200}>
@@ -364,7 +380,13 @@ export default function AdminDisputes() {
 
         <div className="w-full max-w-none px-6 py-8 lg:px-8 space-y-5">
           {/* KPI strip */}
-          <KpiStrip data={data} active={quick} onClick={(q) => setParam("quick", q)} />
+          <KpiStrip
+            data={data}
+            active={quick}
+            onClick={(q) => setParam("quick", q)}
+            dueTodayCount={dueTodayCount}
+            assignedToMeCount={assignedToMeCount}
+          />
 
           {/* Queue Filters */}
           <section className="rounded-xl border border-border bg-card p-5 space-y-4">
