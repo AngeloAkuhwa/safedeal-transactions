@@ -1,85 +1,81 @@
-# Compact KPI + Queue Filters section on `/admin/disputes`
+# /admin/disputes — targeted correction pass
 
-Scope: only the top section of `src/pages/AdminDisputes.tsx` — the `KpiStrip` component and the Queue Filters `<section>` (lines ~155–475). Do NOT touch the table, sidebar, header, routing, or filter logic.
+Scope: `src/pages/AdminDisputes.tsx` + `supabase/functions/admin-disputes-queue/index.ts`. No other files, no redesign.
 
-## Problems
+## 1. KPI subtitle text (dynamic)
 
-- KPI cards use `p-5`, `text-3xl`, `mt-4` label, `gap-4/5` — too tall and roomy versus approved.
-- Quick filter chips use mismatched per-id border/bg colors even when inactive, making Overdue+Open look "always selected". Approved: only the selected chip is highlighted; others are neutral slate.
-- Filter card uses `space-y-4` + `p-6`; the grid uses `gap-3` and selects use default `Input`/`select` heights producing inconsistent control heights and a bright focus border on selects.
+In `KpiStrip` (≈lines 167–205) the API doesn't expose `due_today` or `assigned_to_me`, so derive them from the already-loaded `data.rows` plus the current admin user id.
 
-## Changes
+- Pass two new props into `KpiStrip`: `dueTodayCount: number`, `assignedToMeCount: number`.
+- Compute in the page component, just above `<KpiStrip />`:
+  ```ts
+  const todayLagos = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+  const dueTodayCount = rows.filter(r =>
+    r.dispute_status === "seller_response_pending" &&
+    r.sla.due_at_iso &&
+    new Date(r.sla.due_at_iso).toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" }) === todayLagos
+  ).length;
+  const assignedToMeCount = rows.filter(r =>
+    r.dispute_status === "under_review" && r.agent?.user_id === currentUserId
+  ).length;
+  ```
+- `currentUserId` comes from a one-time `supabase.auth.getUser()` stored in state (already imported via the supabase client; no new deps).
+- Replace the two hardcoded `sub` strings on the cards:
+  - Awaiting Seller Response: `sub: \`${dueTodayCount} due today\``
+  - Under Review: `sub: \`${assignedToMeCount} assigned to you\``
+- Keep all other KPI visuals (height, padding, icon, value, label position) unchanged.
 
-### 1. `KpiStrip` (lines ~167–205)
+## 2. Remove the "All" filter chip
 
-Container:
-```tsx
-<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-```
-(remove `lg:gap-5`)
+In `QUICK_FILTERS` (line 68) delete the `{ id: "all", label: "All" }` entry. Default `quick` stays `"open"`, so internal behavior is unchanged. Also drop the `f.id === "all"` count branch (≈line 378) since the entry is gone. No replacement chip.
 
-Card button:
-- Padding: `p-4` (was `p-5`).
-- Keep border style; remove hover translate (already gone).
+## 3. Fix the Escalated filter API failure
 
-Inside card:
-- Icon tile: keep `h-10 w-10 rounded-lg`, icon `h-5 w-5`.
-- Number: `text-2xl font-bold` (was `text-3xl font-semibold`).
-- Label spacing: `mt-3 text-sm font-medium text-foreground/90` (was `mt-4`).
-- Helper: `mt-0.5 text-[11px]` (was `mt-1`).
+Root cause: the edge function does `q.eq("status", "__never__")` on an enum column — PostgREST rejects this with an enum cast error → 400.
 
-### 2. Queue Filters section (lines ~364–475)
+Fix in `supabase/functions/admin-disputes-queue/index.ts` (line 213):
 
-Outer section:
-```tsx
-<section className="rounded-xl border border-border bg-card p-5 space-y-4">
-```
-(p-5 instead of p-6; keep space-y-4.)
-
-Top row wrapper unchanged structure, but:
-- Title: keep `text-base font-semibold`.
-- Chips gap: `gap-2` (already), wrapper `gap-3` between title and chip group.
-
-Chip button (replace inactive variants with single neutral style, keep colored active variants):
-```tsx
-const baseInactive = "border border-border bg-muted/40 text-foreground/80 hover:bg-muted hover:text-foreground";
-// baseActive map stays as-is (red/orange/yellow/blue/purple/emerald/foreground per id)
-className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${isActive ? baseActive : baseInactive}`}
-```
-Only the AlertTriangle icon stays on the Overdue chip.
-
-Right side (Clear filters + Advanced Filters): unchanged.
-
-### 3. Search / select row (lines ~433–474)
-
-Grid gap stays `gap-3` but normalize control heights to `h-10` and unify focus styles. Replace all three `<select>` classNames with:
-```
-"appearance-none w-full h-10 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
-```
-Search Input adds `h-10` and explicit ring overrides to kill the bright white default focus:
-```
-className="h-10 pl-9 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0 focus-visible:border-blue-500/60"
+```ts
+case "escalated":
+  // No escalation flag in current schema — return empty set safely.
+  q = q.eq("id", "00000000-0000-0000-0000-000000000000");
+  break;
 ```
 
-### 4. Page vertical rhythm (line ~359)
+This guarantees an empty (but valid) result instead of an enum-cast error. The chip count comes from `data.kpis.escalated` which the function already hardcodes to `0`, so the chip and the result stay consistent (both empty). The frontend still sends `quick=escalated` exactly as today — no client mapping change. Empty-state UI (`No disputes match these filters.`) already handles the zero case.
 
-Change `space-y-6` → `space-y-5` on the content wrapper so KPI → Filters → Table gaps feel like the approved 24–28px rhythm rather than 32px+.
+## 4. Actions column overflow
 
-## Out of scope
+The Actions `<col>` is currently `150px` but the resolved row needs `"View Resolution"` (≈110px) + gap-2 (8px) + kebab `h-9 w-9` (36px) + cell `px-4` (32px) ≈ **186px**, so the button visibly overflows the cell.
 
-- Table column widths, rows, Actions/Agent cells, kebab menu, navigation.
-- Sidebar, header bar, Live sync / Export / Open Investigation buttons.
-- Filter logic, search submit behavior, auto-refresh, URL params.
-- Mobile card list.
+Changes inside the desktop table (≈lines 502–642):
+
+- `colgroup`: bump Actions from `150px` → `200px`; keep Agent `120px`; recompute % cols so they sum to 100% minus 320px fixed. New mix:
+  ```
+  Priority 10% / Dispute 19% / Parties 18% / Amount 12% / Status 13% / SLA 12% / Agent 120px / Actions 200px
+  ```
+- Actions `<td>` (line 607): keep `px-4 py-4 text-right`, drop the `min-w-[160px] / min-w-[132px]` wrapper — column width now governs. Inner wrapper becomes:
+  ```tsx
+  <div className="flex items-center justify-end gap-2">
+  ```
+- Primary button (line 609): `size="sm"`, classes `h-9 px-4 text-sm font-semibold rounded-lg whitespace-nowrap` plus the existing emerald/orange variant.
+- Kebab trigger stays `h-9 w-9 shrink-0`.
+
+No change to mobile cards, sidebar, filters search/select row, header bar, routes, or table data.
+
+## 5. Spacing
+
+Removing the "All" chip naturally tightens the chip row. No other padding changes needed — `section` keeps `p-5 space-y-4`, chip row keeps `gap-2`, control row keeps `h-10`.
 
 ## Acceptance
 
-- 6 KPI cards in one row on `lg+`, visibly shorter (~120px) with `text-2xl` numbers and tighter label spacing.
-- Inactive chips render neutral slate; only the currently selected chip shows its colored highlight.
-- Search input and all three selects share the same `h-10` height with a soft blue focus ring — no bright white border on focus.
-- Filter card height is reduced; Queue Filters title, chips, and Advanced Filters stay on one row at desktop widths.
-- Table, sidebar, header, and all filter functionality unchanged.
+- Awaiting Seller card shows `"<n> due today"`; Under Review shows `"<n> assigned to you"`, both derived from live rows.
+- Chip row contains exactly: Overdue, Open, Awaiting Seller, Under Review, Escalated, Resolved.
+- Clicking Escalated returns a clean empty state (no API error in network tab, no toast).
+- `View Resolution` and `Review` buttons sit fully inside the Actions cell at the current 995px viewport and on wider desktops, with the kebab still visible.
+- No horizontal scrollbar on the table card; no other visual regressions.
 
-## File
+## Files
 
-- `src/pages/AdminDisputes.tsx` — `KpiStrip` (≈167–205), content wrapper line 359, Queue Filters section (≈364–475).
+- `src/pages/AdminDisputes.tsx` — KpiStrip props + subtitles, remove "all" chip, table colgroup + Actions cell.
+- `supabase/functions/admin-disputes-queue/index.ts` — escalated case safe predicate.

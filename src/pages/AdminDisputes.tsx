@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -72,7 +73,6 @@ const QUICK_FILTERS: { id: DisputeQueueQuick; label: string }[] = [
   { id: "under_review", label: "Under Review" },
   { id: "escalated", label: "Escalated" },
   { id: "resolved", label: "Resolved" },
-  { id: "all", label: "All" },
 ];
 
 function timeAgo(iso: string | null | undefined): string {
@@ -165,13 +165,19 @@ interface KpiCardDef {
 }
 
 function KpiStrip({
-  data, active, onClick,
-}: { data: DisputeQueueResponse | null; active: DisputeQueueQuick; onClick: (q: DisputeQueueQuick) => void }) {
+  data, active, onClick, dueTodayCount, assignedToMeCount,
+}: {
+  data: DisputeQueueResponse | null;
+  active: DisputeQueueQuick;
+  onClick: (q: DisputeQueueQuick) => void;
+  dueTodayCount: number;
+  assignedToMeCount: number;
+}) {
   const k = data?.kpis;
   const cards: KpiCardDef[] = [
     { id: "open", label: "Open Disputes", count: k?.open_disputes ?? 0, sub: k ? `${k.deltas.open_vs_yesterday >= 0 ? "+" : ""}${k.deltas.open_vs_yesterday} from yesterday` : "", Icon: Scale, tone: "text-orange-300 bg-orange-500/10 border-orange-500/30", subTone: "text-muted-foreground" },
-    { id: "awaiting_seller", label: "Awaiting Seller Response", count: k?.awaiting_seller ?? 0, sub: "Seller response pending", Icon: Clock, tone: "text-yellow-300 bg-yellow-500/10 border-yellow-500/30", subTone: "text-muted-foreground" },
-    { id: "under_review", label: "Under Review", count: k?.under_review ?? 0, sub: "Active triage", Icon: Search, tone: "text-blue-300 bg-blue-500/10 border-blue-500/30", subTone: "text-muted-foreground" },
+    { id: "awaiting_seller", label: "Awaiting Seller Response", count: k?.awaiting_seller ?? 0, sub: `${dueTodayCount} due today`, Icon: Clock, tone: "text-yellow-300 bg-yellow-500/10 border-yellow-500/30", subTone: "text-muted-foreground" },
+    { id: "under_review", label: "Under Review", count: k?.under_review ?? 0, sub: `${assignedToMeCount} assigned to you`, Icon: Search, tone: "text-blue-300 bg-blue-500/10 border-blue-500/30", subTone: "text-muted-foreground" },
     { id: "overdue", label: "Overdue Cases", count: k?.overdue ?? 0, sub: "Immediate attention", Icon: AlertTriangle, tone: "text-red-300 bg-red-500/10 border-red-500/30", subTone: "text-red-400" },
     { id: "resolved", label: "Resolved Today", count: k?.resolved_today ?? 0, sub: k ? `+${k.deltas.resolved_vs_target} from target` : "", Icon: Check, tone: "text-emerald-300 bg-emerald-500/10 border-emerald-500/30", subTone: "text-emerald-400" },
     { id: "escalated", label: "Escalated Cases", count: k?.escalated ?? 0, sub: "Senior review", Icon: Flag, tone: "text-purple-300 bg-purple-500/10 border-purple-500/30", subTone: "text-muted-foreground" },
@@ -323,6 +329,22 @@ export default function AdminDisputes() {
   const quick = (params.quick ?? "open") as DisputeQueueQuick;
   const rows = data?.rows ?? [];
 
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+  }, []);
+
+  const todayLagos = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+  const dueTodayCount = rows.filter(
+    (r) =>
+      r.dispute_status === "seller_response_pending" &&
+      r.sla.due_at_iso &&
+      new Date(r.sla.due_at_iso).toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" }) === todayLagos,
+  ).length;
+  const assignedToMeCount = rows.filter(
+    (r) => r.dispute_status === "under_review" && r.agent?.user_id === currentUserId,
+  ).length;
+
   return (
     <AdminLayout title="Dispute Resolution Queue" subtitle="Live dispute triage and case management" hideDefaultHeaders fullBleed>
       <TooltipProvider delayDuration={200}>
@@ -358,7 +380,13 @@ export default function AdminDisputes() {
 
         <div className="w-full max-w-none px-6 py-8 lg:px-8 space-y-5">
           {/* KPI strip */}
-          <KpiStrip data={data} active={quick} onClick={(q) => setParam("quick", q)} />
+          <KpiStrip
+            data={data}
+            active={quick}
+            onClick={(q) => setParam("quick", q)}
+            dueTodayCount={dueTodayCount}
+            assignedToMeCount={assignedToMeCount}
+          />
 
           {/* Queue Filters */}
           <section className="rounded-xl border border-border bg-card p-5 space-y-4">
@@ -375,7 +403,6 @@ export default function AdminDisputes() {
                       f.id === "under_review" ? data?.kpis.under_review :
                       f.id === "escalated" ? data?.kpis.escalated :
                       f.id === "resolved" ? data?.kpis.resolved_today :
-                      f.id === "all" ? data?.pagination.total :
                       undefined;
                     const baseInactive = "border border-border bg-muted/40 text-foreground/80 hover:bg-muted hover:text-foreground";
                     const baseActive =
@@ -502,14 +529,14 @@ export default function AdminDisputes() {
                 <div className="hidden lg:block w-full">
                   <table className="w-full table-fixed text-sm">
                     <colgroup>
-                      <col style={{ width: "11%" }} />
-                      <col style={{ width: "20%" }} />
+                      <col style={{ width: "10%" }} />
                       <col style={{ width: "19%" }} />
+                      <col style={{ width: "18%" }} />
                       <col style={{ width: "12%" }} />
                       <col style={{ width: "13%" }} />
                       <col style={{ width: "12%" }} />
                       <col style={{ width: "120px" }} />
-                      <col style={{ width: "150px" }} />
+                      <col style={{ width: "200px" }} />
                     </colgroup>
                     <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                       <tr>
@@ -605,11 +632,11 @@ export default function AdminDisputes() {
                               )}
                             </td>
                             <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                              <div className={`inline-flex items-center gap-2 justify-end ${isResolved ? "min-w-[160px]" : "min-w-[132px]"}`}>
+                              <div className="flex items-center justify-end gap-2">
                                 <Button
                                   size="sm"
                                   onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
-                                  className={`h-9 whitespace-nowrap px-4 ${isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"}`}
+                                  className={`h-9 whitespace-nowrap rounded-lg px-4 text-sm font-semibold ${isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"}`}
                                 >
                                   {isResolved ? "View Resolution" : "Review"}
                                 </Button>

@@ -211,7 +211,9 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
     case "under_review":
       q = q.eq("status", "under_review"); break;
     case "escalated":
-      q = q.eq("status", "__never__"); break; // unsupported in current schema
+      // No escalation flag in current schema — return empty set without enum cast errors.
+      q = q.eq("id", "00000000-0000-0000-0000-000000000000");
+      break;
     case "resolved":
       q = q.eq("status", "resolved"); break;
     case "all":
