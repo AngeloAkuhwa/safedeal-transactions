@@ -1,60 +1,85 @@
-# Fix right-side clipping in `/admin/disputes` table
+# Compact KPI + Queue Filters section on `/admin/disputes`
 
-Scope: only the desktop table in `src/pages/AdminDisputes.tsx` (lines ~506–640). No backend, no edge function, no other pages.
+Scope: only the top section of `src/pages/AdminDisputes.tsx` — the `KpiStrip` component and the Queue Filters `<section>` (lines ~155–475). Do NOT touch the table, sidebar, header, routing, or filter logic.
 
-## Root cause
+## Problems
 
-- `colgroup` allocates only **6%** to Actions and **8%** to Agent. At ~1100–1300px container widths that's ~66–78px for Actions, which cannot hold `Review` (orange button) + kebab (~120px) → button overflows and kebab gets pushed past the card edge.
-- `px-6` (24px L+R = 48px) inside a 6% cell consumes all of it before the button renders.
-- Agent column also uses `px-6` and the avatar+name has no `truncate`/`min-w-0`, so long names expand the row content.
+- KPI cards use `p-5`, `text-3xl`, `mt-4` label, `gap-4/5` — too tall and roomy versus approved.
+- Quick filter chips use mismatched per-id border/bg colors even when inactive, making Overdue+Open look "always selected". Approved: only the selected chip is highlighted; others are neutral slate.
+- Filter card uses `space-y-4` + `p-6`; the grid uses `gap-3` and selects use default `Input`/`select` heights producing inconsistent control heights and a bright focus border on selects.
 
-## Fix
+## Changes
 
-### 1. `colgroup` widths
-Switch Actions and Agent to fixed pixel widths; redistribute the rest:
+### 1. `KpiStrip` (lines ~167–205)
 
+Container:
 ```tsx
-<colgroup>
-  <col style={{ width: "11%" }} />    {/* Priority */}
-  <col style={{ width: "20%" }} />    {/* Dispute */}
-  <col style={{ width: "19%" }} />    {/* Parties */}
-  <col style={{ width: "12%" }} />    {/* Amount */}
-  <col style={{ width: "13%" }} />    {/* Status */}
-  <col style={{ width: "12%" }} />    {/* SLA */}
-  <col style={{ width: "120px" }} />  {/* Agent */}
-  <col style={{ width: "150px" }} />  {/* Actions */}
-</colgroup>
+<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+```
+(remove `lg:gap-5`)
+
+Card button:
+- Padding: `p-4` (was `p-5`).
+- Keep border style; remove hover translate (already gone).
+
+Inside card:
+- Icon tile: keep `h-10 w-10 rounded-lg`, icon `h-5 w-5`.
+- Number: `text-2xl font-bold` (was `text-3xl font-semibold`).
+- Label spacing: `mt-3 text-sm font-medium text-foreground/90` (was `mt-4`).
+- Helper: `mt-0.5 text-[11px]` (was `mt-1`).
+
+### 2. Queue Filters section (lines ~364–475)
+
+Outer section:
+```tsx
+<section className="rounded-xl border border-border bg-card p-5 space-y-4">
+```
+(p-5 instead of p-6; keep space-y-4.)
+
+Top row wrapper unchanged structure, but:
+- Title: keep `text-base font-semibold`.
+- Chips gap: `gap-2` (already), wrapper `gap-3` between title and chip group.
+
+Chip button (replace inactive variants with single neutral style, keep colored active variants):
+```tsx
+const baseInactive = "border border-border bg-muted/40 text-foreground/80 hover:bg-muted hover:text-foreground";
+// baseActive map stays as-is (red/orange/yellow/blue/purple/emerald/foreground per id)
+className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${isActive ? baseActive : baseInactive}`}
+```
+Only the AlertTriangle icon stays on the Overdue chip.
+
+Right side (Clear filters + Advanced Filters): unchanged.
+
+### 3. Search / select row (lines ~433–474)
+
+Grid gap stays `gap-3` but normalize control heights to `h-10` and unify focus styles. Replace all three `<select>` classNames with:
+```
+"appearance-none w-full h-10 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
+```
+Search Input adds `h-10` and explicit ring overrides to kill the bright white default focus:
+```
+className="h-10 pl-9 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0 focus-visible:border-blue-500/60"
 ```
 
-### 2. Actions cell
-- Reduce padding: `px-4 py-4` (not `px-6`) so the 150px col fits `Review` + kebab.
-- Wrap inner row in `flex items-center justify-end gap-2 min-w-[132px]` (active) / `min-w-[160px]` (resolved → "View Resolution").
-- Button: keep existing colors but add `whitespace-nowrap h-9 px-4` to prevent wrap.
-- Kebab trigger: `h-9 w-9` square; keep `e.stopPropagation()` on `<td>` (already present) and add it to the trigger button as well so menu items don't bubble to row click.
-- Header `<th>Actions</th>` → `px-4 py-4 text-right`.
+### 4. Page vertical rhythm (line ~359)
 
-### 3. Agent cell
-- Padding `px-4 py-4`.
-- Assigned: `<div className="flex items-center gap-2 min-w-0">` with `<span className="truncate text-xs">{name}</span>`; avatar gets `shrink-0`.
-- Unassigned pill unchanged (already compact).
-- Header `<th>Agent</th>` → `px-4 py-4`.
+Change `space-y-6` → `space-y-5` on the content wrapper so KPI → Filters → Table gaps feel like the approved 24–28px rhythm rather than 32px+.
 
-### 4. Truncation in earlier cells (so `table-fixed` doesn't push content)
-- Dispute cell: wrap children in `min-w-0`; add `truncate` to `#code`, item title, and tx code lines (remove `max-w-[260px]` — col width handles it).
-- Parties cell: existing `min-w-0` stays; ensure both name divs keep `truncate`.
-- Amount: add `whitespace-nowrap` to the amount line.
-- SLA: add `whitespace-nowrap` to the label line.
+## Out of scope
 
-### 5. Container
-- Desktop wrapper stays `hidden lg:block w-full` with **no** `overflow-x-auto` (already removed). Mobile cards path is unchanged.
+- Table column widths, rows, Actions/Agent cells, kebab menu, navigation.
+- Sidebar, header bar, Live sync / Export / Open Investigation buttons.
+- Filter logic, search submit behavior, auto-refresh, URL params.
+- Mobile card list.
 
 ## Acceptance
 
-- At 1280–1536px viewport: no horizontal scrollbar; Actions column fully inside card; `Review` button and kebab both visible on every active row; `View Resolution` + kebab on resolved rows; ACTIONS header right-aligned and not clipped.
-- Agent column compact; long admin names truncate with ellipsis.
-- Row click still navigates; kebab click does not navigate; menu items work as before.
-- Mobile card layout (`lg:hidden`) untouched.
+- 6 KPI cards in one row on `lg+`, visibly shorter (~120px) with `text-2xl` numbers and tighter label spacing.
+- Inactive chips render neutral slate; only the currently selected chip shows its colored highlight.
+- Search input and all three selects share the same `h-10` height with a soft blue focus ring — no bright white border on focus.
+- Filter card height is reduced; Queue Filters title, chips, and Advanced Filters stay on one row at desktop widths.
+- Table, sidebar, header, and all filter functionality unchanged.
 
-## Files
+## File
 
-- `src/pages/AdminDisputes.tsx` — only the desktop `<table>` block (lines ~505–640).
+- `src/pages/AdminDisputes.tsx` — `KpiStrip` (≈167–205), content wrapper line 359, Queue Filters section (≈364–475).
