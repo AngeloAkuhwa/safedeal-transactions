@@ -177,7 +177,7 @@ function KpiStrip({
     { id: "escalated", label: "Escalated Cases", count: k?.escalated ?? 0, sub: "Senior review", Icon: Flag, tone: "text-purple-300 bg-purple-500/10 border-purple-500/30", subTone: "text-muted-foreground" },
   ];
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-5">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
       {cards.map((c) => {
         const isActive = active === c.id;
         return (
@@ -185,7 +185,7 @@ function KpiStrip({
             key={c.id}
             type="button"
             onClick={() => onClick(c.id)}
-            className={`group rounded-xl border bg-card p-5 text-left transition-colors hover:border-blue-500/40 ${
+            className={`group rounded-xl border bg-card p-4 text-left transition-colors hover:border-blue-500/40 ${
               isActive ? "border-blue-500/50 ring-1 ring-blue-500/30" : "border-border"
             }`}
           >
@@ -193,10 +193,10 @@ function KpiStrip({
               <div className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border ${c.tone}`}>
                 <c.Icon className="h-5 w-5" />
               </div>
-              <div className="text-3xl font-semibold text-foreground leading-none">{c.count}</div>
+              <div className="text-2xl font-bold text-foreground leading-none">{c.count}</div>
             </div>
-            <div className="mt-4 text-sm font-medium text-foreground/90">{c.label}</div>
-            {c.sub && <div className={`mt-1 truncate text-[11px] ${c.subTone ?? "text-muted-foreground"}`}>{c.sub}</div>}
+            <div className="mt-3 text-sm font-medium text-foreground/90">{c.label}</div>
+            {c.sub && <div className={`mt-0.5 truncate text-[11px] ${c.subTone ?? "text-muted-foreground"}`}>{c.sub}</div>}
           </button>
         );
       })}
@@ -356,12 +356,12 @@ export default function AdminDisputes() {
             </div>
           </header>
 
-        <div className="w-full max-w-none px-6 py-8 lg:px-8 space-y-6">
+        <div className="w-full max-w-none px-6 py-8 lg:px-8 space-y-5">
           {/* KPI strip */}
           <KpiStrip data={data} active={quick} onClick={(q) => setParam("quick", q)} />
 
           {/* Queue Filters */}
-          <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <section className="rounded-xl border border-border bg-card p-5 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-base font-semibold text-foreground">Queue Filters</h2>
@@ -377,10 +377,7 @@ export default function AdminDisputes() {
                       f.id === "resolved" ? data?.kpis.resolved_today :
                       f.id === "all" ? data?.pagination.total :
                       undefined;
-                    const baseInactive =
-                      f.id === "overdue" ? "border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/15" :
-                      f.id === "open" ? "border border-orange-500/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/15" :
-                      "border border-border bg-background text-foreground/80 hover:border-blue-500/40 hover:text-foreground";
+                    const baseInactive = "border border-border bg-muted/40 text-foreground/80 hover:bg-muted hover:text-foreground";
                     const baseActive =
                       f.id === "overdue" ? "border border-red-500/50 bg-red-500/20 text-red-200" :
                       f.id === "open" ? "border border-orange-500/50 bg-orange-500/20 text-orange-200" :
@@ -437,13 +434,13 @@ export default function AdminDisputes() {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Search disputes, transactions, users…"
-                  className="pl-9 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
+                  className="h-10 pl-9 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0 focus-visible:border-blue-500/60"
                 />
               </form>
               <select
                 value={params.reason ?? ""}
                 onChange={(e) => setParam("reason", e.target.value || null)}
-                className="appearance-none w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                className="appearance-none w-full h-10 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
               >
                 <option value="">All Dispute Reasons</option>
                 {(data?.filters?.reasons ?? []).map((r) => (
@@ -453,7 +450,7 @@ export default function AdminDisputes() {
               <select
                 value={params.agent ?? ""}
                 onChange={(e) => setParam("agent", e.target.value || null)}
-                className="appearance-none w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                className="appearance-none w-full h-10 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
               >
                 <option value="">All Agents</option>
                 {(data?.filters?.agents ?? []).map((a) => (
@@ -463,7 +460,7 @@ export default function AdminDisputes() {
               <select
                 value={params.amount_bucket ?? ""}
                 onChange={(e) => setParam("amount_bucket", e.target.value || null)}
-                className="appearance-none w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60"
+                className="appearance-none w-full h-10 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-0"
               >
                 <option value="">All Amount Ranges</option>
                 <option value="lt_100k">Under ₦100,000</option>
