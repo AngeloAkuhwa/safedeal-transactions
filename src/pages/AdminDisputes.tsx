@@ -403,7 +403,6 @@ export default function AdminDisputes() {
                       f.id === "under_review" ? data?.kpis.under_review :
                       f.id === "escalated" ? data?.kpis.escalated :
                       f.id === "resolved" ? data?.kpis.resolved_today :
-                      f.id === "all" ? data?.pagination.total :
                       undefined;
                     const baseInactive = "border border-border bg-muted/40 text-foreground/80 hover:bg-muted hover:text-foreground";
                     const baseActive =
@@ -530,14 +529,14 @@ export default function AdminDisputes() {
                 <div className="hidden lg:block w-full">
                   <table className="w-full table-fixed text-sm">
                     <colgroup>
-                      <col style={{ width: "11%" }} />
-                      <col style={{ width: "20%" }} />
+                      <col style={{ width: "10%" }} />
                       <col style={{ width: "19%" }} />
+                      <col style={{ width: "18%" }} />
                       <col style={{ width: "12%" }} />
                       <col style={{ width: "13%" }} />
                       <col style={{ width: "12%" }} />
                       <col style={{ width: "120px" }} />
-                      <col style={{ width: "150px" }} />
+                      <col style={{ width: "200px" }} />
                     </colgroup>
                     <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
                       <tr>
@@ -633,11 +632,11 @@ export default function AdminDisputes() {
                               )}
                             </td>
                             <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                              <div className={`inline-flex items-center gap-2 justify-end ${isResolved ? "min-w-[160px]" : "min-w-[132px]"}`}>
+                              <div className="flex items-center justify-end gap-2">
                                 <Button
                                   size="sm"
                                   onClick={() => goRow(row, isResolved ? "resolution" : "dispute")}
-                                  className={`h-9 whitespace-nowrap px-4 ${isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"}`}
+                                  className={`h-9 whitespace-nowrap rounded-lg px-4 text-sm font-semibold ${isResolved ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-orange-600 text-white hover:bg-orange-500"}`}
                                 >
                                   {isResolved ? "View Resolution" : "Review"}
                                 </Button>
