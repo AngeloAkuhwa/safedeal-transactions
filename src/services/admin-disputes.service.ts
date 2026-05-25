@@ -91,8 +91,15 @@ function buildQuery(params: DisputeQueueParams): string {
 }
 
 async function authedFetch(path: string): Promise<Response> {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const session = sessionData?.session;
+  // Force a token refresh if the cached session is expired, so the edge
+  // function doesn't reject us with "Invalid session".
+  let { data: sessionData } = await supabase.auth.getSession();
+  let session = sessionData?.session;
+  const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
+  if (session && expiresAt && expiresAt - Date.now() < 60_000) {
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    session = refreshed?.session ?? session;
+  }
   if (!session) {
     if (typeof window !== "undefined") window.location.replace("/auth");
     return new Promise<Response>(() => {});
