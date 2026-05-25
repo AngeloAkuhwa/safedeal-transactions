@@ -135,7 +135,7 @@ function slaFor(row: {
 async function buildPayload(adminClient: ReturnType<typeof createClient>, params: QueueParams) {
   // ---------- KPI counts ----------
   const todayStart = lagosTodayStartIso();
-  const [openRes, awaitRes, underRes, resolvedTodayRes, openYesterdayRes] = await Promise.all([
+  const [openRes, awaitRes, underRes, resolvedTodayRes, openYesterdayRes, resolvedTotalRes, allTotalRes] = await Promise.all([
     adminClient.from("disputes").select("id", { count: "exact", head: true })
       .in("status", ACTIVE_STATUSES as unknown as string[]),
     adminClient.from("disputes").select("id", { count: "exact", head: true })
@@ -147,6 +147,9 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
     adminClient.from("disputes").select("id", { count: "exact", head: true })
       .in("status", ACTIVE_STATUSES as unknown as string[])
       .lt("opened_at", todayStart),
+    adminClient.from("disputes").select("id", { count: "exact", head: true })
+      .eq("status", "resolved"),
+    adminClient.from("disputes").select("id", { count: "exact", head: true }),
   ]);
   // Overdue active disputes
   const overdueRes = await adminClient
@@ -169,6 +172,8 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
     overdue,
     resolved_today,
     escalated,
+    resolved_total: resolvedTotalRes.count ?? 0,
+    all_total: allTotalRes.count ?? 0,
     deltas: {
       open_vs_yesterday: open_disputes - (openYesterdayRes.count ?? 0),
       resolved_vs_target: resolved_today,

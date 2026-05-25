@@ -1,81 +1,46 @@
-# /admin/disputes — targeted correction pass
+## Problem
 
-Scope: `src/pages/AdminDisputes.tsx` + `supabase/functions/admin-disputes-queue/index.ts`. No other files, no redesign.
+On `/admin/disputes`:
 
-## 1. KPI subtitle text (dynamic)
+1. **Resolved chip shows `(0)` but clicking it returns items.** The chip uses `kpis.resolved_today` (disputes resolved since Lagos midnight), while the `quick=resolved` server filter returns **every** resolved dispute regardless of age. The two numbers come from different sources, so they don't match.
+2. **Other chips can drift too**, because:
+   - `Overdue` count uses active disputes with `seller_response_due_at < now`, but the chip's filter also keys off the same definition — this one is consistent.
+   - `Open`, `Awaiting Seller`, `Under Review` chip counts come from `kpis.*` which are global, while the filter view shows the same set — consistent.
+   - `Escalated` chip uses `kpis.escalated` (hardcoded to `0`) and the filter returns an empty set — consistent but always 0.
+   - The mismatch is essentially the `Resolved` chip only.
+3. **No "All" chip** — user wants to see every dispute in one view.
 
-In `KpiStrip` (≈lines 167–205) the API doesn't expose `due_today` or `assigned_to_me`, so derive them from the already-loaded `data.rows` plus the current admin user id.
+## Fix
 
-- Pass two new props into `KpiStrip`: `dueTodayCount: number`, `assignedToMeCount: number`.
-- Compute in the page component, just above `<KpiStrip />`:
-  ```ts
-  const todayLagos = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
-  const dueTodayCount = rows.filter(r =>
-    r.dispute_status === "seller_response_pending" &&
-    r.sla.due_at_iso &&
-    new Date(r.sla.due_at_iso).toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" }) === todayLagos
-  ).length;
-  const assignedToMeCount = rows.filter(r =>
-    r.dispute_status === "under_review" && r.agent?.user_id === currentUserId
-  ).length;
-  ```
-- `currentUserId` comes from a one-time `supabase.auth.getUser()` stored in state (already imported via the supabase client; no new deps).
-- Replace the two hardcoded `sub` strings on the cards:
-  - Awaiting Seller Response: `sub: \`${dueTodayCount} due today\``
-  - Under Review: `sub: \`${assignedToMeCount} assigned to you\``
-- Keep all other KPI visuals (height, padding, icon, value, label position) unchanged.
+### 1. Edge function `supabase/functions/admin-disputes-queue/index.ts`
 
-## 2. Remove the "All" filter chip
+Add two new KPI counts so chip numbers match the filter results exactly:
 
-In `QUICK_FILTERS` (line 68) delete the `{ id: "all", label: "All" }` entry. Default `quick` stays `"open"`, so internal behavior is unchanged. Also drop the `f.id === "all"` count branch (≈line 378) since the entry is gone. No replacement chip.
+- `resolved_total` — `count` of `disputes` where `status = 'resolved'` (all time).
+- `all_total` — `count` of `disputes` (no filter).
 
-## 3. Fix the Escalated filter API failure
+Return them in the existing `kpis` object alongside `resolved_today`. Leave `resolved_today` untouched so the "Resolved Today" KPI card keeps its meaning.
 
-Root cause: the edge function does `q.eq("status", "__never__")` on an enum column — PostgREST rejects this with an enum cast error → 400.
+### 2. Service types `src/services/admin-disputes.service.ts`
 
-Fix in `supabase/functions/admin-disputes-queue/index.ts` (line 213):
+Extend `DisputeQueueKpis` with `resolved_total: number` and `all_total: number`.
 
-```ts
-case "escalated":
-  // No escalation flag in current schema — return empty set safely.
-  q = q.eq("id", "00000000-0000-0000-0000-000000000000");
-  break;
-```
+### 3. Page `src/pages/AdminDisputes.tsx`
 
-This guarantees an empty (but valid) result instead of an enum-cast error. The chip count comes from `data.kpis.escalated` which the function already hardcodes to `0`, so the chip and the result stay consistent (both empty). The frontend still sends `quick=escalated` exactly as today — no client mapping change. Empty-state UI (`No disputes match these filters.`) already handles the zero case.
+- Restore `{ id: "all", label: "All" }` as the first item in `QUICK_FILTERS`.
+- In the chip count switch, map:
+  - `all` → `data?.kpis.all_total`
+  - `resolved` → `data?.kpis.resolved_total` (not `resolved_today`)
+- Leave the KPI strip alone — "Resolved Today" card still uses `resolved_today`.
 
-## 4. Actions column overflow
+### 4. Default filter
 
-The Actions `<col>` is currently `150px` but the resolved row needs `"View Resolution"` (≈110px) + gap-2 (8px) + kebab `h-9 w-9` (36px) + cell `px-4` (32px) ≈ **186px**, so the button visibly overflows the cell.
+Keep current default `quick = "open"`. Clicking the new **All** chip switches `quick=all`, which the edge function already handles (no extra status filter).
 
-Changes inside the desktop table (≈lines 502–642):
+## Files touched
 
-- `colgroup`: bump Actions from `150px` → `200px`; keep Agent `120px`; recompute % cols so they sum to 100% minus 320px fixed. New mix:
-  ```
-  Priority 10% / Dispute 19% / Parties 18% / Amount 12% / Status 13% / SLA 12% / Agent 120px / Actions 200px
-  ```
-- Actions `<td>` (line 607): keep `px-4 py-4 text-right`, drop the `min-w-[160px] / min-w-[132px]` wrapper — column width now governs. Inner wrapper becomes:
-  ```tsx
-  <div className="flex items-center justify-end gap-2">
-  ```
-- Primary button (line 609): `size="sm"`, classes `h-9 px-4 text-sm font-semibold rounded-lg whitespace-nowrap` plus the existing emerald/orange variant.
-- Kebab trigger stays `h-9 w-9 shrink-0`.
+- `supabase/functions/admin-disputes-queue/index.ts` — add two counts.
+- `src/services/admin-disputes.service.ts` — extend type.
+- `src/pages/AdminDisputes.tsx` — restore "All" chip, point Resolved chip to new count.
 
-No change to mobile cards, sidebar, filters search/select row, header bar, routes, or table data.
-
-## 5. Spacing
-
-Removing the "All" chip naturally tightens the chip row. No other padding changes needed — `section` keeps `p-5 space-y-4`, chip row keeps `gap-2`, control row keeps `h-10`.
-
-## Acceptance
-
-- Awaiting Seller card shows `"<n> due today"`; Under Review shows `"<n> assigned to you"`, both derived from live rows.
-- Chip row contains exactly: Overdue, Open, Awaiting Seller, Under Review, Escalated, Resolved.
-- Clicking Escalated returns a clean empty state (no API error in network tab, no toast).
-- `View Resolution` and `Review` buttons sit fully inside the Actions cell at the current 995px viewport and on wider desktops, with the kebab still visible.
-- No horizontal scrollbar on the table card; no other visual regressions.
-
-## Files
-
-- `src/pages/AdminDisputes.tsx` — KpiStrip props + subtitles, remove "all" chip, table colgroup + Actions cell.
-- `supabase/functions/admin-disputes-queue/index.ts` — escalated case safe predicate.
+No DB migrations, no UI redesign, no behavior change to KPI cards.
