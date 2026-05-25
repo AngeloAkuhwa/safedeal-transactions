@@ -33,6 +33,8 @@ export interface DisputeQueueKpis {
   overdue: number;
   resolved_today: number;
   escalated: number;
+  resolved_total: number;
+  all_total: number;
   deltas: { open_vs_yesterday: number; resolved_vs_target: number };
 }
 
