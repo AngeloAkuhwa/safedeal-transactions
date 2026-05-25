@@ -67,6 +67,7 @@ const PRIORITY_ACCENT: Record<DisputeQueueRow["priority"], string> = {
 };
 
 const QUICK_FILTERS: { id: DisputeQueueQuick; label: string }[] = [
+  { id: "all", label: "All" },
   { id: "overdue", label: "Overdue" },
   { id: "open", label: "Open" },
   { id: "awaiting_seller", label: "Awaiting Seller" },
@@ -397,12 +398,13 @@ export default function AdminDisputes() {
                   {QUICK_FILTERS.map((f) => {
                     const isActive = quick === f.id;
                     const count =
+                      f.id === "all" ? data?.kpis.all_total :
                       f.id === "overdue" ? data?.kpis.overdue :
                       f.id === "open" ? data?.kpis.open_disputes :
                       f.id === "awaiting_seller" ? data?.kpis.awaiting_seller :
                       f.id === "under_review" ? data?.kpis.under_review :
                       f.id === "escalated" ? data?.kpis.escalated :
-                      f.id === "resolved" ? data?.kpis.resolved_today :
+                      f.id === "resolved" ? data?.kpis.resolved_total :
                       undefined;
                     const baseInactive = "border border-border bg-muted/40 text-foreground/80 hover:bg-muted hover:text-foreground";
                     const baseActive =
