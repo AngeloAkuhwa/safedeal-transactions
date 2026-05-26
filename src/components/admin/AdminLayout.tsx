@@ -16,6 +16,12 @@ interface AdminLayoutProps {
   headerSlot?: ReactNode;
   mobileHeaderSlot?: ReactNode | ((opts: { onOpenMenu: () => void }) => ReactNode);
   fullBleed?: boolean;
+  /**
+   * When true, locks the shell to the viewport height and lets the page
+   * manage its own scroll containers (used by workspaces like the
+   * Admin Dispute Detail). Default false preserves normal page scrolling.
+   */
+  fullHeight?: boolean;
 }
 
 export function AdminLayout({
@@ -27,13 +33,14 @@ export function AdminLayout({
   headerSlot,
   mobileHeaderSlot,
   fullBleed,
+  fullHeight,
 }: AdminLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <ReadingModeProvider>
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="flex min-h-screen">
+    <div className={fullHeight ? "h-screen overflow-hidden bg-background text-foreground" : "min-h-screen bg-background text-foreground"}>
+      <div className={fullHeight ? "flex h-screen overflow-hidden" : "flex min-h-screen"}>
         {/* Desktop sidebar */}
         <div className="hidden w-72 shrink-0 border-r border-border lg:block">
           <div className="sticky top-0 h-screen overflow-hidden">
@@ -52,7 +59,7 @@ export function AdminLayout({
         </Sheet>
 
         {/* Main column */}
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className={"flex min-w-0 flex-1 flex-col" + (fullHeight ? " h-screen min-h-0 overflow-hidden" : "") }>
           {mobileHeaderSlot
             ? typeof mobileHeaderSlot === "function"
               ? mobileHeaderSlot({ onOpenMenu: () => setMobileOpen(true) })
@@ -62,7 +69,7 @@ export function AdminLayout({
             ? headerSlot
             : !hideDefaultHeaders && <AdminHeader title={title} subtitle={subtitle} />}
           {fullBleed ? (
-            <main className="flex-1 min-w-0 bg-background">{children}</main>
+            <main className={"flex-1 min-w-0 bg-background" + (fullHeight ? " min-h-0 overflow-hidden" : "")}>{children}</main>
           ) : (
             <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
               <div className="mx-auto w-full max-w-[1400px] space-y-5">{children}</div>
