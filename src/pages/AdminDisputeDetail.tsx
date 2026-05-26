@@ -455,15 +455,14 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
   );
 
   return (
-    <AdminLayout title="Dispute" hideDefaultHeaders fullBleed>
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="min-w-0 flex flex-col">
+    <AdminLayout title="Dispute" hideDefaultHeaders fullBleed fullHeight>
+      <div className="flex h-full min-h-0">
+        <section className="flex-1 min-w-0 h-full overflow-y-auto">
           {header}
-          <div className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6 space-y-6">
 
-            {/* Summary strip */}
-            <Card>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-5 p-5">
+          {/* Summary strip — scrolls under the sticky header */}
+          <div className="bg-card border-b border-border">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-5 px-6 py-6 lg:px-8">
                 <div>
                   <KV label="Dispute ID" value={<span className="font-mono">{disputeCode}</span>} />
                   <button
@@ -493,8 +492,10 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                       : "Unassigned"}
                   </div>
                 </div>
-              </div>
-            </Card>
+            </div>
+          </div>
+
+          <div className="px-6 py-6 lg:px-8 lg:py-8 space-y-8">
 
             {/* Buyer + Seller cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -685,9 +686,8 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
         </section>
 
         {/* Right resolution sidebar */}
-        <aside className="hidden xl:block border-l border-border bg-card/40">
-          <div className="sticky top-0 h-screen overflow-y-auto">
-            <ResolutionSidebar
+        <aside className="hidden xl:block w-[380px] shrink-0 h-full overflow-y-auto border-l border-border bg-card">
+          <ResolutionSidebar
               disputeStatus={row.status}
               overdue={overdue}
               resolvedAt={resolvedAt}
@@ -701,8 +701,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
               onFraud={() => dialogs.setFraudOpen(true)}
               onClose={() => dialogs.setCloseOpen(true)}
               onAddNote={() => dialogs.setNoteOpen(true)}
-            />
-          </div>
+          />
         </aside>
       </div>
 
