@@ -1,98 +1,76 @@
 ## Goal
 
-Replace the `/admin/disputes/:id` redirect with a dedicated **Admin Dispute Detail** workspace that matches the attached "Dispute Details 2" reference. The page renders inside the existing `AdminLayout` (sidebar untouched), uses real data from existing services, and gates resolution actions through the existing admin-action pipeline. No DB changes, no new edge functions unless something proves unavoidable.
+Correction pass on `/admin/disputes/:id`. The page currently uses normal document scrolling, so the "sticky" header scrolls away and the right Resolution sidebar moves with the content. Fix the scroll containment so the dispute header stays pinned, the left workspace scrolls under it, and the right Resolution sidebar scrolls independently — without touching the central admin sidebar.
 
-## Files
+## Files touched
 
-### New
-- `src/pages/AdminDisputeDetail.tsx` — page shell + data orchestration.
-- `src/components/admin/disputes/DisputeSummaryStrip.tsx` — 4-col header strip.
-- `src/components/admin/disputes/DisputePartyCard.tsx` — buyer + seller card (one component, role-aware).
-- `src/components/admin/disputes/DisputeFinancialCard.tsx` — financial overview & controls.
-- `src/components/admin/disputes/DisputeClaimCard.tsx` — buyer claim + evidence grid.
-- `src/components/admin/disputes/DisputeSellerResponseCard.tsx` — seller response card / empty state.
-- `src/components/admin/disputes/DisputeCommunicationCard.tsx` — tabs: Buyer / Seller / Internal Notes (notes wired, message tabs show empty state + TODO until a backend exists).
-- `src/components/admin/disputes/DisputeTimelineCard.tsx` — vertical timeline filtered to dispute-relevant events with dedupe by `(type,at,actor)`.
-- `src/components/admin/disputes/DisputeInternalNotesCard.tsx` — list + Add Note (uses existing `addInternalNote`).
-- `src/components/admin/disputes/DisputeLinkedRecordsCard.tsx` — quick links to txn/buyer/seller/payment/escrow/payout/audit.
-- `src/components/admin/disputes/DisputeResolutionSidebar.tsx` — right sticky sidebar (Resolution Status + Resolution Actions).
-- `src/components/admin/disputes/DisputeEvidenceThumb.tsx` + `DisputeEvidencePreviewDialog.tsx` (or reuse existing `EvidencePreviewDialog.tsx`).
-- `src/components/admin/disputes/DisputeLockedAgreementCard.tsx` — read-only locked agreement view (no download/print/edit).
-- `src/components/admin/disputes/dialogs/` — small dialogs for actions that need input (Request More Evidence, Assign Agent, Partial Refund, Partial Release, Close Without Resolution). Reuse `ActionConfirmDialog`, `ResolveDisputeDialog`, `InternalNoteDialog` where they already fit.
+- `src/components/admin/AdminLayout.tsx` — add an opt-in `fullHeight` mode that constrains the outer shell to `h-screen overflow-hidden` and renders `<main>` as `h-screen min-h-0 overflow-hidden` instead of the default scrolling main. Existing pages keep current behavior (default `fullHeight = false`).
+- `src/pages/AdminDisputeDetail.tsx` — rewrite the page's outer layout to use the new mode and the correct scroll containers. No business logic, no service changes, no new components.
 
-### New service
-- `src/services/admin-dispute-detail.service.ts` — `getAdminDisputeFull(disputeId)` that:
-  1. Fetches the dispute row (id, transaction_id, status, reason, description, opened_at, seller_response_due_at, resolved_at, assigned_admin_id if column exists) via Supabase.
-  2. Calls existing `getAdminTransactionDetailFull(transaction_id)`.
-  3. Returns `{ dispute, txDetail }`.
-  Throws `DisputeNotFoundError` / `AdminAccessRequiredError` to drive UI states.
+No other files change. No DB, no edge functions, no service edits.
 
-### Updated
-- `src/App.tsx` — route `/admin/disputes/:id` now points to `AdminDisputeDetail`. Remove import of `AdminDisputeRedirect`.
-- `src/pages/AdminDisputeRedirect.tsx` — delete.
-
-## Layout
-
-Inside the existing `AdminLayout` (sidebar stays exactly as-is):
+## Layout (Admin Dispute Detail only)
 
 ```text
-<main>
-  <StickyHeader />               ← back arrow, title, subtitle, SLA badge, Print
-  <div grid xl:grid-cols-[minmax(0,1fr)_360px]>
-    <section min-w-0>            ← left workspace
-      SummaryStrip
-      Buyer + Seller cards (2-col on lg)
-      FinancialCard
-      LockedAgreementCard (if available)
-      BuyerClaimCard
-      SellerResponseCard
-      CommunicationCard
-      TimelineCard
-      InternalNotesCard
-      LinkedRecordsCard
-    </section>
-    <aside hidden xl:block sticky top-[header] h-[calc(100vh-header)] overflow-y-auto border-l>
-      ResolutionSidebar
-    </aside>
-  </div>
-  <MobileActionBar block xl:hidden />   ← primary "Take Action" + overflow
-</main>
+AdminLayout (fullBleed + fullHeight)         ← outer shell: h-screen overflow-hidden
+└── <main> h-screen min-h-0 overflow-hidden
+    └── div flex h-full min-h-0
+        ├── section  flex-1 min-w-0 h-full overflow-y-auto     ← LEFT workspace scroll
+        │   ├── header  sticky top-0 z-30 bg-card border-b border-border
+        │   │           (back, title, subtitle, SLA badge, Print)
+        │   ├── section bg-card border-b border-border         ← summary strip (NOT sticky)
+        │   │           grid grid-cols-2 md:grid-cols-4 gap-6 p-6/8
+        │   └── div p-6 lg:p-8 space-y-8                       ← all dispute cards
+        │       Buyer+Seller (grid lg:grid-cols-2 gap-6)
+        │       Financial Overview & Controls
+        │       Locked Agreement (read-only, when present)
+        │       Buyer Claim + evidence
+        │       Seller Response / awaiting state
+        │       Case Communication (tabs)
+        │       Case Timeline
+        │       Internal Notes & Investigation
+        │       Linked Records & Quick Actions
+        └── aside hidden xl:block w-[380px] shrink-0 h-full overflow-y-auto
+                  bg-card border-l border-border               ← RIGHT sidebar scroll
+            Resolution Status
+            Resolution Actions (Case Control + Resolution Actions groups)
 ```
 
-Tokens only: `bg-background`, `bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`, `primary`, `destructive`, `accent`, plus existing badge tones in `lib/status-labels.ts`. Emphasis colors come from those tokens — no raw `slate-*` / `red-*` / `orange-*` classes.
+Key rules:
+- The page does **not** wrap content in a normal scrolling div. Scrolling lives only on the left `section` and the right `aside`.
+- The sticky dispute header sits inside the left scroll container so the summary strip and all cards pass under it.
+- Right `aside` is a flex sibling (not `position: sticky`) and gets its own `overflow-y-auto`, so it never moves with left content.
+- Mobile (`< xl`): `aside` is hidden; existing mobile action bar / inline Resolution panel renders inside the left scroll area at the bottom of the cards (reuse what's already there). Page still scrolls inside the left container only.
 
-## Behavior highlights
+## AdminLayout change
 
-- **SLA / overdue badge** derived from `dispute.seller_response_due_at` and current time. Pulsing dot when overdue.
-- **Status badge** uses `DisputeStatusBadge`; "Resolution Status" panel maps `dispute.status` → alert + Next Action per the spec.
-- **Evidence thumbs** classify by `mimeType` (image / video / pdf / other). Click → preview dialog (read-only, metadata, no download unless `adminActionsAvailable.canDownloadEvidence === true`).
-- **Locked agreement** rendered from `txDetail.lockedAgreement` only; no download/print/edit controls.
-- **Communication tabs**: Internal Notes is fully wired via `addInternalNote` + existing notes list from `txDetail`; Buyer/Seller message tabs render empty state with `// TODO: wire when dispute_messages edge function exists` (no fake messages, no fake send).
-- **Action gating**: Every Resolution Action button reads `txDetail.adminActionsAvailable` plus dispute/money state rules. Disabled buttons get a tooltip explaining why. Mapping:
-  - Move to Under Review → `disputeRequestMoreInfo` style endpoint already in service? If not present, fall back to `addInternalNote` + `// TODO` and keep button disabled when no real endpoint exists.
-  - Request More Evidence → `disputeRequestMoreInfo` (already exists).
-  - Escalate Further → `escalateDispute`.
-  - Mark High Risk → `flagForReview`.
-  - Mark Fraud Watch → `flagForReview` with `category: 'fraud'` if supported, else disabled + TODO.
-  - Refund Buyer / Release Funds to Seller / Partial Refund / Partial Release / Close Without Resolution → `resolveDispute` with the matching outcome enum. Partials require amount + reason; validated client-side against eligible amounts before submit.
-  - Assign / Reassign Agent → disabled + TODO (no current service).
-- **Refund/Release safety**: UI never flips state optimistically; awaits backend success then refetches via React Query invalidation.
-- **PII**: emails/phones come pre-masked from `AdminTxParty`; surface as-is. `tel:`/`mailto:` links built only when raw value exists (currently only masked → buttons disabled with "No contact available" tooltip unless we already get raw values for admins; today we don't, so default disabled).
-- **Loading**: skeletons mirroring the section layout. **Error**: clean panel with Retry + Back to Disputes. **Not found**: explicit empty state with Back to Disputes.
+Add `fullHeight?: boolean` prop. When true:
+- Outer wrapper: `h-screen overflow-hidden` (instead of `min-h-screen`).
+- Main column wrapper: `h-screen min-h-0 overflow-hidden`.
+- `<main>` (when `fullBleed`): `flex-1 min-h-0 overflow-hidden bg-background` and renders children directly (no inner wrappers).
+- Desktop sidebar stays exactly as-is (`hidden lg:block`, `sticky top-0 h-screen`). Mobile drawer, headers, reading-mode controls untouched.
+- Default (`fullHeight = false`) keeps the current implementation byte-for-byte so other admin pages are unaffected.
 
-## Routing
+## Dispute page changes
 
-```tsx
-// App.tsx
-<Route path="/admin/disputes/:id" element={<AdminDisputeDetail />} />
-```
-
-`AdminDisputeRedirect.tsx` deleted; its import removed.
+- Call `<AdminLayout title="Dispute" hideDefaultHeaders fullBleed fullHeight>`.
+- Replace current `grid xl:grid-cols-[...]` wrapper with the `flex h-full min-h-0` layout above.
+- Move the header JSX (currently `sticky top-0 z-30 ...`) inside the left scroll `section`; keep its `sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border` classes.
+- Move the summary strip out of the cards stack into its own non-sticky `bg-card border-b border-border` band immediately under the header.
+- Wrap the remaining cards in a single `div className="p-6 lg:p-8 space-y-8"`. Keep all current child components, dialogs, gating, services, and queries unchanged.
+- Right sidebar: remove the current `sticky top-0 h-screen overflow-y-auto` wrapper and render as the `aside` sibling described above. Same children (`Resolution Status`, `Resolution Actions`), same handlers, same `adminActionsAvailable` gating.
 
 ## Out of scope
 
-- DB schema changes, new edge functions, agent-assignment backend, dispute messaging backend, evidence download policy, mobile redesign of the sidebar itself.
+- No changes to services, action wiring, dialogs, evidence preview, locked-agreement read-only rules, money-state logic, or any backend.
+- No restyling of cards beyond removing the extra outer padding wrapper (so they sit cleanly inside the new scroll container).
+- No changes to other admin pages or the central admin sidebar.
 
-## Acceptance check
+## Acceptance
 
-After implementation: navigating from `/admin/disputes` row → opens new page (not transaction detail); sidebar unchanged with Disputes active; all 14 sections render with real data or proper empty/loading/error states; every resolution action either calls an existing service or is visibly disabled with a tooltip; layout holds at 1440 / 1280 / 1024 / 768 / 375 widths.
+1. Central admin sidebar unchanged.
+2. Document/body does not scroll on `/admin/disputes/:id`.
+3. Scrolling the dispute workspace keeps the dispute header pinned; summary strip and cards pass under it.
+4. Right Resolution sidebar stays visible and scrolls independently at `xl+`.
+5. At `< xl` the right sidebar collapses (hidden) and the page still scrolls only inside the left workspace.
+6. All existing action buttons, dialogs, and data bindings continue to work; no fake state transitions introduced.
