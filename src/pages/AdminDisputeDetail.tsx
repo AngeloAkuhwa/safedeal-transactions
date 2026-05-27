@@ -515,19 +515,37 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
             {/* Financial overview */}
             <Card>
               <CardHeader title="Financial Overview & Controls" subtitle="Money state and payout controls for this dispute" />
-              <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-5">
-                <FinTile label="Total Transaction" value={ngn(buyerTotal)} />
-                <FinTile label="Amount in Dispute" value={ngn(amountInDispute)} tone="orange" />
-                <FinTile label="Protection Fee" value={ngn(protectionFee)} />
-                <FinTile label="Funds Status" value={moneyStatusLabel(moneyStatus)} tone={moneyTone(moneyStatus)} />
-                <FinTile label="Eligible Refund" value={ngn(eligibleRefund)} tone="info" />
-                <FinTile label="Eligible Release" value={ngn(eligibleRelease)} tone="info" />
-                <FinTile label="Released" value={ngn(releasedAmount)} />
-                <FinTile
-                  label="Payout Status"
-                  value={payoutLabel(payout, moneyStatus, !resolvedAt)}
-                  tone={payout?.status === "completed" ? "success" : "warning"}
-                />
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <FinStat label="Total Transaction" value={ngn(buyerTotal)} caption={payment?.method ? `Paid via ${titleCase(payment.method)}` : undefined} />
+                  <FinStat label="Amount in Dispute" value={ngn(amountInDispute)} tone="orange" caption="Full amount disputed" />
+                  <FinStat label="Protection Fee" value={ngn(protectionFee)} caption={protectionFee > 0 && buyerTotal > 0 ? `${((protectionFee / buyerTotal) * 100).toFixed(1)}% escrow fee` : undefined} />
+                  <FinStat
+                    label="Funds Status"
+                    value={
+                      <span className="inline-flex items-center gap-2">
+                        <span className={cn("h-2 w-2 rounded-full", moneyDotColor(moneyStatus))} />
+                        <span className={cn(moneyTextColor(moneyStatus))}>{moneyStatusLabel(moneyStatus)}</span>
+                      </span>
+                    }
+                    caption={tx.createdAt ? `Since ${new Date(tx.createdAt).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" })}` : undefined}
+                  />
+                </div>
+                <div className="h-px bg-border" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <FinStat label="Eligible Refund Amount" value={ngn(eligibleRefund)} tone="success" />
+                  <FinStat label="Eligible Release Amount" value={ngn(eligibleRelease)} tone="info" caption="After fees" />
+                  <FinStat
+                    label="Payout Status"
+                    value={
+                      <span className="inline-flex items-center gap-2">
+                        <span className={cn("h-2 w-2 rounded-full", payoutDotColor(payout, !resolvedAt))} />
+                        <span className={cn(payoutTextColor(payout, !resolvedAt))}>{payoutLabel(payout, moneyStatus, !resolvedAt)}</span>
+                      </span>
+                    }
+                    caption={!resolvedAt ? "Pending resolution" : undefined}
+                  />
+                </div>
               </div>
               {!resolvedAt && moneyStatus === "funds_pending_release" && (
                 <div className="mx-5 mb-5 rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-200">
