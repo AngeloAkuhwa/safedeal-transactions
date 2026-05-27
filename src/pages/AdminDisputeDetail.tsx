@@ -5,7 +5,7 @@ import {
   ExternalLink, FileText, Image as ImageIcon, Video, Receipt, Truck, Scale,
   Circle, Clock, ShieldAlert, Snowflake, MessageSquare, StickyNote, Gavel,
   CheckCircle2, XCircle, ChevronRight, Flag, Wallet, CreditCard, Vault,
-  Search, Send,
+  Search, Send, Ban, Play, Eye, NotebookPen, Store,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -484,12 +484,21 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                     Last activity {relTime(tx.updatedAt ?? tx.updated_at)}
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <KV label="Status" value={<StatusPill value={row.status} />} />
-                  <div className="text-xs text-muted-foreground">
-                    {dispute.assignedAgent?.name
-                      ? <>Assigned: <span className="text-foreground">{dispute.assignedAgent.name}</span></>
-                      : "Unassigned"}
+                <div className="flex flex-col gap-2 min-w-0">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</div>
+                    <div className="mt-1"><StatusPill value={row.status} /></div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Assigned Agent</div>
+                    {dispute.assignedAgent?.name ? (
+                      <div className="mt-1 flex items-center gap-2 min-w-0">
+                        <Avatar name={dispute.assignedAgent.name} src={dispute.assignedAgent.avatarUrl} size={20} />
+                        <span className="text-sm text-foreground truncate">{dispute.assignedAgent.name}</span>
+                      </div>
+                    ) : (
+                      <div className="mt-1 text-sm text-muted-foreground">Unassigned</div>
+                    )}
                   </div>
                 </div>
             </div>
@@ -506,19 +515,37 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
             {/* Financial overview */}
             <Card>
               <CardHeader title="Financial Overview & Controls" subtitle="Money state and payout controls for this dispute" />
-              <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-5">
-                <FinTile label="Total Transaction" value={ngn(buyerTotal)} />
-                <FinTile label="Amount in Dispute" value={ngn(amountInDispute)} tone="orange" />
-                <FinTile label="Protection Fee" value={ngn(protectionFee)} />
-                <FinTile label="Funds Status" value={moneyStatusLabel(moneyStatus)} tone={moneyTone(moneyStatus)} />
-                <FinTile label="Eligible Refund" value={ngn(eligibleRefund)} tone="info" />
-                <FinTile label="Eligible Release" value={ngn(eligibleRelease)} tone="info" />
-                <FinTile label="Released" value={ngn(releasedAmount)} />
-                <FinTile
-                  label="Payout Status"
-                  value={payoutLabel(payout, moneyStatus, !resolvedAt)}
-                  tone={payout?.status === "completed" ? "success" : "warning"}
-                />
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <FinStat label="Total Transaction" value={ngn(buyerTotal)} caption={payment?.method ? `Paid via ${titleCase(payment.method)}` : undefined} />
+                  <FinStat label="Amount in Dispute" value={ngn(amountInDispute)} tone="orange" caption="Full amount disputed" />
+                  <FinStat label="Protection Fee" value={ngn(protectionFee)} caption={protectionFee > 0 && buyerTotal > 0 ? `${((protectionFee / buyerTotal) * 100).toFixed(1)}% escrow fee` : undefined} />
+                  <FinStat
+                    label="Funds Status"
+                    value={
+                      <span className="inline-flex items-center gap-2">
+                        <span className={cn("h-2 w-2 rounded-full", moneyDotColor(moneyStatus))} />
+                        <span className={cn(moneyTextColor(moneyStatus))}>{moneyStatusLabel(moneyStatus)}</span>
+                      </span>
+                    }
+                    caption={tx.createdAt ? `Since ${new Date(tx.createdAt).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" })}` : undefined}
+                  />
+                </div>
+                <div className="h-px bg-border" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <FinStat label="Eligible Refund Amount" value={ngn(eligibleRefund)} tone="success" />
+                  <FinStat label="Eligible Release Amount" value={ngn(eligibleRelease)} tone="info" caption="After fees" />
+                  <FinStat
+                    label="Payout Status"
+                    value={
+                      <span className="inline-flex items-center gap-2">
+                        <span className={cn("h-2 w-2 rounded-full", payoutDotColor(payout, !resolvedAt))} />
+                        <span className={cn(payoutTextColor(payout, !resolvedAt))}>{payoutLabel(payout, moneyStatus, !resolvedAt)}</span>
+                      </span>
+                    }
+                    caption={!resolvedAt ? "Pending resolution" : undefined}
+                  />
+                </div>
               </div>
               {!resolvedAt && moneyStatus === "funds_pending_release" && (
                 <div className="mx-5 mb-5 rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-200">
@@ -623,12 +650,21 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
             {/* Case Communication */}
             <Card>
-              <CardHeader title="Case Communication" subtitle="Buyer, seller and internal channels" />
-              <div className="p-5">
+              <CardHeader title="Case Communication" subtitle="Structured dispute communication workspace — all messages are logged and auditable" />
+              <div className="p-6 space-y-5">
+                <CommunicationStatusRow
+                  buyerResponded={(evidence ?? []).some((e) => (e.uploadedByRole ?? "").toLowerCase() === "buyer")}
+                  sellerOverdue={overdue && !(dispute.responses?.length)}
+                  sellerRespondedAt={dispute.responses?.[0]?.at ?? null}
+                  openedAt={row.opened_at ?? dispute.openedAt ?? null}
+                  dueAt={dueAt}
+                />
                 <CommunicationTabs
                   notes={notes}
                   defaultTab={dispute.responses?.length ? "internal" : (overdue ? "seller" : "buyer")}
                   onAddNote={() => dialogs.setNoteOpen(true)}
+                  sellerName={parties.seller?.name}
+                  buyerName={parties.buyer?.name}
                 />
               </div>
             </Card>
@@ -654,25 +690,22 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
             {/* Linked records */}
             <Card>
-              <CardHeader title="Linked Records" />
-              <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                <LinkedTile icon={<Scale className="h-4 w-4" />} title="Transaction" subtitle={txCode}
+              <CardHeader title="Linked Records & Quick Actions" />
+              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <LinkedTile tone="blue" icon={<Scale className="h-5 w-5" />} title="Transaction Detail" subtitle={txCode}
                   onClick={() => navigate(`/admin/transactions/${txId}`)} />
-                {parties.buyer && (
-                  <LinkedTile icon={<UserIcon className="h-4 w-4" />} title="Buyer Profile" subtitle={parties.buyer.name ?? "—"}
-                    onClick={() => navigate(`/admin/users/${parties.buyer!.id}`)} />
-                )}
-                {parties.seller && (
-                  <LinkedTile icon={<UserIcon className="h-4 w-4" />} title="Seller Profile" subtitle={parties.seller.name ?? "—"}
-                    onClick={() => navigate(`/admin/users/${parties.seller!.id}`)} />
-                )}
-                <LinkedTile icon={<CreditCard className="h-4 w-4" />} title="Payment Record"
-                  subtitle={payment ? `${payment.provider ?? ""} · ${payment.providerReference ?? ""}` : "No payment record"} />
-                <LinkedTile icon={<Vault className="h-4 w-4" />} title="Escrow Record"
+                <LinkedTile tone="emerald" icon={<UserIcon className="h-5 w-5" />} title="Buyer Profile"
+                  subtitle={parties.buyer?.id?.slice(0, 16) ?? "—"}
+                  onClick={parties.buyer ? () => navigate(`/admin/users/${parties.buyer!.id}`) : undefined} />
+                <LinkedTile tone="orange" icon={<Store className="h-5 w-5" />} title="Seller Profile"
+                  subtitle={parties.seller?.id?.slice(0, 16) ?? "—"}
+                  onClick={parties.seller ? () => navigate(`/admin/users/${parties.seller!.id}`) : undefined} />
+                <LinkedTile tone="emerald" icon={<CreditCard className="h-5 w-5" />} title="Payment Record"
+                  subtitle={payment ? `${(payment.providerReference ?? "").slice(0, 20)}` : "No payment record"} />
+                <LinkedTile tone="blue" icon={<Vault className="h-5 w-5" />} title="Escrow Record"
                   subtitle={`${escrow?.ledger?.length ?? 0} ledger entries`} />
-                <LinkedTile icon={<Wallet className="h-4 w-4" />} title="Payout Record"
-                  subtitle={payout ? `${payout.status ?? "—"} · ${ngn(payout.amount)}` : "No payout yet"} />
-                <LinkedTile icon={<FileText className="h-4 w-4" />} title="Audit Trail" subtitle={`${timeline.length} events`} />
+                <LinkedTile tone="purple" icon={<Clock className="h-5 w-5" />} title="Audit Trail"
+                  subtitle="View all activity" />
               </div>
             </Card>
 
@@ -694,6 +727,10 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
               moneyStatus={moneyStatus}
               adminCan={adminCan}
               dueAt={dueAt}
+              parties={parties}
+              buyerClaim={row.description ?? dispute.summary ?? null}
+              sellerResponded={!!dispute.responses?.length}
+              txId={txId}
               onResolve={() => dialogs.setResolveOpen(true)}
               onMoveReview={() => dialogs.setMoveReviewOpen(true)}
               onEscalate={() => dialogs.setEscalateOpen(true)}
@@ -797,41 +834,91 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
     );
   }
   const ver = party.verification ?? {};
+  const isBuyer = role === "buyer";
+  const roleChipCls = isBuyer
+    ? "bg-blue-500/15 text-blue-300 border-blue-500/30"
+    : "bg-orange-500/15 text-orange-300 border-orange-500/30";
+  const callBtnCls = isBuyer
+    ? "bg-blue-600 hover:bg-blue-500 text-white border-transparent"
+    : "bg-orange-600 hover:bg-orange-500 text-white border-transparent";
+  const sellerTier: string | null = !isBuyer && party.sellerTier ? party.sellerTier : null;
   return (
     <Card>
-      <CardHeader title={role === "buyer" ? "Buyer Information" : "Seller Information"} />
-      <div className="p-5 space-y-4">
+      <CardHeader
+        title={isBuyer ? "Buyer Information" : "Seller Information"}
+        action={
+          <span className={cn("inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", roleChipCls)}>
+            {isBuyer ? "Buyer" : "Seller"}
+          </span>
+        }
+      />
+      <div className="p-6 space-y-5">
         <div className="flex items-start gap-3">
-          <Avatar name={party.name} src={party.avatarUrl} size={44} />
+          <Avatar name={party.name} src={party.avatarUrl} size={48} />
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold text-foreground truncate">{party.name ?? "—"}</div>
-            <div className="text-xs text-muted-foreground font-mono truncate">{party.id?.slice(0, 12)}…</div>
-            <div className="mt-1 flex flex-wrap gap-1.5">
-              {ver.identity && <Tag tone="emerald">Identity verified</Tag>}
-              {ver.email && <Tag tone="blue">Email</Tag>}
-              {ver.phone && <Tag tone="blue">Phone</Tag>}
-              {party.flagged && <Tag tone="red">Flagged</Tag>}
-            </div>
+            <div className="text-base font-semibold text-foreground truncate">{party.name ?? "—"}</div>
+            <div className="text-xs text-muted-foreground font-mono truncate">User ID: {party.id?.slice(0, 16) ?? "—"}</div>
+          </div>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            {ver.identity && (
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Verified
+              </span>
+            )}
+            {sellerTier && (
+              <span className="inline-flex items-center gap-1 text-xs text-yellow-400">
+                <Flag className="h-3.5 w-3.5" /> {titleCase(sellerTier)} Seller
+              </span>
+            )}
+            {party.flagged && (
+              <span className="inline-flex items-center gap-1 text-xs text-red-400">
+                <AlertTriangle className="h-3.5 w-3.5" /> Flagged
+              </span>
+            )}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-2 gap-4 text-sm">
           <KV label="Email" value={<span className="font-mono text-xs">{party.maskedEmail ?? "—"}</span>} />
           <KV label="Phone" value={<span className="font-mono text-xs">{party.maskedPhone ?? "—"}</span>} />
-          <KV label="Account" value={titleCase(party.accountStatus) || "—"} />
-          <KV label="Prior Disputes" value={party.priorDisputes ?? "—"} />
+          <KV label="Prior Disputes" value={party.priorDisputes != null ? `${party.priorDisputes} ${isBuyer ? "filed" : "received"}` : "—"} />
+          <KV
+            label={isBuyer ? "Account Status" : "Payout Status"}
+            value={
+              isBuyer
+                ? <span className={cn(party.accountStatus === "good_standing" ? "text-emerald-400" : "text-foreground")}>{titleCase(party.accountStatus) || "—"}</span>
+                : <span className="text-red-400">Blocked</span>
+            }
+          />
         </div>
-        <div className="flex flex-wrap gap-2 pt-1">
-          <ContactBtn icon={<Phone className="h-3.5 w-3.5" />} label="Call" disabled tip="Masked contact only" />
-          <ContactBtn icon={<Mail className="h-3.5 w-3.5" />} label="Email" disabled tip="Masked contact only" />
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button size="sm" disabled className={cn("w-full gap-1.5", callBtnCls, "opacity-100")}>
+                  <Phone className="h-3.5 w-3.5" /> Call
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Direct calling not connected yet</TooltipContent>
+          </Tooltip>
+          <ContactBtn icon={<Mail className="h-3.5 w-3.5" />} label="Email" disabled tip="Direct email not connected yet" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="sm" variant="outline" className="px-2.5" onClick={() => navigate(`/admin/users/${party.id}`)} aria-label="Profile">
+                <UserIcon className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Open profile</TooltipContent>
+          </Tooltip>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
           <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/users/${party.id}`)}>
-            <UserIcon className="h-3.5 w-3.5" /> Profile
+            <UserIcon className="h-3.5 w-3.5" /> View Profile
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5"
-            onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
-            <Scale className="h-3.5 w-3.5" /> Disputes
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
+            <Scale className="h-3.5 w-3.5" /> Dispute History
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5"
-            onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
             <Receipt className="h-3.5 w-3.5" /> Transactions
           </Button>
         </div>
@@ -894,19 +981,50 @@ function payoutLabel(payout: any, moneyStatus: string | null, disputeActive: boo
   return titleCase(payout.status) || "—";
 }
 
-function FinTile({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "info" | "warning" | "success" | "danger" | "orange" }) {
-  const toneCls = tone === "danger" ? "text-red-300"
-    : tone === "warning" ? "text-orange-300"
-    : tone === "success" ? "text-emerald-300"
-    : tone === "info" ? "text-blue-300"
-    : tone === "orange" ? "text-orange-300"
+function FinStat({ label, value, caption, tone }: {
+  label: string; value: React.ReactNode; caption?: React.ReactNode;
+  tone?: "info" | "warning" | "success" | "danger" | "orange";
+}) {
+  const toneCls = tone === "danger" ? "text-red-400"
+    : tone === "warning" ? "text-orange-400"
+    : tone === "success" ? "text-emerald-400"
+    : tone === "info" ? "text-blue-400"
+    : tone === "orange" ? "text-orange-400"
     : "text-foreground";
   return (
-    <div className="rounded-md border border-border bg-background p-3">
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={cn("mt-1 text-sm font-bold", toneCls)}>{value}</div>
+    <div className="min-w-0">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={cn("mt-1 text-xl font-bold truncate", toneCls)}>{value}</div>
+      {caption && <div className="mt-1 text-xs text-muted-foreground truncate">{caption}</div>}
     </div>
   );
+}
+function moneyDotColor(v?: string | null) {
+  if (v === "funds_frozen") return "bg-red-500";
+  if (v === "funds_released") return "bg-emerald-500";
+  if (v === "funds_refunded" || v === "funds_partially_refunded") return "bg-emerald-500";
+  if (v === "funds_pending_release") return "bg-orange-500";
+  if (v === "funds_held_in_escrow") return "bg-yellow-500";
+  return "bg-muted-foreground";
+}
+function moneyTextColor(v?: string | null) {
+  if (v === "funds_frozen") return "text-red-400";
+  if (v === "funds_released" || v === "funds_refunded" || v === "funds_partially_refunded") return "text-emerald-400";
+  if (v === "funds_pending_release") return "text-orange-400";
+  if (v === "funds_held_in_escrow") return "text-yellow-400";
+  return "text-foreground";
+}
+function payoutDotColor(payout: any, disputeActive: boolean) {
+  if (disputeActive) return "bg-red-500";
+  if (payout?.status === "completed") return "bg-emerald-500";
+  if (payout?.status === "pending") return "bg-yellow-500";
+  return "bg-muted-foreground";
+}
+function payoutTextColor(payout: any, disputeActive: boolean) {
+  if (disputeActive) return "text-red-400";
+  if (payout?.status === "completed") return "text-emerald-400";
+  if (payout?.status === "pending") return "text-yellow-400";
+  return "text-foreground";
 }
 
 // ---------- evidence ----------
@@ -951,46 +1069,123 @@ function EvidenceGrid({ items, onPreview, emptyText }: {
 }
 
 // ---------- communication ----------
-function CommunicationTabs({ notes, defaultTab, onAddNote }: { notes: any[]; defaultTab: string; onAddNote: () => void }) {
-  const [msgType, setMsgType] = useState("general_reply");
+function CommunicationStatusRow({
+  buyerResponded, sellerOverdue, sellerRespondedAt, openedAt, dueAt,
+}: {
+  buyerResponded: boolean;
+  sellerOverdue: boolean;
+  sellerRespondedAt: string | null;
+  openedAt: string | null;
+  dueAt: string | null;
+}) {
+  const dayLabel = (iso?: string | null) => iso ? new Date(iso).toLocaleDateString("en-NG", { month: "short", day: "numeric" }) : "—";
+  const chips: Array<{ tone: "emerald" | "red" | "orange" | "yellow" | "slate"; label: string; meta: string }> = [];
+  if (buyerResponded) chips.push({ tone: "emerald", label: "Buyer Responded", meta: dayLabel(openedAt) });
+  if (sellerRespondedAt) chips.push({ tone: "emerald", label: "Seller Responded", meta: dayLabel(sellerRespondedAt) });
+  else if (sellerOverdue) chips.push({ tone: "red", label: "Seller Response Overdue", meta: dueAt ? relTime(dueAt) : "—" });
+  else if (dueAt) chips.push({ tone: "yellow", label: "Seller Response Pending", meta: dayLabel(dueAt) });
+  if (chips.length === 0) return null;
+  const toneMap: Record<string, string> = {
+    emerald: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+    red: "border-red-500/40 bg-red-500/10 text-red-300",
+    orange: "border-orange-500/30 bg-orange-500/10 text-orange-300",
+    yellow: "border-yellow-500/30 bg-yellow-500/10 text-yellow-200",
+    slate: "border-border bg-muted/30 text-muted-foreground",
+  };
+  const dotMap: Record<string, string> = {
+    emerald: "bg-emerald-400", red: "bg-red-400", orange: "bg-orange-400", yellow: "bg-yellow-400", slate: "bg-muted-foreground",
+  };
   return (
-    <Tabs defaultValue={defaultTab}>
+    <div className="rounded-md border border-border bg-background/40 p-3">
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Communication Status</div>
+      <div className="flex flex-wrap gap-2">
+        {chips.map((c, i) => (
+          <span key={i} className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold", toneMap[c.tone])}>
+            <span className={cn("h-1.5 w-1.5 rounded-full", dotMap[c.tone])} />
+            {c.label}
+            <span className="text-muted-foreground font-normal">{c.meta}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+function CommunicationTabs({ notes, defaultTab, onAddNote, sellerName, buyerName }: {
+  notes: any[]; defaultTab: string; onAddNote: () => void;
+  sellerName?: string | null; buyerName?: string | null;
+}) {
+  const [msgType, setMsgType] = useState("general_reply");
+  const [activeTab, setActiveTab] = useState(defaultTab);
+  const recipient = activeTab === "seller" ? (sellerName ?? "seller")
+    : activeTab === "buyer" ? (buyerName ?? "buyer")
+    : "internal note";
+  return (
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
       <TabsList className="bg-muted/40">
-        <TabsTrigger value="buyer">Buyer Messages</TabsTrigger>
-        <TabsTrigger value="seller">Seller Messages</TabsTrigger>
-        <TabsTrigger value="internal">Internal Notes</TabsTrigger>
+        <TabsTrigger value="buyer" className="gap-1.5"><UserIcon className="h-3.5 w-3.5 text-blue-400" />Buyer Messages</TabsTrigger>
+        <TabsTrigger value="seller" className="gap-1.5"><Store className="h-3.5 w-3.5 text-orange-400" />Seller Messages</TabsTrigger>
+        <TabsTrigger value="internal" className="gap-1.5"><StickyNote className="h-3.5 w-3.5 text-purple-400" />Internal Notes</TabsTrigger>
       </TabsList>
-      <TabsContent value="buyer" className="mt-4">
-        <CommEmpty label="No buyer messages available yet" />
-      </TabsContent>
-      <TabsContent value="seller" className="mt-4">
-        <CommEmpty label="No seller messages available yet" />
-      </TabsContent>
-      <TabsContent value="internal" className="mt-4 space-y-3">
-        <NotesList notes={notes} compact />
-        <div className="rounded-md border border-border bg-background p-3 space-y-2">
+      <div className="mt-4 max-h-[600px] overflow-y-auto pr-1 space-y-3">
+        <TabsContent value="buyer" forceMount={activeTab === "buyer" ? true : undefined} className="m-0">
+          {activeTab === "buyer" && <CommEmpty label="No buyer messages available yet" />}
+        </TabsContent>
+        <TabsContent value="seller" forceMount={activeTab === "seller" ? true : undefined} className="m-0">
+          {activeTab === "seller" && <CommEmpty label="No seller messages available yet" />}
+        </TabsContent>
+        <TabsContent value="internal" forceMount={activeTab === "internal" ? true : undefined} className="m-0">
+          {activeTab === "internal" && <NotesList notes={notes} compact />}
+        </TabsContent>
+      </div>
+      <div className="mt-4 pt-4 border-t border-border space-y-3">
+        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Quick Actions</div>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddNote}><MessageSquare className="h-3.5 w-3.5" />Request Clarification</Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddNote}><FileText className="h-3.5 w-3.5" />Request Evidence</Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddNote}><Clock className="h-3.5 w-3.5" />Send Reminder</Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddNote}><AlertTriangle className="h-3.5 w-3.5" />Send Deadline Notice</Button>
+        </div>
+        <div className="rounded-md border border-border bg-background/40 p-3 space-y-2">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            New message to {recipient}
+          </div>
           <textarea
-            placeholder="Write an internal note (admins only)…"
+            placeholder={`Type your message to ${recipient}…`}
             rows={3}
             className="w-full rounded border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:border-blue-500/40"
             onFocus={(e) => { e.preventDefault(); e.currentTarget.blur(); onAddNote(); }}
           />
-          <div className="flex items-center justify-between">
-            <select value={msgType} onChange={(e) => setMsgType(e.target.value)}
-              className="text-xs rounded border border-border bg-background px-2 py-1.5 text-foreground">
-              <option value="general_reply">General Reply</option>
-              <option value="clarification">Clarification Request</option>
-              <option value="evidence_request">Evidence Request</option>
-              <option value="reminder">Reminder</option>
-              <option value="deadline">Deadline Notice</option>
-              <option value="resolution">Resolution Update</option>
-            </select>
-            <Button size="sm" onClick={onAddNote} className="gap-1.5">
-              <Send className="h-3.5 w-3.5" /> Add note
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="gap-1.5" disabled>
+                <FileText className="h-3.5 w-3.5" /> Attach File
+              </Button>
+              <select value={msgType} onChange={(e) => setMsgType(e.target.value)}
+                className="text-xs rounded border border-border bg-background px-2 py-1.5 text-foreground">
+                <option value="general_reply">General Reply</option>
+                <option value="clarification">Clarification Request</option>
+                <option value="evidence_request">Evidence Request</option>
+                <option value="reminder">Reminder</option>
+                <option value="deadline">Deadline Notice</option>
+                <option value="resolution">Resolution Update</option>
+              </select>
+            </div>
+            <Button
+              size="sm"
+              onClick={onAddNote}
+              className={cn(
+                "gap-1.5",
+                activeTab === "seller" && "bg-orange-600 hover:bg-orange-500 text-white",
+                activeTab === "buyer" && "bg-blue-600 hover:bg-blue-500 text-white",
+                activeTab === "internal" && "bg-purple-600 hover:bg-purple-500 text-white",
+              )}
+            >
+              <Send className="h-3.5 w-3.5" />
+              Send {activeTab === "internal" ? "Note" : `to ${activeTab === "seller" ? "Seller" : "Buyer"}`}
             </Button>
           </div>
         </div>
-      </TabsContent>
+      </div>
     </Tabs>
   );
 }
@@ -1074,22 +1269,32 @@ function Timeline({ items }: { items: any[] }) {
 }
 
 // ---------- linked tile ----------
-function LinkedTile({ icon, title, subtitle, onClick }: { icon: React.ReactNode; title: string; subtitle: string; onClick?: () => void }) {
+function LinkedTile({ icon, title, subtitle, onClick, tone = "blue" }: {
+  icon: React.ReactNode; title: string; subtitle: string; onClick?: () => void;
+  tone?: "blue" | "emerald" | "orange" | "purple" | "yellow";
+}) {
   const disabled = !onClick;
+  const toneCls: Record<string, string> = {
+    blue: "bg-blue-500/15 text-blue-300",
+    emerald: "bg-emerald-500/15 text-emerald-300",
+    orange: "bg-orange-500/15 text-orange-300",
+    purple: "bg-purple-500/15 text-purple-300",
+    yellow: "bg-yellow-500/15 text-yellow-300",
+  };
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex items-center gap-3 rounded-md border border-border bg-background p-3 text-left transition-colors",
+        "flex items-center gap-3 rounded-lg border border-border bg-background p-4 text-left transition-colors",
         disabled ? "opacity-60 cursor-not-allowed" : "hover:border-blue-500/40 hover:bg-muted/30",
       )}
     >
-      <span className="grid h-8 w-8 place-items-center rounded-md bg-muted text-muted-foreground">{icon}</span>
+      <span className={cn("grid h-10 w-10 place-items-center rounded-md", toneCls[tone])}>{icon}</span>
       <span className="min-w-0 flex-1">
         <div className="text-sm font-medium text-foreground truncate">{title}</div>
-        <div className="text-xs text-muted-foreground truncate">{subtitle}</div>
+        <div className="text-xs text-muted-foreground truncate font-mono">{subtitle}</div>
       </span>
       {!disabled && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
     </button>
@@ -1099,6 +1304,7 @@ function LinkedTile({ icon, title, subtitle, onClick }: { icon: React.ReactNode;
 // ---------- resolution sidebar ----------
 function ResolutionSidebar({
   disputeStatus, overdue, resolvedAt, moneyStatus, adminCan, dueAt,
+  parties, buyerClaim, sellerResponded, txId,
   onResolve, onMoveReview, onEscalate, onHighRisk, onFraud, onClose, onAddNote,
 }: {
   disputeStatus: string;
@@ -1107,6 +1313,10 @@ function ResolutionSidebar({
   moneyStatus: string | null;
   adminCan: Record<string, boolean>;
   dueAt: string | null;
+  parties: { buyer: any; seller: any };
+  buyerClaim: string | null;
+  sellerResponded: boolean;
+  txId: string;
   onResolve: () => void;
   onMoveReview: () => void;
   onEscalate: () => void;
@@ -1118,6 +1328,7 @@ function ResolutionSidebar({
   const statusMeta = resolutionMeta(disputeStatus, overdue, resolvedAt);
   const canManage = !!adminCan.canManageDispute;
   const isResolved = !!resolvedAt || disputeStatus === "resolved" || disputeStatus === "closed" || disputeStatus === "dismissed";
+  const navigate = useNavigate();
 
   return (
     <div className="p-5 space-y-5">
@@ -1175,16 +1386,81 @@ function ResolutionSidebar({
           onClick={onResolve} disabled={!canManage || isResolved}
           tone="success"
           tip={!canManage ? "Not available for this transaction" : (isResolved ? "Case already resolved" : undefined)} />
-        <SidebarBtn icon={<Scale />} label="Partial Refund / Release"
+        <SidebarBtn icon={<Scale />} label="Partial Refund"
+          onClick={onResolve} disabled={!canManage || isResolved}
+          tip={!canManage ? "Not available" : undefined} />
+        <SidebarBtn icon={<Scale />} label="Partial Release"
           onClick={onResolve} disabled={!canManage || isResolved}
           tip={!canManage ? "Not available" : undefined} />
         <SidebarBtn icon={<XCircle />} label="Close Without Resolution"
           onClick={onClose} disabled={isResolved} tone="muted" />
+        <SidebarBtn icon={<Ban />} label="Block Payout"
+          disabled tone="danger" tip="Payout block control not connected yet" />
+        <SidebarBtn icon={<Play />} label="Resume Payout"
+          disabled tone="success" tip="Payout resume control not connected yet" />
       </SidebarGroup>
 
-      <SidebarGroup title="Notes">
+      {/* Investigation Actions */}
+      <SidebarGroup title="Investigation Actions">
+        <SidebarBtn icon={<NotebookPen />} label="Add Review Note" onClick={onAddNote} />
         <SidebarBtn icon={<StickyNote />} label="Add Internal Note" onClick={onAddNote} />
+        <SidebarBtn icon={<Search />} label="Open Investigation" disabled tip="Investigation workflow not connected yet" />
+        <SidebarBtn icon={<Eye />} label="View Linked Transaction" onClick={() => navigate(`/admin/transactions/${txId}`)} />
+        <SidebarBtn icon={<CreditCard />} label="View Payment Record" disabled tip="Coming soon" />
+        <SidebarBtn icon={<Vault />} label="View Escrow Record" disabled tip="Coming soon" />
+        <SidebarBtn icon={<Wallet />} label="View Payout Record" disabled tip="Coming soon" />
       </SidebarGroup>
+
+      {/* Resolution Summary */}
+      <div>
+        <div className="text-sm font-semibold text-foreground mb-3">Resolution Summary</div>
+        <div className="space-y-3">
+          <SummaryPartyCard
+            role="buyer"
+            name={parties.buyer?.name ?? "—"}
+            statusLabel={buyerClaim ? "Refund Requested" : "—"}
+            statusTone="emerald"
+            summary={buyerClaim ?? "No buyer claim provided."}
+          />
+          <SummaryPartyCard
+            role="seller"
+            name={parties.seller?.name ?? "—"}
+            statusLabel={sellerResponded ? "Responded" : "Response Missing"}
+            statusTone={sellerResponded ? "emerald" : "red"}
+            summary={sellerResponded ? "Seller has submitted a response." : "Seller has not responded yet."}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SummaryPartyCard({ role, name, statusLabel, statusTone, summary }: {
+  role: "buyer" | "seller"; name: string; statusLabel: string;
+  statusTone: "emerald" | "red" | "yellow"; summary: string;
+}) {
+  const toneCls = statusTone === "emerald" ? "text-emerald-400"
+    : statusTone === "red" ? "text-red-400"
+    : "text-yellow-400";
+  const dotCls = statusTone === "emerald" ? "bg-emerald-400"
+    : statusTone === "red" ? "bg-red-400"
+    : "bg-yellow-400";
+  return (
+    <div className="rounded-md border border-border bg-background p-3">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          {role === "buyer" ? <UserIcon className="h-4 w-4 text-blue-400" /> : <Store className="h-4 w-4 text-orange-400" />}
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{role}</div>
+            <div className="text-sm font-medium text-foreground truncate">{name}</div>
+          </div>
+        </div>
+        <span className={cn("inline-flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap", toneCls)}>
+          <span className={cn("h-1.5 w-1.5 rounded-full", dotCls)} />
+          {statusLabel}
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground line-clamp-3">{summary}</p>
     </div>
   );
 }
