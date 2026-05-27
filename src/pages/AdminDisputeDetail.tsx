@@ -1265,22 +1265,32 @@ function Timeline({ items }: { items: any[] }) {
 }
 
 // ---------- linked tile ----------
-function LinkedTile({ icon, title, subtitle, onClick }: { icon: React.ReactNode; title: string; subtitle: string; onClick?: () => void }) {
+function LinkedTile({ icon, title, subtitle, onClick, tone = "blue" }: {
+  icon: React.ReactNode; title: string; subtitle: string; onClick?: () => void;
+  tone?: "blue" | "emerald" | "orange" | "purple" | "yellow";
+}) {
   const disabled = !onClick;
+  const toneCls: Record<string, string> = {
+    blue: "bg-blue-500/15 text-blue-300",
+    emerald: "bg-emerald-500/15 text-emerald-300",
+    orange: "bg-orange-500/15 text-orange-300",
+    purple: "bg-purple-500/15 text-purple-300",
+    yellow: "bg-yellow-500/15 text-yellow-300",
+  };
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex items-center gap-3 rounded-md border border-border bg-background p-3 text-left transition-colors",
+        "flex items-center gap-3 rounded-lg border border-border bg-background p-4 text-left transition-colors",
         disabled ? "opacity-60 cursor-not-allowed" : "hover:border-blue-500/40 hover:bg-muted/30",
       )}
     >
-      <span className="grid h-8 w-8 place-items-center rounded-md bg-muted text-muted-foreground">{icon}</span>
+      <span className={cn("grid h-10 w-10 place-items-center rounded-md", toneCls[tone])}>{icon}</span>
       <span className="min-w-0 flex-1">
         <div className="text-sm font-medium text-foreground truncate">{title}</div>
-        <div className="text-xs text-muted-foreground truncate">{subtitle}</div>
+        <div className="text-xs text-muted-foreground truncate font-mono">{subtitle}</div>
       </span>
       {!disabled && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
     </button>
