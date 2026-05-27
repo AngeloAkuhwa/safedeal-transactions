@@ -1304,6 +1304,7 @@ function LinkedTile({ icon, title, subtitle, onClick, tone = "blue" }: {
 // ---------- resolution sidebar ----------
 function ResolutionSidebar({
   disputeStatus, overdue, resolvedAt, moneyStatus, adminCan, dueAt,
+  parties, buyerClaim, sellerResponded, txId,
   onResolve, onMoveReview, onEscalate, onHighRisk, onFraud, onClose, onAddNote,
 }: {
   disputeStatus: string;
@@ -1312,6 +1313,10 @@ function ResolutionSidebar({
   moneyStatus: string | null;
   adminCan: Record<string, boolean>;
   dueAt: string | null;
+  parties: { buyer: any; seller: any };
+  buyerClaim: string | null;
+  sellerResponded: boolean;
+  txId: string;
   onResolve: () => void;
   onMoveReview: () => void;
   onEscalate: () => void;
@@ -1323,6 +1328,7 @@ function ResolutionSidebar({
   const statusMeta = resolutionMeta(disputeStatus, overdue, resolvedAt);
   const canManage = !!adminCan.canManageDispute;
   const isResolved = !!resolvedAt || disputeStatus === "resolved" || disputeStatus === "closed" || disputeStatus === "dismissed";
+  const navigate = useNavigate();
 
   return (
     <div className="p-5 space-y-5">
@@ -1380,16 +1386,81 @@ function ResolutionSidebar({
           onClick={onResolve} disabled={!canManage || isResolved}
           tone="success"
           tip={!canManage ? "Not available for this transaction" : (isResolved ? "Case already resolved" : undefined)} />
-        <SidebarBtn icon={<Scale />} label="Partial Refund / Release"
+        <SidebarBtn icon={<Scale />} label="Partial Refund"
+          onClick={onResolve} disabled={!canManage || isResolved}
+          tip={!canManage ? "Not available" : undefined} />
+        <SidebarBtn icon={<Scale />} label="Partial Release"
           onClick={onResolve} disabled={!canManage || isResolved}
           tip={!canManage ? "Not available" : undefined} />
         <SidebarBtn icon={<XCircle />} label="Close Without Resolution"
           onClick={onClose} disabled={isResolved} tone="muted" />
+        <SidebarBtn icon={<Ban />} label="Block Payout"
+          disabled tone="danger" tip="Payout block control not connected yet" />
+        <SidebarBtn icon={<Play />} label="Resume Payout"
+          disabled tone="success" tip="Payout resume control not connected yet" />
       </SidebarGroup>
 
-      <SidebarGroup title="Notes">
+      {/* Investigation Actions */}
+      <SidebarGroup title="Investigation Actions">
+        <SidebarBtn icon={<NotebookPen />} label="Add Review Note" onClick={onAddNote} />
         <SidebarBtn icon={<StickyNote />} label="Add Internal Note" onClick={onAddNote} />
+        <SidebarBtn icon={<Search />} label="Open Investigation" disabled tip="Investigation workflow not connected yet" />
+        <SidebarBtn icon={<Eye />} label="View Linked Transaction" onClick={() => navigate(`/admin/transactions/${txId}`)} />
+        <SidebarBtn icon={<CreditCard />} label="View Payment Record" disabled tip="Coming soon" />
+        <SidebarBtn icon={<Vault />} label="View Escrow Record" disabled tip="Coming soon" />
+        <SidebarBtn icon={<Wallet />} label="View Payout Record" disabled tip="Coming soon" />
       </SidebarGroup>
+
+      {/* Resolution Summary */}
+      <div>
+        <div className="text-sm font-semibold text-foreground mb-3">Resolution Summary</div>
+        <div className="space-y-3">
+          <SummaryPartyCard
+            role="buyer"
+            name={parties.buyer?.name ?? "—"}
+            statusLabel={buyerClaim ? "Refund Requested" : "—"}
+            statusTone="emerald"
+            summary={buyerClaim ?? "No buyer claim provided."}
+          />
+          <SummaryPartyCard
+            role="seller"
+            name={parties.seller?.name ?? "—"}
+            statusLabel={sellerResponded ? "Responded" : "Response Missing"}
+            statusTone={sellerResponded ? "emerald" : "red"}
+            summary={sellerResponded ? "Seller has submitted a response." : "Seller has not responded yet."}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SummaryPartyCard({ role, name, statusLabel, statusTone, summary }: {
+  role: "buyer" | "seller"; name: string; statusLabel: string;
+  statusTone: "emerald" | "red" | "yellow"; summary: string;
+}) {
+  const toneCls = statusTone === "emerald" ? "text-emerald-400"
+    : statusTone === "red" ? "text-red-400"
+    : "text-yellow-400";
+  const dotCls = statusTone === "emerald" ? "bg-emerald-400"
+    : statusTone === "red" ? "bg-red-400"
+    : "bg-yellow-400";
+  return (
+    <div className="rounded-md border border-border bg-background p-3">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          {role === "buyer" ? <UserIcon className="h-4 w-4 text-blue-400" /> : <Store className="h-4 w-4 text-orange-400" />}
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{role}</div>
+            <div className="text-sm font-medium text-foreground truncate">{name}</div>
+          </div>
+        </div>
+        <span className={cn("inline-flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap", toneCls)}>
+          <span className={cn("h-1.5 w-1.5 rounded-full", dotCls)} />
+          {statusLabel}
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground line-clamp-3">{summary}</p>
     </div>
   );
 }
