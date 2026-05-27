@@ -5,7 +5,7 @@ import {
   ExternalLink, FileText, Image as ImageIcon, Video, Receipt, Truck, Scale,
   Circle, Clock, ShieldAlert, Snowflake, MessageSquare, StickyNote, Gavel,
   CheckCircle2, XCircle, ChevronRight, Flag, Wallet, CreditCard, Vault,
-  Search, Send,
+  Search, Send, Ban, Play, Eye, NotebookPen, Store,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
