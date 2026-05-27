@@ -824,41 +824,91 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
     );
   }
   const ver = party.verification ?? {};
+  const isBuyer = role === "buyer";
+  const roleChipCls = isBuyer
+    ? "bg-blue-500/15 text-blue-300 border-blue-500/30"
+    : "bg-orange-500/15 text-orange-300 border-orange-500/30";
+  const callBtnCls = isBuyer
+    ? "bg-blue-600 hover:bg-blue-500 text-white border-transparent"
+    : "bg-orange-600 hover:bg-orange-500 text-white border-transparent";
+  const sellerTier: string | null = !isBuyer && party.sellerTier ? party.sellerTier : null;
   return (
     <Card>
-      <CardHeader title={role === "buyer" ? "Buyer Information" : "Seller Information"} />
-      <div className="p-5 space-y-4">
+      <CardHeader
+        title={isBuyer ? "Buyer Information" : "Seller Information"}
+        action={
+          <span className={cn("inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", roleChipCls)}>
+            {isBuyer ? "Buyer" : "Seller"}
+          </span>
+        }
+      />
+      <div className="p-6 space-y-5">
         <div className="flex items-start gap-3">
-          <Avatar name={party.name} src={party.avatarUrl} size={44} />
+          <Avatar name={party.name} src={party.avatarUrl} size={48} />
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold text-foreground truncate">{party.name ?? "—"}</div>
-            <div className="text-xs text-muted-foreground font-mono truncate">{party.id?.slice(0, 12)}…</div>
-            <div className="mt-1 flex flex-wrap gap-1.5">
-              {ver.identity && <Tag tone="emerald">Identity verified</Tag>}
-              {ver.email && <Tag tone="blue">Email</Tag>}
-              {ver.phone && <Tag tone="blue">Phone</Tag>}
-              {party.flagged && <Tag tone="red">Flagged</Tag>}
-            </div>
+            <div className="text-base font-semibold text-foreground truncate">{party.name ?? "—"}</div>
+            <div className="text-xs text-muted-foreground font-mono truncate">User ID: {party.id?.slice(0, 16) ?? "—"}</div>
+          </div>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            {ver.identity && (
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Verified
+              </span>
+            )}
+            {sellerTier && (
+              <span className="inline-flex items-center gap-1 text-xs text-yellow-400">
+                <Flag className="h-3.5 w-3.5" /> {titleCase(sellerTier)} Seller
+              </span>
+            )}
+            {party.flagged && (
+              <span className="inline-flex items-center gap-1 text-xs text-red-400">
+                <AlertTriangle className="h-3.5 w-3.5" /> Flagged
+              </span>
+            )}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-2 gap-4 text-sm">
           <KV label="Email" value={<span className="font-mono text-xs">{party.maskedEmail ?? "—"}</span>} />
           <KV label="Phone" value={<span className="font-mono text-xs">{party.maskedPhone ?? "—"}</span>} />
-          <KV label="Account" value={titleCase(party.accountStatus) || "—"} />
-          <KV label="Prior Disputes" value={party.priorDisputes ?? "—"} />
+          <KV label="Prior Disputes" value={party.priorDisputes != null ? `${party.priorDisputes} ${isBuyer ? "filed" : "received"}` : "—"} />
+          <KV
+            label={isBuyer ? "Account Status" : "Payout Status"}
+            value={
+              isBuyer
+                ? <span className={cn(party.accountStatus === "good_standing" ? "text-emerald-400" : "text-foreground")}>{titleCase(party.accountStatus) || "—"}</span>
+                : <span className="text-red-400">Blocked</span>
+            }
+          />
         </div>
-        <div className="flex flex-wrap gap-2 pt-1">
-          <ContactBtn icon={<Phone className="h-3.5 w-3.5" />} label="Call" disabled tip="Masked contact only" />
-          <ContactBtn icon={<Mail className="h-3.5 w-3.5" />} label="Email" disabled tip="Masked contact only" />
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button size="sm" disabled className={cn("w-full gap-1.5", callBtnCls, "opacity-100")}>
+                  <Phone className="h-3.5 w-3.5" /> Call
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Direct calling not connected yet</TooltipContent>
+          </Tooltip>
+          <ContactBtn icon={<Mail className="h-3.5 w-3.5" />} label="Email" disabled tip="Direct email not connected yet" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="sm" variant="outline" className="px-2.5" onClick={() => navigate(`/admin/users/${party.id}`)} aria-label="Profile">
+                <UserIcon className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Open profile</TooltipContent>
+          </Tooltip>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
           <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/users/${party.id}`)}>
-            <UserIcon className="h-3.5 w-3.5" /> Profile
+            <UserIcon className="h-3.5 w-3.5" /> View Profile
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5"
-            onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
-            <Scale className="h-3.5 w-3.5" /> Disputes
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
+            <Scale className="h-3.5 w-3.5" /> Dispute History
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5"
-            onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
             <Receipt className="h-3.5 w-3.5" /> Transactions
           </Button>
         </div>
