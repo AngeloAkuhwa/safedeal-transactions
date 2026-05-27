@@ -690,25 +690,22 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
             {/* Linked records */}
             <Card>
-              <CardHeader title="Linked Records" />
-              <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                <LinkedTile icon={<Scale className="h-4 w-4" />} title="Transaction" subtitle={txCode}
+              <CardHeader title="Linked Records & Quick Actions" />
+              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <LinkedTile tone="blue" icon={<Scale className="h-5 w-5" />} title="Transaction Detail" subtitle={txCode}
                   onClick={() => navigate(`/admin/transactions/${txId}`)} />
-                {parties.buyer && (
-                  <LinkedTile icon={<UserIcon className="h-4 w-4" />} title="Buyer Profile" subtitle={parties.buyer.name ?? "—"}
-                    onClick={() => navigate(`/admin/users/${parties.buyer!.id}`)} />
-                )}
-                {parties.seller && (
-                  <LinkedTile icon={<UserIcon className="h-4 w-4" />} title="Seller Profile" subtitle={parties.seller.name ?? "—"}
-                    onClick={() => navigate(`/admin/users/${parties.seller!.id}`)} />
-                )}
-                <LinkedTile icon={<CreditCard className="h-4 w-4" />} title="Payment Record"
-                  subtitle={payment ? `${payment.provider ?? ""} · ${payment.providerReference ?? ""}` : "No payment record"} />
-                <LinkedTile icon={<Vault className="h-4 w-4" />} title="Escrow Record"
+                <LinkedTile tone="emerald" icon={<UserIcon className="h-5 w-5" />} title="Buyer Profile"
+                  subtitle={parties.buyer?.id?.slice(0, 16) ?? "—"}
+                  onClick={parties.buyer ? () => navigate(`/admin/users/${parties.buyer!.id}`) : undefined} />
+                <LinkedTile tone="orange" icon={<Store className="h-5 w-5" />} title="Seller Profile"
+                  subtitle={parties.seller?.id?.slice(0, 16) ?? "—"}
+                  onClick={parties.seller ? () => navigate(`/admin/users/${parties.seller!.id}`) : undefined} />
+                <LinkedTile tone="emerald" icon={<CreditCard className="h-5 w-5" />} title="Payment Record"
+                  subtitle={payment ? `${(payment.providerReference ?? "").slice(0, 20)}` : "No payment record"} />
+                <LinkedTile tone="blue" icon={<Vault className="h-5 w-5" />} title="Escrow Record"
                   subtitle={`${escrow?.ledger?.length ?? 0} ledger entries`} />
-                <LinkedTile icon={<Wallet className="h-4 w-4" />} title="Payout Record"
-                  subtitle={payout ? `${payout.status ?? "—"} · ${ngn(payout.amount)}` : "No payout yet"} />
-                <LinkedTile icon={<FileText className="h-4 w-4" />} title="Audit Trail" subtitle={`${timeline.length} events`} />
+                <LinkedTile tone="purple" icon={<Clock className="h-5 w-5" />} title="Audit Trail"
+                  subtitle="View all activity" />
               </div>
             </Card>
 
