@@ -921,19 +921,50 @@ function payoutLabel(payout: any, moneyStatus: string | null, disputeActive: boo
   return titleCase(payout.status) || "—";
 }
 
-function FinTile({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "info" | "warning" | "success" | "danger" | "orange" }) {
-  const toneCls = tone === "danger" ? "text-red-300"
-    : tone === "warning" ? "text-orange-300"
-    : tone === "success" ? "text-emerald-300"
-    : tone === "info" ? "text-blue-300"
-    : tone === "orange" ? "text-orange-300"
+function FinStat({ label, value, caption, tone }: {
+  label: string; value: React.ReactNode; caption?: React.ReactNode;
+  tone?: "info" | "warning" | "success" | "danger" | "orange";
+}) {
+  const toneCls = tone === "danger" ? "text-red-400"
+    : tone === "warning" ? "text-orange-400"
+    : tone === "success" ? "text-emerald-400"
+    : tone === "info" ? "text-blue-400"
+    : tone === "orange" ? "text-orange-400"
     : "text-foreground";
   return (
-    <div className="rounded-md border border-border bg-background p-3">
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={cn("mt-1 text-sm font-bold", toneCls)}>{value}</div>
+    <div className="min-w-0">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={cn("mt-1 text-xl font-bold truncate", toneCls)}>{value}</div>
+      {caption && <div className="mt-1 text-xs text-muted-foreground truncate">{caption}</div>}
     </div>
   );
+}
+function moneyDotColor(v?: string | null) {
+  if (v === "funds_frozen") return "bg-red-500";
+  if (v === "funds_released") return "bg-emerald-500";
+  if (v === "funds_refunded" || v === "funds_partially_refunded") return "bg-emerald-500";
+  if (v === "funds_pending_release") return "bg-orange-500";
+  if (v === "funds_held_in_escrow") return "bg-yellow-500";
+  return "bg-muted-foreground";
+}
+function moneyTextColor(v?: string | null) {
+  if (v === "funds_frozen") return "text-red-400";
+  if (v === "funds_released" || v === "funds_refunded" || v === "funds_partially_refunded") return "text-emerald-400";
+  if (v === "funds_pending_release") return "text-orange-400";
+  if (v === "funds_held_in_escrow") return "text-yellow-400";
+  return "text-foreground";
+}
+function payoutDotColor(payout: any, disputeActive: boolean) {
+  if (disputeActive) return "bg-red-500";
+  if (payout?.status === "completed") return "bg-emerald-500";
+  if (payout?.status === "pending") return "bg-yellow-500";
+  return "bg-muted-foreground";
+}
+function payoutTextColor(payout: any, disputeActive: boolean) {
+  if (disputeActive) return "text-red-400";
+  if (payout?.status === "completed") return "text-emerald-400";
+  if (payout?.status === "pending") return "text-yellow-400";
+  return "text-foreground";
 }
 
 // ---------- evidence ----------
