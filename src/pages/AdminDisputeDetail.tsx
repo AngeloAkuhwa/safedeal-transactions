@@ -1068,46 +1068,123 @@ function EvidenceGrid({ items, onPreview, emptyText }: {
 }
 
 // ---------- communication ----------
-function CommunicationTabs({ notes, defaultTab, onAddNote }: { notes: any[]; defaultTab: string; onAddNote: () => void }) {
-  const [msgType, setMsgType] = useState("general_reply");
+function CommunicationStatusRow({
+  buyerResponded, sellerOverdue, sellerRespondedAt, openedAt, dueAt,
+}: {
+  buyerResponded: boolean;
+  sellerOverdue: boolean;
+  sellerRespondedAt: string | null;
+  openedAt: string | null;
+  dueAt: string | null;
+}) {
+  const dayLabel = (iso?: string | null) => iso ? new Date(iso).toLocaleDateString("en-NG", { month: "short", day: "numeric" }) : "—";
+  const chips: Array<{ tone: "emerald" | "red" | "orange" | "yellow" | "slate"; label: string; meta: string }> = [];
+  if (buyerResponded) chips.push({ tone: "emerald", label: "Buyer Responded", meta: dayLabel(openedAt) });
+  if (sellerRespondedAt) chips.push({ tone: "emerald", label: "Seller Responded", meta: dayLabel(sellerRespondedAt) });
+  else if (sellerOverdue) chips.push({ tone: "red", label: "Seller Response Overdue", meta: dueAt ? relTime(dueAt) : "—" });
+  else if (dueAt) chips.push({ tone: "yellow", label: "Seller Response Pending", meta: dayLabel(dueAt) });
+  if (chips.length === 0) return null;
+  const toneMap: Record<string, string> = {
+    emerald: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+    red: "border-red-500/40 bg-red-500/10 text-red-300",
+    orange: "border-orange-500/30 bg-orange-500/10 text-orange-300",
+    yellow: "border-yellow-500/30 bg-yellow-500/10 text-yellow-200",
+    slate: "border-border bg-muted/30 text-muted-foreground",
+  };
+  const dotMap: Record<string, string> = {
+    emerald: "bg-emerald-400", red: "bg-red-400", orange: "bg-orange-400", yellow: "bg-yellow-400", slate: "bg-muted-foreground",
+  };
   return (
-    <Tabs defaultValue={defaultTab}>
+    <div className="rounded-md border border-border bg-background/40 p-3">
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Communication Status</div>
+      <div className="flex flex-wrap gap-2">
+        {chips.map((c, i) => (
+          <span key={i} className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold", toneMap[c.tone])}>
+            <span className={cn("h-1.5 w-1.5 rounded-full", dotMap[c.tone])} />
+            {c.label}
+            <span className="text-muted-foreground font-normal">{c.meta}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+function CommunicationTabs({ notes, defaultTab, onAddNote, sellerName, buyerName }: {
+  notes: any[]; defaultTab: string; onAddNote: () => void;
+  sellerName?: string | null; buyerName?: string | null;
+}) {
+  const [msgType, setMsgType] = useState("general_reply");
+  const [activeTab, setActiveTab] = useState(defaultTab);
+  const recipient = activeTab === "seller" ? (sellerName ?? "seller")
+    : activeTab === "buyer" ? (buyerName ?? "buyer")
+    : "internal note";
+  return (
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
       <TabsList className="bg-muted/40">
-        <TabsTrigger value="buyer">Buyer Messages</TabsTrigger>
-        <TabsTrigger value="seller">Seller Messages</TabsTrigger>
-        <TabsTrigger value="internal">Internal Notes</TabsTrigger>
+        <TabsTrigger value="buyer" className="gap-1.5"><UserIcon className="h-3.5 w-3.5 text-blue-400" />Buyer Messages</TabsTrigger>
+        <TabsTrigger value="seller" className="gap-1.5"><Store className="h-3.5 w-3.5 text-orange-400" />Seller Messages</TabsTrigger>
+        <TabsTrigger value="internal" className="gap-1.5"><StickyNote className="h-3.5 w-3.5 text-purple-400" />Internal Notes</TabsTrigger>
       </TabsList>
-      <TabsContent value="buyer" className="mt-4">
-        <CommEmpty label="No buyer messages available yet" />
-      </TabsContent>
-      <TabsContent value="seller" className="mt-4">
-        <CommEmpty label="No seller messages available yet" />
-      </TabsContent>
-      <TabsContent value="internal" className="mt-4 space-y-3">
-        <NotesList notes={notes} compact />
-        <div className="rounded-md border border-border bg-background p-3 space-y-2">
+      <div className="mt-4 max-h-[600px] overflow-y-auto pr-1 space-y-3">
+        <TabsContent value="buyer" forceMount={activeTab === "buyer" ? true : undefined} className="m-0">
+          {activeTab === "buyer" && <CommEmpty label="No buyer messages available yet" />}
+        </TabsContent>
+        <TabsContent value="seller" forceMount={activeTab === "seller" ? true : undefined} className="m-0">
+          {activeTab === "seller" && <CommEmpty label="No seller messages available yet" />}
+        </TabsContent>
+        <TabsContent value="internal" forceMount={activeTab === "internal" ? true : undefined} className="m-0">
+          {activeTab === "internal" && <NotesList notes={notes} compact />}
+        </TabsContent>
+      </div>
+      <div className="mt-4 pt-4 border-t border-border space-y-3">
+        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Quick Actions</div>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddNote}><MessageSquare className="h-3.5 w-3.5" />Request Clarification</Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddNote}><FileText className="h-3.5 w-3.5" />Request Evidence</Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddNote}><Clock className="h-3.5 w-3.5" />Send Reminder</Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddNote}><AlertTriangle className="h-3.5 w-3.5" />Send Deadline Notice</Button>
+        </div>
+        <div className="rounded-md border border-border bg-background/40 p-3 space-y-2">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            New message to {recipient}
+          </div>
           <textarea
-            placeholder="Write an internal note (admins only)…"
+            placeholder={`Type your message to ${recipient}…`}
             rows={3}
             className="w-full rounded border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:border-blue-500/40"
             onFocus={(e) => { e.preventDefault(); e.currentTarget.blur(); onAddNote(); }}
           />
-          <div className="flex items-center justify-between">
-            <select value={msgType} onChange={(e) => setMsgType(e.target.value)}
-              className="text-xs rounded border border-border bg-background px-2 py-1.5 text-foreground">
-              <option value="general_reply">General Reply</option>
-              <option value="clarification">Clarification Request</option>
-              <option value="evidence_request">Evidence Request</option>
-              <option value="reminder">Reminder</option>
-              <option value="deadline">Deadline Notice</option>
-              <option value="resolution">Resolution Update</option>
-            </select>
-            <Button size="sm" onClick={onAddNote} className="gap-1.5">
-              <Send className="h-3.5 w-3.5" /> Add note
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="gap-1.5" disabled>
+                <FileText className="h-3.5 w-3.5" /> Attach File
+              </Button>
+              <select value={msgType} onChange={(e) => setMsgType(e.target.value)}
+                className="text-xs rounded border border-border bg-background px-2 py-1.5 text-foreground">
+                <option value="general_reply">General Reply</option>
+                <option value="clarification">Clarification Request</option>
+                <option value="evidence_request">Evidence Request</option>
+                <option value="reminder">Reminder</option>
+                <option value="deadline">Deadline Notice</option>
+                <option value="resolution">Resolution Update</option>
+              </select>
+            </div>
+            <Button
+              size="sm"
+              onClick={onAddNote}
+              className={cn(
+                "gap-1.5",
+                activeTab === "seller" && "bg-orange-600 hover:bg-orange-500 text-white",
+                activeTab === "buyer" && "bg-blue-600 hover:bg-blue-500 text-white",
+                activeTab === "internal" && "bg-purple-600 hover:bg-purple-500 text-white",
+              )}
+            >
+              <Send className="h-3.5 w-3.5" />
+              Send {activeTab === "internal" ? "Note" : `to ${activeTab === "seller" ? "Seller" : "Buyer"}`}
             </Button>
           </div>
         </div>
-      </TabsContent>
+      </div>
     </Tabs>
   );
 }
