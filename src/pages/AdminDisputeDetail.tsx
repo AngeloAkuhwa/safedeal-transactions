@@ -484,12 +484,21 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                     Last activity {relTime(tx.updatedAt ?? tx.updated_at)}
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <KV label="Status" value={<StatusPill value={row.status} />} />
-                  <div className="text-xs text-muted-foreground">
-                    {dispute.assignedAgent?.name
-                      ? <>Assigned: <span className="text-foreground">{dispute.assignedAgent.name}</span></>
-                      : "Unassigned"}
+                <div className="flex flex-col gap-2 min-w-0">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</div>
+                    <div className="mt-1"><StatusPill value={row.status} /></div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Assigned Agent</div>
+                    {dispute.assignedAgent?.name ? (
+                      <div className="mt-1 flex items-center gap-2 min-w-0">
+                        <Avatar name={dispute.assignedAgent.name} src={dispute.assignedAgent.avatarUrl} size={20} />
+                        <span className="text-sm text-foreground truncate">{dispute.assignedAgent.name}</span>
+                      </div>
+                    ) : (
+                      <div className="mt-1 text-sm text-muted-foreground">Unassigned</div>
+                    )}
                   </div>
                 </div>
             </div>
