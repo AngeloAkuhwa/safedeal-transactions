@@ -727,6 +727,10 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
               moneyStatus={moneyStatus}
               adminCan={adminCan}
               dueAt={dueAt}
+              parties={parties}
+              buyerClaim={row.description ?? dispute.summary ?? null}
+              sellerResponded={!!dispute.responses?.length}
+              txId={txId}
               onResolve={() => dialogs.setResolveOpen(true)}
               onMoveReview={() => dialogs.setMoveReviewOpen(true)}
               onEscalate={() => dialogs.setEscalateOpen(true)}
