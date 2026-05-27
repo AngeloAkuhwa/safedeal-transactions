@@ -650,12 +650,21 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
             {/* Case Communication */}
             <Card>
-              <CardHeader title="Case Communication" subtitle="Buyer, seller and internal channels" />
-              <div className="p-5">
+              <CardHeader title="Case Communication" subtitle="Structured dispute communication workspace — all messages are logged and auditable" />
+              <div className="p-6 space-y-5">
+                <CommunicationStatusRow
+                  buyerResponded={(evidence ?? []).some((e) => (e.uploadedByRole ?? "").toLowerCase() === "buyer")}
+                  sellerOverdue={overdue && !(dispute.responses?.length)}
+                  sellerRespondedAt={dispute.responses?.[0]?.at ?? null}
+                  openedAt={row.opened_at ?? dispute.openedAt ?? null}
+                  dueAt={dueAt}
+                />
                 <CommunicationTabs
                   notes={notes}
                   defaultTab={dispute.responses?.length ? "internal" : (overdue ? "seller" : "buyer")}
                   onAddNote={() => dialogs.setNoteOpen(true)}
+                  sellerName={parties.seller?.name}
+                  buyerName={parties.buyer?.name}
                 />
               </div>
             </Card>
