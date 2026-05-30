@@ -717,6 +717,10 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
               onAddNote={() => dialogs.setNoteOpen(true)}
               sellerName={parties.seller?.name}
               buyerName={parties.buyer?.name}
+              disputeId={dispute.id}
+              buyerClaim={(row.description ?? dispute.summary) ?? null}
+              sellerResponses={(dispute.responses ?? []) as any[]}
+              evidence={evidence ?? []}
             />
 
             {/* Case Timeline */}
