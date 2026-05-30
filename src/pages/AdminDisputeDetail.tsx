@@ -762,10 +762,11 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
             <Card>
               <CardHeader title="Case Timeline" />
               <div className="p-5">
-                <Timeline
-                  items={dedupeTimeline(filterDisputeTimeline(timeline))}
+                <AdminCaseTimeline
+                  items={timeline as any}
                   disputeStatus={row.status}
                   resolvedAt={resolvedAt}
+                  filterDisputeOnly
                 />
               </div>
             </Card>
