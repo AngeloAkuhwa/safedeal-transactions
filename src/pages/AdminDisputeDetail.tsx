@@ -873,7 +873,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
     return (
       <Card>
         <div className="p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">
+          <h2 className="text-[20px] md:text-[24px] xl:text-[26px] leading-[26px] md:leading-[30px] font-semibold tracking-[-0.02em] text-[#F8FAFC] mb-4">
             {role === "buyer" ? "Buyer Information" : "Seller Information"}
           </h2>
           <div className="text-sm text-muted-foreground">No {role} on this transaction.</div>
@@ -906,7 +906,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
       <div className="p-6">
         {/* Title row — no border */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="text-[20px] md:text-[24px] xl:text-[26px] leading-[26px] md:leading-[30px] font-semibold tracking-[-0.02em] text-[#F8FAFC]">
             {isBuyer ? "Buyer Information" : "Seller Information"}
           </h2>
           <span className={cn(
