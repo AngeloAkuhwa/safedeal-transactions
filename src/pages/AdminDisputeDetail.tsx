@@ -1181,138 +1181,445 @@ function EvidenceGrid({ items, onPreview, emptyText }: {
   );
 }
 
-// ---------- communication ----------
-function CommunicationStatusRow({
-  buyerResponded, sellerOverdue, sellerRespondedAt, openedAt, dueAt,
-}: {
+// ---------- case communication (matches Dispute_Details_2.html lines 533–901) ----------
+type CommTab = "buyer" | "seller" | "internal";
+type MsgKind = "deadline" | "reminder" | "seller_reply" | "buyer_reply" | "evidence_request" | "general" | "internal";
+
+interface CommMessage {
+  id: string;
+  kind: MsgKind;
+  senderName: string;
+  senderRole: "admin" | "seller" | "buyer";
+  recipientName: string;
+  recipientRole: "admin" | "seller" | "buyer" | "internal";
+  timestamp: string;
+  topic?: string;
+  body: React.ReactNode;
+  msgRef?: string;
+  avatarUrl?: string | null;
+  footerMeta?: React.ReactNode;
+  attachments?: { name: string; size?: string }[];
+}
+
+function CaseCommunicationSection(props: {
   buyerResponded: boolean;
   sellerOverdue: boolean;
   sellerRespondedAt: string | null;
   openedAt: string | null;
   dueAt: string | null;
+  notes: any[];
+  defaultTab: CommTab | string;
+  onAddNote: () => void;
+  sellerName?: string | null;
+  buyerName?: string | null;
 }) {
-  const dayLabel = (iso?: string | null) => iso ? new Date(iso).toLocaleDateString("en-NG", { month: "short", day: "numeric" }) : "—";
-  const chips: Array<{ tone: "emerald" | "red" | "orange" | "yellow" | "slate"; label: string; meta: string }> = [];
-  if (buyerResponded) chips.push({ tone: "emerald", label: "Buyer Responded", meta: dayLabel(openedAt) });
-  if (sellerRespondedAt) chips.push({ tone: "emerald", label: "Seller Responded", meta: dayLabel(sellerRespondedAt) });
-  else if (sellerOverdue) chips.push({ tone: "red", label: "Seller Response Overdue", meta: dueAt ? relTime(dueAt) : "—" });
-  else if (dueAt) chips.push({ tone: "yellow", label: "Seller Response Pending", meta: dayLabel(dueAt) });
-  if (chips.length === 0) return null;
-  const toneMap: Record<string, string> = {
-    emerald: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-    red: "border-red-500/40 bg-red-500/10 text-red-300",
-    orange: "border-orange-500/30 bg-orange-500/10 text-orange-300",
-    yellow: "border-yellow-500/30 bg-yellow-500/10 text-yellow-200",
-    slate: "border-border bg-muted/30 text-muted-foreground",
-  };
-  const dotMap: Record<string, string> = {
-    emerald: "bg-emerald-400", red: "bg-red-400", orange: "bg-orange-400", yellow: "bg-yellow-400", slate: "bg-muted-foreground",
-  };
-  return (
-    <div className="rounded-md border border-border bg-background/40 p-3">
-      <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Communication Status</div>
-      <div className="flex flex-wrap gap-2">
-        {chips.map((c, i) => (
-          <span key={i} className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold", toneMap[c.tone])}>
-            <span className={cn("h-1.5 w-1.5 rounded-full", dotMap[c.tone])} />
-            {c.label}
-            <span className="text-muted-foreground font-normal">{c.meta}</span>
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-function CommunicationTabs({ notes, defaultTab, onAddNote, sellerName, buyerName }: {
-  notes: any[]; defaultTab: string; onAddNote: () => void;
-  sellerName?: string | null; buyerName?: string | null;
-}) {
+  const {
+    buyerResponded, sellerOverdue, sellerRespondedAt, openedAt, dueAt,
+    notes, defaultTab, onAddNote, sellerName, buyerName,
+  } = props;
+  const [activeTab, setActiveTab] = useState<CommTab>((defaultTab as CommTab) ?? "seller");
   const [msgType, setMsgType] = useState("general_reply");
-  const [activeTab, setActiveTab] = useState(defaultTab);
-  const recipient = activeTab === "seller" ? (sellerName ?? "seller")
-    : activeTab === "buyer" ? (buyerName ?? "buyer")
-    : "internal note";
+  const [draft, setDraft] = useState("");
+
+  const dayLabel = (iso?: string | null) =>
+    iso ? new Date(iso).toLocaleDateString("en-NG", { month: "short", day: "numeric" }) : "—";
+
+  // ---------- status chips (always 5 in fixed order) ----------
+  const statusChips = [
+    {
+      key: "buyer-responded",
+      tone: "emerald" as const,
+      label: "Buyer Responded",
+      meta: buyerResponded ? dayLabel(openedAt) : "—",
+      leading: <span className="w-2 h-2 bg-emerald-400 rounded-full" />,
+    },
+    {
+      key: "seller-overdue",
+      tone: "red" as const,
+      label: "Seller Response Overdue",
+      meta: sellerOverdue ? (dueAt ? relTime(dueAt) : "—") : (sellerRespondedAt ? "resolved" : "—"),
+      leading: <span className={cn("w-2 h-2 bg-red-400 rounded-full", sellerOverdue && "animate-pulse")} />,
+    },
+    {
+      key: "evidence-requested",
+      tone: "orange" as const,
+      label: "Evidence Requested",
+      meta: dayLabel(openedAt),
+      leading: <FilePlus2 className="w-3 h-3 text-orange-400" />,
+    },
+    {
+      key: "reminder-sent",
+      tone: "yellow" as const,
+      label: "Reminder Sent",
+      meta: dueAt ? dayLabel(dueAt) : "—",
+      leading: <Bell className="w-3 h-3 text-yellow-400" />,
+    },
+    {
+      key: "deadline-notice",
+      tone: "red" as const,
+      label: "Deadline Notice Sent",
+      meta: dueAt ? dayLabel(dueAt) : "—",
+      leading: <Clock className="w-3 h-3 text-red-400" />,
+    },
+  ];
+  const chipTone: Record<string, string> = {
+    emerald: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
+    red: "bg-red-500/10 border-red-500/30 text-red-400",
+    orange: "bg-orange-500/10 border-orange-500/30 text-orange-400",
+    yellow: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400",
+  };
+  const chipMeta: Record<string, string> = {
+    emerald: "text-emerald-400/60",
+    red: "text-red-400/60",
+    orange: "text-orange-400/60",
+    yellow: "text-yellow-400/60",
+  };
+
+  // ---------- per-tab data ----------
+  const internalMessages: CommMessage[] = (notes ?? []).map((n: any) => ({
+    id: n.id,
+    kind: "internal",
+    senderName: n.author?.full_name ?? "Admin",
+    senderRole: "admin",
+    recipientName: "Internal",
+    recipientRole: "internal",
+    timestamp: fmtDate(n.at),
+    topic: "Internal Note",
+    body: n.note,
+    msgRef: `NOTE-${String(n.id ?? "").slice(0, 4).toUpperCase()}`,
+    footerMeta: (
+      <div className="flex items-center gap-1 text-slate-500">
+        <Lock className="w-3 h-3" /> <span>Visible to admins only</span>
+      </div>
+    ),
+  }));
+
+  const tabAccent: Record<CommTab, { border: string; focus: string; send: string; label: string; placeholder: string }> = {
+    buyer: {
+      border: "border-blue-500",
+      focus: "focus:border-blue-500",
+      send: "bg-blue-500 hover:bg-blue-600",
+      label: "New Message to Buyer",
+      placeholder: `Type your message to ${buyerName ?? "buyer"}...`,
+    },
+    seller: {
+      border: "border-orange-500",
+      focus: "focus:border-orange-500",
+      send: "bg-orange-500 hover:bg-orange-600",
+      label: "New Message to Seller",
+      placeholder: `Type your message to ${sellerName ?? "seller"}...`,
+    },
+    internal: {
+      border: "border-purple-500",
+      focus: "focus:border-purple-500",
+      send: "bg-purple-500 hover:bg-purple-600",
+      label: "New Internal Note",
+      placeholder: "Write an internal note...",
+    },
+  };
+  const accent = tabAccent[activeTab];
+
+  const activeMessages: CommMessage[] =
+    activeTab === "internal" ? internalMessages : [];
+  const emptyText =
+    activeTab === "buyer" ? "No buyer messages yet."
+    : activeTab === "seller" ? "No seller messages yet."
+    : "No internal notes yet.";
+
+  const handleSend = () => {
+    if (activeTab === "internal") {
+      onAddNote();
+    }
+    // buyer/seller messaging not wired yet — visual-only per plan.
+  };
+
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className="bg-muted/40">
-        <TabsTrigger value="buyer" className="gap-1.5"><UserIcon className="h-3.5 w-3.5 text-blue-400" />Buyer Messages</TabsTrigger>
-        <TabsTrigger value="seller" className="gap-1.5"><Store className="h-3.5 w-3.5 text-orange-400" />Seller Messages</TabsTrigger>
-        <TabsTrigger value="internal" className="gap-1.5"><StickyNote className="h-3.5 w-3.5 text-purple-400" />Internal Notes</TabsTrigger>
-      </TabsList>
-      <div className="mt-4 max-h-[600px] overflow-y-auto pr-1 space-y-3">
-        <TabsContent value="buyer" forceMount={activeTab === "buyer" ? true : undefined} className="m-0">
-          {activeTab === "buyer" && <CommEmpty label="No buyer messages available yet" />}
-        </TabsContent>
-        <TabsContent value="seller" forceMount={activeTab === "seller" ? true : undefined} className="m-0">
-          {activeTab === "seller" && <CommEmpty label="No seller messages available yet" />}
-        </TabsContent>
-        <TabsContent value="internal" forceMount={activeTab === "internal" ? true : undefined} className="m-0">
-          {activeTab === "internal" && <NotesList notes={notes} compact />}
-        </TabsContent>
-      </div>
-      <div className="mt-4 pt-4 border-t border-border space-y-3">
-        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Quick Actions</div>
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddNote}><MessageSquare className="h-3.5 w-3.5" />Request Clarification</Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddNote}><FileText className="h-3.5 w-3.5" />Request Evidence</Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddNote}><Clock className="h-3.5 w-3.5" />Send Reminder</Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={onAddNote}><AlertTriangle className="h-3.5 w-3.5" />Send Deadline Notice</Button>
+    <section className="p-0 md:p-2">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        {/* Header */}
+        <div className="p-6 border-b border-slate-800">
+          <h3 className="text-white text-lg font-semibold">Case Communication</h3>
+          <p className="text-slate-400 text-sm mt-1">
+            Structured dispute communication workspace - all messages are logged and auditable
+          </p>
         </div>
-        <div className="rounded-md border border-border bg-background/40 p-3 space-y-2">
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            New message to {recipient}
+
+        {/* Status row */}
+        <div className="px-6 py-4 bg-slate-800/30 border-b border-slate-800">
+          <div className="flex items-center gap-2 mb-3">
+            <Info className="w-4 h-4 text-blue-400" />
+            <span className="text-slate-300 text-xs font-semibold uppercase tracking-wider">
+              Communication Status
+            </span>
           </div>
-          <textarea
-            placeholder={`Type your message to ${recipient}…`}
-            rows={3}
-            className="w-full rounded border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:border-blue-500/40"
-            onFocus={(e) => { e.preventDefault(); e.currentTarget.blur(); onAddNote(); }}
-          />
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" className="gap-1.5" disabled>
-                <FileText className="h-3.5 w-3.5" /> Attach File
-              </Button>
-              <select value={msgType} onChange={(e) => setMsgType(e.target.value)}
-                className="text-xs rounded border border-border bg-background px-2 py-1.5 text-foreground">
-                <option value="general_reply">General Reply</option>
-                <option value="clarification">Clarification Request</option>
-                <option value="evidence_request">Evidence Request</option>
-                <option value="reminder">Reminder</option>
-                <option value="deadline">Deadline Notice</option>
-                <option value="resolution">Resolution Update</option>
-              </select>
+          <div className="flex flex-wrap gap-2">
+            {statusChips.map((c) => (
+              <div
+                key={c.key}
+                className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg border", chipTone[c.tone])}
+              >
+                {c.leading}
+                <span className="text-xs font-medium">{c.label}</span>
+                <span className={cn("text-xs", chipMeta[c.tone])}>{c.meta}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="border-b border-slate-800">
+          <div className="flex gap-1 px-6 overflow-x-auto">
+            {([
+              { id: "buyer" as CommTab, label: "Buyer Messages", icon: <UserIcon className="w-3.5 h-3.5 mr-2 text-blue-400" />, border: "border-blue-500" },
+              { id: "seller" as CommTab, label: "Seller Messages", icon: <Store className="w-3.5 h-3.5 mr-2 text-orange-400" />, border: "border-orange-500" },
+              { id: "internal" as CommTab, label: "Internal Notes", icon: <StickyNote className="w-3.5 h-3.5 mr-2 text-purple-400" />, border: "border-purple-500" },
+            ]).map((t) => {
+              const isActive = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={cn(
+                    "px-4 py-3 text-sm font-medium transition-all inline-flex items-center whitespace-nowrap",
+                    isActive
+                      ? cn("text-white bg-slate-800 border-b-2", t.border)
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                  )}
+                >
+                  {t.icon}{t.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tab content */}
+        <div className="p-6">
+          {/* Thread (only scroll container) */}
+          <div className="space-y-4 mb-6 max-h-[600px] overflow-y-auto pr-2">
+            {activeMessages.length === 0 ? (
+              <div className="text-slate-400 text-sm py-6 text-center">{emptyText}</div>
+            ) : (
+              activeMessages.map((m) => <MessageItem key={m.id} m={m} />)
+            )}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mb-4 pb-4 border-b border-slate-800">
+            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-3">Quick Actions</p>
+            <div className="flex flex-wrap gap-2">
+              <QuickActionChip icon={<HelpCircle className="w-3 h-3 mr-1" />} label="Request Clarification" hoverClass="hover:border-orange-500 hover:text-orange-400" onClick={onAddNote} />
+              <QuickActionChip icon={<FilePlus2 className="w-3 h-3 mr-1" />} label="Request Evidence" hoverClass="hover:border-orange-500 hover:text-orange-400" onClick={onAddNote} />
+              <QuickActionChip icon={<Bell className="w-3 h-3 mr-1" />} label="Send Reminder" hoverClass="hover:border-yellow-500 hover:text-yellow-400" onClick={onAddNote} />
+              <QuickActionChip icon={<Clock className="w-3 h-3 mr-1" />} label="Send Deadline Notice" hoverClass="hover:border-red-500 hover:text-red-400" onClick={onAddNote} />
             </div>
-            <Button
-              size="sm"
-              onClick={onAddNote}
-              className={cn(
-                "gap-1.5",
-                activeTab === "seller" && "bg-orange-600 hover:bg-orange-500 text-white",
-                activeTab === "buyer" && "bg-blue-600 hover:bg-blue-500 text-white",
-                activeTab === "internal" && "bg-purple-600 hover:bg-purple-500 text-white",
-              )}
-            >
-              <Send className="h-3.5 w-3.5" />
-              Send {activeTab === "internal" ? "Note" : `to ${activeTab === "seller" ? "Seller" : "Buyer"}`}
-            </Button>
+          </div>
+
+          {/* Composer */}
+          <div className="bg-slate-800/30 border border-slate-700 rounded-lg p-4">
+            <div className="mb-3">
+              <label className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2 block">
+                {accent.label}
+              </label>
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={4}
+                placeholder={accent.placeholder}
+                className={cn(
+                  "w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-slate-300 text-sm placeholder-slate-500 focus:outline-none resize-none",
+                  accent.focus
+                )}
+              />
+            </div>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button className={cn(
+                  "px-3 py-2 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg transition-all text-xs font-medium inline-flex items-center",
+                  "hover:border-slate-500"
+                )}>
+                  <Paperclip className="w-3 h-3 mr-1" /> Attach File
+                </button>
+                <select
+                  value={msgType}
+                  onChange={(e) => setMsgType(e.target.value)}
+                  className={cn(
+                    "px-3 py-2 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg focus:outline-none text-xs font-medium",
+                    accent.focus
+                  )}
+                >
+                  <option value="general_reply">General Reply</option>
+                  <option value="clarification">Clarification Request</option>
+                  <option value="evidence_request">Evidence Request</option>
+                  <option value="reminder">Reminder</option>
+                  <option value="deadline">Deadline Notice</option>
+                  <option value="resolution">Resolution Update</option>
+                </select>
+              </div>
+              <button
+                onClick={handleSend}
+                className={cn(
+                  "px-5 py-2 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center",
+                  accent.send
+                )}
+              >
+                <Send className="w-3.5 h-3.5 mr-2" />
+                {activeTab === "internal" ? "Save Note" : `Send to ${activeTab === "seller" ? "Seller" : "Buyer"}`}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </Tabs>
+    </section>
   );
 }
-function CommEmpty({ label }: { label: string }) {
+
+function QuickActionChip({ icon, label, hoverClass, onClick }: {
+  icon: React.ReactNode; label: string; hoverClass: string; onClick?: () => void;
+}) {
   return (
-    <div className="rounded-md border border-dashed border-border bg-muted/20 p-6 text-center">
-      <MessageSquare className="mx-auto h-6 w-6 text-muted-foreground" />
-      <div className="mt-2 text-sm text-foreground">{label}</div>
-      <div className="text-xs text-muted-foreground mt-1">
-        Direct dispute messaging is not connected yet. Use Internal Notes to log activity.
+    <button
+      onClick={onClick}
+      className={cn(
+        "px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg transition-all text-xs font-medium inline-flex items-center",
+        hoverClass
+      )}
+    >
+      {icon}{label}
+    </button>
+  );
+}
+
+function MessageItem({ m }: { m: CommMessage }) {
+  const kindStyle: Record<MsgKind, { border: string; bg: string; body: string; badgeBg: string; badgeText: string; badgeIcon: React.ReactNode; badgeLabel: string; accentText: string }> = {
+    deadline: {
+      border: "border-red-500", bg: "bg-slate-800/50", body: "bg-slate-900/50",
+      badgeBg: "bg-red-500/20", badgeText: "text-red-400",
+      badgeIcon: <AlertTriangle className="w-3 h-3" />, badgeLabel: "Deadline Notice",
+      accentText: "text-red-400",
+    },
+    reminder: {
+      border: "border-yellow-500", bg: "bg-slate-800/50", body: "bg-slate-900/50",
+      badgeBg: "bg-yellow-500/20", badgeText: "text-yellow-400",
+      badgeIcon: <Bell className="w-3 h-3" />, badgeLabel: "Reminder",
+      accentText: "text-yellow-400",
+    },
+    seller_reply: {
+      border: "border-orange-500", bg: "bg-orange-500/5", body: "bg-slate-900/70 border border-orange-500/10",
+      badgeBg: "bg-orange-500/20", badgeText: "text-orange-400",
+      badgeIcon: <MessageCircle className="w-3 h-3" />, badgeLabel: "General Reply",
+      accentText: "text-orange-400",
+    },
+    buyer_reply: {
+      border: "border-blue-500", bg: "bg-blue-500/5", body: "bg-slate-900/70 border border-blue-500/10",
+      badgeBg: "bg-blue-500/20", badgeText: "text-blue-400",
+      badgeIcon: <MessageCircle className="w-3 h-3" />, badgeLabel: "General Reply",
+      accentText: "text-blue-400",
+    },
+    evidence_request: {
+      border: "border-slate-500", bg: "bg-slate-800/50", body: "bg-slate-900/50",
+      badgeBg: "bg-slate-700", badgeText: "text-slate-300",
+      badgeIcon: <FilePlus2 className="w-3 h-3" />, badgeLabel: "Evidence Request",
+      accentText: "text-slate-300",
+    },
+    general: {
+      border: "border-slate-500", bg: "bg-slate-800/50", body: "bg-slate-900/50",
+      badgeBg: "bg-slate-700", badgeText: "text-slate-300",
+      badgeIcon: <MessageCircle className="w-3 h-3" />, badgeLabel: "Message",
+      accentText: "text-slate-300",
+    },
+    internal: {
+      border: "border-purple-500", bg: "bg-slate-800/50", body: "bg-slate-900/50",
+      badgeBg: "bg-purple-500/20", badgeText: "text-purple-400",
+      badgeIcon: <StickyNote className="w-3 h-3" />, badgeLabel: "Internal Note",
+      accentText: "text-purple-400",
+    },
+  };
+  const s = kindStyle[m.kind];
+
+  const roleColor = (role: CommMessage["senderRole"] | CommMessage["recipientRole"]) =>
+    role === "seller" ? "text-orange-400"
+    : role === "buyer" ? "text-blue-400"
+    : role === "internal" ? "text-purple-400"
+    : "text-white";
+
+  const rolePillClass = (() => {
+    if (m.senderRole === "seller") return "bg-orange-500/20 text-orange-400";
+    if (m.senderRole === "buyer") return "bg-blue-500/20 text-blue-400";
+    if (m.recipientRole === "internal") return "bg-purple-500/20 text-purple-400";
+    return "bg-slate-700 text-slate-400";
+  })();
+  const rolePillLabel = `${cap(m.senderRole)} → ${cap(m.recipientRole)}`;
+
+  return (
+    <div className={cn("border-l-4 rounded-lg p-4", s.border, s.bg)}>
+      <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+        <div className="flex items-start gap-3 min-w-0">
+          {m.avatarUrl ? (
+            <img src={m.avatarUrl} alt="" className="w-9 h-9 rounded-full ring-2 ring-slate-700 object-cover" />
+          ) : (
+            <div className="w-9 h-9 rounded-full ring-2 ring-slate-700 bg-slate-700 flex items-center justify-center text-[11px] font-semibold text-slate-200">
+              {initials(m.senderName)}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className={cn("font-semibold text-sm", roleColor(m.senderRole))}>{m.senderName}</span>
+              <ArrowRight className="w-3 h-3 text-slate-600" />
+              <span className={cn("font-medium text-sm", roleColor(m.recipientRole))}>{m.recipientName}</span>
+              <span className={cn("px-2 py-0.5 text-xs rounded", rolePillClass)}>{rolePillLabel}</span>
+            </div>
+            <p className="text-slate-400 text-xs">
+              {m.timestamp}{m.topic ? <> • {m.topic}</> : null}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <span className={cn("px-2 py-1 text-xs font-semibold rounded flex items-center gap-1", s.badgeBg, s.badgeText)}>
+            {s.badgeIcon}{s.badgeLabel}
+          </span>
+          {m.msgRef && <span className="text-slate-500 text-xs">#{m.msgRef}</span>}
+        </div>
+      </div>
+
+      <div className={cn("rounded-lg p-3 mb-3", s.body)}>
+        <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{m.body}</p>
+      </div>
+
+      {m.attachments && m.attachments.length > 0 && (
+        <div className="flex gap-2 mb-3 flex-wrap">
+          {m.attachments.map((a, i) => (
+            <div key={i} className="bg-slate-800 border border-slate-700 rounded-lg p-2 flex items-center gap-2 hover:border-orange-500 transition-all cursor-pointer text-xs">
+              <Paperclip className={cn("w-3 h-3", s.accentText)} />
+              <span className="text-slate-300">{a.name}</span>
+              {a.size && <span className="text-slate-500">{a.size}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between pt-2 border-t border-slate-700 gap-2 flex-wrap">
+        <div className="flex items-center gap-3 text-xs">
+          {m.footerMeta ?? (
+            <div className="flex items-center gap-1 text-slate-500">
+              <Check className="w-3 h-3" /> <span>Logged</span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="text-slate-500 hover:text-blue-400 text-xs inline-flex items-center gap-1">
+            <Reply className="w-3 h-3" /> Reply
+          </button>
+          <button className="text-slate-500 hover:text-slate-300 text-xs">
+            <MoreHorizontal className="w-3 h-3" />
+          </button>
+        </div>
       </div>
     </div>
   );
 }
+
+function cap(s: string) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
 // ---------- notes ----------
 function NotesList({ notes, compact }: { notes: any[]; compact?: boolean }) {
