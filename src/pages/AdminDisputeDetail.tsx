@@ -552,13 +552,9 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                     caption="Full amount disputed" />
                   <FinMetric label="Protection Fee" value={ngn(protectionFee)}
                     caption={
-                      protectionFee >= 2500
-                        ? "Capped at ₦2,500"
-                        : protectionFee > 0 && protectionFee <= 250
-                          ? "Minimum ₦250 fee"
-                          : protectionFee > 0 && buyerTotal > 0
-                            ? `${((protectionFee / buyerTotal) * 100).toFixed(1)}% escrow fee · capped at ₦2,500`
-                            : undefined
+                      protectionFee > 0 && buyerTotal > 0
+                        ? `${((protectionFee / buyerTotal) * 100).toFixed(1)}% escrow fee`
+                        : undefined
                     } />
                   <FinMetric label="Funds Status"
                     valueNode={(
