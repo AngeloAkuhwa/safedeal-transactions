@@ -537,58 +537,76 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
             </div>
 
             {/* Financial overview */}
-            <Card>
-              <CardHeader title="Financial Overview & Controls" subtitle="Money state and payout controls for this dispute" />
-              <div className="p-6 space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  <FinStat label="Total Transaction" value={ngn(buyerTotal)} caption={payment?.method ? `Paid via ${titleCase(payment.method)}` : undefined} />
-                  <FinStat label="Amount in Dispute" value={ngn(amountInDispute)} tone="orange" caption="Full amount disputed" />
-                  <FinStat label="Protection Fee" value={ngn(protectionFee)} caption={protectionFee > 0 && buyerTotal > 0 ? `${((protectionFee / buyerTotal) * 100).toFixed(1)}% escrow fee` : undefined} />
-                  <FinStat
-                    label="Funds Status"
-                    value={
-                      <span className="inline-flex items-center gap-2">
-                        <span className={cn("h-2 w-2 rounded-full", moneyDotColor(moneyStatus))} />
-                        <span className={cn(moneyTextColor(moneyStatus))}>{moneyStatusLabel(moneyStatus)}</span>
-                      </span>
-                    }
-                    caption={tx.createdAt ? `Since ${new Date(tx.createdAt).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" })}` : undefined}
-                  />
+            <section className="rounded-[18px] border border-[#253044] bg-[#111827]/80 overflow-hidden">
+              <div className="px-5 py-5 md:px-8 md:py-7 border-b border-[#253044]">
+                <h2 className="text-[22px] md:text-[26px] leading-[30px] md:leading-[32px] font-semibold tracking-[-0.02em] text-[#F8FAFC]">
+                  Financial Overview &amp; Controls
+                </h2>
+                <p className="mt-2 text-[16px] md:text-[20px] leading-[24px] md:leading-[28px] text-[#9CA3AF]">
+                  Money state and payout controls for this dispute
+                </p>
+              </div>
+
+              <div className="px-5 py-6 md:px-8 md:py-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-12 gap-y-8">
+                  <FinMetric label="Total Transaction" value={ngn(buyerTotal)}
+                    caption={payment?.method ? `Paid via ${titleCase(payment.method)}` : undefined} />
+                  <FinMetric label="Amount in Dispute" value={ngn(amountInDispute)} valueColor="#FB923C"
+                    caption="Full amount disputed" />
+                  <FinMetric label="Protection Fee" value={ngn(protectionFee)}
+                    caption={protectionFee > 0 && buyerTotal > 0
+                      ? `${((protectionFee / buyerTotal) * 100).toFixed(1)}% escrow fee` : undefined} />
+                  <FinMetric label="Funds Status"
+                    valueNode={(
+                      <div className="mt-4 flex items-center gap-3" style={{ color: "#FACC15" }}>
+                        <span className="h-4 w-4 rounded-full shrink-0" style={{ background: "#FACC15" }} />
+                        <span className="text-[26px] md:text-[30px] xl:text-[34px] leading-[32px] md:leading-[38px] xl:leading-[40px] font-semibold tracking-[-0.03em] xl:whitespace-nowrap">
+                          {moneyStatusLabel(moneyStatus)}
+                        </span>
+                      </div>
+                    )}
+                    caption={tx.createdAt
+                      ? `Since ${new Date(tx.createdAt).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" })}`
+                      : undefined} />
                 </div>
-                <div className="h-px bg-border" />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <FinStat label="Eligible Refund Amount" value={ngn(eligibleRefund)} tone="success" />
-                  <FinStat label="Eligible Release Amount" value={ngn(eligibleRelease)} tone="info" caption="After fees" />
-                  <FinStat
-                    label="Payout Status"
-                    value={
-                      <span className="inline-flex items-center gap-2">
-                        <span className={cn("h-2 w-2 rounded-full", payoutDotColor(payout, !resolvedAt))} />
-                        <span className={cn(payoutTextColor(payout, !resolvedAt))}>{payoutLabel(payout, moneyStatus, !resolvedAt)}</span>
-                      </span>
-                    }
-                    caption={!resolvedAt ? "Pending resolution" : undefined}
-                  />
+
+                <div className="my-8 md:my-10 h-px bg-[#253044]" />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-16 gap-y-8">
+                  <FinMetric label="Eligible Refund Amount" value={ngn(eligibleRefund)} valueColor="#6EE7B7" />
+                  <FinMetric label="Eligible Release Amount" value={ngn(eligibleRelease)} valueColor="#60A5FA"
+                    caption="After fees" />
+                  <FinMetric label="Payout Status"
+                    valueNode={(
+                      <div className="mt-4 flex items-start gap-3" style={{ color: "#F87171" }}>
+                        <span className="mt-3 h-4 w-4 rounded-full shrink-0" style={{ background: "#EF4444" }} />
+                        <span className="text-[26px] md:text-[30px] xl:text-[34px] leading-[32px] md:leading-[38px] xl:leading-[40px] font-semibold tracking-[-0.03em]">
+                          {payoutLabel(payout, moneyStatus, !resolvedAt)}
+                        </span>
+                      </div>
+                    )}
+                    caption={!resolvedAt ? "Pending resolution" : undefined} />
                 </div>
               </div>
+
               {!resolvedAt && moneyStatus === "funds_pending_release" && (
-                <div className="mx-5 mb-5 rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-200">
+                <div className="mx-5 md:mx-8 mb-5 md:mb-8 rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-200">
                   <AlertTriangle className="inline h-4 w-4 mr-1.5" />
                   Active dispute — release is blocked until the dispute is resolved.
                 </div>
               )}
               {moneyStatus === "funds_frozen" && (
-                <div className="mx-5 mb-5 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
+                <div className="mx-5 md:mx-8 mb-5 md:mb-8 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
                   <Snowflake className="inline h-4 w-4 mr-1.5" />
                   Funds are frozen. No payouts or refunds will process automatically.
                 </div>
               )}
               {refundedAmount > 0 && (
-                <div className="mx-5 mb-5 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-200">
+                <div className="mx-5 md:mx-8 mb-5 md:mb-8 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-200">
                   Refunded so far: <span className="font-semibold">{ngn(refundedAmount)}</span>
                 </div>
               )}
-            </Card>
+            </section>
 
             {/* Locked agreement (read-only preview) */}
             {lockedAgreement && (
