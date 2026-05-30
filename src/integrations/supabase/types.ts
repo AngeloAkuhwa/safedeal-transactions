@@ -4210,6 +4210,7 @@ export type Database = {
         | "admin_flag_review"
         | "admin_escalate_dispute"
         | "admin_internal_note"
+        | "admin_resolve_dispute"
       buyer_specific_offer_status:
         | "pending_claim"
         | "linked"
@@ -4599,6 +4600,7 @@ export const Constants = {
         "admin_flag_review",
         "admin_escalate_dispute",
         "admin_internal_note",
+        "admin_resolve_dispute",
       ],
       buyer_specific_offer_status: [
         "pending_claim",
