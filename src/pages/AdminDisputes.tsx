@@ -528,7 +528,7 @@ export default function AdminDisputes() {
             ) : (
               <>
                 {/* Desktop table */}
-                <div className="hidden lg:block w-full">
+                <div className="hidden xl:block w-full">
                   <table className="w-full table-fixed text-sm">
                     <colgroup>
                       <col style={{ width: "10%" }} />
