@@ -691,7 +691,10 @@ export default function AdminTransactionDetail() {
             </div>
           </div>
 
-          {/* High-risk banner */}
+          {/* Risk banner — red only when there is an active blocker.
+              An amber "pending release review" banner shows when the
+              dispute is resolved but the seller payout still needs
+              admin sign-off. */}
           {showHighRisk && (
             <div className="rounded-xl border border-red-500/40 bg-red-500/15 p-4 flex items-start gap-3">
               <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-300">
@@ -699,7 +702,10 @@ export default function AdminTransactionDetail() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-red-200">
-                  {data.risk?.level === "escalated" ? "High Risk — Escalated" : "High Risk Transaction"}
+                  {active.isFrozen ? "Funds Frozen" :
+                   active.isInvestigationActive ? "Active Investigation" :
+                   data.risk?.level === "escalated" ? "High Risk — Escalated" :
+                   "High Risk Transaction"}
                 </div>
                 <div className="mt-0.5 text-xs text-red-300/90">
                   {data.risk?.adminReviewReason ?? "Manual review required before any release."}
@@ -712,11 +718,24 @@ export default function AdminTransactionDetail() {
                   </div>
                 )}
               </div>
-              {adminCan.canOpenInvestigation && (
+              {showInvestigateCTA && adminCan.canOpenInvestigation && (
                 <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white shrink-0" onClick={() => setInvestigateOpen(true)}>
                   <Search className="h-4 w-4 mr-1.5" /> Investigate
                 </Button>
               )}
+            </div>
+          )}
+          {showReleaseReviewBanner && (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 flex items-start gap-3">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-300">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-amber-200">Pending release review</div>
+                <div className="mt-0.5 text-xs text-amber-300/90">
+                  Dispute resolved in favour of the seller. Seller payout is awaiting release.
+                </div>
+              </div>
             </div>
           )}
 
@@ -800,7 +819,17 @@ export default function AdminTransactionDetail() {
                   <div className={cn(
                     "text-base lg:text-lg font-semibold tabular-nums",
                     tx.moneyStatus === "funds_frozen" ? "text-cyan-300" : "text-purple-400",
-                  )}>{ngn(escrowDisplay.value)}</div>
+                  )}>{ngn(
+                    // For "Awaiting Release", bind to seller payout, not buyer total.
+                    (tx.moneyStatus === "funds_pending_release" || tx.moneyStatus === "funds_releasing")
+                      ? sellerPayoutAmount
+                      : escrowDisplay.value,
+                  )}</div>
+                  {(tx.moneyStatus === "funds_pending_release" || tx.moneyStatus === "funds_releasing") && (
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      Seller payout (item total)
+                    </div>
+                  )}
                 </div>
               </div>
 
