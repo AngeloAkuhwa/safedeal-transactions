@@ -539,7 +539,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
           <div className="px-6 py-6 lg:px-8 lg:py-8 space-y-8">
 
             {/* Buyer + Seller cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <PartyCard role="buyer" party={parties.buyer} />
               <PartyCard role="seller" party={parties.seller} />
             </div>
