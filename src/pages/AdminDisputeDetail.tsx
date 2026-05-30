@@ -1500,10 +1500,10 @@ function CaseCommunicationSection(props: {
           <div className="mb-4 pb-4 border-b border-slate-800">
             <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-3">Quick Actions</p>
             <div className="flex flex-wrap gap-2">
-              <QuickActionChip icon={<HelpCircle className="w-3 h-3 mr-1" />} label="Request Clarification" hoverClass="hover:border-orange-500 hover:text-orange-400" onClick={onAddNote} />
-              <QuickActionChip icon={<FilePlus2 className="w-3 h-3 mr-1" />} label="Request Evidence" hoverClass="hover:border-orange-500 hover:text-orange-400" onClick={onAddNote} />
-              <QuickActionChip icon={<Bell className="w-3 h-3 mr-1" />} label="Send Reminder" hoverClass="hover:border-yellow-500 hover:text-yellow-400" onClick={onAddNote} />
-              <QuickActionChip icon={<Clock className="w-3 h-3 mr-1" />} label="Send Deadline Notice" hoverClass="hover:border-red-500 hover:text-red-400" onClick={onAddNote} />
+              <QuickActionChip disabled icon={<HelpCircle className="w-3 h-3 mr-1" />} label="Request Clarification" hoverClass="hover:border-orange-500 hover:text-orange-400" title="Outbound messaging not yet wired" />
+              <QuickActionChip disabled icon={<FilePlus2 className="w-3 h-3 mr-1" />} label="Request Evidence" hoverClass="hover:border-orange-500 hover:text-orange-400" title="Outbound messaging not yet wired" />
+              <QuickActionChip disabled icon={<Bell className="w-3 h-3 mr-1" />} label="Send Reminder" hoverClass="hover:border-yellow-500 hover:text-yellow-400" title="Outbound messaging not yet wired" />
+              <QuickActionChip disabled icon={<Clock className="w-3 h-3 mr-1" />} label="Send Deadline Notice" hoverClass="hover:border-red-500 hover:text-red-400" title="Outbound messaging not yet wired" />
             </div>
           </div>
 
@@ -1550,9 +1550,12 @@ function CaseCommunicationSection(props: {
               </div>
               <button
                 onClick={handleSend}
+                disabled={activeTab !== "internal"}
+                title={activeTab !== "internal" ? "Outbound messaging not yet wired" : undefined}
                 className={cn(
                   "px-5 py-2 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center",
-                  accent.send
+                  accent.send,
+                  activeTab !== "internal" && "opacity-50 cursor-not-allowed"
                 )}
               >
                 <Send className="w-3.5 h-3.5 mr-2" />
@@ -1566,15 +1569,17 @@ function CaseCommunicationSection(props: {
   );
 }
 
-function QuickActionChip({ icon, label, hoverClass, onClick }: {
-  icon: React.ReactNode; label: string; hoverClass: string; onClick?: () => void;
+function QuickActionChip({ icon, label, hoverClass, onClick, disabled, title }: {
+  icon: React.ReactNode; label: string; hoverClass: string; onClick?: () => void; disabled?: boolean; title?: string;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
+      title={title}
       className={cn(
         "px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg transition-all text-xs font-medium inline-flex items-center",
-        hoverClass
+        disabled ? "opacity-50 cursor-not-allowed" : hoverClass
       )}
     >
       {icon}{label}
