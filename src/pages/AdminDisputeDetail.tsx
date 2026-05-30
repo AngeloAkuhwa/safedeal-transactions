@@ -468,8 +468,8 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
   return (
     <AdminLayout title="Dispute" hideDefaultHeaders fullBleed fullHeight>
-      <div className="flex flex-col xl:flex-row xl:h-full xl:min-h-0">
-        <section className="flex-1 min-w-0 xl:h-full xl:overflow-y-auto overflow-x-hidden">
+      <div className="flex flex-col xl:flex-row h-full min-h-0">
+        <section className="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden">
           {header}
 
           {/* Summary strip — scrolls under the sticky header */}
