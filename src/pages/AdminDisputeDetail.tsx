@@ -38,6 +38,8 @@ import { InternalNoteDialog } from "@/components/admin/transactions/InternalNote
 import { EvidencePreviewDialog } from "@/components/admin/transactions/EvidencePreviewDialog";
 import { AgreementPreviewDialog } from "@/components/admin/transactions/AgreementPreviewDialog";
 import type { AdminTxEvidenceItem } from "@/services/admin-transaction-detail.service";
+import { deriveActiveState, nextActionLabelFor } from "@/lib/admin-active-state";
+import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 
 // ---------- helpers ----------
 const ngn = (v: number | null | undefined) => formatMoney(Number(v ?? 0), "NGN");
@@ -330,15 +332,30 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
   // SLA / overdue derivation
   const dueAt = row.seller_response_due_at ?? dispute.sellerResponseDueAt ?? null;
   const resolvedAt = row.resolved_at ?? dispute.resolvedAt ?? null;
-  const overdue = !!(dueAt && !resolvedAt && new Date(dueAt).getTime() < Date.now());
+
+  // Derived active-state (single source of truth for badges/banners/sidebar)
+  const active = useMemo(
+    () =>
+      deriveActiveState({
+        dispute: { status: row.status, seller_response_due_at: dueAt, resolved_at: resolvedAt },
+        investigation: (txDetail as any).investigation ?? null,
+        moneyStatus,
+        escrow,
+        risk: txDetail.risk ?? null,
+        payout,
+        needsReleaseReview: !!tx.needsAdminReview,
+      }),
+    [row.status, dueAt, resolvedAt, txDetail, moneyStatus, escrow, payout, tx.needsAdminReview],
+  );
+  const overdue = active.isOverdue;
   const slaText = useMemo(() => {
-    if (resolvedAt) return null;
+    if (active.isDisputeResolved) return null;
     if (!dueAt) return null;
     const diff = new Date(dueAt).getTime() - Date.now();
     const days = Math.round(Math.abs(diff) / 86400000);
     if (overdue) return `${days} day${days === 1 ? "" : "s"} overdue`;
     return `Due in ${days} day${days === 1 ? "" : "s"}`;
-  }, [dueAt, resolvedAt, overdue]);
+  }, [dueAt, active.isDisputeResolved, overdue]);
 
   // ---------- action handlers ----------
   const txId: string = tx.id ?? row.transaction_id;
@@ -620,13 +637,13 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                 </div>
               </div>
 
-              {!resolvedAt && moneyStatus === "funds_pending_release" && (
+              {active.isDisputeActive && moneyStatus === "funds_pending_release" && (
                 <div className="mx-5 md:mx-8 mb-5 md:mb-8 rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-200">
                   <AlertTriangle className="inline h-4 w-4 mr-1.5" />
                   Active dispute — release is blocked until the dispute is resolved.
                 </div>
               )}
-              {moneyStatus === "funds_frozen" && (
+              {active.isFrozen && (
                 <div className="mx-5 md:mx-8 mb-5 md:mb-8 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
                   <Snowflake className="inline h-4 w-4 mr-1.5" />
                   Funds are frozen. No payouts or refunds will process automatically.
@@ -745,10 +762,11 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
             <Card>
               <CardHeader title="Case Timeline" />
               <div className="p-5">
-                <Timeline
-                  items={dedupeTimeline(filterDisputeTimeline(timeline))}
+                <AdminCaseTimeline
+                  items={timeline as any}
                   disputeStatus={row.status}
                   resolvedAt={resolvedAt}
+                  filterDisputeOnly
                 />
               </div>
             </Card>

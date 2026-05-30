@@ -45,6 +45,8 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { deriveDisputeDisplay } from "@/lib/dispute-display-status";
+import { deriveActiveState } from "@/lib/admin-active-state";
+import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 
 const ngn = (v: number | null | undefined) => formatMoney(v ?? 0, "NGN");
 
@@ -341,6 +343,22 @@ export default function AdminTransactionDetail() {
   const disputeResolved = !!disputeDisplay?.resolved;
   const disputeOpen = !!dispute && !disputeResolved && dispute.status !== "closed";
 
+  // Centralised active-state — overrides ad-hoc `disputeOpen` / `funds_frozen`
+  // checks so resolved/unfrozen cases drop their banners immediately.
+  const active = useMemo(
+    () =>
+      deriveActiveState({
+        dispute: dispute ?? null,
+        investigation: (data as any)?.investigation ?? null,
+        moneyStatus: tx?.moneyStatus ?? null,
+        escrow: (data?.escrow as any) ?? null,
+        risk: data?.risk ?? null,
+        payout: (data as any)?.payout ?? null,
+        needsReleaseReview: !!(data as any)?.transaction?.needsAdminReview,
+      }),
+    [dispute, data, tx?.moneyStatus],
+  );
+
   const toneToClasses = (tone: string | undefined) => {
     switch (tone) {
       case "danger": return "bg-red-500/15 text-red-300 border-red-500/30";
@@ -354,9 +372,12 @@ export default function AdminTransactionDetail() {
   const code = tx?.transactionCode ?? transactionId?.slice(0, 8) ?? "";
   const itemTitle = data?.items?.[0]?.title ?? "Transaction";
 
+  // Accent derives strictly from *current* active blockers, never historical
+  // state. Once funds are unfrozen or the dispute is resolved, the page tone
+  // returns to neutral immediately.
   const accent: "red" | "orange" | "none" =
-    tx?.moneyStatus === "funds_frozen" ? "red"
-    : disputeOpen ? "orange"
+    active.isFrozen ? "red"
+    : active.isDisputeActive ? "orange"
     : "none";
 
   const escrowDisplay = useMemo(
@@ -368,16 +389,18 @@ export default function AdminTransactionDetail() {
   const synthesizedFlags = useMemo(() => {
     if (!data) return [];
     const out: { label: string; severity: "low" | "medium" | "high" }[] = [];
-    if (tx?.moneyStatus === "funds_frozen") out.push({ label: "Funds frozen", severity: "high" });
-    if (disputeOpen) {
+    if (active.isFrozen) out.push({ label: "Funds frozen", severity: "high" });
+    if (active.isDisputeActive) {
       out.push({ label: "Dispute open", severity: "medium" });
     }
-    if (dispute?.overdue) out.push({ label: "Dispute response overdue", severity: "high" });
+    if (active.isOverdue) out.push({ label: "Dispute response overdue", severity: "high" });
+    if (active.isEscalated) out.push({ label: "Dispute escalated", severity: "high" });
+    if (active.isInvestigationActive) out.push({ label: "Investigation open", severity: "medium" });
     const total = Number(data.pricing?.buyerTotal ?? 0);
     if (total >= 500_000) out.push({ label: "High-value transaction", severity: "medium" });
     if (data.parties?.buyer?.flagged) out.push({ label: "Buyer account flagged", severity: "high" });
     return out;
-  }, [data, tx?.moneyStatus, dispute, disputeOpen]);
+  }, [data, active]);
 
   const allFlags = useMemo(() => {
     const seen = new Set<string>();
@@ -450,8 +473,9 @@ export default function AdminTransactionDetail() {
   const showHighRisk =
     data?.risk?.level === "high" ||
     data?.risk?.level === "escalated" ||
-    tx?.moneyStatus === "funds_frozen" ||
-    !!dispute ||
+    active.isFrozen ||
+    active.isDisputeActive ||
+    active.isInvestigationActive ||
     allFlagsCount > 0;
 
   const liveDotCls =
@@ -926,32 +950,11 @@ export default function AdminTransactionDetail() {
               {filteredTimeline.length === 0 ? (
                 <Empty>No events recorded.</Empty>
               ) : (
-                <div className="relative">
-                  <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" aria-hidden />
-                  <ol className="relative space-y-5">
-                    {visibleTimeline.map((e) => {
-                      const m = timelineMeta(e.icon, e.severity);
-                      const Icon = m.Icon;
-                      return (
-                        <li key={e.id} className="flex gap-4">
-                          <div className={cn("h-8 w-8 rounded-full border-2 flex items-center justify-center shrink-0 relative z-10", m.cls)}>
-                            <Icon className="h-3.5 w-3.5" />
-                          </div>
-                          <div className="flex-1 min-w-0 pb-1">
-                            <div className="flex items-start justify-between gap-2 mb-1">
-                              <h4 className="text-sm font-medium text-foreground">{titleCase(e.title)}</h4>
-                              <span className="text-xs text-muted-foreground whitespace-nowrap">{fmtDate(e.at)}</span>
-                            </div>
-                            {e.description && <p className="text-xs text-muted-foreground">{e.description}</p>}
-                            {(e.actorName || e.actorType) && (
-                              <div className="text-[11px] text-muted-foreground mt-0.5">by {e.actorName ?? e.actorType}</div>
-                            )}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </div>
+                <AdminCaseTimeline
+                  items={(showFullTimeline ? filteredTimeline : filteredTimeline.slice(0, 12)) as any}
+                  disputeStatus={dispute?.status ?? null}
+                  resolvedAt={dispute?.resolvedAt ?? null}
+                />
               )}
               {filteredTimeline.length > 8 && (
                 <div className="mt-4">
