@@ -803,8 +803,8 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
           </div>
         </section>
 
-        {/* Right resolution sidebar (desktop) */}
-        <aside className="hidden lg:block lg:w-[380px] lg:shrink-0 lg:border-l lg:min-h-0 lg:overflow-y-auto bg-card">
+        {/* Right resolution sidebar (desktop) — scrolls independently of main content */}
+        <aside className="hidden lg:block lg:w-[380px] lg:shrink-0 lg:border-l lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto bg-card">
           <ResolutionSidebar
               disputeStatus={row.status}
               overdue={overdue}
