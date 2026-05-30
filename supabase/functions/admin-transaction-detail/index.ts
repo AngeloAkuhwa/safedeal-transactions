@@ -311,17 +311,41 @@ Deno.serve(async (req) => {
     seller: buildParty(tx.seller_id, "seller"),
   };
 
-  const pricingOut = pricing ? {
-    currency: pricing.currency_code,
-    itemTotal: num(pricing.item_amount),
-    protectionFee: num(pricing.platform_fee_amount),
-    processingFee: num(pricing.processing_fee_amount),
-    sellerNet: num(pricing.seller_net_amount),
-    buyerTotal: num(pricing.buyer_total_amount),
-    refundedTotal: (refundsRes.data ?? [])
+  const pricingOut = (() => {
+    if (!pricing) return null;
+    const MAX_PROTECTION_FEE = 2500;
+    const itemTotal = num(pricing.item_amount);
+    const rawProtection = num(pricing.platform_fee_amount);
+    const protectionFee = Math.min(rawProtection, MAX_PROTECTION_FEE);
+    // Payment processing fee: prefer transaction_pricing.processing_fee_amount,
+    // fall back to payments row if present, else 0.
+    const processingFromPricing = num(pricing.processing_fee_amount);
+    const processingFromPayment = paymentRes.data ? num((paymentRes.data as any).fee_amount) : 0;
+    const paymentProcessingFee = processingFromPricing > 0
+      ? processingFromPricing
+      : processingFromPayment;
+    const totalCharged = itemTotal + protectionFee + paymentProcessingFee;
+    // Seller payout = item total minus SafeDeal protection fee (buyer bears the
+    // payment processing fee on top, seller is not charged for it).
+    const sellerNet = Math.max(itemTotal - protectionFee, 0);
+    const refundedTotal = (refundsRes.data ?? [])
       .filter((r: any) => r.status === "completed")
-      .reduce((acc: number, r: any) => acc + Number(r.refund_amount ?? 0), 0),
-  } : null;
+      .reduce((acc: number, r: any) => acc + Number(r.refund_amount ?? 0), 0);
+    return {
+      currency: pricing.currency_code,
+      itemTotal,
+      protectionFee,
+      protectionFeeRaw: rawProtection,
+      protectionFeeCapped: rawProtection > MAX_PROTECTION_FEE,
+      paymentProcessingFee,
+      processingFee: paymentProcessingFee, // back-compat alias
+      totalCharged,
+      buyerTotal: totalCharged, // back-compat alias
+      sellerNet,
+      sellerPayoutAmount: sellerNet,
+      refundedTotal,
+    };
+  })();
   const payment = paymentRes.data ? {
     id: paymentRes.data.id,
     provider: paymentRes.data.provider,

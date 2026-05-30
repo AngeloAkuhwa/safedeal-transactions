@@ -87,7 +87,7 @@ export interface AdminTxDetailResponse {
   transaction: any;
   parties: { buyer: AdminTxParty | null; seller: AdminTxParty | null };
   items: AdminTxItem[];
-  pricing: any | null;
+  pricing: (AdminTxPricing & Record<string, any>) | null;
   payment: any | null;
   escrow: { ledger: AdminTxLedgerEntry[]; [k: string]: any } | null;
   payout: any | null;
@@ -99,6 +99,23 @@ export interface AdminTxDetailResponse {
   adminActionsAvailable: Record<string, boolean>;
   evidence?: AdminTxEvidenceItem[];
   lockedAgreement?: AdminTxLockedAgreement | null;
+}
+
+export interface AdminTxPricing {
+  currency: string;
+  itemTotal: number;
+  protectionFee: number;
+  protectionFeeRaw?: number;
+  protectionFeeCapped?: boolean;
+  paymentProcessingFee: number;
+  /** @deprecated use paymentProcessingFee */
+  processingFee?: number;
+  totalCharged: number;
+  /** @deprecated use totalCharged */
+  buyerTotal: number;
+  sellerNet: number;
+  sellerPayoutAmount: number;
+  refundedTotal: number;
 }
 
 export async function getAdminTransactionDetailFull(

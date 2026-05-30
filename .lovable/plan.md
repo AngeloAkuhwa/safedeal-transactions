@@ -1,156 +1,148 @@
 ## Goal
 
-Finish the post-resolution state cleanup on Admin Dispute Detail + Admin Transaction Detail, and fix the new issues visible in the screenshots: misleading "High Risk" banner, stale `manual_hold` flag, `Dispute: Resolved` rendered as a red risk chip, wrong `Awaiting Release` amount, and inconsistent header math/CTAs.
+Correct the fee naming, breakdown, and reconciliation on Admin Transaction Detail and Admin Dispute Detail. Always cap Protection Fee at ₦2,500. Remove Delivery Fee from SafeDeal's admin fee reconciliation. Separate Protection Fee from Payment Processing Fee everywhere.
 
-Do not build the payout screen. Do not call Paystack transfer. Only fix what the user asked for.
-
----
-
-## A. Issues visible in the screenshots
-
-Transaction shown: SD-2026-000003. Dispute resolved, outcome = `release_funds_to_seller`. Money status = `funds_pending_release`. Escrow no longer frozen.
-
-1. **Red "High Risk Transaction — Investigate" banner is still loud** even though there is no active blocker. Active state for this row is only `needs_release_review` (seller-won, awaiting payout). It should not look like a fraud/risk emergency.
-2. **`manual_hold` chip** appears as a red risk flag. After resolution this is no longer an active hold — it is historical. Either drop it or recolor as neutral.
-3. **`Dispute: Resolved` rendered as a red risk chip.** Resolved is a positive terminal state; it must never appear in the active risk-flag list. It already lives in the dispute status badge + timeline.
-4. **`High-value transaction` styled red.** This is informational, not high-risk; should be a neutral/info chip.
-5. **"Open Investigation" CTA** is shown even though all investigations on this case are resolved/dismissed per the timeline. After resolution this button should only appear if no active investigation exists AND the dispute is not resolved, or be relabeled "Reopen Investigation" with a confirm dialog.
-6. **"Manage Dispute" CTA (orange)** duplicates the header `View Dispute` action and reads as if the case is still actionable. After resolution it should be `View Dispute` (neutral), opening the read-only dispute detail.
-7. **Header `Awaiting Release` = ₦676,000 is wrong.** Awaiting Release is the seller payout amount = `item_total` (i.e. `₦650,000`), not the buyer's `total_charged`. Protection fee is SafeDeal revenue, never paid to seller.
-8. **Total Charged math (₦650,000 + ₦16,250 ≠ ₦676,000)** is off by ₦9,750. Either a hidden delivery fee is rolled in or pricing is double-counting. The header must show a breakdown that reconciles: `Item Total + Protection Fee (+ Delivery Fee if any) = Total Charged`.
-9. **Payout Status pill is empty (`—`).** After a seller-won resolution it should show `Pending Release` (linked to release-review queue) with timestamp.
+No payout screen, no Paystack transfer, no other redesign.
 
 ---
 
-## B. Remaining work from the previous plan (items 1–6)
+## 1. Pricing — enforce ₦2,500 cap on Protection Fee (display only)
 
-10. **Dispute Detail sidebar — full post-resolution mode.**  When `active.isDisputeResolved`, also disable:
-    - `Mark High Risk`, `Mark Fraud Watch`
-    - `Move to Under Review`, `Escalate Further`, `Request More Evidence`
-    - `Open Investigation`
-    Keep enabled: `Add Internal Note`, `View Linked Transaction`, `View Payment / Escrow / Payout Record` (when wired), `Print`, `Export`.
+The existing pricing calculator (`src/lib/pricing.ts` + `supabase/functions/_shared/pricing.ts`) already caps `service_fee_amount` at ₦2,500 — but legacy `transaction_pricing.platform_fee_amount` rows (e.g. SD-2026-000003 = ₦16,250) bypass this. We will enforce the cap at read-time without altering DB rows or fee calculator logic.
 
-11. **Real Resolution Summary panel** (replaces the current buyer/seller party cards block titled "Resolution Summary"):
-    - Status: Resolved (green chip)
-    - Outcome: `refund_buyer | release_funds_to_seller | partial_refund_release | close_case_without_resolution`
-    - Decision summary text
-    - Resolved by + Resolved at
-    - Next-action chip via `nextActionLabelFor(outcome)` (already exists in `src/lib/admin-active-state.ts`)
-    Buyer/Seller cards move below as "Case Parties Summary".
+**Edit `supabase/functions/admin-transaction-detail/index.ts` (`pricingOut` block):**
 
-12. **Transaction Detail header status fallback.** When `active.isDisputeResolved`, header status pill must show the underlying `transactions.status` (`Resolved`, `Pending Release`, `Completed`, etc.) instead of "Disputed" / "In Dispute".
+- After reading `pricing.platform_fee_amount` and `pricing.processing_fee_amount` (Paystack/provider fee), compute:
+  ```ts
+  const MAX_PROTECTION_FEE = 2500;
+  const rawProtection = num(pricing.platform_fee_amount);
+  const processingFee = num(pricing.processing_fee_amount);
+  const protectionFee = Math.min(rawProtection, MAX_PROTECTION_FEE);
+  const itemTotal = num(pricing.item_amount);
+  const totalCharged = itemTotal + protectionFee + processingFee;
+  const sellerNet = Math.max(itemTotal - protectionFee, 0); // payment processing fee is buyer-borne
+  ```
+- Replace existing `pricingOut` shape with:
+  ```ts
+  {
+    currency, itemTotal,
+    protectionFee,           // capped
+    protectionFeeRaw: rawProtection, // for audit tooltip
+    protectionFeeCapped: rawProtection > MAX_PROTECTION_FEE,
+    paymentProcessingFee: processingFee,
+    totalCharged,            // = item + protection + processing
+    buyerTotal: totalCharged, // back-compat alias (deprecate in UI)
+    sellerNet, sellerPayoutAmount: sellerNet,
+    refundedTotal,
+  }
+  ```
+- Ensure `processing_fee_amount` is selected from `transaction_pricing` (already is) and from the Paystack `payments` row as fallback when null. Never merge it into protection fee.
 
-13. **`needs_admin_review` server-side recompute.** Migration adding `public.recompute_needs_admin_review(tx_id uuid)` that sets the column to:
-    ```
-    EXISTS active_dispute
-    OR EXISTS active_investigation
-    OR money_status = 'funds_frozen'
-    OR EXISTS unresolved release-review entry
-    OR risk_level IN ('high','critical') AND not_acknowledged
-    ```
-    Called at the end of every admin RPC: `resolve_dispute`, `freeze`/`unfreeze`, `upsert_investigation`, `flag_for_review`.
+**Edit `src/services/admin-transaction-detail.service.ts`:** widen `pricing` type with the new fields (`paymentProcessingFee`, `totalCharged`, `sellerPayoutAmount`, `protectionFeeCapped`, `protectionFeeRaw`).
 
-14. **Refresh after every admin action.** In `AdminDisputeDetail` and `AdminTransactionDetail`, every action handler must `await refetch()` before re-enabling the button. Currently only some do.
-
----
-
-## C. Implementation details
-
-### 1. `src/pages/AdminTransactionDetail.tsx` — header & risk banner
-
-- Replace the single `accent="red"` banner with a two-tier banner:
-  - `red` only if `active.isFrozen` or `active.isInvestigationActive` or risk level `critical`.
-  - `amber` if `active.needsReleaseReview` only (banner title "Pending release review", neutral icon, no "Investigate" CTA — link to release-review queue instead).
-  - hidden otherwise.
-- "Investigate" CTA shown only when `active.isInvestigationActive || risk.level === 'high' || risk.level === 'critical'`. Otherwise hide.
-- Header KPI strip: rename `AWAITING RELEASE` → keep the label but bind value to `pricing.itemTotal` (seller payout), not `pricing.buyerTotal`. Source from existing `data.pricing.sellerPayoutAmount` if present; fall back to `data.escrow.heldAmount` minus `protectionFee`.
-- Add a `DELIVERY FEE` cell only when `pricing.deliveryFee > 0`, so `Item + Protection + Delivery = Total Charged` reconciles. If `Total Charged` still disagrees with the sum, show the breakdown tooltip with the raw fields.
-- Payout Status pill: read from `data.payout?.status`. When null and `active.needsReleaseReview`, render `Pending Release`. When `data.payout?.releasedAt` exists, render `Released · <date>`.
-- "Manage Dispute" CTA: when `active.isDisputeResolved`, swap label to `View Dispute` and use neutral variant.
-
-### 2. `src/pages/AdminTransactionDetail.tsx` — Risk & Investigation card
-
-- Stop rendering `Dispute: Resolved` in the risk-flag pill list. Filter out any flag whose label starts with `Dispute:` if `active.isDisputeResolved`.
-- `manual_hold` chip: keep only if release-review entry is still open. Otherwise hide.
-- Tone map for flag chips:
-  - `funds_frozen`, `dispute_open`, `dispute_overdue`, `fraud_watch`, `investigation_open`, `risk:high|critical` → red
-  - `manual_hold` (when active), `dispute_escalated` (when active) → orange
-  - `high_value`, `repeat_buyer`, informational → neutral/slate
-- Rename "Escalation History" → "Admin Action History" (it already contains freeze/unfreeze/escalate rows).
-- "High Risk Transaction" header chip only when `risk.level === 'high' || 'critical'` AND there is at least one active blocker; otherwise render `Risk Review` neutral.
-
-### 3. `src/pages/AdminDisputeDetail.tsx`
-
-- Extend `isResolved` gating to all destructive/state-changing sidebar buttons listed in B.10.
-- Build the real `ResolutionSummary` block as described in B.11, placed at the top of the right sidebar when `active.isDisputeResolved`. Move the existing buyer/seller party cards into a separate `CaseParties` block below.
-- Header status pill uses `DisputeStatusBadge` derived label; on resolved cases also render `Resolved · <fmtDate(resolvedAt)>`.
-- Every action handler: `await refetch()` before clearing local pending state.
-
-### 4. `src/lib/admin-active-state.ts`
-
-- Add helper `riskBannerTone(active, riskLevel)` returning `'red' | 'amber' | 'none'` per the rules in C.1, so both pages share the same banner logic.
-- Add helper `visibleRiskFlags(rawFlags, active)` that filters out historical flags (`Dispute: Resolved`, dismissed-investigation, stale `manual_hold`).
-
-### 5. New migration — `recompute_needs_admin_review`
-
-```sql
-CREATE OR REPLACE FUNCTION public.recompute_needs_admin_review(p_tx_id uuid)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_active boolean;
-BEGIN
-  SELECT
-       EXISTS (SELECT 1 FROM disputes
-               WHERE transaction_id = p_tx_id
-                 AND status IN ('open','seller_response_pending','under_review','escalated'))
-    OR EXISTS (SELECT 1 FROM investigations
-               WHERE transaction_id = p_tx_id
-                 AND status IN ('open','in_progress','investigating'))
-    OR EXISTS (SELECT 1 FROM transactions
-               WHERE id = p_tx_id AND money_status = 'funds_frozen')
-    OR EXISTS (SELECT 1 FROM release_review_queue
-               WHERE transaction_id = p_tx_id AND status = 'open')
-  INTO v_active;
-  UPDATE transactions SET needs_admin_review = v_active WHERE id = p_tx_id;
-END $$;
-
-GRANT EXECUTE ON FUNCTION public.recompute_needs_admin_review(uuid) TO service_role;
-```
-Then call `PERFORM public.recompute_needs_admin_review(tx_id);` at the end of:
-- `resolve_dispute_v1`
-- `admin_freeze_transaction` / `admin_unfreeze_transaction`
-- `upsert_investigation`
-- `flag_for_review`
-
-### 6. Edge function `admin-transaction-detail`
-
-- Ensure response includes `payout.status`, `payout.releasedAt`, `pricing.sellerPayoutAmount`, `pricing.deliveryFee`, and `investigations[]` (latest 5). These drive C.1 + C.2 — if any are missing today, add them.
+**Do not** modify `src/lib/pricing.ts` / `_shared/pricing.ts` — they already enforce the cap correctly for new transactions.
 
 ---
 
-## Files
+## 2. Admin Transaction Detail — header KPI strip
 
-Edit:
-- `src/pages/AdminTransactionDetail.tsx`
-- `src/pages/AdminDisputeDetail.tsx`
-- `src/lib/admin-active-state.ts`
-- `src/services/admin-transaction-detail.service.ts` (typing)
-- `supabase/functions/admin-transaction-detail/index.ts` (extra fields if missing)
-- `supabase/functions/admin-transaction-actions/index.ts` (call recompute at end of each action)
+**File:** `src/pages/AdminTransactionDetail.tsx` (lines 795–833)
 
-New:
-- One migration: `recompute_needs_admin_review` function
+Replace the 6-tile grid (`Transaction Status · Money Status · Item Total · Protection Fee · Total Charged · Awaiting Release`) with **two rows**:
 
-Not in this pass:
-- No payout screen
-- No Paystack transfer
-- No unrelated redesigns
+Row 1 — buyer-side reconciliation:
+1. Transaction Status
+2. Money Status
+3. Item Total → `pricing.itemTotal`
+4. Protection Fee → `pricing.protectionFee` (capped) — tooltip "SafeDeal protection/platform fee". If `protectionFeeCapped`, show small `(capped @ ₦2,500)` hint.
+5. Payment Processing Fee → `pricing.paymentProcessingFee` — tooltip "Payment vendor fee from Paystack, Flutterwave, or the active payment provider"
+6. Total Charged → `pricing.totalCharged` — tooltip "Item Total + Protection Fee + Payment Processing Fee"
+
+Row 2 — seller-side payout (rendered only when `moneyStatus ∈ {funds_held_in_escrow, funds_pending_release, funds_releasing, funds_released}`):
+- Single tile: `escrowDisplay.label` ("Awaiting Release" / "Released to Seller" / "Held in Escrow") → `pricing.sellerPayoutAmount` — subtitle "Seller-side amount after applicable deductions".
+
+Remove Delivery Fee tile entirely. Remove the "(item total)" subtitle and replace with the wording above.
 
 ---
+
+## 3. Admin Transaction Detail — supplementary sections
+
+**Lines 1463–1485 ("Pricing & Fees" + "Delivery extras"):**
+
+Pricing & Fees grid replace with exactly:
+- Item Total → `itemTotal`
+- Protection Fee → `protectionFee` (with `(capped)` chip if applicable)
+- Payment Processing Fee → `paymentProcessingFee`
+- Total Charged → `totalCharged` (bold)
+- Seller Net → `sellerPayoutAmount`
+- Refunded → `refundedTotal`
+
+Keep the existing "Delivery extras" block (method, address, deliveredAt) but it must not include any monetary amount — drop any `deliveryFee` / `shippingFee` rendering. (Spot-check this section is purely logistical, no money rows.)
+
+**Line 1265 ("Fee Deducted" in Escrow Ledger):** keep showing `-{protectionFee}` (capped value) — accurate now.
+
+**Line 1189 (Locked Agreement Terms):** keep "Protection Fee" wording; do not add Processing Fee here (locked snapshot is historical).
+
+---
+
+## 4. Admin Dispute Detail — financial overview
+
+**File:** `src/pages/AdminDisputeDetail.tsx` (around lines 597–630)
+
+Keep the existing two-row `FinMetric` layout. Only correct the values and labels:
+
+Top row (4 tiles): Total Transaction · Amount in Dispute · Protection Fee · Funds Status
+- `Total Transaction` → `pricing.totalCharged` (was `buyerTotal`). Hover tooltip: `Item ₦X + Protection ₦Y + Payment Processing ₦Z`.
+- `Protection Fee` → `pricing.protectionFee` (capped). Tooltip: "SafeDeal protection/platform fee".
+- Other two unchanged.
+
+Second row (3 tiles): Eligible Refund Amount · Eligible Release Amount · Payout Status — unchanged.
+
+Add a small line item or tooltip under Total Transaction showing `Payment Processing Fee: ₦{paymentProcessingFee}` — do not promote it into its own KPI tile, do not mix it into Protection Fee.
+
+Remove any Delivery Fee mention.
+
+---
+
+## 5. Wording lock
+
+Search-and-replace audit in both pages. Required labels exactly:
+- `Protection Fee`
+- `Payment Processing Fee`
+- `Total Charged`
+- `Seller Net`
+- `Awaiting Release`
+- `Released to Seller`
+
+Forbidden (must not appear): `Processing Fee` (alone), `Protection & Processing Fee`, `SafeDeal Processing Fee`, `Delivery Fee`, `Shipping Fee`, `Fulfillment Fee`.
+
+Exception: `Processing Fee` already appears at line 1470 — rename to `Payment Processing Fee`. The escrow-ledger "Fee Deducted" row stays "Fee Deducted" (it's a ledger entry label, not a fee name).
+
+---
+
+## 6. Backend field coverage
+
+If `transaction_pricing.processing_fee_amount` is null for legacy rows, fall back to `payments.fee_amount` (Paystack's reported fee). If both null, render `—` in UI and skip from Total Charged math (`totalCharged = itemTotal + protectionFee`).
+
+---
+
+## Files touched
+
+- `supabase/functions/admin-transaction-detail/index.ts` — pricing shape + cap enforcement
+- `src/services/admin-transaction-detail.service.ts` — typing
+- `src/pages/AdminTransactionDetail.tsx` — header KPI strip, Pricing & Fees grid, label sweep
+- `src/pages/AdminDisputeDetail.tsx` — financial overview values + tooltip + label sweep
+
+## Not in this pass
+
+- No change to fee calculator logic itself (`src/lib/pricing.ts`, `_shared/pricing.ts`) — cap is already correct there.
+- No backfill of legacy `transaction_pricing` rows.
+- No payout screen, no Paystack transfer, no other redesign.
+- The previously-flagged but separate items (`recompute_needs_admin_review` wiring, refetch-after-action sweep, header status fallback) are tracked but **not** in this pass unless you say otherwise.
 
 ## Acceptance
 
-- Resolved dispute with `funds_pending_release`: header shows amber "Pending release review" (not red "High Risk"); no "Investigate" CTA; `Manage Dispute` becomes `View Dispute`; risk flag list excludes `Dispute: Resolved` and stale `manual_hold`; `Awaiting Release` equals seller payout (item total), not buyer total; `Total Charged` reconciles with displayed line items.
-- Resolved dispute sidebar shows Resolution Summary (status/outcome/decision/resolved-by/next-action) and disables all state-changing buttons.
-- `needs_admin_review` flips false automatically once all active blockers clear.
-- Every admin action triggers refetch before re-enabling its button.
-- Transaction list, transaction detail, dispute queue, and dispute detail stay consistent.
+- SD-2026-000003 header shows: Item ₦650,000 · Protection ₦2,500 (capped) · Payment Processing ₦{actual} · Total Charged = sum. Seller payout tile shows `Awaiting Release ₦{itemTotal − ₦2,500}`.
+- Dispute Detail financial top row shows Total Transaction reconciling against the three components in tooltip.
+- Zero occurrences of `Delivery Fee` / `Shipping Fee` in admin transaction or dispute detail.
+- Zero occurrences of bare `Processing Fee` outside the explicit `Payment Processing Fee` label.
