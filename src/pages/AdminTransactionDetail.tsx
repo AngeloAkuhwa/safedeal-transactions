@@ -473,8 +473,9 @@ export default function AdminTransactionDetail() {
   const showHighRisk =
     data?.risk?.level === "high" ||
     data?.risk?.level === "escalated" ||
-    tx?.moneyStatus === "funds_frozen" ||
-    !!dispute ||
+    active.isFrozen ||
+    active.isDisputeActive ||
+    active.isInvestigationActive ||
     allFlagsCount > 0;
 
   const liveDotCls =
