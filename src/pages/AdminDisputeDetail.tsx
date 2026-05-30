@@ -2057,14 +2057,14 @@ function Timeline({ items, disputeStatus, resolvedAt }: {
   }
 
   return (
-    <div className="relative pl-5 border-l border-border space-y-5">
+    <div className="space-y-4">
       {header && (
-        <div className="relative">
+        <div className="flex items-center gap-2">
           <span className={cn(
-            "absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full",
+            "h-2.5 w-2.5 rounded-full shrink-0",
             TIMELINE_TONE[header.tone],
           )} />
-          <div className={cn(
+          <span className={cn(
             "text-sm font-semibold",
             header.tone === "green" && "text-emerald-300",
             header.tone === "orange" && "text-orange-300",
@@ -2072,18 +2072,16 @@ function Timeline({ items, disputeStatus, resolvedAt }: {
             header.tone === "blue" && "text-blue-300",
           )}>
             {header.label}
-          </div>
+          </span>
         </div>
       )}
       {rows.map((r) => (
-        <div key={r.raw.id} className="relative">
-          <div className="flex items-baseline justify-between gap-3">
-            <div className="text-sm font-medium text-foreground">{r.title}</div>
-          </div>
+        <div key={r.raw.id} className="border-l-2 border-border/60 pl-4 py-0.5">
+          <div className="text-sm font-semibold text-foreground">{r.title}</div>
           {r.description && (
-            <div className="text-xs text-muted-foreground mt-0.5">{r.description}</div>
+            <div className="text-xs text-muted-foreground mt-1">{r.description}</div>
           )}
-          <div className="text-[11px] text-muted-foreground mt-0.5">
+          <div className="text-[11px] text-muted-foreground mt-1.5">
             {fmtDate(r.raw.at)}
             {r.raw.type === "admin_action" && (
               <> · by {r.actor ?? "SafeDeal Admin"}</>
