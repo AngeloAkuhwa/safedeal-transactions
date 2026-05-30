@@ -860,99 +860,116 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
   if (!party) {
     return (
       <Card>
-        <CardHeader title={role === "buyer" ? "Buyer Information" : "Seller Information"} />
-        <div className="p-5 text-sm text-muted-foreground">No {role} on this transaction.</div>
+        <div className="p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">
+            {role === "buyer" ? "Buyer Information" : "Seller Information"}
+          </h2>
+          <div className="text-sm text-muted-foreground">No {role} on this transaction.</div>
+        </div>
       </Card>
     );
   }
   const ver = party.verification ?? {};
   const isBuyer = role === "buyer";
   const roleChipCls = isBuyer
-    ? "bg-blue-500/15 text-blue-300 border-blue-500/30"
-    : "bg-orange-500/15 text-orange-300 border-orange-500/30";
+    ? "bg-blue-500/15 text-blue-400"
+    : "bg-orange-500/15 text-orange-400";
   const callBtnCls = isBuyer
     ? "bg-blue-600 hover:bg-blue-500 text-white border-transparent"
     : "bg-orange-600 hover:bg-orange-500 text-white border-transparent";
   const sellerTier: string | null = !isBuyer && party.sellerTier ? party.sellerTier : null;
+  const accountStatusValue = isBuyer
+    ? <span className={cn(party.accountStatus === "good_standing" ? "text-emerald-400" : "text-foreground")}>{titleCase(party.accountStatus) || "—"}</span>
+    : (party.payoutStatus === "blocked"
+        ? <span className="text-red-400">Blocked</span>
+        : <span className="text-foreground">{titleCase(party.payoutStatus) || "—"}</span>);
+  const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
+    <div className="min-w-0">
+      <div className="text-sm text-muted-foreground">{label}</div>
+      <div className="text-sm text-foreground mt-1 break-words">{value}</div>
+    </div>
+  );
   return (
     <Card>
-      <CardHeader
-        title={isBuyer ? "Buyer Information" : "Seller Information"}
-        action={
-          <span className={cn("inline-flex items-center rounded border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider", roleChipCls)}>
+      <div className="p-6">
+        {/* Title row — no border */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-foreground">
+            {isBuyer ? "Buyer Information" : "Seller Information"}
+          </h2>
+          <span className={cn(
+            "inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider",
+            roleChipCls,
+          )}>
             {isBuyer ? "Buyer" : "Seller"}
           </span>
-        }
-      />
-      <div className="p-6 space-y-5">
-        <div className="flex items-start gap-3">
+        </div>
+
+        {/* Identity row */}
+        <div className="flex items-center gap-3 mb-5">
           <Avatar name={party.name} src={party.avatarUrl} size={48} />
           <div className="min-w-0 flex-1">
             <div className="text-base font-semibold text-foreground truncate">{party.name ?? "—"}</div>
-            <div className="text-xs text-muted-foreground truncate">User ID: {party.id?.slice(0, 16) ?? "—"}</div>
+            <div className="text-sm text-muted-foreground truncate">User ID: {party.id?.slice(0, 16) ?? "—"}</div>
           </div>
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            {!isBuyer && sellerTier ? (
-              <span className="inline-flex items-center gap-1 text-xs text-yellow-400">
-                <Star className="h-3.5 w-3.5 fill-yellow-400" /> {titleCase(sellerTier)} Seller
-              </span>
-            ) : ver.identity ? (
-              <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Verified
-              </span>
-            ) : null}
-            {party.flagged && (
-              <span className="inline-flex items-center gap-1 text-xs text-red-400">
-                <AlertTriangle className="h-3.5 w-3.5" /> Flagged
-              </span>
-            )}
-          </div>
+          {!isBuyer && sellerTier ? (
+            <span className="inline-flex items-center gap-1 text-sm text-yellow-400 shrink-0">
+              <Star className="h-4 w-4 fill-yellow-400" /> {titleCase(sellerTier)} Seller
+            </span>
+          ) : ver.identity ? (
+            <span className="inline-flex items-center gap-1 text-sm text-emerald-400 shrink-0">
+              <CheckCircle2 className="h-4 w-4" /> Verified
+            </span>
+          ) : null}
         </div>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <KV label="Email" value={<span className="text-sm">{party.maskedEmail ?? "—"}</span>} />
-          <KV label="Phone" value={<span className="text-sm">{party.maskedPhone ?? "—"}</span>} />
-          <KV label="Prior Disputes" value={party.priorDisputes != null ? `${party.priorDisputes} ${isBuyer ? "filed" : "received"}` : "—"} />
-          <KV
-            label={isBuyer ? "Account Status" : "Payout Status"}
-            value={
-              isBuyer
-                ? <span className={cn(party.accountStatus === "good_standing" ? "text-emerald-400" : "text-foreground")}>{titleCase(party.accountStatus) || "—"}</span>
-                : (party.payoutStatus === "blocked"
-                    ? <span className="text-red-400">Blocked</span>
-                    : <span className="text-foreground">{titleCase(party.payoutStatus) || "—"}</span>)
-            }
-          />
+
+        {/* Details grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+          <Field label="Email" value={party.maskedEmail ?? "—"} />
+          <Field label="Phone" value={party.maskedPhone ?? "—"} />
+          <Field label="Prior Disputes" value={party.priorDisputes != null ? `${party.priorDisputes} ${isBuyer ? "filed" : "received"}` : "—"} />
+          <Field label={isBuyer ? "Account Status" : "Payout Status"} value={accountStatusValue} />
         </div>
-        <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+
+        {/* Primary action row */}
+        <div className="flex gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
-              <span>
-                <Button size="sm" disabled className={cn("w-full gap-1.5 h-9", callBtnCls, "opacity-100")}>
-                  <Phone className="h-3.5 w-3.5" /> Call
+              <span className="flex-1">
+                <Button size="sm" disabled className={cn("w-full gap-1.5 h-10 rounded-lg", callBtnCls, "opacity-100")}>
+                  <Phone className="h-4 w-4" /> Call
                 </Button>
               </span>
             </TooltipTrigger>
             <TooltipContent>Direct calling not connected yet</TooltipContent>
           </Tooltip>
-          <ContactBtn icon={<Mail className="h-3.5 w-3.5" />} label="Email" disabled tip="Direct email not connected yet" />
+          <ContactBtn
+            className="flex-1 h-10 rounded-lg"
+            icon={<Mail className="h-4 w-4" />}
+            label="Email"
+            disabled
+            tip="Direct email not connected yet"
+          />
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button size="sm" variant="outline" className="h-9 w-9 p-0" onClick={() => navigate(`/admin/users/${party.id}`)} aria-label="Profile">
-                <UserIcon className="h-3.5 w-3.5" />
+              <Button size="sm" variant="outline" className="h-10 w-10 p-0 rounded-lg shrink-0" onClick={() => navigate(`/admin/users/${party.id}`)} aria-label="Profile">
+                <UserIcon className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Open profile</TooltipContent>
           </Tooltip>
         </div>
-        <div className="pt-4 border-t border-border">
-          <div className="grid grid-cols-3 gap-2">
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/users/${party.id}`)}>
+
+        {/* Only internal divider, then secondary action row */}
+        <div className="mt-5 pt-5 border-t border-border">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <Button size="sm" variant="outline" className="gap-1.5 rounded-lg" onClick={() => navigate(`/admin/users/${party.id}`)}>
               <UserIcon className="h-3.5 w-3.5" /> View Profile
             </Button>
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
+            <Button size="sm" variant="outline" className="gap-1.5 rounded-lg" onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
               <Scale className="h-3.5 w-3.5" /> Dispute History
             </Button>
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
+            <Button size="sm" variant="outline" className="gap-1.5 rounded-lg" onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
               <Receipt className="h-3.5 w-3.5" /> Transactions
             </Button>
           </div>
@@ -962,16 +979,16 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
   );
 }
 
-function ContactBtn({ icon, label, disabled, tip }: { icon: React.ReactNode; label: string; disabled?: boolean; tip?: string }) {
+function ContactBtn({ icon, label, disabled, tip, className }: { icon: React.ReactNode; label: string; disabled?: boolean; tip?: string; className?: string }) {
   const btn = (
-    <Button size="sm" variant="outline" disabled={disabled} className="gap-1.5">
+    <Button size="sm" variant="outline" disabled={disabled} className={cn("gap-1.5", className)}>
       {icon} {label}
     </Button>
   );
   if (!disabled || !tip) return btn;
   return (
     <Tooltip>
-      <TooltipTrigger asChild><span>{btn}</span></TooltipTrigger>
+      <TooltipTrigger asChild><span className={className?.includes("flex-1") ? "flex-1" : undefined}>{btn}</span></TooltipTrigger>
       <TooltipContent>{tip}</TooltipContent>
     </Tooltip>
   );
