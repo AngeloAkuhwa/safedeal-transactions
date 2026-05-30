@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { Menu } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
@@ -77,6 +78,16 @@ export function AdminLayout({
           )}
         </div>
       </div>
+      {hideDefaultHeaders && !mobileHeaderSlot && (
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Open navigation menu"
+          className="fixed left-3 top-3 z-50 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-lg backdrop-blur hover:bg-muted lg:hidden"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
       <AdminReadingModeControl variant="mobile-floater" />
       <AdminReadingModeControl variant="desktop-floater" />
     </div>
