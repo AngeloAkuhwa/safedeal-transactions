@@ -87,7 +87,7 @@ export interface AdminTxDetailResponse {
   transaction: any;
   parties: { buyer: AdminTxParty | null; seller: AdminTxParty | null };
   items: AdminTxItem[];
-  pricing: AdminTxPricing | null;
+  pricing: (AdminTxPricing & Record<string, any>) | null;
   payment: any | null;
   escrow: { ledger: AdminTxLedgerEntry[]; [k: string]: any } | null;
   payout: any | null;
