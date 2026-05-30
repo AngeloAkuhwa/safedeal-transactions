@@ -1,5 +1,8 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { installAuthTokenResilience } from "@/lib/auth-token";
+
+installAuthTokenResilience();
 
 createRoot(document.getElementById("root")!).render(<App />);
