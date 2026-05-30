@@ -92,16 +92,19 @@ function buildQuery(params: DisputeQueueParams): string {
   return s ? `?${s}` : "";
 }
 
-async function authedFetch(path: string): Promise<Response> {
-  // Force a token refresh if the cached session is expired, so the edge
-  // function doesn't reject us with "Invalid session".
+async function resolveSession() {
   let { data: sessionData } = await supabase.auth.getSession();
-  let session = sessionData?.session;
+  let session = sessionData?.session ?? null;
   const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
-  if (session && expiresAt && expiresAt - Date.now() < 60_000) {
+  if (!session || (expiresAt && expiresAt - Date.now() < 60_000)) {
     const { data: refreshed } = await supabase.auth.refreshSession();
     session = refreshed?.session ?? session;
   }
+  return session;
+}
+
+async function authedFetch(path: string): Promise<Response> {
+  const session = await resolveSession();
   if (!session) {
     if (typeof window !== "undefined") window.location.replace("/auth");
     return new Promise<Response>(() => {});
@@ -117,8 +120,26 @@ async function authedFetch(path: string): Promise<Response> {
   });
 }
 
+async function fetchWithRetry(path: string): Promise<Response> {
+  let res: Response;
+  try {
+    res = await authedFetch(path);
+  } catch {
+    await new Promise((r) => setTimeout(r, 600));
+    return await authedFetch(path);
+  }
+  if (res.status === 401) {
+    await supabase.auth.refreshSession();
+    res = await authedFetch(path);
+  } else if (res.status >= 500) {
+    await new Promise((r) => setTimeout(r, 600));
+    res = await authedFetch(path);
+  }
+  return res;
+}
+
 export async function getAdminDisputesQueue(params: DisputeQueueParams = {}): Promise<DisputeQueueResponse> {
-  const res = await authedFetch(buildQuery(params));
+  const res = await fetchWithRetry(buildQuery(params));
   if (res.status === 401) {
     if (typeof window !== "undefined") window.location.replace("/auth");
     return new Promise<DisputeQueueResponse>(() => {});
