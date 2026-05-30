@@ -602,7 +602,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                     </Button>
                   }
                 />
-                <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="p-5 md:p-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-10 gap-y-6 text-sm">
                   <KV label="Item" value={lockedAgreement.item?.title ?? "—"} />
                   <KV label="Condition" value={lockedAgreement.item?.condition ?? "—"} />
                   <KV label="Agreed Price" value={ngn(lockedAgreement.agreedPrice)} />
@@ -611,7 +611,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                   <KV label="Locked At" value={fmtDate(lockedAgreement.lockedAt)} />
                   <KV label="Total" value={ngn(lockedAgreement.total)} />
                   {lockedAgreement.sellerNotes && (
-                    <KV className="col-span-2 md:col-span-4" label="Seller Notes" value={<span className="text-muted-foreground">{lockedAgreement.sellerNotes}</span>} />
+                    <KV className="sm:col-span-2 xl:col-span-4" label="Seller Notes" value={<span className="text-muted-foreground">{lockedAgreement.sellerNotes}</span>} />
                   )}
                 </div>
               </Card>
