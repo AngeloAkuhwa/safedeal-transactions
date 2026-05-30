@@ -1080,7 +1080,7 @@ function EvidenceGrid({ items, onPreview, emptyText }: {
     return <div className="text-xs text-muted-foreground">{emptyText}</div>;
   }
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
       {items.map((ev) => {
         const Icon = evidenceIcon(ev.kind, ev.mimeType);
         const isImage = (ev.mimeType ?? "").startsWith("image/") || ev.kind === "image";
@@ -1089,18 +1089,27 @@ function EvidenceGrid({ items, onPreview, emptyText }: {
             key={ev.id}
             type="button"
             onClick={() => onPreview(ev)}
-            className="group rounded-md border border-border bg-background hover:border-blue-500/40 hover:bg-muted/40 overflow-hidden text-left"
+            className="group flex flex-col rounded-xl border border-border bg-muted/20 hover:border-blue-500/40 hover:bg-muted/40 overflow-hidden text-left min-w-0"
           >
-            <div className="aspect-square bg-muted/40 flex items-center justify-center overflow-hidden">
+            <div className="aspect-[4/3] bg-muted/40 flex items-center justify-center overflow-hidden">
               {isImage && ev.secureUrl ? (
-                <img src={ev.secureUrl} alt={ev.title} className="h-full w-full object-cover" loading="lazy" />
+                <img
+                  src={ev.secureUrl}
+                  alt={ev.title}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    img.style.display = "none";
+                  }}
+                />
               ) : (
-                <Icon className="h-8 w-8 text-muted-foreground" />
+                <Icon className="h-10 w-10 text-muted-foreground" />
               )}
             </div>
-            <div className="px-2 py-2 text-[11px] leading-tight">
-              <div className="font-medium text-foreground truncate">{ev.title}</div>
-              <div className="text-muted-foreground truncate">
+            <div className="p-3 border-t border-border min-w-0">
+              <div className="text-sm font-medium text-foreground truncate" title={ev.title}>{ev.title}</div>
+              <div className="text-xs text-muted-foreground truncate">
                 {titleCase(ev.uploadedByRole)} · {relTime(ev.uploadedAt)}
               </div>
             </div>
