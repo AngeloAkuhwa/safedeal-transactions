@@ -2197,7 +2197,7 @@ function LinkedTile({ icon, title, subtitle, onClick, tone = "blue", showDot = f
 
 // ---------- resolution sidebar ----------
 function ResolutionSidebar({
-  disputeStatus, overdue, resolvedAt, moneyStatus, adminCan, dueAt,
+  disputeStatus, overdue, resolvedAt, moneyStatus, adminCan, dueAt, outcome,
   parties, buyerClaim, sellerResponded, txId,
   onResolve, onMoveReview, onEscalate, onHighRisk, onFraud, onClose, onAddNote,
 }: {
@@ -2207,6 +2207,7 @@ function ResolutionSidebar({
   moneyStatus: string | null;
   adminCan: Record<string, boolean>;
   dueAt: string | null;
+  outcome?: { type?: string | null; summary?: string | null; refundAmount?: number | null; releaseAmount?: number | null; resolvedAt?: string | null } | null;
   parties: { buyer: any; seller: any };
   buyerClaim: string | null;
   sellerResponded: boolean;
@@ -2223,9 +2224,61 @@ function ResolutionSidebar({
   const canManage = !!adminCan.canManageDispute;
   const isResolved = !!resolvedAt || disputeStatus === "resolved" || disputeStatus === "closed" || disputeStatus === "dismissed";
   const navigate = useNavigate();
+  const outcomeLabelMap: Record<string, { label: string; tone: string }> = {
+    refund_buyer: { label: "Refund to Buyer", tone: "text-emerald-300" },
+    release_funds_to_seller: { label: "Release to Seller", tone: "text-blue-300" },
+    partial_refund_release: { label: "Partial Refund + Release", tone: "text-purple-300" },
+    close_case_without_resolution: { label: "Closed Without Resolution", tone: "text-muted-foreground" },
+  };
+  const outcomeMeta = outcome?.type ? outcomeLabelMap[outcome.type] : null;
+  const nextActionText = nextActionLabelFor(outcome?.type ?? null);
 
   return (
     <div className="p-5 space-y-6">
+      {/* Post-resolution panel: shows ONLY when the case is resolved. */}
+      {isResolved && (
+        <div>
+          <div className="text-base font-semibold text-foreground mb-3">Resolution Summary</div>
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                Resolved
+              </span>
+              {resolvedAt && (
+                <span className="text-[11px] text-muted-foreground">{fmtDate(resolvedAt)}</span>
+              )}
+            </div>
+            {outcomeMeta && (
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Outcome</div>
+                <div className={cn("mt-0.5 text-sm font-semibold", outcomeMeta.tone)}>{outcomeMeta.label}</div>
+              </div>
+            )}
+            {outcome?.summary && (
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Decision summary</div>
+                <p className="mt-0.5 text-sm text-foreground/90 whitespace-pre-wrap">{outcome.summary}</p>
+              </div>
+            )}
+            {(Number(outcome?.refundAmount ?? 0) > 0 || Number(outcome?.releaseAmount ?? 0) > 0) && (
+              <div className="flex flex-wrap gap-3 text-xs">
+                {Number(outcome?.refundAmount ?? 0) > 0 && (
+                  <span className="text-muted-foreground">Refund: <span className="text-foreground font-semibold tabular-nums">{ngn(outcome?.refundAmount)}</span></span>
+                )}
+                {Number(outcome?.releaseAmount ?? 0) > 0 && (
+                  <span className="text-muted-foreground">Release: <span className="text-foreground font-semibold tabular-nums">{ngn(outcome?.releaseAmount)}</span></span>
+                )}
+              </div>
+            )}
+            <div className="rounded-md border border-border bg-muted/30 px-3 py-2">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Next action</div>
+              <div className="mt-0.5 text-sm text-foreground">{nextActionText}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Resolution Status */}
       <div>
         <div className="text-base font-semibold text-foreground mb-3">Resolution Status</div>
@@ -2279,9 +2332,13 @@ function ResolutionSidebar({
           iconColor="text-orange-400" iconBg="bg-orange-500/10" />
         <SidebarBtn icon={<AlertTriangle />} label="Mark High Risk"
           onClick={onHighRisk}
+          disabled={isResolved}
+          tip={isResolved ? "Case already resolved" : undefined}
           iconColor="text-red-400" iconBg="bg-red-500/10" />
         <SidebarBtn icon={<ShieldAlert />} label="Mark Fraud Watch"
           onClick={onFraud}
+          disabled={isResolved}
+          tip={isResolved ? "Case already resolved" : undefined}
           iconColor="text-red-400" iconBg="bg-red-500/10" />
       </SidebarGroup>
 
@@ -2326,7 +2383,7 @@ function ResolutionSidebar({
           iconColor="text-purple-400" iconBg="bg-purple-500/10" />
         <SidebarBtn icon={<Search />} label="Open Investigation" disabled
           iconColor="text-orange-400" iconBg="bg-orange-500/10"
-          tip="Investigation workflow not connected yet" />
+          tip={isResolved ? "Case already resolved" : "Investigation workflow not connected yet"} />
         <SidebarBtn icon={<CreditCard />} label="View Linked Transaction"
           onClick={() => navigate(`/admin/transactions/${txId}`)}
           iconColor="text-blue-400" iconBg="bg-blue-500/10" />
