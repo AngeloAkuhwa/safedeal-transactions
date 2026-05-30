@@ -468,70 +468,62 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
   return (
     <AdminLayout title="Dispute" hideDefaultHeaders fullBleed fullHeight>
-      <div className="flex h-full min-h-0">
-        <section className="flex-1 min-w-0 h-full overflow-y-auto">
+      <div className="flex flex-col xl:flex-row xl:h-full xl:min-h-0">
+        <section className="flex-1 min-w-0 xl:h-full xl:overflow-y-auto overflow-x-hidden">
           {header}
 
           {/* Summary strip — scrolls under the sticky header */}
           <div className="bg-card border-b border-border">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-5 px-6 py-6 lg:px-8">
-              <div className="flex flex-col gap-4 min-w-0">
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Dispute ID</div>
-                  <div className="mt-1 text-sm font-semibold text-foreground font-mono truncate">#{disputeCode}</div>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Transaction</div>
-                  <button
-                    onClick={() => navigate(`/admin/transactions/${txId}`)}
-                    className="mt-1 block text-sm font-semibold text-blue-400 hover:text-blue-300 font-mono truncate"
-                  >
-                    {txCode}
-                  </button>
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-x-6 gap-y-5 px-6 py-6 lg:px-8">
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Dispute ID</div>
+                <div className="text-sm font-semibold text-foreground font-mono truncate">#{disputeCode}</div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Transaction</div>
+                <button
+                  onClick={() => navigate(`/admin/transactions/${txId}`)}
+                  className="block text-sm font-semibold text-blue-400 hover:text-blue-300 font-mono truncate max-w-full"
+                >
+                  {txCode}
+                </button>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Amount in Dispute</div>
+                <div className="text-sm font-semibold text-foreground truncate">{ngn(amountInDispute)}</div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Dispute Reason</div>
+                <div className="text-sm font-semibold text-orange-400 truncate">
+                  {titleCase(row.reason ?? dispute.claimType) || "—"}
                 </div>
               </div>
-              <div className="flex flex-col gap-4 min-w-0">
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Amount in Dispute</div>
-                  <div className="mt-1 text-sm font-semibold text-foreground truncate">{ngn(amountInDispute)}</div>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Dispute Reason</div>
-                  <div className="mt-1 text-sm font-semibold text-orange-400 truncate">
-                    {titleCase(row.reason ?? dispute.claimType) || "—"}
-                  </div>
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Created</div>
+                <div className="text-sm font-semibold text-foreground truncate">
+                  {fmtDate(row.opened_at ?? dispute.openedAt)}
                 </div>
               </div>
-              <div className="flex flex-col gap-4 min-w-0">
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Created</div>
-                  <div className="mt-1 text-sm font-semibold text-foreground truncate">
-                    {fmtDate(row.opened_at ?? dispute.openedAt)}
-                  </div>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Last Activity</div>
-                  <div className="mt-1 text-sm font-semibold text-foreground truncate">
-                    {fmtDate(tx.updatedAt ?? tx.updated_at)}
-                  </div>
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Last Activity</div>
+                <div className="text-sm font-semibold text-foreground truncate">
+                  {fmtDate(tx.updatedAt ?? tx.updated_at)}
                 </div>
               </div>
-              <div className="flex flex-col gap-4 min-w-0">
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</div>
-                  <div className="mt-1"><StatusPill value={row.status} /></div>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Assigned Agent</div>
-                  {dispute.assignedAgent?.name ? (
-                    <div className="mt-1 flex items-center gap-2 min-w-0">
-                      <Avatar name={dispute.assignedAgent.name} src={dispute.assignedAgent.avatarUrl} size={20} />
-                      <span className="text-sm font-semibold text-foreground truncate">{dispute.assignedAgent.name}</span>
-                    </div>
-                  ) : (
-                    <div className="mt-1 text-sm text-muted-foreground">Unassigned</div>
-                  )}
-                </div>
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Status</div>
+                <div><StatusPill value={row.status} /></div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Assigned Agent</div>
+                {dispute.assignedAgent?.name ? (
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar name={dispute.assignedAgent.name} src={dispute.assignedAgent.avatarUrl} size={20} />
+                    <span className="text-sm font-semibold text-foreground truncate">{dispute.assignedAgent.name}</span>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">Unassigned</div>
+                )}
               </div>
             </div>
           </div>
@@ -610,7 +602,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                     </Button>
                   }
                 />
-                <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="p-5 md:p-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-10 gap-y-6 text-sm">
                   <KV label="Item" value={lockedAgreement.item?.title ?? "—"} />
                   <KV label="Condition" value={lockedAgreement.item?.condition ?? "—"} />
                   <KV label="Agreed Price" value={ngn(lockedAgreement.agreedPrice)} />
@@ -619,7 +611,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                   <KV label="Locked At" value={fmtDate(lockedAgreement.lockedAt)} />
                   <KV label="Total" value={ngn(lockedAgreement.total)} />
                   {lockedAgreement.sellerNotes && (
-                    <KV className="col-span-2 md:col-span-4" label="Seller Notes" value={<span className="text-muted-foreground">{lockedAgreement.sellerNotes}</span>} />
+                    <KV className="sm:col-span-2 xl:col-span-4" label="Seller Notes" value={<span className="text-muted-foreground">{lockedAgreement.sellerNotes}</span>} />
                   )}
                 </div>
               </Card>
@@ -662,12 +654,14 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                 ) : (
                   <div className="space-y-3">
                     {(dispute.responses as any[]).map((r) => (
-                      <div key={r.id} className="rounded-md border border-border bg-background p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="text-xs text-muted-foreground">Response #{r.number}</div>
-                          <div className="text-xs text-muted-foreground">{fmtDate(r.at)}</div>
+                      <div key={r.id} className="rounded-xl border border-border bg-muted/30 p-4 md:p-5">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs text-muted-foreground mb-1">Response #{r.number}</div>
+                            <p className="text-[15px] text-foreground leading-relaxed whitespace-pre-wrap break-words">{r.text}</p>
+                          </div>
+                          <div className="text-xs text-muted-foreground shrink-0 sm:text-right">{fmtDate(r.at)}</div>
                         </div>
-                        <p className="text-sm text-foreground/90 whitespace-pre-wrap">{r.text}</p>
                       </div>
                     ))}
                   </div>
@@ -751,7 +745,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
         </section>
 
         {/* Right resolution sidebar */}
-        <aside className="hidden xl:block w-[380px] shrink-0 h-full overflow-y-auto border-l border-border bg-card">
+        <aside className="w-full xl:w-[380px] shrink-0 border-t border-border xl:border-t-0 xl:border-l xl:h-full xl:overflow-y-auto bg-card">
           <ResolutionSidebar
               disputeStatus={row.status}
               overdue={overdue}
@@ -932,27 +926,26 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
         </div>
 
         {/* Primary action row */}
-        <div className="flex gap-2">
+        <div className="grid grid-cols-[1fr_1fr_48px] gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="flex-1">
-                <Button size="sm" disabled className={cn("w-full gap-1.5 h-10 rounded-lg", callBtnCls, "opacity-100")}>
-                  <Phone className="h-4 w-4" /> Call
-                </Button>
-              </span>
+              <Button size="sm" disabled className={cn("w-full gap-2 h-10 rounded-lg whitespace-nowrap", callBtnCls, "opacity-100 disabled:opacity-100")}>
+                <Phone className="h-4 w-4" /> Call
+              </Button>
             </TooltipTrigger>
             <TooltipContent>Direct calling not connected yet</TooltipContent>
           </Tooltip>
-          <ContactBtn
-            className="flex-1 h-10 rounded-lg"
-            icon={<Mail className="h-4 w-4" />}
-            label="Email"
-            disabled
-            tip="Direct email not connected yet"
-          />
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button size="sm" variant="outline" className="h-10 w-10 p-0 rounded-lg shrink-0" onClick={() => navigate(`/admin/users/${party.id}`)} aria-label="Profile">
+              <Button size="sm" variant="outline" disabled className="w-full gap-2 h-10 rounded-lg whitespace-nowrap">
+                <Mail className="h-4 w-4" /> Email
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Direct email not connected yet</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="sm" variant="outline" className="h-10 w-12 p-0 rounded-lg" onClick={() => navigate(`/admin/users/${party.id}`)} aria-label="Profile">
                 <UserIcon className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
@@ -963,14 +956,14 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
         {/* Only internal divider, then secondary action row */}
         <div className="mt-5 pt-5 border-t border-border">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <Button size="sm" variant="outline" className="gap-1.5 rounded-lg" onClick={() => navigate(`/admin/users/${party.id}`)}>
-              <UserIcon className="h-3.5 w-3.5" /> View Profile
+            <Button size="sm" variant="outline" className="gap-2 h-10 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/users/${party.id}`)}>
+              <UserIcon className="h-3.5 w-3.5 shrink-0" /> View Profile
             </Button>
-            <Button size="sm" variant="outline" className="gap-1.5 rounded-lg" onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
-              <Scale className="h-3.5 w-3.5" /> Dispute History
+            <Button size="sm" variant="outline" className="gap-2 h-10 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
+              <Scale className="h-3.5 w-3.5 shrink-0" /> Dispute History
             </Button>
-            <Button size="sm" variant="outline" className="gap-1.5 rounded-lg" onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
-              <Receipt className="h-3.5 w-3.5" /> Transactions
+            <Button size="sm" variant="outline" className="gap-2 h-10 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
+              <Receipt className="h-3.5 w-3.5 shrink-0" /> Transactions
             </Button>
           </div>
         </div>
@@ -1046,8 +1039,8 @@ function FinStat({ label, value, caption, tone }: {
   return (
     <div className="min-w-0">
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className={cn("mt-1 text-xl font-bold truncate", toneCls)}>{value}</div>
-      {caption && <div className="mt-1 text-xs text-muted-foreground truncate">{caption}</div>}
+      <div className={cn("mt-1 text-[22px] md:text-[24px] font-semibold leading-8 break-words", toneCls)}>{value}</div>
+      {caption && <div className="mt-1 text-xs text-muted-foreground break-words">{caption}</div>}
     </div>
   );
 }
@@ -1089,7 +1082,7 @@ function EvidenceGrid({ items, onPreview, emptyText }: {
     return <div className="text-xs text-muted-foreground">{emptyText}</div>;
   }
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
       {items.map((ev) => {
         const Icon = evidenceIcon(ev.kind, ev.mimeType);
         const isImage = (ev.mimeType ?? "").startsWith("image/") || ev.kind === "image";
@@ -1098,18 +1091,27 @@ function EvidenceGrid({ items, onPreview, emptyText }: {
             key={ev.id}
             type="button"
             onClick={() => onPreview(ev)}
-            className="group rounded-md border border-border bg-background hover:border-blue-500/40 hover:bg-muted/40 overflow-hidden text-left"
+            className="group flex flex-col rounded-xl border border-border bg-muted/20 hover:border-blue-500/40 hover:bg-muted/40 overflow-hidden text-left min-w-0"
           >
-            <div className="aspect-square bg-muted/40 flex items-center justify-center overflow-hidden">
+            <div className="aspect-[4/3] bg-muted/40 flex items-center justify-center overflow-hidden">
               {isImage && ev.secureUrl ? (
-                <img src={ev.secureUrl} alt={ev.title} className="h-full w-full object-cover" loading="lazy" />
+                <img
+                  src={ev.secureUrl}
+                  alt={ev.title}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    img.style.display = "none";
+                  }}
+                />
               ) : (
-                <Icon className="h-8 w-8 text-muted-foreground" />
+                <Icon className="h-10 w-10 text-muted-foreground" />
               )}
             </div>
-            <div className="px-2 py-2 text-[11px] leading-tight">
-              <div className="font-medium text-foreground truncate">{ev.title}</div>
-              <div className="text-muted-foreground truncate">
+            <div className="p-3 border-t border-border min-w-0">
+              <div className="text-sm font-medium text-foreground truncate" title={ev.title}>{ev.title}</div>
+              <div className="text-xs text-muted-foreground truncate">
                 {titleCase(ev.uploadedByRole)} · {relTime(ev.uploadedAt)}
               </div>
             </div>
