@@ -1087,14 +1087,14 @@ function FinMetric({
       </p>
       {valueNode ?? (
         <p
-          className="mt-2 text-[20px] md:text-[22px] xl:text-[24px] leading-[28px] font-semibold tracking-[-0.02em] tabular-nums"
+          className="mt-1.5 text-[15px] md:text-[16px] xl:text-[17px] leading-[22px] md:leading-[24px] font-semibold tracking-[-0.01em] tabular-nums"
           style={{ color: valueColor ?? "#F8FAFC" }}
         >
           {value}
         </p>
       )}
       {caption && (
-        <p className="mt-2 text-[12px] md:text-[13px] leading-[18px] text-[#9CA3AF]">
+        <p className="mt-1.5 text-[12px] leading-[16px] text-[#9CA3AF]">
           {caption}
         </p>
       )}
