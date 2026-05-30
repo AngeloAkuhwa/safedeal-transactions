@@ -119,3 +119,78 @@ export function nextActionLabelFor(outcomeType?: string | null): string {
       return "Resolution recorded";
   }
 }
+
+/**
+ * Shared banner tone for the Admin Transaction / Dispute Detail pages.
+ * - `red`     → actually dangerous: frozen, active investigation, or critical risk
+ * - `amber`   → only the seller payout is pending release review (no live risk)
+ * - `none`    → nothing to warn about
+ * History (resolved disputes, dismissed investigations) never produces a banner.
+ */
+export function riskBannerTone(
+  active: ActiveState,
+  riskLevel?: string | null,
+): "red" | "amber" | "none" {
+  if (active.isFrozen) return "red";
+  if (active.isInvestigationActive) return "red";
+  if (riskLevel === "critical") return "red";
+  if (active.isDisputeActive && (riskLevel === "high" || active.isEscalated)) return "red";
+  if (active.needsReleaseReview) return "amber";
+  return "none";
+}
+
+/**
+ * Drop flags that are purely historical once the case has been resolved or
+ * funds unfrozen. Keeps the current-state list honest.
+ * Input: raw flag objects shaped like `{ label, severity }`.
+ */
+export function visibleRiskFlags<T extends { label?: string | null }>(
+  rawFlags: T[] | null | undefined,
+  active: ActiveState,
+): T[] {
+  const list = Array.isArray(rawFlags) ? rawFlags : [];
+  return list.filter((f) => {
+    const label = (f?.label ?? "").toString().trim().toLowerCase();
+    if (!label) return false;
+    // never surface "Dispute: Resolved" / "Dispute: Closed" as an active flag
+    if (label.startsWith("dispute:") && active.isDisputeResolved) return false;
+    if (label === "dispute resolved" || label === "dispute closed") return false;
+    // stale manual_hold / release_hold after release-review cleared
+    if ((label === "manual_hold" || label === "release_hold") && !active.needsReleaseReview && !active.isFrozen) return false;
+    // stale frozen flag after unfreeze
+    if ((label === "funds frozen" || label === "frozen" || label === "admin_frozen") && !active.isFrozen) return false;
+    // stale escalation/overdue/in-dispute flags after resolution
+    if (active.isDisputeResolved && (
+      label === "escalated" ||
+      label === "dispute escalated" ||
+      label === "overdue" ||
+      label === "dispute response overdue" ||
+      label === "in_dispute" ||
+      label === "dispute open"
+    )) return false;
+    return true;
+  });
+}
+
+/**
+ * Categorise a flag label into a UI tone bucket. Used to colour chips so
+ * informational flags (High-value transaction, Repeat buyer) don't look
+ * like fraud alerts.
+ */
+export function flagChipTone(label: string): "red" | "orange" | "slate" {
+  const l = (label ?? "").toLowerCase();
+  if (
+    l.includes("frozen") ||
+    l.includes("fraud") ||
+    l.includes("overdue") ||
+    l.includes("critical") ||
+    l === "dispute open" || l === "in_dispute" ||
+    l.includes("investigation open")
+  ) return "red";
+  if (
+    l.includes("escalat") ||
+    l === "manual_hold" || l === "release_hold" ||
+    l.includes("high risk") || l.includes("high_risk")
+  ) return "orange";
+  return "slate";
+}
