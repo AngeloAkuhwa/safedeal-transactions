@@ -1320,7 +1320,17 @@ function CaseCommunicationSection(props: {
   const accent = tabAccent[activeTab];
 
   const activeMessages: CommMessage[] =
-    activeTab === "internal" ? internalMessages : [];
+    activeTab === "internal"
+      ? internalMessages
+      : activeTab === "seller"
+        ? buildSellerSeed({
+            sellerName: sellerName ?? "Seller",
+            agentName: "SafeDeal Support",
+            openedAt,
+            dueAt,
+            sellerRespondedAt,
+          })
+        : [];
   const emptyText =
     activeTab === "buyer" ? "No buyer messages yet."
     : activeTab === "seller" ? "No seller messages yet."
