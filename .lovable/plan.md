@@ -1,27 +1,33 @@
-## Problem
-The floating hamburger button I added at `fixed left-3 top-3` overlaps the page-level headers on `AdminDisputes` and `AdminDisputeDetail` because those pages render their own sticky headers with content starting at the very left edge (`px-6`). On the Disputes Queue screenshot, the H1 "Dispute Resolution Queue" is partially hidden behind the menu icon.
+## Goals
+1. On the **Dispute Detail** page, render the hamburger menu **inline** inside the page's sticky header on mobile/tablet (<lg), matching how AdminMobileHeader places it on other pages. Drop the floating overlay button for this page.
+2. Give mobile/tablet (<lg) users **proper access to the right Resolution Sidebar** via a slide-in Sheet drawer, opened from the existing "Take Action · Review Case" button. Keep the inline (stacked) sidebar at lg+.
+3. Apply the same inline-hamburger treatment to the **Dispute Queue** page header so it matches.
 
-The Transaction Monitor screen looks fine because it uses the default `AdminMobileHeader` (no `hideDefaultHeaders`), which is laid out as a real flex row with the menu on the left and refresh on the right.
+## Implementation
 
-## Fix (UI only)
+### A. Expose `onOpenMenu` from `AdminLayout`
+- `AdminLayout` already accepts `mobileHeaderSlot` as a render-prop `({ onOpenMenu }) => ReactNode`. We will reuse the same pattern for `headerSlot` so pages with custom sticky headers can receive `onOpenMenu` too.
+- Change `headerSlot?: ReactNode` → `headerSlot?: ReactNode | ((opts: { onOpenMenu: () => void }) => ReactNode)` and call it accordingly.
+- Suppress the floating fallback hamburger when `headerSlot` is a function (it owns the trigger).
 
-### A. `src/pages/AdminDisputes.tsx` — sticky page header
-- Reserve space for the floating hamburger on viewports below `lg` by adding `pl-14 lg:pl-6` (or `pl-16 lg:pl-8` to keep the wider lg padding) to the inner header container at line 354 — currently `px-6 py-5 lg:px-8`.
-- Keep the title/subtitle and right-side action cluster otherwise unchanged.
+### B. `src/pages/AdminDisputeDetail.tsx`
+- Convert the `header` constant into a function that receives `onOpenMenu` and renders a `<Menu>` icon button at the far left on `<lg` (right next to the existing back arrow). Remove the temporary `pl-16` padding.
+- Pass it via `headerSlot={(opts) => header(opts)}` and stop rendering `header` inside `children`. (Keep summary strip and rest of content in children.)
+- **Right sidebar Sheet on <lg:**
+  - Wrap the existing right `<aside>` in a `<div className="hidden lg:block">` so it only renders at lg+.
+  - Add a `Sheet` whose `SheetContent side="right"` renders the same `<ResolutionSidebar>` props on `<lg`. Trigger via the "Take Action · Review Case" button (replace its current `onClick` to open the sheet instead of the resolve dialog directly). Add local `useState` `sidebarOpen`.
 
-### B. `src/pages/AdminDisputeDetail.tsx` — sticky case header (line 431)
-- Add the same `pl-14 lg:pl-6` (and adjust the lg variant so the original `lg:px-8` left padding is preserved) to the header bar so the back arrow / breadcrumb chips aren't hidden under the hamburger.
+### C. `src/pages/AdminDisputes.tsx` (queue)
+- Same treatment: convert the `<header>` block to consume `onOpenMenu` via `headerSlot` render-prop and place a `<Menu>` icon button on the left at `<lg`. Drop the temporary `pl-16` padding.
 
-### C. `src/components/admin/AdminLayout.tsx` — refine the floating button
-- Bump `z-index` to `z-50` (already set) — keep.
-- Slightly smaller (`h-9 w-9`) and softer styling so it visually matches the existing `AdminMobileHeader` menu button rather than competing with page chrome.
-- No change to placement or visibility logic.
+### D. Cleanup in `AdminLayout`
+- Keep the floating fallback hamburger only as a safety net for pages that pass `hideDefaultHeaders` AND neither `mobileHeaderSlot` nor a function-style `headerSlot`. So once Disputes and Dispute Detail adopt the render-prop, the overlay disappears for them.
 
-### Out of scope
-- No changes to other admin pages or to default mobile header.
-- No data or service changes.
+## Out of scope
+- No service/data changes.
+- No styling change to the ResolutionSidebar internals.
 
 ## Files
-- `src/pages/AdminDisputes.tsx`
-- `src/pages/AdminDisputeDetail.tsx`
 - `src/components/admin/AdminLayout.tsx`
+- `src/pages/AdminDisputeDetail.tsx`
+- `src/pages/AdminDisputes.tsx`

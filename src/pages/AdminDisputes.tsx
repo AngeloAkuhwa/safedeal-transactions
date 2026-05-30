@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Activity,
+  Menu,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -347,38 +348,53 @@ export default function AdminDisputes() {
   ).length;
 
   return (
-    <AdminLayout title="Dispute Resolution Queue" subtitle="Live dispute triage and case management" hideDefaultHeaders fullBleed>
-      <TooltipProvider delayDuration={200}>
-        <div className="w-full min-w-0">
-          {/* Full-width header bar */}
-          <header className="sticky top-0 z-20 border-b border-border bg-card pl-16 pr-6 py-5 lg:pl-8 lg:pr-8">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h1 className="text-2xl font-semibold text-foreground">Dispute Resolution Queue</h1>
-                <p className="text-sm text-muted-foreground">Live dispute triage and case management</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => void load()}
-                  className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs transition-colors hover:border-blue-500/40"
-                  aria-live="polite"
-                  title="Refresh"
-                >
-                  <span className={`h-2 w-2 rounded-full ${liveFresh ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`} />
-                  <span className="text-muted-foreground">Live sync</span>
-                  <RefreshCw className={`h-3 w-3 text-muted-foreground ${loading ? "animate-spin" : ""}`} />
-                </button>
-                <Button variant="outline" size="sm" onClick={onExport}>
-                  <Download className="mr-2 h-4 w-4" /> Export
-                </Button>
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-500">
-                  <ShieldAlert className="mr-2 h-4 w-4" /> Open Investigation
-                </Button>
+    <AdminLayout
+      title="Dispute Resolution Queue"
+      subtitle="Live dispute triage and case management"
+      hideDefaultHeaders
+      fullBleed
+      headerSlot={({ onOpenMenu }) => (
+        <header className="sticky top-0 z-20 border-b border-border bg-card px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={onOpenMenu}
+                aria-label="Open navigation menu"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/40 text-foreground hover:bg-muted lg:hidden"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Dispute Resolution Queue</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground">Live dispute triage and case management</p>
               </div>
             </div>
-          </header>
-
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void load()}
+                className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs transition-colors hover:border-blue-500/40"
+                aria-live="polite"
+                title="Refresh"
+              >
+                <span className={`h-2 w-2 rounded-full ${liveFresh ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`} />
+                <span className="text-muted-foreground">Live sync</span>
+                <RefreshCw className={`h-3 w-3 text-muted-foreground ${loading ? "animate-spin" : ""}`} />
+              </button>
+              <Button variant="outline" size="sm" onClick={onExport}>
+                <Download className="mr-2 h-4 w-4" /> Export
+              </Button>
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-500">
+                <ShieldAlert className="mr-2 h-4 w-4" /> Open Investigation
+              </Button>
+            </div>
+          </div>
+        </header>
+      )}
+    >
+      <TooltipProvider delayDuration={200}>
+        <div className="w-full min-w-0">
         <div className="w-full max-w-none px-6 py-8 lg:px-8 space-y-5">
           {/* KPI strip */}
           <KpiStrip

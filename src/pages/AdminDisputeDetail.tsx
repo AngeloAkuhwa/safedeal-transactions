@@ -7,12 +7,13 @@ import {
   CheckCircle2, XCircle, ChevronRight, Flag, Wallet, CreditCard, Vault,
   Search, Send, Ban, Play, Eye, NotebookPen, Store,
   Star, Info, FilePlus2, Bell, HelpCircle, CheckCheck, Check, Paperclip,
-  Reply, MoreHorizontal, MessageCircle, ArrowRight, Lock,
+  Reply, MoreHorizontal, MessageCircle, ArrowRight, Lock, Menu,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
@@ -291,6 +292,7 @@ type DialogState = {
 
 function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refresh: () => void; dialogs: DialogState }) {
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { dispute: row, txDetail } = data;
   const tx = txDetail.transaction ?? {};
   const dispute = txDetail.dispute ?? {};
@@ -427,10 +429,20 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
   };
 
   // ---------- sticky header ----------
-  const header = (
+  const renderHeader = (onOpenMenu?: () => void) => (
     <div className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <div className="flex items-center justify-between gap-3 pl-16 pr-6 py-3.5 lg:pl-8 lg:pr-8 lg:py-4">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-6 lg:px-8 lg:py-4">
+        <div className="flex items-center gap-2 min-w-0">
+          {onOpenMenu && (
+            <button
+              type="button"
+              onClick={onOpenMenu}
+              aria-label="Open navigation menu"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/40 text-foreground hover:bg-muted lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          )}
           <button
             onClick={() => navigate("/admin/disputes")}
             className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -459,7 +471,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
               {slaText}
             </span>
           )}
-          <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2">
+          <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 hidden sm:inline-flex">
             <Printer className="h-4 w-4" /> Print
           </Button>
         </div>
@@ -468,10 +480,15 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
   );
 
   return (
-    <AdminLayout title="Dispute" hideDefaultHeaders fullBleed fullHeight>
+    <AdminLayout
+      title="Dispute"
+      hideDefaultHeaders
+      fullBleed
+      fullHeight
+      headerSlot={({ onOpenMenu }) => renderHeader(onOpenMenu)}
+    >
       <div className="flex flex-col lg:flex-row lg:h-full lg:min-h-0">
         <section className="flex-1 min-w-0 lg:min-h-0 lg:overflow-y-auto lg:overflow-x-hidden">
-          {header}
 
           {/* Summary strip — scrolls under the sticky header */}
           <div className="bg-card border-b border-border">
@@ -778,15 +795,15 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
             {/* Mobile action bar */}
             <div className="lg:hidden">
-              <Button className="w-full" onClick={() => dialogs.setResolveOpen(true)} disabled={!adminCan.canManageDispute}>
+              <Button className="w-full" onClick={() => setSidebarOpen(true)} disabled={!adminCan.canManageDispute}>
                 Take Action · Review Case
               </Button>
             </div>
           </div>
         </section>
 
-        {/* Right resolution sidebar */}
-        <aside className="w-full lg:w-[380px] lg:shrink-0 border-t border-border lg:border-t-0 lg:border-l lg:min-h-0 lg:overflow-y-auto bg-card">
+        {/* Right resolution sidebar (desktop) */}
+        <aside className="hidden lg:block lg:w-[380px] lg:shrink-0 lg:border-l lg:min-h-0 lg:overflow-y-auto bg-card">
           <ResolutionSidebar
               disputeStatus={row.status}
               overdue={overdue}
@@ -808,6 +825,31 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
           />
         </aside>
       </div>
+
+      {/* Right resolution sidebar (tablet/mobile drawer) */}
+      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md border-border bg-card p-0 text-foreground overflow-y-auto">
+          <ResolutionSidebar
+            disputeStatus={row.status}
+            overdue={overdue}
+            resolvedAt={resolvedAt}
+            moneyStatus={moneyStatus}
+            adminCan={adminCan}
+            dueAt={dueAt}
+            parties={parties}
+            buyerClaim={row.description ?? dispute.summary ?? null}
+            sellerResponded={!!dispute.responses?.length}
+            txId={txId}
+            onResolve={() => { setSidebarOpen(false); dialogs.setResolveOpen(true); }}
+            onMoveReview={() => { setSidebarOpen(false); dialogs.setMoveReviewOpen(true); }}
+            onEscalate={() => { setSidebarOpen(false); dialogs.setEscalateOpen(true); }}
+            onHighRisk={() => { setSidebarOpen(false); dialogs.setHighRiskOpen(true); }}
+            onFraud={() => { setSidebarOpen(false); dialogs.setFraudOpen(true); }}
+            onClose={() => { setSidebarOpen(false); dialogs.setCloseOpen(true); }}
+            onAddNote={() => { setSidebarOpen(false); dialogs.setNoteOpen(true); }}
+          />
+        </SheetContent>
+      </Sheet>
 
       {/* Dialogs */}
       <ResolveDisputeDialog
