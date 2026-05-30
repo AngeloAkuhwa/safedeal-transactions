@@ -45,7 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { deriveDisputeDisplay } from "@/lib/dispute-display-status";
-import { deriveActiveState } from "@/lib/admin-active-state";
+import { deriveActiveState, riskBannerTone, visibleRiskFlags, flagChipTone } from "@/lib/admin-active-state";
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 
 const ngn = (v: number | null | undefined) => formatMoney(v ?? 0, "NGN");
@@ -405,13 +405,16 @@ export default function AdminTransactionDetail() {
   const allFlags = useMemo(() => {
     const seen = new Set<string>();
     const merged = [...(data?.risk?.flags ?? []), ...synthesizedFlags];
-    return merged.filter((f: any) => {
+    const deduped = merged.filter((f: any) => {
       const k = (f.label ?? "").toLowerCase();
       if (seen.has(k)) return false;
       seen.add(k);
       return true;
     });
-  }, [data?.risk?.flags, synthesizedFlags]);
+    // Hide flags that are purely historical now (e.g. "Dispute: Resolved",
+    // stale "manual_hold" after release-review cleared, stale "frozen").
+    return visibleRiskFlags(deduped, active);
+  }, [data?.risk?.flags, synthesizedFlags, active]);
 
   const exportData = () => {
     if (!data) return;
@@ -469,14 +472,30 @@ export default function AdminTransactionDetail() {
   }, [data?.timeline, tlFilter, tlNewest]);
 
   const visibleTimeline = showFullTimeline ? filteredTimeline : filteredTimeline.slice(0, 8);
-  const allFlagsCount = (data?.risk?.flags?.length ?? 0);
-  const showHighRisk =
-    data?.risk?.level === "high" ||
-    data?.risk?.level === "escalated" ||
-    active.isFrozen ||
-    active.isDisputeActive ||
+  // Banner tone is now derived from *current* blockers only — resolved
+  // disputes / unfrozen funds with only a pending release no longer paint
+  // the page red.
+  const bannerTone = useMemo(
+    () => riskBannerTone(active, data?.risk?.level),
+    [active, data?.risk?.level],
+  );
+  const showHighRisk = bannerTone === "red";
+  const showReleaseReviewBanner = bannerTone === "amber";
+  // "Investigate" CTA is only meaningful when there is an active
+  // investigation OR truly high/critical risk.
+  const showInvestigateCTA =
     active.isInvestigationActive ||
-    allFlagsCount > 0;
+    data?.risk?.level === "high" ||
+    data?.risk?.level === "critical";
+  // Seller payout amount: prefer server-provided sellerNet, fall back to
+  // itemTotal. NEVER use buyerTotal (which includes protection fee + any
+  // processing fee that belongs to SafeDeal, not the seller).
+  const sellerPayoutAmount = useMemo(() => {
+    const p: any = data?.pricing ?? {};
+    const net = Number(p.sellerNet ?? 0);
+    if (net > 0) return net;
+    return Number(p.itemTotal ?? 0);
+  }, [data?.pricing]);
 
   const liveDotCls =
     liveSync === "live" ? "bg-emerald-400" :
