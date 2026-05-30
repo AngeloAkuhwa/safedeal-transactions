@@ -2396,8 +2396,8 @@ function SidebarBtn({
   variant?: "outline" | "solid"; solidClass?: string;
 }) {
   const isSolid = variant === "solid";
-  const base = "w-full flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors text-left";
-  const outlineCls = "border-border bg-background/40 text-foreground hover:bg-background/70";
+  const base = "w-full flex items-center gap-3 rounded-md border px-3 py-2.5 text-sm font-medium transition-colors text-left";
+  const outlineCls = "border-[#253044] bg-[#0F172A]/40 text-foreground hover:bg-[#0F172A]/70";
   const solidCls = solidClass ?? "bg-primary text-primary-foreground border-transparent hover:opacity-90";
   const btn = (
     <button
@@ -2410,17 +2410,12 @@ function SidebarBtn({
         (disabled || !onClick) && "opacity-60 cursor-not-allowed",
       )}
     >
-      {isSolid ? (
-        <span className="h-4 w-4 shrink-0 [&_svg]:h-4 [&_svg]:w-4">{icon}</span>
-      ) : (
-        <span className={cn(
-          "h-7 w-7 shrink-0 rounded-md flex items-center justify-center [&_svg]:h-4 [&_svg]:w-4",
-          iconBg ?? "bg-muted/40",
-          iconColor ?? "text-muted-foreground",
-        )}>
-          {icon}
-        </span>
-      )}
+      <span className={cn(
+        "h-4 w-4 shrink-0 [&_svg]:h-4 [&_svg]:w-4",
+        !isSolid && (iconColor ?? "text-muted-foreground"),
+      )}>
+        {icon}
+      </span>
       <span className="flex-1 truncate">{label}</span>
     </button>
   );
