@@ -2353,10 +2353,15 @@ function SummaryPartyCard({ role, name, statusLabel, statusTone, summary }: {
     : statusTone === "red" ? "bg-red-400"
     : "bg-yellow-400";
   return (
-    <div className="rounded-md border border-border bg-background p-3">
+    <div className="rounded-lg border border-[#253044] bg-[#0F172A]/60 p-3">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          {role === "buyer" ? <UserIcon className="h-4 w-4 text-blue-400" /> : <Store className="h-4 w-4 text-orange-400" />}
+          <span className={cn(
+            "h-7 w-7 rounded-full flex items-center justify-center shrink-0",
+            role === "buyer" ? "bg-blue-500/15 text-blue-400" : "bg-orange-500/15 text-orange-400",
+          )}>
+            {role === "buyer" ? <UserIcon className="h-4 w-4" /> : <Store className="h-4 w-4" />}
+          </span>
           <div className="min-w-0">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{role}</div>
             <div className="text-sm font-medium text-foreground truncate">{name}</div>
