@@ -1846,7 +1846,7 @@ function NotesList({ notes, compact }: { notes: any[]; compact?: boolean }) {
         const { pill, cleanBody } = parseInternalNoteTag(rawBody, n);
         const typeLabel = noteTypeLabel(n);
         return (
-          <div key={n.id} className="rounded-lg border border-border bg-background p-4 space-y-2">
+          <div key={n.id} className="rounded-lg border border-border bg-background p-4">
             <div className="flex items-start gap-3">
               <div className="h-8 w-8 shrink-0 rounded-full bg-blue-500/20 text-blue-300 grid place-items-center text-[11px] font-semibold">
                 {initials(author)}
@@ -1859,14 +1859,14 @@ function NotesList({ notes, compact }: { notes: any[]; compact?: boolean }) {
               </div>
               {pill && (
                 <span className={cn(
-                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                  "shrink-0 rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide",
                   pill.cls,
                 )}>
                   {pill.label}
                 </span>
               )}
             </div>
-            <p className={cn("text-sm text-foreground/90 whitespace-pre-wrap pl-11", compact && "line-clamp-3")}>{cleanBody}</p>
+            <p className={cn("text-sm text-foreground/90 whitespace-pre-wrap mt-3", compact && "line-clamp-3")}>{cleanBody}</p>
           </div>
         );
       })}
@@ -2057,14 +2057,14 @@ function Timeline({ items, disputeStatus, resolvedAt }: {
   }
 
   return (
-    <div className="relative pl-5 border-l border-border space-y-5">
+    <div className="space-y-4">
       {header && (
-        <div className="relative">
+        <div className="flex items-center gap-2">
           <span className={cn(
-            "absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full",
+            "h-2.5 w-2.5 rounded-full shrink-0",
             TIMELINE_TONE[header.tone],
           )} />
-          <div className={cn(
+          <span className={cn(
             "text-sm font-semibold",
             header.tone === "green" && "text-emerald-300",
             header.tone === "orange" && "text-orange-300",
@@ -2072,18 +2072,16 @@ function Timeline({ items, disputeStatus, resolvedAt }: {
             header.tone === "blue" && "text-blue-300",
           )}>
             {header.label}
-          </div>
+          </span>
         </div>
       )}
       {rows.map((r) => (
-        <div key={r.raw.id} className="relative">
-          <div className="flex items-baseline justify-between gap-3">
-            <div className="text-sm font-medium text-foreground">{r.title}</div>
-          </div>
+        <div key={r.raw.id} className="border-l-2 border-border/60 pl-4 py-0.5">
+          <div className="text-sm font-semibold text-foreground">{r.title}</div>
           {r.description && (
-            <div className="text-xs text-muted-foreground mt-0.5">{r.description}</div>
+            <div className="text-xs text-muted-foreground mt-1">{r.description}</div>
           )}
-          <div className="text-[11px] text-muted-foreground mt-0.5">
+          <div className="text-[11px] text-muted-foreground mt-1.5">
             {fmtDate(r.raw.at)}
             {r.raw.type === "admin_action" && (
               <> · by {r.actor ?? "SafeDeal Admin"}</>
