@@ -14,7 +14,7 @@ interface AdminLayoutProps {
   badges?: AdminDashboardResponse["sidebar_badges"];
   children: ReactNode;
   hideDefaultHeaders?: boolean;
-  headerSlot?: ReactNode;
+  headerSlot?: ReactNode | ((opts: { onOpenMenu: () => void }) => ReactNode);
   mobileHeaderSlot?: ReactNode | ((opts: { onOpenMenu: () => void }) => ReactNode);
   fullBleed?: boolean;
   /**
@@ -67,7 +67,9 @@ export function AdminLayout({
               : mobileHeaderSlot
             : !hideDefaultHeaders && <AdminMobileHeader onOpenMenu={() => setMobileOpen(true)} />}
           {headerSlot
-            ? headerSlot
+            ? typeof headerSlot === "function"
+              ? headerSlot({ onOpenMenu: () => setMobileOpen(true) })
+              : headerSlot
             : !hideDefaultHeaders && <AdminHeader title={title} subtitle={subtitle} />}
           {fullBleed ? (
             <main className={"flex-1 min-w-0 bg-background" + (fullHeight ? " lg:min-h-0 lg:overflow-hidden" : "")}>{children}</main>
@@ -78,7 +80,7 @@ export function AdminLayout({
           )}
         </div>
       </div>
-      {hideDefaultHeaders && !mobileHeaderSlot && (
+      {hideDefaultHeaders && !mobileHeaderSlot && typeof headerSlot !== "function" && (
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
