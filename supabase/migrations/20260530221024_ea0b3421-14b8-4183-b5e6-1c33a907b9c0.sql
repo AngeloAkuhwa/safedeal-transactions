@@ -1,0 +1,1 @@
+ALTER TYPE public.audit_action_type ADD VALUE IF NOT EXISTS 'admin_resolve_dispute';
