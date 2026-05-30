@@ -6,6 +6,7 @@ import {
   Circle, Clock, ShieldAlert, Snowflake, MessageSquare, StickyNote, Gavel,
   CheckCircle2, XCircle, ChevronRight, Flag, Wallet, CreditCard, Vault,
   Search, Send, Ban, Play, Eye, NotebookPen, Store,
+  Star,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -83,12 +84,28 @@ function CardHeader({ title, subtitle, action }: { title: React.ReactNode; subti
   );
 }
 function Avatar({ name, src, size = 40 }: { name?: string | null; src?: string | null; size?: number }) {
-  return src ? (
-    <img src={src} alt={name ?? ""} className="rounded-full object-cover shrink-0"
-         style={{ width: size, height: size }} />
-  ) : (
-    <div className="rounded-full bg-muted text-foreground flex items-center justify-center text-xs font-semibold shrink-0"
-         style={{ width: size, height: size }}>{initials(name)}</div>
+  const [failed, setFailed] = useState(false);
+  const showImg = !!src && !failed;
+  if (showImg) {
+    return (
+      <img
+        src={src as string}
+        alt={name ?? ""}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+        className="rounded-full object-cover shrink-0 bg-muted"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  return (
+    <div
+      className="rounded-full bg-muted text-foreground flex items-center justify-center font-semibold shrink-0"
+      style={{ width: size, height: size, fontSize: Math.max(10, Math.round(size * 0.35)) }}
+    >
+      {initials(name)}
+    </div>
   );
 }
 function KV({ label, value, className }: { label: string; value: React.ReactNode; className?: string }) {
