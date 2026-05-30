@@ -717,6 +717,10 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
               onAddNote={() => dialogs.setNoteOpen(true)}
               sellerName={parties.seller?.name}
               buyerName={parties.buyer?.name}
+              disputeId={dispute.id}
+              buyerClaim={(row.description ?? dispute.summary) ?? null}
+              sellerResponses={(dispute.responses ?? []) as any[]}
+              evidence={evidence ?? []}
             />
 
             {/* Case Timeline */}
@@ -1212,10 +1216,15 @@ function CaseCommunicationSection(props: {
   onAddNote: () => void;
   sellerName?: string | null;
   buyerName?: string | null;
+  disputeId: string;
+  buyerClaim: string | null;
+  sellerResponses: Array<{ id: string; number: number; text: string; at: string }>;
+  evidence: AdminTxEvidenceItem[];
 }) {
   const {
     buyerResponded, sellerOverdue, sellerRespondedAt, openedAt, dueAt,
     notes, defaultTab, onAddNote, sellerName, buyerName,
+    disputeId, buyerClaim, sellerResponses, evidence,
   } = props;
   const [activeTab, setActiveTab] = useState<CommTab>((defaultTab as CommTab) ?? "seller");
   const [msgType, setMsgType] = useState("general_reply");
@@ -1224,21 +1233,26 @@ function CaseCommunicationSection(props: {
   const dayLabel = (iso?: string | null) =>
     iso ? new Date(iso).toLocaleDateString("en-NG", { month: "short", day: "numeric" }) : "—";
 
-  // ---------- status chips (always 5 in fixed order) ----------
-  const statusChips = [
+  // ---------- status chips (derived from real data only) ----------
+  const buyerEvidence = (evidence ?? []).filter((e) => (e.uploadedByRole ?? "").toLowerCase() === "buyer");
+  const sellerEvidence = (evidence ?? []).filter((e) => (e.uploadedByRole ?? "").toLowerCase() === "seller");
+  const hasSellerResponse = (sellerResponses ?? []).length > 0;
+  const allChips = [
     {
       key: "buyer-responded",
       tone: "emerald" as const,
       label: "Buyer Responded",
       meta: buyerResponded ? dayLabel(openedAt) : "—",
       leading: <span className="w-2 h-2 bg-emerald-400 rounded-full" />,
+      show: buyerResponded || !!buyerClaim,
     },
     {
       key: "seller-overdue",
       tone: "red" as const,
       label: "Seller Response Overdue",
-      meta: sellerOverdue ? (dueAt ? relTime(dueAt) : "—") : (sellerRespondedAt ? "resolved" : "—"),
+      meta: sellerOverdue ? (dueAt ? relTime(dueAt) : "—") : "resolved",
       leading: <span className={cn("w-2 h-2 bg-red-400 rounded-full", sellerOverdue && "animate-pulse")} />,
+      show: sellerOverdue || hasSellerResponse,
     },
     {
       key: "evidence-requested",
@@ -1246,22 +1260,10 @@ function CaseCommunicationSection(props: {
       label: "Evidence Requested",
       meta: dayLabel(openedAt),
       leading: <FilePlus2 className="w-3 h-3 text-orange-400" />,
-    },
-    {
-      key: "reminder-sent",
-      tone: "yellow" as const,
-      label: "Reminder Sent",
-      meta: dueAt ? dayLabel(dueAt) : "—",
-      leading: <Bell className="w-3 h-3 text-yellow-400" />,
-    },
-    {
-      key: "deadline-notice",
-      tone: "red" as const,
-      label: "Deadline Notice Sent",
-      meta: dueAt ? dayLabel(dueAt) : "—",
-      leading: <Clock className="w-3 h-3 text-red-400" />,
+      show: (evidence ?? []).length > 0,
     },
   ];
+  const statusChips = allChips.filter((c) => c.show);
   const chipTone: Record<string, string> = {
     emerald: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
     red: "bg-red-500/10 border-red-500/30 text-red-400",
@@ -1319,21 +1321,101 @@ function CaseCommunicationSection(props: {
   };
   const accent = tabAccent[activeTab];
 
+  // ---------- buyer messages (real records only) ----------
+  const buyerMessages: CommMessage[] = [];
+  if (buyerClaim && buyerName) {
+    buyerMessages.push({
+      id: `claim-${disputeId}`,
+      kind: "buyer_reply",
+      senderName: buyerName,
+      senderRole: "buyer",
+      recipientName: "SafeDeal Admin",
+      recipientRole: "admin",
+      timestamp: fmtDate(openedAt ?? ""),
+      topic: "Buyer claim",
+      body: buyerClaim,
+      msgRef: `CLAIM-${disputeId.slice(0, 4).toUpperCase()}`,
+      footerMeta: (
+        <div className="flex items-center gap-1 text-slate-500">
+          <Check className="w-3 h-3" /> <span>Filed via dispute form</span>
+        </div>
+      ),
+    });
+  }
+  buyerEvidence.forEach((e) => {
+    if (!e.note && !e.title) return;
+    buyerMessages.push({
+      id: `ev-${e.id}`,
+      kind: "buyer_reply",
+      senderName: e.uploadedByName ?? buyerName ?? "Buyer",
+      senderRole: "buyer",
+      recipientName: "SafeDeal Admin",
+      recipientRole: "admin",
+      timestamp: fmtDate(e.uploadedAt),
+      topic: "Evidence uploaded",
+      body: e.note || `Uploaded evidence: ${e.title}`,
+      msgRef: `EV-${e.id.slice(0, 4).toUpperCase()}`,
+      attachments: e.title ? [{ name: e.title }] : undefined,
+      footerMeta: (
+        <div className="flex items-center gap-1 text-slate-500">
+          <Check className="w-3 h-3" /> <span>Attached to dispute</span>
+        </div>
+      ),
+    });
+  });
+  buyerMessages.sort((a, b) => (a.timestamp < b.timestamp ? -1 : 1));
+
+  // ---------- seller messages (real records only) ----------
+  const sellerMessages: CommMessage[] = [];
+  (sellerResponses ?? []).forEach((r) => {
+    sellerMessages.push({
+      id: `res-${r.id}`,
+      kind: "seller_reply",
+      senderName: sellerName ?? "Seller",
+      senderRole: "seller",
+      recipientName: "SafeDeal Admin",
+      recipientRole: "admin",
+      timestamp: fmtDate(r.at),
+      topic: `Response #${r.number}`,
+      body: r.text,
+      msgRef: `RES-${r.number}`,
+      footerMeta: (
+        <div className="flex items-center gap-1 text-slate-500">
+          <Check className="w-3 h-3" /> <span>Submitted via dispute response</span>
+        </div>
+      ),
+    });
+  });
+  sellerEvidence.forEach((e) => {
+    if (!e.note && !e.title) return;
+    sellerMessages.push({
+      id: `ev-${e.id}`,
+      kind: "seller_reply",
+      senderName: e.uploadedByName ?? sellerName ?? "Seller",
+      senderRole: "seller",
+      recipientName: "SafeDeal Admin",
+      recipientRole: "admin",
+      timestamp: fmtDate(e.uploadedAt),
+      topic: "Evidence uploaded",
+      body: e.note || `Uploaded evidence: ${e.title}`,
+      msgRef: `EV-${e.id.slice(0, 4).toUpperCase()}`,
+      attachments: e.title ? [{ name: e.title }] : undefined,
+      footerMeta: (
+        <div className="flex items-center gap-1 text-slate-500">
+          <Check className="w-3 h-3" /> <span>Attached to dispute</span>
+        </div>
+      ),
+    });
+  });
+  sellerMessages.sort((a, b) => (a.timestamp < b.timestamp ? -1 : 1));
+
   const activeMessages: CommMessage[] =
-    activeTab === "internal"
-      ? internalMessages
-      : activeTab === "seller"
-        ? buildSellerSeed({
-            sellerName: sellerName ?? "Seller",
-            agentName: "SafeDeal Support",
-            openedAt,
-            dueAt,
-            sellerRespondedAt,
-          })
-        : [];
+    activeTab === "internal" ? internalMessages
+    : activeTab === "seller" ? sellerMessages
+    : buyerMessages;
   const emptyText =
-    activeTab === "buyer" ? "No buyer messages yet."
-    : activeTab === "seller" ? "No seller messages yet."
+    activeTab === "buyer" ? "No buyer messages yet for this dispute."
+    : activeTab === "seller" ? "No seller messages yet for this dispute."
     : "No internal notes yet.";
 
   const handleSend = () => {
@@ -1418,10 +1500,10 @@ function CaseCommunicationSection(props: {
           <div className="mb-4 pb-4 border-b border-slate-800">
             <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-3">Quick Actions</p>
             <div className="flex flex-wrap gap-2">
-              <QuickActionChip icon={<HelpCircle className="w-3 h-3 mr-1" />} label="Request Clarification" hoverClass="hover:border-orange-500 hover:text-orange-400" onClick={onAddNote} />
-              <QuickActionChip icon={<FilePlus2 className="w-3 h-3 mr-1" />} label="Request Evidence" hoverClass="hover:border-orange-500 hover:text-orange-400" onClick={onAddNote} />
-              <QuickActionChip icon={<Bell className="w-3 h-3 mr-1" />} label="Send Reminder" hoverClass="hover:border-yellow-500 hover:text-yellow-400" onClick={onAddNote} />
-              <QuickActionChip icon={<Clock className="w-3 h-3 mr-1" />} label="Send Deadline Notice" hoverClass="hover:border-red-500 hover:text-red-400" onClick={onAddNote} />
+              <QuickActionChip disabled icon={<HelpCircle className="w-3 h-3 mr-1" />} label="Request Clarification" hoverClass="hover:border-orange-500 hover:text-orange-400" title="Outbound messaging not yet wired" />
+              <QuickActionChip disabled icon={<FilePlus2 className="w-3 h-3 mr-1" />} label="Request Evidence" hoverClass="hover:border-orange-500 hover:text-orange-400" title="Outbound messaging not yet wired" />
+              <QuickActionChip disabled icon={<Bell className="w-3 h-3 mr-1" />} label="Send Reminder" hoverClass="hover:border-yellow-500 hover:text-yellow-400" title="Outbound messaging not yet wired" />
+              <QuickActionChip disabled icon={<Clock className="w-3 h-3 mr-1" />} label="Send Deadline Notice" hoverClass="hover:border-red-500 hover:text-red-400" title="Outbound messaging not yet wired" />
             </div>
           </div>
 
@@ -1468,9 +1550,12 @@ function CaseCommunicationSection(props: {
               </div>
               <button
                 onClick={handleSend}
+                disabled={activeTab !== "internal"}
+                title={activeTab !== "internal" ? "Outbound messaging not yet wired" : undefined}
                 className={cn(
                   "px-5 py-2 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center",
-                  accent.send
+                  accent.send,
+                  activeTab !== "internal" && "opacity-50 cursor-not-allowed"
                 )}
               >
                 <Send className="w-3.5 h-3.5 mr-2" />
@@ -1484,15 +1569,17 @@ function CaseCommunicationSection(props: {
   );
 }
 
-function QuickActionChip({ icon, label, hoverClass, onClick }: {
-  icon: React.ReactNode; label: string; hoverClass: string; onClick?: () => void;
+function QuickActionChip({ icon, label, hoverClass, onClick, disabled, title }: {
+  icon: React.ReactNode; label: string; hoverClass: string; onClick?: () => void; disabled?: boolean; title?: string;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
+      title={title}
       className={cn(
         "px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg transition-all text-xs font-medium inline-flex items-center",
-        hoverClass
+        disabled ? "opacity-50 cursor-not-allowed" : hoverClass
       )}
     >
       {icon}{label}
@@ -1630,151 +1717,6 @@ function MessageItem({ m }: { m: CommMessage }) {
 }
 
 function cap(s: string) { return s.charAt(0).toUpperCase() + s.slice(1); }
-
-// ---------- seller seed messages (mirrors Dispute_Details_2.html demo thread) ----------
-function buildSellerSeed(args: {
-  sellerName: string;
-  agentName: string;
-  openedAt: string | null;
-  dueAt: string | null;
-  sellerRespondedAt: string | null;
-}): CommMessage[] {
-  const { sellerName, agentName, openedAt, dueAt, sellerRespondedAt } = args;
-  const f = (iso: string | null, fallback: string) =>
-    iso ? fmtDate(iso) : fallback;
-  return [
-    {
-      id: "seed-deadline-147",
-      kind: "deadline",
-      senderName: agentName,
-      senderRole: "admin",
-      recipientName: sellerName,
-      recipientRole: "seller",
-      timestamp: f(dueAt, "Jan 21, 2024 18:30"),
-      topic: "Final deadline notice",
-      msgRef: "MSG-147",
-      body: (
-        <>
-          <strong className="text-red-400">Final notice: </strong>
-          Your response to dispute DIS-2024-001246 is now overdue. Failure to respond within 24 hours
-          will result in automatic resolution in favor of the buyer.
-        </>
-      ),
-      footerMeta: (
-        <>
-          <div className="flex items-center gap-1 text-emerald-400">
-            <CheckCheck className="w-3 h-3" /> <span>Read by seller</span>
-          </div>
-          <div className="flex items-center gap-1 text-slate-500">
-            <Clock className="w-3 h-3" /> <span>Opened {f(dueAt, "Jan 21, 19:02")}</span>
-          </div>
-        </>
-      ),
-    },
-    {
-      id: "seed-reminder-142",
-      kind: "reminder",
-      senderName: agentName,
-      senderRole: "admin",
-      recipientName: sellerName,
-      recipientRole: "seller",
-      timestamp: "Jan 20, 2024 09:15",
-      topic: "Response reminder",
-      msgRef: "MSG-142",
-      body: (
-        <>
-          <strong className="text-yellow-400">Reminder: </strong>
-          Please respond to the buyer's claim with your evidence and position. You have 48 hours remaining
-          before this case is escalated.
-        </>
-      ),
-      footerMeta: (
-        <>
-          <div className="flex items-center gap-1 text-emerald-400">
-            <CheckCheck className="w-3 h-3" /> <span>Read by seller</span>
-          </div>
-          <div className="flex items-center gap-1 text-slate-500">
-            <Clock className="w-3 h-3" /> <span>Opened Jan 20, 11:42</span>
-          </div>
-        </>
-      ),
-    },
-    {
-      id: "seed-seller-138",
-      kind: "seller_reply",
-      senderName: sellerName,
-      senderRole: "seller",
-      recipientName: agentName,
-      recipientRole: "admin",
-      timestamp: f(sellerRespondedAt, "Jan 19, 2024 16:48"),
-      topic: "Seller response",
-      msgRef: "MSG-138",
-      body: (
-        <>
-          Thank you for reaching out. The item was thoroughly inspected and packaged before shipping.
-          We have attached photos taken at the warehouse and a copy of the QC checklist. We believe the
-          condition concern relates to handling during transit.
-        </>
-      ),
-      attachments: [
-        { name: "warehouse-inspection.jpg", size: "2.4 MB" },
-        { name: "qc-checklist.pdf", size: "184 KB" },
-      ],
-      footerMeta: (
-        <div className="flex items-center gap-1 text-emerald-400">
-          <CheckCheck className="w-3 h-3" /> <span>Read by agent</span>
-        </div>
-      ),
-    },
-    {
-      id: "seed-evidence-134",
-      kind: "evidence_request",
-      senderName: agentName,
-      senderRole: "admin",
-      recipientName: sellerName,
-      recipientRole: "seller",
-      timestamp: "Jan 19, 2024 15:10",
-      topic: "Evidence request",
-      msgRef: "MSG-134",
-      body: (
-        <>
-          To progress this dispute, please provide:
-          {"\n"}• Pre-shipment photos of the item
-          {"\n"}• Packaging and handling records
-          {"\n"}• Any QC or inspection documentation
-          {"\n\n"}Response deadline: {f(dueAt, "Jan 21, 2024 18:00")}
-        </>
-      ),
-      footerMeta: (
-        <div className="flex items-center gap-1 text-slate-500">
-          <Mail className="w-3 h-3" /> <span>Sent via email · store****@music.com</span>
-        </div>
-      ),
-    },
-    {
-      id: "seed-initial-130",
-      kind: "general",
-      senderName: agentName,
-      senderRole: "admin",
-      recipientName: sellerName,
-      recipientRole: "seller",
-      timestamp: f(openedAt, "Jan 19, 2024 14:35"),
-      topic: "Dispute filed",
-      msgRef: "MSG-130",
-      body: (
-        <>
-          A dispute has been filed against transaction TXN-2024-001246. Please review the buyer's claim
-          and respond with your position within the response window.
-        </>
-      ),
-      footerMeta: (
-        <div className="flex items-center gap-1 text-slate-500">
-          <Check className="w-3 h-3" /> <span>Sent via email</span>
-        </div>
-      ),
-    },
-  ];
-}
 
 // ---------- notes ----------
 function NotesList({ notes, compact }: { notes: any[]; compact?: boolean }) {
