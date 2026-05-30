@@ -1216,10 +1216,15 @@ function CaseCommunicationSection(props: {
   onAddNote: () => void;
   sellerName?: string | null;
   buyerName?: string | null;
+  disputeId: string;
+  buyerClaim: string | null;
+  sellerResponses: Array<{ id: string; number: number; text: string; at: string }>;
+  evidence: AdminTxEvidenceItem[];
 }) {
   const {
     buyerResponded, sellerOverdue, sellerRespondedAt, openedAt, dueAt,
     notes, defaultTab, onAddNote, sellerName, buyerName,
+    disputeId, buyerClaim, sellerResponses, evidence,
   } = props;
   const [activeTab, setActiveTab] = useState<CommTab>((defaultTab as CommTab) ?? "seller");
   const [msgType, setMsgType] = useState("general_reply");
@@ -1228,21 +1233,26 @@ function CaseCommunicationSection(props: {
   const dayLabel = (iso?: string | null) =>
     iso ? new Date(iso).toLocaleDateString("en-NG", { month: "short", day: "numeric" }) : "—";
 
-  // ---------- status chips (always 5 in fixed order) ----------
-  const statusChips = [
+  // ---------- status chips (derived from real data only) ----------
+  const buyerEvidence = (evidence ?? []).filter((e) => (e.uploadedByRole ?? "").toLowerCase() === "buyer");
+  const sellerEvidence = (evidence ?? []).filter((e) => (e.uploadedByRole ?? "").toLowerCase() === "seller");
+  const hasSellerResponse = (sellerResponses ?? []).length > 0;
+  const allChips = [
     {
       key: "buyer-responded",
       tone: "emerald" as const,
       label: "Buyer Responded",
       meta: buyerResponded ? dayLabel(openedAt) : "—",
       leading: <span className="w-2 h-2 bg-emerald-400 rounded-full" />,
+      show: buyerResponded || !!buyerClaim,
     },
     {
       key: "seller-overdue",
       tone: "red" as const,
       label: "Seller Response Overdue",
-      meta: sellerOverdue ? (dueAt ? relTime(dueAt) : "—") : (sellerRespondedAt ? "resolved" : "—"),
+      meta: sellerOverdue ? (dueAt ? relTime(dueAt) : "—") : "resolved",
       leading: <span className={cn("w-2 h-2 bg-red-400 rounded-full", sellerOverdue && "animate-pulse")} />,
+      show: sellerOverdue || hasSellerResponse,
     },
     {
       key: "evidence-requested",
@@ -1250,22 +1260,10 @@ function CaseCommunicationSection(props: {
       label: "Evidence Requested",
       meta: dayLabel(openedAt),
       leading: <FilePlus2 className="w-3 h-3 text-orange-400" />,
-    },
-    {
-      key: "reminder-sent",
-      tone: "yellow" as const,
-      label: "Reminder Sent",
-      meta: dueAt ? dayLabel(dueAt) : "—",
-      leading: <Bell className="w-3 h-3 text-yellow-400" />,
-    },
-    {
-      key: "deadline-notice",
-      tone: "red" as const,
-      label: "Deadline Notice Sent",
-      meta: dueAt ? dayLabel(dueAt) : "—",
-      leading: <Clock className="w-3 h-3 text-red-400" />,
+      show: (evidence ?? []).length > 0,
     },
   ];
+  const statusChips = allChips.filter((c) => c.show);
   const chipTone: Record<string, string> = {
     emerald: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
     red: "bg-red-500/10 border-red-500/30 text-red-400",
@@ -1323,21 +1321,101 @@ function CaseCommunicationSection(props: {
   };
   const accent = tabAccent[activeTab];
 
+  // ---------- buyer messages (real records only) ----------
+  const buyerMessages: CommMessage[] = [];
+  if (buyerClaim && buyerName) {
+    buyerMessages.push({
+      id: `claim-${disputeId}`,
+      kind: "buyer_reply",
+      senderName: buyerName,
+      senderRole: "buyer",
+      recipientName: "SafeDeal Admin",
+      recipientRole: "admin",
+      timestamp: fmtDate(openedAt ?? ""),
+      topic: "Buyer claim",
+      body: buyerClaim,
+      msgRef: `CLAIM-${disputeId.slice(0, 4).toUpperCase()}`,
+      footerMeta: (
+        <div className="flex items-center gap-1 text-slate-500">
+          <Check className="w-3 h-3" /> <span>Filed via dispute form</span>
+        </div>
+      ),
+    });
+  }
+  buyerEvidence.forEach((e) => {
+    if (!e.note && !e.title) return;
+    buyerMessages.push({
+      id: `ev-${e.id}`,
+      kind: "buyer_reply",
+      senderName: e.uploadedByName ?? buyerName ?? "Buyer",
+      senderRole: "buyer",
+      recipientName: "SafeDeal Admin",
+      recipientRole: "admin",
+      timestamp: fmtDate(e.uploadedAt),
+      topic: "Evidence uploaded",
+      body: e.note || `Uploaded evidence: ${e.title}`,
+      msgRef: `EV-${e.id.slice(0, 4).toUpperCase()}`,
+      attachments: e.title ? [{ name: e.title }] : undefined,
+      footerMeta: (
+        <div className="flex items-center gap-1 text-slate-500">
+          <Check className="w-3 h-3" /> <span>Attached to dispute</span>
+        </div>
+      ),
+    });
+  });
+  buyerMessages.sort((a, b) => (a.timestamp < b.timestamp ? -1 : 1));
+
+  // ---------- seller messages (real records only) ----------
+  const sellerMessages: CommMessage[] = [];
+  (sellerResponses ?? []).forEach((r) => {
+    sellerMessages.push({
+      id: `res-${r.id}`,
+      kind: "seller_reply",
+      senderName: sellerName ?? "Seller",
+      senderRole: "seller",
+      recipientName: "SafeDeal Admin",
+      recipientRole: "admin",
+      timestamp: fmtDate(r.at),
+      topic: `Response #${r.number}`,
+      body: r.text,
+      msgRef: `RES-${r.number}`,
+      footerMeta: (
+        <div className="flex items-center gap-1 text-slate-500">
+          <Check className="w-3 h-3" /> <span>Submitted via dispute response</span>
+        </div>
+      ),
+    });
+  });
+  sellerEvidence.forEach((e) => {
+    if (!e.note && !e.title) return;
+    sellerMessages.push({
+      id: `ev-${e.id}`,
+      kind: "seller_reply",
+      senderName: e.uploadedByName ?? sellerName ?? "Seller",
+      senderRole: "seller",
+      recipientName: "SafeDeal Admin",
+      recipientRole: "admin",
+      timestamp: fmtDate(e.uploadedAt),
+      topic: "Evidence uploaded",
+      body: e.note || `Uploaded evidence: ${e.title}`,
+      msgRef: `EV-${e.id.slice(0, 4).toUpperCase()}`,
+      attachments: e.title ? [{ name: e.title }] : undefined,
+      footerMeta: (
+        <div className="flex items-center gap-1 text-slate-500">
+          <Check className="w-3 h-3" /> <span>Attached to dispute</span>
+        </div>
+      ),
+    });
+  });
+  sellerMessages.sort((a, b) => (a.timestamp < b.timestamp ? -1 : 1));
+
   const activeMessages: CommMessage[] =
-    activeTab === "internal"
-      ? internalMessages
-      : activeTab === "seller"
-        ? buildSellerSeed({
-            sellerName: sellerName ?? "Seller",
-            agentName: "SafeDeal Support",
-            openedAt,
-            dueAt,
-            sellerRespondedAt,
-          })
-        : [];
+    activeTab === "internal" ? internalMessages
+    : activeTab === "seller" ? sellerMessages
+    : buyerMessages;
   const emptyText =
-    activeTab === "buyer" ? "No buyer messages yet."
-    : activeTab === "seller" ? "No seller messages yet."
+    activeTab === "buyer" ? "No buyer messages yet for this dispute."
+    : activeTab === "seller" ? "No seller messages yet for this dispute."
     : "No internal notes yet.";
 
   const handleSend = () => {
