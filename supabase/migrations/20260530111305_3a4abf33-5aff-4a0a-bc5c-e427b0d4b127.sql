@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS parties_update_transactions ON public.transactions;
