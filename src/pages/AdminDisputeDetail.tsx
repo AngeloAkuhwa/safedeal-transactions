@@ -6,6 +6,7 @@ import {
   Circle, Clock, ShieldAlert, Snowflake, MessageSquare, StickyNote, Gavel,
   CheckCircle2, XCircle, ChevronRight, Flag, Wallet, CreditCard, Vault,
   Search, Send, Ban, Play, Eye, NotebookPen, Store,
+  Star,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -83,12 +84,28 @@ function CardHeader({ title, subtitle, action }: { title: React.ReactNode; subti
   );
 }
 function Avatar({ name, src, size = 40 }: { name?: string | null; src?: string | null; size?: number }) {
-  return src ? (
-    <img src={src} alt={name ?? ""} className="rounded-full object-cover shrink-0"
-         style={{ width: size, height: size }} />
-  ) : (
-    <div className="rounded-full bg-muted text-foreground flex items-center justify-center text-xs font-semibold shrink-0"
-         style={{ width: size, height: size }}>{initials(name)}</div>
+  const [failed, setFailed] = useState(false);
+  const showImg = !!src && !failed;
+  if (showImg) {
+    return (
+      <img
+        src={src as string}
+        alt={name ?? ""}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+        className="rounded-full object-cover shrink-0 bg-muted"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  return (
+    <div
+      className="rounded-full bg-muted text-foreground flex items-center justify-center font-semibold shrink-0"
+      style={{ width: size, height: size, fontSize: Math.max(10, Math.round(size * 0.35)) }}
+    >
+      {initials(name)}
+    </div>
   );
 }
 function KV({ label, value, className }: { label: string; value: React.ReactNode; className?: string }) {
@@ -411,21 +428,21 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
   // ---------- sticky header ----------
   const header = (
     <div className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <div className="flex items-center justify-between gap-3 px-6 py-4 lg:px-8 lg:py-5">
+      <div className="flex items-center justify-between gap-3 px-6 py-3.5 lg:px-8 lg:py-4">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => navigate("/admin/disputes")}
-            className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:text-foreground hover:bg-muted"
+            className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted"
             aria-label="Back to disputes"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-lg font-bold text-foreground truncate">
+            <h1 className="text-xl font-bold tracking-tight text-foreground truncate">
               Dispute #{disputeCode}
             </h1>
             <p className="text-xs text-muted-foreground truncate">
-              {itemTitle} · {txCode}
+              {itemTitle} - {txCode}
             </p>
           </div>
         </div>
@@ -439,11 +456,6 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
             )}>
               {overdue && <span className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />}
               {slaText}
-            </span>
-          )}
-          {!slaText && !resolvedAt && (
-            <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/15 text-emerald-300 px-3 py-1 text-xs font-bold">
-              Within SLA
             </span>
           )}
           <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2">
@@ -462,45 +474,65 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
           {/* Summary strip — scrolls under the sticky header */}
           <div className="bg-card border-b border-border">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5 px-6 py-6 lg:px-8">
-                <div>
-                  <KV label="Dispute ID" value={<span className="font-mono">{disputeCode}</span>} />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-5 px-6 py-6 lg:px-8">
+              <div className="flex flex-col gap-4 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Dispute ID</div>
+                  <div className="mt-1 text-sm font-semibold text-foreground font-mono truncate">#{disputeCode}</div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Transaction</div>
                   <button
-                    className="mt-2 inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
                     onClick={() => navigate(`/admin/transactions/${txId}`)}
+                    className="mt-1 block text-sm font-semibold text-blue-400 hover:text-blue-300 font-mono truncate"
                   >
-                    {txCode} <ExternalLink className="h-3 w-3" />
+                    {txCode}
                   </button>
                 </div>
-                <div>
-                  <KV label="Amount in Dispute" value={<span className="font-semibold">{ngn(amountInDispute)}</span>} />
-                  <div className="mt-2 text-xs text-muted-foreground truncate">
+              </div>
+              <div className="flex flex-col gap-4 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Amount in Dispute</div>
+                  <div className="mt-1 text-sm font-semibold text-foreground truncate">{ngn(amountInDispute)}</div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Dispute Reason</div>
+                  <div className="mt-1 text-sm font-semibold text-orange-400 truncate">
                     {titleCase(row.reason ?? dispute.claimType) || "—"}
                   </div>
                 </div>
-                <div>
-                  <KV label="Created" value={fmtDate(row.opened_at ?? dispute.openedAt)} />
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    Last activity {relTime(tx.updatedAt ?? tx.updated_at)}
+              </div>
+              <div className="flex flex-col gap-4 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Created</div>
+                  <div className="mt-1 text-sm font-semibold text-foreground truncate">
+                    {fmtDate(row.opened_at ?? dispute.openedAt)}
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 min-w-0">
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</div>
-                    <div className="mt-1"><StatusPill value={row.status} /></div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Assigned Agent</div>
-                    {dispute.assignedAgent?.name ? (
-                      <div className="mt-1 flex items-center gap-2 min-w-0">
-                        <Avatar name={dispute.assignedAgent.name} src={dispute.assignedAgent.avatarUrl} size={20} />
-                        <span className="text-sm text-foreground truncate">{dispute.assignedAgent.name}</span>
-                      </div>
-                    ) : (
-                      <div className="mt-1 text-sm text-muted-foreground">Unassigned</div>
-                    )}
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Last Activity</div>
+                  <div className="mt-1 text-sm font-semibold text-foreground truncate">
+                    {fmtDate(tx.updatedAt ?? tx.updated_at)}
                   </div>
                 </div>
+              </div>
+              <div className="flex flex-col gap-4 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</div>
+                  <div className="mt-1"><StatusPill value={row.status} /></div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Assigned Agent</div>
+                  {dispute.assignedAgent?.name ? (
+                    <div className="mt-1 flex items-center gap-2 min-w-0">
+                      <Avatar name={dispute.assignedAgent.name} src={dispute.assignedAgent.avatarUrl} size={20} />
+                      <span className="text-sm font-semibold text-foreground truncate">{dispute.assignedAgent.name}</span>
+                    </div>
+                  ) : (
+                    <div className="mt-1 text-sm text-muted-foreground">Unassigned</div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -847,7 +879,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
       <CardHeader
         title={isBuyer ? "Buyer Information" : "Seller Information"}
         action={
-          <span className={cn("inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", roleChipCls)}>
+          <span className={cn("inline-flex items-center rounded border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider", roleChipCls)}>
             {isBuyer ? "Buyer" : "Seller"}
           </span>
         }
@@ -857,19 +889,18 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
           <Avatar name={party.name} src={party.avatarUrl} size={48} />
           <div className="min-w-0 flex-1">
             <div className="text-base font-semibold text-foreground truncate">{party.name ?? "—"}</div>
-            <div className="text-xs text-muted-foreground font-mono truncate">User ID: {party.id?.slice(0, 16) ?? "—"}</div>
+            <div className="text-xs text-muted-foreground truncate">User ID: {party.id?.slice(0, 16) ?? "—"}</div>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            {ver.identity && (
+            {!isBuyer && sellerTier ? (
+              <span className="inline-flex items-center gap-1 text-xs text-yellow-400">
+                <Star className="h-3.5 w-3.5 fill-yellow-400" /> {titleCase(sellerTier)} Seller
+              </span>
+            ) : ver.identity ? (
               <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Verified
               </span>
-            )}
-            {sellerTier && (
-              <span className="inline-flex items-center gap-1 text-xs text-yellow-400">
-                <Flag className="h-3.5 w-3.5" /> {titleCase(sellerTier)} Seller
-              </span>
-            )}
+            ) : null}
             {party.flagged && (
               <span className="inline-flex items-center gap-1 text-xs text-red-400">
                 <AlertTriangle className="h-3.5 w-3.5" /> Flagged
@@ -878,15 +909,17 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <KV label="Email" value={<span className="font-mono text-xs">{party.maskedEmail ?? "—"}</span>} />
-          <KV label="Phone" value={<span className="font-mono text-xs">{party.maskedPhone ?? "—"}</span>} />
+          <KV label="Email" value={<span className="text-sm">{party.maskedEmail ?? "—"}</span>} />
+          <KV label="Phone" value={<span className="text-sm">{party.maskedPhone ?? "—"}</span>} />
           <KV label="Prior Disputes" value={party.priorDisputes != null ? `${party.priorDisputes} ${isBuyer ? "filed" : "received"}` : "—"} />
           <KV
             label={isBuyer ? "Account Status" : "Payout Status"}
             value={
               isBuyer
                 ? <span className={cn(party.accountStatus === "good_standing" ? "text-emerald-400" : "text-foreground")}>{titleCase(party.accountStatus) || "—"}</span>
-                : <span className="text-red-400">Blocked</span>
+                : (party.payoutStatus === "blocked"
+                    ? <span className="text-red-400">Blocked</span>
+                    : <span className="text-foreground">{titleCase(party.payoutStatus) || "—"}</span>)
             }
           />
         </div>
@@ -894,7 +927,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
           <Tooltip>
             <TooltipTrigger asChild>
               <span>
-                <Button size="sm" disabled className={cn("w-full gap-1.5", callBtnCls, "opacity-100")}>
+                <Button size="sm" disabled className={cn("w-full gap-1.5 h-9", callBtnCls, "opacity-100")}>
                   <Phone className="h-3.5 w-3.5" /> Call
                 </Button>
               </span>
@@ -904,23 +937,25 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
           <ContactBtn icon={<Mail className="h-3.5 w-3.5" />} label="Email" disabled tip="Direct email not connected yet" />
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button size="sm" variant="outline" className="px-2.5" onClick={() => navigate(`/admin/users/${party.id}`)} aria-label="Profile">
+              <Button size="sm" variant="outline" className="h-9 w-9 p-0" onClick={() => navigate(`/admin/users/${party.id}`)} aria-label="Profile">
                 <UserIcon className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Open profile</TooltipContent>
           </Tooltip>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/users/${party.id}`)}>
-            <UserIcon className="h-3.5 w-3.5" /> View Profile
-          </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
-            <Scale className="h-3.5 w-3.5" /> Dispute History
-          </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
-            <Receipt className="h-3.5 w-3.5" /> Transactions
-          </Button>
+        <div className="pt-4 border-t border-border">
+          <div className="grid grid-cols-3 gap-2">
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/users/${party.id}`)}>
+              <UserIcon className="h-3.5 w-3.5" /> View Profile
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
+              <Scale className="h-3.5 w-3.5" /> Dispute History
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
+              <Receipt className="h-3.5 w-3.5" /> Transactions
+            </Button>
+          </div>
         </div>
       </div>
     </Card>
