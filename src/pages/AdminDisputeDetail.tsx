@@ -879,7 +879,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
       <CardHeader
         title={isBuyer ? "Buyer Information" : "Seller Information"}
         action={
-          <span className={cn("inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", roleChipCls)}>
+          <span className={cn("inline-flex items-center rounded border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider", roleChipCls)}>
             {isBuyer ? "Buyer" : "Seller"}
           </span>
         }
@@ -889,19 +889,18 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
           <Avatar name={party.name} src={party.avatarUrl} size={48} />
           <div className="min-w-0 flex-1">
             <div className="text-base font-semibold text-foreground truncate">{party.name ?? "—"}</div>
-            <div className="text-xs text-muted-foreground font-mono truncate">User ID: {party.id?.slice(0, 16) ?? "—"}</div>
+            <div className="text-xs text-muted-foreground truncate">User ID: {party.id?.slice(0, 16) ?? "—"}</div>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            {ver.identity && (
+            {!isBuyer && sellerTier ? (
+              <span className="inline-flex items-center gap-1 text-xs text-yellow-400">
+                <Star className="h-3.5 w-3.5 fill-yellow-400" /> {titleCase(sellerTier)} Seller
+              </span>
+            ) : ver.identity ? (
               <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Verified
               </span>
-            )}
-            {sellerTier && (
-              <span className="inline-flex items-center gap-1 text-xs text-yellow-400">
-                <Flag className="h-3.5 w-3.5" /> {titleCase(sellerTier)} Seller
-              </span>
-            )}
+            ) : null}
             {party.flagged && (
               <span className="inline-flex items-center gap-1 text-xs text-red-400">
                 <AlertTriangle className="h-3.5 w-3.5" /> Flagged
@@ -910,15 +909,17 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <KV label="Email" value={<span className="font-mono text-xs">{party.maskedEmail ?? "—"}</span>} />
-          <KV label="Phone" value={<span className="font-mono text-xs">{party.maskedPhone ?? "—"}</span>} />
+          <KV label="Email" value={<span className="text-sm">{party.maskedEmail ?? "—"}</span>} />
+          <KV label="Phone" value={<span className="text-sm">{party.maskedPhone ?? "—"}</span>} />
           <KV label="Prior Disputes" value={party.priorDisputes != null ? `${party.priorDisputes} ${isBuyer ? "filed" : "received"}` : "—"} />
           <KV
             label={isBuyer ? "Account Status" : "Payout Status"}
             value={
               isBuyer
                 ? <span className={cn(party.accountStatus === "good_standing" ? "text-emerald-400" : "text-foreground")}>{titleCase(party.accountStatus) || "—"}</span>
-                : <span className="text-red-400">Blocked</span>
+                : (party.payoutStatus === "blocked"
+                    ? <span className="text-red-400">Blocked</span>
+                    : <span className="text-foreground">{titleCase(party.payoutStatus) || "—"}</span>)
             }
           />
         </div>
@@ -926,7 +927,7 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
           <Tooltip>
             <TooltipTrigger asChild>
               <span>
-                <Button size="sm" disabled className={cn("w-full gap-1.5", callBtnCls, "opacity-100")}>
+                <Button size="sm" disabled className={cn("w-full gap-1.5 h-9", callBtnCls, "opacity-100")}>
                   <Phone className="h-3.5 w-3.5" /> Call
                 </Button>
               </span>
@@ -936,23 +937,25 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
           <ContactBtn icon={<Mail className="h-3.5 w-3.5" />} label="Email" disabled tip="Direct email not connected yet" />
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button size="sm" variant="outline" className="px-2.5" onClick={() => navigate(`/admin/users/${party.id}`)} aria-label="Profile">
+              <Button size="sm" variant="outline" className="h-9 w-9 p-0" onClick={() => navigate(`/admin/users/${party.id}`)} aria-label="Profile">
                 <UserIcon className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Open profile</TooltipContent>
           </Tooltip>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/users/${party.id}`)}>
-            <UserIcon className="h-3.5 w-3.5" /> View Profile
-          </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
-            <Scale className="h-3.5 w-3.5" /> Dispute History
-          </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
-            <Receipt className="h-3.5 w-3.5" /> Transactions
-          </Button>
+        <div className="pt-4 border-t border-border">
+          <div className="grid grid-cols-3 gap-2">
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/users/${party.id}`)}>
+              <UserIcon className="h-3.5 w-3.5" /> View Profile
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
+              <Scale className="h-3.5 w-3.5" /> Dispute History
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
+              <Receipt className="h-3.5 w-3.5" /> Transactions
+            </Button>
+          </div>
         </div>
       </div>
     </Card>
