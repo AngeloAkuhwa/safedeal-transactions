@@ -45,7 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { deriveDisputeDisplay } from "@/lib/dispute-display-status";
-import { deriveActiveState } from "@/lib/admin-active-state";
+import { deriveActiveState, riskBannerTone, visibleRiskFlags, flagChipTone } from "@/lib/admin-active-state";
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 
 const ngn = (v: number | null | undefined) => formatMoney(v ?? 0, "NGN");
@@ -405,13 +405,16 @@ export default function AdminTransactionDetail() {
   const allFlags = useMemo(() => {
     const seen = new Set<string>();
     const merged = [...(data?.risk?.flags ?? []), ...synthesizedFlags];
-    return merged.filter((f: any) => {
+    const deduped = merged.filter((f: any) => {
       const k = (f.label ?? "").toLowerCase();
       if (seen.has(k)) return false;
       seen.add(k);
       return true;
     });
-  }, [data?.risk?.flags, synthesizedFlags]);
+    // Hide flags that are purely historical now (e.g. "Dispute: Resolved",
+    // stale "manual_hold" after release-review cleared, stale "frozen").
+    return visibleRiskFlags(deduped, active);
+  }, [data?.risk?.flags, synthesizedFlags, active]);
 
   const exportData = () => {
     if (!data) return;
@@ -469,14 +472,30 @@ export default function AdminTransactionDetail() {
   }, [data?.timeline, tlFilter, tlNewest]);
 
   const visibleTimeline = showFullTimeline ? filteredTimeline : filteredTimeline.slice(0, 8);
-  const allFlagsCount = (data?.risk?.flags?.length ?? 0);
-  const showHighRisk =
-    data?.risk?.level === "high" ||
-    data?.risk?.level === "escalated" ||
-    active.isFrozen ||
-    active.isDisputeActive ||
+  // Banner tone is now derived from *current* blockers only — resolved
+  // disputes / unfrozen funds with only a pending release no longer paint
+  // the page red.
+  const bannerTone = useMemo(
+    () => riskBannerTone(active, data?.risk?.level),
+    [active, data?.risk?.level],
+  );
+  const showHighRisk = bannerTone === "red";
+  const showReleaseReviewBanner = bannerTone === "amber";
+  // "Investigate" CTA is only meaningful when there is an active
+  // investigation OR truly high/critical risk.
+  const showInvestigateCTA =
     active.isInvestigationActive ||
-    allFlagsCount > 0;
+    data?.risk?.level === "high" ||
+    data?.risk?.level === "critical";
+  // Seller payout amount: prefer server-provided sellerNet, fall back to
+  // itemTotal. NEVER use buyerTotal (which includes protection fee + any
+  // processing fee that belongs to SafeDeal, not the seller).
+  const sellerPayoutAmount = useMemo(() => {
+    const p: any = data?.pricing ?? {};
+    const net = Number(p.sellerNet ?? 0);
+    if (net > 0) return net;
+    return Number(p.itemTotal ?? 0);
+  }, [data?.pricing]);
 
   const liveDotCls =
     liveSync === "live" ? "bg-emerald-400" :
@@ -672,7 +691,10 @@ export default function AdminTransactionDetail() {
             </div>
           </div>
 
-          {/* High-risk banner */}
+          {/* Risk banner — red only when there is an active blocker.
+              An amber "pending release review" banner shows when the
+              dispute is resolved but the seller payout still needs
+              admin sign-off. */}
           {showHighRisk && (
             <div className="rounded-xl border border-red-500/40 bg-red-500/15 p-4 flex items-start gap-3">
               <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-300">
@@ -680,7 +702,10 @@ export default function AdminTransactionDetail() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-red-200">
-                  {data.risk?.level === "escalated" ? "High Risk — Escalated" : "High Risk Transaction"}
+                  {active.isFrozen ? "Funds Frozen" :
+                   active.isInvestigationActive ? "Active Investigation" :
+                   data.risk?.level === "escalated" ? "High Risk — Escalated" :
+                   "High Risk Transaction"}
                 </div>
                 <div className="mt-0.5 text-xs text-red-300/90">
                   {data.risk?.adminReviewReason ?? "Manual review required before any release."}
@@ -693,11 +718,24 @@ export default function AdminTransactionDetail() {
                   </div>
                 )}
               </div>
-              {adminCan.canOpenInvestigation && (
+              {showInvestigateCTA && adminCan.canOpenInvestigation && (
                 <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white shrink-0" onClick={() => setInvestigateOpen(true)}>
                   <Search className="h-4 w-4 mr-1.5" /> Investigate
                 </Button>
               )}
+            </div>
+          )}
+          {showReleaseReviewBanner && (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 flex items-start gap-3">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-300">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-amber-200">Pending release review</div>
+                <div className="mt-0.5 text-xs text-amber-300/90">
+                  Dispute resolved in favour of the seller. Seller payout is awaiting release.
+                </div>
+              </div>
             </div>
           )}
 
@@ -781,7 +819,17 @@ export default function AdminTransactionDetail() {
                   <div className={cn(
                     "text-base lg:text-lg font-semibold tabular-nums",
                     tx.moneyStatus === "funds_frozen" ? "text-cyan-300" : "text-purple-400",
-                  )}>{ngn(escrowDisplay.value)}</div>
+                  )}>{ngn(
+                    // For "Awaiting Release", bind to seller payout, not buyer total.
+                    (tx.moneyStatus === "funds_pending_release" || tx.moneyStatus === "funds_releasing")
+                      ? sellerPayoutAmount
+                      : escrowDisplay.value,
+                  )}</div>
+                  {(tx.moneyStatus === "funds_pending_release" || tx.moneyStatus === "funds_releasing") && (
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      Seller payout (item total)
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -819,8 +867,14 @@ export default function AdminTransactionDetail() {
                   {adminCan.canUnfreeze && <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200"><Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze Funds</Button>}
                   {adminCan.canManageDispute && dispute && (
                     <>
-                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
-                        <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
+                      <Button
+                        size="sm"
+                        variant={active.isDisputeResolved ? "outline" : undefined}
+                        className={active.isDisputeResolved ? undefined : "bg-orange-500 hover:bg-orange-600 text-white"}
+                        onClick={() => navigate(`/admin/disputes/${dispute.id}`)}
+                      >
+                        <Scale className="h-4 w-4 mr-1.5" />
+                        {active.isDisputeResolved ? "View Dispute" : "Manage Dispute"}
                       </Button>
                       {!disputeResolved && dispute.status !== "closed" && (
                         <Button size="sm" variant="outline" className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200" onClick={() => setResolveDisputeOpen(true)}>
@@ -852,27 +906,55 @@ export default function AdminTransactionDetail() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 lg:p-6">
               <div className="space-y-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Risk Assessment</div>
-                {(showHighRisk) && (
+                {showHighRisk ? (
                   <div className="flex items-center justify-between p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
                     <div className="flex items-center gap-3">
                       <AlertTriangle className="h-4 w-4 text-red-400" />
-                      <span className="text-foreground font-medium text-sm">High Risk Transaction</span>
+                      <span className="text-foreground font-medium text-sm">
+                        {active.isFrozen ? "Funds Frozen" :
+                         active.isInvestigationActive ? "Investigation In Progress" :
+                         "High Risk Transaction"}
+                      </span>
                     </div>
                     <span className="text-red-400 text-xs font-semibold tracking-wider">
                       {data.risk?.level === "escalated" ? "ESCALATED" : "HIGH"}
                     </span>
+                  </div>
+                ) : showReleaseReviewBanner ? (
+                  <div className="flex items-center justify-between p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-4 w-4 text-amber-400" />
+                      <span className="text-foreground font-medium text-sm">Pending Release Review</span>
+                    </div>
+                    <span className="text-amber-300 text-xs font-semibold tracking-wider">REVIEW</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                      <span className="text-foreground font-medium text-sm">No active risk</span>
+                    </div>
+                    <span className="text-emerald-300 text-xs font-semibold tracking-wider">CLEAR</span>
                   </div>
                 )}
                 {allFlags.length === 0 ? (
                   <Empty>No risk flags.</Empty>
                 ) : (
                   <ul className="space-y-2 mt-2">
-                    {allFlags.map((f: any, i: number) => (
-                      <li key={i} className="flex items-center gap-2 text-sm">
-                        <Flag className="h-3.5 w-3.5 text-orange-400 shrink-0" />
-                        <span className="text-muted-foreground">{f.label}</span>
-                      </li>
-                    ))}
+                    {allFlags.map((f: any, i: number) => {
+                      const tone = flagChipTone(String(f.label ?? ""));
+                      const cls = tone === "red"
+                        ? "text-red-400"
+                        : tone === "orange"
+                          ? "text-orange-400"
+                          : "text-muted-foreground";
+                      return (
+                        <li key={i} className="flex items-center gap-2 text-sm">
+                          <Flag className={cn("h-3.5 w-3.5 shrink-0", cls)} />
+                          <span className="text-muted-foreground">{f.label}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>
@@ -901,7 +983,7 @@ export default function AdminTransactionDetail() {
             {(data.risk?.escalationHistory ?? []).length > 0 && (
               <div className="px-4 lg:px-6 pb-4 lg:pb-6">
                 <div className="border-t border-border pt-4">
-                  <h4 className="text-sm font-medium text-foreground mb-3">Escalation History</h4>
+                  <h4 className="text-sm font-medium text-foreground mb-3">Admin Action History</h4>
                   <ul className="space-y-2">
                     {data.risk.escalationHistory.map((h: any, i: number) => {
                       const dot = h.severity === "critical" ? "bg-red-400" : h.severity === "warning" ? "bg-orange-400" : "bg-slate-400";

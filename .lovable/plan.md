@@ -1,163 +1,156 @@
-
-# Corrective Plan — Current vs Historical State + Unified Timeline
-
 ## Goal
 
-1. Every "current state" surface (badges, flags, banners, sidebar, SLA pill, queue counts) reads from **live derived state** only.
-2. The **Case Timeline** on the Transaction Detail page renders the **same dispute-aware event stream** as the Dispute Detail timeline — so freeze/unfreeze, dispute opened/escalated/resolved, investigation opened/resolved, and outcome events appear in the transaction timeline too.
-3. No payout screen, no Paystack work in this pass.
+Finish the post-resolution state cleanup on Admin Dispute Detail + Admin Transaction Detail, and fix the new issues visible in the screenshots: misleading "High Risk" banner, stale `manual_hold` flag, `Dispute: Resolved` rendered as a red risk chip, wrong `Awaiting Release` amount, and inconsistent header math/CTAs.
+
+Do not build the payout screen. Do not call Paystack transfer. Only fix what the user asked for.
 
 ---
 
-## 1. Single source of truth: `deriveActiveState` helper
+## A. Issues visible in the screenshots
 
-**File:** `src/lib/admin-active-state.ts` (new)
+Transaction shown: SD-2026-000003. Dispute resolved, outcome = `release_funds_to_seller`. Money status = `funds_pending_release`. Escrow no longer frozen.
 
-```ts
-deriveActiveState({ dispute, investigations, moneyStatus, escrow, risk, payout }) => {
-  isDisputeActive,      // status in (open, seller_response_pending, under_review, escalated)
-  isDisputeResolved,    // status === 'resolved' || resolved_at != null
-  isFrozen,             // moneyStatus === 'funds_frozen' || escrow.frozenAmount > 0
-  isInvestigationActive,
-  isEscalated,          // current state only — never derived from history
-  isOverdue,            // isDisputeActive && seller_response_due_at < now
-  needsReleaseReview,
-  activeBlockers,
-  needsAdminReview,
-}
-```
-
-All flags below derive from this. Components stop reading `transactions.needs_admin_review` directly.
+1. **Red "High Risk Transaction — Investigate" banner is still loud** even though there is no active blocker. Active state for this row is only `needs_release_review` (seller-won, awaiting payout). It should not look like a fraud/risk emergency.
+2. **`manual_hold` chip** appears as a red risk flag. After resolution this is no longer an active hold — it is historical. Either drop it or recolor as neutral.
+3. **`Dispute: Resolved` rendered as a red risk chip.** Resolved is a positive terminal state; it must never appear in the active risk-flag list. It already lives in the dispute status badge + timeline.
+4. **`High-value transaction` styled red.** This is informational, not high-risk; should be a neutral/info chip.
+5. **"Open Investigation" CTA** is shown even though all investigations on this case are resolved/dismissed per the timeline. After resolution this button should only appear if no active investigation exists AND the dispute is not resolved, or be relabeled "Reopen Investigation" with a confirm dialog.
+6. **"Manage Dispute" CTA (orange)** duplicates the header `View Dispute` action and reads as if the case is still actionable. After resolution it should be `View Dispute` (neutral), opening the read-only dispute detail.
+7. **Header `Awaiting Release` = ₦676,000 is wrong.** Awaiting Release is the seller payout amount = `item_total` (i.e. `₦650,000`), not the buyer's `total_charged`. Protection fee is SafeDeal revenue, never paid to seller.
+8. **Total Charged math (₦650,000 + ₦16,250 ≠ ₦676,000)** is off by ₦9,750. Either a hidden delivery fee is rolled in or pricing is double-counting. The header must show a breakdown that reconciles: `Item Total + Protection Fee (+ Delivery Fee if any) = Total Charged`.
+9. **Payout Status pill is empty (`—`).** After a seller-won resolution it should show `Pending Release` (linked to release-review queue) with timestamp.
 
 ---
 
-## 2. AdminDisputeDetail.tsx
+## B. Remaining work from the previous plan (items 1–6)
 
-- Replace local `overdue` with `active.isOverdue`. SLA pill renders only when `active.isDisputeActive`; on resolved cases switches to neutral "Resolved · <date>".
-- Frozen banner gated on `active.isFrozen`.
-- When `active.isDisputeResolved`, sidebar swaps to a **Resolution Summary panel**:
-  - Status: Resolved · Outcome · Decision summary · Resolved by · Resolved at
-  - Next action: "Pending release review" / "Pending refund processing" / "Pending split settlement" / "No money movement required"
-- Disable: Refund Buyer, Release Funds, Partial Refund, Partial Release, Close Without Resolution, Move to Under Review, Request More Evidence, Escalate, Mark High Risk, Mark Fraud Watch.
-- Keep enabled: Add Internal Note, View Linked Transaction, Print.
-- Header status pill never shows "Awaiting Seller / Overdue" when resolved.
+10. **Dispute Detail sidebar — full post-resolution mode.**  When `active.isDisputeResolved`, also disable:
+    - `Mark High Risk`, `Mark Fraud Watch`
+    - `Move to Under Review`, `Escalate Further`, `Request More Evidence`
+    - `Open Investigation`
+    Keep enabled: `Add Internal Note`, `View Linked Transaction`, `View Payment / Escrow / Payout Record` (when wired), `Print`, `Export`.
 
-## 3. AdminTransactionDetail.tsx
+11. **Real Resolution Summary panel** (replaces the current buyer/seller party cards block titled "Resolution Summary"):
+    - Status: Resolved (green chip)
+    - Outcome: `refund_buyer | release_funds_to_seller | partial_refund_release | close_case_without_resolution`
+    - Decision summary text
+    - Resolved by + Resolved at
+    - Next-action chip via `nextActionLabelFor(outcome)` (already exists in `src/lib/admin-active-state.ts`)
+    Buyer/Seller cards move below as "Case Parties Summary".
 
-- All risk/flag computation routes through `deriveActiveState`:
-  - "Dispute response overdue" only when `active.isOverdue`.
-  - "Funds frozen" flag only when `active.isFrozen`.
-  - "Escalated" pill only when `active.isEscalated`.
-  - "High Risk — Escalated" copy gated on current risk level, not history.
-- Red frozen banner: renders only if `active.isFrozen`. Vanishes after unfreeze.
-- Freeze/Unfreeze visibility:
-  - Show **Freeze** when `!active.isFrozen` and money in `funds_held_in_escrow | funds_pending_release`.
-  - Show **Unfreeze** only when `active.isFrozen`.
-- Escrow card cyan "frozen" theme branch gated on `active.isFrozen`.
-- "Admin review in progress" banner hides when `active.isDisputeResolved && !active.isInvestigationActive`.
-- Header status: "In Dispute" only when `active.isDisputeActive`; once resolved, fall back to the underlying transaction state (Completed / Delivered / Pending Release / Resolved).
+12. **Transaction Detail header status fallback.** When `active.isDisputeResolved`, header status pill must show the underlying `transactions.status` (`Resolved`, `Pending Release`, `Completed`, etc.) instead of "Disputed" / "In Dispute".
 
-## 4. **Unified Case Timeline (new)**
+13. **`needs_admin_review` server-side recompute.** Migration adding `public.recompute_needs_admin_review(tx_id uuid)` that sets the column to:
+    ```
+    EXISTS active_dispute
+    OR EXISTS active_investigation
+    OR money_status = 'funds_frozen'
+    OR EXISTS unresolved release-review entry
+    OR risk_level IN ('high','critical') AND not_acknowledged
+    ```
+    Called at the end of every admin RPC: `resolve_dispute`, `freeze`/`unfreeze`, `upsert_investigation`, `flag_for_review`.
 
-Today the Transaction Detail timeline only renders `status_history` + `money_history`. It misses the dispute and investigation lifecycle that the Dispute Detail timeline shows.
+14. **Refresh after every admin action.** In `AdminDisputeDetail` and `AdminTransactionDetail`, every action handler must `await refetch()` before re-enabling the button. Currently only some do.
 
-**Build a single timeline composer used by both pages:**
+---
 
-**File:** `src/lib/admin-timeline.ts` (new)
+## C. Implementation details
 
-```ts
-buildAdminTimeline({
-  statusHistory,         // transaction_status_history
-  moneyHistory,          // money_status_history (includes freeze/unfreeze)
-  disputeStatusHistory,  // dispute_status_history
-  disputeOutcomes,       // dispute_outcomes (resolution event)
-  investigationEvents,   // open / resolved / dismissed
-  adminActions,          // freeze, unfreeze, escalate, flag, note (admin_actions table)
-}) => TimelineEntry[]
-```
+### 1. `src/pages/AdminTransactionDetail.tsx` — header & risk banner
 
-Each `TimelineEntry`:
-```
-{ id, occurredAt, source: 'transaction'|'money'|'dispute'|'investigation'|'admin_action',
-  kind: 'dispute_opened'|'dispute_escalated'|'dispute_resolved'|
-        'funds_frozen'|'funds_unfrozen'|'escrow_adjustment'|
-        'investigation_opened'|'investigation_resolved'|'investigation_dismissed'|
-        'status_change'|'admin_note'|'high_risk_flag'|...,
-  label, description, actorName?, badgeTone, relatedId? }
-```
+- Replace the single `accent="red"` banner with a two-tier banner:
+  - `red` only if `active.isFrozen` or `active.isInvestigationActive` or risk level `critical`.
+  - `amber` if `active.needsReleaseReview` only (banner title "Pending release review", neutral icon, no "Investigate" CTA — link to release-review queue instead).
+  - hidden otherwise.
+- "Investigate" CTA shown only when `active.isInvestigationActive || risk.level === 'high' || risk.level === 'critical'`. Otherwise hide.
+- Header KPI strip: rename `AWAITING RELEASE` → keep the label but bind value to `pricing.itemTotal` (seller payout), not `pricing.buyerTotal`. Source from existing `data.pricing.sellerPayoutAmount` if present; fall back to `data.escrow.heldAmount` minus `protectionFee`.
+- Add a `DELIVERY FEE` cell only when `pricing.deliveryFee > 0`, so `Item + Protection + Delivery = Total Charged` reconciles. If `Total Charged` still disagrees with the sum, show the breakdown tooltip with the raw fields.
+- Payout Status pill: read from `data.payout?.status`. When null and `active.needsReleaseReview`, render `Pending Release`. When `data.payout?.releasedAt` exists, render `Released · <date>`.
+- "Manage Dispute" CTA: when `active.isDisputeResolved`, swap label to `View Dispute` and use neutral variant.
 
-Composer rules:
-- Merge all sources, sort by `occurredAt` descending (Dispute Detail's current order).
-- Collapse near-duplicate rows (e.g. `status_history → disputed` paired with `dispute_status_history → open` within 2s collapse into one "Dispute opened" entry, mirroring `DisputeTimeline.tsx` enrichment).
-- Group repeated admin notes the same way the Dispute Timeline already does.
-- **History only** — never feeds active flags.
+### 2. `src/pages/AdminTransactionDetail.tsx` — Risk & Investigation card
 
-**Wire-up:**
-- `src/components/admin/transactions/AdminTransactionTimeline.tsx` (or wherever the Transaction Detail "Case Timeline" card lives) consumes `buildAdminTimeline` output and reuses the same visual row component as `src/components/disputes/DisputeTimeline.tsx` (lift its row markup into `src/components/admin/timeline/TimelineRow.tsx` to keep parity).
-- `AdminDisputeDetail.tsx`'s timeline also switches to the shared `TimelineRow` so both pages render identically.
+- Stop rendering `Dispute: Resolved` in the risk-flag pill list. Filter out any flag whose label starts with `Dispute:` if `active.isDisputeResolved`.
+- `manual_hold` chip: keep only if release-review entry is still open. Otherwise hide.
+- Tone map for flag chips:
+  - `funds_frozen`, `dispute_open`, `dispute_overdue`, `fraud_watch`, `investigation_open`, `risk:high|critical` → red
+  - `manual_hold` (when active), `dispute_escalated` (when active) → orange
+  - `high_value`, `repeat_buyer`, informational → neutral/slate
+- Rename "Escalation History" → "Admin Action History" (it already contains freeze/unfreeze/escalate rows).
+- "High Risk Transaction" header chip only when `risk.level === 'high' || 'critical'` AND there is at least one active blocker; otherwise render `Risk Review` neutral.
 
-**Backend surface:**
-- Extend `getAdminTransactionDetailFull` (`services/admin-transaction-detail.service.ts`) to return `disputeStatusHistory`, `disputeOutcomes`, `investigationEvents`, and `adminActions` for the transaction. The edge function `admin-transaction-detail` already has admin RLS — just add the joins.
-- Dispute Detail already loads the bundle; reuse the same fields.
+### 3. `src/pages/AdminDisputeDetail.tsx`
 
-## 5. AdminTransactions.tsx (list)
+- Extend `isResolved` gating to all destructive/state-changing sidebar buttons listed in B.10.
+- Build the real `ResolutionSummary` block as described in B.11, placed at the top of the right sidebar when `active.isDisputeResolved`. Move the existing buyer/seller party cards into a separate `CaseParties` block below.
+- Header status pill uses `DisputeStatusBadge` derived label; on resolved cases also render `Resolved · <fmtDate(resolvedAt)>`.
+- Every action handler: `await refetch()` before clearing local pending state.
 
-- `buildFlags` per row uses `deriveActiveState`. Resolved disputes drop `in_dispute`, `overdue`, `escalated`. Unfrozen rows drop `frozen`/`admin_frozen`.
-- Filter chips use the same predicates so counts match visible flags.
+### 4. `src/lib/admin-active-state.ts`
 
-## 6. AdminDisputes.tsx (queue)
+- Add helper `riskBannerTone(active, riskLevel)` returning `'red' | 'amber' | 'none'` per the rules in C.1, so both pages share the same banner logic.
+- Add helper `visibleRiskFlags(rawFlags, active)` that filters out historical flags (`Dispute: Resolved`, dismissed-investigation, stale `manual_hold`).
 
-- In `admin-disputes.service.ts`, exclude `status = 'resolved'` (or `resolved_at IS NOT NULL`) from Open / Under Review / Escalated / Overdue buckets at the service layer so KPI counts and rows agree.
-- Resolved disputes appear only under the Resolved filter.
-- SLA overdue text suppressed when row is resolved.
+### 5. New migration — `recompute_needs_admin_review`
 
-## 7. Backend recompute for `needs_admin_review`
-
-New SQL helper:
 ```sql
-recompute_needs_admin_review(tx_id uuid)
--- sets transactions.needs_admin_review = EXISTS(active blocker)
--- where blocker = active dispute | active investigation
---                | escrow.frozen_amount > 0 | release_review_queue pending
---                | unresolved high-risk/fraud flag
+CREATE OR REPLACE FUNCTION public.recompute_needs_admin_review(p_tx_id uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_active boolean;
+BEGIN
+  SELECT
+       EXISTS (SELECT 1 FROM disputes
+               WHERE transaction_id = p_tx_id
+                 AND status IN ('open','seller_response_pending','under_review','escalated'))
+    OR EXISTS (SELECT 1 FROM investigations
+               WHERE transaction_id = p_tx_id
+                 AND status IN ('open','in_progress','investigating'))
+    OR EXISTS (SELECT 1 FROM transactions
+               WHERE id = p_tx_id AND money_status = 'funds_frozen')
+    OR EXISTS (SELECT 1 FROM release_review_queue
+               WHERE transaction_id = p_tx_id AND status = 'open')
+  INTO v_active;
+  UPDATE transactions SET needs_admin_review = v_active WHERE id = p_tx_id;
+END $$;
+
+GRANT EXECUTE ON FUNCTION public.recompute_needs_admin_review(uuid) TO service_role;
 ```
-Called at the end of `resolve_dispute_atomic`, `freeze_funds_atomic`, `unfreeze_funds_atomic`, investigation resolve/dismiss RPCs. No schema changes.
+Then call `PERFORM public.recompute_needs_admin_review(tx_id);` at the end of:
+- `resolve_dispute_v1`
+- `admin_freeze_transaction` / `admin_unfreeze_transaction`
+- `upsert_investigation`
+- `flag_for_review`
 
-## 8. Refresh after every admin action
+### 6. Edge function `admin-transaction-detail`
 
-In both detail pages, after `resolveDispute`, `freezeFunds`, `unfreezeFunds`, `resolveInvestigation`, `dismissInvestigation`, `addInternalNote`, `requestMoreEvidence`, `escalateDispute`:
-- Invalidate keys `["admin-dispute", id]`, `["admin-tx", id]`, `["admin-disputes-list"]`, `["admin-transactions-list"]` and `await refetch()` before re-enabling buttons / closing dialogs.
-- Drop local optimistic flag state.
-
----
-
-## What's NOT in this pass
-
-- No payout screen, no Paystack transfer wiring.
-- Seller-favor outcomes show a disabled "Pending release review" pill only.
-- No redesign of unrelated sections.
+- Ensure response includes `payout.status`, `payout.releasedAt`, `pricing.sellerPayoutAmount`, `pricing.deliveryFee`, and `investigations[]` (latest 5). These drive C.1 + C.2 — if any are missing today, add them.
 
 ---
 
-## Acceptance checks
+## Files
 
-1. Resolve dispute → no "In Dispute / Overdue / Escalated" anywhere; sidebar shows Resolution Summary; SLA pill gone; queue drops the row from active buckets.
-2. Unfreeze → no red banner, no Frozen flag, escrow card normal, Unfreeze hidden, Freeze visible; timeline still shows both freeze + unfreeze.
-3. Resolve all investigations → `needs_admin_review` recomputes; banner disappears; timeline preserves entries.
-4. Old overdue case now resolved → no "77 days overdue" anywhere.
-5. **Transaction Detail "Case Timeline" now shows dispute opened, escalated, frozen, investigation opened/resolved, unfrozen, dispute resolved — same entries and same look as the Dispute Detail timeline.**
-6. List, transaction detail, dispute list, dispute detail show the same flags for the same record.
-7. No Paystack call originates from this page.
+Edit:
+- `src/pages/AdminTransactionDetail.tsx`
+- `src/pages/AdminDisputeDetail.tsx`
+- `src/lib/admin-active-state.ts`
+- `src/services/admin-transaction-detail.service.ts` (typing)
+- `supabase/functions/admin-transaction-detail/index.ts` (extra fields if missing)
+- `supabase/functions/admin-transaction-actions/index.ts` (call recompute at end of each action)
+
+New:
+- One migration: `recompute_needs_admin_review` function
+
+Not in this pass:
+- No payout screen
+- No Paystack transfer
+- No unrelated redesigns
 
 ---
 
-## Files touched
+## Acceptance
 
-- New: `src/lib/admin-active-state.ts`, `src/lib/admin-timeline.ts`, `src/components/admin/timeline/TimelineRow.tsx`
-- Edit: `src/pages/AdminDisputeDetail.tsx`, `src/pages/AdminTransactionDetail.tsx`, `src/pages/AdminTransactions.tsx`, `src/pages/AdminDisputes.tsx`
-- Edit: `src/components/disputes/DisputeTimeline.tsx` (switch to shared `TimelineRow`)
-- Edit: `src/services/admin-disputes.service.ts` (exclude resolved from active buckets)
-- Edit: `src/services/admin-transaction-detail.service.ts` + edge function `admin-transaction-detail` (return `disputeStatusHistory`, `disputeOutcomes`, `investigationEvents`, `adminActions`)
-- New migration: `recompute_needs_admin_review(uuid)` + calls inside existing admin RPCs.
-
-Approve to implement.
+- Resolved dispute with `funds_pending_release`: header shows amber "Pending release review" (not red "High Risk"); no "Investigate" CTA; `Manage Dispute` becomes `View Dispute`; risk flag list excludes `Dispute: Resolved` and stale `manual_hold`; `Awaiting Release` equals seller payout (item total), not buyer total; `Total Charged` reconciles with displayed line items.
+- Resolved dispute sidebar shows Resolution Summary (status/outcome/decision/resolved-by/next-action) and disables all state-changing buttons.
+- `needs_admin_review` flips false automatically once all active blockers clear.
+- Every admin action triggers refetch before re-enabling its button.
+- Transaction list, transaction detail, dispute queue, and dispute detail stay consistent.
