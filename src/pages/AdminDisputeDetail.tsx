@@ -562,9 +562,9 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                     } />
                   <FinMetric label="Funds Status"
                     valueNode={(
-                      <div className="mt-2 flex items-center gap-2" style={{ color: "#FACC15" }}>
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: "#FACC15" }} />
-                        <span className="text-[20px] md:text-[22px] xl:text-[24px] leading-[28px] font-semibold tracking-[-0.02em]">
+                      <div className="mt-1.5 flex items-center gap-2" style={{ color: "#FACC15" }}>
+                        <span className="h-2 w-2 rounded-full shrink-0" style={{ background: "#FACC15" }} />
+                        <span className="text-[15px] md:text-[16px] xl:text-[17px] leading-[22px] md:leading-[24px] font-semibold tracking-[-0.01em]">
                           {moneyStatusLabel(moneyStatus)}
                         </span>
                       </div>
@@ -582,9 +582,9 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                     caption="After fees" />
                   <FinMetric label="Payout Status"
                     valueNode={(
-                      <div className="mt-2 flex items-center gap-2" style={{ color: "#F87171" }}>
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: "#EF4444" }} />
-                        <span className="text-[20px] md:text-[22px] xl:text-[24px] leading-[28px] font-semibold tracking-[-0.02em]">
+                      <div className="mt-1.5 flex items-center gap-2" style={{ color: "#F87171" }}>
+                        <span className="h-2 w-2 rounded-full shrink-0" style={{ background: "#EF4444" }} />
+                        <span className="text-[15px] md:text-[16px] xl:text-[17px] leading-[22px] md:leading-[24px] font-semibold tracking-[-0.01em]">
                           {payoutLabel(payout, moneyStatus, !resolvedAt)}
                         </span>
                       </div>
