@@ -830,6 +830,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
               moneyStatus={moneyStatus}
               adminCan={adminCan}
               dueAt={dueAt}
+              outcome={(dispute as any).outcome ?? null}
               parties={parties}
               buyerClaim={row.description ?? dispute.summary ?? null}
               sellerResponded={!!dispute.responses?.length}
@@ -855,6 +856,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
             moneyStatus={moneyStatus}
             adminCan={adminCan}
             dueAt={dueAt}
+            outcome={(dispute as any).outcome ?? null}
             parties={parties}
             buyerClaim={row.description ?? dispute.summary ?? null}
             sellerResponded={!!dispute.responses?.length}
