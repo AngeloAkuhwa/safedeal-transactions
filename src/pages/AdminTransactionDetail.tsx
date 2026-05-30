@@ -1491,11 +1491,21 @@ export default function AdminTransactionDetail() {
               {!data.pricing ? <Empty>No pricing recorded.</Empty> : (
                 <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <KV label="Item Total" value={ngn(data.pricing.itemTotal)} />
-                  <KV label="Protection Fee" value={ngn(data.pricing.protectionFee)} />
-                  <KV label="Processing Fee" value={ngn(data.pricing.processingFee)} />
+                  <KV
+                    label="Protection Fee"
+                    value={
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="tabular-nums">{ngn(data.pricing.protectionFee)}</span>
+                        {data.pricing.protectionFeeCapped && (
+                          <span className="text-[10px] rounded bg-muted text-muted-foreground px-1.5 py-0.5">capped</span>
+                        )}
+                      </span>
+                    }
+                  />
+                  <KV label="Payment Processing Fee" value={ngn(data.pricing.paymentProcessingFee ?? data.pricing.processingFee)} />
+                  <KV label="Total Charged" value={ngn(data.pricing.totalCharged ?? data.pricing.buyerTotal)} bold />
+                  <KV label="Seller Net" value={ngn(data.pricing.sellerPayoutAmount ?? data.pricing.sellerNet)} />
                   <KV label="Refunded" value={ngn(data.pricing.refundedTotal)} />
-                  <KV label="Seller Net" value={ngn(data.pricing.sellerNet)} />
-                  <KV label="Buyer Total" value={ngn(data.pricing.buyerTotal)} bold />
                 </dl>
               )}
                 </div>
