@@ -1,62 +1,33 @@
-# Case Timeline + Internal Notes — Pixel Alignment Pass
+## Goal
+Restyle the `LinkedTile` component in `src/pages/AdminDisputeDetail.tsx` so the "Linked Records & Quick Actions" grid matches the screenshot 100%.
 
-Scope: presentation only in `src/pages/AdminDisputeDetail.tsx`. No data, schema, or service changes.
+## Current vs Target
 
-## Problem (what doesn't match the screenshot)
+**Current:** Horizontal layout — icon square on the left, title/subtitle stacked to its right, chevron on the far right (vertically centered). Subtitle uses monospaced font.
 
-**Case Timeline**
-- Current render uses one continuous `border-l` on the container, so the rail runs through the status header ("Escalated") — in the screenshot the status row has only a dot and **no rail** beside it.
-- Because the rail is on the container, the gap between items is filled by the rail (continuous line). The screenshot shows **per-item line segments** that visibly break between cards, giving the staggered look.
-- Each entry needs its own short vertical segment that starts at the title and ends at the date, with a small empty gap before the next item begins.
+**Target (screenshot):** Vertical layout per tile:
+- Row 1: small rounded icon badge in the top-left, arrow icon (`ArrowRight`) in the top-right (muted).
+- Row 2 (below, with breathing room): title in white, semibold, ~sm/base size.
+- Row 3: subtitle in muted slate (code/ID), regular weight, not mono-styled badge.
+- Card background slightly lighter than container, rounded-xl, subtle border, hover lift.
+- Escrow Record tile shows a small **red notification dot** next to the icon (top area).
 
-**Internal Notes & Investigation**
-- Note body is currently indented with `pl-11` (sits under the author text). Screenshot shows the body text **flush to the card's left padding**, full width.
-- Pill ("ESCALATION" / "INVESTIGATION" / "AGENT NOTE") must sit **top-right of the card**, vertically aligned to the author row — current works but spacing needs to match (`px-2.5 py-1`, rounded-md not full).
-- Header row layout already correct (avatar + name + "{type} • {date}"). Keep.
+## Changes (UI-only)
 
-## A. Timeline rail — restructure
+### A. `LinkedTile` component (~line 2096)
+Rewrite to vertical layout:
+- Container: `rounded-xl border border-border/60 bg-muted/20 p-4 hover:bg-muted/40 hover:border-blue-500/40 transition` with `flex flex-col gap-3 min-h-[110px]`.
+- Top row: `flex items-start justify-between` → icon badge (`h-9 w-9 rounded-lg grid place-items-center` + tone bg/text) on the left + a relative wrapper for the notification dot; `ArrowRight` (h-4 w-4 text-muted-foreground) on the right.
+- Bottom: title `text-sm font-semibold text-foreground`, subtitle `text-xs text-muted-foreground mt-0.5` (drop `font-mono`).
+- New optional prop `showDot?: boolean` → renders a `h-2 w-2 rounded-full bg-rose-500` absolutely positioned at top-right of the icon badge.
+- Keep disabled state (no arrow / reduced opacity / cursor-not-allowed).
 
-Replace the single container rail with per-item rails:
+### B. Grid usage (~line 758-777)
+- Keep the 6 tiles & order. Pass `showDot` on the Escrow Record tile.
+- Replace `ChevronRight` with `ArrowRight` import where the tile uses it (chevron stays elsewhere).
 
-```
-<div className="space-y-4">
-  {header && (
-    // Status pill row: dot only, NO border-l
-    <div className="flex items-center gap-2 pl-0">
-      <span className="h-2.5 w-2.5 rounded-full {toneBg}" />
-      <span className="text-sm font-semibold {toneText}">{header.label}</span>
-    </div>
-  )}
-  {rows.map(r => (
-    <div className="border-l-2 border-border/60 pl-4 py-0.5">
-      <div className="text-sm font-semibold text-foreground">{r.title}</div>
-      {r.description && <div className="text-xs text-muted-foreground mt-1">{r.description}</div>}
-      <div className="text-[11px] text-muted-foreground mt-1.5">
-        {fmtDate(r.raw.at)}{r.raw.type === "admin_action" && <> · by {r.actor ?? "SafeDeal Admin"}</>}
-      </div>
-    </div>
-  ))}
-</div>
-```
+### Out of scope
+No data/service changes. No other sections touched. Icons, tones, and click handlers preserved.
 
-Key changes:
-- Drop `relative pl-5 border-l border-border` from the container.
-- Status header row: no rail, no left padding — just dot + label (orange for escalated/under_review, red for open, green for resolved).
-- Each event row gets its own `border-l-2 border-border/60 pl-4` so the rail visibly segments per item with `space-y-4` creating the gap.
-- Remove the per-item absolute dot (`absolute -left-[26px]`) — the screenshot has no dots on individual rows, only on the status header.
-- Title weight bumped to `font-semibold` to match screenshot.
-
-## B. Internal Notes — layout cleanup
-
-In `NotesList`:
-- Remove `pl-11` from the body `<p>` so the note text aligns to the card's natural left padding (`p-4`), matching the screenshot.
-- Pill styling: change from `rounded-full px-2 py-0.5 text-[10px]` to `rounded-md px-2.5 py-1 text-[10px]` with the same color classes (ESCALATION red, INVESTIGATION purple, AGENT NOTE slate, FOLLOW-UP amber). Keep `uppercase tracking-wide font-bold`.
-- Author row spacing unchanged. Body sits below header row with `mt-1` (instead of `space-y-2` which adds too much gap).
-
-## C. Out of scope
-
-No changes to data fetching, `humanizeTimelineEntry`, `collapseAdminTriplets`, `parseInternalNoteTag`, the `+ Add Note` button, sidebar, or any other section. This is a pure layout/CSS pass on the two render functions: `Timeline` and `NotesList`.
-
-## Files touched
-
-- `src/pages/AdminDisputeDetail.tsx` — `Timeline` component (~line 2037) and `NotesList` component (~line 1837).
+## Files
+- `src/pages/AdminDisputeDetail.tsx` (LinkedTile component + the 6 tile call sites)
