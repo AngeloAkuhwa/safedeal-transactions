@@ -292,6 +292,7 @@ type DialogState = {
 
 function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refresh: () => void; dialogs: DialogState }) {
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { dispute: row, txDetail } = data;
   const tx = txDetail.transaction ?? {};
   const dispute = txDetail.dispute ?? {};
