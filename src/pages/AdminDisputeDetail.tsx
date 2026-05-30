@@ -468,70 +468,62 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
   return (
     <AdminLayout title="Dispute" hideDefaultHeaders fullBleed fullHeight>
-      <div className="flex h-full min-h-0">
-        <section className="flex-1 min-w-0 h-full overflow-y-auto">
+      <div className="flex flex-col xl:flex-row xl:h-full xl:min-h-0">
+        <section className="flex-1 min-w-0 xl:h-full xl:overflow-y-auto overflow-x-hidden">
           {header}
 
           {/* Summary strip — scrolls under the sticky header */}
           <div className="bg-card border-b border-border">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-5 px-6 py-6 lg:px-8">
-              <div className="flex flex-col gap-4 min-w-0">
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Dispute ID</div>
-                  <div className="mt-1 text-sm font-semibold text-foreground font-mono truncate">#{disputeCode}</div>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Transaction</div>
-                  <button
-                    onClick={() => navigate(`/admin/transactions/${txId}`)}
-                    className="mt-1 block text-sm font-semibold text-blue-400 hover:text-blue-300 font-mono truncate"
-                  >
-                    {txCode}
-                  </button>
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-x-6 gap-y-5 px-6 py-6 lg:px-8">
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Dispute ID</div>
+                <div className="text-sm font-semibold text-foreground font-mono truncate">#{disputeCode}</div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Transaction</div>
+                <button
+                  onClick={() => navigate(`/admin/transactions/${txId}`)}
+                  className="block text-sm font-semibold text-blue-400 hover:text-blue-300 font-mono truncate max-w-full"
+                >
+                  {txCode}
+                </button>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Amount in Dispute</div>
+                <div className="text-sm font-semibold text-foreground truncate">{ngn(amountInDispute)}</div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Dispute Reason</div>
+                <div className="text-sm font-semibold text-orange-400 truncate">
+                  {titleCase(row.reason ?? dispute.claimType) || "—"}
                 </div>
               </div>
-              <div className="flex flex-col gap-4 min-w-0">
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Amount in Dispute</div>
-                  <div className="mt-1 text-sm font-semibold text-foreground truncate">{ngn(amountInDispute)}</div>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Dispute Reason</div>
-                  <div className="mt-1 text-sm font-semibold text-orange-400 truncate">
-                    {titleCase(row.reason ?? dispute.claimType) || "—"}
-                  </div>
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Created</div>
+                <div className="text-sm font-semibold text-foreground truncate">
+                  {fmtDate(row.opened_at ?? dispute.openedAt)}
                 </div>
               </div>
-              <div className="flex flex-col gap-4 min-w-0">
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Created</div>
-                  <div className="mt-1 text-sm font-semibold text-foreground truncate">
-                    {fmtDate(row.opened_at ?? dispute.openedAt)}
-                  </div>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Last Activity</div>
-                  <div className="mt-1 text-sm font-semibold text-foreground truncate">
-                    {fmtDate(tx.updatedAt ?? tx.updated_at)}
-                  </div>
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Last Activity</div>
+                <div className="text-sm font-semibold text-foreground truncate">
+                  {fmtDate(tx.updatedAt ?? tx.updated_at)}
                 </div>
               </div>
-              <div className="flex flex-col gap-4 min-w-0">
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</div>
-                  <div className="mt-1"><StatusPill value={row.status} /></div>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Assigned Agent</div>
-                  {dispute.assignedAgent?.name ? (
-                    <div className="mt-1 flex items-center gap-2 min-w-0">
-                      <Avatar name={dispute.assignedAgent.name} src={dispute.assignedAgent.avatarUrl} size={20} />
-                      <span className="text-sm font-semibold text-foreground truncate">{dispute.assignedAgent.name}</span>
-                    </div>
-                  ) : (
-                    <div className="mt-1 text-sm text-muted-foreground">Unassigned</div>
-                  )}
-                </div>
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Status</div>
+                <div><StatusPill value={row.status} /></div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs text-muted-foreground mb-1">Assigned Agent</div>
+                {dispute.assignedAgent?.name ? (
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar name={dispute.assignedAgent.name} src={dispute.assignedAgent.avatarUrl} size={20} />
+                    <span className="text-sm font-semibold text-foreground truncate">{dispute.assignedAgent.name}</span>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">Unassigned</div>
+                )}
               </div>
             </div>
           </div>
@@ -751,7 +743,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
         </section>
 
         {/* Right resolution sidebar */}
-        <aside className="hidden xl:block w-[380px] shrink-0 h-full overflow-y-auto border-l border-border bg-card">
+        <aside className="w-full xl:w-[380px] shrink-0 border-t border-border xl:border-t-0 xl:border-l xl:h-full xl:overflow-y-auto bg-card">
           <ResolutionSidebar
               disputeStatus={row.status}
               overdue={overdue}
