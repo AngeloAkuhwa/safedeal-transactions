@@ -867,8 +867,14 @@ export default function AdminTransactionDetail() {
                   {adminCan.canUnfreeze && <Button variant="outline" size="sm" onClick={() => setUnfreezeOpen(true)} className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200"><Snowflake className="h-4 w-4 mr-1.5" /> Unfreeze Funds</Button>}
                   {adminCan.canManageDispute && dispute && (
                     <>
-                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => navigate(`/admin/disputes/${dispute.id}`)}>
-                        <Scale className="h-4 w-4 mr-1.5" /> Manage Dispute
+                      <Button
+                        size="sm"
+                        variant={active.isDisputeResolved ? "outline" : undefined}
+                        className={active.isDisputeResolved ? undefined : "bg-orange-500 hover:bg-orange-600 text-white"}
+                        onClick={() => navigate(`/admin/disputes/${dispute.id}`)}
+                      >
+                        <Scale className="h-4 w-4 mr-1.5" />
+                        {active.isDisputeResolved ? "View Dispute" : "Manage Dispute"}
                       </Button>
                       {!disputeResolved && dispute.status !== "closed" && (
                         <Button size="sm" variant="outline" className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200" onClick={() => setResolveDisputeOpen(true)}>
@@ -900,27 +906,55 @@ export default function AdminTransactionDetail() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 lg:p-6">
               <div className="space-y-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Risk Assessment</div>
-                {(showHighRisk) && (
+                {showHighRisk ? (
                   <div className="flex items-center justify-between p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
                     <div className="flex items-center gap-3">
                       <AlertTriangle className="h-4 w-4 text-red-400" />
-                      <span className="text-foreground font-medium text-sm">High Risk Transaction</span>
+                      <span className="text-foreground font-medium text-sm">
+                        {active.isFrozen ? "Funds Frozen" :
+                         active.isInvestigationActive ? "Investigation In Progress" :
+                         "High Risk Transaction"}
+                      </span>
                     </div>
                     <span className="text-red-400 text-xs font-semibold tracking-wider">
                       {data.risk?.level === "escalated" ? "ESCALATED" : "HIGH"}
                     </span>
+                  </div>
+                ) : showReleaseReviewBanner ? (
+                  <div className="flex items-center justify-between p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-4 w-4 text-amber-400" />
+                      <span className="text-foreground font-medium text-sm">Pending Release Review</span>
+                    </div>
+                    <span className="text-amber-300 text-xs font-semibold tracking-wider">REVIEW</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                      <span className="text-foreground font-medium text-sm">No active risk</span>
+                    </div>
+                    <span className="text-emerald-300 text-xs font-semibold tracking-wider">CLEAR</span>
                   </div>
                 )}
                 {allFlags.length === 0 ? (
                   <Empty>No risk flags.</Empty>
                 ) : (
                   <ul className="space-y-2 mt-2">
-                    {allFlags.map((f: any, i: number) => (
-                      <li key={i} className="flex items-center gap-2 text-sm">
-                        <Flag className="h-3.5 w-3.5 text-orange-400 shrink-0" />
-                        <span className="text-muted-foreground">{f.label}</span>
-                      </li>
-                    ))}
+                    {allFlags.map((f: any, i: number) => {
+                      const tone = flagChipTone(String(f.label ?? ""));
+                      const cls = tone === "red"
+                        ? "text-red-400"
+                        : tone === "orange"
+                          ? "text-orange-400"
+                          : "text-muted-foreground";
+                      return (
+                        <li key={i} className="flex items-center gap-2 text-sm">
+                          <Flag className={cn("h-3.5 w-3.5 shrink-0", cls)} />
+                          <span className="text-muted-foreground">{f.label}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>
@@ -949,7 +983,7 @@ export default function AdminTransactionDetail() {
             {(data.risk?.escalationHistory ?? []).length > 0 && (
               <div className="px-4 lg:px-6 pb-4 lg:pb-6">
                 <div className="border-t border-border pt-4">
-                  <h4 className="text-sm font-medium text-foreground mb-3">Escalation History</h4>
+                  <h4 className="text-sm font-medium text-foreground mb-3">Admin Action History</h4>
                   <ul className="space-y-2">
                     {data.risk.escalationHistory.map((h: any, i: number) => {
                       const dot = h.severity === "critical" ? "bg-red-400" : h.severity === "warning" ? "bg-orange-400" : "bg-slate-400";
