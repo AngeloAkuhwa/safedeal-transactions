@@ -83,7 +83,7 @@ export function AdminLayout({
           type="button"
           onClick={() => setMobileOpen(true)}
           aria-label="Open navigation menu"
-          className="fixed left-3 top-3 z-50 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-lg backdrop-blur hover:bg-muted lg:hidden"
+          className="fixed left-3 top-3 z-50 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card/90 text-foreground shadow-md backdrop-blur hover:bg-muted lg:hidden"
         >
           <Menu className="h-5 w-5" />
         </button>
