@@ -67,17 +67,17 @@ const initials = (name?: string | null) =>
 // ---------- atoms ----------
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <section className={cn("rounded-xl border border-border bg-card", className)}>
+    <section className={cn("rounded-[18px] border border-[#253044] bg-[#111827]/80 overflow-hidden min-w-0", className)}>
       {children}
     </section>
   );
 }
 function CardHeader({ title, subtitle, action }: { title: React.ReactNode; subtitle?: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-border">
+    <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-2 md:px-7 md:pt-6 md:pb-3">
       <div className="min-w-0">
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+        <h2 className="text-[20px] md:text-[24px] xl:text-[26px] leading-[26px] md:leading-[30px] font-semibold tracking-[-0.02em] text-[#F8FAFC]">{title}</h2>
+        {subtitle && <p className="mt-1 text-[13px] md:text-[14px] leading-[18px] text-[#9CA3AF]">{subtitle}</p>}
       </div>
       {action && <div className="flex items-center gap-2 shrink-0">{action}</div>}
     </div>
