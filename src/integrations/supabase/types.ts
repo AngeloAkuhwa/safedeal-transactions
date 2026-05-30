@@ -4085,6 +4085,10 @@ export type Database = {
         Returns: boolean
       }
       is_user_region_allowed: { Args: { _user_id: string }; Returns: boolean }
+      recompute_needs_admin_review: {
+        Args: { p_tx_id: string }
+        Returns: undefined
+      }
       release_payout_atomic: {
         Args: {
           p_actor_user_id: string
