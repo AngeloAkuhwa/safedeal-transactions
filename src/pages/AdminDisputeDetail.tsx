@@ -1840,17 +1840,66 @@ function NotesList({ notes, compact }: { notes: any[]; compact?: boolean }) {
   }
   return (
     <div className="space-y-3">
-      {notes.map((n) => (
-        <div key={n.id} className="rounded-md border border-border bg-background p-3">
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-            <span className="text-foreground font-medium">{n.author?.full_name ?? "Admin"}</span>
-            <span>{fmtDate(n.at)}</span>
+      {notes.map((n) => {
+        const author = n.author?.full_name ?? "SafeDeal Admin";
+        const rawBody: string = n.note ?? "";
+        const { pill, cleanBody } = parseInternalNoteTag(rawBody, n);
+        const typeLabel = noteTypeLabel(n);
+        return (
+          <div key={n.id} className="rounded-lg border border-border bg-background p-4 space-y-2">
+            <div className="flex items-start gap-3">
+              <div className="h-8 w-8 shrink-0 rounded-full bg-blue-500/20 text-blue-300 grid place-items-center text-[11px] font-semibold">
+                {initials(author)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-foreground">{author}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {typeLabel}{typeLabel ? " • " : ""}{fmtDate(n.at)}
+                </div>
+              </div>
+              {pill && (
+                <span className={cn(
+                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                  pill.cls,
+                )}>
+                  {pill.label}
+                </span>
+              )}
+            </div>
+            <p className={cn("text-sm text-foreground/90 whitespace-pre-wrap pl-11", compact && "line-clamp-3")}>{cleanBody}</p>
           </div>
-          <p className={cn("text-sm text-foreground/90 whitespace-pre-wrap", compact && "line-clamp-3")}>{n.note}</p>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
+}
+
+function noteTypeLabel(n: any): string {
+  const t: string = (n.noteType ?? n.note_type ?? n.topic ?? "").toString();
+  if (!t) return "Internal note";
+  return titleCase(t);
+}
+
+function parseInternalNoteTag(body: string, n: any): { pill: { label: string; cls: string } | null; cleanBody: string } {
+  const text = (body ?? "").trim();
+  // Match patterns like [tag/priority] or [tag] at the start
+  const m = text.match(/^\[([a-z_]+)(?:\/([a-z_]+))?\]\s*/i);
+  let tag = "";
+  let clean = text;
+  if (m) { tag = m[1].toLowerCase(); clean = text.slice(m[0].length); }
+  else if (n.noteType || n.note_type) tag = String(n.noteType ?? n.note_type).toLowerCase();
+
+  const pillMap: Record<string, { label: string; cls: string }> = {
+    escalation: { label: "Escalation", cls: "bg-red-500/15 text-red-300 border border-red-500/30" },
+    escalate_case: { label: "Escalation", cls: "bg-red-500/15 text-red-300 border border-red-500/30" },
+    investigation: { label: "Investigation", cls: "bg-purple-500/15 text-purple-300 border border-purple-500/30" },
+    manual_admin_review: { label: "Investigation", cls: "bg-purple-500/15 text-purple-300 border border-purple-500/30" },
+    follow_up: { label: "Follow-up", cls: "bg-amber-500/15 text-amber-300 border border-amber-500/30" },
+    agent_note: { label: "Agent note", cls: "bg-slate-500/15 text-slate-300 border border-slate-500/30" },
+    internal_note: { label: "Agent note", cls: "bg-slate-500/15 text-slate-300 border border-slate-500/30" },
+  };
+  const pill = tag && pillMap[tag] ? pillMap[tag] : null;
+  return { pill, cleanBody: clean || text };
 }
 
 // ---------- timeline ----------
@@ -1871,32 +1920,178 @@ function dedupeTimeline(items: any[]) {
     seen.add(key); return true;
   });
 }
-function Timeline({ items }: { items: any[] }) {
-  if (items.length === 0) {
+
+// ---- timeline humanizer / dedupe helpers ----
+const TIMELINE_TONE: Record<string, string> = {
+  green: "bg-emerald-500",
+  red: "bg-red-500",
+  orange: "bg-orange-500",
+  blue: "bg-blue-500",
+  muted: "bg-muted-foreground/60",
+};
+
+function humanizeTimelineEntry(e: any): { title: string; description: string; tone: string; actor: string | null; sortKey: string } {
+  const t: string = e.type ?? "";
+  const rawTitle: string = e.title ?? "";
+  const rawDesc: string = e.description ?? "";
+  let title = rawTitle;
+  let tone: string = "blue";
+  let description = parseRawTokens(rawDesc);
+  const actor: string | null = e.actorName ?? null;
+
+  const lowerTitle = rawTitle.toLowerCase().trim();
+
+  if (t === "dispute_opened" || lowerTitle === "dispute opened") {
+    title = "Dispute opened"; tone = "red";
+  } else if (t === "dispute_resolved" || lowerTitle.includes("resolved")) {
+    title = "Dispute resolved"; tone = "green";
+  } else if (lowerTitle.includes("under review") || t === "dispute_under_review") {
+    title = "Dispute: under review"; tone = "blue";
+  } else if (lowerTitle.includes("seller response pending") || lowerTitle.includes("seller_response_pending")) {
+    title = "Dispute: seller response pending"; tone = "blue";
+  } else if (lowerTitle === "escalate case" || lowerTitle.includes("escalate")) {
+    title = "Case escalated"; tone = "red";
+  } else if (lowerTitle === "update investigation" || lowerTitle.includes("investigation update") || lowerTitle.includes("update_investigation")) {
+    title = "Investigation updated"; tone = "blue";
+  } else if (lowerTitle === "add internal note" || lowerTitle.includes("internal note")) {
+    title = "Internal note added"; tone = "blue";
+  } else if (lowerTitle.includes("freeze transaction") || lowerTitle.includes("freeze_transaction")) {
+    title = "Funds frozen by admin"; tone = "red";
+  } else if (lowerTitle.includes("unfreeze")) {
+    title = "Funds released by admin"; tone = "green";
+  } else if (t === "seller_response_submitted") {
+    title = "Seller response submitted"; tone = "blue";
+  } else if (t === "buyer_evidence_uploaded") {
+    title = "Evidence uploaded by buyer"; tone = "blue";
+  } else if (t === "dispute_evidence_uploaded") {
+    title = `Evidence uploaded${actor ? ` by ${actor}` : ""}`; tone = "blue";
+  } else if (t === "money_status") {
+    title = `Money: ${rawTitle.replace(/^Money[:\s-]*/i, "").trim() || titleCase(e.subtype ?? "")}`;
+    tone = "blue";
+  } else if (t === "escrow_ledger") {
+    title = "Escrow adjustment"; tone = "blue";
+  } else if (t === "payment") {
+    tone = "blue";
+  } else if (t === "delivery") {
+    tone = "blue";
+  }
+
+  if (e.severity === "success") tone = "green";
+  if (e.severity === "critical" && tone === "blue") tone = "red";
+
+  return { title, description, tone, actor, sortKey: e.at ?? "" };
+}
+
+function parseRawTokens(desc: string): string {
+  if (!desc) return "";
+  let out = desc;
+  // [target=foo_bar] => Target: Foo bar
+  out = out.replace(/\[target=([a-z0-9_]+)\]\s*/gi, (_m, v) => `Target: ${titleCase(v)} · `);
+  // [source/priority] e.g. [manual_admin_review/medium]
+  out = out.replace(/\[([a-z_]+)\/([a-z_]+)\]\s*/gi, (_m, src, pri) =>
+    `Source: ${titleCase(src)} · Priority: ${titleCase(pri)} · `);
+  // follow_up:urgent
+  out = out.replace(/follow_up:([a-z_]+)\s*/gi, (_m, lvl) => `Follow-up (${lvl}): `);
+  // standalone status/priority pair like "resolved/medium"
+  out = out.replace(/\b([a-z_]+)\/([a-z_]+)\b/g, (m, a, b) => {
+    const stat = ["resolved", "open", "under_review", "escalated", "closed", "pending"].includes(a);
+    const pri = ["low", "medium", "high", "urgent", "critical"].includes(b);
+    return stat && pri ? `Status: ${titleCase(a)} · Priority: ${titleCase(b)}` : m;
+  });
+  return out.replace(/\s*·\s*$/, "").trim();
+}
+
+// Collapse admin_action freeze/unfreeze with same-instant money_status + escrow_ledger
+function collapseAdminTriplets(items: any[]): any[] {
+  const sorted = [...items].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+  const used = new Set<string>();
+  const out: any[] = [];
+  for (const it of sorted) {
+    if (used.has(it.id)) continue;
+    const isFreeze = it.type === "admin_action" &&
+      /freeze|unfreeze/i.test(it.title ?? "");
+    if (!isFreeze) { out.push(it); continue; }
+    const tMs = new Date(it.at).getTime();
+    const companions = sorted.filter((x) =>
+      !used.has(x.id) && x.id !== it.id &&
+      (x.type === "money_status" || x.type === "escrow_ledger") &&
+      Math.abs(new Date(x.at).getTime() - tMs) <= 5000
+    );
+    companions.forEach((c) => used.add(c.id));
+    const extra = companions.length ? " · Escrow adjustment recorded" : "";
+    out.push({ ...it, description: `${(it.description ?? "").trim()}${extra}`.trim() });
+  }
+  return out;
+}
+
+function statusPillColor(status: string, resolvedAt: string | null): { label: string; tone: string } {
+  if (resolvedAt || status === "resolved" || status === "closed" || status === "dismissed") {
+    return { label: "Resolved", tone: "green" };
+  }
+  if (status === "escalated") return { label: "Escalated", tone: "orange" };
+  if (status === "under_review") return { label: "Under review", tone: "orange" };
+  if (status === "open") return { label: "Open", tone: "red" };
+  return { label: titleCase(status) || "Active", tone: "blue" };
+}
+
+function Timeline({ items, disputeStatus, resolvedAt }: {
+  items: any[];
+  disputeStatus?: string;
+  resolvedAt?: string | null;
+}) {
+  const collapsed = useMemo(() => collapseAdminTriplets(items), [items]);
+  const rows = useMemo(
+    () =>
+      collapsed
+        .map((e) => ({ raw: e, ...humanizeTimelineEntry(e) }))
+        .sort((a, b) => new Date(b.sortKey).getTime() - new Date(a.sortKey).getTime()),
+    [collapsed],
+  );
+
+  const header = disputeStatus
+    ? statusPillColor(disputeStatus, resolvedAt ?? null)
+    : null;
+
+  if (rows.length === 0 && !header) {
     return <div className="text-xs text-muted-foreground">No timeline events yet.</div>;
   }
+
   return (
-    <ol className="relative border-l border-border pl-5 space-y-4">
-      {items.map((e) => (
-        <li key={e.id} className="relative">
+    <div className="relative pl-5 border-l border-border space-y-5">
+      {header && (
+        <div className="relative">
           <span className={cn(
-            "absolute -left-[27px] top-1 grid h-4 w-4 place-items-center rounded-full border",
-            e.severity === "critical" ? "border-red-500 bg-red-500/20"
-              : e.severity === "warning" ? "border-orange-500 bg-orange-500/20"
-              : e.severity === "success" ? "border-emerald-500 bg-emerald-500/20"
-              : "border-blue-500 bg-blue-500/20",
+            "absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full",
+            TIMELINE_TONE[header.tone],
+          )} />
+          <div className={cn(
+            "text-sm font-semibold",
+            header.tone === "green" && "text-emerald-300",
+            header.tone === "orange" && "text-orange-300",
+            header.tone === "red" && "text-red-300",
+            header.tone === "blue" && "text-blue-300",
           )}>
-            <Circle className="h-2 w-2 fill-current text-foreground" />
-          </span>
-          <div className="flex items-baseline justify-between gap-3">
-            <div className="text-sm font-medium text-foreground">{e.title}</div>
-            <div className="text-xs text-muted-foreground shrink-0">{fmtDate(e.at)}</div>
+            {header.label}
           </div>
-          {e.description && <div className="text-xs text-muted-foreground mt-0.5">{e.description}</div>}
-          {e.actorName && <div className="text-[11px] text-muted-foreground mt-0.5">by {e.actorName}</div>}
-        </li>
+        </div>
+      )}
+      {rows.map((r) => (
+        <div key={r.raw.id} className="relative">
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="text-sm font-medium text-foreground">{r.title}</div>
+          </div>
+          {r.description && (
+            <div className="text-xs text-muted-foreground mt-0.5">{r.description}</div>
+          )}
+          <div className="text-[11px] text-muted-foreground mt-0.5">
+            {fmtDate(r.raw.at)}
+            {r.raw.type === "admin_action" && (
+              <> · by {r.actor ?? "SafeDeal Admin"}</>
+            )}
+          </div>
+        </div>
       ))}
-    </ol>
+    </div>
   );
 }
 
