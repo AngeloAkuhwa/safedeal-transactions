@@ -654,12 +654,14 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                 ) : (
                   <div className="space-y-3">
                     {(dispute.responses as any[]).map((r) => (
-                      <div key={r.id} className="rounded-md border border-border bg-background p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="text-xs text-muted-foreground">Response #{r.number}</div>
-                          <div className="text-xs text-muted-foreground">{fmtDate(r.at)}</div>
+                      <div key={r.id} className="rounded-xl border border-border bg-muted/30 p-4 md:p-5">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs text-muted-foreground mb-1">Response #{r.number}</div>
+                            <p className="text-[15px] text-foreground leading-relaxed whitespace-pre-wrap break-words">{r.text}</p>
+                          </div>
+                          <div className="text-xs text-muted-foreground shrink-0 sm:text-right">{fmtDate(r.at)}</div>
                         </div>
-                        <p className="text-sm text-foreground/90 whitespace-pre-wrap">{r.text}</p>
                       </div>
                     ))}
                   </div>
