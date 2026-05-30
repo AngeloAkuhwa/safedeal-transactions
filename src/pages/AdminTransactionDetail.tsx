@@ -351,7 +351,7 @@ export default function AdminTransactionDetail() {
         dispute: dispute ?? null,
         investigation: (data as any)?.investigation ?? null,
         moneyStatus: tx?.moneyStatus ?? null,
-        escrow: data?.escrow ?? null,
+        escrow: (data?.escrow as any) ?? null,
         risk: data?.risk ?? null,
         payout: (data as any)?.payout ?? null,
         needsReleaseReview: !!(data as any)?.transaction?.needsAdminReview,
