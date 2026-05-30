@@ -1323,7 +1323,50 @@ function CaseCommunicationSection(props: {
 
   // ---------- buyer messages (real records only) ----------
   const buyerMessages: CommMessage[] = [];
+  // Group buyer evidence by (uploader, minute) so multiple files uploaded together
+  // become attachment chips on a single card instead of N separate cards.
+  const groupEvidence = (rows: AdminTxEvidenceItem[]) => {
+    const buckets = new Map<string, AdminTxEvidenceItem[]>();
+    for (const r of rows) {
+      const minute = r.uploadedAt ? new Date(r.uploadedAt).toISOString().slice(0, 16) : "unknown";
+      const key = `${r.uploadedByName ?? ""}|${minute}`;
+      const arr = buckets.get(key) ?? [];
+      arr.push(r);
+      buckets.set(key, arr);
+    }
+    return Array.from(buckets.values()).map((items) => {
+      const sorted = [...items].sort((a, b) => (a.uploadedAt < b.uploadedAt ? -1 : 1));
+      return {
+        items: sorted,
+        earliestAt: sorted[0].uploadedAt,
+        uploader: sorted[0].uploadedByName ?? null,
+      };
+    });
+  };
+  const within = (aIso?: string | null, bIso?: string | null, minutes = 2) => {
+    if (!aIso || !bIso) return false;
+    const diff = Math.abs(new Date(aIso).getTime() - new Date(bIso).getTime());
+    return diff <= minutes * 60_000;
+  };
+  const evidenceChips = (items: AdminTxEvidenceItem[]) =>
+    items.filter((e) => e.title).map((e) => ({ name: e.title as string }));
+  const evidenceNotes = (items: AdminTxEvidenceItem[], excludeBody?: string) =>
+    items
+      .map((e) => (e.note ?? "").trim())
+      .filter((n) => n.length > 0 && n !== (excludeBody ?? "").trim());
+
+  const buyerGroups = groupEvidence(buyerEvidence);
+  const claimGroupIdx = buyerClaim
+    ? buyerGroups.findIndex((g) => within(g.earliestAt, openedAt))
+    : -1;
+  const claimAttachedGroup = claimGroupIdx >= 0 ? buyerGroups[claimGroupIdx] : null;
+
   if (buyerClaim && buyerName) {
+    const extraNotes = claimAttachedGroup ? evidenceNotes(claimAttachedGroup.items, buyerClaim) : [];
+    const claimBody =
+      extraNotes.length > 0
+        ? `${buyerClaim}\n\n${extraNotes.map((n) => `Note: ${n}`).join("\n")}`
+        : buyerClaim;
     buyerMessages.push({
       id: `claim-${disputeId}`,
       kind: "buyer_reply",
@@ -1333,8 +1376,9 @@ function CaseCommunicationSection(props: {
       recipientRole: "admin",
       timestamp: fmtDate(openedAt ?? ""),
       topic: "Buyer claim",
-      body: buyerClaim,
+      body: claimBody,
       msgRef: `CLAIM-${disputeId.slice(0, 4).toUpperCase()}`,
+      attachments: claimAttachedGroup ? evidenceChips(claimAttachedGroup.items) : undefined,
       footerMeta: (
         <div className="flex items-center gap-1 text-slate-500">
           <Check className="w-3 h-3" /> <span>Filed via dispute form</span>
@@ -1342,20 +1386,31 @@ function CaseCommunicationSection(props: {
       ),
     });
   }
-  buyerEvidence.forEach((e) => {
-    if (!e.note && !e.title) return;
+  buyerGroups.forEach((g, idx) => {
+    if (idx === claimGroupIdx) return; // already merged into the claim card
+    const chips = evidenceChips(g.items);
+    const notes = evidenceNotes(g.items);
+    if (chips.length === 0 && notes.length === 0) return;
+    const titles = g.items.map((e) => e.title).filter(Boolean) as string[];
+    const headline =
+      titles.length === 1
+        ? `Uploaded evidence: ${titles[0]}`
+        : `Uploaded ${titles.length} evidence file${titles.length === 1 ? "" : "s"}`;
+    const body =
+      notes.length > 0 ? `${headline}\n\n${notes.map((n) => `Note: ${n}`).join("\n")}` : headline;
+    const firstId = g.items[0].id;
     buyerMessages.push({
-      id: `ev-${e.id}`,
+      id: `ev-${firstId}`,
       kind: "buyer_reply",
-      senderName: e.uploadedByName ?? buyerName ?? "Buyer",
+      senderName: g.uploader ?? buyerName ?? "Buyer",
       senderRole: "buyer",
       recipientName: "SafeDeal Admin",
       recipientRole: "admin",
-      timestamp: fmtDate(e.uploadedAt),
+      timestamp: fmtDate(g.earliestAt),
       topic: "Evidence uploaded",
-      body: e.note || `Uploaded evidence: ${e.title}`,
-      msgRef: `EV-${e.id.slice(0, 4).toUpperCase()}`,
-      attachments: e.title ? [{ name: e.title }] : undefined,
+      body,
+      msgRef: `EV-${firstId.slice(0, 4).toUpperCase()}`,
+      attachments: chips.length > 0 ? chips : undefined,
       footerMeta: (
         <div className="flex items-center gap-1 text-slate-500">
           <Check className="w-3 h-3" /> <span>Attached to dispute</span>
@@ -1367,7 +1422,42 @@ function CaseCommunicationSection(props: {
 
   // ---------- seller messages (real records only) ----------
   const sellerMessages: CommMessage[] = [];
-  (sellerResponses ?? []).forEach((r) => {
+  const sellerGroups = groupEvidence(sellerEvidence);
+  const sortedResponses = [...(sellerResponses ?? [])].sort((a, b) => (a.at < b.at ? -1 : 1));
+  // Decide which response (if any) each seller-evidence group attaches to.
+  // Rule: group attaches to a response whose `at` is within ±2 minutes of the
+  // group's earliest upload, OR whose window [at, nextAt) contains the upload.
+  const groupToResponse = new Map<number, number>(); // groupIdx -> responseIdx
+  sellerGroups.forEach((g, gi) => {
+    for (let i = 0; i < sortedResponses.length; i++) {
+      const r = sortedResponses[i];
+      const next = sortedResponses[i + 1];
+      const inWindow =
+        g.earliestAt &&
+        new Date(g.earliestAt).getTime() >= new Date(r.at).getTime() &&
+        (!next || new Date(g.earliestAt).getTime() < new Date(next.at).getTime());
+      if (within(g.earliestAt, r.at) || inWindow) {
+        groupToResponse.set(gi, i);
+        break;
+      }
+    }
+  });
+  const groupsByResponse = new Map<number, number[]>();
+  groupToResponse.forEach((respIdx, grpIdx) => {
+    const arr = groupsByResponse.get(respIdx) ?? [];
+    arr.push(grpIdx);
+    groupsByResponse.set(respIdx, arr);
+  });
+
+  sortedResponses.forEach((r, ri) => {
+    const groupIdxs = groupsByResponse.get(ri) ?? [];
+    const attachedItems = groupIdxs.flatMap((gi) => sellerGroups[gi].items);
+    const chips = evidenceChips(attachedItems);
+    const extraNotes = evidenceNotes(attachedItems, r.text);
+    const body =
+      extraNotes.length > 0
+        ? `${r.text}\n\n${extraNotes.map((n) => `Note: ${n}`).join("\n")}`
+        : r.text;
     sellerMessages.push({
       id: `res-${r.id}`,
       kind: "seller_reply",
@@ -1377,8 +1467,9 @@ function CaseCommunicationSection(props: {
       recipientRole: "admin",
       timestamp: fmtDate(r.at),
       topic: `Response #${r.number}`,
-      body: r.text,
+      body,
       msgRef: `RES-${r.number}`,
+      attachments: chips.length > 0 ? chips : undefined,
       footerMeta: (
         <div className="flex items-center gap-1 text-slate-500">
           <Check className="w-3 h-3" /> <span>Submitted via dispute response</span>
@@ -1386,20 +1477,31 @@ function CaseCommunicationSection(props: {
       ),
     });
   });
-  sellerEvidence.forEach((e) => {
-    if (!e.note && !e.title) return;
+  sellerGroups.forEach((g, gi) => {
+    if (groupToResponse.has(gi)) return; // already merged into a response card
+    const chips = evidenceChips(g.items);
+    const notes = evidenceNotes(g.items);
+    if (chips.length === 0 && notes.length === 0) return;
+    const titles = g.items.map((e) => e.title).filter(Boolean) as string[];
+    const headline =
+      titles.length === 1
+        ? `Uploaded evidence: ${titles[0]}`
+        : `Uploaded ${titles.length} evidence file${titles.length === 1 ? "" : "s"}`;
+    const body =
+      notes.length > 0 ? `${headline}\n\n${notes.map((n) => `Note: ${n}`).join("\n")}` : headline;
+    const firstId = g.items[0].id;
     sellerMessages.push({
-      id: `ev-${e.id}`,
+      id: `ev-${firstId}`,
       kind: "seller_reply",
-      senderName: e.uploadedByName ?? sellerName ?? "Seller",
+      senderName: g.uploader ?? sellerName ?? "Seller",
       senderRole: "seller",
       recipientName: "SafeDeal Admin",
       recipientRole: "admin",
-      timestamp: fmtDate(e.uploadedAt),
+      timestamp: fmtDate(g.earliestAt),
       topic: "Evidence uploaded",
-      body: e.note || `Uploaded evidence: ${e.title}`,
-      msgRef: `EV-${e.id.slice(0, 4).toUpperCase()}`,
-      attachments: e.title ? [{ name: e.title }] : undefined,
+      body,
+      msgRef: `EV-${firstId.slice(0, 4).toUpperCase()}`,
+      attachments: chips.length > 0 ? chips : undefined,
       footerMeta: (
         <div className="flex items-center gap-1 text-slate-500">
           <Check className="w-3 h-3" /> <span>Attached to dispute</span>
