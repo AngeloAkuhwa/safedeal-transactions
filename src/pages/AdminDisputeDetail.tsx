@@ -637,13 +637,13 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                 </div>
               </div>
 
-              {!resolvedAt && moneyStatus === "funds_pending_release" && (
+              {active.isDisputeActive && moneyStatus === "funds_pending_release" && (
                 <div className="mx-5 md:mx-8 mb-5 md:mb-8 rounded-md border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-200">
                   <AlertTriangle className="inline h-4 w-4 mr-1.5" />
                   Active dispute — release is blocked until the dispute is resolved.
                 </div>
               )}
-              {moneyStatus === "funds_frozen" && (
+              {active.isFrozen && (
                 <div className="mx-5 md:mx-8 mb-5 md:mb-8 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
                   <Snowflake className="inline h-4 w-4 mr-1.5" />
                   Funds are frozen. No payouts or refunds will process automatically.
