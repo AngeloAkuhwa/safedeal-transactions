@@ -38,6 +38,8 @@ import { InternalNoteDialog } from "@/components/admin/transactions/InternalNote
 import { EvidencePreviewDialog } from "@/components/admin/transactions/EvidencePreviewDialog";
 import { AgreementPreviewDialog } from "@/components/admin/transactions/AgreementPreviewDialog";
 import type { AdminTxEvidenceItem } from "@/services/admin-transaction-detail.service";
+import { deriveActiveState, nextActionLabelFor } from "@/lib/admin-active-state";
+import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 
 // ---------- helpers ----------
 const ngn = (v: number | null | undefined) => formatMoney(Number(v ?? 0), "NGN");
