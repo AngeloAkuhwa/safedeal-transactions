@@ -1,68 +1,106 @@
-# Match AdminDisputeDetail top sections to design
+# Match Buyer/Seller cards to UX Pilot design
 
-Scope: only the visible top sections in `src/pages/AdminDisputeDetail.tsx`. No backend, schema, sidebar, layout, or below-the-fold changes.
+Scope: `src/pages/AdminDisputeDetail.tsx` only — the `PartyCard` component (lines ~858–965) and the two-column wrapper on line 542. Nothing else on the page or in the project is touched.
 
-## 1. Avatar — fix broken/clipped image (root cause of both card avatars rendering broken)
+## 1. Wrapper breakpoint (line 542)
 
-Update local `Avatar` (lines 85–93) so a failed `src` falls back to initials instead of showing the browser's broken-image glyph.
+Change `grid grid-cols-1 lg:grid-cols-2 gap-6` → `grid grid-cols-1 xl:grid-cols-2 gap-6`.
 
-- Add `useState` `failed` flag; render initials circle if `!src || failed`.
-- On the `<img>`, add `onError={() => setFailed(true)}`, `loading="lazy"`, `referrerPolicy="no-referrer"`.
-- Keep `rounded-full object-cover shrink-0` with explicit `width`/`height` from `size`.
+Reason: at lg the global admin sidebar + right resolution sidebar squeeze the cards. Stacking until xl matches the design's tablet/medium-desktop behaviour and avoids the current broken layout.
 
-This single fix resolves the broken avatar in both Buyer and Seller cards and the small Sarah Chen avatar in the summary strip.
+## 2. PartyCard — replace `CardHeader` with a plain title row (kills the divider)
 
-## 2. Sticky header (lines 411–455)
+The current `CardHeader` atom forces `border-b border-border`, which is the horizontal line under "Buyer Information" / "Seller Information" the user wants gone. Stop using `CardHeader` inside `PartyCard` and instead render the title row as a normal flex inside the same `p-6` body.
 
-Match design rhythm. Keep current sticky/backdrop wrapper, adjust internals:
+New top-level structure inside the `Card` shell (still `rounded-xl border border-border bg-card`):
 
-- Container padding: `px-6 py-4 lg:px-8` → `px-6 py-3.5 lg:px-8 lg:py-4` (slightly tighter, matches design height).
-- Back arrow button: drop the bordered box look (which doesn't appear in the design). Change to plain ghost: `rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted` (remove `border border-border bg-background`).
-- Title: `text-lg font-bold` → `text-xl font-bold tracking-tight`.
-- Subtitle: keep `text-xs text-muted-foreground truncate`; render as `{itemTitle} - {txCode}` (hyphen instead of middle-dot to match design).
-- Right cluster: leave overdue pill (already red with dot) and Print button. Remove the green "Within SLA" pill entirely from this header (design only shows overdue/print on the right).
-- Bottom border already present via `border-b border-border` — keep.
+```
+<Card>
+  <div className="p-6">
+    {/* 1. Title row — NO border */}
+    <div className="flex items-center justify-between mb-4">
+      <h2 className="text-lg font-semibold text-foreground">
+        {isBuyer ? "Buyer Information" : "Seller Information"}
+      </h2>
+      <span className={cn(
+        "inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider",
+        isBuyer ? "bg-blue-500/15 text-blue-400" : "bg-orange-500/15 text-orange-400",
+      )}>
+        {isBuyer ? "Buyer" : "Seller"}
+      </span>
+    </div>
 
-## 3. Summary strip (lines 463–505)
+    {/* 2. Identity row */}
+    <div className="flex items-center gap-3 mb-5">
+      <Avatar name={party.name} src={party.avatarUrl} size={48} />
+      <div className="min-w-0 flex-1">
+        <div className="text-base font-semibold text-foreground truncate">{party.name ?? "—"}</div>
+        <div className="text-sm text-muted-foreground truncate">User ID: {party.id?.slice(0, 16) ?? "—"}</div>
+      </div>
+      {/* trust signal: emerald Verified for buyer, yellow Gold Seller for seller */}
+      {!isBuyer && sellerTier ? (
+        <span className="inline-flex items-center gap-1 text-sm text-yellow-400 shrink-0">
+          <Star className="h-4 w-4 fill-yellow-400" /> {titleCase(sellerTier)} Seller
+        </span>
+      ) : ver.identity ? (
+        <span className="inline-flex items-center gap-1 text-sm text-emerald-400 shrink-0">
+          <CheckCircle2 className="h-4 w-4" /> Verified
+        </span>
+      ) : null}
+    </div>
 
-Restructure each column to a stacked two-pair layout matching design (label/value, label/value), with consistent vertical rhythm:
+    {/* 3. Details grid — single column on very small, 2 cols otherwise */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-5">
+      <Field label="Email" value={party.maskedEmail ?? "—"} />
+      <Field label="Phone" value={party.maskedPhone ?? "—"} />
+      <Field label="Prior Disputes" value={party.priorDisputes != null ? `${party.priorDisputes} ${isBuyer ? "filed" : "received"}` : "—"} />
+      <Field
+        label={isBuyer ? "Account Status" : "Payout Status"}
+        value={...colored value as today...}
+      />
+    </div>
 
-- Wrapper: `bg-card border-b border-border`, inner grid `grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-5 px-6 py-6 lg:px-8`.
-- Each column is `flex flex-col gap-4` with two `KV`-style pairs (label `text-[11px] uppercase tracking-wide text-muted-foreground`, value `text-sm font-semibold text-foreground` — bump value weight to semibold to match design).
+    {/* 4. Primary action row */}
+    <div className="flex gap-2">
+      <Button size="sm" disabled className={cn("flex-1 gap-1.5 h-10 rounded-lg", callBtnCls)}>
+        <Phone className="h-4 w-4" /> Call
+      </Button>
+      <ContactBtn className="flex-1 h-10 rounded-lg" icon={<Mail className="h-4 w-4" />} label="Email" disabled tip="..." />
+      <Button size="sm" variant="outline" className="h-10 w-10 p-0 rounded-lg" onClick={...} aria-label="Profile">
+        <UserIcon className="h-4 w-4" />
+      </Button>
+    </div>
 
-Columns:
-1. Dispute ID → `#{disputeCode}` (mono) / Transaction → `{txCode}` rendered as blue link button (`text-blue-400 hover:text-blue-300 font-semibold`), no external-link icon (design has none).
-2. Amount in Dispute → `{ngn(amountInDispute)}` / Dispute Reason → reason in `text-orange-400 font-semibold`.
-3. Created → `fmtDate(opened_at)` / Last Activity → absolute date via `fmtDate(tx.updatedAt)` (design shows a date, not "2 days ago" relative text).
-4. Status → `<StatusPill>` / Assigned Agent → avatar + name (or "Unassigned").
+    {/* 5. ONLY internal divider, then secondary action row */}
+    <div className="mt-5 pt-5 border-t border-border">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <Button size="sm" variant="outline" className="gap-1.5"> <UserIcon className="h-3.5 w-3.5" /> View Profile </Button>
+        <Button size="sm" variant="outline" className="gap-1.5"> <Scale  className="h-3.5 w-3.5" /> Dispute History </Button>
+        <Button size="sm" variant="outline" className="gap-1.5"> <Clock  className="h-3.5 w-3.5" /> Transactions </Button>
+      </div>
+    </div>
+  </div>
+</Card>
+```
 
-Remove the current asymmetric layout in column 4 (`flex flex-col gap-2 min-w-0`) so it follows the same `gap-4` rhythm as the others.
+`Field` is rendered inline (or reusing `KV`) with: label `text-sm text-muted-foreground` (regular weight, drop the uppercase `[11px]` style for this card to match UX Pilot), value `text-sm text-foreground` (drop the `truncate` on the value so masked emails/phones fully show; let the outer card width handle overflow).
 
-## 4. Buyer & Seller cards (`PartyCard`, lines 825–928)
+The `flagged` red pill (today rendered next to the trust badge) is dropped from this card — the UX Pilot identity row shows only the single trust signal. Flag information remains visible elsewhere on the page.
 
-Keep current `Card` shell, tweak details to match design one-to-one:
+`ContactBtn` is extended (one optional `className` prop) so the Email button can take `flex-1 h-10 rounded-lg` — it currently hardcodes its layout.
 
-- Role chip (action slot): make it slightly larger `px-2 py-0.5 text-[10px]` → `px-2.5 py-1 text-[11px]`, keep blue for buyer / orange for seller.
-- Body padding stays `p-6 space-y-5`.
-- Identity row: avatar bumped to `size={48}` (already 48). Replace local `Avatar` use with fixed-fail behaviour from §1. Name `text-base font-semibold`. Sub: `User ID: USR-…` (drop the `font-mono` to match design; keep `text-xs text-muted-foreground`). Right side: only render one signal — `Verified` (emerald CheckCircle2) for buyer; for seller render `Gold Seller` style with `Star` icon in `text-yellow-400` when `sellerTier` exists, else verified. Import `Star` from lucide and use it instead of `Flag`.
-- Details grid: stays `grid grid-cols-2 gap-4 text-sm`. Values: drop `font-mono text-xs` on email/phone so they match design typography (`text-sm text-foreground`). For seller, `Payout Status` value: only show red "Blocked" when payout is actually blocked — fall back to `titleCase(payoutStatus)`/"—" otherwise (no hard-coded red Blocked).
-- First button row (`grid grid-cols-[1fr_1fr_auto] gap-2`):
-  - Primary `Call`: keep blue for buyer, orange for seller; size `sm`, `h-9` to match design proportions.
-  - `Email`: neutral outline button.
-  - Square profile button: `variant="outline" size="sm" className="h-9 w-9 p-0"`.
-- Add a thin divider before the second button row: wrap the second `grid grid-cols-3 gap-2` in a `<div className="pt-4 border-t border-border"><div className="grid grid-cols-3 gap-2">…</div></div>`.
-- Second row buttons keep current icons (UserIcon, Scale, Receipt) and labels (View Profile, Dispute History, Transactions). Size `sm`, equal width.
+## 3. Button sizing
 
-Buyer and seller cards already sit in `grid grid-cols-1 lg:grid-cols-2 gap-6` — leave untouched; equal height comes naturally from `Card` + identical internal structure.
+- Primary row buttons (`Call`, `Email`, profile square): `h-10 rounded-lg`, equal flex.
+- Secondary row buttons: keep `sm` size, `rounded-lg`, `text-xs`-ish via existing `sm` variant; on `<sm` widths they stack via `grid-cols-1 sm:grid-cols-3`.
 
-## Out of scope
+## 4. Out of scope
 
-Financial Overview, Locked Agreement, Buyer Claim, Seller Response, Case Communication, Timeline, Resolution sidebar, AdminLayout, AdminDisputes list page, any service / SQL / RLS / route changes.
+Header strip, summary strip, Financial Overview, Locked Agreement, Buyer Claim, Seller Response, Case Communication, Timeline, right Resolution sidebar, AdminLayout sidebar, any service / SQL / RLS / route change. The shared `Card` and `CardHeader` atoms keep their current behaviour for every other section on the page — only `PartyCard` stops using `CardHeader`.
 
 ## Verification
 
-- Reload `/admin/disputes/:id` at ≥1280px. Header height, back arrow weight, title/subtitle rhythm match design.
-- Summary strip: 4 columns, two label/value pairs each, semibold values, blue TXN link, orange reason, red Escalated pill, Sarah Chen avatar renders (or initials if URL fails).
-- Buyer/seller avatars render as full circles (initials fallback if `avatarUrl` 404s — confirmed by temporarily setting a bad URL).
-- Buyer Call is blue, Seller Call is orange. Both card heights line up. Bottom row has thin top divider.
-- Sections below cards untouched (diff confined to lines ~411–928).
+- Reload `/admin/disputes/:id` at ≥1280px: buyer + seller side by side, no line under either title, identity row flows directly under title, single thin divider sits above the bottom 3-button row, buyer Call blue / seller Call orange, square profile button to the right of Email, both card heights match.
+- 1024–1279px (current preview viewport 1096px): cards stack full-width, no squeeze, no clipped buttons, no horizontal scroll.
+- ≤640px: details grid collapses to one column, secondary row stacks to full-width buttons.
+- Other sections on the page render unchanged (diff confined to the wrapper line 542 and the `PartyCard` function body).
