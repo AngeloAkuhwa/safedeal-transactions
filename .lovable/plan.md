@@ -1,25 +1,27 @@
 ## Problem
-At the user's viewport (875px), the admin left sidebar is hidden because `AdminLayout` only shows it at `lg` and above (`hidden lg:block`). `AdminDisputes` and `AdminDisputeDetail` both pass `hideDefaultHeaders`, which suppresses `AdminMobileHeader` — the component that normally renders the hamburger that opens the mobile drawer. Result: no left sidebar, no way to reopen it. On `AdminDisputeDetail`, the right resolution sidebar additionally uses `xl:` breakpoints, so it's also hidden between `lg` and `xl` — same root cause: missing access affordance.
+The floating hamburger button I added at `fixed left-3 top-3` overlaps the page-level headers on `AdminDisputes` and `AdminDisputeDetail` because those pages render their own sticky headers with content starting at the very left edge (`px-6`). On the Disputes Queue screenshot, the H1 "Dispute Resolution Queue" is partially hidden behind the menu icon.
+
+The Transaction Monitor screen looks fine because it uses the default `AdminMobileHeader` (no `hideDefaultHeaders`), which is laid out as a real flex row with the menu on the left and refresh on the right.
 
 ## Fix (UI only)
 
-### A. `src/components/admin/AdminLayout.tsx`
-Always expose a mobile menu trigger when below `lg`, even if `hideDefaultHeaders` is true.
+### A. `src/pages/AdminDisputes.tsx` — sticky page header
+- Reserve space for the floating hamburger on viewports below `lg` by adding `pl-14 lg:pl-6` (or `pl-16 lg:pl-8` to keep the wider lg padding) to the inner header container at line 354 — currently `px-6 py-5 lg:px-8`.
+- Keep the title/subtitle and right-side action cluster otherwise unchanged.
 
-- Add a fixed-position hamburger button (top-left, `lg:hidden`, `z-40`, small icon button styled like other admin floaters) that calls `setMobileOpen(true)`. Render it only when `hideDefaultHeaders` is true (so it doesn't double up with `AdminMobileHeader`).
-- Keeps the existing mobile `Sheet` drawer wiring intact — clicking it opens the same left `AdminSidebar`.
+### B. `src/pages/AdminDisputeDetail.tsx` — sticky case header (line 431)
+- Add the same `pl-14 lg:pl-6` (and adjust the lg variant so the original `lg:px-8` left padding is preserved) to the header bar so the back arrow / breadcrumb chips aren't hidden under the hamburger.
 
-### B. `src/pages/AdminDisputeDetail.tsx` — right sidebar visibility
-Lower the right resolution sidebar's breakpoint from `xl:` to `lg:` so it appears at the same point the main app sidebar becomes available, matching the dual-pane intent.
-
-- The `<aside>` currently `xl:w-[380px] xl:shrink-0 xl:border-l xl:min-h-0 xl:overflow-y-auto` → switch the `xl:` prefixes used purely for layout (width, border-l, sticky/overflow) to `lg:`.
-- The container `flex` wrapper that currently activates `xl:` row layout → also `lg:`.
-- Update the "Mobile action bar" toggle from `xl:hidden` → `lg:hidden` so the inline CTA only appears when the sidebar is collapsed.
+### C. `src/components/admin/AdminLayout.tsx` — refine the floating button
+- Bump `z-index` to `z-50` (already set) — keep.
+- Slightly smaller (`h-9 w-9`) and softer styling so it visually matches the existing `AdminMobileHeader` menu button rather than competing with page chrome.
+- No change to placement or visibility logic.
 
 ### Out of scope
-- No changes to data, services, or other pages.
-- `AdminDisputes` (queue) has no right sidebar — only fix A applies there.
+- No changes to other admin pages or to default mobile header.
+- No data or service changes.
 
 ## Files
-- `src/components/admin/AdminLayout.tsx`
+- `src/pages/AdminDisputes.tsx`
 - `src/pages/AdminDisputeDetail.tsx`
+- `src/components/admin/AdminLayout.tsx`

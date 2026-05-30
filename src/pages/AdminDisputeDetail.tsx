@@ -429,7 +429,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
   // ---------- sticky header ----------
   const header = (
     <div className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <div className="flex items-center justify-between gap-3 px-6 py-3.5 lg:px-8 lg:py-4">
+      <div className="flex items-center justify-between gap-3 pl-16 pr-6 py-3.5 lg:pl-8 lg:pr-8 lg:py-4">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => navigate("/admin/disputes")}

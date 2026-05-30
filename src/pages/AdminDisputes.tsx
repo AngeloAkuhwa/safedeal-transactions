@@ -351,7 +351,7 @@ export default function AdminDisputes() {
       <TooltipProvider delayDuration={200}>
         <div className="w-full min-w-0">
           {/* Full-width header bar */}
-          <header className="sticky top-0 z-20 border-b border-border bg-card px-6 py-5 lg:px-8">
+          <header className="sticky top-0 z-20 border-b border-border bg-card pl-16 pr-6 py-5 lg:pl-8 lg:pr-8">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h1 className="text-2xl font-semibold text-foreground">Dispute Resolution Queue</h1>
