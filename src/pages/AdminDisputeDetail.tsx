@@ -5,7 +5,7 @@ import {
   ExternalLink, FileText, Image as ImageIcon, Video, Receipt, Truck, Scale,
   Circle, Clock, ShieldAlert, Snowflake, MessageSquare, StickyNote, Gavel,
   CheckCircle2, XCircle, ChevronRight, Flag, Wallet, CreditCard, Vault,
-  Search, Send, Ban, Play, Eye, NotebookPen, Store,
+  Search, Send, Ban, PlayCircle, Eye, NotebookPen, Store,
   Star, Info, FilePlus2, Bell, HelpCircle, CheckCheck, Check, Paperclip,
   Reply, MoreHorizontal, MessageCircle, ArrowRight, Lock, Menu,
   Percent, PieChart, RotateCcw, ArrowUp, Edit3, Users as UsersIcon,
@@ -2268,7 +2268,7 @@ function ResolutionSidebar({
       </SidebarGroup>
 
       {/* Resolution Actions (solid + outlined) */}
-      <SidebarGroup title="Resolution Actions">
+      <SidebarGroup title="Resolution Actions" gapClass="space-y-2">
         <SidebarBtn icon={<RotateCcw />} label="Refund Buyer"
           onClick={onResolve} disabled={!canManage || isResolved}
           variant="solid" solidClass="bg-emerald-600 hover:bg-emerald-700 text-white border-transparent"
@@ -2288,14 +2288,16 @@ function ResolutionSidebar({
         <SidebarBtn icon={<XCircle />} label="Close Without Resolution"
           onClick={onClose} disabled={isResolved}
           iconColor="text-muted-foreground" iconBg="bg-muted/40" />
-        <SidebarBtn icon={<Ban />} label="Block Payout"
-          disabled
-          variant="solid" solidClass="bg-red-600 hover:bg-red-700 text-white border-transparent"
-          tip="Payout block control not connected yet" />
-        <SidebarBtn icon={<Play />} label="Resume Payout"
-          disabled
-          variant="solid" solidClass="bg-emerald-600 hover:bg-emerald-700 text-white border-transparent"
-          tip="Payout resume control not connected yet" />
+        <div className="mt-3 pt-3 border-t border-[#253044]/70 space-y-2">
+          <SidebarBtn icon={<Ban />} label="Block Payout"
+            disabled
+            variant="solid" solidClass="bg-red-600 hover:bg-red-700 text-white border-transparent"
+            tip="Payout block control not connected yet" />
+          <SidebarBtn icon={<PlayCircle />} label="Resume Payout"
+            disabled
+            variant="solid" solidClass="bg-emerald-600 hover:bg-emerald-700 text-white border-transparent"
+            tip="Payout resume control not connected yet" />
+        </div>
       </SidebarGroup>
 
       {/* Investigation Actions */}
@@ -2377,11 +2379,11 @@ function SummaryPartyCard({ role, name, statusLabel, statusTone, summary }: {
   );
 }
 
-function SidebarGroup({ title, children }: { title: string; children: React.ReactNode }) {
+function SidebarGroup({ title, children, gapClass = "space-y-1.5" }: { title: string; children: React.ReactNode; gapClass?: string }) {
   return (
     <div>
       <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2 px-1">{title}</div>
-      <div className="space-y-1.5">{children}</div>
+      <div className={gapClass}>{children}</div>
     </div>
   );
 }
@@ -2396,7 +2398,10 @@ function SidebarBtn({
   variant?: "outline" | "solid"; solidClass?: string;
 }) {
   const isSolid = variant === "solid";
-  const base = "w-full flex items-center gap-3 rounded-md border px-3 py-2.5 text-sm font-medium transition-colors text-left";
+  const base = cn(
+    "w-full flex items-center rounded-md border px-3 text-sm font-medium transition-colors text-left",
+    isSolid ? "gap-2.5 py-3" : "gap-3 py-2.5",
+  );
   const outlineCls = "border-[#253044] bg-[#0F172A]/40 text-foreground hover:bg-[#0F172A]/70";
   const solidCls = solidClass ?? "bg-primary text-primary-foreground border-transparent hover:opacity-90";
   const btn = (
@@ -2411,8 +2416,10 @@ function SidebarBtn({
       )}
     >
       <span className={cn(
-        "h-4 w-4 shrink-0 [&_svg]:h-4 [&_svg]:w-4",
-        !isSolid && (iconColor ?? "text-muted-foreground"),
+        "shrink-0 inline-flex items-center justify-center",
+        isSolid
+          ? "h-[18px] w-[18px] [&_svg]:h-[18px] [&_svg]:w-[18px] [&_svg]:stroke-[2.25]"
+          : cn("h-4 w-4 [&_svg]:h-4 [&_svg]:w-4", iconColor ?? "text-muted-foreground"),
       )}>
         {icon}
       </span>

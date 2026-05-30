@@ -1,42 +1,38 @@
 ## Scope
-Right sidebar of the Admin Dispute Detail page only (`src/pages/AdminDisputeDetail.tsx`, plus the existing `.no-scrollbar` utility in `src/index.css`). No business logic, no other pages.
+Right sidebar of the Admin Dispute Detail page only. Single file: `src/pages/AdminDisputeDetail.tsx`. No services, no other pages, no business logic.
 
-## Problem (from screenshot)
-- The page header (Back / "Dispute Details" / "2 Days Overdue" / Print) currently spans the **entire width**, so the right sidebar starts **below** the header.
-- In the target design, the right sidebar is its own full-height column starting at the very top — the header only spans the **main content** column.
-- A visible vertical scrollbar shows at the boundary between the main content and the sidebar (the divider line in the screenshot).
+## Problem
+- `Block Payout` and `Resume Payout` sit flush under `Close Without Resolution`, with the same tight `space-y-1.5` gap as every other row. The two colored solid buttons feel cramped and visually indistinct from the items above them.
+- Solid colored buttons (Refund Buyer, Release Funds, Block Payout, Resume Payout) use the same `py-2.5` padding and 16px icon as the flat outline rows, so they look thin and "AI-generated" rather than weighted action buttons.
+- `Resume Payout` currently uses the generic `Play` icon (media-player feel) — design calls for a more deliberate filled-circle play.
 
-## Changes
+## Changes (all inside `src/pages/AdminDisputeDetail.tsx`)
 
-### 1. Restructure the page shell so the sidebar is full-height
-In `AdminDisputeDetail.tsx`:
-- Stop passing the dispute header through `AdminLayout`'s `headerSlot`. Keep `hideDefaultHeaders` + `fullBleed` + `fullHeight`.
-- Inside the page body, render a two-column flex row that fills the full main area:
+### 1. Group Block / Resume Payout as a distinct payout-control pair
+Inside the `Resolution Actions` `SidebarGroup`, wrap the two payout buttons in their own block with a hairline separator and extra top spacing:
 
 ```text
-<div flex-col lg:flex-row lg:h-full>
-  <section main column, flex-1, min-w-0, own scroll>
-    renderHeader(...)        <-- header now lives ONLY above main column
-    Summary strip
-    Tabs + content
-  </section>
-  <aside right sidebar, full height of row, own scroll>
-    ...existing sidebar content...
-  </aside>
+<div class="mt-3 pt-3 border-t border-[#253044]/70 space-y-2">
+  <SidebarBtn ...Block Payout solid red />
+  <SidebarBtn ...Resume Payout solid emerald />
 </div>
 ```
 
-- The mobile header trigger (hamburger) currently inside `renderHeader` keeps working since it's rendered inside the main column on mobile; on `lg+` the aside sits beside it.
-- Result: the sidebar's top edge aligns with the very top of the workspace (same line as the header), matching the design.
+This visually separates payout controls from refund/release/close actions and gives the colored solids breathing room.
 
-### 2. Remove the divider scrollbar
-- Add `no-scrollbar` to the main `<section>` (it already has `lg:overflow-y-auto`) so the vertical scrollbar that sits right next to the sidebar border is hidden.
-- Keep `no-scrollbar` on the `<aside>` (already present).
-- `.no-scrollbar` utility in `src/index.css` already exists — no CSS change needed.
+### 2. Weightier solid buttons in `SidebarBtn`
+In the `SidebarBtn` component:
+- When `variant === "solid"`: use `py-3` (instead of `py-2.5`), `gap-2.5`, and an 18px icon (`[&_svg]:h-[18px] [&_svg]:w-[18px]`) with `strokeWidth={2.25}` applied via a wrapper className.
+- Outline rows stay exactly as they are (`py-2.5`, 16px icons) so the flat list remains compact.
+- Solid icon span drops the `iconColor` muted token and inherits `text-white` from the solid button.
 
-### 3. Leave the rest alone
-- No changes to header content, sidebar content, colors, action buttons, summary cards, data, or services.
-- Mobile layout (stacked) and the mobile Sheet sidebar are untouched.
+### 3. Icon polish
+- Swap `Play` → `PlayCircle` for `Resume Payout` (filled-circle play, matches design intent; less media-player feel).
+- Keep `Ban` for `Block Payout` (universal stop/forbid, already correct).
+- Refund Buyer (`RotateCcw`), Release Funds (`Wallet`) stay — they match design.
+
+### 4. Slightly more air on the Resolution Actions group
+Change the `SidebarGroup`'s inner `space-y-1.5` → `space-y-2` **only** for the Resolution Actions group (by passing an optional `gapClass` prop to `SidebarGroup`, defaulting to current `space-y-1.5`). Outline-heavy groups (Case Control, Investigation) keep the tight spacing; the colored-action group breathes.
 
 ## Out of scope
-Left admin sidebar, AdminLayout itself, main cards, tabs, dialogs, services, business logic.
+Header, left sidebar, mobile Sheet, summary strip, main cards, tabs, dialogs, services, business logic, and all other `SidebarBtn` rows.
