@@ -332,15 +332,30 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
   // SLA / overdue derivation
   const dueAt = row.seller_response_due_at ?? dispute.sellerResponseDueAt ?? null;
   const resolvedAt = row.resolved_at ?? dispute.resolvedAt ?? null;
-  const overdue = !!(dueAt && !resolvedAt && new Date(dueAt).getTime() < Date.now());
+
+  // Derived active-state (single source of truth for badges/banners/sidebar)
+  const active = useMemo(
+    () =>
+      deriveActiveState({
+        dispute: { status: row.status, seller_response_due_at: dueAt, resolved_at: resolvedAt },
+        investigation: txDetail.investigation ?? null,
+        moneyStatus,
+        escrow,
+        risk: txDetail.risk ?? null,
+        payout,
+        needsReleaseReview: !!tx.needsAdminReview,
+      }),
+    [row.status, dueAt, resolvedAt, txDetail.investigation, moneyStatus, escrow, txDetail.risk, payout, tx.needsAdminReview],
+  );
+  const overdue = active.isOverdue;
   const slaText = useMemo(() => {
-    if (resolvedAt) return null;
+    if (active.isDisputeResolved) return null;
     if (!dueAt) return null;
     const diff = new Date(dueAt).getTime() - Date.now();
     const days = Math.round(Math.abs(diff) / 86400000);
     if (overdue) return `${days} day${days === 1 ? "" : "s"} overdue`;
     return `Due in ${days} day${days === 1 ? "" : "s"}`;
-  }, [dueAt, resolvedAt, overdue]);
+  }, [dueAt, active.isDisputeResolved, overdue]);
 
   // ---------- action handlers ----------
   const txId: string = tx.id ?? row.transaction_id;
