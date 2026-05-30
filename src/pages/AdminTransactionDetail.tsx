@@ -45,6 +45,8 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { deriveDisputeDisplay } from "@/lib/dispute-display-status";
+import { deriveActiveState } from "@/lib/admin-active-state";
+import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 
 const ngn = (v: number | null | undefined) => formatMoney(v ?? 0, "NGN");
 
