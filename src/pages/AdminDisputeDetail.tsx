@@ -2268,7 +2268,7 @@ function ResolutionSidebar({
       </SidebarGroup>
 
       {/* Resolution Actions (solid + outlined) */}
-      <SidebarGroup title="Resolution Actions">
+      <SidebarGroup title="Resolution Actions" gapClass="space-y-2">
         <SidebarBtn icon={<RotateCcw />} label="Refund Buyer"
           onClick={onResolve} disabled={!canManage || isResolved}
           variant="solid" solidClass="bg-emerald-600 hover:bg-emerald-700 text-white border-transparent"
