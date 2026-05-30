@@ -756,8 +756,15 @@ export default function AdminTransactionDetail() {
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Charged</div>
-                  <div className="text-foreground text-base lg:text-xl font-bold tabular-nums">{ngn(data.pricing?.buyerTotal)}</div>
-                  <div className="text-muted-foreground text-xs mt-1">Fee: {ngn(data.pricing?.protectionFee)}</div>
+                  <div
+                    className="text-foreground text-base lg:text-xl font-bold tabular-nums"
+                    title={`Item ${ngn(data.pricing?.itemTotal)} + Protection ${ngn(data.pricing?.protectionFee)} + Payment Processing ${ngn(data.pricing?.paymentProcessingFee ?? data.pricing?.processingFee)}`}
+                  >
+                    {ngn(data.pricing?.totalCharged ?? data.pricing?.buyerTotal)}
+                  </div>
+                  <div className="text-muted-foreground text-xs mt-1">
+                    Protection {ngn(data.pricing?.protectionFee)}{data.pricing?.protectionFeeCapped ? " (capped)" : ""} · Processing {ngn(data.pricing?.paymentProcessingFee ?? data.pricing?.processingFee)}
+                  </div>
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Payout Status</div>
