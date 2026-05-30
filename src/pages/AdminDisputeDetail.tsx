@@ -538,29 +538,33 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
             {/* Financial overview */}
             <section className="rounded-[18px] border border-[#253044] bg-[#111827]/80 overflow-hidden">
-              <div className="px-5 py-5 md:px-8 md:py-7 border-b border-[#253044]">
-                <h2 className="text-[22px] md:text-[26px] leading-[30px] md:leading-[32px] font-semibold tracking-[-0.02em] text-[#F8FAFC]">
+              <div className="px-5 pt-5 pb-2 md:px-7 md:pt-6 md:pb-3">
+                <h2 className="text-[20px] md:text-[24px] xl:text-[26px] leading-[26px] md:leading-[30px] font-semibold tracking-[-0.02em] text-[#F8FAFC]">
                   Financial Overview &amp; Controls
                 </h2>
-                <p className="mt-2 text-[16px] md:text-[20px] leading-[24px] md:leading-[28px] text-[#9CA3AF]">
-                  Money state and payout controls for this dispute
-                </p>
               </div>
 
-              <div className="px-5 py-6 md:px-8 md:py-8">
+              <div className="px-5 pb-6 pt-2 md:px-7 md:pb-8 md:pt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-12 gap-y-8">
                   <FinMetric label="Total Transaction" value={ngn(buyerTotal)}
-                    caption={payment?.method ? `Paid via ${titleCase(payment.method)}` : undefined} />
+                    caption={payment?.method ? `Paid via ${titleCase(payment.method)}` : "Payment source unavailable"} />
                   <FinMetric label="Amount in Dispute" value={ngn(amountInDispute)} valueColor="#FB923C"
                     caption="Full amount disputed" />
                   <FinMetric label="Protection Fee" value={ngn(protectionFee)}
-                    caption={protectionFee > 0 && buyerTotal > 0
-                      ? `${((protectionFee / buyerTotal) * 100).toFixed(1)}% escrow fee` : undefined} />
+                    caption={
+                      protectionFee >= 2500
+                        ? "Capped at ₦2,500"
+                        : protectionFee > 0 && protectionFee <= 250
+                          ? "Minimum ₦250 fee"
+                          : protectionFee > 0 && buyerTotal > 0
+                            ? `${((protectionFee / buyerTotal) * 100).toFixed(1)}% escrow fee · capped at ₦2,500`
+                            : undefined
+                    } />
                   <FinMetric label="Funds Status"
                     valueNode={(
-                      <div className="mt-4 flex items-center gap-3" style={{ color: "#FACC15" }}>
-                        <span className="h-4 w-4 rounded-full shrink-0" style={{ background: "#FACC15" }} />
-                        <span className="text-[26px] md:text-[30px] xl:text-[34px] leading-[32px] md:leading-[38px] xl:leading-[40px] font-semibold tracking-[-0.03em] xl:whitespace-nowrap">
+                      <div className="mt-3 flex items-center gap-2.5" style={{ color: "#FACC15" }}>
+                        <span className="h-3 w-3 rounded-full shrink-0" style={{ background: "#FACC15" }} />
+                        <span className="text-[22px] md:text-[26px] xl:text-[28px] leading-[28px] md:leading-[32px] font-semibold tracking-[-0.02em] xl:whitespace-nowrap">
                           {moneyStatusLabel(moneyStatus)}
                         </span>
                       </div>
@@ -578,9 +582,9 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                     caption="After fees" />
                   <FinMetric label="Payout Status"
                     valueNode={(
-                      <div className="mt-4 flex items-start gap-3" style={{ color: "#F87171" }}>
-                        <span className="mt-3 h-4 w-4 rounded-full shrink-0" style={{ background: "#EF4444" }} />
-                        <span className="text-[26px] md:text-[30px] xl:text-[34px] leading-[32px] md:leading-[38px] xl:leading-[40px] font-semibold tracking-[-0.03em]">
+                      <div className="mt-3 flex items-start gap-2.5" style={{ color: "#F87171" }}>
+                        <span className="mt-2 h-3 w-3 rounded-full shrink-0" style={{ background: "#EF4444" }} />
+                        <span className="text-[22px] md:text-[26px] xl:text-[28px] leading-[28px] md:leading-[32px] font-semibold tracking-[-0.02em]">
                           {payoutLabel(payout, moneyStatus, !resolvedAt)}
                         </span>
                       </div>
