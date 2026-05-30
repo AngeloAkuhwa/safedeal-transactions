@@ -799,7 +799,7 @@ export default function AdminTransactionDetail() {
                 })}
               </div>
 
-              {/* Status Grid */}
+              {/* Status Grid — buyer-side reconciliation */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Transaction Status</div>
@@ -813,32 +813,50 @@ export default function AdminTransactionDetail() {
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Item Total</div>
                   <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.itemTotal)}</div>
                 </div>
-                <div>
+                <div title="SafeDeal protection/platform fee">
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Protection Fee</div>
                   <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.protectionFee)}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Charged</div>
-                  <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.buyerTotal)}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">{escrowDisplay.label}</div>
-                  <div className={cn(
-                    "text-base lg:text-lg font-semibold tabular-nums",
-                    tx.moneyStatus === "funds_frozen" ? "text-cyan-300" : "text-purple-400",
-                  )}>{ngn(
-                    // For "Awaiting Release", bind to seller payout, not buyer total.
-                    (tx.moneyStatus === "funds_pending_release" || tx.moneyStatus === "funds_releasing")
-                      ? sellerPayoutAmount
-                      : escrowDisplay.value,
-                  )}</div>
-                  {(tx.moneyStatus === "funds_pending_release" || tx.moneyStatus === "funds_releasing") && (
-                    <div className="text-[10px] text-muted-foreground mt-1">
-                      Seller payout (item total)
-                    </div>
+                  {data.pricing?.protectionFeeCapped && (
+                    <div className="text-[10px] text-muted-foreground mt-1">capped @ ₦2,500</div>
                   )}
                 </div>
+                <div title="Payment vendor fee from Paystack, Flutterwave, or the active payment provider">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Payment Processing Fee</div>
+                  <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.paymentProcessingFee ?? data.pricing?.processingFee)}</div>
+                </div>
+                <div title="Item Total + Protection Fee + Payment Processing Fee">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Charged</div>
+                  <div className="text-foreground text-base lg:text-lg font-semibold tabular-nums">{ngn(data.pricing?.totalCharged ?? data.pricing?.buyerTotal)}</div>
+                </div>
               </div>
+
+              {/* Seller-side payout row — only when money has reached escrow */}
+              {(tx.moneyStatus === "funds_held_in_escrow"
+                || tx.moneyStatus === "funds_pending_release"
+                || tx.moneyStatus === "funds_releasing"
+                || tx.moneyStatus === "funds_released"
+                || tx.moneyStatus === "funds_frozen") && (
+                <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div title="Seller-side amount after applicable deductions">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                      {tx.moneyStatus === "funds_released" ? "Released to Seller" : escrowDisplay.label}
+                    </div>
+                    <div className={cn(
+                      "text-base lg:text-lg font-semibold tabular-nums",
+                      tx.moneyStatus === "funds_frozen" ? "text-cyan-300" : "text-purple-400",
+                    )}>{ngn(
+                      (tx.moneyStatus === "funds_pending_release"
+                        || tx.moneyStatus === "funds_releasing"
+                        || tx.moneyStatus === "funds_released")
+                        ? sellerPayoutAmount
+                        : escrowDisplay.value,
+                    )}</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      Seller-side amount after applicable deductions
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Action Row (desktop) */}
               <div className="hidden lg:flex items-center justify-between mt-6 pt-6 border-t border-border gap-4 flex-wrap">
