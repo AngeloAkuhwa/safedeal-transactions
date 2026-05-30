@@ -338,14 +338,14 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
     () =>
       deriveActiveState({
         dispute: { status: row.status, seller_response_due_at: dueAt, resolved_at: resolvedAt },
-        investigation: txDetail.investigation ?? null,
+        investigation: (txDetail as any).investigation ?? null,
         moneyStatus,
         escrow,
         risk: txDetail.risk ?? null,
         payout,
         needsReleaseReview: !!tx.needsAdminReview,
       }),
-    [row.status, dueAt, resolvedAt, txDetail.investigation, moneyStatus, escrow, txDetail.risk, payout, tx.needsAdminReview],
+    [row.status, dueAt, resolvedAt, txDetail, moneyStatus, escrow, payout, tx.needsAdminReview],
   );
   const overdue = active.isOverdue;
   const slaText = useMemo(() => {
