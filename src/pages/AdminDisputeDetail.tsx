@@ -1038,8 +1038,8 @@ function FinStat({ label, value, caption, tone }: {
   return (
     <div className="min-w-0">
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className={cn("mt-1 text-xl font-bold truncate", toneCls)}>{value}</div>
-      {caption && <div className="mt-1 text-xs text-muted-foreground truncate">{caption}</div>}
+      <div className={cn("mt-1 text-[22px] md:text-[24px] font-semibold leading-8 break-words", toneCls)}>{value}</div>
+      {caption && <div className="mt-1 text-xs text-muted-foreground break-words">{caption}</div>}
     </div>
   );
 }
