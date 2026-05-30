@@ -6,7 +6,8 @@ import {
   Circle, Clock, ShieldAlert, Snowflake, MessageSquare, StickyNote, Gavel,
   CheckCircle2, XCircle, ChevronRight, Flag, Wallet, CreditCard, Vault,
   Search, Send, Ban, Play, Eye, NotebookPen, Store,
-  Star,
+  Star, Info, FilePlus2, Bell, HelpCircle, CheckCheck, Check, Paperclip,
+  Reply, MoreHorizontal, MessageCircle, ArrowRight, Lock,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
