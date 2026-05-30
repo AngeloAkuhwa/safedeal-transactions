@@ -1082,19 +1082,19 @@ function FinMetric({
 }) {
   return (
     <div className="min-w-0">
-      <p className="text-[16px] md:text-[20px] leading-[22px] md:leading-[26px] text-[#9CA3AF]">
+      <p className="text-[13px] md:text-[14px] leading-[18px] text-[#9CA3AF] font-normal">
         {label}
       </p>
       {valueNode ?? (
         <p
-          className="mt-4 text-[26px] md:text-[30px] xl:text-[34px] leading-[32px] md:leading-[38px] xl:leading-[40px] font-semibold tracking-[-0.03em] break-words"
+          className="mt-3 text-[22px] md:text-[26px] xl:text-[28px] leading-[28px] md:leading-[32px] font-semibold tracking-[-0.02em] break-words"
           style={{ color: valueColor ?? "#F8FAFC" }}
         >
           {value}
         </p>
       )}
       {caption && (
-        <p className="mt-3 text-[14px] md:text-[18px] xl:text-[20px] leading-[20px] md:leading-[26px] xl:leading-[28px] text-[#9CA3AF] break-words">
+        <p className="mt-2 text-[12px] md:text-[13px] leading-[18px] text-[#9CA3AF] break-words">
           {caption}
         </p>
       )}
