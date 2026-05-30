@@ -1,40 +1,42 @@
 ## Scope
-Tweaks to the **right sidebar of the Admin Dispute Detail screen only**. Nothing else on the page (header, left sidebar, main content cards, mobile sheet) changes.
+Right sidebar of the Admin Dispute Detail page only (`src/pages/AdminDisputeDetail.tsx`, plus the existing `.no-scrollbar` utility in `src/index.css`). No business logic, no other pages.
 
-## File
-`src/pages/AdminDisputeDetail.tsx` (+ one small utility in `src/index.css`).
+## Problem (from screenshot)
+- The page header (Back / "Dispute Details" / "2 Days Overdue" / Print) currently spans the **entire width**, so the right sidebar starts **below** the header.
+- In the target design, the right sidebar is its own full-height column starting at the very top — the header only spans the **main content** column.
+- A visible vertical scrollbar shows at the boundary between the main content and the sidebar (the divider line in the screenshot).
 
-## Changes to the right sidebar
+## Changes
 
-### 1. Hide the divider scrollbar
-Add a `.no-scrollbar` utility in `src/index.css` and apply it to the sidebar `<aside>` so it still scrolls independently but no visible scrollbar shows.
+### 1. Restructure the page shell so the sidebar is full-height
+In `AdminDisputeDetail.tsx`:
+- Stop passing the dispute header through `AdminLayout`'s `headerSlot`. Keep `hideDefaultHeaders` + `fullBleed` + `fullHeight`.
+- Inside the page body, render a two-column flex row that fills the full main area:
 
-```css
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { scrollbar-width: none; }
+```text
+<div flex-col lg:flex-row lg:h-full>
+  <section main column, flex-1, min-w-0, own scroll>
+    renderHeader(...)        <-- header now lives ONLY above main column
+    Summary strip
+    Tabs + content
+  </section>
+  <aside right sidebar, full height of row, own scroll>
+    ...existing sidebar content...
+  </aside>
+</div>
 ```
 
-### 2. Match sidebar background to the dispute detail cards
-- The `<aside>` and its inner section containers must use the **same semantic background + border tokens as the Buyer/Seller/Financial cards** on the same page, so the sidebar reads as one continuous surface with the rest of the screen (matches design screenshots).
+- The mobile header trigger (hamburger) currently inside `renderHeader` keeps working since it's rendered inside the main column on mobile; on `lg+` the aside sits beside it.
+- Result: the sidebar's top edge aligns with the very top of the workspace (same line as the header), matching the design.
 
-### 3. Resolution Status block
-- Bold white `Resolution Status` heading.
-- Red-bordered, red-tinted card: red dot + `ESCALATED` label, one-line message.
-- Below the card: plain stacked rows (no boxed sub-cards) — `Current Workflow Stage` (orange dot + `Escalated`), `Last Activity` (date), `Next Action` (description).
+### 2. Remove the divider scrollbar
+- Add `no-scrollbar` to the main `<section>` (it already has `lg:overflow-y-auto`) so the vertical scrollbar that sits right next to the sidebar border is hidden.
+- Keep `no-scrollbar` on the `<aside>` (already present).
+- `.no-scrollbar` utility in `src/index.css` already exists — no CSS change needed.
 
-### 4. Action buttons (`SidebarBtn`) — flat rows, inline icons
-Drop the large tinted icon tiles. Each button becomes a flat row matching the design.
-- **Outline variant:** card-surface bg, border, rounded-md, `px-3 py-2.5 text-sm`, small (16px) inline colored icon left of label.
-- **Solid variant** for Refund Buyer (emerald), Release Funds to Seller (blue), Block Payout (red), Resume Payout (emerald) — same flat shape, full-color, inline icon.
-
-Section order with uppercase muted labels:
-- `CASE CONTROL` → Move to Under Review, Request More Evidence, Assign / Reassign Agent, Escalate Further, Mark High Risk, Mark Fraud Watch.
-- `RESOLUTION ACTIONS` → Refund Buyer (solid), Release Funds to Seller (solid), Partial Refund, Partial Release, Close Without Resolution, Block Payout (solid), Resume Payout (solid).
-- `INVESTIGATION ACTIONS` → Add Review Note (yellow), Add Internal Note (purple), Open Investigation (orange), View Linked Transaction (blue), View Payment Record (green), View Escrow Record (red/orange), View Payout Record (purple).
-
-### 5. Resolution Summary cards
-- Bold white `Resolution Summary` heading.
-- Each entity card uses the same card surface as #2: small colored icon circle (blue user for Buyer, orange store for Seller), role label muted + name bold stacked, status pill top-right with dot (green `Refund Requested`, red `Response Missing`), muted quote line below.
+### 3. Leave the rest alone
+- No changes to header content, sidebar content, colors, action buttons, summary cards, data, or services.
+- Mobile layout (stacked) and the mobile Sheet sidebar are untouched.
 
 ## Out of scope
-Header, left sidebar, mobile Sheet, main content cards, data, services, dialogs, business logic — all untouched.
+Left admin sidebar, AdminLayout itself, main cards, tabs, dialogs, services, business logic.
