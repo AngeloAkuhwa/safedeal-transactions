@@ -794,15 +794,15 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
             {/* Mobile action bar */}
             <div className="lg:hidden">
-              <Button className="w-full" onClick={() => dialogs.setResolveOpen(true)} disabled={!adminCan.canManageDispute}>
+              <Button className="w-full" onClick={() => setSidebarOpen(true)} disabled={!adminCan.canManageDispute}>
                 Take Action · Review Case
               </Button>
             </div>
           </div>
         </section>
 
-        {/* Right resolution sidebar */}
-        <aside className="w-full lg:w-[380px] lg:shrink-0 border-t border-border lg:border-t-0 lg:border-l lg:min-h-0 lg:overflow-y-auto bg-card">
+        {/* Right resolution sidebar (desktop) */}
+        <aside className="hidden lg:block lg:w-[380px] lg:shrink-0 lg:border-l lg:min-h-0 lg:overflow-y-auto bg-card">
           <ResolutionSidebar
               disputeStatus={row.status}
               overdue={overdue}
@@ -824,6 +824,31 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
           />
         </aside>
       </div>
+
+      {/* Right resolution sidebar (tablet/mobile drawer) */}
+      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md border-border bg-card p-0 text-foreground overflow-y-auto">
+          <ResolutionSidebar
+            disputeStatus={row.status}
+            overdue={overdue}
+            resolvedAt={resolvedAt}
+            moneyStatus={moneyStatus}
+            adminCan={adminCan}
+            dueAt={dueAt}
+            parties={parties}
+            buyerClaim={row.description ?? dispute.summary ?? null}
+            sellerResponded={!!dispute.responses?.length}
+            txId={txId}
+            onResolve={() => { setSidebarOpen(false); dialogs.setResolveOpen(true); }}
+            onMoveReview={() => { setSidebarOpen(false); dialogs.setMoveReviewOpen(true); }}
+            onEscalate={() => { setSidebarOpen(false); dialogs.setEscalateOpen(true); }}
+            onHighRisk={() => { setSidebarOpen(false); dialogs.setHighRiskOpen(true); }}
+            onFraud={() => { setSidebarOpen(false); dialogs.setFraudOpen(true); }}
+            onClose={() => { setSidebarOpen(false); dialogs.setCloseOpen(true); }}
+            onAddNote={() => { setSidebarOpen(false); dialogs.setNoteOpen(true); }}
+          />
+        </SheetContent>
+      </Sheet>
 
       {/* Dialogs */}
       <ResolveDisputeDialog
