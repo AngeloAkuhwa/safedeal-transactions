@@ -1846,7 +1846,7 @@ function NotesList({ notes, compact }: { notes: any[]; compact?: boolean }) {
         const { pill, cleanBody } = parseInternalNoteTag(rawBody, n);
         const typeLabel = noteTypeLabel(n);
         return (
-          <div key={n.id} className="rounded-lg border border-border bg-background p-4 space-y-2">
+          <div key={n.id} className="rounded-lg border border-border bg-background p-4">
             <div className="flex items-start gap-3">
               <div className="h-8 w-8 shrink-0 rounded-full bg-blue-500/20 text-blue-300 grid place-items-center text-[11px] font-semibold">
                 {initials(author)}
@@ -1859,14 +1859,14 @@ function NotesList({ notes, compact }: { notes: any[]; compact?: boolean }) {
               </div>
               {pill && (
                 <span className={cn(
-                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                  "shrink-0 rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide",
                   pill.cls,
                 )}>
                   {pill.label}
                 </span>
               )}
             </div>
-            <p className={cn("text-sm text-foreground/90 whitespace-pre-wrap pl-11", compact && "line-clamp-3")}>{cleanBody}</p>
+            <p className={cn("text-sm text-foreground/90 whitespace-pre-wrap mt-3", compact && "line-clamp-3")}>{cleanBody}</p>
           </div>
         );
       })}
