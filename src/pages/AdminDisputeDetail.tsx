@@ -829,7 +829,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
       {/* Right resolution sidebar (tablet/mobile drawer) */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md border-border bg-card p-0 text-foreground overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:max-w-md border-[#253044] bg-[#111827]/95 p-0 text-foreground overflow-y-auto no-scrollbar">
           <ResolutionSidebar
             disputeStatus={row.status}
             overdue={overdue}
