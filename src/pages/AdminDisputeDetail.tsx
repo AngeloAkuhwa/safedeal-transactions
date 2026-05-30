@@ -474,45 +474,65 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
           {/* Summary strip — scrolls under the sticky header */}
           <div className="bg-card border-b border-border">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5 px-6 py-6 lg:px-8">
-                <div>
-                  <KV label="Dispute ID" value={<span className="font-mono">{disputeCode}</span>} />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-5 px-6 py-6 lg:px-8">
+              <div className="flex flex-col gap-4 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Dispute ID</div>
+                  <div className="mt-1 text-sm font-semibold text-foreground font-mono truncate">#{disputeCode}</div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Transaction</div>
                   <button
-                    className="mt-2 inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
                     onClick={() => navigate(`/admin/transactions/${txId}`)}
+                    className="mt-1 block text-sm font-semibold text-blue-400 hover:text-blue-300 font-mono truncate"
                   >
-                    {txCode} <ExternalLink className="h-3 w-3" />
+                    {txCode}
                   </button>
                 </div>
-                <div>
-                  <KV label="Amount in Dispute" value={<span className="font-semibold">{ngn(amountInDispute)}</span>} />
-                  <div className="mt-2 text-xs text-muted-foreground truncate">
+              </div>
+              <div className="flex flex-col gap-4 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Amount in Dispute</div>
+                  <div className="mt-1 text-sm font-semibold text-foreground truncate">{ngn(amountInDispute)}</div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Dispute Reason</div>
+                  <div className="mt-1 text-sm font-semibold text-orange-400 truncate">
                     {titleCase(row.reason ?? dispute.claimType) || "—"}
                   </div>
                 </div>
-                <div>
-                  <KV label="Created" value={fmtDate(row.opened_at ?? dispute.openedAt)} />
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    Last activity {relTime(tx.updatedAt ?? tx.updated_at)}
+              </div>
+              <div className="flex flex-col gap-4 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Created</div>
+                  <div className="mt-1 text-sm font-semibold text-foreground truncate">
+                    {fmtDate(row.opened_at ?? dispute.openedAt)}
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 min-w-0">
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</div>
-                    <div className="mt-1"><StatusPill value={row.status} /></div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Assigned Agent</div>
-                    {dispute.assignedAgent?.name ? (
-                      <div className="mt-1 flex items-center gap-2 min-w-0">
-                        <Avatar name={dispute.assignedAgent.name} src={dispute.assignedAgent.avatarUrl} size={20} />
-                        <span className="text-sm text-foreground truncate">{dispute.assignedAgent.name}</span>
-                      </div>
-                    ) : (
-                      <div className="mt-1 text-sm text-muted-foreground">Unassigned</div>
-                    )}
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Last Activity</div>
+                  <div className="mt-1 text-sm font-semibold text-foreground truncate">
+                    {fmtDate(tx.updatedAt ?? tx.updated_at)}
                   </div>
                 </div>
+              </div>
+              <div className="flex flex-col gap-4 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</div>
+                  <div className="mt-1"><StatusPill value={row.status} /></div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Assigned Agent</div>
+                  {dispute.assignedAgent?.name ? (
+                    <div className="mt-1 flex items-center gap-2 min-w-0">
+                      <Avatar name={dispute.assignedAgent.name} src={dispute.assignedAgent.avatarUrl} size={20} />
+                      <span className="text-sm font-semibold text-foreground truncate">{dispute.assignedAgent.name}</span>
+                    </div>
+                  ) : (
+                    <div className="mt-1 text-sm text-muted-foreground">Unassigned</div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
