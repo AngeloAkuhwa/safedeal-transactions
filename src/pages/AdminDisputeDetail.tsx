@@ -320,6 +320,8 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
   const protectionFee = Number(pricing?.protectionFee ?? 0);
   const sellerNet = Number(pricing?.sellerNet ?? pricing?.sellerNetAmount ?? 0);
   const itemTotal = Number(pricing?.itemTotal ?? items[0]?.lineTotal ?? 0);
+  const paymentProcessingFee = Number(pricing?.paymentProcessingFee ?? pricing?.processingFee ?? 0);
+  const totalCharged = Number(pricing?.totalCharged ?? buyerTotal ?? (itemTotal + protectionFee + paymentProcessingFee));
 
   const amountInDispute = Number(dispute?.amountInDispute ?? itemTotal ?? buyerTotal ?? 0);
   const eligibleRefund = Math.max(0, heldAmount + frozenAmount);
