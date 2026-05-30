@@ -8,6 +8,7 @@ import {
   Search, Send, Ban, Play, Eye, NotebookPen, Store,
   Star, Info, FilePlus2, Bell, HelpCircle, CheckCheck, Check, Paperclip,
   Reply, MoreHorizontal, MessageCircle, ArrowRight, Lock, Menu,
+  Percent, PieChart, RotateCcw, ArrowUp, Edit3, Users as UsersIcon,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
