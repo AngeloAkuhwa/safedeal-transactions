@@ -1,33 +1,25 @@
-## Goal
-Restyle the `LinkedTile` component in `src/pages/AdminDisputeDetail.tsx` so the "Linked Records & Quick Actions" grid matches the screenshot 100%.
+## Problem
+At the user's viewport (875px), the admin left sidebar is hidden because `AdminLayout` only shows it at `lg` and above (`hidden lg:block`). `AdminDisputes` and `AdminDisputeDetail` both pass `hideDefaultHeaders`, which suppresses `AdminMobileHeader` — the component that normally renders the hamburger that opens the mobile drawer. Result: no left sidebar, no way to reopen it. On `AdminDisputeDetail`, the right resolution sidebar additionally uses `xl:` breakpoints, so it's also hidden between `lg` and `xl` — same root cause: missing access affordance.
 
-## Current vs Target
+## Fix (UI only)
 
-**Current:** Horizontal layout — icon square on the left, title/subtitle stacked to its right, chevron on the far right (vertically centered). Subtitle uses monospaced font.
+### A. `src/components/admin/AdminLayout.tsx`
+Always expose a mobile menu trigger when below `lg`, even if `hideDefaultHeaders` is true.
 
-**Target (screenshot):** Vertical layout per tile:
-- Row 1: small rounded icon badge in the top-left, arrow icon (`ArrowRight`) in the top-right (muted).
-- Row 2 (below, with breathing room): title in white, semibold, ~sm/base size.
-- Row 3: subtitle in muted slate (code/ID), regular weight, not mono-styled badge.
-- Card background slightly lighter than container, rounded-xl, subtle border, hover lift.
-- Escrow Record tile shows a small **red notification dot** next to the icon (top area).
+- Add a fixed-position hamburger button (top-left, `lg:hidden`, `z-40`, small icon button styled like other admin floaters) that calls `setMobileOpen(true)`. Render it only when `hideDefaultHeaders` is true (so it doesn't double up with `AdminMobileHeader`).
+- Keeps the existing mobile `Sheet` drawer wiring intact — clicking it opens the same left `AdminSidebar`.
 
-## Changes (UI-only)
+### B. `src/pages/AdminDisputeDetail.tsx` — right sidebar visibility
+Lower the right resolution sidebar's breakpoint from `xl:` to `lg:` so it appears at the same point the main app sidebar becomes available, matching the dual-pane intent.
 
-### A. `LinkedTile` component (~line 2096)
-Rewrite to vertical layout:
-- Container: `rounded-xl border border-border/60 bg-muted/20 p-4 hover:bg-muted/40 hover:border-blue-500/40 transition` with `flex flex-col gap-3 min-h-[110px]`.
-- Top row: `flex items-start justify-between` → icon badge (`h-9 w-9 rounded-lg grid place-items-center` + tone bg/text) on the left + a relative wrapper for the notification dot; `ArrowRight` (h-4 w-4 text-muted-foreground) on the right.
-- Bottom: title `text-sm font-semibold text-foreground`, subtitle `text-xs text-muted-foreground mt-0.5` (drop `font-mono`).
-- New optional prop `showDot?: boolean` → renders a `h-2 w-2 rounded-full bg-rose-500` absolutely positioned at top-right of the icon badge.
-- Keep disabled state (no arrow / reduced opacity / cursor-not-allowed).
-
-### B. Grid usage (~line 758-777)
-- Keep the 6 tiles & order. Pass `showDot` on the Escrow Record tile.
-- Replace `ChevronRight` with `ArrowRight` import where the tile uses it (chevron stays elsewhere).
+- The `<aside>` currently `xl:w-[380px] xl:shrink-0 xl:border-l xl:min-h-0 xl:overflow-y-auto` → switch the `xl:` prefixes used purely for layout (width, border-l, sticky/overflow) to `lg:`.
+- The container `flex` wrapper that currently activates `xl:` row layout → also `lg:`.
+- Update the "Mobile action bar" toggle from `xl:hidden` → `lg:hidden` so the inline CTA only appears when the sidebar is collapsed.
 
 ### Out of scope
-No data/service changes. No other sections touched. Icons, tones, and click handlers preserved.
+- No changes to data, services, or other pages.
+- `AdminDisputes` (queue) has no right sidebar — only fix A applies there.
 
 ## Files
-- `src/pages/AdminDisputeDetail.tsx` (LinkedTile component + the 6 tile call sites)
+- `src/components/admin/AdminLayout.tsx`
+- `src/pages/AdminDisputeDetail.tsx`
