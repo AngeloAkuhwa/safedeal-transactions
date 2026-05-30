@@ -301,7 +301,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
   const dispute = txDetail.dispute ?? {};
   const parties = txDetail.parties ?? { buyer: null, seller: null };
   const items = txDetail.items ?? [];
-  const pricing = txDetail.pricing ?? {};
+  const pricing: any = txDetail.pricing ?? {};
   const escrow: any = txDetail.escrow ?? {};
   const payment = txDetail.payment ?? null;
   const payout = txDetail.payout ?? null;
