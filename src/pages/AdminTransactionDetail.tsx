@@ -372,9 +372,12 @@ export default function AdminTransactionDetail() {
   const code = tx?.transactionCode ?? transactionId?.slice(0, 8) ?? "";
   const itemTitle = data?.items?.[0]?.title ?? "Transaction";
 
+  // Accent derives strictly from *current* active blockers, never historical
+  // state. Once funds are unfrozen or the dispute is resolved, the page tone
+  // returns to neutral immediately.
   const accent: "red" | "orange" | "none" =
-    tx?.moneyStatus === "funds_frozen" ? "red"
-    : disputeOpen ? "orange"
+    active.isFrozen ? "red"
+    : active.isDisputeActive ? "orange"
     : "none";
 
   const escrowDisplay = useMemo(
@@ -386,16 +389,18 @@ export default function AdminTransactionDetail() {
   const synthesizedFlags = useMemo(() => {
     if (!data) return [];
     const out: { label: string; severity: "low" | "medium" | "high" }[] = [];
-    if (tx?.moneyStatus === "funds_frozen") out.push({ label: "Funds frozen", severity: "high" });
-    if (disputeOpen) {
+    if (active.isFrozen) out.push({ label: "Funds frozen", severity: "high" });
+    if (active.isDisputeActive) {
       out.push({ label: "Dispute open", severity: "medium" });
     }
-    if (dispute?.overdue) out.push({ label: "Dispute response overdue", severity: "high" });
+    if (active.isOverdue) out.push({ label: "Dispute response overdue", severity: "high" });
+    if (active.isEscalated) out.push({ label: "Dispute escalated", severity: "high" });
+    if (active.isInvestigationActive) out.push({ label: "Investigation open", severity: "medium" });
     const total = Number(data.pricing?.buyerTotal ?? 0);
     if (total >= 500_000) out.push({ label: "High-value transaction", severity: "medium" });
     if (data.parties?.buyer?.flagged) out.push({ label: "Buyer account flagged", severity: "high" });
     return out;
-  }, [data, tx?.moneyStatus, dispute, disputeOpen]);
+  }, [data, active]);
 
   const allFlags = useMemo(() => {
     const seen = new Set<string>();
