@@ -7,12 +7,13 @@ import {
   CheckCircle2, XCircle, ChevronRight, Flag, Wallet, CreditCard, Vault,
   Search, Send, Ban, Play, Eye, NotebookPen, Store,
   Star, Info, FilePlus2, Bell, HelpCircle, CheckCheck, Check, Paperclip,
-  Reply, MoreHorizontal, MessageCircle, ArrowRight, Lock,
+  Reply, MoreHorizontal, MessageCircle, ArrowRight, Lock, Menu,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
