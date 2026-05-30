@@ -804,7 +804,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
         </section>
 
         {/* Right resolution sidebar (desktop) — scrolls independently of main content */}
-        <aside className="hidden lg:block lg:w-[380px] lg:shrink-0 lg:border-l lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto bg-card">
+        <aside className="hidden lg:block lg:w-[380px] lg:shrink-0 lg:border-l lg:border-[#253044] lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto no-scrollbar bg-[#111827]/80">
           <ResolutionSidebar
               disputeStatus={row.status}
               overdue={overdue}
@@ -829,7 +829,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
       {/* Right resolution sidebar (tablet/mobile drawer) */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md border-border bg-card p-0 text-foreground overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:max-w-md border-[#253044] bg-[#111827]/95 p-0 text-foreground overflow-y-auto no-scrollbar">
           <ResolutionSidebar
             disputeStatus={row.status}
             overdue={overdue}
@@ -2353,10 +2353,15 @@ function SummaryPartyCard({ role, name, statusLabel, statusTone, summary }: {
     : statusTone === "red" ? "bg-red-400"
     : "bg-yellow-400";
   return (
-    <div className="rounded-md border border-border bg-background p-3">
+    <div className="rounded-lg border border-[#253044] bg-[#0F172A]/60 p-3">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          {role === "buyer" ? <UserIcon className="h-4 w-4 text-blue-400" /> : <Store className="h-4 w-4 text-orange-400" />}
+          <span className={cn(
+            "h-7 w-7 rounded-full flex items-center justify-center shrink-0",
+            role === "buyer" ? "bg-blue-500/15 text-blue-400" : "bg-orange-500/15 text-orange-400",
+          )}>
+            {role === "buyer" ? <UserIcon className="h-4 w-4" /> : <Store className="h-4 w-4" />}
+          </span>
           <div className="min-w-0">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{role}</div>
             <div className="text-sm font-medium text-foreground truncate">{name}</div>
@@ -2391,8 +2396,8 @@ function SidebarBtn({
   variant?: "outline" | "solid"; solidClass?: string;
 }) {
   const isSolid = variant === "solid";
-  const base = "w-full flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors text-left";
-  const outlineCls = "border-border bg-background/40 text-foreground hover:bg-background/70";
+  const base = "w-full flex items-center gap-3 rounded-md border px-3 py-2.5 text-sm font-medium transition-colors text-left";
+  const outlineCls = "border-[#253044] bg-[#0F172A]/40 text-foreground hover:bg-[#0F172A]/70";
   const solidCls = solidClass ?? "bg-primary text-primary-foreground border-transparent hover:opacity-90";
   const btn = (
     <button
@@ -2405,17 +2410,12 @@ function SidebarBtn({
         (disabled || !onClick) && "opacity-60 cursor-not-allowed",
       )}
     >
-      {isSolid ? (
-        <span className="h-4 w-4 shrink-0 [&_svg]:h-4 [&_svg]:w-4">{icon}</span>
-      ) : (
-        <span className={cn(
-          "h-7 w-7 shrink-0 rounded-md flex items-center justify-center [&_svg]:h-4 [&_svg]:w-4",
-          iconBg ?? "bg-muted/40",
-          iconColor ?? "text-muted-foreground",
-        )}>
-          {icon}
-        </span>
-      )}
+      <span className={cn(
+        "h-4 w-4 shrink-0 [&_svg]:h-4 [&_svg]:w-4",
+        !isSolid && (iconColor ?? "text-muted-foreground"),
+      )}>
+        {icon}
+      </span>
       <span className="flex-1 truncate">{label}</span>
     </button>
   );

@@ -1,67 +1,40 @@
-## Goal
-
-Make the right-side Resolution Sidebar on the Admin Dispute Detail screen look exactly like the attached design screenshots, and confirm it scrolls independently of the main page.
-
 ## Scope
+Tweaks to the **right sidebar of the Admin Dispute Detail screen only**. Nothing else on the page (header, left sidebar, main content cards, mobile sheet) changes.
 
-Only `src/pages/AdminDisputeDetail.tsx` (the inline `ResolutionSidebar`, `SidebarBtn`, `SidebarGroup`, `SummaryPartyCard`, and the surrounding `<aside>` wrapper). No data/service changes.
+## File
+`src/pages/AdminDisputeDetail.tsx` (+ one small utility in `src/index.css`).
 
-## Visual changes — match screenshots exactly
+## Changes to the right sidebar
 
-**1. Section headings**
-- `Case Control`, `Resolution Actions`, `Investigation Actions` rendered as small uppercase muted labels (already close, refine size/tracking to match).
-- `Resolution Status` and `Resolution Summary` rendered as bold white section titles (text-base, font-semibold).
+### 1. Hide the divider scrollbar
+Add a `.no-scrollbar` utility in `src/index.css` and apply it to the sidebar `<aside>` so it still scrolls independently but no visible scrollbar shows.
 
-**2. Resolution Status card**
-- Keep colored alert card (escalated = red/rose tint), but switch to the screenshot layout:
-  - Red/rose border, dark-red translucent background, red dot + uppercase "ESCALATED" label.
-  - One-line message below.
-  - Below: three labeled rows — "Current Workflow Stage" (label muted, value = colored dot + label), "Last Activity" (date), "Next Action" (text). Replace current inline "Workflow stage / SLA deadline / Next action" layout with this stacked label-over-value format.
+```css
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+```
 
-**3. Action buttons (SidebarBtn) — colored icons + filled tones**
-Each button: dark rounded card (`bg-background/40`, `border-border`), left colored icon tile (h-7 w-7 rounded-md, tinted bg + colored icon), label text white. Per-button colors:
+### 2. Match sidebar background to the dispute detail cards
+- The `<aside>` and its inner section containers must use the **same semantic background + border tokens as the Buyer/Seller/Financial cards** on the same page, so the sidebar reads as one continuous surface with the rest of the screen (matches design screenshots).
 
-Case Control:
-- Move to Under Review → blue icon
-- Request More Evidence → purple icon
-- Assign / Reassign Agent → emerald icon
-- Escalate Further → orange icon (arrow up)
-- Mark High Risk → red icon (triangle)
-- Mark Fraud Watch → red icon (shield)
+### 3. Resolution Status block
+- Bold white `Resolution Status` heading.
+- Red-bordered, red-tinted card: red dot + `ESCALATED` label, one-line message.
+- Below the card: plain stacked rows (no boxed sub-cards) — `Current Workflow Stage` (orange dot + `Escalated`), `Last Activity` (date), `Next Action` (description).
 
-Resolution Actions — these become FILLED solid buttons (not outlined):
-- Refund Buyer → solid emerald (`bg-emerald-600 hover:bg-emerald-700 text-white`), white rotate-left icon
-- Release Funds to Seller → solid blue (`bg-blue-600 hover:bg-blue-700 text-white`), white icon
-- Partial Refund → outlined dark card, neutral icon (percent)
-- Partial Release → outlined dark card, neutral icon (pie chart)
-- Close Without Resolution → outlined dark card, neutral X icon
-- Block Payout → solid red (`bg-red-600 hover:bg-red-700 text-white`), white ban icon
-- Resume Payout → solid emerald (`bg-emerald-600 hover:bg-emerald-700 text-white`), white play icon
+### 4. Action buttons (`SidebarBtn`) — flat rows, inline icons
+Drop the large tinted icon tiles. Each button becomes a flat row matching the design.
+- **Outline variant:** card-surface bg, border, rounded-md, `px-3 py-2.5 text-sm`, small (16px) inline colored icon left of label.
+- **Solid variant** for Refund Buyer (emerald), Release Funds to Seller (blue), Block Payout (red), Resume Payout (emerald) — same flat shape, full-color, inline icon.
 
-Investigation Actions (outlined cards, colored icons):
-- Add Review Note → yellow note icon
-- Add Internal Note → purple edit icon
-- Open Investigation → orange magnifier
-- View Linked Transaction → blue dollar/card icon
-- View Payment Record → emerald credit-card icon
-- View Escrow Record → orange/yellow vault icon
-- View Payout Record → purple wallet icon
+Section order with uppercase muted labels:
+- `CASE CONTROL` → Move to Under Review, Request More Evidence, Assign / Reassign Agent, Escalate Further, Mark High Risk, Mark Fraud Watch.
+- `RESOLUTION ACTIONS` → Refund Buyer (solid), Release Funds to Seller (solid), Partial Refund, Partial Release, Close Without Resolution, Block Payout (solid), Resume Payout (solid).
+- `INVESTIGATION ACTIONS` → Add Review Note (yellow), Add Internal Note (purple), Open Investigation (orange), View Linked Transaction (blue), View Payment Record (green), View Escrow Record (red/orange), View Payout Record (purple).
 
-Refactor `SidebarBtn` to accept a `variant: "outline" | "solid"` plus an `iconColor` (tailwind class like `text-emerald-400`, `bg-emerald-500/15`), so solid variants render full-colored buttons and outlined variants render dark cards with tinted icon tiles. Keep `tip` tooltip behavior.
-
-**4. Resolution Summary cards**
-- Use slightly larger rounded card (`rounded-lg`, `border-border`, `bg-background/40`, `p-4`).
-- Header row: small avatar/icon circle (blue user for buyer, orange store for seller), label "Buyer"/"Seller" in muted small caps above name in white semibold. Status badge on right (green dot + "Refund Requested" / red dot + "Response Missing").
-- Body: muted text quote of claim/response, up to 3 lines.
-
-**5. Sidebar container**
-- `<aside>` already has `hidden lg:block lg:w-[380px] lg:shrink-0 lg:border-l lg:min-h-0 lg:overflow-y-auto bg-card`. Confirm parent chain (`<AdminLayout fullHeight>` → `lg:h-screen lg:overflow-hidden` → main flex column → wrapper `lg:h-full lg:min-h-0`) so the aside is its own scroll pane independent of the section's scroll. If the aside still scrolls with the page in tests, add `lg:sticky lg:top-0 lg:h-screen` as a fallback.
+### 5. Resolution Summary cards
+- Bold white `Resolution Summary` heading.
+- Each entity card uses the same card surface as #2: small colored icon circle (blue user for Buyer, orange store for Seller), role label muted + name bold stacked, status pill top-right with dot (green `Refund Requested`, red `Response Missing`), muted quote line below.
 
 ## Out of scope
-
-- No changes to dialogs, dispute data, services, or the mobile Sheet contents (it reuses the same `ResolutionSidebar`, so it inherits the new look automatically).
-- No changes to left sidebar, header, or main case content.
-
-## Files
-
-- `src/pages/AdminDisputeDetail.tsx`
+Header, left sidebar, mobile Sheet, main content cards, data, services, dialogs, business logic — all untouched.
