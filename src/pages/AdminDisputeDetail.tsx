@@ -2380,26 +2380,43 @@ function SidebarGroup({ title, children }: { title: string; children: React.Reac
     </div>
   );
 }
-function SidebarBtn({ icon, label, onClick, disabled, tone, tip }: {
+function SidebarBtn({
+  icon, label, onClick, disabled, tip,
+  iconColor, iconBg,
+  variant = "outline", solidClass,
+}: {
   icon: React.ReactNode; label: string; onClick?: () => void;
-  disabled?: boolean; tone?: "success" | "warning" | "danger" | "muted"; tip?: string;
+  disabled?: boolean; tip?: string;
+  iconColor?: string; iconBg?: string;
+  variant?: "outline" | "solid"; solidClass?: string;
 }) {
-  const toneCls = tone === "danger" ? "hover:border-red-500/40 hover:bg-red-500/5"
-    : tone === "warning" ? "hover:border-orange-500/40 hover:bg-orange-500/5"
-    : tone === "success" ? "hover:border-emerald-500/40 hover:bg-emerald-500/5"
-    : "hover:border-blue-500/40 hover:bg-blue-500/5";
+  const isSolid = variant === "solid";
+  const base = "w-full flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors text-left";
+  const outlineCls = "border-border bg-background/40 text-foreground hover:bg-background/70";
+  const solidCls = solidClass ?? "bg-primary text-primary-foreground border-transparent hover:opacity-90";
   const btn = (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled || !onClick}
       className={cn(
-        "w-full flex items-center gap-2.5 rounded-md border border-border bg-background px-3 py-2.5 text-sm text-foreground transition-colors text-left",
-        disabled || !onClick ? "opacity-50 cursor-not-allowed" : toneCls,
+        base,
+        isSolid ? solidCls : outlineCls,
+        (disabled || !onClick) && "opacity-60 cursor-not-allowed",
       )}
     >
-      <span className="h-4 w-4 text-muted-foreground">{icon}</span>
-      <span className="flex-1">{label}</span>
+      {isSolid ? (
+        <span className="h-4 w-4 shrink-0 [&_svg]:h-4 [&_svg]:w-4">{icon}</span>
+      ) : (
+        <span className={cn(
+          "h-7 w-7 shrink-0 rounded-md flex items-center justify-center [&_svg]:h-4 [&_svg]:w-4",
+          iconBg ?? "bg-muted/40",
+          iconColor ?? "text-muted-foreground",
+        )}>
+          {icon}
+        </span>
+      )}
+      <span className="flex-1 truncate">{label}</span>
     </button>
   );
   if ((disabled || !onClick) && tip) {
@@ -2414,30 +2431,34 @@ function SidebarBtn({ icon, label, onClick, disabled, tone, tip }: {
 }
 
 function resolutionMeta(status: string, overdue: boolean, resolvedAt: string | null): {
-  label: string; message: string; next: string; cls: string; Icon?: any;
+  label: string; message: string; next: string; cls: string; dotCls: string; Icon?: any;
 } {
   if (resolvedAt || status === "resolved") return {
     label: "Resolved", message: "Case has a recorded resolution outcome.",
     next: "View outcome and money movement.",
     cls: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+    dotCls: "bg-emerald-400",
     Icon: CheckCircle2,
   };
   if (status === "dismissed" || status === "closed") return {
     label: "Closed", message: "Case closed without payout or refund.",
     next: "Review audit trail.",
     cls: "border-slate-500/30 bg-slate-500/10 text-slate-100",
+    dotCls: "bg-slate-400",
     Icon: XCircle,
   };
   if (status === "escalated") return {
     label: "Escalated", message: "Case escalated — requires immediate admin review.",
     next: "Review evidence and determine outcome.",
     cls: "border-red-500/40 bg-red-500/10 text-red-100",
+    dotCls: "bg-red-400",
     Icon: AlertTriangle,
   };
   if (status === "under_review") return {
     label: "Under Review", message: "Admin review in progress.",
     next: "Review evidence and decide the outcome.",
     cls: "border-purple-500/30 bg-purple-500/10 text-purple-100",
+    dotCls: "bg-purple-400",
     Icon: Gavel,
   };
   if (status === "awaiting_seller_response") return {
@@ -2447,12 +2468,14 @@ function resolutionMeta(status: string, overdue: boolean, resolvedAt: string | n
     cls: overdue
       ? "border-red-500/40 bg-red-500/10 text-red-100"
       : "border-yellow-500/30 bg-yellow-500/10 text-yellow-100",
+    dotCls: overdue ? "bg-red-400" : "bg-yellow-400",
     Icon: Clock,
   };
   return {
     label: "Open", message: "Case waiting for triage.",
     next: "Move to under review or request seller response.",
     cls: "border-blue-500/30 bg-blue-500/10 text-blue-100",
+    dotCls: "bg-blue-400",
     Icon: Gavel,
   };
 }
