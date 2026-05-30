@@ -1,45 +1,45 @@
 ## Scope
 
-`src/pages/AdminDisputeDetail.tsx` only, Financial Overview & Controls section (lines ~539–609). No other sections touched.
+`src/pages/AdminDisputeDetail.tsx` only — the Financial Overview & Controls `<section>` (lines ~540–613) and the `FinMetric` helper (lines ~1070–1103). No other section is touched. Subtitle and top divider were already removed in the previous patch and stay removed.
+
+## Problem
+
+On the 875px tablet viewport (and likely beyond), the card produces a horizontal scrollbar and the metric values feel oversized vs the reference. Causes:
+
+- `gap-x-12` on Row 1 (4 columns) and `gap-x-16` on Row 2 (3 columns) — too wide for 875px content area, forces overflow.
+- Funds Status value uses `xl:whitespace-nowrap` — "Held in Escrow" + 12px dot + gaps pushes the 4-col row past the card width at borderline widths.
+- Metric values at `xl:text-[28px]` are bigger than the reference (~22–24px).
+- `break-words` on default values can produce awkward wrap on `$5,200.00` at narrow widths.
 
 ## Changes
 
-1. **Remove the horizontal divider line under the title.** Drop `border-b border-[#253044]` from the header `<div>` so the title block flows straight into the metrics with no rule beneath the heading. (The single divider between Row 1 and Row 2 stays — that's the only horizontal line in the reference.)
+1. **Row gaps** (`<section>` body, both grids):
+   - Row 1 grid: `grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-6 md:gap-x-8 gap-y-7`.
+   - Row 2 grid: `grid grid-cols-1 md:grid-cols-3 gap-x-8 md:gap-x-10 gap-y-7`.
+   - Divider stays as the only inner horizontal line: `my-7 md:my-8 h-px bg-[#253044]`.
 
-2. **Remove the subtitle entirely.** Delete the `<p>Money state and payout controls for this dispute</p>` line. Header becomes just the `<h2>`.
+2. **Funds Status / Payout Status value nodes** — drop `xl:whitespace-nowrap`, shrink dot to `h-2.5 w-2.5`, shrink value text to match #3 below, and remove the extra `mt-2` offset on the Payout Status dot so it aligns with the text baseline:
+   - Funds Status value span: `text-[20px] md:text-[22px] xl:text-[24px] leading-[28px] font-semibold tracking-[-0.02em]`, color `#FACC15`.
+   - Payout Status wrapper: `flex items-center gap-2` (was `items-start`), dot has no `mt-2`, same value typography in `#F87171`.
 
-3. **Move payment source under Total Transaction.** Today `Paid via {method}` is only shown when `payment?.method` exists. Keep that, but make it always render a meaningful caption:
-   - If `payment?.method` → `Paid via {titleCase(payment.method)}` (e.g. "Paid via Card", "Paid via Bank Transfer").
-   - Else → `Payment source unavailable` muted, so the slot is never empty in the layout.
+3. **`FinMetric` default value** (line 1090): reduce to `mt-2 text-[20px] md:text-[22px] xl:text-[24px] leading-[28px] font-semibold tracking-[-0.02em] tabular-nums` and drop `break-words` so currency strings stay on one line.
 
-4. **Protection Fee caption reflects the system cap.** Replace the raw `${pct}% escrow fee` caption with cap-aware copy using the documented fee model (tiered 3.9%–2.5%, cap ₦2,500, floor ₦250):
-   - Compute `pct = (protectionFee / buyerTotal) * 100` when `buyerTotal > 0`.
-   - If `protectionFee >= 2500` → caption: `Capped at ₦2,500` (single line, muted).
-   - Else if `protectionFee <= 250` → caption: `Minimum ₦250 fee`.
-   - Else → caption: `${pct.toFixed(1)}% escrow fee · capped at ₦2,500`.
-   - Wrap caption in `text-[#9CA3AF]` as today; do not introduce new colors.
+4. **`FinMetric` label** (line 1085): keep `text-[13px] md:text-[14px] leading-[18px] text-[#9CA3AF]`.
 
-5. **Tighten typography to match the screenshot more precisely** (text size cleanup only, no layout changes):
-   - Title `h2`: keep `font-semibold tracking-[-0.02em] text-[#F8FAFC]`, sizes `text-[20px] md:text-[24px] xl:text-[26px]` with matching leading. (Slightly smaller than current to match reference proportions.)
-   - Metric label: `text-[13px] md:text-[14px] leading-[18px] text-[#9CA3AF] font-normal`.
-   - Metric value: `text-[22px] md:text-[26px] xl:text-[28px] leading-[28px] md:leading-[32px] font-semibold tracking-[-0.02em]` (was 26/30/34 — reduced so values don't wrap to 3 lines on tablet, which is the visible defect in the upload).
-   - Metric caption: `text-[12px] md:text-[13px] leading-[18px] text-[#9CA3AF]`.
-   - Funds Status / Payout Status value spans inherit the same value sizing as numeric metrics (so "Held in Escrow" and "Blocked (dispute active)" match the ₦ values visually); keep colored dot + colored text.
-   - Header block padding reduced to `px-5 py-4 md:px-7 md:py-5` (no border-b) and body padding to `px-5 pb-6 pt-2 md:px-7 md:pb-8 md:pt-4` so the title sits closer to Row 1 like the reference.
+5. **`FinMetric` caption** (line 1097): keep `mt-2 text-[12px] md:text-[13px] leading-[18px] text-[#9CA3AF]`; remove `break-words`.
 
-6. **Keep all data sources, helpers, alert strips, and Naira formatting unchanged.** No business logic changes.
+6. **Overflow guard** on the section: add `min-w-0` to the section and to both grids so the flex parents never push the card width. Keep `overflow-hidden` on the section so any stray child can't introduce horizontal scroll.
 
-## Technical details
+7. **Heading block** stays as-is (no top border, no subtitle). The blue highlight in the user's screenshot is browser text selection, not a style — no code change needed for it.
 
-- `FinMetric` helper stays; only its className strings are updated to the sizes in step 5. Add an optional `captionMuted` styling only if needed — otherwise reuse current caption styles.
-- No changes to `payoutLabel`, `moneyStatusLabel`, `ngn`, `titleCase`, or the data hooks.
-- No changes to the outer scroll wrapper from the previous patch.
+## Out of scope
+
+- No data, no copy, no color tokens changed beyond the typography sizes above.
+- Alert strips (`mx-5 md:mx-8 mb-5 md:mb-8 …`) untouched.
+- No changes to any other card or section.
 
 ## Acceptance
 
-- No horizontal rule directly under "Financial Overview & Controls".
-- Subtitle line is gone.
-- Total Transaction shows `Paid via …` (or fallback) on every dispute.
-- Protection Fee caption explicitly mentions the ₦2,500 cap (or the ₦250 floor) rather than only a raw percentage.
-- On the 875px tablet preview, no metric value wraps to three lines; "Held in Escrow" and "Blocked (dispute active)" no longer clip.
-- Desktop layout still matches the reference (4-up row, divider, 3-up row).
+- At 875px viewport: card shows heading, 4-up row, single divider, 3-up row, no horizontal scrollbar, no value wraps to 3 lines, "Held in Escrow" and "Blocked" sit on one line.
+- At ≥1280px: matches the attached reference proportionally (heading top-left, comfortable padding, one inner divider).
+- Subtitle and top divider remain gone.

@@ -537,7 +537,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
             </div>
 
             {/* Financial overview */}
-            <section className="rounded-[18px] border border-[#253044] bg-[#111827]/80 overflow-hidden">
+            <section className="rounded-[18px] border border-[#253044] bg-[#111827]/80 overflow-hidden min-w-0">
               <div className="px-5 pt-5 pb-2 md:px-7 md:pt-6 md:pb-3">
                 <h2 className="text-[20px] md:text-[24px] xl:text-[26px] leading-[26px] md:leading-[30px] font-semibold tracking-[-0.02em] text-[#F8FAFC]">
                   Financial Overview &amp; Controls
@@ -545,7 +545,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
               </div>
 
               <div className="px-5 pb-6 pt-2 md:px-7 md:pb-8 md:pt-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-12 gap-y-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-6 md:gap-x-8 gap-y-7 min-w-0">
                   <FinMetric label="Total Transaction" value={ngn(buyerTotal)}
                     caption={payment?.method ? `Paid via ${titleCase(payment.method)}` : "Payment source unavailable"} />
                   <FinMetric label="Amount in Dispute" value={ngn(amountInDispute)} valueColor="#FB923C"
@@ -562,9 +562,9 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                     } />
                   <FinMetric label="Funds Status"
                     valueNode={(
-                      <div className="mt-3 flex items-center gap-2.5" style={{ color: "#FACC15" }}>
-                        <span className="h-3 w-3 rounded-full shrink-0" style={{ background: "#FACC15" }} />
-                        <span className="text-[22px] md:text-[26px] xl:text-[28px] leading-[28px] md:leading-[32px] font-semibold tracking-[-0.02em] xl:whitespace-nowrap">
+                      <div className="mt-2 flex items-center gap-2" style={{ color: "#FACC15" }}>
+                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: "#FACC15" }} />
+                        <span className="text-[20px] md:text-[22px] xl:text-[24px] leading-[28px] font-semibold tracking-[-0.02em]">
                           {moneyStatusLabel(moneyStatus)}
                         </span>
                       </div>
@@ -574,17 +574,17 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                       : undefined} />
                 </div>
 
-                <div className="my-8 md:my-10 h-px bg-[#253044]" />
+                <div className="my-7 md:my-8 h-px bg-[#253044]" />
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-16 gap-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 md:gap-x-10 gap-y-7 min-w-0">
                   <FinMetric label="Eligible Refund Amount" value={ngn(eligibleRefund)} valueColor="#6EE7B7" />
                   <FinMetric label="Eligible Release Amount" value={ngn(eligibleRelease)} valueColor="#60A5FA"
                     caption="After fees" />
                   <FinMetric label="Payout Status"
                     valueNode={(
-                      <div className="mt-3 flex items-start gap-2.5" style={{ color: "#F87171" }}>
-                        <span className="mt-2 h-3 w-3 rounded-full shrink-0" style={{ background: "#EF4444" }} />
-                        <span className="text-[22px] md:text-[26px] xl:text-[28px] leading-[28px] md:leading-[32px] font-semibold tracking-[-0.02em]">
+                      <div className="mt-2 flex items-center gap-2" style={{ color: "#F87171" }}>
+                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: "#EF4444" }} />
+                        <span className="text-[20px] md:text-[22px] xl:text-[24px] leading-[28px] font-semibold tracking-[-0.02em]">
                           {payoutLabel(payout, moneyStatus, !resolvedAt)}
                         </span>
                       </div>
@@ -1087,14 +1087,14 @@ function FinMetric({
       </p>
       {valueNode ?? (
         <p
-          className="mt-3 text-[22px] md:text-[26px] xl:text-[28px] leading-[28px] md:leading-[32px] font-semibold tracking-[-0.02em] break-words"
+          className="mt-2 text-[20px] md:text-[22px] xl:text-[24px] leading-[28px] font-semibold tracking-[-0.02em] tabular-nums"
           style={{ color: valueColor ?? "#F8FAFC" }}
         >
           {value}
         </p>
       )}
       {caption && (
-        <p className="mt-2 text-[12px] md:text-[13px] leading-[18px] text-[#9CA3AF] break-words">
+        <p className="mt-2 text-[12px] md:text-[13px] leading-[18px] text-[#9CA3AF]">
           {caption}
         </p>
       )}
