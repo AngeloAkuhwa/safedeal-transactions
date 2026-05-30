@@ -4181,6 +4181,7 @@ export type Database = {
         | "open_investigation"
         | "update_investigation"
         | "export_data"
+        | "resolve_dispute"
       admin_investigation_priority: "low" | "medium" | "high" | "critical"
       admin_investigation_status:
         | "open"
@@ -4567,6 +4568,7 @@ export const Constants = {
         "open_investigation",
         "update_investigation",
         "export_data",
+        "resolve_dispute",
       ],
       admin_investigation_priority: ["low", "medium", "high", "critical"],
       admin_investigation_status: [
