@@ -924,27 +924,26 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
         </div>
 
         {/* Primary action row */}
-        <div className="flex gap-2">
+        <div className="grid grid-cols-[1fr_1fr_48px] gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="flex-1">
-                <Button size="sm" disabled className={cn("w-full gap-1.5 h-10 rounded-lg", callBtnCls, "opacity-100")}>
-                  <Phone className="h-4 w-4" /> Call
-                </Button>
-              </span>
+              <Button size="sm" disabled className={cn("w-full gap-2 h-10 rounded-lg whitespace-nowrap", callBtnCls, "opacity-100 disabled:opacity-100")}>
+                <Phone className="h-4 w-4" /> Call
+              </Button>
             </TooltipTrigger>
             <TooltipContent>Direct calling not connected yet</TooltipContent>
           </Tooltip>
-          <ContactBtn
-            className="flex-1 h-10 rounded-lg"
-            icon={<Mail className="h-4 w-4" />}
-            label="Email"
-            disabled
-            tip="Direct email not connected yet"
-          />
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button size="sm" variant="outline" className="h-10 w-10 p-0 rounded-lg shrink-0" onClick={() => navigate(`/admin/users/${party.id}`)} aria-label="Profile">
+              <Button size="sm" variant="outline" disabled className="w-full gap-2 h-10 rounded-lg whitespace-nowrap">
+                <Mail className="h-4 w-4" /> Email
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Direct email not connected yet</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="sm" variant="outline" className="h-10 w-12 p-0 rounded-lg" onClick={() => navigate(`/admin/users/${party.id}`)} aria-label="Profile">
                 <UserIcon className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
@@ -955,14 +954,14 @@ function PartyCard({ role, party }: { role: "buyer" | "seller"; party: any }) {
         {/* Only internal divider, then secondary action row */}
         <div className="mt-5 pt-5 border-t border-border">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <Button size="sm" variant="outline" className="gap-1.5 rounded-lg" onClick={() => navigate(`/admin/users/${party.id}`)}>
-              <UserIcon className="h-3.5 w-3.5" /> View Profile
+            <Button size="sm" variant="outline" className="gap-2 h-10 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/users/${party.id}`)}>
+              <UserIcon className="h-3.5 w-3.5 shrink-0" /> View Profile
             </Button>
-            <Button size="sm" variant="outline" className="gap-1.5 rounded-lg" onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
-              <Scale className="h-3.5 w-3.5" /> Dispute History
+            <Button size="sm" variant="outline" className="gap-2 h-10 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/disputes?user=${party.id}`)}>
+              <Scale className="h-3.5 w-3.5 shrink-0" /> Dispute History
             </Button>
-            <Button size="sm" variant="outline" className="gap-1.5 rounded-lg" onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
-              <Receipt className="h-3.5 w-3.5" /> Transactions
+            <Button size="sm" variant="outline" className="gap-2 h-10 rounded-lg whitespace-nowrap text-xs sm:text-sm" onClick={() => navigate(`/admin/transactions?user=${party.id}`)}>
+              <Receipt className="h-3.5 w-3.5 shrink-0" /> Transactions
             </Button>
           </div>
         </div>
