@@ -428,21 +428,21 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
   // ---------- sticky header ----------
   const header = (
     <div className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <div className="flex items-center justify-between gap-3 px-6 py-4 lg:px-8 lg:py-5">
+      <div className="flex items-center justify-between gap-3 px-6 py-3.5 lg:px-8 lg:py-4">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => navigate("/admin/disputes")}
-            className="rounded-md border border-border bg-background p-2 text-muted-foreground hover:text-foreground hover:bg-muted"
+            className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted"
             aria-label="Back to disputes"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-lg font-bold text-foreground truncate">
+            <h1 className="text-xl font-bold tracking-tight text-foreground truncate">
               Dispute #{disputeCode}
             </h1>
             <p className="text-xs text-muted-foreground truncate">
-              {itemTitle} · {txCode}
+              {itemTitle} - {txCode}
             </p>
           </div>
         </div>
@@ -456,11 +456,6 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
             )}>
               {overdue && <span className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />}
               {slaText}
-            </span>
-          )}
-          {!slaText && !resolvedAt && (
-            <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/15 text-emerald-300 px-3 py-1 text-xs font-bold">
-              Within SLA
             </span>
           )}
           <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2">
