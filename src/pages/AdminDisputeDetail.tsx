@@ -769,8 +769,8 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                   onClick={parties.seller ? () => navigate(`/admin/users/${parties.seller!.id}`) : undefined} />
                 <LinkedTile tone="emerald" icon={<CreditCard className="h-5 w-5" />} title="Payment Record"
                   subtitle={payment ? `${(payment.providerReference ?? "").slice(0, 20)}` : "No payment record"} />
-                <LinkedTile tone="blue" icon={<Vault className="h-5 w-5" />} title="Escrow Record"
-                  subtitle={`${escrow?.ledger?.length ?? 0} ledger entries`} />
+                <LinkedTile tone="yellow" icon={<Vault className="h-5 w-5" />} title="Escrow Record"
+                  subtitle={`${escrow?.ledger?.length ?? 0} ledger entries`} showDot />
                 <LinkedTile tone="purple" icon={<Clock className="h-5 w-5" />} title="Audit Trail"
                   subtitle="View all activity" />
               </div>
