@@ -341,6 +341,22 @@ export default function AdminTransactionDetail() {
   const disputeResolved = !!disputeDisplay?.resolved;
   const disputeOpen = !!dispute && !disputeResolved && dispute.status !== "closed";
 
+  // Centralised active-state — overrides ad-hoc `disputeOpen` / `funds_frozen`
+  // checks so resolved/unfrozen cases drop their banners immediately.
+  const active = useMemo(
+    () =>
+      deriveActiveState({
+        dispute: dispute ?? null,
+        investigation: (data as any)?.investigation ?? null,
+        moneyStatus: tx?.moneyStatus ?? null,
+        escrow: data?.escrow ?? null,
+        risk: data?.risk ?? null,
+        payout: (data as any)?.payout ?? null,
+        needsReleaseReview: !!(data as any)?.transaction?.needsAdminReview,
+      }),
+    [dispute, data, tx?.moneyStatus],
+  );
+
   const toneToClasses = (tone: string | undefined) => {
     switch (tone) {
       case "danger": return "bg-red-500/15 text-red-300 border-red-500/30";
