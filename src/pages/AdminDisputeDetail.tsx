@@ -428,10 +428,20 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
   };
 
   // ---------- sticky header ----------
-  const header = (
+  const renderHeader = (onOpenMenu?: () => void) => (
     <div className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <div className="flex items-center justify-between gap-3 pl-16 pr-6 py-3.5 lg:pl-8 lg:pr-8 lg:py-4">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-6 lg:px-8 lg:py-4">
+        <div className="flex items-center gap-2 min-w-0">
+          {onOpenMenu && (
+            <button
+              type="button"
+              onClick={onOpenMenu}
+              aria-label="Open navigation menu"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/40 text-foreground hover:bg-muted lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          )}
           <button
             onClick={() => navigate("/admin/disputes")}
             className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -460,7 +470,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
               {slaText}
             </span>
           )}
-          <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2">
+          <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 hidden sm:inline-flex">
             <Printer className="h-4 w-4" /> Print
           </Button>
         </div>
