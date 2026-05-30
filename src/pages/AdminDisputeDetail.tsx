@@ -2094,9 +2094,10 @@ function Timeline({ items, disputeStatus, resolvedAt }: {
 }
 
 // ---------- linked tile ----------
-function LinkedTile({ icon, title, subtitle, onClick, tone = "blue" }: {
+function LinkedTile({ icon, title, subtitle, onClick, tone = "blue", showDot = false }: {
   icon: React.ReactNode; title: string; subtitle: string; onClick?: () => void;
   tone?: "blue" | "emerald" | "orange" | "purple" | "yellow";
+  showDot?: boolean;
 }) {
   const disabled = !onClick;
   const toneCls: Record<string, string> = {
@@ -2112,16 +2113,23 @@ function LinkedTile({ icon, title, subtitle, onClick, tone = "blue" }: {
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex items-center gap-3 rounded-lg border border-border bg-background p-4 text-left transition-colors",
-        disabled ? "opacity-60 cursor-not-allowed" : "hover:border-blue-500/40 hover:bg-muted/30",
+        "group flex min-h-[112px] flex-col justify-between rounded-xl border border-border/60 bg-muted/20 p-4 text-left transition-colors",
+        disabled ? "opacity-60 cursor-not-allowed" : "hover:border-blue-500/40 hover:bg-muted/40",
       )}
     >
-      <span className={cn("grid h-10 w-10 place-items-center rounded-md", toneCls[tone])}>{icon}</span>
-      <span className="min-w-0 flex-1">
-        <div className="text-sm font-medium text-foreground truncate">{title}</div>
-        <div className="text-xs text-muted-foreground truncate font-mono">{subtitle}</div>
-      </span>
-      {!disabled && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+      <div className="flex items-start justify-between">
+        <span className="relative inline-flex">
+          <span className={cn("grid h-9 w-9 place-items-center rounded-lg", toneCls[tone])}>{icon}</span>
+          {showDot && (
+            <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-background" />
+          )}
+        </span>
+        <ArrowRight className={cn("h-4 w-4 text-muted-foreground/70", !disabled && "group-hover:text-foreground")} />
+      </div>
+      <div className="mt-3 min-w-0">
+        <div className="text-sm font-semibold text-foreground truncate">{title}</div>
+        <div className="mt-0.5 text-xs text-muted-foreground truncate">{subtitle}</div>
+      </div>
     </button>
   );
 }
