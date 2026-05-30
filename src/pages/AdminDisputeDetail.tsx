@@ -468,8 +468,8 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
   return (
     <AdminLayout title="Dispute" hideDefaultHeaders fullBleed fullHeight>
-      <div className="flex flex-col xl:flex-row h-full min-h-0">
-        <section className="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden">
+      <div className="flex flex-col xl:flex-row xl:h-full xl:min-h-0">
+        <section className="flex-1 min-w-0 xl:min-h-0 xl:overflow-y-auto xl:overflow-x-hidden">
           {header}
 
           {/* Summary strip — scrolls under the sticky header */}
@@ -562,9 +562,9 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                     } />
                   <FinMetric label="Funds Status"
                     valueNode={(
-                      <div className="mt-2 flex items-center gap-2" style={{ color: "#FACC15" }}>
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: "#FACC15" }} />
-                        <span className="text-[20px] md:text-[22px] xl:text-[24px] leading-[28px] font-semibold tracking-[-0.02em]">
+                      <div className="mt-1.5 flex items-center gap-2" style={{ color: "#FACC15" }}>
+                        <span className="h-2 w-2 rounded-full shrink-0" style={{ background: "#FACC15" }} />
+                        <span className="text-[15px] md:text-[16px] xl:text-[17px] leading-[22px] md:leading-[24px] font-semibold tracking-[-0.01em]">
                           {moneyStatusLabel(moneyStatus)}
                         </span>
                       </div>
@@ -582,9 +582,9 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                     caption="After fees" />
                   <FinMetric label="Payout Status"
                     valueNode={(
-                      <div className="mt-2 flex items-center gap-2" style={{ color: "#F87171" }}>
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: "#EF4444" }} />
-                        <span className="text-[20px] md:text-[22px] xl:text-[24px] leading-[28px] font-semibold tracking-[-0.02em]">
+                      <div className="mt-1.5 flex items-center gap-2" style={{ color: "#F87171" }}>
+                        <span className="h-2 w-2 rounded-full shrink-0" style={{ background: "#EF4444" }} />
+                        <span className="text-[15px] md:text-[16px] xl:text-[17px] leading-[22px] md:leading-[24px] font-semibold tracking-[-0.01em]">
                           {payoutLabel(payout, moneyStatus, !resolvedAt)}
                         </span>
                       </div>
@@ -767,7 +767,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
         </section>
 
         {/* Right resolution sidebar */}
-        <aside className="w-full xl:w-[380px] shrink-0 border-t border-border xl:border-t-0 xl:border-l min-h-0 overflow-y-auto bg-card">
+        <aside className="w-full xl:w-[380px] xl:shrink-0 border-t border-border xl:border-t-0 xl:border-l xl:min-h-0 xl:overflow-y-auto bg-card">
           <ResolutionSidebar
               disputeStatus={row.status}
               overdue={overdue}
@@ -1087,14 +1087,14 @@ function FinMetric({
       </p>
       {valueNode ?? (
         <p
-          className="mt-2 text-[20px] md:text-[22px] xl:text-[24px] leading-[28px] font-semibold tracking-[-0.02em] tabular-nums"
+          className="mt-1.5 text-[15px] md:text-[16px] xl:text-[17px] leading-[22px] md:leading-[24px] font-semibold tracking-[-0.01em] tabular-nums"
           style={{ color: valueColor ?? "#F8FAFC" }}
         >
           {value}
         </p>
       )}
       {caption && (
-        <p className="mt-2 text-[12px] md:text-[13px] leading-[18px] text-[#9CA3AF]">
+        <p className="mt-1.5 text-[12px] leading-[16px] text-[#9CA3AF]">
           {caption}
         </p>
       )}

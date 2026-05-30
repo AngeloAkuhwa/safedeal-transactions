@@ -1,45 +1,83 @@
 ## Scope
 
-`src/pages/AdminDisputeDetail.tsx` only — the Financial Overview & Controls `<section>` (lines ~540–613) and the `FinMetric` helper (lines ~1070–1103). No other section is touched. Subtitle and top divider were already removed in the previous patch and stay removed.
+Two narrow fixes, no other sections touched:
 
-## Problem
+1. `src/pages/AdminDisputeDetail.tsx` — value typography inside the Financial Overview & Controls card (the `FinMetric` helper and the two custom `valueNode` blocks for Funds Status / Payout Status).
+2. `src/components/admin/AdminLayout.tsx` + `src/pages/AdminDisputeDetail.tsx` — the `fullHeight` shell and the dispute page's flex container, so the right "Resolution" sidebar only becomes a fixed side panel at `xl`. Below `xl` the page scrolls normally and the sidebar sits **after** the content.
 
-On the 875px tablet viewport (and likely beyond), the card produces a horizontal scrollbar and the metric values feel oversized vs the reference. Causes:
+## Problem 1 — Values too large vs labels
 
-- `gap-x-12` on Row 1 (4 columns) and `gap-x-16` on Row 2 (3 columns) — too wide for 875px content area, forces overflow.
-- Funds Status value uses `xl:whitespace-nowrap` — "Held in Escrow" + 12px dot + gaps pushes the 4-col row past the card width at borderline widths.
-- Metric values at `xl:text-[28px]` are bigger than the reference (~22–24px).
-- `break-words` on default values can produce awkward wrap on `$5,200.00` at narrow widths.
+Today:
+- Label: `text-[13px] md:text-[14px]`
+- Value: `text-[20px] md:text-[22px] xl:text-[24px]`
 
-## Changes
+The value is roughly 1.6–1.7× the label — looks oversized in the card. User wants the value only slightly larger than the label.
 
-1. **Row gaps** (`<section>` body, both grids):
-   - Row 1 grid: `grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-6 md:gap-x-8 gap-y-7`.
-   - Row 2 grid: `grid grid-cols-1 md:grid-cols-3 gap-x-8 md:gap-x-10 gap-y-7`.
-   - Divider stays as the only inner horizontal line: `my-7 md:my-8 h-px bg-[#253044]`.
+### Fix
 
-2. **Funds Status / Payout Status value nodes** — drop `xl:whitespace-nowrap`, shrink dot to `h-2.5 w-2.5`, shrink value text to match #3 below, and remove the extra `mt-2` offset on the Payout Status dot so it aligns with the text baseline:
-   - Funds Status value span: `text-[20px] md:text-[22px] xl:text-[24px] leading-[28px] font-semibold tracking-[-0.02em]`, color `#FACC15`.
-   - Payout Status wrapper: `flex items-center gap-2` (was `items-start`), dot has no `mt-2`, same value typography in `#F87171`.
+Update `FinMetric` default value and the two `valueNode` spans (Funds Status, Payout Status) to:
+`text-[15px] md:text-[16px] xl:text-[17px] leading-[22px] md:leading-[24px] font-semibold tracking-[-0.01em] tabular-nums`
 
-3. **`FinMetric` default value** (line 1090): reduce to `mt-2 text-[20px] md:text-[22px] xl:text-[24px] leading-[28px] font-semibold tracking-[-0.02em] tabular-nums` and drop `break-words` so currency strings stay on one line.
+Keep:
+- Label: `text-[13px] md:text-[14px] leading-[18px] text-[#9CA3AF]`
+- Caption: `mt-1.5 text-[12px] md:text-[12px] leading-[16px] text-[#9CA3AF]` (slightly tighter caption gap to match the smaller value)
+- Dots in Funds/Payout status: shrink to `h-2 w-2` so they align visually with the smaller value text.
+- Value `mt-2` becomes `mt-1.5` for a calmer rhythm.
 
-4. **`FinMetric` label** (line 1085): keep `text-[13px] md:text-[14px] leading-[18px] text-[#9CA3AF]`.
+Colors and content unchanged (yellow for Held in Escrow, red for Blocked, etc.).
 
-5. **`FinMetric` caption** (line 1097): keep `mt-2 text-[12px] md:text-[13px] leading-[18px] text-[#9CA3AF]`; remove `break-words`.
+## Problem 2 — Sidebar takes over tablet/mobile
 
-6. **Overflow guard** on the section: add `min-w-0` to the section and to both grids so the flex parents never push the card width. Keep `overflow-hidden` on the section so any stray child can't introduce horizontal scroll.
+Today `AdminLayout` with `fullHeight` locks the entire shell to `h-screen overflow-hidden` at every breakpoint, and `AdminDisputeDetail` wraps content + sidebar in `flex flex-col xl:flex-row h-full min-h-0`. On tablet/mobile that means:
 
-7. **Heading block** stays as-is (no top border, no subtitle). The blue highlight in the user's screenshot is browser text selection, not a style — no code change needed for it.
+- Outer shell is `h-screen overflow-hidden`.
+- Main column is also fixed-height and `overflow-hidden`.
+- Inside, content `section` is `flex-1 overflow-y-auto` while `aside` is `shrink-0`, so the aside renders at its natural full height and the content section collapses to whatever vertical space is left — visually the user sees the sidebar instead of the dispute body.
+
+### Fix in `AdminLayout.tsx`
+
+Make `fullHeight` apply only at `xl` so the dispute page still gets a desktop "two fixed columns" experience but mobile/tablet scroll normally:
+
+- Outer wrapper: `min-h-screen bg-background text-foreground xl:h-screen xl:overflow-hidden` (was unconditional `h-screen overflow-hidden`).
+- Inner flex: `flex min-h-screen xl:h-screen xl:overflow-hidden`.
+- Main column: `flex min-w-0 flex-1 flex-col xl:h-screen xl:min-h-0 xl:overflow-hidden`.
+- `<main>`: `flex-1 min-w-0 bg-background xl:min-h-0 xl:overflow-hidden`.
+
+The non-`fullHeight` branch stays exactly as it is today. No other admin page changes behavior.
+
+### Fix in `AdminDisputeDetail.tsx`
+
+Update the two-column container around line 471 from:
+
+```
+<div className="flex flex-col xl:flex-row h-full min-h-0">
+  <section className="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden">…</section>
+  <aside className="w-full xl:w-[380px] shrink-0 border-t border-border xl:border-t-0 xl:border-l min-h-0 overflow-y-auto bg-card">…</aside>
+</div>
+```
+
+to:
+
+```
+<div className="flex flex-col xl:flex-row xl:h-full xl:min-h-0">
+  <section className="flex-1 min-w-0 xl:min-h-0 xl:overflow-y-auto xl:overflow-x-hidden">…</section>
+  <aside className="w-full xl:w-[380px] xl:shrink-0 border-t border-border xl:border-t-0 xl:border-l xl:min-h-0 xl:overflow-y-auto bg-card">…</aside>
+</div>
+```
+
+Effect:
+- `<xl`: container has natural height, content stacks above sidebar, the whole page scrolls — user sees the dispute body first, then sidebar below it. The existing mobile "Take Action · Review Case" button at the bottom of the section keeps working.
+- `≥xl`: identical behavior to today (fixed-height two columns, each with its own scroll).
 
 ## Out of scope
 
-- No data, no copy, no color tokens changed beyond the typography sizes above.
-- Alert strips (`mx-5 md:mx-8 mb-5 md:mb-8 …`) untouched.
-- No changes to any other card or section.
+- No content/copy changes.
+- No other cards, tabs, or sections.
+- No color, header, divider, or padding changes beyond the typography tweaks above.
 
 ## Acceptance
 
-- At 875px viewport: card shows heading, 4-up row, single divider, 3-up row, no horizontal scrollbar, no value wraps to 3 lines, "Held in Escrow" and "Blocked" sit on one line.
-- At ≥1280px: matches the attached reference proportionally (heading top-left, comfortable padding, one inner divider).
-- Subtitle and top divider remain gone.
+- Financial Overview values render at `~15–17px` (only slightly larger than the `13–14px` labels) at all breakpoints.
+- On 875px viewport (current tablet): the dispute detail body is visible at the top with tabs scrollable, and the Resolution sidebar appears below it via normal page scroll — not as a takeover panel.
+- On ≥1280px (xl): two fixed columns with independent scroll, unchanged from today.
+- No horizontal scroll on the Financial Overview card at any breakpoint.
