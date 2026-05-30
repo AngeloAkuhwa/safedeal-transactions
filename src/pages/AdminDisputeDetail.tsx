@@ -170,6 +170,7 @@ export default function AdminDisputeDetail() {
   const [closeOpen, setCloseOpen] = useState(false);
   const [evidencePreview, setEvidencePreview] = useState<AdminTxEvidenceItem | null>(null);
   const [agreementOpen, setAgreementOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!disputeId) { setNotFound(true); setLoading(false); return; }
