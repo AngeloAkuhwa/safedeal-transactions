@@ -745,7 +745,7 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
         </section>
 
         {/* Right resolution sidebar */}
-        <aside className="w-full xl:w-[380px] shrink-0 border-t border-border xl:border-t-0 xl:border-l xl:h-full xl:overflow-y-auto bg-card">
+        <aside className="w-full xl:w-[380px] shrink-0 border-t border-border xl:border-t-0 xl:border-l min-h-0 overflow-y-auto bg-card">
           <ResolutionSidebar
               disputeStatus={row.status}
               overdue={overdue}
