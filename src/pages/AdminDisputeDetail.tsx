@@ -479,10 +479,15 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
   );
 
   return (
-    <AdminLayout title="Dispute" hideDefaultHeaders fullBleed fullHeight>
+    <AdminLayout
+      title="Dispute"
+      hideDefaultHeaders
+      fullBleed
+      fullHeight
+      headerSlot={({ onOpenMenu }) => renderHeader(onOpenMenu)}
+    >
       <div className="flex flex-col lg:flex-row lg:h-full lg:min-h-0">
         <section className="flex-1 min-w-0 lg:min-h-0 lg:overflow-y-auto lg:overflow-x-hidden">
-          {header}
 
           {/* Summary strip — scrolls under the sticky header */}
           <div className="bg-card border-b border-border">
