@@ -474,56 +474,68 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
           {/* Summary strip — scrolls under the sticky header */}
           <div className="bg-card border-b border-border">
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-x-6 gap-y-5 px-6 py-6 lg:px-8">
-              <div className="min-w-0">
-                <div className="text-xs text-muted-foreground mb-1">Dispute ID</div>
-                <div className="text-sm font-semibold text-foreground font-mono truncate">#{disputeCode}</div>
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs text-muted-foreground mb-1">Transaction</div>
-                <button
-                  onClick={() => navigate(`/admin/transactions/${txId}`)}
-                  className="block text-sm font-semibold text-blue-400 hover:text-blue-300 font-mono truncate max-w-full"
-                >
-                  {txCode}
-                </button>
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs text-muted-foreground mb-1">Amount in Dispute</div>
-                <div className="text-sm font-semibold text-foreground truncate">{ngn(amountInDispute)}</div>
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs text-muted-foreground mb-1">Dispute Reason</div>
-                <div className="text-sm font-semibold text-orange-400 truncate">
-                  {titleCase(row.reason ?? dispute.claimType) || "—"}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 md:gap-x-8 gap-y-5 px-6 py-6 lg:px-8">
+              {/* Col 1: Dispute ID / Transaction */}
+              <div className="flex flex-col gap-5 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-xs text-muted-foreground mb-1">Dispute ID</div>
+                  <div className="text-sm font-semibold text-foreground font-mono break-all">#{disputeCode}</div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs text-muted-foreground mb-1">Transaction</div>
+                  <button
+                    onClick={() => navigate(`/admin/transactions/${txId}`)}
+                    className="block text-left text-sm font-semibold text-blue-400 hover:text-blue-300 font-mono break-all"
+                  >
+                    {txCode}
+                  </button>
                 </div>
               </div>
-              <div className="min-w-0">
-                <div className="text-xs text-muted-foreground mb-1">Created</div>
-                <div className="text-sm font-semibold text-foreground truncate">
-                  {fmtDate(row.opened_at ?? dispute.openedAt)}
+              {/* Col 2: Amount in Dispute / Dispute Reason */}
+              <div className="flex flex-col gap-5 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-xs text-muted-foreground mb-1">Amount in Dispute</div>
+                  <div className="text-sm font-semibold text-foreground break-words">{ngn(amountInDispute)}</div>
                 </div>
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs text-muted-foreground mb-1">Last Activity</div>
-                <div className="text-sm font-semibold text-foreground truncate">
-                  {fmtDate(tx.updatedAt ?? tx.updated_at)}
-                </div>
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs text-muted-foreground mb-1">Status</div>
-                <div><StatusPill value={row.status} /></div>
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs text-muted-foreground mb-1">Assigned Agent</div>
-                {dispute.assignedAgent?.name ? (
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Avatar name={dispute.assignedAgent.name} src={dispute.assignedAgent.avatarUrl} size={20} />
-                    <span className="text-sm font-semibold text-foreground truncate">{dispute.assignedAgent.name}</span>
+                <div className="min-w-0">
+                  <div className="text-xs text-muted-foreground mb-1">Dispute Reason</div>
+                  <div className="text-sm font-semibold text-orange-400 break-words">
+                    {titleCase(row.reason ?? dispute.claimType) || "—"}
                   </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">Unassigned</div>
-                )}
+                </div>
+              </div>
+              {/* Col 3: Created / Last Activity */}
+              <div className="flex flex-col gap-5 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-xs text-muted-foreground mb-1">Created</div>
+                  <div className="text-sm font-semibold text-foreground break-words">
+                    {fmtDate(row.opened_at ?? dispute.openedAt)}
+                  </div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs text-muted-foreground mb-1">Last Activity</div>
+                  <div className="text-sm font-semibold text-foreground break-words">
+                    {fmtDate(tx.updatedAt ?? tx.updated_at)}
+                  </div>
+                </div>
+              </div>
+              {/* Col 4: Status / Assigned Agent */}
+              <div className="flex flex-col gap-5 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-xs text-muted-foreground mb-1">Status</div>
+                  <div><StatusPill value={row.status} /></div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs text-muted-foreground mb-1">Assigned Agent</div>
+                  {dispute.assignedAgent?.name ? (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Avatar name={dispute.assignedAgent.name} src={dispute.assignedAgent.avatarUrl} size={20} />
+                      <span className="text-sm font-semibold text-foreground break-words">{dispute.assignedAgent.name}</span>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">Unassigned</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

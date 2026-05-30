@@ -1,44 +1,48 @@
-## Scope
+## Problem
 
-Single file: `src/pages/AdminDisputeDetail.tsx`. No business-logic changes — only display strings and presentational classes on the cards rendered on the Admin Dispute Detail screen.
+The dispute header summary strip squeezes 8 fields into a single row at `xl` and 4 columns at `md`, forcing every value to `truncate` with "…" (`#DSP-A01…`, `SD-2026-…`, `₦650,00…`, `Damage…`, `8 Mar 20…`, `10 May 2…`).
 
-## Change 1 — Protection Fee caption
+The attached design shows the same 8 fields arranged as **4 columns × 2 rows** (paired vertically: Dispute ID + Transaction, Amount in Dispute + Dispute Reason, Created + Last Activity, Status + Assigned Agent) with full values visible — no truncation.
 
-Currently the caption can read `"Capped at ₦2,500"` (when fee ≥ 2500) or `"Minimum ₦250 fee"` (when ≤ 250). Replace the wording so it always reads as a SafeDeal escrow percentage instead of a cap notice.
+## Fix
 
-New rule for the caption under "Protection Fee":
+Single section: `src/pages/AdminDisputeDetail.tsx`, the "Summary strip" at lines 476–528.
 
-- If `buyerTotal > 0` and `protectionFee > 0`: `"{rate}% escrow fee"` where `rate = ((protectionFee / buyerTotal) * 100).toFixed(1)` (e.g. `"3.9% escrow fee"`, `"2.5% escrow fee"`). This is the same effective rate SafeDeal already computes in `src/lib/pricing.ts` (tiered 3.9% → 2.5%, with the ₦2,500 cap baked into the resulting amount).
-- Otherwise: no caption.
+1. Replace the flat 8-cell grid with a 4-column grid of paired cells. Each column contains two stacked field blocks (label + value) with a vertical gap between them:
 
-The wording "Capped at ₦2,500" and "Minimum ₦250 fee" is removed entirely from the UI. The cap still applies in pricing — we just stop surfacing it as label text.
+```text
+[Dispute ID]        [Amount in Dispute]   [Created]         [Status]
+ #DSP-…              ₦650,000.00           8 Mar 2026        Under Review
+ ─                   ─                     ─                 ─
+[Transaction]       [Dispute Reason]      [Last Activity]   [Assigned Agent]
+ SD-2026-000003      Damage                10 May 2026       Unassigned
+```
 
-## Change 2 — Unify card shape, color, and title typography
+   - Outer grid: `grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-x-6 md:gap-x-8 gap-y-5 px-6 py-6 lg:px-8`.
+   - Each column is a `<div className="flex flex-col gap-5 min-w-0">` containing two field blocks.
+   - At `<sm` (mobile) the grid collapses to 2 columns; pairs still stack vertically inside each column.
 
-Make every card on the Dispute Detail screen visually match the Financial Overview & Controls card:
+2. Remove `truncate` from every value node in this strip and replace with full-wrap behavior:
+   - Mono code values (Dispute ID, Transaction): `break-all`
+   - All other values (Amount, Reason, dates, Agent name): `break-words`
+   - Drop `max-w-full truncate` on the Transaction button.
 
-- Container: `rounded-[18px] border border-[#253044] bg-[#111827]/80 overflow-hidden min-w-0`
-- Title block: `px-5 pt-5 pb-2 md:px-7 md:pt-6 md:pb-3`, no bottom border under the title
-- Title text: `text-[20px] md:text-[24px] xl:text-[26px] leading-[26px] md:leading-[30px] font-semibold tracking-[-0.02em] text-[#F8FAFC]`
-- Optional subtitle (when provided): `mt-1 text-[13px] md:text-[14px] leading-[18px] text-[#9CA3AF]`
-- Body padding: keep current `p-6` inside each Card child as today (no spacing rewrite of the inner content).
-- All existing titles stay in their current Title Case form ("Locked Agreement", "Buyer Claim", "Seller Response", "Case Communication", "Case Timeline", "Internal Notes & Investigation", "Linked Records & Quick Actions", "Buyer Information", "Seller Information"). No copy changes.
+3. Keep current typography:
+   - Label: `text-xs text-muted-foreground mb-1`
+   - Value: `text-sm font-semibold text-foreground` (Transaction stays `text-blue-400`, Dispute Reason stays `text-orange-400`)
+   - Status pill and Assigned Agent avatar+name unchanged.
 
-### How to apply
-
-1. Update the local `Card` atom (line 68) so the `<section>` uses the Financial card classes above instead of `rounded-xl border-border bg-card`.
-2. Update the local `CardHeader` atom (line 75) to drop the `border-b border-border` and use the Financial title/subtitle classes above.
-3. Update `PartyCard` (lines 880 and 913): replace the inline `h2.text-lg font-semibold text-foreground` with the same Financial title classes so "Buyer Information" / "Seller Information" headings match the rest. Keep the role chip on the right.
-4. Leave the Financial Overview section block itself untouched — its inline classes are already the source of truth.
+4. The container row keeps its existing `bg-card border-b border-border` band — no card restyle here.
 
 ## Out of scope
 
-- No layout changes to the right-side Resolution sidebar (the user message is specifically about cards on the dispute detail screen body).
-- No content/data, no badge, no button, no spacing-of-content changes inside each card body.
-- No changes to pricing math or the underlying protection-fee calculation.
+- No copy changes, no new/removed fields.
+- No changes to the page header above the strip (title, SLA chip, Print button).
+- No changes to other cards on the screen.
 
 ## Acceptance
 
-- Protection Fee caption shows `"X.X% escrow fee"` and never shows the words "Capped" or "Minimum".
-- Every card on the dispute detail screen body uses the same rounded `[18px]` shape, `#253044` border, `#111827/80` background, and the Financial Overview title typography. No remaining `rounded-xl` / `border-border` / `bg-card` card on this screen.
-- All existing card titles remain in Title Case and are visually consistent in size and weight with "Financial Overview & Controls".
+- At 875px viewport: 4 columns × 2 rows, every value fully readable, no "…" truncation.
+- At ≥1280px: same 4×2 layout (matches the attached design) — not an 8-wide single row.
+- At <640px: gracefully collapses to 2 columns × 4 row-pairs.
+- No horizontal scroll on the header band.
