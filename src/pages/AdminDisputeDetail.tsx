@@ -725,9 +725,13 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
             {/* Case Timeline */}
             <Card>
-              <CardHeader title="Case Timeline" subtitle="Dispute-relevant events" />
+              <CardHeader title="Case Timeline" />
               <div className="p-5">
-                <Timeline items={dedupeTimeline(filterDisputeTimeline(timeline))} />
+                <Timeline
+                  items={dedupeTimeline(filterDisputeTimeline(timeline))}
+                  disputeStatus={row.status}
+                  resolvedAt={resolvedAt}
+                />
               </div>
             </Card>
 
@@ -735,7 +739,16 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
             <Card>
               <CardHeader
                 title="Internal Notes & Investigation"
-                action={<Button size="sm" onClick={() => dialogs.setNoteOpen(true)}>Add note</Button>}
+                action={
+                  <Button
+                    size="sm"
+                    onClick={() => dialogs.setNoteOpen(true)}
+                    className="bg-blue-600 hover:bg-blue-500 text-white"
+                  >
+                    <FilePlus2 className="h-4 w-4 mr-1.5" />
+                    Add Note
+                  </Button>
+                }
               />
               <div className="p-5">
                 <NotesList notes={notes} />
