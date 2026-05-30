@@ -596,16 +596,18 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
 
               <div className="px-5 pb-6 pt-2 md:px-7 md:pb-8 md:pt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-6 md:gap-x-8 gap-y-7 min-w-0">
-                  <FinMetric label="Total Transaction" value={ngn(buyerTotal)}
-                    caption={payment?.method ? `Paid via ${titleCase(payment.method)}` : "Payment source unavailable"} />
+                  <FinMetric
+                    label="Total Transaction"
+                    value={ngn(totalCharged)}
+                    caption={`Item ${ngn(itemTotal)} + Protection ${ngn(protectionFee)} + Payment Processing ${ngn(paymentProcessingFee)}`}
+                  />
                   <FinMetric label="Amount in Dispute" value={ngn(amountInDispute)} valueColor="#FB923C"
                     caption="Full amount disputed" />
-                  <FinMetric label="Protection Fee" value={ngn(protectionFee)}
-                    caption={
-                      protectionFee > 0 && buyerTotal > 0
-                        ? `${((protectionFee / buyerTotal) * 100).toFixed(1)}% escrow fee`
-                        : undefined
-                    } />
+                  <FinMetric
+                    label="Protection Fee"
+                    value={ngn(protectionFee)}
+                    caption="SafeDeal protection/platform fee"
+                  />
                   <FinMetric label="Funds Status"
                     valueNode={(
                       <div className="mt-1.5 flex items-center gap-2" style={{ color: "#FACC15" }}>
