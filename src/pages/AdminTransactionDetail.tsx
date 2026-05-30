@@ -950,32 +950,11 @@ export default function AdminTransactionDetail() {
               {filteredTimeline.length === 0 ? (
                 <Empty>No events recorded.</Empty>
               ) : (
-                <div className="relative">
-                  <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" aria-hidden />
-                  <ol className="relative space-y-5">
-                    {visibleTimeline.map((e) => {
-                      const m = timelineMeta(e.icon, e.severity);
-                      const Icon = m.Icon;
-                      return (
-                        <li key={e.id} className="flex gap-4">
-                          <div className={cn("h-8 w-8 rounded-full border-2 flex items-center justify-center shrink-0 relative z-10", m.cls)}>
-                            <Icon className="h-3.5 w-3.5" />
-                          </div>
-                          <div className="flex-1 min-w-0 pb-1">
-                            <div className="flex items-start justify-between gap-2 mb-1">
-                              <h4 className="text-sm font-medium text-foreground">{titleCase(e.title)}</h4>
-                              <span className="text-xs text-muted-foreground whitespace-nowrap">{fmtDate(e.at)}</span>
-                            </div>
-                            {e.description && <p className="text-xs text-muted-foreground">{e.description}</p>}
-                            {(e.actorName || e.actorType) && (
-                              <div className="text-[11px] text-muted-foreground mt-0.5">by {e.actorName ?? e.actorType}</div>
-                            )}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </div>
+                <AdminCaseTimeline
+                  items={(showFullTimeline ? filteredTimeline : filteredTimeline.slice(0, 12)) as any}
+                  disputeStatus={dispute?.status ?? null}
+                  resolvedAt={dispute?.resolvedAt ?? null}
+                />
               )}
               {filteredTimeline.length > 8 && (
                 <div className="mt-4">
