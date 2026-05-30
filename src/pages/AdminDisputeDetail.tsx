@@ -8,6 +8,7 @@ import {
   Search, Send, Ban, Play, Eye, NotebookPen, Store,
   Star, Info, FilePlus2, Bell, HelpCircle, CheckCheck, Check, Paperclip,
   Reply, MoreHorizontal, MessageCircle, ArrowRight, Lock, Menu,
+  Percent, PieChart, RotateCcw, ArrowUp, Edit3, Users as UsersIcon,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -802,8 +803,8 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
           </div>
         </section>
 
-        {/* Right resolution sidebar (desktop) */}
-        <aside className="hidden lg:block lg:w-[380px] lg:shrink-0 lg:border-l lg:min-h-0 lg:overflow-y-auto bg-card">
+        {/* Right resolution sidebar (desktop) — scrolls independently of main content */}
+        <aside className="hidden lg:block lg:w-[380px] lg:shrink-0 lg:border-l lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto bg-card">
           <ResolutionSidebar
               disputeStatus={row.status}
               overdue={overdue}
@@ -2206,89 +2207,120 @@ function ResolutionSidebar({
   const navigate = useNavigate();
 
   return (
-    <div className="p-5 space-y-5">
+    <div className="p-5 space-y-6">
       {/* Resolution Status */}
-      <div className={cn("rounded-xl border p-4", statusMeta.cls)}>
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide">
-          {statusMeta.Icon && <statusMeta.Icon className="h-4 w-4" />}
-          {statusMeta.label}
+      <div>
+        <div className="text-base font-semibold text-foreground mb-3">Resolution Status</div>
+        <div className={cn("rounded-xl border p-4", statusMeta.cls)}>
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+            <span className={cn("h-1.5 w-1.5 rounded-full", statusMeta.dotCls)} />
+            {statusMeta.label}
+          </div>
+          <p className="mt-2 text-sm leading-snug">{statusMeta.message}</p>
         </div>
-        <p className="mt-1 text-sm">{statusMeta.message}</p>
-        <div className="mt-3 space-y-1.5 text-xs">
+        <div className="mt-4 space-y-3 text-sm">
           <div>
-            <span className="text-muted-foreground">Workflow stage:</span>{" "}
-            <span className="text-foreground font-medium">{titleCase(disputeStatus)}</span>
+            <div className="text-xs text-muted-foreground">Current Workflow Stage</div>
+            <div className="mt-1 flex items-center gap-2 text-foreground font-medium">
+              <span className={cn("h-2 w-2 rounded-full", statusMeta.dotCls)} />
+              {titleCase(disputeStatus)}
+            </div>
           </div>
           {dueAt && !isResolved && (
             <div>
-              <span className="text-muted-foreground">SLA deadline:</span>{" "}
-              <span className="text-foreground font-medium">{fmtDate(dueAt)}</span>
+              <div className="text-xs text-muted-foreground">Last Activity</div>
+              <div className="mt-1 text-foreground font-medium">{fmtDate(dueAt)}</div>
             </div>
           )}
           <div>
-            <span className="text-muted-foreground">Next action:</span>{" "}
-            <span className="text-foreground">{statusMeta.next}</span>
+            <div className="text-xs text-muted-foreground">Next Action</div>
+            <div className="mt-1 text-foreground">{statusMeta.next}</div>
           </div>
         </div>
       </div>
 
+      {/* Resolution Actions header */}
+      <div className="text-base font-semibold text-foreground -mb-2">Resolution Actions</div>
+
       {/* Case Control */}
       <SidebarGroup title="Case Control">
-        <SidebarBtn icon={<Gavel />} label="Move to Under Review"
+        <SidebarBtn icon={<Search />} label="Move to Under Review"
           onClick={onMoveReview}
           disabled={isResolved}
+          iconColor="text-blue-400" iconBg="bg-blue-500/10"
           tip={isResolved ? "Case already resolved" : undefined} />
         <SidebarBtn icon={<MessageSquare />} label="Request More Evidence"
           onClick={onResolve} disabled={isResolved}
+          iconColor="text-purple-400" iconBg="bg-purple-500/10"
           tip={isResolved ? "Case already resolved" : "Opens dispute action panel"} />
-        <SidebarBtn icon={<UserIcon />} label="Assign / Reassign Agent"
+        <SidebarBtn icon={<UsersIcon />} label="Assign / Reassign Agent"
+          iconColor="text-emerald-400" iconBg="bg-emerald-500/10"
           disabled tip="Agent assignment not connected yet" />
-        <SidebarBtn icon={<AlertTriangle />} label="Escalate Further"
-          onClick={onEscalate} disabled={isResolved} tone="warning" />
-        <SidebarBtn icon={<Flag />} label="Mark High Risk"
-          onClick={onHighRisk} tone="danger" />
+        <SidebarBtn icon={<ArrowUp />} label="Escalate Further"
+          onClick={onEscalate} disabled={isResolved}
+          iconColor="text-orange-400" iconBg="bg-orange-500/10" />
+        <SidebarBtn icon={<AlertTriangle />} label="Mark High Risk"
+          onClick={onHighRisk}
+          iconColor="text-red-400" iconBg="bg-red-500/10" />
         <SidebarBtn icon={<ShieldAlert />} label="Mark Fraud Watch"
-          onClick={onFraud} tone="danger" />
+          onClick={onFraud}
+          iconColor="text-red-400" iconBg="bg-red-500/10" />
       </SidebarGroup>
 
-      {/* Resolution Actions */}
+      {/* Resolution Actions (solid + outlined) */}
       <SidebarGroup title="Resolution Actions">
-        <SidebarBtn icon={<Wallet />} label="Refund Buyer"
+        <SidebarBtn icon={<RotateCcw />} label="Refund Buyer"
           onClick={onResolve} disabled={!canManage || isResolved}
-          tone="success"
+          variant="solid" solidClass="bg-emerald-600 hover:bg-emerald-700 text-white border-transparent"
           tip={!canManage ? "Not available for this transaction" : (isResolved ? "Case already resolved" : undefined)} />
-        <SidebarBtn icon={<CheckCircle2 />} label="Release Funds to Seller"
+        <SidebarBtn icon={<Wallet />} label="Release Funds to Seller"
           onClick={onResolve} disabled={!canManage || isResolved}
-          tone="success"
+          variant="solid" solidClass="bg-blue-600 hover:bg-blue-700 text-white border-transparent"
           tip={!canManage ? "Not available for this transaction" : (isResolved ? "Case already resolved" : undefined)} />
-        <SidebarBtn icon={<Scale />} label="Partial Refund"
+        <SidebarBtn icon={<Percent />} label="Partial Refund"
           onClick={onResolve} disabled={!canManage || isResolved}
+          iconColor="text-muted-foreground" iconBg="bg-muted/40"
           tip={!canManage ? "Not available" : undefined} />
-        <SidebarBtn icon={<Scale />} label="Partial Release"
+        <SidebarBtn icon={<PieChart />} label="Partial Release"
           onClick={onResolve} disabled={!canManage || isResolved}
+          iconColor="text-muted-foreground" iconBg="bg-muted/40"
           tip={!canManage ? "Not available" : undefined} />
         <SidebarBtn icon={<XCircle />} label="Close Without Resolution"
-          onClick={onClose} disabled={isResolved} tone="muted" />
+          onClick={onClose} disabled={isResolved}
+          iconColor="text-muted-foreground" iconBg="bg-muted/40" />
         <SidebarBtn icon={<Ban />} label="Block Payout"
-          disabled tone="danger" tip="Payout block control not connected yet" />
+          disabled
+          variant="solid" solidClass="bg-red-600 hover:bg-red-700 text-white border-transparent"
+          tip="Payout block control not connected yet" />
         <SidebarBtn icon={<Play />} label="Resume Payout"
-          disabled tone="success" tip="Payout resume control not connected yet" />
+          disabled
+          variant="solid" solidClass="bg-emerald-600 hover:bg-emerald-700 text-white border-transparent"
+          tip="Payout resume control not connected yet" />
       </SidebarGroup>
 
       {/* Investigation Actions */}
       <SidebarGroup title="Investigation Actions">
-        <SidebarBtn icon={<NotebookPen />} label="Add Review Note" onClick={onAddNote} />
-        <SidebarBtn icon={<StickyNote />} label="Add Internal Note" onClick={onAddNote} />
-        <SidebarBtn icon={<Search />} label="Open Investigation" disabled tip="Investigation workflow not connected yet" />
-        <SidebarBtn icon={<Eye />} label="View Linked Transaction" onClick={() => navigate(`/admin/transactions/${txId}`)} />
-        <SidebarBtn icon={<CreditCard />} label="View Payment Record" disabled tip="Coming soon" />
-        <SidebarBtn icon={<Vault />} label="View Escrow Record" disabled tip="Coming soon" />
-        <SidebarBtn icon={<Wallet />} label="View Payout Record" disabled tip="Coming soon" />
+        <SidebarBtn icon={<NotebookPen />} label="Add Review Note" onClick={onAddNote}
+          iconColor="text-yellow-400" iconBg="bg-yellow-500/10" />
+        <SidebarBtn icon={<Edit3 />} label="Add Internal Note" onClick={onAddNote}
+          iconColor="text-purple-400" iconBg="bg-purple-500/10" />
+        <SidebarBtn icon={<Search />} label="Open Investigation" disabled
+          iconColor="text-orange-400" iconBg="bg-orange-500/10"
+          tip="Investigation workflow not connected yet" />
+        <SidebarBtn icon={<CreditCard />} label="View Linked Transaction"
+          onClick={() => navigate(`/admin/transactions/${txId}`)}
+          iconColor="text-blue-400" iconBg="bg-blue-500/10" />
+        <SidebarBtn icon={<CreditCard />} label="View Payment Record" disabled
+          iconColor="text-emerald-400" iconBg="bg-emerald-500/10" tip="Coming soon" />
+        <SidebarBtn icon={<Vault />} label="View Escrow Record" disabled
+          iconColor="text-orange-400" iconBg="bg-orange-500/10" tip="Coming soon" />
+        <SidebarBtn icon={<Wallet />} label="View Payout Record" disabled
+          iconColor="text-purple-400" iconBg="bg-purple-500/10" tip="Coming soon" />
       </SidebarGroup>
 
       {/* Resolution Summary */}
-      <div>
-        <div className="text-sm font-semibold text-foreground mb-3">Resolution Summary</div>
+      <div className="border-t border-border pt-5">
+        <div className="text-base font-semibold text-foreground mb-3">Resolution Summary</div>
         <div className="space-y-3">
           <SummaryPartyCard
             role="buyer"
@@ -2348,26 +2380,43 @@ function SidebarGroup({ title, children }: { title: string; children: React.Reac
     </div>
   );
 }
-function SidebarBtn({ icon, label, onClick, disabled, tone, tip }: {
+function SidebarBtn({
+  icon, label, onClick, disabled, tip,
+  iconColor, iconBg,
+  variant = "outline", solidClass,
+}: {
   icon: React.ReactNode; label: string; onClick?: () => void;
-  disabled?: boolean; tone?: "success" | "warning" | "danger" | "muted"; tip?: string;
+  disabled?: boolean; tip?: string;
+  iconColor?: string; iconBg?: string;
+  variant?: "outline" | "solid"; solidClass?: string;
 }) {
-  const toneCls = tone === "danger" ? "hover:border-red-500/40 hover:bg-red-500/5"
-    : tone === "warning" ? "hover:border-orange-500/40 hover:bg-orange-500/5"
-    : tone === "success" ? "hover:border-emerald-500/40 hover:bg-emerald-500/5"
-    : "hover:border-blue-500/40 hover:bg-blue-500/5";
+  const isSolid = variant === "solid";
+  const base = "w-full flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors text-left";
+  const outlineCls = "border-border bg-background/40 text-foreground hover:bg-background/70";
+  const solidCls = solidClass ?? "bg-primary text-primary-foreground border-transparent hover:opacity-90";
   const btn = (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled || !onClick}
       className={cn(
-        "w-full flex items-center gap-2.5 rounded-md border border-border bg-background px-3 py-2.5 text-sm text-foreground transition-colors text-left",
-        disabled || !onClick ? "opacity-50 cursor-not-allowed" : toneCls,
+        base,
+        isSolid ? solidCls : outlineCls,
+        (disabled || !onClick) && "opacity-60 cursor-not-allowed",
       )}
     >
-      <span className="h-4 w-4 text-muted-foreground">{icon}</span>
-      <span className="flex-1">{label}</span>
+      {isSolid ? (
+        <span className="h-4 w-4 shrink-0 [&_svg]:h-4 [&_svg]:w-4">{icon}</span>
+      ) : (
+        <span className={cn(
+          "h-7 w-7 shrink-0 rounded-md flex items-center justify-center [&_svg]:h-4 [&_svg]:w-4",
+          iconBg ?? "bg-muted/40",
+          iconColor ?? "text-muted-foreground",
+        )}>
+          {icon}
+        </span>
+      )}
+      <span className="flex-1 truncate">{label}</span>
     </button>
   );
   if ((disabled || !onClick) && tip) {
@@ -2382,30 +2431,34 @@ function SidebarBtn({ icon, label, onClick, disabled, tone, tip }: {
 }
 
 function resolutionMeta(status: string, overdue: boolean, resolvedAt: string | null): {
-  label: string; message: string; next: string; cls: string; Icon?: any;
+  label: string; message: string; next: string; cls: string; dotCls: string; Icon?: any;
 } {
   if (resolvedAt || status === "resolved") return {
     label: "Resolved", message: "Case has a recorded resolution outcome.",
     next: "View outcome and money movement.",
     cls: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+    dotCls: "bg-emerald-400",
     Icon: CheckCircle2,
   };
   if (status === "dismissed" || status === "closed") return {
     label: "Closed", message: "Case closed without payout or refund.",
     next: "Review audit trail.",
     cls: "border-slate-500/30 bg-slate-500/10 text-slate-100",
+    dotCls: "bg-slate-400",
     Icon: XCircle,
   };
   if (status === "escalated") return {
     label: "Escalated", message: "Case escalated — requires immediate admin review.",
     next: "Review evidence and determine outcome.",
     cls: "border-red-500/40 bg-red-500/10 text-red-100",
+    dotCls: "bg-red-400",
     Icon: AlertTriangle,
   };
   if (status === "under_review") return {
     label: "Under Review", message: "Admin review in progress.",
     next: "Review evidence and decide the outcome.",
     cls: "border-purple-500/30 bg-purple-500/10 text-purple-100",
+    dotCls: "bg-purple-400",
     Icon: Gavel,
   };
   if (status === "awaiting_seller_response") return {
@@ -2415,12 +2468,14 @@ function resolutionMeta(status: string, overdue: boolean, resolvedAt: string | n
     cls: overdue
       ? "border-red-500/40 bg-red-500/10 text-red-100"
       : "border-yellow-500/30 bg-yellow-500/10 text-yellow-100",
+    dotCls: overdue ? "bg-red-400" : "bg-yellow-400",
     Icon: Clock,
   };
   return {
     label: "Open", message: "Case waiting for triage.",
     next: "Move to under review or request seller response.",
     cls: "border-blue-500/30 bg-blue-500/10 text-blue-100",
+    dotCls: "bg-blue-400",
     Icon: Gavel,
   };
 }
