@@ -1,50 +1,33 @@
-## Re-scan results
+## What's wrong
 
-The re-scan surfaced **one new critical (error-level) finding** plus the same 51 lower-severity Supabase linter warnings already triaged into security memory (SECURITY DEFINER helpers exposed to anon/authenticated, extensions in `public`, deny-by-default RLS tables with no policies).
+Two issues confirmed from the screenshots:
 
-### New critical finding
+1. **Layout squash (tabmode.png):** The desktop table renders from `lg` (1024px). At tablet width — content well ~810px after the admin sidebar — the 8 columns (Priority / Dispute / Parties / Amount / Status / SLA / Agent / Actions) get crushed: `#DI...` truncates to two chars, headers overlap (`AMOUNTSTATUS`), buyer names show as `T...`/`C`, status badges wrap onto 3 lines.
+2. **Fetch flakiness (tabmode2.png):** "Unable to load dispute queue. Try again." appears on a viewport where the same data loads fine on a hard refresh. The current `authedFetch` hard-redirects to `/auth` if `getSession()` momentarily returns null during hydration, and `getAdminDisputesQueue` surfaces any non-2xx (including transient 401/5xx) as a terminal error with no retry.
 
-**Transaction parties can overwrite admin-controlled fields on `transactions`**
+## Fix (UI + service layer, two files)
 
-The `parties_update_transactions` RLS policy lets any buyer or seller `UPDATE` every column on their own transaction row. That includes fields that must only ever be written by edge functions running as `service_role`:
+### 1. `src/pages/AdminDisputes.tsx` — raise the table breakpoint and render cards as a 2-up grid in the tweener zone
 
-- `release_approved_by`, `release_approved_at` (self-approve a payout)
-- `needs_admin_review`, `needs_release_review`, `admin_review_reason`, `release_review_reason` (suppress fraud flags)
-- `status`, `money_status`, `dispute_status` (jump the state machine)
+- Change `<div className="hidden lg:block w-full">` (desktop table wrapper) → `<div className="hidden xl:block w-full">`. The 8-column table only appears at ≥1280px viewport, where there's actually room for it.
+- Change `<div className="space-y-3 p-3 lg:hidden">` (cards wrapper) → `<div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 xl:hidden">`. Cards now cover every viewport below xl, and at md/lg they sit two-up so the queue doesn't look empty in tablet/medium-desktop mode.
+- No changes to card internals — the existing card already shows Priority, Dispute #, item, parties, amount, reason, status, SLA, agent, and the Review + kebab actions in a compact, non-squashed form.
 
-A malicious party with just the anon key + their own session could PATCH any of these via PostgREST.
+### 2. `src/services/admin-disputes.service.ts` — make initial load resilient
 
-### Codebase check
+- In `authedFetch`: if `getSession()` returns no session, attempt `refreshSession()` once before redirecting to `/auth`. Keep the existing `typeof window` guard. This removes the hydration-race redirect.
+- In `getAdminDisputesQueue`: on `401`, call `supabase.auth.refreshSession()` and retry the fetch once before redirecting. On `>= 500` or network error, retry once with a 600ms backoff before surfacing the error.
+- Response shape, params, and exports stay identical.
 
-`rg` over `src/services/`, `src/pages/`, `src/components/`, `src/hooks/` finds **no client-side `.update()` or `.insert()` against the `transactions` table**. All transaction writes already flow through edge functions using `service_role`, which bypasses RLS. So the policy is unused by the app and safe to drop.
+## Out of scope
 
-## Fix plan
+- KPI strip, filter row, pagination — untouched.
+- Admin sidebar / `AdminLayout` — untouched.
+- No backend or schema changes.
 
-Single migration:
+## Verification
 
-1. `DROP POLICY parties_update_transactions ON public.transactions;`
-   - Removes the only client-reachable UPDATE path on transactions.
-   - Buyer/seller confirmations (`buyer_confirmed_at`, `seller_confirmed_at`, etc.) continue to be set by their existing edge functions (`transaction-verify`, etc.) — no app behavior changes.
-2. Keep `parties_select_transactions`, `admins_select_all_transactions`, and `sellers_insert_transactions` as-is.
-3. Update `security-memory` to record that direct client UPDATEs on `transactions` are forbidden — all state transitions must go through edge functions.
-4. Mark the finding fixed via `manage_security_finding`.
-
-## Remaining (already triaged, no action)
-
-- `SECURITY DEFINER` helpers callable by anon/authenticated — required RLS primitives (`has_role`, `is_transaction_party`, …), each with internal access checks and a fixed `search_path`.
-- Extensions in `public` schema — platform default, not relocating.
-- `RLS enabled, no policy` on service-role-only tables — intentional deny-by-default to clients.
-
-These will continue to surface in scans and stay ignored per the existing memory entries.
-
-## Manual review areas the automated scanner does not cover
-
-Worth a deeper human pass later (not part of this patch):
-
-- Edge-function input validation (zod) on every PATCH/DELETE endpoint, especially admin-only ones.
-- Storage bucket policies for Cloudinary signed URLs and any Supabase-hosted assets.
-- Webhook signature verification on Paystack callbacks.
-- Rate limiting on phone OTP, password reset, and message-send endpoints.
-- IDOR checks: confirm every edge function that takes an `id` parameter re-verifies the caller is a party / admin before returning data.
-
-Let me know if you want me to dig into any of those after the migration lands.
+- **Tablet (~768–1023px):** Cards render in a 2-column grid; no truncated `#DI...`, no overlapping headers, status badges fit on one line.
+- **Medium desktop (~1024–1279px, the user's 1096px preview):** Cards in a 2-column grid; previously squashed table is hidden in this zone.
+- **Desktop (≥1280px):** Original 8-column table returns unchanged.
+- **Hard refresh on `/admin/disputes`:** No flash redirect to `/auth`; if the first call 401s once, it silently refreshes and retries; the "Unable to load" state only appears on a real, repeated failure.

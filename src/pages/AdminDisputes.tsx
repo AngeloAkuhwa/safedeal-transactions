@@ -528,7 +528,7 @@ export default function AdminDisputes() {
             ) : (
               <>
                 {/* Desktop table */}
-                <div className="hidden lg:block w-full">
+                <div className="hidden xl:block w-full">
                   <table className="w-full table-fixed text-sm">
                     <colgroup>
                       <col style={{ width: "10%" }} />
@@ -671,7 +671,7 @@ export default function AdminDisputes() {
                 </div>
 
                 {/* Mobile cards */}
-                <div className="space-y-3 p-3 lg:hidden">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 xl:hidden">
                   {rows.map((row) => {
                     const sd = statusDisplay(row);
                     const sla = humanizeSla(row.sla);
