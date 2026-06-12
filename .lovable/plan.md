@@ -1,38 +1,29 @@
-Remove the horizontal scrollbar from the Payout Records table so all 9 columns fit within the card at the current admin viewport, while keeping the reference HTML's visual styling intact.
+Restore the reference design's natural cell widths and replace the cramped fixed layout with a silent (hidden-scrollbar) horizontal scroll, matching the reference HTML exactly. Also verify tabs — they already match (All / Pending / Processing / Failed / Completed / Blocked, no duplicates), so no changes needed there.
 
 ## Single file: `src/components/admin/payouts/PayoutsTable.tsx`
 
-### 1. Table sizing
-- Remove `min-w-[1200px]` on the `<table>` — replace with `w-full table-fixed`.
-- Drop the `overflow-x-auto` wrapper (no longer needed).
+### 1. Drop fixed layout, restore reference sizing
+- Remove `table-fixed` and the `<colgroup>` block.
+- Restore `min-w-[1100px]` on the `<table>` so cells size to their content (matches reference, where IDs like "PAY-2024-001234" and "Bank account blocked" render in full).
+- Wrap the `<table>` in a scroll container: `<div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">` — provides silent horizontal scroll exactly like reference (`::-webkit-scrollbar { display: none; }`).
 
-### 2. Column widths
-Add a `<colgroup>` with explicit widths so the fixed layout distributes columns predictably:
-- Checkbox: 40px
-- Payout ID: 14%
-- Seller: 14%
-- Transaction: 12%
-- Amount: 11%
-- Payout Account: 14%
-- Status: 10%
-- Initiated: 11%
-- Actions: 14%
+### 2. Restore cell padding to match reference
+- `<th>` and `<td>`: `px-3 py-3` → `p-4` (back to reference spec).
 
-### 3. Cell density
-- Cell padding: `p-4` → `px-3 py-3` so 9 columns fit comfortably.
-- Header `<th>`: `p-4` → `px-3 py-3` (keep all other classes).
+### 3. Loosen truncation so content is visible
+- Payout ID text: `truncate` → no truncate (full ID slice + caption shown).
+- Seller name/email: drop `truncate` (full name shown).
+- Transaction code button: drop `truncate`.
+- Transaction subtitle: drop `truncate` (let `whitespace-nowrap` shape it like reference).
+- Payout account bank name: drop `truncate`, keep `whitespace-nowrap`.
+- Drop the per-column `min-w-0` wrappers that were forcing shrink.
 
-### 4. Truncation tweaks (so content wraps cleanly inside each fixed column)
-- Payout ID text: `max-w-[160px]` → `max-w-full`.
-- Seller name/email: `max-w-[160px]` → `max-w-full`.
-- Transaction item subtitle: `max-w-[180px]` → `max-w-full`.
-- Payout account bank name: `max-w-[140px]` → `max-w-full`.
-- Add `min-w-0` on flex children that wrap text so `truncate` works in narrow cells.
+### 4. Actions column
+- Revert Details button visibility back to `hidden md:inline-flex` (now that there's room via horizontal scroll, the secondary Details button should appear from md+).
 
-### 5. Actions column compaction
-- On screens narrower than `xl`, hide the secondary "Details" button (already `hidden md:inline-flex` — change to `hidden xl:inline-flex`) so Retry/View + kebab fit without overflow.
+## Tabs check
+Already match reference 1:1 (`All`, `Pending`, `Processing`, `Failed`, `Completed`, `Blocked`) in `PayoutTabs.tsx`. Single render in `AdminPayouts.tsx`. No duplicates to remove.
 
 ## Out of scope
-- Mobile view (`PayoutMobileCards` already handles small screens).
-- Any data/logic changes.
-- No changes to other files.
+- Mobile cards.
+- Any data/logic, status pill, or other components.
