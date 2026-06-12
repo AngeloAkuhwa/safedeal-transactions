@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
   // Fetch payout rows in relevant statuses with their tx money_status.
   const { data: rows, error } = await admin
     .from("payouts")
-    .select("id, status, amount, release_blocked, retry_allowed, released_at, entered_queue_at, created_at, transaction_id, transactions:transaction_id (money_status, needs_release_review)")
+    .select("id, status, amount, release_blocked, retry_allowed, released_at, created_at, transaction_id, transactions:transaction_id (money_status, needs_release_review)")
     .in("status", ["awaiting_release", "pending", "processing", "completed", "failed", "reversed", "blocked", "cancelled"])
     .limit(5000);
 
@@ -92,8 +92,9 @@ Deno.serve(async (req) => {
       if (releasedAt >= new Date(startOfDay).getTime()) releasedToday += amount;
       if (releasedAt >= new Date(startOfWeek).getTime()) releasedWeek += amount;
     }
-    if (r.status === "completed" && r.released_at && r.entered_queue_at && new Date(r.released_at).getTime() >= new Date(last30).getTime()) {
-      const diffMs = new Date(r.released_at).getTime() - new Date(r.entered_queue_at).getTime();
+    const queuedAt = r.created_at;
+    if (r.status === "completed" && r.released_at && queuedAt && new Date(r.released_at).getTime() >= new Date(last30).getTime()) {
+      const diffMs = new Date(r.released_at).getTime() - new Date(queuedAt).getTime();
       if (diffMs > 0) leadHours.push(diffMs / 3_600_000);
     }
   }
