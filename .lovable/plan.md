@@ -1,29 +1,49 @@
-Restore the reference design's natural cell widths and replace the cramped fixed layout with a silent (hidden-scrollbar) horizontal scroll, matching the reference HTML exactly. Also verify tabs — they already match (All / Pending / Processing / Failed / Completed / Blocked, no duplicates), so no changes needed there.
+## Goal
+Update the `…` (ellipsis) row action menu in `src/components/admin/payouts/PayoutsTable.tsx` so it matches the reference design's status-specific menu items exactly. The table itself (columns, layout, pagination, primary CTA buttons) already matches and is out of scope.
 
-## Single file: `src/components/admin/payouts/PayoutsTable.tsx`
+## Status-specific menu items
 
-### 1. Drop fixed layout, restore reference sizing
-- Remove `table-fixed` and the `<colgroup>` block.
-- Restore `min-w-[1100px]` on the `<table>` so cells size to their content (matches reference, where IDs like "PAY-2024-001234" and "Bank account blocked" render in full).
-- Wrap the `<table>` in a scroll container: `<div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">` — provides silent horizontal scroll exactly like reference (`::-webkit-scrollbar { display: none; }`).
+**Failed row** (e.g. PAY-2024-001234):
+- View Failure Details (icon: info, blue) → opens detail drawer
+- Update Bank Account (icon: pencil, pink) → toast "Coming soon"
+- View Seller Profile (icon: user, blue) → toast "Coming soon"
+- View Transaction (icon: receipt, blue) → navigate to transaction
+- — divider —
+- Add Internal Note (icon: sticky note, yellow) → toast "Coming soon"
+- Block Payout (icon: ban, red, red text) → toast "Coming soon"
 
-### 2. Restore cell padding to match reference
-- `<th>` and `<td>`: `px-3 py-3` → `p-4` (back to reference spec).
+**Processing / Pending row** (e.g. PAY-2024-001235):
+- View Processing Status (icon: info, blue) → opens detail drawer
+- View Seller Profile (icon: user, blue) → toast
+- View Transaction Details (icon: receipt, blue) → navigate to transaction
+- — divider —
+- Add Internal Note (icon: sticky note, yellow) → toast
+- Pause Payout (icon: pause, orange, orange text) → toast
+- Block Payout (icon: ban, red, red text) → toast
 
-### 3. Loosen truncation so content is visible
-- Payout ID text: `truncate` → no truncate (full ID slice + caption shown).
-- Seller name/email: drop `truncate` (full name shown).
-- Transaction code button: drop `truncate`.
-- Transaction subtitle: drop `truncate` (let `whitespace-nowrap` shape it like reference).
-- Payout account bank name: drop `truncate`, keep `whitespace-nowrap`.
-- Drop the per-column `min-w-0` wrappers that were forcing shrink.
+**Completed row** (e.g. PAY-2024-001236):
+- View Completion Details (icon: check-circle, emerald) → opens detail drawer
+- View Seller Profile (icon: user, blue) → toast
+- View Transaction (icon: receipt, blue) → navigate to transaction
+- — divider —
+- Download Receipt (icon: download, blue) → toast
+- Add Internal Note (icon: sticky note, yellow) → toast
 
-### 4. Actions column
-- Revert Details button visibility back to `hidden md:inline-flex` (now that there's room via horizontal scroll, the secondary Details button should appear from md+).
+**Blocked row** (existing fallback):
+- View Block Reason → drawer
+- Unblock Payout → existing handler
+- View Seller Profile / View Transaction / Add Internal Note
 
-## Tabs check
-Already match reference 1:1 (`All`, `Pending`, `Processing`, `Failed`, `Completed`, `Blocked`) in `PayoutTabs.tsx`. Single render in `AdminPayouts.tsx`. No duplicates to remove.
+**Awaiting release / On hold / Reversed (default):**
+- View Details / View Seller Profile / View Transaction / Add Internal Note
+
+## Implementation
+- In `PayoutsTable.tsx`, replace the small `<DropdownMenuContent>` block (lines ~292-299) with a helper `renderRowMenu(r)` that branches on `r.status` + `r.release_blocked`.
+- Use `react-icons/fa6` icons already imported, plus `FaCircleInfo`, `FaPenToSquare`, `FaUser`, `FaReceipt`, `FaNoteSticky`, `FaPause`, `FaDownload` (add to imports).
+- Color each icon via tailwind text-{color}-400.
+- Use `<DropdownMenuSeparator />` (add to import) for the dividers shown in the reference.
+- For not-yet-wired actions, call `toast({ title: "<action> — coming soon" })`. Wire `View Seller Profile` to a placeholder (no seller profile route exists yet).
+- Reuse existing handlers `onOpen` (drawer), `onOpenTransaction`, `onRetry`, `onUnblock` where applicable.
 
 ## Out of scope
-- Mobile cards.
-- Any data/logic, status pill, or other components.
+Table layout, columns, status pill, pagination, mobile cards, real backend wiring for new actions (Pause/Block/Download Receipt/Internal Note/Update Bank Account/Seller Profile) — they show toasts for now.
