@@ -1,7 +1,8 @@
-import { Loader2, Eye, MoreHorizontal, RefreshCw, AlertTriangle, RotateCw, CheckCircle2, Clock, Ban, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Eye, MoreHorizontal, RefreshCw, AlertTriangle, RotateCw, CheckCircle2, Clock, Ban, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -27,6 +28,7 @@ interface Props {
   page?: number;
   limit?: number;
   onRefresh?: () => void;
+  onPageChange?: (page: number) => void;
 }
 
 function eligibleForRelease(r: PayoutRow): { ok: boolean; reason?: string } {
@@ -92,10 +94,28 @@ function formatAbsolute(iso: string): string {
   } catch { return iso; }
 }
 
+function initials(name?: string | null): string {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
+}
+
+function buildPageList(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | "…")[] = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) pages.push("…");
+  for (let p = start; p <= end; p++) pages.push(p);
+  if (end < total - 1) pages.push("…");
+  pages.push(total);
+  return pages;
+}
+
 export function PayoutsTable({
   rows, loading, selected, onToggleSelect, onToggleSelectAll, onOpen,
   onRelease, onRetry, onUnblock, onOpenTransaction, releasingId,
-  total, page = 1, limit = 50, onRefresh,
+  total, page = 1, limit = 50, onRefresh, onPageChange,
 }: Props) {
   if (loading && rows.length === 0) {
     return (
@@ -112,6 +132,7 @@ export function PayoutsTable({
   const startIdx = totalCount === 0 ? 0 : (page - 1) * limit + 1;
   const endIdx = Math.min(page * limit, totalCount);
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+  const pageList = buildPageList(page, totalPages);
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
       <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border">
@@ -186,11 +207,29 @@ export function PayoutsTable({
                   </div>
                 </td>
                 <td className="px-3 py-3">
-                  <div className="font-medium text-foreground truncate max-w-[160px]">{r.seller.name}</div>
-                  <div className="text-xs text-muted-foreground truncate max-w-[160px]">{r.payout_account?.masked_account ?? r.seller.email ?? "—"}</div>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Avatar className="h-8 w-8 shrink-0">
+                      {r.seller.avatar_url ? <AvatarImage src={r.seller.avatar_url} alt={r.seller.name} /> : null}
+                      <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">{initials(r.seller.name)}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <div className="font-medium text-foreground truncate max-w-[160px]">{r.seller.name}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-[160px]">{r.seller.email ?? "Seller"}</div>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-3 py-3">
-                  <div className="font-mono text-xs text-foreground">{r.transaction.code}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-xs text-foreground">{r.transaction.code}</span>
+                    <button
+                      type="button"
+                      onClick={(ev) => { ev.stopPropagation(); onOpenTransaction(r); }}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Open transaction"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                  </div>
                   <div className="text-xs text-muted-foreground truncate max-w-[180px]">
                     {r.transaction.item_title ?? "No item snapshot"}
                   </div>
@@ -202,7 +241,22 @@ export function PayoutsTable({
                 <td className="px-3 py-3">
                   {r.payout_account && r.payout_account.verification_status === "verified" ? (
                     <>
-                      <div className="text-foreground truncate max-w-[140px]">{r.payout_account.bank_name ?? "—"}</div>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-foreground truncate max-w-[140px]">{r.payout_account.bank_name ?? "—"}</span>
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          <CheckCircle2 className="h-2.5 w-2.5" /> VERIFIED
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">{r.payout_account.masked_account ?? "—"}</div>
+                    </>
+                  ) : r.payout_account ? (
+                    <>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-foreground truncate max-w-[140px]">{r.payout_account.bank_name ?? "Account"}</span>
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/30">
+                          <AlertTriangle className="h-2.5 w-2.5" /> INVALID
+                        </span>
+                      </div>
                       <div className="text-xs text-muted-foreground">{r.payout_account.masked_account ?? "—"}</div>
                     </>
                   ) : (
@@ -245,12 +299,21 @@ export function PayoutsTable({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border-t border-border">
         <div className="text-xs text-muted-foreground">Showing {startIdx}-{endIdx} of {totalCount} payouts</div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" disabled={page <= 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">{page}</Button>
-          {totalPages > 1 && page < totalPages && (
-            <Button size="sm" variant="outline">{page + 1}</Button>
+          <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => onPageChange?.(page - 1)} aria-label="Previous page">
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </Button>
+          {pageList.map((p, i) =>
+            p === "…" ? (
+              <span key={`e-${i}`} className="px-2 text-xs text-muted-foreground">…</span>
+            ) : p === page ? (
+              <Button key={p} size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white min-w-9">{p}</Button>
+            ) : (
+              <Button key={p} size="sm" variant="outline" className="min-w-9" onClick={() => onPageChange?.(p)}>{p}</Button>
+            )
           )}
-          <Button size="sm" variant="outline" disabled={page >= totalPages}><ChevronRight className="h-3.5 w-3.5" /></Button>
+          <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => onPageChange?.(page + 1)} aria-label="Next page">
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </div>
       </>
