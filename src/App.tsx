@@ -57,6 +57,7 @@ import AdminTransactions from "./pages/AdminTransactions";
 import AdminTransactionDetail from "./pages/AdminTransactionDetail";
 import AdminDisputes from "./pages/AdminDisputes";
 import AdminDisputeDetail from "./pages/AdminDisputeDetail";
+import AdminPayouts from "./pages/AdminPayouts";
 import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -119,6 +120,7 @@ const App = () => (
               <Route path="/admin/disputes/:id" element={<AdminDisputeDetail />} />
               <Route path="/admin/offers" element={<AdminOffers />} />
               <Route path="/admin/offers/:offerId" element={<AdminOfferDetail />} />
+              <Route path="/admin/payouts" element={<AdminPayouts />} />
             </Route>
 
             {/* Protected: requires session + seller role */}
