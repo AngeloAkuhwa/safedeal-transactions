@@ -48,11 +48,9 @@ Deno.serve(async (req) => {
   const [{ data: tx }, { data: pricing }, { data: account }, { data: profile }, { data: queue }, { data: notes }, { data: events }, { data: dispute }, { data: investigation }, { data: refunds }, { data: payment }] = await Promise.all([
     admin.from("transactions").select("id, transaction_code, status, money_status, dispute_status, needs_release_review, needs_admin_review, source_product_id, buyer_id, seller_id, created_at").eq("id", payout.transaction_id).maybeSingle(),
     admin.from("transaction_pricing").select("item_amount, platform_fee_amount, processing_fee_amount, total_amount, currency_code").eq("transaction_id", payout.transaction_id).maybeSingle(),
-    payout.payout_account_id
-      ? admin.from("payout_accounts").select("*").eq("id", payout.payout_account_id).maybeSingle()
-      : admin.from("payout_accounts").select("*").eq("user_id", payout.seller_id).maybeSingle(),
+    admin.from("payout_accounts").select("*").eq("user_id", payout.seller_id).maybeSingle(),
     admin.from("profiles").select("id, full_name, email, avatar_url").eq("id", payout.seller_id).maybeSingle(),
-    admin.from("release_review_queue").select("id, queue_type, status, notes, entered_queue_at, resolved_at").eq("transaction_id", payout.transaction_id).order("entered_queue_at", { ascending: false }),
+    admin.from("release_review_queue").select("id, queue_type, status, notes, entered_queue_at, resolved_at").eq("transaction_id", payout.transaction_id).order("created_at", { ascending: false }),
     admin.from("admin_transaction_notes").select("id, note, created_at, admin_user_id").eq("transaction_id", payout.transaction_id).order("created_at", { ascending: false }).limit(20),
     admin.from("transaction_events").select("id, event_type, event_data, actor_role, created_at").eq("transaction_id", payout.transaction_id).order("created_at", { ascending: false }).limit(60),
     admin.from("disputes").select("id, status, opened_at, resolved_at").eq("transaction_id", payout.transaction_id).order("opened_at", { ascending: false }).maybeSingle(),
@@ -105,7 +103,7 @@ Deno.serve(async (req) => {
       failed_attempt_count: payout.failed_attempt_count ?? 0,
       failure_reason: payout.failure_reason ?? null,
       provider_reference: payout.provider_reference ?? null,
-      entered_queue_at: payout.entered_queue_at ?? payout.created_at,
+      entered_queue_at: payout.created_at,
       released_at: payout.released_at,
       initiated_at: payout.initiated_at,
       notes: payout.notes ?? null,
