@@ -4,8 +4,6 @@ import { Download, Play, Wallet, AlertTriangle } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AdminReadingModeControl } from "@/components/admin/AdminReadingModeControl";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
 import { PayoutSummaryCards } from "@/components/admin/payouts/PayoutSummaryCards";
@@ -167,8 +165,6 @@ export default function AdminPayouts() {
           <p className="mt-1 text-sm text-muted-foreground">Monitor and manage seller payout processing</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <AdminReadingModeControl variant="desktop" />
-          <ThemeToggle />
           <Button variant="outline" size="sm" className="gap-2">
             <Download className="h-4 w-4" /> Export Report
           </Button>
