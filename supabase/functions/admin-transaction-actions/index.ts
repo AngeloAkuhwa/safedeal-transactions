@@ -25,7 +25,9 @@ type ActionName =
   | "open_investigation"
   | "upsert_investigation"
   | "resolve_dispute"
-  | "dispute_request_more_info";
+  | "dispute_request_more_info"
+  | "block_payout"
+  | "unblock_payout";
 
 interface Body {
   action: ActionName;
