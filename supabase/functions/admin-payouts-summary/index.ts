@@ -48,6 +48,7 @@ Deno.serve(async (req) => {
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   const startOfWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const last30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const last24hMs = now.getTime() - 24 * 60 * 60 * 1000;
 
   // Fetch payout rows in relevant statuses with their tx money_status.
   const { data: rows, error } = await admin
@@ -67,6 +68,9 @@ Deno.serve(async (req) => {
   const onHold: any[] = [];
   let releasedToday = 0;
   let releasedWeek = 0;
+  let pendingDelta24 = 0;
+  let processingDelta24 = 0;
+  let failedDelta24 = 0;
   const leadHours: number[] = [];
 
   for (const r of (rows ?? []) as any[]) {
@@ -74,12 +78,17 @@ Deno.serve(async (req) => {
     const needsReview = !!r.transactions?.needs_release_review;
     if (r.status === "awaiting_release" && !r.release_blocked && ms === "funds_pending_release") {
       pending.push(r);
+      if (r.created_at && new Date(r.created_at).getTime() >= last24hMs) pendingDelta24++;
     }
     if ((r.status === "pending" || r.status === "processing") && ms === "funds_releasing") {
       processing.push(r);
+      if (r.created_at && new Date(r.created_at).getTime() >= last24hMs) processingDelta24++;
     }
     if (r.status === "failed") {
-      if (r.retry_allowed) failedRetry.push(r);
+      if (r.retry_allowed) {
+        failedRetry.push(r);
+        if (r.created_at && new Date(r.created_at).getTime() >= last24hMs) failedDelta24++;
+      }
     }
     if (r.release_blocked || r.status === "blocked") blocked.push(r);
     if (r.status === "reversed") reversed.push(r);
@@ -107,9 +116,9 @@ Deno.serve(async (req) => {
   return json({
     currency: "NGN",
     summary: {
-      pending_release: { count: pending.length, amount: sum(pending) },
-      processing: { count: processing.length, amount: sum(processing) },
-      failed: { count: failedRetry.length, amount: sum(failedRetry) },
+      pending_release: { count: pending.length, amount: sum(pending), delta_24h: pendingDelta24 },
+      processing: { count: processing.length, amount: sum(processing), delta_24h: processingDelta24 },
+      failed: { count: failedRetry.length, amount: sum(failedRetry), delta_24h: failedDelta24 },
       released_today: { amount: releasedToday },
       released_week: { amount: releasedWeek },
       avg_release_hours: avg(leadHours),
