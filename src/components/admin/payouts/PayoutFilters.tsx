@@ -16,10 +16,10 @@ export function PayoutFilters({ search, onSearch }: Props) {
           value={search}
           onChange={(e) => onSearch(e.target.value)}
           placeholder="Search seller, transaction, payout ID..."
-          className="pl-9 w-full lg:w-72 bg-muted/40 border-border"
+          className="pl-9 h-10 w-full lg:w-72 bg-muted/40 border-border"
         />
       </div>
-      <Button variant="outline" size="sm" className="gap-2 shrink-0">
+      <Button size="sm" className="gap-2 shrink-0 h-10 bg-slate-800 hover:bg-slate-700 text-foreground border border-slate-700">
         <Filter className="h-4 w-4" />
         <span className="hidden sm:inline">Filters</span>
       </Button>

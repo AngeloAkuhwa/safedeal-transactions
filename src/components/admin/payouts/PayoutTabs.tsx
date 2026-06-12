@@ -18,7 +18,7 @@ interface Props {
 
 export function PayoutTabs({ active, onChange, summary }: Props) {
   return (
-    <div className="flex gap-1 flex-wrap flex-1 min-w-0">
+    <div className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-border bg-slate-900/60 p-1">
       {TABS.map((t) => {
         const isActive = active === t.value;
         return (
@@ -27,7 +27,7 @@ export function PayoutTabs({ active, onChange, summary }: Props) {
             type="button"
             onClick={() => onChange(t.value)}
             className={cn(
-              "px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium whitespace-nowrap transition-colors",
+              "px-3 sm:px-4 h-8 rounded-md text-xs sm:text-sm font-medium whitespace-nowrap transition-colors",
               isActive
                 ? "bg-emerald-500 text-white shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
