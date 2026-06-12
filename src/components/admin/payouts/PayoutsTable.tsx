@@ -2,19 +2,21 @@ import { Loader2 } from "lucide-react";
 import {
   FaArrowsRotate, FaTriangleExclamation, FaCheck, FaClock, FaBan,
   FaEye, FaRotateRight, FaEllipsisVertical, FaChevronLeft, FaChevronRight,
-  FaArrowUpRightFromSquare, FaXmark,
+  FaArrowUpRightFromSquare, FaXmark, FaCircleInfo, FaPenToSquare, FaUser,
+  FaReceipt, FaNoteSticky, FaPause, FaDownload, FaCircleCheck,
 } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatMoney } from "@/lib/format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import { PayoutStatusPill } from "./PayoutStatusPill";
+import { toast } from "@/hooks/use-toast";
 import type { PayoutRow } from "@/services/admin-payouts.service";
 
 interface Props {
