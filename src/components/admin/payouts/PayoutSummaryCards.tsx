@@ -1,4 +1,4 @@
-import { Clock, RotateCw, AlertTriangle, CheckCircle2, CalendarDays, Timer } from "lucide-react";
+import { Clock, RefreshCw, AlertTriangle, Check, CalendarDays, Timer } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatMoney } from "@/lib/format";
@@ -55,19 +55,19 @@ export function PayoutSummaryCards({ summary, loading }: Props) {
   const pendingDelta = s.pending_release.delta_24h;
   const processingDelta = s.processing.delta_24h;
   const failedDelta = s.failed.delta_24h;
-  const fmtDelta = (n?: number) => (typeof n === "number" && n > 0 ? `+${n}` : null);
+  const fmtDelta = (n?: number) => `+${typeof n === "number" ? n : 0}`;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
       <Tile icon={Clock} tone="orange"
         badge={fmtDelta(pendingDelta)}
         label="Pending Payouts" value={`${s.pending_release.count}`} />
-      <Tile icon={RotateCw} tone="blue"
+      <Tile icon={RefreshCw} tone="blue"
         badge={fmtDelta(processingDelta)}
         label="Processing" value={`${s.processing.count}`} />
       <Tile icon={AlertTriangle} tone="red"
         badge={fmtDelta(failedDelta)}
         label="Failed Payouts" value={`${s.failed.count}`} />
-      <Tile icon={CheckCircle2} tone="emerald" badge="Today"
+      <Tile icon={Check} tone="emerald" badge="Today"
         label="Paid Today" value={formatMoney(s.released_today.amount, "NGN")} />
       <Tile icon={CalendarDays} tone="purple" badge="Week"
         label="Paid This Week" value={formatMoney(s.released_week.amount, "NGN")} />
