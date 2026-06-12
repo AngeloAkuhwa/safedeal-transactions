@@ -162,19 +162,29 @@ export function PayoutsTable({
         </div>
       ) : (
       <>
-      <div className="overflow-x-auto">
-      <table className="w-full min-w-[1200px]">
+      <table className="w-full table-fixed">
+        <colgroup>
+          <col style={{ width: "40px" }} />
+          <col style={{ width: "14%" }} />
+          <col style={{ width: "14%" }} />
+          <col style={{ width: "12%" }} />
+          <col style={{ width: "11%" }} />
+          <col style={{ width: "14%" }} />
+          <col style={{ width: "10%" }} />
+          <col style={{ width: "11%" }} />
+          <col style={{ width: "14%" }} />
+        </colgroup>
         <thead>
           <tr className="bg-slate-800 border-b border-slate-700">
-            <th className="text-left p-4 w-10"><Checkbox checked={allSelected} onCheckedChange={onToggleSelectAll} /></th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Payout ID</th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Seller</th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Transaction</th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Amount</th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Payout Account</th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Status</th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Initiated</th>
-            <th className="text-left p-4 text-slate-400 font-medium text-xs uppercase tracking-wider">Actions</th>
+            <th className="text-left px-3 py-3"><Checkbox checked={allSelected} onCheckedChange={onToggleSelectAll} /></th>
+            <th className="text-left px-3 py-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Payout ID</th>
+            <th className="text-left px-3 py-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Seller</th>
+            <th className="text-left px-3 py-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Transaction</th>
+            <th className="text-left px-3 py-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Amount</th>
+            <th className="text-left px-3 py-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Payout Account</th>
+            <th className="text-left px-3 py-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Status</th>
+            <th className="text-left px-3 py-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Initiated</th>
+            <th className="text-left px-3 py-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -183,7 +193,7 @@ export function PayoutsTable({
             const caption = payoutCaption(r);
             return (
               <tr key={r.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-all cursor-pointer" onClick={() => onOpen(r)}>
-                <td className="p-4" onClick={(ev) => ev.stopPropagation()}>
+                <td className="px-3 py-3" onClick={(ev) => ev.stopPropagation()}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span>
@@ -197,90 +207,90 @@ export function PayoutsTable({
                     {!e.ok && <TooltipContent>{e.reason}</TooltipContent>}
                   </Tooltip>
                 </td>
-                <td className="p-4">
-                  <div className="flex items-center gap-3">
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <PayoutIdIcon row={r} />
                     <div className="min-w-0">
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="text-white font-medium text-sm cursor-default truncate max-w-[160px]">{r.id.slice(0, 14)}…</div>
+                          <div className="text-white font-medium text-sm cursor-default truncate">{r.id.slice(0, 14)}…</div>
                         </TooltipTrigger>
                         <TooltipContent>{r.id}</TooltipContent>
                       </Tooltip>
                       {caption && (
-                        <div className={`text-xs font-medium mt-0.5 truncate max-w-[160px] ${
+                        <div className={`text-xs font-medium mt-0.5 truncate ${
                           caption.tone === "red" ? "text-red-400" : caption.tone === "emerald" ? "text-emerald-400" : "text-blue-400"
                         }`}>{caption.text}</div>
                       )}
                     </div>
                   </div>
                 </td>
-                <td className="p-4">
+                <td className="px-3 py-3">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Avatar className="h-8 w-8 shrink-0 rounded-full">
                       {r.seller.avatar_url ? <AvatarImage src={r.seller.avatar_url} alt={r.seller.name} /> : null}
                       <AvatarFallback className="text-[10px] bg-slate-800 text-slate-300">{initials(r.seller.name)}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <div className="text-white font-medium text-sm truncate max-w-[160px]">{r.seller.name}</div>
-                      <div className="text-slate-400 text-xs truncate max-w-[160px]">{r.seller.email ?? "Seller"}</div>
+                      <div className="text-white font-medium text-sm truncate">{r.seller.name}</div>
+                      <div className="text-slate-400 text-xs truncate">{r.seller.email ?? "Seller"}</div>
                     </div>
                   </div>
                 </td>
-                <td className="p-4">
-                  <div className="flex items-center gap-2">
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-2 min-w-0">
                     <button
                       type="button"
                       onClick={(ev) => { ev.stopPropagation(); onOpenTransaction(r); }}
-                      className="text-slate-300 hover:text-emerald-400 transition-all font-medium text-sm"
+                      className="text-slate-300 hover:text-emerald-400 transition-all font-medium text-sm truncate"
                     >
                       {r.transaction.code}
                     </button>
-                    <FaArrowUpRightFromSquare className="text-slate-500 text-xs" />
+                    <FaArrowUpRightFromSquare className="text-slate-500 text-xs shrink-0" />
                   </div>
-                  <p className="text-slate-400 text-xs truncate max-w-[180px]">
+                  <p className="text-slate-400 text-xs truncate">
                     {r.transaction.item_title ?? "No item snapshot"}
                   </p>
                 </td>
-                <td className="p-4">
+                <td className="px-3 py-3">
                   <p className="text-white font-semibold text-sm">{formatMoney(r.amount, r.currency ?? "NGN")}</p>
                   <p className="text-slate-400 text-xs">NGN</p>
                 </td>
-                <td className="p-4">
+                <td className="px-3 py-3">
                   {r.payout_account && r.payout_account.verification_status === "verified" ? (
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-slate-300 text-sm font-medium truncate max-w-[140px]">{r.payout_account.bank_name ?? "—"}</p>
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded text-[10px] font-bold">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1 min-w-0">
+                        <p className="text-slate-300 text-sm font-medium truncate">{r.payout_account.bank_name ?? "—"}</p>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded text-[10px] font-bold shrink-0">
                           <FaCheck className="text-[8px]" /> VERIFIED
                         </span>
                       </div>
-                      <p className="text-slate-400 text-xs">{r.payout_account.masked_account ?? "—"}</p>
+                      <p className="text-slate-400 text-xs truncate">{r.payout_account.masked_account ?? "—"}</p>
                     </div>
                   ) : r.payout_account ? (
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-slate-300 text-sm font-medium truncate max-w-[140px]">{r.payout_account.bank_name ?? "Account"}</p>
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-500/20 border border-red-500/30 text-red-400 rounded text-[10px] font-bold">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1 min-w-0">
+                        <p className="text-slate-300 text-sm font-medium truncate">{r.payout_account.bank_name ?? "Account"}</p>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-500/20 border border-red-500/30 text-red-400 rounded text-[10px] font-bold shrink-0">
                           <FaXmark className="text-[8px]" /> INVALID
                         </span>
                       </div>
-                      <p className="text-slate-400 text-xs">{r.payout_account.masked_account ?? "—"}</p>
+                      <p className="text-slate-400 text-xs truncate">{r.payout_account.masked_account ?? "—"}</p>
                     </div>
                   ) : (
                     <p className="text-red-400 text-xs font-medium">No verified payout account</p>
                   )}
                 </td>
-                <td className="p-4"><PayoutStatusPill row={r} /></td>
-                <td className="p-4 whitespace-nowrap" title={new Date(r.entered_queue_at).toLocaleString()}>
+                <td className="px-3 py-3"><PayoutStatusPill row={r} /></td>
+                <td className="px-3 py-3 whitespace-nowrap" title={new Date(r.entered_queue_at).toLocaleString()}>
                   <p className="text-slate-300 text-sm">{formatAbsolute(r.entered_queue_at)}</p>
                   <p className="text-slate-400 text-xs">{formatRelative(r.entered_queue_at)}</p>
                 </td>
-                <td className="p-4" onClick={(ev) => ev.stopPropagation()}>
+                <td className="px-3 py-3" onClick={(ev) => ev.stopPropagation()}>
                   <div className="flex items-center gap-2">
                     {primaryCTA(r, releasingId,
                       () => onRelease(r), () => onRetry(r), () => onUnblock(r), () => onOpen(r))}
-                    <button onClick={() => onOpen(r)} className={`${slateBtn} hidden md:inline-flex`}>
+                    <button onClick={() => onOpen(r)} className={`${slateBtn} hidden xl:inline-flex`}>
                       <FaEye className="text-xs" /> Details
                     </button>
                     <DropdownMenu>
@@ -305,7 +315,6 @@ export function PayoutsTable({
           })}
         </tbody>
       </table>
-      </div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border-t border-slate-800">
         <div className="text-slate-400 text-xs">Showing {startIdx}-{endIdx} of {totalCount} payouts</div>
         <div className="flex items-center gap-1">
