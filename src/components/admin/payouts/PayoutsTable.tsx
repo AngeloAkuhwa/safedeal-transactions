@@ -242,21 +242,38 @@ function RowMenu({
   }
 
   if (row.status === "pending" || row.status === "processing") {
+    const rowCls = "px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none";
+    const iconSlot = "w-4 flex justify-center";
     return (
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem className={itemCls} onClick={onOpen}>
-          <FaCircleInfo className="text-blue-400" /> View Processing Status
+      <DropdownMenuContent
+        align="end"
+        className="w-56 !bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2 px-0"
+      >
+        <DropdownMenuItem className={rowCls} onClick={onOpen}>
+          <span className={iconSlot}><FaCircleInfo className="text-blue-400" /></span>
+          <span>View Processing Status</span>
         </DropdownMenuItem>
-        {seller}
-        <DropdownMenuItem className={itemCls} onClick={onOpenTransaction}>
-          <FaReceipt className="text-blue-400" /> View Transaction Details
+        <DropdownMenuItem className={rowCls} onClick={() => comingSoon("View Seller Profile")}>
+          <span className={iconSlot}><FaUser className="text-pink-400" /></span>
+          <span>View Seller Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        {note}
-        <DropdownMenuItem className={`${itemCls} text-orange-400 focus:text-orange-400`} onClick={() => comingSoon("Pause Payout")}>
-          <FaPause className="text-orange-400" /> Pause Payout
+        <DropdownMenuItem className={rowCls} onClick={onOpenTransaction}>
+          <span className={iconSlot}><FaReceipt className="text-blue-400" /></span>
+          <span>View Transaction Details</span>
         </DropdownMenuItem>
-        {block}
+        <div className="border-t border-slate-700 my-2" />
+        <DropdownMenuItem className={rowCls} onClick={() => comingSoon("Add Internal Note")}>
+          <span className={iconSlot}><FaNoteSticky className="text-yellow-400" /></span>
+          <span>Add Internal Note</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem className={`${rowCls} text-orange-400 focus:text-orange-400`} onClick={() => comingSoon("Pause Payout")}>
+          <span className={iconSlot}><FaPause className="text-orange-400" /></span>
+          <span>Pause Payout</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400`} onClick={() => comingSoon("Block Payout")}>
+          <span className={iconSlot}><FaBan className="text-red-400" /></span>
+          <span>Block Payout</span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     );
   }
