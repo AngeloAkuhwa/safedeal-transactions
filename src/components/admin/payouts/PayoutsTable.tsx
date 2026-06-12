@@ -265,7 +265,7 @@ function RowMenu({
     return (
       <DropdownMenuContent
         align="end"
-        className="w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2 px-0"
+        className="w-56 !bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2 px-0"
       >
         <DropdownMenuItem onClick={onOpen} className="px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
           <span className="w-4 flex justify-center text-slate-300"><FaCircleCheck /></span>
