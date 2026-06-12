@@ -520,6 +520,85 @@ Deno.serve(async (req) => {
         return json({ ok: true });
       }
 
+      case "block_payout": {
+        const reason = String(payload.reason ?? "").trim();
+        if (reason.length < 8) return badRequest("Reason must be at least 8 characters");
+        const payoutIdRaw = String(payload.payout_id ?? "").trim();
+        let query = admin.from("payouts").select("id, status, release_blocked").eq("transaction_id", txId);
+        if (payoutIdRaw) query = query.eq("id", payoutIdRaw);
+        const { data: payouts, error: pErr } = await query;
+        if (pErr) throw pErr;
+        if (!payouts || payouts.length === 0) return json({ error: "no_payout" }, 404);
+        const target = payoutIdRaw ? payouts[0] : (payouts.find((p: any) => !p.release_blocked) ?? payouts[0]);
+        if (target.release_blocked) return badRequest("Payout already blocked");
+        const { error: updErr } = await admin
+          .from("payouts")
+          .update({ release_blocked: true, payout_blocked_reason: reason.slice(0, 240), updated_at: new Date().toISOString() })
+          .eq("id", target.id);
+        if (updErr) throw updErr;
+        await admin.from("admin_actions").insert({
+          admin_user_id: userId,
+          transaction_id: txId,
+          action_type: "block_payout",
+          action_notes: reason.slice(0, 500),
+        });
+        await admin.from("transaction_events").insert({
+          transaction_id: txId,
+          event_type: "payout_blocked",
+          actor_user_id: userId,
+          actor_role: "admin",
+          event_data: { payout_id: target.id, reason },
+        });
+        await admin.from("audit_logs").insert({
+          action: "admin_block_payout",
+          actor_user_id: userId,
+          transaction_id: txId,
+          description: `Admin blocked payout on ${tx.transaction_code}: ${reason}`,
+          metadata: { payout_id: target.id, reason },
+        });
+        return json({ ok: true, payout_id: target.id });
+      }
+
+      case "unblock_payout": {
+        const reason = String(payload.reason ?? "").trim();
+        if (reason.length < 8) return badRequest("Reason must be at least 8 characters");
+        const payoutIdRaw = String(payload.payout_id ?? "").trim();
+        let query = admin.from("payouts").select("id, status, release_blocked, payout_blocked_reason").eq("transaction_id", txId);
+        if (payoutIdRaw) query = query.eq("id", payoutIdRaw);
+        const { data: payouts, error: pErr } = await query;
+        if (pErr) throw pErr;
+        if (!payouts || payouts.length === 0) return json({ error: "no_payout" }, 404);
+        const target = payoutIdRaw ? payouts[0] : (payouts.find((p: any) => p.release_blocked) ?? payouts[0]);
+        if (!target.release_blocked) return badRequest("Payout is not blocked");
+        const previousReason = target.payout_blocked_reason ?? null;
+        const { error: updErr } = await admin
+          .from("payouts")
+          .update({ release_blocked: false, payout_blocked_reason: null, updated_at: new Date().toISOString() })
+          .eq("id", target.id);
+        if (updErr) throw updErr;
+        await admin.from("admin_actions").insert({
+          admin_user_id: userId,
+          transaction_id: txId,
+          action_type: "unblock_payout",
+          action_notes: reason.slice(0, 500),
+        });
+        await admin.from("transaction_events").insert({
+          transaction_id: txId,
+          event_type: "payout_unblocked",
+          actor_user_id: userId,
+          actor_role: "admin",
+          event_data: { payout_id: target.id, reason, previous_reason: previousReason },
+        });
+        await admin.from("audit_logs").insert({
+          action: "admin_unblock_payout",
+          actor_user_id: userId,
+          transaction_id: txId,
+          description: `Admin unblocked payout on ${tx.transaction_code}: ${reason}`,
+          metadata: { payout_id: target.id, reason, previous_reason: previousReason },
+        });
+        return json({ ok: true, payout_id: target.id });
+      }
+
       default:
         return badRequest("unknown_action");
     }
