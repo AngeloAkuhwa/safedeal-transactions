@@ -20,7 +20,7 @@ interface Props {
 
 export function PayoutTabs({ active, onChange, summary }: Props) {
   return (
-    <div className="flex bg-muted/40 rounded-lg p-1 overflow-x-auto min-w-max">
+    <div className="flex bg-muted/40 rounded-lg p-1 overflow-x-auto flex-1 min-w-0">
       {TABS.map((t) => {
         const count = summary?.tab_counts?.[t.value] ?? 0;
         const isActive = active === t.value;
