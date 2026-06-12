@@ -80,8 +80,9 @@ export function PayoutsTable({
   }
   if (rows.length === 0) {
     return (
-      <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
-        No payouts in this view.
+      <div className="rounded-xl border border-border bg-card p-10 text-center">
+        <div className="text-sm font-medium text-foreground">No payouts found</div>
+        <div className="mt-1 text-xs text-muted-foreground">There are no payouts for the selected filter.</div>
       </div>
     );
   }
@@ -124,7 +125,12 @@ export function PayoutsTable({
                   </Tooltip>
                 </td>
                 <td className="px-3 py-3">
-                  <div className="font-mono text-xs text-foreground">{r.id.slice(0, 8)}…</div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="font-mono text-xs text-foreground cursor-default">{r.id.slice(0, 10)}…</div>
+                    </TooltipTrigger>
+                    <TooltipContent>{r.id}</TooltipContent>
+                  </Tooltip>
                   {r.payout_blocked_reason && <div className="text-xs text-red-400 mt-0.5 truncate max-w-[160px]">{r.payout_blocked_reason}</div>}
                   {r.failure_reason && <div className="text-xs text-red-400 mt-0.5 truncate max-w-[160px]">{r.failure_reason}</div>}
                 </td>
@@ -134,15 +140,23 @@ export function PayoutsTable({
                 </td>
                 <td className="px-3 py-3">
                   <div className="font-mono text-xs text-foreground">{r.transaction.code}</div>
-                  <div className="text-xs text-muted-foreground truncate max-w-[180px]">{r.transaction.item_title ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground truncate max-w-[180px]">
+                    {r.transaction.item_title ?? "No item snapshot"}
+                  </div>
                 </td>
-                <td className="px-3 py-3 text-right font-semibold text-foreground">{formatMoney(r.amount, r.currency)}</td>
+                <td className="px-3 py-3 text-right font-semibold text-foreground">{formatMoney(r.amount, r.currency ?? "NGN")}</td>
                 <td className="px-3 py-3">
-                  <div className="text-foreground truncate max-w-[140px]">{r.payout_account?.bank_name ?? "—"}</div>
-                  <div className="text-xs text-muted-foreground">{r.payout_account?.masked_account ?? "—"}</div>
+                  {r.payout_account && r.payout_account.verification_status === "verified" ? (
+                    <>
+                      <div className="text-foreground truncate max-w-[140px]">{r.payout_account.bank_name ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground">{r.payout_account.masked_account ?? "—"}</div>
+                    </>
+                  ) : (
+                    <div className="text-xs text-red-400">No verified payout account</div>
+                  )}
                 </td>
                 <td className="px-3 py-3"><PayoutStatusPill row={r} /></td>
-                <td className="px-3 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatRelative(r.entered_queue_at)}</td>
+                <td className="px-3 py-3 text-xs text-muted-foreground whitespace-nowrap" title={new Date(r.entered_queue_at).toLocaleString()}>{formatRelative(r.entered_queue_at)}</td>
                 <td className="px-3 py-3 text-right" onClick={(ev) => ev.stopPropagation()}>
                   <div className="flex items-center gap-2 justify-end">
                     {primaryCTA(r, releasingId,

@@ -27,7 +27,12 @@ export function PayoutMobileCards({ rows, loading, selected, onToggleSelect, onO
     return <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-32" />)}</div>;
   }
   if (rows.length === 0) {
-    return <Card className="p-8 text-center text-sm text-muted-foreground">No payouts in this view.</Card>;
+    return (
+      <Card className="p-8 text-center">
+        <div className="text-sm font-medium text-foreground">No payouts found</div>
+        <div className="mt-1 text-xs text-muted-foreground">There are no payouts for the selected filter.</div>
+      </Card>
+    );
   }
   return (
     <div className="space-y-3">
@@ -48,12 +53,16 @@ export function PayoutMobileCards({ rows, loading, selected, onToggleSelect, onO
                   <PayoutStatusPill row={r} />
                 </div>
                 <div className="mt-1 font-medium text-foreground truncate">{r.seller.name}</div>
-                <div className="text-xs text-muted-foreground">{r.payout_account?.bank_name ?? "—"} {r.payout_account?.masked_account ?? ""}</div>
+                {r.payout_account && r.payout_account.verification_status === "verified" ? (
+                  <div className="text-xs text-muted-foreground">{r.payout_account.bank_name ?? "—"} {r.payout_account.masked_account ?? ""}</div>
+                ) : (
+                  <div className="text-xs text-red-400">No verified payout account</div>
+                )}
               </div>
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-lg font-bold text-foreground">{formatMoney(r.amount, r.currency)}</div>
+                <div className="text-lg font-bold text-foreground">{formatMoney(r.amount, r.currency ?? "NGN")}</div>
                 <div className="text-xs text-muted-foreground font-mono">{r.transaction.code}</div>
               </div>
               <div className="text-xs text-muted-foreground whitespace-nowrap">{formatRelative(r.entered_queue_at)}</div>

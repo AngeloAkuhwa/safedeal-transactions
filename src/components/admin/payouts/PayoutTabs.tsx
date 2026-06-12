@@ -20,7 +20,7 @@ interface Props {
 
 export function PayoutTabs({ active, onChange, summary }: Props) {
   return (
-    <div className="flex bg-muted/40 rounded-lg p-1 overflow-x-auto min-w-max">
+    <div className="flex bg-muted/40 rounded-lg p-1 overflow-x-auto flex-1 min-w-0">
       {TABS.map((t) => {
         const count = summary?.tab_counts?.[t.value] ?? 0;
         const isActive = active === t.value;
@@ -32,17 +32,17 @@ export function PayoutTabs({ active, onChange, summary }: Props) {
             className={cn(
               "px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2",
               isActive
-                ? "bg-primary text-primary-foreground shadow-sm"
+                ? "bg-blue-600 text-white shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            {t.label}
-            {count > 0 && (
+            <span>{t.label}</span>
+            {count > 0 ? (
               <span className={cn(
                 "text-[10px] sm:text-xs rounded px-1.5 py-0.5",
-                isActive ? "bg-primary-foreground/20" : "bg-muted text-foreground/80"
+                isActive ? "bg-white/20" : "bg-muted text-foreground/80"
               )}>{count}</span>
-            )}
+            ) : null}
           </button>
         );
       })}
