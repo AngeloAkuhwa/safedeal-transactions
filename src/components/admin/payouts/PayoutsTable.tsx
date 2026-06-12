@@ -267,24 +267,24 @@ function RowMenu({
         align="end"
         className="w-56 !bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2 px-0"
       >
-        <DropdownMenuItem onClick={onOpen} className="px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={onOpen} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
           <span className="w-4 flex justify-center text-slate-300"><FaCircleCheck /></span>
           <span>View Completion Details</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => comingSoon("View Seller Profile")} className="px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={() => comingSoon("View Seller Profile")} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
           <span className="w-4 flex justify-center text-slate-300"><FaUser /></span>
           <span>View Seller Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenTransaction} className="px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={onOpenTransaction} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
           <span className="w-4 flex justify-center text-slate-300"><FaReceipt /></span>
           <span>View Transaction</span>
         </DropdownMenuItem>
         <div className="border-t border-slate-700 my-2" />
-        <DropdownMenuItem onClick={() => comingSoon("Download Receipt")} className="px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={() => comingSoon("Download Receipt")} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
           <span className="w-4 flex justify-center text-slate-300"><FaDownload /></span>
           <span>Download Receipt</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => comingSoon("Add Internal Note")} className="px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={() => comingSoon("Add Internal Note")} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
           <span className="w-4 flex justify-center text-slate-300"><FaNoteSticky /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
