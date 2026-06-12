@@ -1,40 +1,33 @@
-## Goal
-Match the Payouts header, KPI cards, and tabs/filter card to the reference screenshot. No table, sidebar, or business-logic changes.
+# Payout Management — Visual Parity Pass
 
-## Changes
+Scope: header buttons, KPI cards, tabs/search/filter card, advanced filter dropdown row. No table, sidebar, or business-logic changes.
 
-### `src/pages/AdminPayouts.tsx`
-1. **Default tab → `all`** instead of `processing`. Adjust `initialTab` resolution so URL with `tab=processing` still works but the page defaults to `all` on first load (no `tab` param).
-2. **Process Batch button — always active green** visually:
-   - Drop the `disabled={batchDisabled}` styling-driven greying. Keep the click handler, but show the bright `bg-emerald-600 hover:bg-emerald-700 text-white` regardless of selection (the existing toast already no-ops when nothing is selected, so behavior is preserved). Remove the tooltip wrapper that was tied to disabled state, or keep it without disabling. Selection count chip stays.
-3. **Export Report → filled dark slate**: change `variant="outline"` to a filled dark style (`bg-slate-800 hover:bg-slate-700 text-foreground border border-slate-700`) so it reads as a filled button matching the reference, same height as Process Batch.
-4. Increase spacing between KPI row and filter card: wrap the page body content in `space-y-6` (or add `mt-2` to the filter card) — currently `space-y-5` from layout.
+## 1. `src/components/admin/payouts/PayoutAdvancedFilters.tsx`
+- Change Date Range default option order so **"Last 7 days"** is first (currently first already, but selected value renders as `Custom Range` in screenshot 1 — verify the `<select>` first `<option>` is `"Last 7 days"` so it becomes the default selected). Reorder if needed: `["Last 7 days","Last 30 days","Last 3 months","Custom Range"]` (already correct — confirm rendering).
+- Remove always-on green border on Status dropdown: keep `focus:border-emerald-500` but ensure idle state uses `border-border` only (already the case — verify no `border-emerald-500` is applied at rest).
+- No structural change otherwise.
 
-### `src/components/admin/payouts/PayoutSummaryCards.tsx`
-- Already supports `+N` badges from `delta_24h`. No code change required, but confirm tile internal layout (icon top-left, badge top-right, label, large value) already matches — no changes needed.
+## 2. `src/components/admin/payouts/PayoutFilters.tsx`
+- Update placeholder text to exactly: `Search seller, transaction, payout ID...` (add trailing ellipsis).
+- Keep `h-10`, filled dark slate Filters button, funnel icon — already aligned.
 
-### `src/components/admin/payouts/PayoutTabs.tsx`
-- Wrap tab buttons in a **segmented-control container**: `bg-slate-900/60 border border-border rounded-lg p-1 inline-flex gap-1`. Keep active = `bg-emerald-500 text-white`, inactive = transparent muted text. Remove `flex-1 min-w-0` so the group hugs content like the reference.
+## 3. `src/components/admin/payouts/PayoutTabs.tsx`
+- No changes — segmented dark container with emerald active pill already implemented and `All` is default via `AdminPayouts.tsx`.
 
-### `src/components/admin/payouts/PayoutFilters.tsx`
-- Add `...` to placeholder: `Search seller, transaction, payout ID...`.
-- Change Filters button from `variant="outline"` to filled dark slate (`bg-slate-800 hover:bg-slate-700 border border-slate-700`) to match the reference.
-- Bump input + button height to `h-10` so they align vertically with the segmented tabs row.
+## 4. `src/components/admin/payouts/PayoutSummaryCards.tsx`
+- No code changes. Delta badges (`+3`, `+12`, `+5`) and populated NGN values already wired to backend; they render when backend supplies non-zero data. The reason screenshot 1 shows `0` / `₦0.00` / `—` is that the database has no payout activity yet — this is correct behavior, not a UI bug. Will note this in closing message.
 
-### `src/components/admin/payouts/PayoutAdvancedFilters.tsx`
-- Increase top spacing: wrap in a div with `pt-2` (the parent `space-y-4` becomes `space-y-6` via the page card padding bump).
-- Bump select height from `p-2.5` to `h-10 px-3` for consistent control height.
+## 5. `src/pages/AdminPayouts.tsx`
+- Default tab already `"all"`; Process Batch already always-active emerald; Export Report already filled slate. No change.
 
-### `src/pages/AdminPayouts.tsx` — filter card padding
-- Change the tabs/filters card from `p-4 sm:p-6 space-y-4` to `p-6 space-y-6 pb-7` for taller, more breathable card matching the reference.
+## Out of scope (unchanged)
+- Table, mobile cards, batch bar, drawer, sidebar
+- Backend / edge functions / currency formatter (stays NGN)
+- No seed data; empty values reflect real DB state
 
-## Out of scope
-- Table, mobile cards, batch bar, drawer, sidebar.
-- Backend / delta computation (already wired).
-- Currency stays NGN with real values.
-
-## Verification
-- `/admin/payouts` first load shows `All` tab active inside a single dark segmented container.
-- Export Report renders as filled dark slate; Process Batch renders bright emerald with white text/icon, same height.
-- KPI tiles show `+3 / +12 / +5` chips when backend reports deltas; otherwise hidden.
-- Filter card has clear top/bottom padding; dropdown row sits lower with comfortable gap from tabs row; dropdowns share height with search/Filters button.
+## Acceptance
+- Placeholder reads `Search seller, transaction, payout ID...`
+- Date Range select shows `Last 7 days` as the default selected option
+- Status dropdown has no green border at idle, only on focus
+- Default tab is `All` (already true)
+- KPI delta badges + populated values appear automatically once backend returns data
