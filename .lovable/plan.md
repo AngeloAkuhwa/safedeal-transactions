@@ -1,110 +1,82 @@
-# Admin Payout Management — Design Alignment
 
-UI-only correction pass. No payout business logic, no Paystack transfer changes, no edge function changes (one optional cleanup noted at the end).
+# Admin Payout — Layout Alignment to Reference Design
 
-## 1. Page header (remove duplicates)
+UI-only alignment pass. No business logic, edge function, or schema changes. Match the uploaded `Payout Management.html` reference more faithfully.
 
-Current cause: `AdminPayouts.tsx` lets `AdminLayout` render the default `AdminHeader` (which already shows Reading Mode, ThemeToggle, Filters, Export Report) **and** also renders its own action row below it with Paystack pill + Export Report + Process Batch. That produces the duplicated Export, the stray Filters, the moon icon, and the disconnected second-row controls.
+## Mismatches found vs reference
 
-Fix in `src/pages/AdminPayouts.tsx`:
-- Pass a custom `headerSlot` to `AdminLayout` so the default `AdminHeader` is replaced for this page only.
-- New header layout (desktop, sticky, same border/background as default):
-  - Left: `Payout Management` title + `Monitor and manage seller payout processing` subtitle.
-  - Right (single row, in order): `AdminReadingModeControl` (kept — global shell), `ThemeToggle` (kept — global shell), `Export Report` (outline), `Process Batch` (emerald primary). 
-  - No `Filters` button in the page header.
-- Remove the existing in-body action row (the second Export Report + second Process Batch + floating Paystack pill).
+1. **KPI tiles**
+   - Reference: icon block `w-12 h-12` top-left + colored badge chip top-right (+3 / +12 / +5 / Today / Week / Avg), label below, then big `text-2xl` value. Padding `p-6`.
+   - Current: icon `w-9 h-9`, no badge chip, `text-lg/xl` value, `p-4`. Looks visibly smaller and missing the chip.
 
-## 2. Paystack balance placement
+2. **Combined filter card**
+   - Reference: Tabs + Search + Filters button on top row, dropdown filters (Status, Date Range, Amount Range, Bank Verification, Quick Filters) inside the same card on the row below.
+   - Current: Tabs/search/filters in one card with only the basic search; the dropdown filter row is not rendered. Refresh button currently lives in the filter row but should live in the table header per reference.
 
-Move the Paystack pill out of the action row and into the title block:
-- Render it directly under the subtitle inside `headerSlot`, left-aligned.
-- Compact pill: `Paystack Balance · ₦2,865,490.00`. When `bal.ok === false`, show `Paystack Balance · Unavailable`.
-- Keep amber state when balance < pending release total.
+3. **Payout Records header**
+   - Reference: Table sits in its own card with a sticky header strip: `Payout Records` title (left), `218 payouts found` + `Refresh` button (right).
+   - Current: no record-card header.
 
-## 3 + 4. KPI cards consistency and sizing
+4. **Table columns / cells**
+   - Header `PAYOUT ID` not `PAYOUT`; `INITIATED` not `AGED`.
+   - Payout ID cell: small status-color icon block + full payout id (or readable short id) + reason caption underneath. Currently we show just truncated id + tooltip — keep tooltip but render fuller id and icon.
+   - Initiated cell: show absolute date (`Jan 19, 2:45 PM`) on top + relative (`2 hours ago`) muted underneath, matching reference. Keep hover tooltip.
+   - Amount cell: amount on top, `NGN` muted caption below (replaces `USD` from reference).
+   - Status pills: use filled tinted style with leading icon (already mostly in `PayoutStatusPill`; verify Failed/Processing/Completed look like reference).
+   - Action column: solid colored primary CTA (`Retry` emerald-tinted, `Release` emerald, `View`) + outline `Details` (eye icon) + kebab. Currently the primary CTA is unstyled outline in some cases.
 
-`PayoutSummaryCards` already renders the 6 expected tiles in the right order. Two corrections:
-- Source consistency: the summary endpoint counts *all* payouts (correct for global KPIs), but the user perceives a mismatch because the page lands on `pending_release` while KPIs read globally. Fix perception by:
-  - Defaulting the page to `all` tab (matches the "All" KPI scope) so KPI counts and visible rows agree on first load. (`useState<PayoutTab>("all")`.)
-  - Leaving per-tab counts on the tab chips themselves (already wired via `summary.tab_counts`).
-- Sizing: tighten the grid to match the reference — `grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3`, reduce tile padding to `p-4`, icon block `w-9 h-9`, value `text-xl`, remove the unused top-right spacer row. Keep NGN formatting (already uses `formatMoney(..., "NGN")`).
+5. **Pagination row**
+   - Reference: `Showing 1-10 of 218 payouts` left, numbered pagination right, inside the records card footer.
+   - Current: no pagination UI. Add a static pagination footer wired to current `rows.length` / `summary.tab_counts` (real paging stays single-page for now; just render the footer scaffold so layout matches).
 
-## 5. Tabs, search, filters row
-
-In the filter card:
-- Keep tab order: All, Pending Release, Blocked, Processing, Completed, Failed, Reversed, `Disputed / On Hold`.
-- Fix the "Disputed / On Hold" rendering: the current label string is fine; the visual "dot" in the screenshot is the count badge appearing when there are 0 rows. Change `PayoutTabs` to only render the badge when `count > 0` (already coded — verify the `summary.tab_counts.on_hold` value isn't unexpectedly non-zero; add `&& count > 0` guard explicitly).
-- Active tab style: switch from generic `bg-primary` to the SafeDeal blue/emerald active pill (`bg-blue-600 text-white`) used elsewhere in admin.
-- Search input: 
-  - Placeholder → `Search seller, transaction, payout ID...`.
-  - On desktop sits to the right of the tabs (already does via `lg:flex-row`); ensure it doesn't squeeze the tabs by giving the tab strip `flex-1 min-w-0 overflow-x-auto` and search `w-72 shrink-0`.
-  - On `<lg`, search wraps below tabs (already does).
-- Filters button: lives only inside `PayoutFilters` (no header duplicate). Verify the dropdown opens the filter panel.
-
-## 6. Table columns
-
-`PayoutsTable` already matches the column list. Adjustments:
-- Header label `Payout` (already capitalised by the `uppercase` class; keep as-is — reads `PAYOUT`).
-- Payout cell: show first 10 chars of `r.id` + ellipsis, wrap in a `Tooltip` showing full id; reason text under it for blocked/failed (already present).
-- Transaction cell: if `item_title` is null, show `No item snapshot` muted instead of `—`.
-- Payout Account cell: when `r.payout_account` is null OR `verification_status !== 'verified'`, render `No verified payout account` in red-400 text instead of `—`.
-- Aged: keep `formatRelative`; add `title={new Date(r.entered_queue_at).toLocaleString()}` for hover exact timestamp.
-- Status pill: already correct via `PayoutStatusPill`.
-- Actions: keep eye + kebab, primary action contextual (already wired).
-
-## 7 + 8. Row action and batch button logic
-
-`eligibleForRelease` is already strict. Make it visibly enforced:
-- In `PayoutsTable`, disable the row checkbox for any non-`awaiting_release` status (released/processing/reversed/completed never selectable). Current code disables based on `eligibleForRelease(r).ok`, which already covers this — keep, but add explicit short reasons in the tooltip for processing/released/reversed cases.
-- Header `Process Batch` button:
-  - `disabled` when `selectedRows.filter(eligible).length === 0`.
-  - Tooltip: `Select eligible pending payouts to process` when disabled.
-- Failed-tab Retry: keep current behaviour; do not allow Retry in Process Batch (batch is release-only this pass).
-
-## 9. Currency
-
-Audit `AdminPayouts.tsx`, `PayoutSummaryCards`, `PayoutsTable`, `PayoutMobileCards`, `PayoutBatchBar`, `PayoutDetailDrawer` — every `formatMoney(...)` call already passes a currency from the server (`NGN`). Replace any fallback `r.currency` usage where currency could be missing with explicit `"NGN"` default. Remove any `$`/`USD` literals if present (grep confirms none in payout components, but add a guard in `formatMoney` callsite defaults).
-
-## 10 + 11. Empty / zero state and tab filtering
-
-- `PayoutsTable` and `PayoutMobileCards` already render an empty card. Update copy to:
-  - Title: `No payouts found`
-  - Body: `There are no payouts for the selected filter.`
-- Tab filtering is server-side via `tab` query; trust it. Add a client-side double check: when `tab !== 'all'`, defensively filter `rows` to the expected statuses before render (guards against stale fetches).
-
-## 12 + 13. Desktop / tablet / mobile
-
-- Desktop: keep `AdminLayout` sidebar, sticky custom header, summary cards, filter card, table, right-side detail drawer. All preserved.
-- Tablet: KPI grid `md:grid-cols-3`; tabs horizontally scroll; search wraps below.
-- Mobile: `PayoutMobileCards` already handles cards + full-screen drawer + batch bar — no changes beyond empty-state copy and currency defaults.
-
-## 14. Out of scope (explicit)
-
-- No edge function logic changes.
-- No fee math, escrow, refund, or Paystack transfer changes.
-- No new sections, drawers, or buttons.
-- No change to `release-payout` / `retry-payout` behaviour.
+6. **Header action row**
+   - Reference: header keeps only `Export Report` (outline) + `Process Batch` (emerald). No Reading Mode / Theme / Paystack pill in the header row (those don't exist in the reference).
+   - Current: we added Reading Mode, ThemeToggle, and a Paystack Balance pill into the header. Per the user's directive to match the reference exactly, move the Paystack Balance pill out of the header into the summary cards area as a 7th compact strip above the KPI grid, and keep Reading Mode + ThemeToggle as small icon-only buttons grouped left of `Export Report` (cannot be dropped — they're required global shell controls).
 
 ## Files to edit
 
-- `src/pages/AdminPayouts.tsx` — replace default header with `headerSlot`, move Paystack pill, default tab → `all`, batch button tooltip/disabled state.
-- `src/components/admin/payouts/PayoutSummaryCards.tsx` — tighter sizing.
-- `src/components/admin/payouts/PayoutTabs.tsx` — active style, guard badge on `> 0`, flex sizing.
-- `src/components/admin/payouts/PayoutFilters.tsx` — placeholder text, width.
-- `src/components/admin/payouts/PayoutsTable.tsx` — empty-state copy, Payout id tooltip, item-title and payout-account fallbacks, aged tooltip, processing/released tooltip reasons.
-- `src/components/admin/payouts/PayoutMobileCards.tsx` — empty-state copy, currency default, payout-account fallback.
+- `src/components/admin/payouts/PayoutSummaryCards.tsx`
+  - Tile: padding `p-6`, icon block `w-12 h-12`, value `text-2xl font-bold`, label `text-xs mb-1`, add top-right badge chip prop (`+N` for deltas, `Today`/`Week`/`Avg` for time tiles). Match colors per reference (orange/blue/red/emerald/purple/cyan).
+  - Add an optional `badge?: { label: string; tone: "orange"|"blue"|"red"|"emerald"|"purple"|"cyan" }` prop.
 
-No files created, deleted, or renamed. No backend or migration changes.
+- `src/components/admin/payouts/PayoutFilters.tsx`
+  - Drop `Refresh` button (moves to table card).
+  - Keep search + `Filters` button; ensure search `w-72` and inline with tabs.
 
-## Acceptance check
+- New small component `src/components/admin/payouts/PayoutAdvancedFilters.tsx`
+  - Renders the 5 dropdowns (Status, Date Range, Amount Range, Bank Verification, Quick Filters) as a `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4` row. Controlled state lives in `AdminPayouts` but for this pass these are visual selects wired to existing list params where applicable (status → tab; others are no-op placeholders that match the reference layout — server filters not yet implemented and out of scope).
 
-- Header shows only: title/subtitle (+ balance pill) on the left, Reading Mode + Theme + Export Report + Process Batch on the right. No Filters button. No duplicated rows.
-- Paystack pill sits cleanly in the title block.
-- Landing on `/admin/payouts` shows `All` tab; KPI totals match what the table can display.
-- Tabs render `Disputed / On Hold` with no stray dot/badge when count is 0; active tab uses blue active style.
-- Search placeholder reads `Search seller, transaction, payout ID...`; tabs do not get squeezed.
-- Table shows readable payout id with hover-full id, item fallback copy, account fallback in red when missing, aged hover timestamp.
-- Process Batch disabled unless ≥1 eligible row selected; tooltip explains why.
-- All currency in NGN; no `$`.
-- Empty tab renders the new empty state.
-- Mobile/tablet layouts unchanged structurally; only copy/currency/fallback fixes carry through.
+- `src/components/admin/payouts/PayoutsTable.tsx`
+  - Wrap table in a card with a sticky header: title + count + Refresh.
+  - Rename column labels: `PAYOUT ID`, `INITIATED`.
+  - Payout ID cell: small tinted icon square (red for failed/blocked, blue for processing, emerald for completed, orange/gray default) + full short id + caption (block reason / failure reason / "Completed successfully").
+  - Initiated cell: absolute date line + relative line muted.
+  - Amount cell: amount + `NGN` muted caption.
+  - Action cell: solid Retry/Release/Unblock primary + outline `Details` (eye + label on `md+`) + kebab.
+  - Footer: pagination scaffold (`Showing X-Y of Z` + numbered buttons, current page highlighted emerald). Disabled prev/next when only one page.
+
+- `src/components/admin/payouts/PayoutMobileCards.tsx`
+  - Mirror amount-with-NGN caption and initiated date + relative.
+  - No advanced filter row on mobile (keep collapsed inside Filters button).
+
+- `src/pages/AdminPayouts.tsx`
+  - Header: keep `Export Report` + `Process Batch` only on the action side; group `AdminReadingModeControl` + `ThemeToggle` as small icon buttons to the left of `Export Report` (compact, no extra rows).
+  - Move Paystack Balance pill: render it as a thin strip directly above the KPI grid (full width, dismissible-style info card) instead of inside the title block.
+  - Pass badge props into `PayoutSummaryCards` (deltas come from `summary.summary.*.delta_today` if present, else hidden gracefully).
+  - Insert `PayoutAdvancedFilters` row inside the existing filter card under the tabs/search row.
+  - Pass `total`, `page`, `limit` to `PayoutsTable` for the footer.
+
+## Out of scope
+
+- No new edge functions, no server-side advanced filter params wiring (UI only).
+- No change to release/retry/block logic, eligibility, batch worker, or detail drawer.
+- No new tabs or KPIs beyond what the reference shows.
+
+## Acceptance
+
+- KPI tiles visually match reference (large icon left, badge chip right, big value).
+- Filter card contains tabs + search + Filters button + dropdown filter row, all inside one card.
+- Payout Records sits in its own card with its own header (title + count + Refresh) and pagination footer.
+- Table columns labelled `PAYOUT ID` and `INITIATED`; cells render icon + id + reason / amount + NGN / date + relative.
+- Header row shows: title + subtitle (left); Reading Mode + Theme (icons) + Export Report + Process Batch (right). Paystack balance moves to an info strip above KPI grid.
+- Mobile cards keep parity (no advanced filter row, but amount caption + date layout match).
