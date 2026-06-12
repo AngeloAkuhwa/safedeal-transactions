@@ -1,0 +1,175 @@
+import { Loader2, Eye, MoreHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatMoney } from "@/lib/format";
+import { formatRelative } from "@/components/admin/dashboard/relative";
+import { PayoutStatusPill } from "./PayoutStatusPill";
+import type { PayoutRow } from "@/services/admin-payouts.service";
+
+interface Props {
+  rows: PayoutRow[];
+  loading: boolean;
+  selected: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onToggleSelectAll: () => void;
+  onOpen: (row: PayoutRow) => void;
+  onRelease: (row: PayoutRow) => void;
+  onRetry: (row: PayoutRow) => void;
+  onUnblock: (row: PayoutRow) => void;
+  onOpenTransaction: (row: PayoutRow) => void;
+  releasingId: string | null;
+}
+
+function eligibleForRelease(r: PayoutRow): { ok: boolean; reason?: string } {
+  if (r.release_blocked) return { ok: false, reason: r.payout_blocked_reason ?? "Payout is blocked" };
+  if (r.status !== "awaiting_release") return { ok: false, reason: `Status is ${r.status}` };
+  if (r.transaction.money_status !== "funds_pending_release") return { ok: false, reason: `Money status is ${r.transaction.money_status ?? "unknown"}` };
+  if (r.transaction.dispute_status && r.transaction.dispute_status !== "resolved") return { ok: false, reason: "Active dispute" };
+  if (r.transaction.needs_release_review) return { ok: false, reason: "Needs admin review" };
+  if (r.transaction.refund_in_flight) return { ok: false, reason: "Refund in flight" };
+  if (r.payout_account?.verification_status !== "verified") return { ok: false, reason: "Payout account not verified" };
+  if (!r.payout_account?.has_recipient_code) return { ok: false, reason: "Missing provider recipient code" };
+  return { ok: true };
+}
+
+function primaryCTA(r: PayoutRow, releasingId: string | null,
+  onRelease: () => void, onRetry: () => void, onUnblock: () => void, onOpen: () => void) {
+  const isReleasing = releasingId === r.id;
+  if (r.release_blocked) {
+    return <Button size="sm" variant="outline" onClick={onUnblock}>Unblock</Button>;
+  }
+  if (r.status === "failed" && r.retry_allowed) {
+    return <Button size="sm" variant="outline" onClick={onRetry} className="text-amber-500 border-amber-500/40 hover:bg-amber-500/10">Retry</Button>;
+  }
+  if (r.status === "awaiting_release") {
+    const e = eligibleForRelease(r);
+    const btn = (
+      <Button size="sm" disabled={!e.ok || isReleasing} onClick={onRelease}
+        className="bg-emerald-600 hover:bg-emerald-700 text-white">
+        {isReleasing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Release"}
+      </Button>
+    );
+    if (e.ok) return btn;
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild><span tabIndex={0}>{btn}</span></TooltipTrigger>
+        <TooltipContent>{e.reason}</TooltipContent>
+      </Tooltip>
+    );
+  }
+  return <Button size="sm" variant="outline" onClick={onOpen}><Eye className="h-4 w-4" /></Button>;
+}
+
+export function PayoutsTable({
+  rows, loading, selected, onToggleSelect, onToggleSelectAll, onOpen,
+  onRelease, onRetry, onUnblock, onOpenTransaction, releasingId,
+}: Props) {
+  if (loading && rows.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="p-4 space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
+        </div>
+      </div>
+    );
+  }
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
+        No payouts in this view.
+      </div>
+    );
+  }
+  const allEligible = rows.filter((r) => eligibleForRelease(r).ok);
+  const allSelected = allEligible.length > 0 && allEligible.every((r) => selected.has(r.id));
+  return (
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+          <tr>
+            <th className="px-3 py-3 w-10"><Checkbox checked={allSelected} onCheckedChange={onToggleSelectAll} /></th>
+            <th className="px-3 py-3 text-left">Payout</th>
+            <th className="px-3 py-3 text-left">Seller</th>
+            <th className="px-3 py-3 text-left">Transaction</th>
+            <th className="px-3 py-3 text-right">Amount</th>
+            <th className="px-3 py-3 text-left">Payout Account</th>
+            <th className="px-3 py-3 text-left">Status</th>
+            <th className="px-3 py-3 text-left">Aged</th>
+            <th className="px-3 py-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {rows.map((r) => {
+            const e = eligibleForRelease(r);
+            return (
+              <tr key={r.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => onOpen(r)}>
+                <td className="px-3 py-3" onClick={(ev) => ev.stopPropagation()}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Checkbox
+                          disabled={!e.ok}
+                          checked={selected.has(r.id)}
+                          onCheckedChange={() => onToggleSelect(r.id)}
+                        />
+                      </span>
+                    </TooltipTrigger>
+                    {!e.ok && <TooltipContent>{e.reason}</TooltipContent>}
+                  </Tooltip>
+                </td>
+                <td className="px-3 py-3">
+                  <div className="font-mono text-xs text-foreground">{r.id.slice(0, 8)}…</div>
+                  {r.payout_blocked_reason && <div className="text-xs text-red-400 mt-0.5 truncate max-w-[160px]">{r.payout_blocked_reason}</div>}
+                  {r.failure_reason && <div className="text-xs text-red-400 mt-0.5 truncate max-w-[160px]">{r.failure_reason}</div>}
+                </td>
+                <td className="px-3 py-3">
+                  <div className="font-medium text-foreground truncate max-w-[160px]">{r.seller.name}</div>
+                  <div className="text-xs text-muted-foreground truncate max-w-[160px]">{r.payout_account?.masked_account ?? r.seller.email ?? "—"}</div>
+                </td>
+                <td className="px-3 py-3">
+                  <div className="font-mono text-xs text-foreground">{r.transaction.code}</div>
+                  <div className="text-xs text-muted-foreground truncate max-w-[180px]">{r.transaction.item_title ?? "—"}</div>
+                </td>
+                <td className="px-3 py-3 text-right font-semibold text-foreground">{formatMoney(r.amount, r.currency)}</td>
+                <td className="px-3 py-3">
+                  <div className="text-foreground truncate max-w-[140px]">{r.payout_account?.bank_name ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground">{r.payout_account?.masked_account ?? "—"}</div>
+                </td>
+                <td className="px-3 py-3"><PayoutStatusPill row={r} /></td>
+                <td className="px-3 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatRelative(r.entered_queue_at)}</td>
+                <td className="px-3 py-3 text-right" onClick={(ev) => ev.stopPropagation()}>
+                  <div className="flex items-center gap-2 justify-end">
+                    {primaryCTA(r, releasingId,
+                      () => onRelease(r), () => onRetry(r), () => onUnblock(r), () => onOpen(r))}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onOpen(r)}>View Details</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onOpenTransaction(r)}>Open Transaction</DropdownMenuItem>
+                        {r.status === "failed" && r.retry_allowed && (
+                          <DropdownMenuItem onClick={() => onRetry(r)}>Retry Payout</DropdownMenuItem>
+                        )}
+                        {r.release_blocked && <DropdownMenuItem onClick={() => onUnblock(r)}>Unblock Payout</DropdownMenuItem>}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  );
+}
+
+export { eligibleForRelease };

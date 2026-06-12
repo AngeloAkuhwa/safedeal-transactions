@@ -1,0 +1,221 @@
+import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+type Tab =
+  | "all"
+  | "pending_release"
+  | "blocked"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "reversed"
+  | "on_hold";
+
+function maskAccount(num?: string | null): string | null {
+  if (!num) return null;
+  const s = String(num);
+  if (s.length < 4) return s;
+  return `••••${s.slice(-4)}`;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "GET") return json({ error: "method_not_allowed" }, 405);
+
+  let ctx;
+  try {
+    ctx = await requireAdmin(req);
+  } catch (err) {
+    const r = authErrorResponse(err, corsHeaders);
+    if (r) return r;
+    return json({ error: "auth_failed" }, 500);
+  }
+  const admin = ctx.adminClient;
+
+  const url = new URL(req.url);
+  const tab = (url.searchParams.get("tab") ?? "pending_release") as Tab;
+  const search = (url.searchParams.get("search") ?? "").trim().toLowerCase();
+  const page = Math.max(1, Number(url.searchParams.get("page") ?? 1));
+  const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") ?? 25)));
+
+  let q = admin
+    .from("payouts")
+    .select(`
+      id, status, amount, currency_code, release_blocked, payout_blocked_reason,
+      retry_allowed, failed_attempt_count, failure_reason, provider_reference,
+      released_at, created_at, initiated_at,
+      transaction_id, seller_id,
+      transactions:transaction_id (
+        id, transaction_code, money_status, status, dispute_status, needs_release_review,
+        item_title:source_product_id
+      ),
+      profiles:seller_id (
+        full_name, email, avatar_url
+      )
+    `, { count: "exact" });
+
+  switch (tab) {
+    case "pending_release":
+      q = q.eq("status", "awaiting_release").eq("release_blocked", false);
+      break;
+    case "blocked":
+      q = q.or("release_blocked.eq.true,status.eq.blocked");
+      break;
+    case "processing":
+      q = q.in("status", ["pending", "processing"]);
+      break;
+    case "completed":
+      q = q.eq("status", "completed");
+      break;
+    case "failed":
+      q = q.eq("status", "failed");
+      break;
+    case "reversed":
+      q = q.eq("status", "reversed");
+      break;
+    case "on_hold":
+      // Filtered below in JS using needs_release_review
+      break;
+    case "all":
+    default:
+      break;
+  }
+
+  q = q.order("created_at", { ascending: true }).range((page - 1) * limit, page * limit - 1);
+
+  const { data: rows, error, count } = await q;
+  if (error) return json({ error: "list_failed", detail: error.message }, 500);
+
+  // Bulk-fetch payout accounts by seller_id
+  const sellerIds = Array.from(new Set((rows ?? []).map((r: any) => r.seller_id))).filter(Boolean);
+  let accountMap = new Map<string, any>();
+  if (sellerIds.length > 0) {
+    const { data: accounts } = await admin
+      .from("payout_accounts")
+      .select("user_id, bank_name, account_number, account_name, verification_status, provider_recipient_code")
+      .in("user_id", sellerIds);
+    for (const a of (accounts ?? []) as any[]) accountMap.set(a.user_id, a);
+  }
+
+  // Fetch pricing snapshots for the page
+  const txIds = Array.from(new Set((rows ?? []).map((r: any) => r.transaction_id))).filter(Boolean);
+  let pricingMap = new Map<string, any>();
+  if (txIds.length > 0) {
+    const { data: prices } = await admin
+      .from("transaction_pricing")
+      .select("transaction_id, item_amount, platform_fee_amount, processing_fee_amount, total_amount, currency_code")
+      .in("transaction_id", txIds);
+    for (const p of (prices ?? []) as any[]) pricingMap.set(p.transaction_id, p);
+  }
+
+  // Also fetch refunds-in-flight + product titles for snippets
+  let refundMap = new Set<string>();
+  if (txIds.length > 0) {
+    const { data: refunds } = await admin
+      .from("refunds")
+      .select("transaction_id, status")
+      .in("transaction_id", txIds)
+      .in("status", ["pending", "processing"]);
+    for (const r of (refunds ?? []) as any[]) refundMap.add(r.transaction_id);
+  }
+
+  const productIds = Array.from(new Set((rows ?? []).map((r: any) => r.transactions?.item_title).filter(Boolean)));
+  let productMap = new Map<string, string>();
+  if (productIds.length > 0) {
+    const { data: prods } = await admin.from("products").select("id, title").in("id", productIds);
+    for (const p of (prods ?? []) as any[]) productMap.set(p.id, p.title);
+  }
+
+  const MAX_PROTECTION_FEE = 2500;
+
+  let mapped = (rows ?? []).map((r: any) => {
+    const pricing = pricingMap.get(r.transaction_id);
+    const itemTotal = Number(pricing?.item_amount ?? 0);
+    const rawProtection = Number(pricing?.platform_fee_amount ?? 0);
+    const protectionFee = Math.min(rawProtection, MAX_PROTECTION_FEE);
+    const paymentProcessingFee = Number(pricing?.processing_fee_amount ?? 0);
+    const totalCharged = itemTotal + protectionFee + paymentProcessingFee;
+    const sellerPayout = Math.max(itemTotal - protectionFee, Number(r.amount ?? 0));
+    const account = accountMap.get(r.seller_id) ?? null;
+    const profile = r.profiles;
+    return {
+      id: r.id,
+      status: r.status,
+      amount: Number(r.amount ?? 0),
+      currency: r.currency_code ?? "NGN",
+      release_blocked: !!r.release_blocked,
+      payout_blocked_reason: r.payout_blocked_reason ?? null,
+      retry_allowed: !!r.retry_allowed,
+      failed_attempt_count: r.failed_attempt_count ?? 0,
+      failure_reason: r.failure_reason ?? null,
+      provider_reference: r.provider_reference ?? null,
+      entered_queue_at: r.created_at,
+      released_at: r.released_at,
+      initiated_at: r.initiated_at,
+      transaction: {
+        id: r.transactions?.id ?? r.transaction_id,
+        code: r.transactions?.transaction_code ?? "",
+        money_status: r.transactions?.money_status ?? null,
+        status: r.transactions?.status ?? null,
+        dispute_status: r.transactions?.dispute_status ?? null,
+        needs_release_review: !!r.transactions?.needs_release_review,
+        item_title: r.transactions?.item_title ? (productMap.get(r.transactions.item_title) ?? null) : null,
+        refund_in_flight: refundMap.has(r.transaction_id),
+      },
+      seller: {
+        id: r.seller_id,
+        name: profile?.full_name ?? "Seller",
+        email: profile?.email ?? null,
+        avatar_url: profile?.avatar_url ?? null,
+      },
+      payout_account: account ? {
+        bank_name: account.bank_name ?? null,
+        masked_account: maskAccount(account.account_number),
+        account_name: account.account_name ?? null,
+        verification_status: account.verification_status ?? null,
+        has_recipient_code: !!account.provider_recipient_code,
+      } : null,
+      pricing: {
+        item_total: itemTotal,
+        protection_fee: protectionFee,
+        protection_fee_raw: rawProtection,
+        protection_fee_capped: rawProtection > MAX_PROTECTION_FEE,
+        payment_processing_fee: paymentProcessingFee,
+        total_charged: totalCharged,
+        seller_payout: sellerPayout,
+        currency: pricing?.currency_code ?? "NGN",
+      },
+    };
+  });
+
+  if (tab === "on_hold") {
+    mapped = mapped.filter((r) => r.transaction.needs_release_review);
+  }
+
+  if (search.length > 0) {
+    mapped = mapped.filter((r) =>
+      r.seller.name?.toLowerCase().includes(search) ||
+      r.seller.email?.toLowerCase().includes(search) ||
+      r.transaction.code?.toLowerCase().includes(search) ||
+      r.id.toLowerCase().includes(search) ||
+      r.provider_reference?.toLowerCase().includes(search) ||
+      r.payout_account?.masked_account?.toLowerCase().includes(search)
+    );
+  }
+
+  return json({
+    rows: mapped,
+    pagination: { page, limit, total: count ?? mapped.length, total_pages: Math.max(1, Math.ceil((count ?? mapped.length) / limit)) },
+  });
+});

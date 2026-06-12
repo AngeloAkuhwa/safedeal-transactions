@@ -7,6 +7,7 @@ const BUILT_ROUTES = new Set<string>([
   "/admin/offers",
   "/admin/transactions",
   "/admin/disputes",
+  "/admin/payouts",
 ]);
 
 export function isBuiltAdminRoute(href: string | null | undefined): boolean {

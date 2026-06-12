@@ -639,6 +639,13 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                     )}
                     caption={!resolvedAt ? "Pending resolution" : undefined} />
                 </div>
+                {payout?.id && resolvedAt && (
+                  <div className="px-5 md:px-0 mt-3 text-right">
+                    <a href={`/admin/payouts?payout_id=${payout.id}`} className="text-xs text-primary hover:underline">
+                      View Payout →
+                    </a>
+                  </div>
+                )}
               </div>
 
               {active.isDisputeActive && moneyStatus === "funds_pending_release" && (

@@ -1520,7 +1520,18 @@ export default function AdminTransactionDetail() {
                 </div>
 
                 <div id="payouts">
-                  <h3 className="text-sm font-medium text-foreground mb-3">Payout</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-foreground">Payout</h3>
+                    {data.payout?.id && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/admin/payouts?payout_id=${data.payout.id}`)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        View Payout →
+                      </button>
+                    )}
+                  </div>
               {!data.payout ? (
                 <div className="text-sm text-muted-foreground">
                   {dispute ? "No payout yet — pending dispute resolution." : "No payout recorded."}
