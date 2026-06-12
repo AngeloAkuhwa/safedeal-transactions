@@ -2,19 +2,21 @@ import { Loader2 } from "lucide-react";
 import {
   FaArrowsRotate, FaTriangleExclamation, FaCheck, FaClock, FaBan,
   FaEye, FaRotateRight, FaEllipsisVertical, FaChevronLeft, FaChevronRight,
-  FaArrowUpRightFromSquare, FaXmark,
+  FaArrowUpRightFromSquare, FaXmark, FaCircleInfo, FaPenToSquare, FaUser,
+  FaReceipt, FaNoteSticky, FaPause, FaDownload, FaCircleCheck,
 } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatMoney } from "@/lib/format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import { PayoutStatusPill } from "./PayoutStatusPill";
+import { toast } from "@/hooks/use-toast";
 import type { PayoutRow } from "@/services/admin-payouts.service";
 
 interface Props {
@@ -117,6 +119,127 @@ function buildPageList(current: number, total: number): (number | "…")[] {
   if (end < total - 1) pages.push("…");
   pages.push(total);
   return pages;
+}
+
+function comingSoon(label: string) {
+  toast({ title: `${label} — coming soon` });
+}
+
+function RowMenu({
+  row, onOpen, onOpenTransaction, onRetry, onUnblock,
+}: {
+  row: PayoutRow;
+  onOpen: () => void;
+  onOpenTransaction: () => void;
+  onRetry: () => void;
+  onUnblock: () => void;
+}) {
+  const itemCls = "gap-2.5 cursor-pointer";
+  const seller = (
+    <DropdownMenuItem className={itemCls} onClick={() => comingSoon("View Seller Profile")}>
+      <FaUser className="text-blue-400" /> View Seller Profile
+    </DropdownMenuItem>
+  );
+  const tx = (
+    <DropdownMenuItem className={itemCls} onClick={onOpenTransaction}>
+      <FaReceipt className="text-blue-400" /> View Transaction
+    </DropdownMenuItem>
+  );
+  const note = (
+    <DropdownMenuItem className={itemCls} onClick={() => comingSoon("Add Internal Note")}>
+      <FaNoteSticky className="text-yellow-400" /> Add Internal Note
+    </DropdownMenuItem>
+  );
+  const block = (
+    <DropdownMenuItem className={`${itemCls} text-red-400 focus:text-red-400`} onClick={() => comingSoon("Block Payout")}>
+      <FaBan className="text-red-400" /> Block Payout
+    </DropdownMenuItem>
+  );
+
+  if (row.release_blocked) {
+    return (
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem className={itemCls} onClick={onOpen}>
+          <FaCircleInfo className="text-blue-400" /> View Block Reason
+        </DropdownMenuItem>
+        <DropdownMenuItem className={itemCls} onClick={onUnblock}>
+          <FaCheck className="text-emerald-400" /> Unblock Payout
+        </DropdownMenuItem>
+        {seller}
+        {tx}
+        <DropdownMenuSeparator />
+        {note}
+      </DropdownMenuContent>
+    );
+  }
+
+  if (row.status === "failed") {
+    return (
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem className={itemCls} onClick={onOpen}>
+          <FaCircleInfo className="text-blue-400" /> View Failure Details
+        </DropdownMenuItem>
+        <DropdownMenuItem className={itemCls} onClick={() => comingSoon("Update Bank Account")}>
+          <FaPenToSquare className="text-pink-400" /> Update Bank Account
+        </DropdownMenuItem>
+        {seller}
+        {tx}
+        <DropdownMenuSeparator />
+        {note}
+        {block}
+      </DropdownMenuContent>
+    );
+  }
+
+  if (row.status === "pending" || row.status === "processing") {
+    return (
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem className={itemCls} onClick={onOpen}>
+          <FaCircleInfo className="text-blue-400" /> View Processing Status
+        </DropdownMenuItem>
+        {seller}
+        <DropdownMenuItem className={itemCls} onClick={onOpenTransaction}>
+          <FaReceipt className="text-blue-400" /> View Transaction Details
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        {note}
+        <DropdownMenuItem className={`${itemCls} text-orange-400 focus:text-orange-400`} onClick={() => comingSoon("Pause Payout")}>
+          <FaPause className="text-orange-400" /> Pause Payout
+        </DropdownMenuItem>
+        {block}
+      </DropdownMenuContent>
+    );
+  }
+
+  if (row.status === "completed") {
+    return (
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem className={itemCls} onClick={onOpen}>
+          <FaCircleCheck className="text-emerald-400" /> View Completion Details
+        </DropdownMenuItem>
+        {seller}
+        {tx}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className={itemCls} onClick={() => comingSoon("Download Receipt")}>
+          <FaDownload className="text-blue-400" /> Download Receipt
+        </DropdownMenuItem>
+        {note}
+      </DropdownMenuContent>
+    );
+  }
+
+  // default: awaiting_release, on_hold, reversed, cancelled
+  return (
+    <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuItem className={itemCls} onClick={onOpen}>
+        <FaCircleInfo className="text-blue-400" /> View Details
+      </DropdownMenuItem>
+      {seller}
+      {tx}
+      <DropdownMenuSeparator />
+      {note}
+    </DropdownMenuContent>
+  );
 }
 
 export function PayoutsTable({
@@ -289,14 +412,13 @@ export function PayoutsTable({
                           <FaEllipsisVertical className="text-xs" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onOpen(r)}>View Details</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onOpenTransaction(r)}>Open Transaction</DropdownMenuItem>
-                        {r.status === "failed" && r.retry_allowed && (
-                          <DropdownMenuItem onClick={() => onRetry(r)}>Retry Payout</DropdownMenuItem>
-                        )}
-                        {r.release_blocked && <DropdownMenuItem onClick={() => onUnblock(r)}>Unblock Payout</DropdownMenuItem>}
-                      </DropdownMenuContent>
+                      <RowMenu
+                        row={r}
+                        onOpen={() => onOpen(r)}
+                        onOpenTransaction={() => onOpenTransaction(r)}
+                        onRetry={() => onRetry(r)}
+                        onUnblock={() => onUnblock(r)}
+                      />
                     </DropdownMenu>
                   </div>
                 </td>
