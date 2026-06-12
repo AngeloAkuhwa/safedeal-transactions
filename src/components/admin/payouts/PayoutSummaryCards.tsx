@@ -55,14 +55,11 @@ export function PayoutSummaryCards({ summary, loading }: Props) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
       <Tile icon={Clock} tone="orange"
-        label="Pending Payouts" value={`${s.pending_release.count}`}
-        sub={formatMoney(s.pending_release.amount, "NGN")} />
+        label="Pending Payouts" value={`${s.pending_release.count}`} />
       <Tile icon={RotateCw} tone="blue"
-        label="Processing" value={`${s.processing.count}`}
-        sub={formatMoney(s.processing.amount, "NGN")} />
+        label="Processing" value={`${s.processing.count}`} />
       <Tile icon={AlertTriangle} tone="red"
-        label="Failed Payouts" value={`${s.failed.count}`}
-        sub={formatMoney(s.failed.amount, "NGN")} />
+        label="Failed Payouts" value={`${s.failed.count}`} />
       <Tile icon={CheckCircle2} tone="emerald" badge="Today"
         label="Paid Today" value={formatMoney(s.released_today.amount, "NGN")} />
       <Tile icon={CalendarDays} tone="purple" badge="Week"
