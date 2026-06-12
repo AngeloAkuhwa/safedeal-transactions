@@ -230,8 +230,8 @@ export default function AdminPayouts() {
 
       <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <PayoutTabs active={tab} onChange={(t) => { setTab(t); setSelectedIds(new Set()); }} summary={summary} />
-          <PayoutFilters search={search} onSearch={setSearch} />
+          <PayoutTabs active={tab} onChange={(t) => { setTab(t); setPage(1); setSelectedIds(new Set()); }} summary={summary} />
+          <PayoutFilters search={search} onSearch={(v) => { setSearch(v); setPage(1); }} />
         </div>
 
         <PayoutAdvancedFilters />
