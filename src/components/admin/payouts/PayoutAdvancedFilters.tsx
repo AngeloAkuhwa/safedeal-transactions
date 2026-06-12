@@ -7,11 +7,11 @@ export function PayoutAdvancedFilters() {
     { label: "Quick Filters", options: ["None", "Failed Only", "Blocked Only", "High Priority"] },
   ];
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 pt-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
       {fields.map((f) => (
         <div key={f.label}>
-          <label className="text-muted-foreground text-xs font-medium mb-2 block">{f.label}</label>
-          <select className="w-full h-10 px-3 bg-muted/40 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-emerald-500">
+          <label className="text-slate-400 text-xs font-medium mb-2 block">{f.label}</label>
+          <select className="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
             {f.options.map((o) => <option key={o}>{o}</option>)}
           </select>
         </div>
