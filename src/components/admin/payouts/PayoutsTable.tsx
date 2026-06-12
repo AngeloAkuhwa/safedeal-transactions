@@ -1,4 +1,9 @@
-import { Loader2, Eye, MoreHorizontal, RefreshCw, AlertTriangle, RotateCw, CheckCircle2, Clock, Ban, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import {
+  FaArrowsRotate, FaTriangleExclamation, FaCheck, FaClock, FaBan,
+  FaEye, FaRotateRight, FaEllipsisVertical, FaChevronLeft, FaChevronRight,
+  FaArrowUpRightFromSquare, FaXmark,
+} from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -72,11 +77,11 @@ function primaryCTA(r: PayoutRow, releasingId: string | null,
 }
 
 function PayoutIdIcon({ row }: { row: PayoutRow }) {
-  if (row.release_blocked) return <div className="w-8 h-8 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center justify-center"><Ban className="h-3.5 w-3.5 text-red-400" /></div>;
-  if (row.status === "failed") return <div className="w-8 h-8 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center justify-center"><AlertTriangle className="h-3.5 w-3.5 text-red-400" /></div>;
-  if (row.status === "completed") return <div className="w-8 h-8 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-center"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /></div>;
-  if (row.status === "pending" || row.status === "processing") return <div className="w-8 h-8 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-center justify-center"><RotateCw className="h-3.5 w-3.5 text-blue-400" /></div>;
-  return <div className="w-8 h-8 bg-orange-500/10 border border-orange-500/30 rounded-lg flex items-center justify-center"><Clock className="h-3.5 w-3.5 text-orange-400" /></div>;
+  if (row.release_blocked) return <div className="w-8 h-8 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center justify-center shrink-0"><FaBan className="text-red-400 text-xs" /></div>;
+  if (row.status === "failed") return <div className="w-8 h-8 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center justify-center shrink-0"><FaTriangleExclamation className="text-red-400 text-xs" /></div>;
+  if (row.status === "completed") return <div className="w-8 h-8 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-center shrink-0"><FaCheck className="text-emerald-400 text-xs" /></div>;
+  if (row.status === "pending" || row.status === "processing") return <div className="w-8 h-8 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-center justify-center shrink-0"><FaArrowsRotate className="text-blue-400 text-xs" /></div>;
+  return <div className="w-8 h-8 bg-orange-500/10 border border-orange-500/30 rounded-lg flex items-center justify-center shrink-0"><FaClock className="text-orange-400 text-xs" /></div>;
 }
 
 function payoutCaption(r: PayoutRow): { text: string; tone: "red" | "muted" | "emerald" } | null {
