@@ -412,14 +412,13 @@ export function PayoutsTable({
                           <FaEllipsisVertical className="text-xs" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onOpen(r)}>View Details</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onOpenTransaction(r)}>Open Transaction</DropdownMenuItem>
-                        {r.status === "failed" && r.retry_allowed && (
-                          <DropdownMenuItem onClick={() => onRetry(r)}>Retry Payout</DropdownMenuItem>
-                        )}
-                        {r.release_blocked && <DropdownMenuItem onClick={() => onUnblock(r)}>Unblock Payout</DropdownMenuItem>}
-                      </DropdownMenuContent>
+                      <RowMenu
+                        row={r}
+                        onOpen={() => onOpen(r)}
+                        onOpenTransaction={() => onOpenTransaction(r)}
+                        onRetry={() => onRetry(r)}
+                        onUnblock={() => onUnblock(r)}
+                      />
                     </DropdownMenu>
                   </div>
                 </td>
