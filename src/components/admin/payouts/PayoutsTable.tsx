@@ -436,11 +436,8 @@ export function PayoutsTable({
                 </td>
                 <td className="p-4" onClick={(ev) => ev.stopPropagation()}>
                   <div className="flex items-center gap-2">
-                    {primaryCTA(r, releasingId,
+                    {renderPrimaryActions(r, releasingId,
                       () => onRelease(r), () => onRetry(r), () => onUnblock(r), () => onOpen(r))}
-                    <button onClick={() => onOpen(r)} className={`${slateBtn} hidden md:inline-flex`}>
-                      <FaEye className="text-xs" /> Details
-                    </button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all">
