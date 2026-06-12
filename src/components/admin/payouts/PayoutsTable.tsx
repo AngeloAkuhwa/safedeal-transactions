@@ -144,6 +144,21 @@ function initials(name?: string | null): string {
   return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
 }
 
+function friendlyPayoutId(r: PayoutRow): string {
+  const year = (() => {
+    try { return new Date(r.entered_queue_at).getFullYear(); } catch { return new Date().getFullYear(); }
+  })();
+  const tail = (r.id ?? "").replace(/-/g, "").slice(-6).toUpperCase();
+  return `PAY-${year}-${tail || "000000"}`;
+}
+
+function sellerTierLabel(r: PayoutRow): string {
+  const s = r.seller as unknown as { tier_label?: string; is_verified?: boolean; verified?: boolean };
+  if (s?.tier_label) return s.tier_label;
+  if (s?.is_verified || s?.verified) return "Verified Seller";
+  return "Seller";
+}
+
 function buildPageList(current: number, total: number): (number | "…")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
   const pages: (number | "…")[] = [1];
@@ -361,7 +376,7 @@ export function PayoutsTable({
                     <div>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="text-white font-medium text-sm cursor-default whitespace-nowrap">{r.id.slice(0, 14)}…</div>
+                          <div className="text-white font-medium text-sm cursor-default whitespace-nowrap">{friendlyPayoutId(r)}</div>
                         </TooltipTrigger>
                         <TooltipContent>{r.id}</TooltipContent>
                       </Tooltip>
@@ -381,7 +396,7 @@ export function PayoutsTable({
                     </Avatar>
                     <div>
                       <div className="text-white font-medium text-sm whitespace-nowrap">{r.seller.name}</div>
-                      <div className="text-slate-400 text-xs whitespace-nowrap">{r.seller.email ?? "Seller"}</div>
+                      <div className="text-slate-400 text-xs whitespace-nowrap">{sellerTierLabel(r)}</div>
                     </div>
                   </div>
                 </td>
