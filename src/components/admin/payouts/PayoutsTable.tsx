@@ -121,6 +121,127 @@ function buildPageList(current: number, total: number): (number | "…")[] {
   return pages;
 }
 
+function comingSoon(label: string) {
+  toast({ title: `${label} — coming soon` });
+}
+
+function RowMenu({
+  row, onOpen, onOpenTransaction, onRetry, onUnblock,
+}: {
+  row: PayoutRow;
+  onOpen: () => void;
+  onOpenTransaction: () => void;
+  onRetry: () => void;
+  onUnblock: () => void;
+}) {
+  const itemCls = "gap-2.5 cursor-pointer";
+  const seller = (
+    <DropdownMenuItem className={itemCls} onClick={() => comingSoon("View Seller Profile")}>
+      <FaUser className="text-blue-400" /> View Seller Profile
+    </DropdownMenuItem>
+  );
+  const tx = (
+    <DropdownMenuItem className={itemCls} onClick={onOpenTransaction}>
+      <FaReceipt className="text-blue-400" /> View Transaction
+    </DropdownMenuItem>
+  );
+  const note = (
+    <DropdownMenuItem className={itemCls} onClick={() => comingSoon("Add Internal Note")}>
+      <FaNoteSticky className="text-yellow-400" /> Add Internal Note
+    </DropdownMenuItem>
+  );
+  const block = (
+    <DropdownMenuItem className={`${itemCls} text-red-400 focus:text-red-400`} onClick={() => comingSoon("Block Payout")}>
+      <FaBan className="text-red-400" /> Block Payout
+    </DropdownMenuItem>
+  );
+
+  if (row.release_blocked) {
+    return (
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem className={itemCls} onClick={onOpen}>
+          <FaCircleInfo className="text-blue-400" /> View Block Reason
+        </DropdownMenuItem>
+        <DropdownMenuItem className={itemCls} onClick={onUnblock}>
+          <FaCheck className="text-emerald-400" /> Unblock Payout
+        </DropdownMenuItem>
+        {seller}
+        {tx}
+        <DropdownMenuSeparator />
+        {note}
+      </DropdownMenuContent>
+    );
+  }
+
+  if (row.status === "failed") {
+    return (
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem className={itemCls} onClick={onOpen}>
+          <FaCircleInfo className="text-blue-400" /> View Failure Details
+        </DropdownMenuItem>
+        <DropdownMenuItem className={itemCls} onClick={() => comingSoon("Update Bank Account")}>
+          <FaPenToSquare className="text-pink-400" /> Update Bank Account
+        </DropdownMenuItem>
+        {seller}
+        {tx}
+        <DropdownMenuSeparator />
+        {note}
+        {block}
+      </DropdownMenuContent>
+    );
+  }
+
+  if (row.status === "pending" || row.status === "processing") {
+    return (
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem className={itemCls} onClick={onOpen}>
+          <FaCircleInfo className="text-blue-400" /> View Processing Status
+        </DropdownMenuItem>
+        {seller}
+        <DropdownMenuItem className={itemCls} onClick={onOpenTransaction}>
+          <FaReceipt className="text-blue-400" /> View Transaction Details
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        {note}
+        <DropdownMenuItem className={`${itemCls} text-orange-400 focus:text-orange-400`} onClick={() => comingSoon("Pause Payout")}>
+          <FaPause className="text-orange-400" /> Pause Payout
+        </DropdownMenuItem>
+        {block}
+      </DropdownMenuContent>
+    );
+  }
+
+  if (row.status === "completed") {
+    return (
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem className={itemCls} onClick={onOpen}>
+          <FaCircleCheck className="text-emerald-400" /> View Completion Details
+        </DropdownMenuItem>
+        {seller}
+        {tx}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className={itemCls} onClick={() => comingSoon("Download Receipt")}>
+          <FaDownload className="text-blue-400" /> Download Receipt
+        </DropdownMenuItem>
+        {note}
+      </DropdownMenuContent>
+    );
+  }
+
+  // default: awaiting_release, on_hold, reversed, cancelled
+  return (
+    <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuItem className={itemCls} onClick={onOpen}>
+        <FaCircleInfo className="text-blue-400" /> View Details
+      </DropdownMenuItem>
+      {seller}
+      {tx}
+      <DropdownMenuSeparator />
+      {note}
+    </DropdownMenuContent>
+  );
+}
+
 export function PayoutsTable({
   rows, loading, selected, onToggleSelect, onToggleSelectAll, onOpen,
   onRelease, onRetry, onUnblock, onOpenTransaction, releasingId,
