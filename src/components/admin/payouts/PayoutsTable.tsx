@@ -53,31 +53,66 @@ function eligibleForRelease(r: PayoutRow): { ok: boolean; reason?: string } {
 const emeraldBtn = "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed";
 const slateBtn = "px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-xs font-medium whitespace-nowrap";
 
-function primaryCTA(r: PayoutRow, releasingId: string | null,
-  onRelease: () => void, onRetry: () => void, onUnblock: () => void, onOpen: () => void) {
+const iconSquareBtn = "w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all";
+
+function renderPrimaryActions(
+  r: PayoutRow, releasingId: string | null,
+  onRelease: () => void, onRetry: () => void, onUnblock: () => void, onOpen: () => void,
+) {
   const isReleasing = releasingId === r.id;
+  const detailsBtn = (
+    <button onClick={onOpen} className={slateBtn}>
+      <FaEye className="text-xs" /> Details
+    </button>
+  );
+
   if (r.release_blocked) {
-    return <button onClick={onUnblock} className={slateBtn}><FaBan className="text-xs" />Unblock</button>;
+    return <>
+      <button onClick={onUnblock} className={slateBtn}><FaBan className="text-xs" />Unblock</button>
+      {detailsBtn}
+    </>;
   }
-  if (r.status === "failed" && r.retry_allowed) {
-    return <button onClick={onRetry} className={emeraldBtn}><FaRotateRight className="text-xs" />Retry</button>;
+  if (r.status === "failed") {
+    return <>
+      {r.retry_allowed && (
+        <button onClick={onRetry} className={emeraldBtn}><FaRotateRight className="text-xs" />Retry</button>
+      )}
+      {detailsBtn}
+    </>;
+  }
+  if (r.status === "pending" || r.status === "processing") {
+    return (
+      <button onClick={onOpen} className={slateBtn}><FaEye className="text-xs" />View</button>
+    );
+  }
+  if (r.status === "completed") {
+    return (
+      <button onClick={onOpen} className={iconSquareBtn} aria-label="View details">
+        <FaEye className="text-xs" />
+      </button>
+    );
   }
   if (r.status === "awaiting_release") {
     const e = eligibleForRelease(r);
-    const btn = (
+    const releaseBtn = (
       <button disabled={!e.ok || isReleasing} onClick={onRelease} className={emeraldBtn}>
         {isReleasing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><FaCheck className="text-xs" />Release</>}
       </button>
     );
-    if (e.ok) return btn;
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild><span tabIndex={0}>{btn}</span></TooltipTrigger>
-        <TooltipContent>{e.reason}</TooltipContent>
-      </Tooltip>
-    );
+    return <>
+      {e.ok ? releaseBtn : (
+        <Tooltip>
+          <TooltipTrigger asChild><span tabIndex={0}>{releaseBtn}</span></TooltipTrigger>
+          <TooltipContent>{e.reason}</TooltipContent>
+        </Tooltip>
+      )}
+      {detailsBtn}
+    </>;
   }
-  return <button onClick={onOpen} className={slateBtn}><FaEye className="text-xs" />View</button>;
+  return <>
+    <button onClick={onOpen} className={slateBtn}><FaEye className="text-xs" />View</button>
+    {detailsBtn}
+  </>;
 }
 
 function PayoutIdIcon({ row }: { row: PayoutRow }) {
@@ -107,6 +142,21 @@ function initials(name?: string | null): string {
   if (!name) return "?";
   const parts = name.trim().split(/\s+/).slice(0, 2);
   return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
+}
+
+function friendlyPayoutId(r: PayoutRow): string {
+  const year = (() => {
+    try { return new Date(r.entered_queue_at).getFullYear(); } catch { return new Date().getFullYear(); }
+  })();
+  const tail = (r.id ?? "").replace(/-/g, "").slice(-6).toUpperCase();
+  return `PAY-${year}-${tail || "000000"}`;
+}
+
+function sellerTierLabel(r: PayoutRow): string {
+  const s = r.seller as unknown as { tier_label?: string; is_verified?: boolean; verified?: boolean };
+  if (s?.tier_label) return s.tier_label;
+  if (s?.is_verified || s?.verified) return "Verified Seller";
+  return "Seller";
 }
 
 function buildPageList(current: number, total: number): (number | "…")[] {
@@ -326,7 +376,7 @@ export function PayoutsTable({
                     <div>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="text-white font-medium text-sm cursor-default whitespace-nowrap">{r.id.slice(0, 14)}…</div>
+                          <div className="text-white font-medium text-sm cursor-default whitespace-nowrap">{friendlyPayoutId(r)}</div>
                         </TooltipTrigger>
                         <TooltipContent>{r.id}</TooltipContent>
                       </Tooltip>
@@ -346,7 +396,7 @@ export function PayoutsTable({
                     </Avatar>
                     <div>
                       <div className="text-white font-medium text-sm whitespace-nowrap">{r.seller.name}</div>
-                      <div className="text-slate-400 text-xs whitespace-nowrap">{r.seller.email ?? "Seller"}</div>
+                      <div className="text-slate-400 text-xs whitespace-nowrap">{sellerTierLabel(r)}</div>
                     </div>
                   </div>
                 </td>
@@ -401,11 +451,8 @@ export function PayoutsTable({
                 </td>
                 <td className="p-4" onClick={(ev) => ev.stopPropagation()}>
                   <div className="flex items-center gap-2">
-                    {primaryCTA(r, releasingId,
+                    {renderPrimaryActions(r, releasingId,
                       () => onRelease(r), () => onRetry(r), () => onUnblock(r), () => onOpen(r))}
-                    <button onClick={() => onOpen(r)} className={`${slateBtn} hidden md:inline-flex`}>
-                      <FaEye className="text-xs" /> Details
-                    </button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all">
