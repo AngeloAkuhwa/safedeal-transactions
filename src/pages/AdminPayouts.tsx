@@ -3,6 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Download, Play, Wallet, AlertTriangle } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { AdminReadingModeControl } from "@/components/admin/AdminReadingModeControl";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
 import { PayoutSummaryCards } from "@/components/admin/payouts/PayoutSummaryCards";
@@ -24,7 +27,7 @@ export default function AdminPayouts() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const initialTab = (searchParams.get("tab") as PayoutTab | null);
-  const [tab, setTab] = useState<PayoutTab>(initialTab && VALID_TABS.includes(initialTab) ? initialTab : "pending_release");
+  const [tab, setTab] = useState<PayoutTab>(initialTab && VALID_TABS.includes(initialTab) ? initialTab : "all");
   const [search, setSearch] = useState("");
   const [summary, setSummary] = useState<PayoutSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
@@ -150,40 +153,75 @@ export default function AdminPayouts() {
   const pendingTotal = summary?.summary.pending_release.amount ?? 0;
   const balanceShort = bal?.ok && typeof bal.available === "number" && bal.available < pendingTotal;
 
-  return (
-    <AdminLayout title="Payout Management" subtitle="Monitor and manage seller payout processing" badges={SIDEBAR_BADGES}>
-      {/* Header actions */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-2 text-xs">
-          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border ${
-            bal?.ok
-              ? balanceShort
-                ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-              : "bg-muted text-muted-foreground border-border"
-          }`}>
-            <Wallet className="h-3.5 w-3.5" />
-            <span className="font-medium">Paystack Balance</span>
-            <span>·</span>
-            <span>
-              {bal?.ok && typeof bal.available === "number"
-                ? formatMoney(bal.available, bal.currency ?? "NGN")
-                : "Balance unavailable"}
+  const eligibleSelectedCount = selectedRows.filter((r) => eligibleForRelease(r).ok).length;
+  const batchDisabled = batchProcessing || eligibleSelectedCount === 0;
+
+  const headerSlot = (
+    <div className="sticky top-0 z-30 hidden border-b border-border bg-background/85 backdrop-blur lg:block">
+      <div className="flex items-start justify-between gap-4 px-8 py-5">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold leading-tight text-foreground">Payout Management</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Monitor and manage seller payout processing</p>
+          <div className="mt-2">
+            <span
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs ${
+                bal?.ok
+                  ? balanceShort
+                    ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                    : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                  : "bg-muted text-muted-foreground border-border"
+              }`}
+            >
+              <Wallet className="h-3.5 w-3.5" />
+              <span className="font-medium">Paystack Balance</span>
+              <span>·</span>
+              <span>
+                {bal?.ok && typeof bal.available === "number"
+                  ? formatMoney(bal.available, bal.currency ?? "NGN")
+                  : "Unavailable"}
+              </span>
+              {balanceShort && <AlertTriangle className="h-3.5 w-3.5" />}
             </span>
-            {balanceShort && <AlertTriangle className="h-3.5 w-3.5" />}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          <AdminReadingModeControl variant="desktop" />
+          <ThemeToggle />
           <Button variant="outline" size="sm" className="gap-2">
             <Download className="h-4 w-4" /> Export Report
           </Button>
-          <Button size="sm" className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-            onClick={handleBatchProcess} disabled={batchProcessing || selectedRows.length === 0}>
-            <Play className="h-4 w-4" /> Process Batch
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button
+                  size="sm"
+                  className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={handleBatchProcess}
+                  disabled={batchDisabled}
+                >
+                  <Play className="h-4 w-4" /> Process Batch
+                  {eligibleSelectedCount > 0 && (
+                    <span className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px]">{eligibleSelectedCount}</span>
+                  )}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {batchDisabled && (
+              <TooltipContent>Select eligible pending payouts to process</TooltipContent>
+            )}
+          </Tooltip>
         </div>
       </div>
+    </div>
+  );
 
+  return (
+    <AdminLayout
+      title="Payout Management"
+      subtitle="Monitor and manage seller payout processing"
+      badges={SIDEBAR_BADGES}
+      headerSlot={headerSlot}
+    >
       <PayoutSummaryCards summary={summary} loading={summaryLoading} />
 
       <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4">
