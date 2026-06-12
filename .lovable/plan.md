@@ -1,43 +1,33 @@
 ## Goal
-End-to-end visual alignment of `/admin/payouts` table with the reference design. The header, KPI tiles, filters card, and pagination shell already match — gaps are inside table cells and the pagination buttons.
+Make the Payouts page top section (header → KPIs → tabs/filters) match the first screenshot 1:1. Visual/structural changes only — no business logic.
 
-## Gaps to fix
-1. **SELLER cell** — design shows avatar circle + seller name + tier subtitle. Current shows name + masked account.
-2. **TRANSACTION cell** — design shows TXN code with an inline external-link icon. Current has no link icon.
-3. **PAYOUT ACCOUNT cell** — design shows bank name + inline `VERIFIED`/`INVALID` chip + masked account + account-type label. Current shows bank + masked only.
-4. **STATUS cell** — design shows pill with a small leading icon (✓ / × / spinner / clock). Current pill is text-only.
-5. **PAGINATION** — design shows numbered pages with ellipsis (`1 2 3 … 22`) plus prev/next chevrons. Current shows only the current page + maybe next.
+## Gaps vs design
+1. **Paystack Balance strip** — design shows none above the KPI tiles. Currently rendered.
+2. **KPI tiles**:
+   - Design shows colored "+N" delta badges on the first three tiles (Pending `+3` orange, Processing `+12` blue, Failed `+5` red). Currently none.
+   - Design tiles show only the big number; **no money sub-line** under Pending/Processing/Failed. Currently `₦0.00` sub is shown.
+   - Paid Today / Paid This Week tiles in design show only the large money value, no sub line. Match.
+3. **Tabs row** — design has exactly 6 tabs in this order: `All, Pending, Processing, Failed, Completed, Blocked`. Currently 8 (`All, Pending Release, Blocked, Processing, Completed, Failed, Reversed, Disputed / On Hold`) causing horizontal scroll.
+4. **Filters button icon** — design uses a funnel (`Filter`) icon. Currently `SlidersHorizontal`.
 
-Everything else (header, KPI cards, filter card, tabs, "Payout Records" header, table columns, primary/Details/kebab actions, NGN currency) already matches.
-
-## Changes (UI only)
-
-### `src/components/admin/payouts/PayoutsTable.tsx`
-- **Seller cell**: add an `Avatar` (shadcn) using `r.seller.avatar_url`, with initials fallback from `r.seller.name`. Subtitle = `r.seller.email ?? "Seller"`. Drop the masked-account subtitle (it's already in Payout Account column).
-- **Transaction cell**: add a small `ExternalLink` icon button inline beside `r.transaction.code` that calls `onOpenTransaction(r)`; keep `item_title` subtitle.
-- **Payout Account cell**: when account exists, render bank name + small `VERIFIED` (emerald) or `INVALID` (red) chip on the same row; subtitle shows masked account + " · " + account type if available (fall back to bank name only). When no account, keep red "No verified payout account".
-- **Pagination**: replace current minimal nav with a numbered pager that always shows page 1, current ±1, last, with `…` separators; emerald active button. Wire to a new `onPageChange?: (page: number) => void` prop (no-op if not provided — keeps current call sites working) and trigger refetch.
-- Header row + Refresh button + "X payouts found" stays as-is.
-
-### `src/components/admin/payouts/PayoutStatusPill.tsx`
-- Add a small leading lucide icon per status:
-  - `awaiting_release` → `Clock`
-  - `pending`/`processing` → `Loader2` (no spin)
-  - `completed` → `CheckCircle2`
-  - `failed` / `blocked` / `release_blocked` → `XCircle` / `Ban`
-  - `reversed` → `Undo2`
-  - `on_hold` → `Pause`
-- Render `<icon /> {label}` inside the existing Badge with tight gap.
+## Changes
 
 ### `src/pages/AdminPayouts.tsx`
-- Add `page` state and `onPageChange` handler; include `page` in `listPayouts({ tab, search, page, limit: 50 })`.
-- Pass `page` and `onPageChange` to `PayoutsTable`.
-- Reset page to 1 on tab/search change.
+- Remove the Paystack Balance info strip block entirely (keep the `bal`/`balanceShort` calc only if still needed elsewhere; otherwise drop).
+- No other logic changes.
 
-### Service / API
-- `listPayouts` already accepts `page`. No service or backend changes.
+### `src/components/admin/payouts/PayoutTabs.tsx`
+- Reduce `TABS` to: `all`, `pending_release` (label "Pending"), `processing`, `failed`, `completed`, `blocked`. Drop `reversed` and `on_hold`. Order to match design.
+- Remove `overflow-x-auto` (no longer needed).
+
+### `src/components/admin/payouts/PayoutSummaryCards.tsx`
+- Remove the `sub` line from all six tiles (drop the `sub` prop usage).
+- Add `badge` to the first three tiles using deltas from `summary.summary.*.delta_24h` if present, otherwise omit. Format as `+N` with matching tone (orange/blue/red). Render with the same chip style already used for Today/Week/Avg.
+  - If the API doesn't expose a delta field, render the badge only when a numeric delta is available; otherwise hide. (No backend change.)
+
+### `src/components/admin/payouts/PayoutFilters.tsx`
+- Swap `SlidersHorizontal` for `Filter` (lucide) icon to match the funnel in the design.
 
 ## Out of scope
-- No business-logic changes (eligibility, release, retry, batch).
-- No mobile card changes (already compact and outside the desktop spec).
-- No header/KPI/filter changes.
+- Table, mobile cards, drawer, batch bar, backend, RLS, services.
+- No changes to status pill or pagination (already aligned in prior pass).

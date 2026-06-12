@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -20,7 +20,7 @@ export function PayoutFilters({ search, onSearch }: Props) {
         />
       </div>
       <Button variant="outline" size="sm" className="gap-2 shrink-0">
-        <SlidersHorizontal className="h-4 w-4" />
+        <Filter className="h-4 w-4" />
         <span className="hidden sm:inline">Filters</span>
       </Button>
     </div>

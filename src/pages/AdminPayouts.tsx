@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Download, Play, Wallet, AlertTriangle } from "lucide-react";
+import { Download, Play } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
-import { formatMoney } from "@/lib/format";
 import { PayoutSummaryCards } from "@/components/admin/payouts/PayoutSummaryCards";
 import { PayoutAdvancedFilters } from "@/components/admin/payouts/PayoutAdvancedFilters";
 import { PayoutTabs } from "@/components/admin/payouts/PayoutTabs";
@@ -151,10 +150,6 @@ export default function AdminPayouts() {
     await Promise.all([loadList(), loadSummary()]);
   }
 
-  const bal = summary?.paystack_balance;
-  const pendingTotal = summary?.summary.pending_release.amount ?? 0;
-  const balanceShort = bal?.ok && typeof bal.available === "number" && bal.available < pendingTotal;
-
   const eligibleSelectedCount = selectedRows.filter((r) => eligibleForRelease(r).ok).length;
   const batchDisabled = batchProcessing || eligibleSelectedCount === 0;
 
@@ -201,31 +196,6 @@ export default function AdminPayouts() {
       badges={SIDEBAR_BADGES}
       headerSlot={headerSlot}
     >
-      {/* Paystack Balance info strip */}
-      <div
-        className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
-          bal?.ok
-            ? balanceShort
-              ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-              : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-            : "bg-muted/40 border-border text-muted-foreground"
-        }`}
-      >
-        <div className="flex items-center gap-2 min-w-0">
-          <Wallet className="h-4 w-4 shrink-0" />
-          <span className="font-medium">Paystack Balance</span>
-          <span className="opacity-60">·</span>
-          <span className="truncate">
-            {bal?.ok && typeof bal.available === "number"
-              ? formatMoney(bal.available, bal.currency ?? "NGN")
-              : "Unavailable"}
-          </span>
-        </div>
-        {balanceShort && (
-          <div className="flex items-center gap-1 text-xs"><AlertTriangle className="h-3.5 w-3.5" /> Below pending release total</div>
-        )}
-      </div>
-
       <PayoutSummaryCards summary={summary} loading={summaryLoading} />
 
       <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4">

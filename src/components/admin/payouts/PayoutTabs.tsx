@@ -3,13 +3,11 @@ import type { PayoutTab, PayoutSummary } from "@/services/admin-payouts.service"
 
 const TABS: { value: PayoutTab; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "pending_release", label: "Pending Release" },
-  { value: "blocked", label: "Blocked" },
+  { value: "pending_release", label: "Pending" },
   { value: "processing", label: "Processing" },
-  { value: "completed", label: "Completed" },
   { value: "failed", label: "Failed" },
-  { value: "reversed", label: "Reversed" },
-  { value: "on_hold", label: "Disputed / On Hold" },
+  { value: "completed", label: "Completed" },
+  { value: "blocked", label: "Blocked" },
 ];
 
 interface Props {
@@ -20,7 +18,7 @@ interface Props {
 
 export function PayoutTabs({ active, onChange, summary }: Props) {
   return (
-    <div className="flex gap-1 overflow-x-auto flex-1 min-w-0">
+    <div className="flex gap-1 flex-wrap flex-1 min-w-0">
       {TABS.map((t) => {
         const isActive = active === t.value;
         return (
