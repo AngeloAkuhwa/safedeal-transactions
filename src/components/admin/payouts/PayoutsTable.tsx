@@ -48,22 +48,24 @@ function eligibleForRelease(r: PayoutRow): { ok: boolean; reason?: string } {
   return { ok: true };
 }
 
+const emeraldBtn = "px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed";
+const slateBtn = "px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-xs font-medium whitespace-nowrap";
+
 function primaryCTA(r: PayoutRow, releasingId: string | null,
   onRelease: () => void, onRetry: () => void, onUnblock: () => void, onOpen: () => void) {
   const isReleasing = releasingId === r.id;
   if (r.release_blocked) {
-    return <Button size="sm" variant="outline" onClick={onUnblock}>Unblock</Button>;
+    return <button onClick={onUnblock} className={slateBtn}><FaBan className="text-xs" />Unblock</button>;
   }
   if (r.status === "failed" && r.retry_allowed) {
-    return <Button size="sm" variant="outline" onClick={onRetry} className="text-amber-500 border-amber-500/40 hover:bg-amber-500/10">Retry</Button>;
+    return <button onClick={onRetry} className={emeraldBtn}><FaRotateRight className="text-xs" />Retry</button>;
   }
   if (r.status === "awaiting_release") {
     const e = eligibleForRelease(r);
     const btn = (
-      <Button size="sm" disabled={!e.ok || isReleasing} onClick={onRelease}
-        className="bg-emerald-600 hover:bg-emerald-700 text-white">
-        {isReleasing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Release"}
-      </Button>
+      <button disabled={!e.ok || isReleasing} onClick={onRelease} className={emeraldBtn}>
+        {isReleasing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><FaCheck className="text-xs" />Release</>}
+      </button>
     );
     if (e.ok) return btn;
     return (
@@ -73,7 +75,7 @@ function primaryCTA(r: PayoutRow, releasingId: string | null,
       </Tooltip>
     );
   }
-  return <Button size="sm" variant="outline" onClick={onOpen}><Eye className="h-4 w-4" /></Button>;
+  return <button onClick={onOpen} className={slateBtn}><FaEye className="text-xs" />View</button>;
 }
 
 function PayoutIdIcon({ row }: { row: PayoutRow }) {
