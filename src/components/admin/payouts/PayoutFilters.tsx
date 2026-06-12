@@ -1,6 +1,4 @@
 import { Search, Filter } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 
 interface Props {
   search: string;
@@ -9,20 +7,24 @@ interface Props {
 
 export function PayoutFilters({ search, onSearch }: Props) {
   return (
-    <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto shrink-0">
+    <div className="flex items-center gap-3 w-full lg:w-auto">
       <div className="relative flex-1 lg:flex-none">
-        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
+        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          type="text"
           value={search}
           onChange={(e) => onSearch(e.target.value)}
           placeholder="Search seller, transaction, payout ID..."
-          className="pl-9 h-10 w-full lg:w-72 bg-muted/40 border-border"
+          className="pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 w-full lg:w-80 text-sm"
         />
       </div>
-      <Button size="sm" className="gap-2 shrink-0 h-10 bg-slate-800 hover:bg-slate-700 text-foreground border border-slate-700">
+      <button
+        type="button"
+        className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-all flex items-center gap-2 text-sm font-medium whitespace-nowrap"
+      >
         <Filter className="h-4 w-4" />
-        <span className="hidden sm:inline">Filters</span>
-      </Button>
+        Filters
+      </button>
     </div>
   );
 }
