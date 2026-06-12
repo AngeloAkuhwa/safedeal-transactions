@@ -52,13 +52,20 @@ export function PayoutSummaryCards({ summary, loading }: Props) {
     );
   }
   const s = summary.summary;
+  const pendingDelta = s.pending_release.delta_24h;
+  const processingDelta = s.processing.delta_24h;
+  const failedDelta = s.failed.delta_24h;
+  const fmtDelta = (n?: number) => (typeof n === "number" && n > 0 ? `+${n}` : null);
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
       <Tile icon={Clock} tone="orange"
+        badge={fmtDelta(pendingDelta)}
         label="Pending Payouts" value={`${s.pending_release.count}`} />
       <Tile icon={RotateCw} tone="blue"
+        badge={fmtDelta(processingDelta)}
         label="Processing" value={`${s.processing.count}`} />
       <Tile icon={AlertTriangle} tone="red"
+        badge={fmtDelta(failedDelta)}
         label="Failed Payouts" value={`${s.failed.count}`} />
       <Tile icon={CheckCircle2} tone="emerald" badge="Today"
         label="Paid Today" value={formatMoney(s.released_today.amount, "NGN")} />

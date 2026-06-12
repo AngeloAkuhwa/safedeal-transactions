@@ -1,33 +1,43 @@
 ## Goal
-Make the Payouts page top section (header → KPIs → tabs/filters) match the first screenshot 1:1. Visual/structural changes only — no business logic.
+Make the Payouts top section match the reference HTML 1:1: a darker, solid header band with a sharp border, then the body shade beneath it carrying the KPI tiles (with delta badges on the first three), then the filters card. No table/drawer changes.
 
-## Gaps vs design
-1. **Paystack Balance strip** — design shows none above the KPI tiles. Currently rendered.
-2. **KPI tiles**:
-   - Design shows colored "+N" delta badges on the first three tiles (Pending `+3` orange, Processing `+12` blue, Failed `+5` red). Currently none.
-   - Design tiles show only the big number; **no money sub-line** under Pending/Processing/Failed. Currently `₦0.00` sub is shown.
-   - Paid Today / Paid This Week tiles in design show only the large money value, no sub line. Match.
-3. **Tabs row** — design has exactly 6 tabs in this order: `All, Pending, Processing, Failed, Completed, Blocked`. Currently 8 (`All, Pending Release, Blocked, Processing, Completed, Failed, Reversed, Disputed / On Hold`) causing horizontal scroll.
-4. **Filters button icon** — design uses a funnel (`Filter`) icon. Currently `SlidersHorizontal`.
+## Remaining gaps vs design
+
+1. **Header band** — design uses a solid darker shade (`bg-slate-900`) with a hard `border-b border-slate-800`, against the page body (`bg-slate-950`). Ours currently uses `bg-background/85 backdrop-blur` which produces no visible shade change against the body. Result: no demarcation line.
+2. **KPI delta badges** — design shows `+3` (orange), `+12` (blue), `+5` (red) on Pending / Processing / Failed. Our summary API has no delta field, so the badges never render.
+3. **Mobile header** — the default `AdminMobileHeader` (different look) renders on small screens for this page. Design has the same titled bar with actions. Low priority but worth aligning.
+4. **Spacing** — design uses `p-8 space-y-6` for the body; ours uses the layout default `px-4 py-5 sm:px-6 lg:px-8 lg:py-6` + `space-y-5`. Already close. Keep.
+5. Currency stays **NGN** (per project memory). The `$247K / $1.8M / 2.4h` in the reference are sample values only; we keep `formatMoney(..., "NGN")` and real DB values.
 
 ## Changes
 
 ### `src/pages/AdminPayouts.tsx`
-- Remove the Paystack Balance info strip block entirely (keep the `bal`/`balanceShort` calc only if still needed elsewhere; otherwise drop).
-- No other logic changes.
+- Replace the `headerSlot` outer classes:
+  - from `sticky top-0 z-30 hidden border-b border-border bg-background/85 backdrop-blur lg:block`
+  - to   `sticky top-0 z-30 hidden border-b border-border bg-card lg:block`
+- This produces the visible shade step + sharp line shown in the design.
+- No other logic changes here.
 
-### `src/components/admin/payouts/PayoutTabs.tsx`
-- Reduce `TABS` to: `all`, `pending_release` (label "Pending"), `processing`, `failed`, `completed`, `blocked`. Drop `reversed` and `on_hold`. Order to match design.
-- Remove `overflow-x-auto` (no longer needed).
+### `src/services/admin-payouts.service.ts`
+- Extend `PayoutSummary.summary` to optionally include `delta_24h?: number` on `pending_release`, `processing`, and `failed`. Optional so the front renders gracefully if the backend doesn't return it yet.
+
+### `supabase/functions/admin-payouts-summary/index.ts`
+- For each of `pending_release`, `processing`, `failed`, compute `delta_24h` = count of payouts that entered that bucket in the last 24h (using `entered_queue_at` for pending, `initiated_at` for processing, and last failure timestamp / `updated_at` for failed — whichever already exists on `payouts`). Return as integer alongside `count`/`amount`.
+- Read-only query. No schema change.
 
 ### `src/components/admin/payouts/PayoutSummaryCards.tsx`
-- Remove the `sub` line from all six tiles (drop the `sub` prop usage).
-- Add `badge` to the first three tiles using deltas from `summary.summary.*.delta_24h` if present, otherwise omit. Format as `+N` with matching tone (orange/blue/red). Render with the same chip style already used for Today/Week/Avg.
-  - If the API doesn't expose a delta field, render the badge only when a numeric delta is available; otherwise hide. (No backend change.)
-
-### `src/components/admin/payouts/PayoutFilters.tsx`
-- Swap `SlidersHorizontal` for `Filter` (lucide) icon to match the funnel in the design.
+- For the first three tiles, derive a `badge` from `s.pending_release.delta_24h`, `s.processing.delta_24h`, `s.failed.delta_24h`:
+  - render only if value is a positive integer
+  - format as `+N`
+  - reuse existing tone chip styles (orange / blue / red)
+- Keep `Today / Week / Avg` chips on tiles 4–6 unchanged.
+- No `sub` line on any tile (already removed).
 
 ## Out of scope
-- Table, mobile cards, drawer, batch bar, backend, RLS, services.
-- No changes to status pill or pagination (already aligned in prior pass).
+- Table, mobile cards, batch bar, advanced filters dropdowns, drawer.
+- Currency formatting (stays NGN).
+- Sidebar, mobile header redesign.
+
+## Verification
+- Reload `/admin/payouts` at desktop width: header sits on a slightly lighter band with a crisp 1px border separating it from the KPI shade beneath; KPI grid renders 6 tiles; first three show `+N` chips when the backend returns deltas (otherwise hidden cleanly).
+- Tabs row stays 6 items (`All, Pending, Processing, Failed, Completed, Blocked`); Filters button uses funnel icon (already done).

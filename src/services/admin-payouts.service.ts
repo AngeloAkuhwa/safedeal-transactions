@@ -33,9 +33,9 @@ export type PayoutTab = "all" | "pending_release" | "blocked" | "processing" | "
 export interface PayoutSummary {
   currency: string;
   summary: {
-    pending_release: { count: number; amount: number };
-    processing: { count: number; amount: number };
-    failed: { count: number; amount: number };
+    pending_release: { count: number; amount: number; delta_24h?: number };
+    processing: { count: number; amount: number; delta_24h?: number };
+    failed: { count: number; amount: number; delta_24h?: number };
     released_today: { amount: number };
     released_week: { amount: number };
     avg_release_hours: number | null;
