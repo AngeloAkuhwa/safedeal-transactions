@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
 import { PayoutSummaryCards } from "@/components/admin/payouts/PayoutSummaryCards";
+import { PayoutAdvancedFilters } from "@/components/admin/payouts/PayoutAdvancedFilters";
 import { PayoutTabs } from "@/components/admin/payouts/PayoutTabs";
 import { PayoutFilters } from "@/components/admin/payouts/PayoutFilters";
 import { PayoutBatchBar } from "@/components/admin/payouts/PayoutBatchBar";
@@ -16,7 +17,7 @@ import { PayoutsTable, eligibleForRelease } from "@/components/admin/payouts/Pay
 import { PayoutMobileCards } from "@/components/admin/payouts/PayoutMobileCards";
 import { PayoutDetailDrawer } from "@/components/admin/payouts/PayoutDetailDrawer";
 import * as payoutsApi from "@/services/admin-payouts.service";
-import type { PayoutRow, PayoutDetail, PayoutSummary, PayoutTab } from "@/services/admin-payouts.service";
+import type { PayoutRow, PayoutDetail, PayoutSummary, PayoutTab, PayoutListResponse } from "@/services/admin-payouts.service";
 
 const SIDEBAR_BADGES = { disputes: 0, identity: 0, payouts: 0, flagged_users: 0, exports: 0 } as const;
 
@@ -32,6 +33,7 @@ export default function AdminPayouts() {
   const [summary, setSummary] = useState<PayoutSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [rows, setRows] = useState<PayoutRow[]>([]);
+  const [pagination, setPagination] = useState<PayoutListResponse["pagination"] | null>(null);
   const [listLoading, setListLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchProcessing, setBatchProcessing] = useState(false);
@@ -54,6 +56,7 @@ export default function AdminPayouts() {
     try {
       const res = await payoutsApi.listPayouts({ tab, search: search || undefined, limit: 50 });
       setRows(res.rows);
+      setPagination(res.pagination);
     } catch (e) {
       toast({ title: "Failed to load payouts", description: (e as Error).message, variant: "destructive" });
     } finally { setListLoading(false); }
@@ -162,27 +165,6 @@ export default function AdminPayouts() {
         <div className="min-w-0">
           <h1 className="text-xl font-semibold leading-tight text-foreground">Payout Management</h1>
           <p className="mt-1 text-sm text-muted-foreground">Monitor and manage seller payout processing</p>
-          <div className="mt-2">
-            <span
-              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs ${
-                bal?.ok
-                  ? balanceShort
-                    ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                    : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                  : "bg-muted text-muted-foreground border-border"
-              }`}
-            >
-              <Wallet className="h-3.5 w-3.5" />
-              <span className="font-medium">Paystack Balance</span>
-              <span>·</span>
-              <span>
-                {bal?.ok && typeof bal.available === "number"
-                  ? formatMoney(bal.available, bal.currency ?? "NGN")
-                  : "Unavailable"}
-              </span>
-              {balanceShort && <AlertTriangle className="h-3.5 w-3.5" />}
-            </span>
-          </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <AdminReadingModeControl variant="desktop" />
@@ -222,13 +204,40 @@ export default function AdminPayouts() {
       badges={SIDEBAR_BADGES}
       headerSlot={headerSlot}
     >
+      {/* Paystack Balance info strip */}
+      <div
+        className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
+          bal?.ok
+            ? balanceShort
+              ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+              : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+            : "bg-muted/40 border-border text-muted-foreground"
+        }`}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <Wallet className="h-4 w-4 shrink-0" />
+          <span className="font-medium">Paystack Balance</span>
+          <span className="opacity-60">·</span>
+          <span className="truncate">
+            {bal?.ok && typeof bal.available === "number"
+              ? formatMoney(bal.available, bal.currency ?? "NGN")
+              : "Unavailable"}
+          </span>
+        </div>
+        {balanceShort && (
+          <div className="flex items-center gap-1 text-xs"><AlertTriangle className="h-3.5 w-3.5" /> Below pending release total</div>
+        )}
+      </div>
+
       <PayoutSummaryCards summary={summary} loading={summaryLoading} />
 
       <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <PayoutTabs active={tab} onChange={(t) => { setTab(t); setSelectedIds(new Set()); }} summary={summary} />
-          <PayoutFilters search={search} onSearch={setSearch} onRefresh={() => { loadList(); loadSummary(); }} />
+          <PayoutFilters search={search} onSearch={setSearch} />
         </div>
+
+        <PayoutAdvancedFilters />
 
         <PayoutBatchBar
           selected={selectedRows.filter((r) => eligibleForRelease(r).ok)}
@@ -236,6 +245,7 @@ export default function AdminPayouts() {
           onProcess={handleBatchProcess}
           processing={batchProcessing}
         />
+      </div>
 
         {/* Desktop table */}
         <div className="hidden md:block">
@@ -250,6 +260,10 @@ export default function AdminPayouts() {
             onUnblock={handleUnblockOne}
             onOpenTransaction={(r) => navigate(`/admin/transactions/${r.transaction.id}`)}
             releasingId={releasingId}
+            total={pagination?.total}
+            page={pagination?.page}
+            limit={pagination?.limit}
+            onRefresh={() => { loadList(); loadSummary(); }}
           />
         </div>
         {/* Mobile cards */}
@@ -265,7 +279,6 @@ export default function AdminPayouts() {
             releasingId={releasingId}
           />
         </div>
-      </div>
 
       <PayoutDetailDrawer
         open={!!openPayoutId}

@@ -1,4 +1,4 @@
-import { Loader2, Eye, MoreHorizontal } from "lucide-react";
+import { Loader2, Eye, MoreHorizontal, RefreshCw, AlertTriangle, RotateCw, CheckCircle2, Clock, Ban, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,6 +23,10 @@ interface Props {
   onUnblock: (row: PayoutRow) => void;
   onOpenTransaction: (row: PayoutRow) => void;
   releasingId: string | null;
+  total?: number;
+  page?: number;
+  limit?: number;
+  onRefresh?: () => void;
 }
 
 function eligibleForRelease(r: PayoutRow): { ok: boolean; reason?: string } {
@@ -65,9 +69,33 @@ function primaryCTA(r: PayoutRow, releasingId: string | null,
   return <Button size="sm" variant="outline" onClick={onOpen}><Eye className="h-4 w-4" /></Button>;
 }
 
+function PayoutIdIcon({ row }: { row: PayoutRow }) {
+  if (row.release_blocked) return <div className="w-8 h-8 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center justify-center"><Ban className="h-3.5 w-3.5 text-red-400" /></div>;
+  if (row.status === "failed") return <div className="w-8 h-8 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center justify-center"><AlertTriangle className="h-3.5 w-3.5 text-red-400" /></div>;
+  if (row.status === "completed") return <div className="w-8 h-8 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-center"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /></div>;
+  if (row.status === "pending" || row.status === "processing") return <div className="w-8 h-8 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-center justify-center"><RotateCw className="h-3.5 w-3.5 text-blue-400" /></div>;
+  return <div className="w-8 h-8 bg-orange-500/10 border border-orange-500/30 rounded-lg flex items-center justify-center"><Clock className="h-3.5 w-3.5 text-orange-400" /></div>;
+}
+
+function payoutCaption(r: PayoutRow): { text: string; tone: "red" | "muted" | "emerald" } | null {
+  if (r.payout_blocked_reason) return { text: r.payout_blocked_reason, tone: "red" };
+  if (r.failure_reason) return { text: r.failure_reason, tone: "red" };
+  if (r.status === "completed") return { text: "Completed successfully", tone: "emerald" };
+  if (r.status === "pending" || r.status === "processing") return { text: "Bank processing", tone: "muted" };
+  return null;
+}
+
+function formatAbsolute(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString("en-NG", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
+  } catch { return iso; }
+}
+
 export function PayoutsTable({
   rows, loading, selected, onToggleSelect, onToggleSelectAll, onOpen,
   onRelease, onRetry, onUnblock, onOpenTransaction, releasingId,
+  total, page = 1, limit = 50, onRefresh,
 }: Props) {
   if (loading && rows.length === 0) {
     return (
@@ -78,36 +106,51 @@ export function PayoutsTable({
       </div>
     );
   }
-  if (rows.length === 0) {
-    return (
-      <div className="rounded-xl border border-border bg-card p-10 text-center">
-        <div className="text-sm font-medium text-foreground">No payouts found</div>
-        <div className="mt-1 text-xs text-muted-foreground">There are no payouts for the selected filter.</div>
-      </div>
-    );
-  }
   const allEligible = rows.filter((r) => eligibleForRelease(r).ok);
   const allSelected = allEligible.length > 0 && allEligible.every((r) => selected.has(r.id));
+  const totalCount = typeof total === "number" ? total : rows.length;
+  const startIdx = totalCount === 0 ? 0 : (page - 1) * limit + 1;
+  const endIdx = Math.min(page * limit, totalCount);
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border">
+        <h3 className="text-base sm:text-lg font-semibold text-foreground">Payout Records</h3>
+        <div className="flex items-center gap-3">
+          <span className="text-xs sm:text-sm text-muted-foreground">{totalCount} payouts found</span>
+          {onRefresh && (
+            <Button size="sm" variant="outline" className="gap-2" onClick={onRefresh}>
+              <RefreshCw className="h-3.5 w-3.5" /> Refresh
+            </Button>
+          )}
+        </div>
+      </div>
+      {rows.length === 0 ? (
+        <div className="p-10 text-center">
+          <div className="text-sm font-medium text-foreground">No payouts found</div>
+          <div className="mt-1 text-xs text-muted-foreground">There are no payouts for the selected filter.</div>
+        </div>
+      ) : (
+      <>
       <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
           <tr>
             <th className="px-3 py-3 w-10"><Checkbox checked={allSelected} onCheckedChange={onToggleSelectAll} /></th>
-            <th className="px-3 py-3 text-left">Payout</th>
+            <th className="px-3 py-3 text-left">Payout ID</th>
             <th className="px-3 py-3 text-left">Seller</th>
             <th className="px-3 py-3 text-left">Transaction</th>
             <th className="px-3 py-3 text-right">Amount</th>
             <th className="px-3 py-3 text-left">Payout Account</th>
             <th className="px-3 py-3 text-left">Status</th>
-            <th className="px-3 py-3 text-left">Aged</th>
+            <th className="px-3 py-3 text-left">Initiated</th>
             <th className="px-3 py-3 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {rows.map((r) => {
             const e = eligibleForRelease(r);
+            const caption = payoutCaption(r);
             return (
               <tr key={r.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => onOpen(r)}>
                 <td className="px-3 py-3" onClick={(ev) => ev.stopPropagation()}>
@@ -125,14 +168,22 @@ export function PayoutsTable({
                   </Tooltip>
                 </td>
                 <td className="px-3 py-3">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="font-mono text-xs text-foreground cursor-default">{r.id.slice(0, 10)}…</div>
-                    </TooltipTrigger>
-                    <TooltipContent>{r.id}</TooltipContent>
-                  </Tooltip>
-                  {r.payout_blocked_reason && <div className="text-xs text-red-400 mt-0.5 truncate max-w-[160px]">{r.payout_blocked_reason}</div>}
-                  {r.failure_reason && <div className="text-xs text-red-400 mt-0.5 truncate max-w-[160px]">{r.failure_reason}</div>}
+                  <div className="flex items-center gap-3">
+                    <PayoutIdIcon row={r} />
+                    <div className="min-w-0">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="font-mono text-xs text-foreground cursor-default truncate max-w-[160px]">{r.id.slice(0, 14)}…</div>
+                        </TooltipTrigger>
+                        <TooltipContent>{r.id}</TooltipContent>
+                      </Tooltip>
+                      {caption && (
+                        <div className={`text-xs mt-0.5 truncate max-w-[160px] ${
+                          caption.tone === "red" ? "text-red-400" : caption.tone === "emerald" ? "text-emerald-400" : "text-muted-foreground"
+                        }`}>{caption.text}</div>
+                      )}
+                    </div>
+                  </div>
                 </td>
                 <td className="px-3 py-3">
                   <div className="font-medium text-foreground truncate max-w-[160px]">{r.seller.name}</div>
@@ -144,7 +195,10 @@ export function PayoutsTable({
                     {r.transaction.item_title ?? "No item snapshot"}
                   </div>
                 </td>
-                <td className="px-3 py-3 text-right font-semibold text-foreground">{formatMoney(r.amount, r.currency ?? "NGN")}</td>
+                <td className="px-3 py-3 text-right">
+                  <div className="font-semibold text-foreground">{formatMoney(r.amount, r.currency ?? "NGN")}</div>
+                  <div className="text-xs text-muted-foreground">NGN</div>
+                </td>
                 <td className="px-3 py-3">
                   {r.payout_account && r.payout_account.verification_status === "verified" ? (
                     <>
@@ -156,11 +210,17 @@ export function PayoutsTable({
                   )}
                 </td>
                 <td className="px-3 py-3"><PayoutStatusPill row={r} /></td>
-                <td className="px-3 py-3 text-xs text-muted-foreground whitespace-nowrap" title={new Date(r.entered_queue_at).toLocaleString()}>{formatRelative(r.entered_queue_at)}</td>
+                <td className="px-3 py-3 whitespace-nowrap" title={new Date(r.entered_queue_at).toLocaleString()}>
+                  <div className="text-xs text-foreground">{formatAbsolute(r.entered_queue_at)}</div>
+                  <div className="text-xs text-muted-foreground">{formatRelative(r.entered_queue_at)}</div>
+                </td>
                 <td className="px-3 py-3 text-right" onClick={(ev) => ev.stopPropagation()}>
                   <div className="flex items-center gap-2 justify-end">
                     {primaryCTA(r, releasingId,
                       () => onRelease(r), () => onRetry(r), () => onUnblock(r), () => onOpen(r))}
+                    <Button size="sm" variant="outline" className="gap-1.5 hidden md:inline-flex" onClick={() => onOpen(r)}>
+                      <Eye className="h-3.5 w-3.5" /> Details
+                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button size="sm" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
@@ -182,6 +242,19 @@ export function PayoutsTable({
         </tbody>
       </table>
       </div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border-t border-border">
+        <div className="text-xs text-muted-foreground">Showing {startIdx}-{endIdx} of {totalCount} payouts</div>
+        <div className="flex items-center gap-1">
+          <Button size="sm" variant="outline" disabled={page <= 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">{page}</Button>
+          {totalPages > 1 && page < totalPages && (
+            <Button size="sm" variant="outline">{page + 1}</Button>
+          )}
+          <Button size="sm" variant="outline" disabled={page >= totalPages}><ChevronRight className="h-3.5 w-3.5" /></Button>
+        </div>
+      </div>
+      </>
+      )}
     </div>
   );
 }
