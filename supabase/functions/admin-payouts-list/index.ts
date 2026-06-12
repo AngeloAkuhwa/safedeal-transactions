@@ -54,14 +54,11 @@ Deno.serve(async (req) => {
     .select(`
       id, status, amount, currency_code, release_blocked, payout_blocked_reason,
       retry_allowed, failed_attempt_count, failure_reason, provider_reference,
-      entered_queue_at, released_at, created_at, initiated_at,
+      released_at, created_at, initiated_at,
       transaction_id, seller_id,
       transactions:transaction_id (
         id, transaction_code, money_status, status, dispute_status, needs_release_review,
         item_title:source_product_id
-      ),
-      payout_accounts:payout_account_id (
-        bank_name, account_number, account_name, verification_status, provider_recipient_code
       ),
       profiles:seller_id (
         full_name, email, avatar_url
@@ -95,10 +92,21 @@ Deno.serve(async (req) => {
       break;
   }
 
-  q = q.order("entered_queue_at", { ascending: true, nullsFirst: false }).range((page - 1) * limit, page * limit - 1);
+  q = q.order("created_at", { ascending: true }).range((page - 1) * limit, page * limit - 1);
 
   const { data: rows, error, count } = await q;
   if (error) return json({ error: "list_failed", detail: error.message }, 500);
+
+  // Bulk-fetch payout accounts by seller_id
+  const sellerIds = Array.from(new Set((rows ?? []).map((r: any) => r.seller_id))).filter(Boolean);
+  let accountMap = new Map<string, any>();
+  if (sellerIds.length > 0) {
+    const { data: accounts } = await admin
+      .from("payout_accounts")
+      .select("user_id, bank_name, account_number, account_name, verification_status, provider_recipient_code")
+      .in("user_id", sellerIds);
+    for (const a of (accounts ?? []) as any[]) accountMap.set(a.user_id, a);
+  }
 
   // Fetch pricing snapshots for the page
   const txIds = Array.from(new Set((rows ?? []).map((r: any) => r.transaction_id))).filter(Boolean);
@@ -139,7 +147,7 @@ Deno.serve(async (req) => {
     const paymentProcessingFee = Number(pricing?.processing_fee_amount ?? 0);
     const totalCharged = itemTotal + protectionFee + paymentProcessingFee;
     const sellerPayout = Math.max(itemTotal - protectionFee, Number(r.amount ?? 0));
-    const account = r.payout_accounts;
+    const account = accountMap.get(r.seller_id) ?? null;
     const profile = r.profiles;
     return {
       id: r.id,
@@ -152,7 +160,7 @@ Deno.serve(async (req) => {
       failed_attempt_count: r.failed_attempt_count ?? 0,
       failure_reason: r.failure_reason ?? null,
       provider_reference: r.provider_reference ?? null,
-      entered_queue_at: r.entered_queue_at ?? r.created_at,
+      entered_queue_at: r.created_at,
       released_at: r.released_at,
       initiated_at: r.initiated_at,
       transaction: {
