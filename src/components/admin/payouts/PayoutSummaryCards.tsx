@@ -1,4 +1,4 @@
-import { Clock, RotateCw, AlertTriangle, CheckCircle2, CalendarDays, Stopwatch } from "lucide-react";
+import { Clock, RotateCw, AlertTriangle, CheckCircle2, CalendarDays, Timer } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatMoney } from "@/lib/format";
@@ -52,7 +52,7 @@ export function PayoutSummaryCards({ summary, loading }: Props) {
         label="Released Today" value={formatMoney(s.released_today.amount, "NGN")} />
       <Tile icon={CalendarDays} iconWrap="bg-purple-500/10 border-purple-500/30 text-purple-400"
         label="Released This Week" value={formatMoney(s.released_week.amount, "NGN")} />
-      <Tile icon={Stopwatch as any} iconWrap="bg-cyan-500/10 border-cyan-500/30 text-cyan-400"
+      <Tile icon={Timer} iconWrap="bg-cyan-500/10 border-cyan-500/30 text-cyan-400"
         label="Avg Release Lead Time"
         value={s.avg_release_hours == null ? "—" : `${s.avg_release_hours.toFixed(1)}h`} />
     </div>
