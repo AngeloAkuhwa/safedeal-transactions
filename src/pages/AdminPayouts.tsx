@@ -28,6 +28,7 @@ export default function AdminPayouts() {
   const initialTab = (searchParams.get("tab") as PayoutTab | null);
   const [tab, setTab] = useState<PayoutTab>(initialTab && VALID_TABS.includes(initialTab) ? initialTab : "all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [summary, setSummary] = useState<PayoutSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [rows, setRows] = useState<PayoutRow[]>([]);
@@ -52,13 +53,13 @@ export default function AdminPayouts() {
   const loadList = useCallback(async () => {
     setListLoading(true);
     try {
-      const res = await payoutsApi.listPayouts({ tab, search: search || undefined, limit: 50 });
+      const res = await payoutsApi.listPayouts({ tab, search: search || undefined, page, limit: 50 });
       setRows(res.rows);
       setPagination(res.pagination);
     } catch (e) {
       toast({ title: "Failed to load payouts", description: (e as Error).message, variant: "destructive" });
     } finally { setListLoading(false); }
-  }, [tab, search]);
+  }, [tab, search, page]);
 
   const loadDetail = useCallback(async (id: string) => {
     setDetailLoading(true);
@@ -260,6 +261,7 @@ export default function AdminPayouts() {
             page={pagination?.page}
             limit={pagination?.limit}
             onRefresh={() => { loadList(); loadSummary(); }}
+            onPageChange={(p) => setPage(p)}
           />
         </div>
         {/* Mobile cards */}
