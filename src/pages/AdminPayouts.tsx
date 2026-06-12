@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Download, Play } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
 import { PayoutSummaryCards } from "@/components/admin/payouts/PayoutSummaryCards";
 import { PayoutAdvancedFilters } from "@/components/admin/payouts/PayoutAdvancedFilters";
