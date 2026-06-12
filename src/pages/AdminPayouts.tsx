@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Download, Play } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
 import { PayoutSummaryCards } from "@/components/admin/payouts/PayoutSummaryCards";
 import { PayoutAdvancedFilters } from "@/components/admin/payouts/PayoutAdvancedFilters";
@@ -25,7 +24,9 @@ export default function AdminPayouts() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const initialTab = (searchParams.get("tab") as PayoutTab | null);
-  const [tab, setTab] = useState<PayoutTab>(initialTab && VALID_TABS.includes(initialTab) ? initialTab : "all");
+  const [tab, setTab] = useState<PayoutTab>(
+    initialTab && VALID_TABS.includes(initialTab) ? initialTab : "all"
+  );
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [summary, setSummary] = useState<PayoutSummary | null>(null);
@@ -161,29 +162,20 @@ export default function AdminPayouts() {
           <p className="mt-1 text-sm text-muted-foreground">Monitor and manage seller payout processing</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button size="sm" className="gap-2 bg-slate-800 hover:bg-slate-700 text-foreground border border-slate-700">
             <Download className="h-4 w-4" /> Export Report
           </Button>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <Button
-                  size="sm"
-                  className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-                  onClick={handleBatchProcess}
-                  disabled={batchDisabled}
-                >
-                  <Play className="h-4 w-4" /> Process Batch
-                  {eligibleSelectedCount > 0 && (
-                    <span className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px]">{eligibleSelectedCount}</span>
-                  )}
-                </Button>
-              </span>
-            </TooltipTrigger>
-            {batchDisabled && (
-              <TooltipContent>Select eligible pending payouts to process</TooltipContent>
+          <Button
+            size="sm"
+            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+            onClick={handleBatchProcess}
+            disabled={batchProcessing}
+          >
+            <Play className="h-4 w-4" /> Process Batch
+            {eligibleSelectedCount > 0 && (
+              <span className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px]">{eligibleSelectedCount}</span>
             )}
-          </Tooltip>
+          </Button>
         </div>
       </div>
     </div>
@@ -198,7 +190,7 @@ export default function AdminPayouts() {
     >
       <PayoutSummaryCards summary={summary} loading={summaryLoading} />
 
-      <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4">
+      <div className="bg-card border border-border rounded-xl p-6 pb-7 space-y-6 mt-2">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <PayoutTabs active={tab} onChange={(t) => { setTab(t); setPage(1); setSelectedIds(new Set()); }} summary={summary} />
           <PayoutFilters search={search} onSearch={(v) => { setSearch(v); setPage(1); }} />

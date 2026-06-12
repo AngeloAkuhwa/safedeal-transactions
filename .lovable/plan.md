@@ -1,43 +1,40 @@
 ## Goal
-Make the Payouts top section match the reference HTML 1:1: a darker, solid header band with a sharp border, then the body shade beneath it carrying the KPI tiles (with delta badges on the first three), then the filters card. No table/drawer changes.
-
-## Remaining gaps vs design
-
-1. **Header band** — design uses a solid darker shade (`bg-slate-900`) with a hard `border-b border-slate-800`, against the page body (`bg-slate-950`). Ours currently uses `bg-background/85 backdrop-blur` which produces no visible shade change against the body. Result: no demarcation line.
-2. **KPI delta badges** — design shows `+3` (orange), `+12` (blue), `+5` (red) on Pending / Processing / Failed. Our summary API has no delta field, so the badges never render.
-3. **Mobile header** — the default `AdminMobileHeader` (different look) renders on small screens for this page. Design has the same titled bar with actions. Low priority but worth aligning.
-4. **Spacing** — design uses `p-8 space-y-6` for the body; ours uses the layout default `px-4 py-5 sm:px-6 lg:px-8 lg:py-6` + `space-y-5`. Already close. Keep.
-5. Currency stays **NGN** (per project memory). The `$247K / $1.8M / 2.4h` in the reference are sample values only; we keep `formatMoney(..., "NGN")` and real DB values.
+Match the Payouts header, KPI cards, and tabs/filter card to the reference screenshot. No table, sidebar, or business-logic changes.
 
 ## Changes
 
 ### `src/pages/AdminPayouts.tsx`
-- Replace the `headerSlot` outer classes:
-  - from `sticky top-0 z-30 hidden border-b border-border bg-background/85 backdrop-blur lg:block`
-  - to   `sticky top-0 z-30 hidden border-b border-border bg-card lg:block`
-- This produces the visible shade step + sharp line shown in the design.
-- No other logic changes here.
-
-### `src/services/admin-payouts.service.ts`
-- Extend `PayoutSummary.summary` to optionally include `delta_24h?: number` on `pending_release`, `processing`, and `failed`. Optional so the front renders gracefully if the backend doesn't return it yet.
-
-### `supabase/functions/admin-payouts-summary/index.ts`
-- For each of `pending_release`, `processing`, `failed`, compute `delta_24h` = count of payouts that entered that bucket in the last 24h (using `entered_queue_at` for pending, `initiated_at` for processing, and last failure timestamp / `updated_at` for failed — whichever already exists on `payouts`). Return as integer alongside `count`/`amount`.
-- Read-only query. No schema change.
+1. **Default tab → `all`** instead of `processing`. Adjust `initialTab` resolution so URL with `tab=processing` still works but the page defaults to `all` on first load (no `tab` param).
+2. **Process Batch button — always active green** visually:
+   - Drop the `disabled={batchDisabled}` styling-driven greying. Keep the click handler, but show the bright `bg-emerald-600 hover:bg-emerald-700 text-white` regardless of selection (the existing toast already no-ops when nothing is selected, so behavior is preserved). Remove the tooltip wrapper that was tied to disabled state, or keep it without disabling. Selection count chip stays.
+3. **Export Report → filled dark slate**: change `variant="outline"` to a filled dark style (`bg-slate-800 hover:bg-slate-700 text-foreground border border-slate-700`) so it reads as a filled button matching the reference, same height as Process Batch.
+4. Increase spacing between KPI row and filter card: wrap the page body content in `space-y-6` (or add `mt-2` to the filter card) — currently `space-y-5` from layout.
 
 ### `src/components/admin/payouts/PayoutSummaryCards.tsx`
-- For the first three tiles, derive a `badge` from `s.pending_release.delta_24h`, `s.processing.delta_24h`, `s.failed.delta_24h`:
-  - render only if value is a positive integer
-  - format as `+N`
-  - reuse existing tone chip styles (orange / blue / red)
-- Keep `Today / Week / Avg` chips on tiles 4–6 unchanged.
-- No `sub` line on any tile (already removed).
+- Already supports `+N` badges from `delta_24h`. No code change required, but confirm tile internal layout (icon top-left, badge top-right, label, large value) already matches — no changes needed.
+
+### `src/components/admin/payouts/PayoutTabs.tsx`
+- Wrap tab buttons in a **segmented-control container**: `bg-slate-900/60 border border-border rounded-lg p-1 inline-flex gap-1`. Keep active = `bg-emerald-500 text-white`, inactive = transparent muted text. Remove `flex-1 min-w-0` so the group hugs content like the reference.
+
+### `src/components/admin/payouts/PayoutFilters.tsx`
+- Add `...` to placeholder: `Search seller, transaction, payout ID...`.
+- Change Filters button from `variant="outline"` to filled dark slate (`bg-slate-800 hover:bg-slate-700 border border-slate-700`) to match the reference.
+- Bump input + button height to `h-10` so they align vertically with the segmented tabs row.
+
+### `src/components/admin/payouts/PayoutAdvancedFilters.tsx`
+- Increase top spacing: wrap in a div with `pt-2` (the parent `space-y-4` becomes `space-y-6` via the page card padding bump).
+- Bump select height from `p-2.5` to `h-10 px-3` for consistent control height.
+
+### `src/pages/AdminPayouts.tsx` — filter card padding
+- Change the tabs/filters card from `p-4 sm:p-6 space-y-4` to `p-6 space-y-6 pb-7` for taller, more breathable card matching the reference.
 
 ## Out of scope
-- Table, mobile cards, batch bar, advanced filters dropdowns, drawer.
-- Currency formatting (stays NGN).
-- Sidebar, mobile header redesign.
+- Table, mobile cards, batch bar, drawer, sidebar.
+- Backend / delta computation (already wired).
+- Currency stays NGN with real values.
 
 ## Verification
-- Reload `/admin/payouts` at desktop width: header sits on a slightly lighter band with a crisp 1px border separating it from the KPI shade beneath; KPI grid renders 6 tiles; first three show `+N` chips when the backend returns deltas (otherwise hidden cleanly).
-- Tabs row stays 6 items (`All, Pending, Processing, Failed, Completed, Blocked`); Filters button uses funnel icon (already done).
+- `/admin/payouts` first load shows `All` tab active inside a single dark segmented container.
+- Export Report renders as filled dark slate; Process Batch renders bright emerald with white text/icon, same height.
+- KPI tiles show `+3 / +12 / +5` chips when backend reports deltas; otherwise hidden.
+- Filter card has clear top/bottom padding; dropdown row sits lower with comfortable gap from tabs row; dropdowns share height with search/Filters button.
