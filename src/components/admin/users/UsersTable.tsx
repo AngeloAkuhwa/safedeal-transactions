@@ -1,8 +1,7 @@
 import {
-  Flag, AlertTriangle, ShieldCheck, IdCard, Mail, Phone, Star, Clock,
-  User as UserIcon, Banknote, Scale, Search, ChevronLeft, ChevronRight,
-  Ban, CheckCircle2, UserCog,
-  ArrowLeftRight, FileSearch, FlagOff, FileDown,
+  Flag, ShieldCheck, IdCard, Mail, Phone, Star, Clock,
+  User as UserIcon, Scale, Search, ChevronLeft, ChevronRight,
+  UserCog, ArrowLeftRight, FileSearch, FlagOff, FileDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { UserDirectoryRow } from "@/services/admin-users-directory.service";
