@@ -1,278 +1,174 @@
 
-# Phase 2 — DB Hardening (one migration)
+# Phase 3 — Wire edge functions to the new snapshot + view
 
-Goal: add the canonical derived columns referenced by the Phase 1 shared modules, lock pricing after payment, guard dispute transitions, and ship one view that lets the table and drawer agree on payout-account state. **No column renames. No data math changes. Old transactions untouched.**
-
-File: `src/db/migrations/018_central_payment_snapshot_hardening.sql`
+Goal: switch every money-mover and money-reader to the canonical columns added in Phase 2 (`payment_processing_fee_amount`, `seller_payout_amount`, `pricing_model_version`, `is_total_service_fee_capped`) and the canonical view (`v_payout_account_state`). Behavior stays identical to today for unlocked transactions; legacy locked rows continue to read through fallbacks. No new tables, no new endpoints, no UI changes in this phase.
 
 ---
 
-## 1. Extend `transaction_pricing` (additive only)
+## 0. Ground rules
 
-```text
-ALTER TABLE public.transaction_pricing
-  ADD COLUMN payment_processing_fee_amount NUMERIC(18,2),
-  ADD COLUMN seller_payout_amount         NUMERIC(18,2),
-  ADD COLUMN is_total_service_fee_capped  BOOLEAN  NOT NULL DEFAULT false,
-  ADD COLUMN pricing_model_version        TEXT;
+- **No math changes.** The shared policy from Phase 1 (`safedeal-money-policy.ts`) is already the math. Edge functions just write what it returns and read what was written.
+- **Two-source-of-truth window stays.** During this phase, callers that still read `processing_fee_amount` / `seller_net_amount` keep working — the new columns are written **in addition**, not as a replacement. We'll remove the old reads in Phase 4 (UI sweep) once nothing references them.
+- **Locked rows are never recomputed.** All new writes happen at row INSERT or pre-lock UPDATE only.
+- **Auth + RLS unchanged.** All edits below stay within the existing service-role + signed-in-user patterns.
+
+---
+
+## 1. Pricing writers — stamp the new columns at INSERT time
+
+Six functions create `transaction_pricing` rows. Each one will, in the same insert, set:
+
+```ts
+payment_processing_fee_amount: snapshot.payment_processing_fee_amount,
+seller_payout_amount:          snapshot.seller_payout_amount,
+is_total_service_fee_capped:   snapshot.is_total_service_fee_capped,
+pricing_model_version:         snapshot.pricing_model_version,  // "NG_MVP_TOTAL_SERVICE_FEE_CAP_2500_V1"
 ```
 
-Backfill (idempotent):
-- `payment_processing_fee_amount = processing_fee_amount` for all rows.
-- `seller_payout_amount = item_amount` for all rows. (Per spec §17 we don't recompute legacy rows. `seller_net_amount` stays untouched; the new column is the canonical seller-payout source going forward.)
-- `pricing_model_version` left `NULL` for pre-migration rows (spec §17 explicitly says don't stamp old rows).
-- `is_total_service_fee_capped` derived: `(processing_fee_amount + platform_fee_amount) >= 2500`.
+`snapshot` comes from `buildPricingSnapshot(itemAmount, providerFeeEstimate)` in `_shared/safedeal-money-policy.ts` (Phase 1). Where the function previously called the older `computePricing(item_amount, currency)`, we add a parallel `buildPricingSnapshot` call and write both shapes side-by-side so existing math and existing columns are unchanged.
 
-CHECK constraints (validate at insert/update time):
-- `payment_processing_fee_amount >= 0`
-- `seller_payout_amount >= 0`
+Files touched (writer side):
 
-Why this matters: future reads use `payment_processing_fee_amount` and `seller_payout_amount` as the single canonical source. Old code that still reads `processing_fee_amount` / `seller_net_amount` keeps working — both columns coexist during the Phase 3 cut-over.
+| File | Change |
+|---|---|
+| `supabase/functions/create-transaction/index.ts` (line 168, `upsertByTransaction`) | Add the four new columns to the pricing object. |
+| `supabase/functions/storefront-checkout/index.ts` (line 237) | Same. |
+| `supabase/functions/cart-checkout/index.ts` (lines 200 + 266) | Same on both the update and the insert branches. |
+| `supabase/functions/claim-offer/index.ts` (line 361) | Same. |
+| `supabase/functions/initiate-paystack-payment/index.ts` (line 169) | Read snapshot before initiating; pass the same `payment_processing_fee_amount` already implied by the current Paystack-fee estimate. Block the payment when `provider_fee_estimate > MAX_TOTAL_SERVICE_FEE` (2,500) and surface a `payment_method_blocked` error (Phase 1 already exposes the gate; this is just the call site). |
+| `supabase/functions/paystack-webhook/index.ts` (line 151 area) | When backfilling pricing on rare webhook-first paths, also write the four new columns. |
+
+Each call uses the shared policy module — no per-file math duplication.
 
 ---
 
-## 2. Pricing-lock trigger (the §7.1 fix)
+## 2. Money-movers — read only `seller_payout_amount` going forward
 
-Block any `UPDATE` on `transaction_pricing` after payment has been processed, with one controlled escape hatch.
+The release/retry/refund path today reads from `payouts.amount` (which was set when the payout row was created) or from the legacy `seller_net_amount` column. After Phase 3:
 
-```text
-CREATE OR REPLACE FUNCTION public.prevent_pricing_update_after_lock()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY INVOKER SET search_path = public AS $$
-DECLARE
-  v_locked     TIMESTAMPTZ;
-  v_money      money_status;
-  v_override   BOOLEAN := COALESCE(current_setting('safedeal.pricing_override', true) = 'on', false);
-BEGIN
-  IF v_override THEN
-    RETURN NEW;  -- only set by admin_correct_pricing()
-  END IF;
+| File | Change |
+|---|---|
+| `supabase/functions/release-payout/index.ts` | When creating the `payouts` row, set `payouts.amount = transaction_pricing.seller_payout_amount` (fall back to `seller_net_amount` only if the new column is NULL — i.e. legacy rows). No formula change. Call `evaluatePayoutEligibility` from `_shared/payout-eligibility.ts` (Phase 1) before doing anything; refuse to proceed if `outcome !== "eligible"`. |
+| `supabase/functions/retry-payout/index.ts` | Same eligibility check up front. Continue to read `payouts.amount` (already correct from the original release). Replace the inline `payout_accounts.verification_status` + `provider_recipient_code` check with a single read from `v_payout_account_state` (`account_state = 'verified_ready'`). |
+| `supabase/functions/refund-transaction/index.ts` | Call `evaluateRefundEligibility` from `_shared/refund-eligibility.ts` (Phase 1) and emit the central `refund_decision` to the response. Write ledger tags `processing_fee_non_refundable`, `safedeal_fee_refunded`/`buyer_refund_issued`/`seller_payout_cancelled` exactly as the decision object dictates. Refund amount = `transaction_pricing.buyer_total_amount - payment_processing_fee_amount` (with the same legacy fallback). |
 
-  SELECT agreement_locked_at, money_status
-    INTO v_locked, v_money
-  FROM public.transactions
-  WHERE id = NEW.transaction_id;
+Mutex with payouts is enforced by the existing `payouts.status` checks plus the new `evaluateRefundEligibility` gate — no new locks needed.
 
-  IF v_locked IS NOT NULL
-     OR v_money IN ('funds_held_in_escrow','funds_pending_release','funds_releasing',
-                    'funds_released','funds_frozen','refund_pending','refund_issued') THEN
-    RAISE EXCEPTION 'transaction_pricing is locked after payment (tx=%, money_status=%)',
-      NEW.transaction_id, v_money
-      USING ERRCODE = 'check_violation';
-  END IF;
-  RETURN NEW;
-END $$;
+---
 
-CREATE TRIGGER trg_prevent_pricing_update
-  BEFORE UPDATE ON public.transaction_pricing
-  FOR EACH ROW EXECUTE FUNCTION public.prevent_pricing_update_after_lock();
+## 3. Money-readers — switch to the new column with a fallback
+
+These functions report numbers to the UI. Today they read `seller_net_amount` / `item_amount`. After Phase 3 they prefer the new columns, falling back when NULL so locked legacy rows still render:
+
+```ts
+const payoutAmount =
+  Number(pricing.seller_payout_amount ?? pricing.seller_net_amount ?? 0);
+const processingFee =
+  Number(pricing.payment_processing_fee_amount ?? pricing.processing_fee_amount ?? 0);
 ```
 
-Escape-hatch RPC (admin-only correction):
+Files:
 
-```text
-CREATE OR REPLACE FUNCTION public.admin_correct_pricing(
-  p_transaction_id UUID,
-  p_item_amount    NUMERIC,
-  p_safedeal_fee   NUMERIC,
-  p_processing_fee NUMERIC,
-  p_reason         TEXT
-) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_admin UUID := auth.uid();
-  v_old   RECORD;
-BEGIN
-  IF NOT public.has_role(v_admin, 'super_admin') THEN
-    RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
-  END IF;
-  IF p_item_amount < 0 OR p_safedeal_fee < 0 OR p_processing_fee < 0 THEN
-    RAISE EXCEPTION 'invalid_amounts' USING ERRCODE = '22023';
-  END IF;
+| File | Change |
+|---|---|
+| `supabase/functions/seller-payouts/index.ts` | Select includes the two new columns; lines 207, 315, 394, 451 read through the fallback above. |
+| `supabase/functions/admin-payouts-list/index.ts` | Add the two new columns to the pricing select; use fallback. Also fix the broken `account_number` select by switching to `v_payout_account_state` (see §4). |
+| `supabase/functions/admin-payouts-detail/index.ts` | Same select+fallback. Same view swap for the account section. |
+| `supabase/functions/admin-payouts-summary/index.ts` | If it aggregates payout totals from pricing rows, same select+fallback. |
+| `supabase/functions/seller-transaction-detail/index.ts`, `buyer-transactions/index.ts`, `seller-transactions/index.ts`, `transaction-detail/index.ts`, `transaction-verify/index.ts`, `seller-dashboard/index.ts`, `buyer-dashboard/index.ts` | If they surface seller-payout or processing-fee numbers, add the columns to their select and read through the fallback. Read-only — no writes. |
 
-  SELECT * INTO v_old FROM public.transaction_pricing WHERE transaction_id = p_transaction_id FOR UPDATE;
-  IF NOT FOUND THEN RAISE EXCEPTION 'pricing_not_found'; END IF;
+---
 
-  PERFORM set_config('safedeal.pricing_override', 'on', true);  -- txn-scoped
-  UPDATE public.transaction_pricing
-     SET item_amount                    = p_item_amount,
-         platform_fee_amount            = p_safedeal_fee,
-         processing_fee_amount          = p_processing_fee,
-         payment_processing_fee_amount  = p_processing_fee,
-         buyer_total_amount             = p_item_amount + p_safedeal_fee + p_processing_fee,
-         seller_payout_amount           = p_item_amount,
-         is_total_service_fee_capped    = (p_safedeal_fee + p_processing_fee) >= 2500,
-         updated_at                     = now()
-   WHERE transaction_id = p_transaction_id;
+## 4. Payout-account state — one read, four canonical states
 
-  -- Audit
-  INSERT INTO public.admin_actions(admin_user_id, action_type, target_type, target_id, reason, metadata)
-  VALUES (v_admin, 'admin_correct_pricing', 'transaction', p_transaction_id, p_reason,
-          jsonb_build_object('old', to_jsonb(v_old), 'new', jsonb_build_object(
-            'item_amount', p_item_amount, 'safedeal_fee', p_safedeal_fee,
-            'processing_fee', p_processing_fee)));
+Today three places independently compute "is this seller payout-ready" from raw `verification_status` + `provider_recipient_code`. Phase 2 shipped `v_payout_account_state` for exactly this.
 
-  INSERT INTO public.transaction_events(transaction_id, event_type, actor_user_id, metadata)
-  VALUES (p_transaction_id, 'pricing_corrected', v_admin,
-          jsonb_build_object('reason', p_reason));
+| File | Change |
+|---|---|
+| `supabase/functions/seller-payouts/index.ts` (line 90) | Replace the `payout_accounts` select with `v_payout_account_state` and use `account_state` directly to drive the existing block messages. |
+| `supabase/functions/admin-payouts-list/index.ts` (line 118) | Same swap; the existing `payout_account` shape in the response gets one extra field `account_state`. |
+| `supabase/functions/admin-payouts-detail/index.ts` (line 51) | Same. The detail-gates section keeps its current per-check breakdown (those gates are useful in the drawer) but adds `account_state` so the UI in Phase 4 can collapse them into one badge. |
+| `supabase/functions/retry-payout/index.ts` (line 71) | Replace the verification check with `account_state = 'verified_ready'`; surface `verified_no_recipient` and `unverified` as distinct, human-readable blockers. |
+| `supabase/functions/update-payout-account/index.ts` (only if it currently reads back its own state) | Read back through the view so the response is consistent. |
 
-  RETURN jsonb_build_object('ok', true);
-END $$;
+`src/lib/payout-presentation.ts` (the shared frontend mapper from the earlier turn) and `src/services/admin-payouts.service.ts` get a small additive change in §6 to pass `account_state` through.
 
-REVOKE ALL ON FUNCTION public.admin_correct_pricing(UUID,NUMERIC,NUMERIC,NUMERIC,TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.admin_correct_pricing(UUID,NUMERIC,NUMERIC,NUMERIC,TEXT) TO authenticated, service_role;
+---
+
+## 5. `_shared/payout-eligibility.ts` — fix the wrong assumption
+
+The Phase 1 module ordered candidates by `is_default`, a column that doesn't exist. Replace with a single read from `v_payout_account_state`:
+
+```ts
+const { data: acct } = await admin
+  .from("v_payout_account_state")
+  .select("account_state, account_id, provider_recipient_code")
+  .eq("user_id", sellerId)
+  .maybeSingle();
+
+const account_ready = acct?.account_state === "verified_ready";
 ```
 
-The session var `safedeal.pricing_override` is set inside the same transaction so the trigger sees it; `set_config(..., true)` scopes it to the transaction so it can't leak.
-
-Caveat: if `admin_actions` / `transaction_events` columns differ slightly from what I show above, the migration will adjust the `INSERT` shapes to match the live schema — I'll re-read both tables before issuing the migration to keep the inserts strictly typed.
+Then map `account_state` directly into the `first_blocker` reason for `verified_no_recipient` / `unverified` / `no_account`. No other module needs to change because the function's signature is unchanged.
 
 ---
 
-## 3. Dispute-status transition trigger (the §7.4 fix)
+## 6. Service layer — keep it thin
 
-`disputes.status` is the `dispute_case_status` enum (`open | seller_response_pending | under_review | resolved`). Today only app code enforces the matrix; this puts it in the database, matching the strength of `validate_transaction_transition` / `validate_money_transition` from migrations 013/014.
+Only two service-layer files actually need to learn the new fields. None of them gain new business logic — they just pass the snapshot/state through to the UI in a typed shape.
 
-```text
-CREATE OR REPLACE FUNCTION public.validate_dispute_transition(
-  old_status dispute_case_status,
-  new_status dispute_case_status
-) RETURNS BOOLEAN LANGUAGE plpgsql IMMUTABLE AS $$
-BEGIN
-  IF old_status = new_status THEN RETURN TRUE; END IF;
-  RETURN CASE old_status
-    WHEN 'open'                    THEN new_status IN ('seller_response_pending','under_review','resolved')
-    WHEN 'seller_response_pending' THEN new_status IN ('under_review','resolved')
-    WHEN 'under_review'            THEN new_status =  'resolved'
-    WHEN 'resolved'                THEN FALSE                  -- terminal
-    ELSE FALSE
-  END;
-END $$;
+| File | Change |
+|---|---|
+| `src/services/payment-flow.service.ts` (Phase 1) | `getPricingSnapshot(transactionId)` returns `{ ...legacy, payment_processing_fee_amount, seller_payout_amount, is_total_service_fee_capped, pricing_model_version }`. Already typed via Phase 1's `payment-flow.types.ts`; the regenerated DB types pick this up. |
+| `src/services/admin-payouts.service.ts` | Add `account_state: PayoutAccountState \| null` to the row type; pass the existing payload through unchanged. |
 
-CREATE OR REPLACE FUNCTION public.enforce_dispute_transition()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-  IF TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status THEN
-    IF NOT public.validate_dispute_transition(OLD.status, NEW.status) THEN
-      RAISE EXCEPTION 'invalid dispute transition: % -> %', OLD.status, NEW.status
-        USING ERRCODE = 'check_violation';
-    END IF;
-  END IF;
-  RETURN NEW;
-END $$;
-
-CREATE TRIGGER enforce_dispute_state_machine
-  BEFORE UPDATE ON public.disputes
-  FOR EACH ROW EXECUTE FUNCTION public.enforce_dispute_transition();
-```
-
-`resolve_dispute_atomic` already conforms — no app-side change needed.
+The UI components are intentionally **not** touched in Phase 3 — that's Phase 4. Today's components already render through the fallback shape, so once the writers stamp the new columns the components silently start showing them where the snapshot is present.
 
 ---
 
-## 4. `v_payout_account_state` view (the §7.5 fix)
+## 7. Verification after Phase 3 lands
 
-One canonical answer for every screen — the four-state model the table and drawer must share. `security_invoker = on` so it respects the caller's RLS on `payout_accounts`.
+A. **Static checks (parallel).**
+- `tsc` passes via the normal build pipeline.
+- `rg "seller_net_amount|processing_fee_amount"` in `supabase/functions/release-payout|retry-payout|refund-transaction|admin-payouts-*|seller-payouts` shows **only fallback reads**, never bare reads.
 
-```text
-CREATE OR REPLACE VIEW public.v_payout_account_state
-WITH (security_invoker = on) AS
-WITH ranked AS (
-  SELECT
-    pa.user_id,
-    pa.id              AS account_id,
-    pa.bank_name,
-    pa.masked_account_number,
-    pa.verification_status,
-    pa.provider_recipient_code,
-    pa.last_verified_at,
-    ROW_NUMBER() OVER (
-      PARTITION BY pa.user_id
-      ORDER BY (pa.verification_status = 'verified') DESC,
-               pa.last_verified_at DESC NULLS LAST,
-               pa.updated_at DESC
-    ) AS rn
-  FROM public.payout_accounts pa
-)
-SELECT
-  user_id,
-  account_id,
-  bank_name,
-  masked_account_number,
-  verification_status,
-  provider_recipient_code,
-  last_verified_at,
-  CASE
-    WHEN account_id IS NULL                                              THEN 'no_account'
-    WHEN verification_status <> 'verified'                               THEN 'unverified'
-    WHEN verification_status = 'verified' AND provider_recipient_code IS NULL
-                                                                         THEN 'verified_no_recipient'
-    ELSE 'verified_ready'
-  END AS account_state
-FROM ranked
-WHERE rn = 1;
+B. **Functional smoke (in this order).**
+1. Create a fresh transaction via `create-transaction` → confirm the new row in `transaction_pricing` has all four columns populated, `pricing_model_version = 'NG_MVP_TOTAL_SERVICE_FEE_CAP_2500_V1'`.
+2. Initiate Paystack payment via `initiate-paystack-payment` → confirm a "bank transfer / large card" simulated `provider_fee_estimate > 2500` produces `payment_method_blocked` and does not call Paystack.
+3. Run paystack-webhook for a happy-path payment → confirm `money_status` advances and the pricing row stays unchanged (no rewrite).
+4. `release-payout` on the new transaction → confirm `payouts.amount = seller_payout_amount` (not `seller_net_amount`) and a ledger entry exists.
+5. `retry-payout` on a forced-failed payout → confirm the eligibility gate fires when `v_payout_account_state.account_state != 'verified_ready'`.
+6. `refund-transaction` on a paid-but-not-released transaction → confirm `refund_decision.payment_processing_fee_non_refundable === true` and the ledger tags match.
+7. `admin-payouts-list` and `admin-payouts-detail` → confirm `payout_account.account_state` is present and matches what `seller-payouts` would show the same seller.
 
-GRANT SELECT ON public.v_payout_account_state TO authenticated, service_role;
-```
+C. **Negative checks.**
+- Pricing-lock trigger still rejects direct UPDATEs (already verified in Phase 2).
+- An attempt to release a payout where the seller is `verified_no_recipient` returns `first_blocker = "payout_account_recipient_missing"` and never calls the provider.
 
-Note: `payout_accounts` has no `is_default` column, so "the current account" = highest priority by (verified, last_verified_at, updated_at). The Phase 1 `payout-eligibility.ts` will be updated in Phase 3 to read from this view instead of its current `is_default` ordering (which was the wrong assumption).
+D. **Cross-check.** `account_state` returned by `seller-payouts`, `admin-payouts-list`, and `admin-payouts-detail` is identical for the same seller for the same point-in-time read. This is the §7.5 "drawer ≠ table" fix.
 
 ---
 
-## 5. Optional small index
+## 8. What this phase deliberately does NOT do
 
-```text
-CREATE INDEX IF NOT EXISTS idx_payouts_tx_status
-  ON public.payouts(transaction_id, status);
-```
-
-Only added if it doesn't already exist. Helps the eligibility evaluator's "find the current payout" lookup.
-
----
-
-## 6. GRANTs
-
-No new tables — only column additions, functions, and a view, so no per-table grants needed. RPC grants are inline (admin function: `authenticated`/`service_role` only). View grant included above.
+- No UI refactor (Phase 4 sweeps `BuyerPaymentSummary`, `SellerCreateTransaction`, `CartCheckoutReview`, `BuyerTransactionVerify`, the admin payouts table & drawer, and the seller payouts page).
+- No removal of `seller_net_amount` / `processing_fee_amount` reads. They stay as fallbacks until the UI sweep is complete.
+- No new background reconciliation job, no dual-approval flow, no provider abstraction — those are still deferred (decisions from the integration plan stand).
+- No change to `auto-timeout-payments`, `auto-escalate-silent-disputes`, `flag-stuck-confirmations`, `resolve-release-review` — they don't move money. (They will inherit the central labels in Phase 4 where they emit user-visible text.)
+- No write of the per-transaction `pricing_model_version` for **legacy** rows — they stay NULL by design.
 
 ---
 
-## 7. What this migration deliberately does NOT do
+## 9. Rollback
 
-- No rename of existing columns (`processing_fee_amount`, `seller_net_amount`, `buyer_total_amount` stay).
-- No recomputation of old rows. Pricing math is unchanged. The cap stays ₦2,500.
-- No new payout/dispute/refund enums.
-- No reconciliation tables, no provider-balance tracker, no dual-approval tables — those were deferred (Decision 6).
-- No edit to the existing `validate_transaction_transition` / `validate_money_transition` matrix.
+Phase 3 is pure code (no migrations). To roll back, revert the touched edge-function files. The pricing columns added in Phase 2 stay; new writes simply stop populating them again. Because every reader uses the legacy fallback, behavior degrades gracefully back to the pre-Phase-3 state.
 
 ---
 
-## 8. Verification after the migration runs
+## 10. After Phase 3
 
-I'll run, in this order:
+- All money-moving paths read and write through one snapshot shape.
+- Drawer and table show identical payout-account state for any seller.
+- The system is structurally ready for Phase 4 (UI sweep: central labels everywhere, `—` for missing values, 5-line breakdown, forbidden labels removed, no raw enums in user copy).
 
-1. `supabase--linter` — confirm no new "RLS disabled" or "policy missing" warnings (we touch only existing tables + a view).
-2. Spot-check via `supabase--read_query`:
-   - `SELECT count(*) FILTER (WHERE payment_processing_fee_amount IS NULL) FROM transaction_pricing;` → expect 0.
-   - `SELECT count(*) FILTER (WHERE seller_payout_amount IS NULL) FROM transaction_pricing;` → expect 0.
-   - `SELECT * FROM v_payout_account_state LIMIT 5;` → 4 distinct account_state values exercised by real data.
-3. Negative test for pricing lock (using a test transaction in a non-prod state): direct `UPDATE transaction_pricing SET item_amount = …` against a locked tx → expect "transaction_pricing is locked after payment" error.
-4. Negative test for dispute trigger: attempt `UPDATE disputes SET status = 'open' WHERE status = 'resolved'` → expect "invalid dispute transition".
-
----
-
-## 9. Rollback plan (if anything goes sideways)
-
-The migration is purely additive at the table level. A reversal migration would:
-
-- `DROP TRIGGER trg_prevent_pricing_update ON public.transaction_pricing;` + `DROP FUNCTION prevent_pricing_update_after_lock`.
-- `DROP TRIGGER enforce_dispute_state_machine ON public.disputes;` + `DROP FUNCTION enforce_dispute_transition, validate_dispute_transition`.
-- `DROP VIEW v_payout_account_state;`
-- `DROP FUNCTION admin_correct_pricing`.
-- Leave the four new columns in place (their absence would be a typegen churn for no real benefit).
-
----
-
-## 10. After Phase 2 lands
-
-- Regenerated Supabase types will surface the four new columns; Phase 1's `snapshotFromPersisted` / `snapshotFromRow` automatically pick them up via the `??` fallbacks already written.
-- Phase 3 (edge-function wiring) becomes straightforward: every checkout writes the new columns at creation time, every payout reads `seller_payout_amount` only, every refund reads via `evaluateRefundEligibility`.
-
-Approve and I'll author and submit the migration via `supabase--migration` (one call, full SQL inline, awaiting your approval before it runs).
+Approve and I'll start with the writer-side changes (§1) — one or two files per turn so each one is easy to review — and verify against §7 as I go.
