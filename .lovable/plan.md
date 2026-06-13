@@ -44,3 +44,21 @@ I cross-checked the four admin sections against the edge functions and Phase 8 f
 - Reload Admin → Dashboard: Critical Alerts shows the overdue dispute and failed payout.
 - Reload Admin → Payouts row 1: caption shows item title from `transaction_items` instead of "No item snapshot" (if any item rows exist for that tx).
 - Hover the two "release" KPIs to confirm tooltips appear and labels are no longer ambiguous.
+
+## Phase 10 — Buyer surfaces audit + payment-engine verification (executed)
+
+Files:
+- supabase/functions/buyer-dashboard/index.ts — extended bucket mappings (awaiting_delivery: awaiting_fulfillment | seller_dispatched | in_transit; awaiting_verification: delivered_awaiting_verification | delivered | awaiting_buyer_confirmation), added `declined` to terminal-exclusion list, added rejection/error logging + `[buyer-dashboard] metrics` info log.
+- src/components/admin/payouts/PayoutsTable.tsx — `no_account` (non-terminal) badge softened to gray "Seller bank not set up" instead of red text.
+
+### How to test a real payment
+1. Log in as buyer (Tunde).
+2. Marketplace → product → Buy Now → Payment Summary.
+3. Paystack test card `4084 0840 8408 4081`, CVV `408`, exp any future, PIN `0000`, OTP `123456`.
+4. Redirect lands on `/dashboard/transactions/:id/verify`; `transaction-verify` fires.
+5. Expected: `payments.status='succeeded'`, `transactions.status='awaiting_fulfillment'`, `money_status='funds_held_in_escrow'`, +1 row in `escrow_ledger_entries`.
+
+### How to test a payout (admin manual release)
+1. Seller adds bank in Profile → Payout Destination → name resolves → `create-payout-recipient` populates `payout_accounts.provider_recipient_code`.
+2. Buyer confirms delivery (or auto-confirm fires) → `payouts` row created with `status='awaiting_release'`.
+3. Admin → `/admin/payouts` → tick row(s) → Process Batch (or per-row Release) → `release-core` calls Paystack `/transfer`. On success: `payouts.status='completed'`, `money_status='funds_released'`, -debit row in ledger.
