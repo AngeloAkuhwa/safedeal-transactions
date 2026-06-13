@@ -41,6 +41,8 @@ export interface CartProduct {
   seller_id: string;
   seller_name: string;
   seller_slug: string | null;
+  /** JSON-encoded array of enabled delivery methods, or a single method string. */
+  delivery_method?: string | null;
 }
 
 export interface CartItem {
@@ -72,7 +74,26 @@ export async function checkInCart(productId: string): Promise<{ in_cart: boolean
   return cartRequest("POST", { action: "check", product_id: productId });
 }
 
-export async function checkoutSelected(cartItemIds: string[]) {
+export interface CartDeliveryAddress {
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country_code?: string;
+}
+
+export interface CartDeliverySelection {
+  cart_item_id: string;
+  delivery_method: string;
+  delivery_address?: CartDeliveryAddress | null;
+  contact_phone?: string | null;
+}
+
+export async function checkoutSelected(
+  cartItemIds: string[],
+  deliverySelections: CartDeliverySelection[] = [],
+) {
   const token = await getToken();
   const res = await fetch(`${SUPABASE_URL}/functions/v1/cart-checkout`, {
     method: "POST",
@@ -80,7 +101,10 @@ export async function checkoutSelected(cartItemIds: string[]) {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ cart_item_ids: cartItemIds }),
+    body: JSON.stringify({
+      cart_item_ids: cartItemIds,
+      delivery_selections: deliverySelections,
+    }),
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.error || "Checkout failed");
