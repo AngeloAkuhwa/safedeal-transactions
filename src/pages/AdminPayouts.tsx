@@ -219,7 +219,15 @@ export default function AdminPayouts() {
           <PayoutFilters search={search} onSearch={(v) => { setSearch(v); setPage(1); }} />
         </div>
 
-        <PayoutAdvancedFilters />
+        <PayoutAdvancedFilters
+          value={filters}
+          onChange={(next) => {
+            setFilters(next);
+            setPage(1);
+            // Keep tab in sync with the Status select
+            if (next.status !== tab) setTab(next.status);
+          }}
+        />
 
         <PayoutBatchBar
           selected={selectedRows.filter((r) => eligibleForRelease(r).ok)}
