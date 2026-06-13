@@ -115,15 +115,8 @@ Deno.serve(async (req) => {
       .eq("status", "awaiting_payment")
       .maybeSingle();
 
-    if (existingTx) {
-      // Reuse existing transaction — return same share_token
-      console.log(`Reusing existing transaction ${existingTx.id} for product ${productId}`);
-      return jsonResponse({
-        transaction_id: existingTx.id,
-        share_token: existingTx.share_token,
-        transaction_code: existingTx.transaction_code,
-      });
-    }
+    // (Reuse handling moved below — needs product + pricing context to
+    // reconcile quantity/pricing/reservation when the buyer changes intent.)
 
     // Fetch product
     const { data: product, error: productError } = await adminClient
@@ -140,8 +133,21 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Product is not available for purchase" }, 400);
     }
 
-    // Check stock
-    const availableStock = product.stock_quantity - product.reserved_quantity;
+    // Stock check accounting for any quantity already reserved by an
+    // existing awaiting_payment transaction we'd be reusing.
+    let existingReservedForReuse = 0;
+    if (existingTx) {
+      const { data: existingItems } = await adminClient
+        .from("transaction_items")
+        .select("quantity")
+        .eq("transaction_id", existingTx.id);
+      existingReservedForReuse = (existingItems || []).reduce(
+        (s: number, r: any) => s + (Number(r.quantity) || 0),
+        0,
+      );
+    }
+    const effectiveReserved = Math.max(0, product.reserved_quantity - existingReservedForReuse);
+    const availableStock = product.stock_quantity - effectiveReserved;
     if (availableStock < quantity) {
       return jsonResponse({ error: `Only ${availableStock} units available` }, 400);
     }
@@ -178,6 +184,120 @@ Deno.serve(async (req) => {
     const pricing = computePricing(itemAmount, product.currency_code);
     const snapshot = buildPricingSnapshot(itemAmount, product.currency_code);
 
+    // Resolve buyer's delivery selection (also used by the reuse path below)
+    let enabledMethods: string[] = [];
+    if (product.delivery_method) {
+      try {
+        const parsed = JSON.parse(product.delivery_method);
+        enabledMethods = Array.isArray(parsed) ? parsed : [String(parsed)];
+      } catch {
+        enabledMethods = [String(product.delivery_method)];
+      }
+    }
+    if (enabledMethods.length === 0) {
+      return jsonResponse({ error: "Seller has not configured any delivery methods" }, 400);
+    }
+    let chosenRawMethod: string;
+    if (buyerDeliveryMethod) {
+      if (!enabledMethods.includes(buyerDeliveryMethod)) {
+        return jsonResponse({ error: `Delivery method '${buyerDeliveryMethod}' is not offered for this product` }, 400);
+      }
+      chosenRawMethod = buyerDeliveryMethod;
+    } else if (enabledMethods.length === 1) {
+      chosenRawMethod = enabledMethods[0];
+    } else {
+      return jsonResponse({ error: "delivery_method is required (multiple options available)" }, 400);
+    }
+    const needsAddress = chosenRawMethod === "courier_shipping" || chosenRawMethod === "delivery";
+    const needsPhone = chosenRawMethod === "pickup" || chosenRawMethod === "meetup" || chosenRawMethod === "hand_delivery";
+    if (needsAddress) {
+      if (!buyerAddress?.line1 || !buyerAddress?.city || !buyerAddress?.state) {
+        return jsonResponse({ error: "delivery_address (line1, city, state) is required for this delivery method" }, 400);
+      }
+    }
+    if (needsPhone && !buyerContactPhone && !buyerProfile.phone) {
+      return jsonResponse({ error: "contact_phone is required for this delivery method" }, 400);
+    }
+    const primaryDeliveryMethod = mapDeliveryMethod(chosenRawMethod);
+
+    const deliveryDays = parseInt(product.estimated_delivery_days || "7", 10) || 7;
+    const expectedDate = new Date();
+    expectedDate.setDate(expectedDate.getDate() + deliveryDays);
+    const expectedDeliveryDate = expectedDate.toISOString().split("T")[0];
+
+    // ── Reuse path: existing awaiting_payment transaction ──
+    // Reconcile quantity, pricing, delivery terms and stock reservation so
+    // the existing record matches the buyer's latest intent.
+    if (existingTx) {
+      const reservationDelta = quantity - existingReservedForReuse;
+
+      // 1. Update transaction item quantity (delete + insert single row)
+      await adminClient.from("transaction_items").delete().eq("transaction_id", existingTx.id);
+      await adminClient.from("transaction_items").insert({
+        transaction_id: existingTx.id,
+        title: product.title,
+        description: product.short_description || product.description || "",
+        quantity,
+        condition_label: mapCondition(product.condition_label),
+        brand: product.brand,
+        model: product.model,
+      });
+
+      // 2. Update pricing snapshot
+      await adminClient.from("transaction_pricing").update({
+        currency_code: product.currency_code,
+        item_amount: itemAmount,
+        platform_fee_amount: pricing.platform_fee_amount,
+        buyer_total_amount: pricing.total_amount,
+        payment_processing_fee_amount: snapshot.payment_processing_fee_amount,
+        seller_payout_amount: snapshot.seller_payout_amount,
+        is_total_service_fee_capped: snapshot.is_total_service_fee_capped,
+        pricing_model_version: snapshot.pricing_model_version,
+      }).eq("transaction_id", existingTx.id);
+
+      // 3. Update delivery terms (delete + insert is simplest)
+      await adminClient.from("transaction_delivery_terms").delete().eq("transaction_id", existingTx.id);
+      await adminClient.from("transaction_delivery_terms").insert({
+        transaction_id: existingTx.id,
+        delivery_method: primaryDeliveryMethod,
+        expected_delivery_date: expectedDeliveryDate,
+        verification_window_hours: product.verification_window_hours || 48,
+        delivery_address_line1: needsAddress ? (buyerAddress?.line1 ?? null) : null,
+        delivery_address_line2: needsAddress ? (buyerAddress?.line2 ?? null) : null,
+        delivery_city: needsAddress ? (buyerAddress?.city ?? null) : null,
+        delivery_state: needsAddress ? (buyerAddress?.state ?? null) : null,
+        delivery_postal_code: needsAddress ? (buyerAddress?.postal_code ?? null) : null,
+        delivery_country_code: needsAddress ? (buyerAddress?.country_code ?? "NG") : null,
+      });
+
+      // 4. Adjust product reservation by delta (may be 0, positive or negative)
+      if (reservationDelta !== 0) {
+        const newReserved = Math.max(0, product.reserved_quantity + reservationDelta);
+        await adminClient
+          .from("products")
+          .update({ reserved_quantity: newReserved })
+          .eq("id", productId);
+
+        await adminClient.from("product_inventory_logs").insert({
+          product_id: productId,
+          change_type: reservationDelta > 0 ? "reserve" : "release",
+          quantity_delta: reservationDelta,
+          balance_after: product.stock_quantity - newReserved,
+          reference_type: "transaction",
+          reference_id: existingTx.id,
+          notes: `Reservation adjusted on storefront checkout retry (${existingReservedForReuse} → ${quantity})`,
+          changed_by_user_id: buyerId,
+        });
+      }
+
+      console.log(`Reused tx ${existingTx.id}: qty ${existingReservedForReuse} → ${quantity}`);
+      return jsonResponse({
+        transaction_id: existingTx.id,
+        share_token: existingTx.share_token,
+        transaction_code: existingTx.transaction_code,
+      });
+    }
+
     // Generate transaction code + share token
     const { data: transactionCode } = await adminClient.rpc("generate_transaction_code");
     const shareToken = generateShareToken();
@@ -207,50 +327,6 @@ Deno.serve(async (req) => {
     }
 
     const transactionId = newTx.id;
-
-    // Resolve buyer's delivery selection against the product's enabled methods.
-    let enabledMethods: string[] = [];
-    if (product.delivery_method) {
-      try {
-        const parsed = JSON.parse(product.delivery_method);
-        enabledMethods = Array.isArray(parsed) ? parsed : [String(parsed)];
-      } catch {
-        enabledMethods = [String(product.delivery_method)];
-      }
-    }
-    if (enabledMethods.length === 0) {
-      return jsonResponse({ error: "Seller has not configured any delivery methods" }, 400);
-    }
-
-    let chosenRawMethod: string;
-    if (buyerDeliveryMethod) {
-      if (!enabledMethods.includes(buyerDeliveryMethod)) {
-        return jsonResponse({ error: `Delivery method '${buyerDeliveryMethod}' is not offered for this product` }, 400);
-      }
-      chosenRawMethod = buyerDeliveryMethod;
-    } else if (enabledMethods.length === 1) {
-      chosenRawMethod = enabledMethods[0];
-    } else {
-      return jsonResponse({ error: "delivery_method is required (multiple options available)" }, 400);
-    }
-
-    const needsAddress = chosenRawMethod === "courier_shipping" || chosenRawMethod === "delivery";
-    const needsPhone = chosenRawMethod === "pickup" || chosenRawMethod === "meetup" || chosenRawMethod === "hand_delivery";
-    if (needsAddress) {
-      if (!buyerAddress?.line1 || !buyerAddress?.city || !buyerAddress?.state) {
-        return jsonResponse({ error: "delivery_address (line1, city, state) is required for this delivery method" }, 400);
-      }
-    }
-    if (needsPhone && !buyerContactPhone && !buyerProfile.phone) {
-      return jsonResponse({ error: "contact_phone is required for this delivery method" }, 400);
-    }
-    const primaryDeliveryMethod = mapDeliveryMethod(chosenRawMethod);
-
-    // Calculate expected delivery date (today + estimated days or default 7 days)
-    const deliveryDays = parseInt(product.estimated_delivery_days || "7", 10) || 7;
-    const expectedDate = new Date();
-    expectedDate.setDate(expectedDate.getDate() + deliveryDays);
-    const expectedDeliveryDate = expectedDate.toISOString().split("T")[0];
 
     // Create all related records in parallel
     await Promise.all([
