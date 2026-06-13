@@ -48,6 +48,8 @@ import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { useEffect, useState, useRef } from "react";
 import { ContactSellerModal } from "@/components/transactions/ContactSellerModal";
 import { TransactionReceipt } from "@/components/transactions/TransactionReceipt";
+import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
+import { viewFromRow } from "@/services/payment-flow.service";
 import { ProductMediaGallery } from "@/components/transactions/ProductMediaGallery";
 import { InTransitBlock } from "@/components/transactions/InTransitBlock";
 import { VerifyReceiptCTA } from "@/components/transactions/VerifyReceiptCTA";
