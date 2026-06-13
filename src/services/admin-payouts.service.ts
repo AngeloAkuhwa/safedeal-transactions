@@ -117,7 +117,17 @@ export interface PayoutTimelineEntry {
 export interface PayoutDetail {
   payout: PayoutRow extends infer R ? Omit<PayoutRow, "transaction" | "seller" | "payout_account" | "pricing"> & { notes: string | null } : never;
   transaction: PayoutRow["transaction"] & { buyer_id: string; seller_id: string; created_at: string } | null;
-  pricing: PayoutRow["pricing"];
+  pricing: {
+    item_total: number | null;
+    protection_fee: number | null;
+    protection_fee_raw: number | null;
+    protection_fee_capped: boolean;
+    payment_processing_fee: number | null;
+    total_charged: number | null;
+    seller_payout: number;
+    currency: string;
+    has_pricing_snapshot?: boolean;
+  };
   seller: { id: string; name: string; email: string | null; avatar_url: string | null } | null;
   payout_account: PayoutRow["payout_account"] & { last_verified_at: string | null } | null;
   payment: any | null;

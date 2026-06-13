@@ -67,16 +67,23 @@ Deno.serve(async (req) => {
   }
 
   const MAX_PROTECTION_FEE = 2500;
-  const itemTotal = Number(pricing?.item_amount ?? 0);
-  const rawProtection = Number(pricing?.platform_fee_amount ?? 0);
-  const protectionFee = Math.min(rawProtection, MAX_PROTECTION_FEE);
-  const paymentProcessingFee = Number(pricing?.processing_fee_amount ?? 0);
-  const totalCharged = itemTotal + protectionFee + paymentProcessingFee;
-  const sellerPayout = Math.max(itemTotal - protectionFee, Number(payout.amount ?? 0));
+  const hasPricing = !!pricing;
+  const itemTotal = hasPricing && pricing!.item_amount != null ? Number(pricing!.item_amount) : null;
+  const rawProtection = hasPricing && pricing!.platform_fee_amount != null ? Number(pricing!.platform_fee_amount) : null;
+  const protectionFee = rawProtection != null ? Math.min(rawProtection, MAX_PROTECTION_FEE) : null;
+  const paymentProcessingFee = hasPricing && pricing!.processing_fee_amount != null ? Number(pricing!.processing_fee_amount) : null;
+  const totalCharged = (itemTotal != null && protectionFee != null && paymentProcessingFee != null)
+    ? itemTotal + protectionFee + paymentProcessingFee
+    : null;
+  // Seller payout always comes from payouts.amount (single source of truth)
+  const sellerPayout = Number(payout.amount ?? 0);
 
   const investigationOpen = investigation && ["open","under_review","escalated"].includes(investigation.status);
   const refundInFlight = (refunds ?? []).some((r: any) => ["pending","processing"].includes(r.status));
   const openQueue = (queue ?? []).find((q: any) => ["pending","claimed","processing"].includes(q.status));
+  const activeDisputeStatuses = new Set(["open","under_review","awaiting_response","escalated","pending"]);
+  const hasActiveDispute = !!(dispute && dispute.status && activeDisputeStatuses.has(String(dispute.status).toLowerCase()))
+    || !!(tx?.dispute_status && activeDisputeStatuses.has(String(tx.dispute_status).toLowerCase()));
 
   const gates = [
     { key: "money_pending_release", label: "Funds pending release",
@@ -86,10 +93,10 @@ Deno.serve(async (req) => {
         ? "Buyer payment is held in escrow and ready for release."
         : `Money status is "${tx?.money_status ?? "unknown"}". Must be 'funds_pending_release'.` },
     { key: "dispute_clear", label: "No active dispute",
-      pass: !tx?.dispute_status || tx?.dispute_status === "resolved",
-      actual: tx?.dispute_status ?? "none",
-      detail: dispute && dispute.status !== "resolved"
-        ? `Dispute ${dispute.id.slice(0,8)} is ${dispute.status}. Resolve before releasing.`
+      pass: !hasActiveDispute,
+      actual: tx?.dispute_status ?? dispute?.status ?? "none",
+      detail: hasActiveDispute
+        ? `Dispute is ${dispute?.status ?? tx?.dispute_status}. Resolve before releasing.`
         : "No open dispute." },
     { key: "no_investigation", label: "No open investigation",
       pass: !investigationOpen && !tx?.needs_admin_review,
@@ -122,11 +129,12 @@ Deno.serve(async (req) => {
       detail: account?.provider_recipient_code
         ? "Paystack recipient code present."
         : "Recipient code missing. Re-verify the bank account." },
-    { key: "queue_open", label: "Release review queue active",
-      pass: !!openQueue,
-      actual: openQueue?.status ?? "absent",
-      detail: openQueue ? `In '${openQueue.queue_type}' queue, status: ${openQueue.status}.`
-        : "Transaction is not in the release review queue." },
+    { key: "queue_clear", label: "Release review cleared",
+      pass: !openQueue,
+      actual: openQueue?.status ?? "clear",
+      detail: openQueue
+        ? `Held in '${openQueue.queue_type}' queue, status: ${openQueue.status}. Resolve queue item before releasing.`
+        : "Not held in the release review queue." },
     { key: "no_refund", label: "No in-flight refund",
       pass: !refundInFlight,
       actual: refundInFlight ? "in_flight" : "none",
@@ -214,11 +222,12 @@ Deno.serve(async (req) => {
       item_total: itemTotal,
       protection_fee: protectionFee,
       protection_fee_raw: rawProtection,
-      protection_fee_capped: rawProtection > MAX_PROTECTION_FEE,
+      protection_fee_capped: rawProtection != null && rawProtection > MAX_PROTECTION_FEE,
       payment_processing_fee: paymentProcessingFee,
       total_charged: totalCharged,
       seller_payout: sellerPayout,
       currency: pricing?.currency_code ?? "NGN",
+      has_pricing_snapshot: hasPricing,
     },
     seller: profile ? {
       id: profile.id, name: profile.full_name, email: profile.email, avatar_url: profile.avatar_url,
