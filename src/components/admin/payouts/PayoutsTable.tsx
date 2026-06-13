@@ -525,6 +525,12 @@ export function PayoutsTable({
                         onOpenTransaction={() => onOpenTransaction(r)}
                         onRetry={() => onRetry(r)}
                         onUnblock={() => onUnblock(r)}
+                        onOpenSeller={() => onOpenSeller(r)}
+                        onUpdateBank={() => onUpdateBank(r)}
+                        onDownloadReceipt={() => onDownloadReceipt(r)}
+                        onAddNote={() => onAddNote(r)}
+                        onBlock={() => onBlock(r)}
+                        onPause={() => onPause(r)}
                       />
                     </DropdownMenu>
                   </div>
