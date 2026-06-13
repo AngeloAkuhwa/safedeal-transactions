@@ -1,6 +1,26 @@
 
 # Phase 5 — Notifications & Transactional Emails (canonical labels + amounts)
 
+## Status (this run)
+
+- **Done**: `_shared/money-copy.ts` (server-side label registry + `formatMoney`,
+  `formatMoneyOrDash`, `buildBuyerReceiptLines`, `buildSellerPayoutLines`).
+  Notification copy rewritten to use canonical labels + amounts in
+  `release-core.ts` (payout-released, refund-issued), `retry-payout` (retry
+  attempt with amount), `seller-confirm-completion` (release-pending message
+  now names `Seller Payout` + amount). Affected edge functions redeployed.
+- **Deferred — email templates**: `email_domain--check_email_domain_status`
+  reports no domain configured. Email scaffolding (6 templates +
+  `send-transactional-email` wiring) is blocked on the user completing
+  domain setup. Once set up, run `scaffold_transactional_email`, then author
+  templates using `buildBuyerReceiptLines` / `buildSellerPayoutLines`.
+
+## Email-setup follow-up
+
+<presentation-actions>
+<presentation-open-email-setup>Set up email domain</presentation-open-email-setup>
+</presentation-actions>
+
 **Goal:** Every user-facing money string sent outside the app (in-app notifications, push payloads, transactional emails) must use the same labels and amounts as the in-app UI built in Phase 4. No new pricing math, no DB schema changes — purely copy + adapter wiring through the existing `PRICING_LINE_LABELS` registry and `viewFromRow()` helper.
 
 ## Scope (in)
@@ -76,6 +96,19 @@ Low. Only side effect is one queued email per existing trigger. Idempotency keys
 ---
 
 # Phase 7 (optional cleanup) — Drop legacy column reads
+
+## Status (this run)
+
+- **Done — type-level deprecation**: added `LegacyPricingRowFields` to
+  `src/types/payment-flow.types.ts` with `@deprecated` JSDoc on
+  `processing_fee_amount`, `seller_net_amount`, `escrow_fee_amount`,
+  `delivery_fee_amount`. New code surfaces a compile-time hint to avoid
+  reading them.
+- **Deferred — fallback removal**: keeping `?? processing_fee_amount` and
+  `?? seller_net_amount` reads in service/edge layers until Phase 6
+  reconciliation confirms 100% snapshot coverage on unlocked rows. Removing
+  them now risks `—` rendering for any unmigrated locked row. Phase 7 will
+  delete those `??` branches in one mechanical sweep once Phase 6 ships.
 
 **Prerequisite:** Phase 6 reconciliation confirms 100% of unlocked rows carry a complete `transaction_pricing` snapshot and `pricing_model_version` is non-null. Locked (paid/immutable) rows keep their original snapshot — we never rewrite those.
 

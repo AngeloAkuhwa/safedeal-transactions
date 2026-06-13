@@ -2,6 +2,7 @@ import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { createTransfer, createRefund } from "./paystack.ts";
 import { nairaToKobo } from "./money.ts";
 import { notifyUser, notifyOpsTeam } from "./notify.ts";
+import { formatMoney, PRICING_LINE_LABELS } from "./money-copy.ts";
 
 export type CoreResult =
   | { ok: true; status: number; body: Record<string, unknown> }
@@ -172,7 +173,10 @@ export async function releasePayoutCore(
     actor_user_id: actor_user_id,
     actor_role: "admin",
     event_data: {
-      description: `SafeDeal initiated payout transfer of ${(tx as any).currency_code} ${Number((payout as any).amount).toLocaleString()}`,
+      description: `SafeDeal initiated ${PRICING_LINE_LABELS.seller_payout_amount} of ${formatMoney(
+        Number((payout as any).amount),
+        (tx as any).currency_code,
+      )}`,
       payout_id: (payout as any).id,
       reference,
       transfer_code: transferCode,
@@ -183,8 +187,11 @@ export async function releasePayoutCore(
   await notifyUser(admin, {
     user_id: tx.seller_id,
     type: "payment_update",
-    title: "Releasing your funds",
-    message: `SafeDeal has approved your payout for ${(tx as any).transaction_code}. The transfer is on the way to your bank.`,
+    title: "Payout on the way",
+    message: `Your ${PRICING_LINE_LABELS.seller_payout_amount} of ${formatMoney(
+      Number((payout as any).amount),
+      (tx as any).currency_code,
+    )} for ${(tx as any).transaction_code} is on its way to your bank.`,
     related_transaction_id: transaction_id,
   });
 
@@ -370,7 +377,7 @@ export async function refundBuyerCore(
     user_id: (tx as any).buyer_id,
     type: "payment_update",
     title: "Refund on the way",
-    message: `SafeDeal has initiated a refund of ₦${refundAmount.toLocaleString()} for ${(tx as any).transaction_code}.`,
+    message: `SafeDeal has initiated a refund of ${formatMoney(refundAmount)} for ${(tx as any).transaction_code}.`,
     related_transaction_id: transaction_id,
   });
   await notifyUser(admin, {

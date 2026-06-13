@@ -3,6 +3,7 @@ import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
 import { createTransfer } from "../_shared/paystack.ts";
 import { nairaToKobo } from "../_shared/money.ts";
 import { notifyUser, notifyOpsTeam } from "../_shared/notify.ts";
+import { formatMoney, PRICING_LINE_LABELS } from "../_shared/money-copy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -166,7 +167,10 @@ Deno.serve(async (req) => {
     actor_user_id: ctx.userId,
     actor_role: "admin",
     event_data: {
-      description: `SafeDeal retry ${attempt} initiated payout transfer of ${tx.currency_code} ${Number(payout.amount).toLocaleString()}`,
+      description: `SafeDeal retry ${attempt} initiated ${PRICING_LINE_LABELS.seller_payout_amount} of ${formatMoney(
+        Number(payout.amount),
+        tx.currency_code,
+      )}`,
       payout_id: payout.id,
       reference,
       transfer_code: transferCode,
@@ -179,7 +183,10 @@ Deno.serve(async (req) => {
     user_id: tx.seller_id,
     type: "payment_update",
     title: "Retrying your payout",
-    message: `SafeDeal is retrying the bank transfer for ${tx.transaction_code}.`,
+    message: `SafeDeal is retrying the bank transfer of ${formatMoney(
+      Number(payout.amount),
+      tx.currency_code,
+    )} (${PRICING_LINE_LABELS.seller_payout_amount}) for ${tx.transaction_code}.`,
     related_transaction_id: tx.id,
   });
 
