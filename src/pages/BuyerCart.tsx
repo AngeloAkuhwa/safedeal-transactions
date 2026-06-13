@@ -1,25 +1,29 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ShoppingCart, Trash2, Minus, Plus, Package, Loader2,
   ShieldCheck, AlertTriangle, CheckCircle2, ShoppingBag, RefreshCw,
-  UserCheck, Clock, Info, ExternalLink,
+  UserCheck, Clock, Info, ExternalLink, Truck,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/sonner";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import {
   getCartItems, removeFromCart, updateCartQuantity, checkoutSelected,
-  CartItem,
+  CartItem, CartDeliverySelection, CartDeliveryAddress,
 } from "@/services/cart.service";
 import { computePricing } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { formatMoney } from "@/lib/format";
+import { resolveDeliveryMethod } from "@/lib/status-labels";
 
 const formatPrice = (amount: number, currency = "NGN") => formatMoney(amount, currency);
 
@@ -32,6 +36,44 @@ function getStockStatus(item: CartItem) {
   return { label: "In Stock", variant: "success" as const, canCheckout: true };
 }
 
+function parseEnabledMethods(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.map(String);
+    return [String(parsed)];
+  } catch {
+    return [String(raw)];
+  }
+}
+
+function methodNeedsAddress(m: string) {
+  return m === "courier_shipping" || m === "delivery";
+}
+
+function methodNeedsPhone(m: string) {
+  return m === "pickup" || m === "meetup" || m === "hand_delivery";
+}
+
+interface DeliveryDraft {
+  delivery_method: string;
+  delivery_address: CartDeliveryAddress;
+  contact_phone: string;
+}
+
+function emptyAddress(): CartDeliveryAddress {
+  return { line1: "", line2: "", city: "", state: "", postal_code: "", country_code: "NG" };
+}
+
+function isDraftValid(draft: DeliveryDraft | undefined): boolean {
+  if (!draft || !draft.delivery_method) return false;
+  if (methodNeedsAddress(draft.delivery_method)) {
+    const a = draft.delivery_address;
+    if (!a?.line1?.trim() || !a?.city?.trim() || !a?.state?.trim()) return false;
+  }
+  return true;
+}
+
 const BuyerCart = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -39,6 +81,8 @@ const BuyerCart = () => {
   const [removing, setRemoving] = useState<string | null>(null);
   const [removingSelected, setRemovingSelected] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [deliveryDrafts, setDeliveryDrafts] = useState<Record<string, DeliveryDraft>>({});
+  const [showDeliveryErrors, setShowDeliveryErrors] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["buyer-cart"],
@@ -46,6 +90,56 @@ const BuyerCart = () => {
   });
 
   const items: CartItem[] = data?.items || [];
+
+  // Auto-initialize delivery drafts: pre-select when only one method is offered.
+  useEffect(() => {
+    if (items.length === 0) return;
+    setDeliveryDrafts((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const it of items) {
+        if (next[it.id]) continue;
+        const methods = parseEnabledMethods(it.product?.delivery_method);
+        if (methods.length === 1) {
+          next[it.id] = {
+            delivery_method: methods[0],
+            delivery_address: emptyAddress(),
+            contact_phone: "",
+          };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [items]);
+
+  const updateDraft = (cartItemId: string, patch: Partial<DeliveryDraft>) => {
+    setDeliveryDrafts((prev) => {
+      const current = prev[cartItemId] ?? {
+        delivery_method: "",
+        delivery_address: emptyAddress(),
+        contact_phone: "",
+      };
+      return { ...prev, [cartItemId]: { ...current, ...patch } };
+    });
+  };
+
+  const updateDraftAddress = (cartItemId: string, patch: Partial<CartDeliveryAddress>) => {
+    setDeliveryDrafts((prev) => {
+      const current = prev[cartItemId] ?? {
+        delivery_method: "",
+        delivery_address: emptyAddress(),
+        contact_phone: "",
+      };
+      return {
+        ...prev,
+        [cartItemId]: {
+          ...current,
+          delivery_address: { ...current.delivery_address, ...patch },
+        },
+      };
+    });
+  };
 
   // Realtime subscription for product stock changes
   useEffect(() => {
@@ -128,9 +222,27 @@ const BuyerCart = () => {
     if (selectedIds.length === 0) { toast.error("Select at least one item"); return; }
     const invalid = items.filter((i) => selected.has(i.id) && !getStockStatus(i).canCheckout);
     if (invalid.length > 0) { toast.error("Some selected items need attention before checkout"); return; }
+    // Validate delivery selections for each selected item
+    const missingDelivery = selectedIds.filter((id) => !isDraftValid(deliveryDrafts[id]));
+    if (missingDelivery.length > 0) {
+      setShowDeliveryErrors(true);
+      toast.error("Choose delivery options for all selected items");
+      return;
+    }
+    const deliverySelections: CartDeliverySelection[] = selectedIds.map((id) => {
+      const d = deliveryDrafts[id]!;
+      const needsAddr = methodNeedsAddress(d.delivery_method);
+      const needsPhone = methodNeedsPhone(d.delivery_method);
+      return {
+        cart_item_id: id,
+        delivery_method: d.delivery_method,
+        delivery_address: needsAddr ? d.delivery_address : null,
+        contact_phone: needsPhone ? (d.contact_phone?.trim() || null) : null,
+      };
+    });
     setCheckingOut(true);
     try {
-      const result = await checkoutSelected(selectedIds);
+      const result = await checkoutSelected(selectedIds, deliverySelections);
       toast.success("Checkout session created! Redirecting...");
       navigate(`/dashboard/cart/checkout?session=${result.checkout_session_id}`);
     } catch (err: any) {
