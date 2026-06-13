@@ -1015,7 +1015,9 @@ export default function BuyerPaymentSummary() {
 
                 {/* Title */}
                 <div className="text-center mb-4">
-                  <h2 className="text-lg font-bold text-foreground mb-1">Payment Failed</h2>
+                  <h2 className="text-lg font-bold text-foreground mb-1">
+                    {failureTerminal ? "Transaction No Longer Payable" : "Payment Failed"}
+                  </h2>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {failureReason || "We were unable to process your payment. No funds were deducted from your account."}
                   </p>
@@ -1065,30 +1067,42 @@ export default function BuyerPaymentSummary() {
                 <div className="mb-4">
                   <p className="text-xs font-semibold text-foreground mb-2.5">What you can do next</p>
                   <div className="space-y-2">
-                    <button
-                      onClick={handleRetryPay}
-                      disabled={isProcessing}
-                      className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
-                    >
-                      {isProcessing ? (
-                        <>
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <RotateCcw className="h-3.5 w-3.5" />
-                          Retry Payment
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => { setShowFailed(false); navigate(`/t/${shareToken}`); }}
-                      className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
-                    >
-                      <ArrowLeft className="h-3.5 w-3.5" />
-                      Return to Review
-                    </button>
+                    {failureTerminal ? (
+                      <button
+                        onClick={() => navigate("/buyer/marketplace")}
+                        className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5"
+                      >
+                        <ArrowLeft className="h-3.5 w-3.5" />
+                        Back to Marketplace
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleRetryPay}
+                          disabled={isProcessing}
+                          className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        >
+                          {isProcessing ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              Retry Payment
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => { setShowFailed(false); navigate(`/t/${shareToken}`); }}
+                          className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
+                        >
+                          <ArrowLeft className="h-3.5 w-3.5" />
+                          Return to Review
+                        </button>
+                      </>
+                    )}
                     <button
                       className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
                     >
@@ -1098,16 +1112,18 @@ export default function BuyerPaymentSummary() {
                   </div>
                 </div>
 
-                {/* Security reassurance */}
-                <div className="bg-success/5 border border-success/20 rounded-lg p-3 mb-3">
-                  <div className="flex items-start gap-2">
-                    <ShieldCheck className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-[10px] font-semibold text-foreground mb-0.5">No funds were deducted</p>
-                      <p className="text-[10px] text-muted-foreground leading-relaxed">Your account has not been charged. You can safely retry the payment or choose a different payment method.</p>
+                {/* Security reassurance — only when retry is still valid */}
+                {!failureTerminal && (
+                  <div className="bg-success/5 border border-success/20 rounded-lg p-3 mb-3">
+                    <div className="flex items-start gap-2">
+                      <ShieldCheck className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] font-semibold text-foreground mb-0.5">No funds were deducted</p>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed">Your account has not been charged. You can safely retry the payment or choose a different payment method.</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Help footer */}
                 <div className="text-center pt-2 border-t">
