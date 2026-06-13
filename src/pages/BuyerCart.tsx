@@ -4,22 +4,26 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ShoppingCart, Trash2, Minus, Plus, Package, Loader2,
   ShieldCheck, AlertTriangle, CheckCircle2, ShoppingBag, RefreshCw,
-  UserCheck, Clock, Info, ExternalLink,
+  UserCheck, Clock, Info, ExternalLink, Truck,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/sonner";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import {
   getCartItems, removeFromCart, updateCartQuantity, checkoutSelected,
-  CartItem,
+  CartItem, CartDeliverySelection, CartDeliveryAddress,
 } from "@/services/cart.service";
 import { computePricing } from "@/lib/pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { formatMoney } from "@/lib/format";
+import { resolveDeliveryMethod } from "@/lib/status-labels";
 
 const formatPrice = (amount: number, currency = "NGN") => formatMoney(amount, currency);
 
@@ -32,6 +36,44 @@ function getStockStatus(item: CartItem) {
   return { label: "In Stock", variant: "success" as const, canCheckout: true };
 }
 
+function parseEnabledMethods(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.map(String);
+    return [String(parsed)];
+  } catch {
+    return [String(raw)];
+  }
+}
+
+function methodNeedsAddress(m: string) {
+  return m === "courier_shipping" || m === "delivery";
+}
+
+function methodNeedsPhone(m: string) {
+  return m === "pickup" || m === "meetup" || m === "hand_delivery";
+}
+
+interface DeliveryDraft {
+  delivery_method: string;
+  delivery_address: CartDeliveryAddress;
+  contact_phone: string;
+}
+
+function emptyAddress(): CartDeliveryAddress {
+  return { line1: "", line2: "", city: "", state: "", postal_code: "", country_code: "NG" };
+}
+
+function isDraftValid(draft: DeliveryDraft | undefined): boolean {
+  if (!draft || !draft.delivery_method) return false;
+  if (methodNeedsAddress(draft.delivery_method)) {
+    const a = draft.delivery_address;
+    if (!a?.line1?.trim() || !a?.city?.trim() || !a?.state?.trim()) return false;
+  }
+  return true;
+}
+
 const BuyerCart = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -39,6 +81,8 @@ const BuyerCart = () => {
   const [removing, setRemoving] = useState<string | null>(null);
   const [removingSelected, setRemovingSelected] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [deliveryDrafts, setDeliveryDrafts] = useState<Record<string, DeliveryDraft>>({});
+  const [showDeliveryErrors, setShowDeliveryErrors] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["buyer-cart"],
@@ -46,6 +90,56 @@ const BuyerCart = () => {
   });
 
   const items: CartItem[] = data?.items || [];
+
+  // Auto-initialize delivery drafts: pre-select when only one method is offered.
+  useEffect(() => {
+    if (items.length === 0) return;
+    setDeliveryDrafts((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const it of items) {
+        if (next[it.id]) continue;
+        const methods = parseEnabledMethods(it.product?.delivery_method);
+        if (methods.length === 1) {
+          next[it.id] = {
+            delivery_method: methods[0],
+            delivery_address: emptyAddress(),
+            contact_phone: "",
+          };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [items]);
+
+  const updateDraft = (cartItemId: string, patch: Partial<DeliveryDraft>) => {
+    setDeliveryDrafts((prev) => {
+      const current = prev[cartItemId] ?? {
+        delivery_method: "",
+        delivery_address: emptyAddress(),
+        contact_phone: "",
+      };
+      return { ...prev, [cartItemId]: { ...current, ...patch } };
+    });
+  };
+
+  const updateDraftAddress = (cartItemId: string, patch: Partial<CartDeliveryAddress>) => {
+    setDeliveryDrafts((prev) => {
+      const current = prev[cartItemId] ?? {
+        delivery_method: "",
+        delivery_address: emptyAddress(),
+        contact_phone: "",
+      };
+      return {
+        ...prev,
+        [cartItemId]: {
+          ...current,
+          delivery_address: { ...current.delivery_address, ...patch },
+        },
+      };
+    });
+  };
 
   // Realtime subscription for product stock changes
   useEffect(() => {
@@ -128,9 +222,27 @@ const BuyerCart = () => {
     if (selectedIds.length === 0) { toast.error("Select at least one item"); return; }
     const invalid = items.filter((i) => selected.has(i.id) && !getStockStatus(i).canCheckout);
     if (invalid.length > 0) { toast.error("Some selected items need attention before checkout"); return; }
+    // Validate delivery selections for each selected item
+    const missingDelivery = selectedIds.filter((id) => !isDraftValid(deliveryDrafts[id]));
+    if (missingDelivery.length > 0) {
+      setShowDeliveryErrors(true);
+      toast.error("Choose delivery options for all selected items");
+      return;
+    }
+    const deliverySelections: CartDeliverySelection[] = selectedIds.map((id) => {
+      const d = deliveryDrafts[id]!;
+      const needsAddr = methodNeedsAddress(d.delivery_method);
+      const needsPhone = methodNeedsPhone(d.delivery_method);
+      return {
+        cart_item_id: id,
+        delivery_method: d.delivery_method,
+        delivery_address: needsAddr ? d.delivery_address : null,
+        contact_phone: needsPhone ? (d.contact_phone?.trim() || null) : null,
+      };
+    });
     setCheckingOut(true);
     try {
-      const result = await checkoutSelected(selectedIds);
+      const result = await checkoutSelected(selectedIds, deliverySelections);
       toast.success("Checkout session created! Redirecting...");
       navigate(`/dashboard/cart/checkout?session=${result.checkout_session_id}`);
     } catch (err: any) {
@@ -261,6 +373,10 @@ const BuyerCart = () => {
                     const isRemoving = removing === item.id;
                     const isSelected = selected.has(item.id);
                     const isSoldOut = stock.variant === "destructive";
+                    const enabledMethods = parseEnabledMethods(item.product?.delivery_method);
+                    const draft = deliveryDrafts[item.id];
+                    const draftInvalid = isSelected && showDeliveryErrors && !isDraftValid(draft);
+                    const showPicker = isSelected && !isSoldOut && enabledMethods.length > 0;
 
                     return (
                       <div
@@ -363,6 +479,86 @@ const BuyerCart = () => {
                         </div>
 
                         <Separator />
+
+                        {showPicker && (
+                          <div className={`px-4 py-3 space-y-3 border-b border-border ${draftInvalid ? "bg-destructive/5" : ""}`}>
+                            <div className="flex items-center gap-2">
+                              <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+                              <p className="text-xs font-semibold text-foreground">Delivery method</p>
+                              {draftInvalid && (
+                                <span className="text-[11px] text-destructive">Required</span>
+                              )}
+                            </div>
+                            {enabledMethods.length === 1 ? (
+                              <p className="text-xs text-muted-foreground">
+                                {resolveDeliveryMethod(enabledMethods[0])}
+                              </p>
+                            ) : (
+                              <RadioGroup
+                                value={draft?.delivery_method || ""}
+                                onValueChange={(v) => updateDraft(item.id, { delivery_method: v })}
+                                className="grid grid-cols-1 sm:grid-cols-3 gap-2"
+                              >
+                                {enabledMethods.map((m) => (
+                                  <Label
+                                    key={m}
+                                    htmlFor={`dm-${item.id}-${m}`}
+                                    className={`flex items-center gap-2 rounded-lg border p-2 cursor-pointer text-xs ${
+                                      draft?.delivery_method === m ? "border-primary bg-primary/5" : "border-border"
+                                    }`}
+                                  >
+                                    <RadioGroupItem id={`dm-${item.id}-${m}`} value={m} />
+                                    <span>{resolveDeliveryMethod(m)}</span>
+                                  </Label>
+                                ))}
+                              </RadioGroup>
+                            )}
+
+                            {draft?.delivery_method && methodNeedsAddress(draft.delivery_method) && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <Input
+                                  placeholder="Address line 1 *"
+                                  value={draft.delivery_address.line1 || ""}
+                                  onChange={(e) => updateDraftAddress(item.id, { line1: e.target.value })}
+                                  className="h-8 text-xs sm:col-span-2"
+                                />
+                                <Input
+                                  placeholder="Address line 2"
+                                  value={draft.delivery_address.line2 || ""}
+                                  onChange={(e) => updateDraftAddress(item.id, { line2: e.target.value })}
+                                  className="h-8 text-xs sm:col-span-2"
+                                />
+                                <Input
+                                  placeholder="City *"
+                                  value={draft.delivery_address.city || ""}
+                                  onChange={(e) => updateDraftAddress(item.id, { city: e.target.value })}
+                                  className="h-8 text-xs"
+                                />
+                                <Input
+                                  placeholder="State *"
+                                  value={draft.delivery_address.state || ""}
+                                  onChange={(e) => updateDraftAddress(item.id, { state: e.target.value })}
+                                  className="h-8 text-xs"
+                                />
+                                <Input
+                                  placeholder="Postal code"
+                                  value={draft.delivery_address.postal_code || ""}
+                                  onChange={(e) => updateDraftAddress(item.id, { postal_code: e.target.value })}
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                            )}
+
+                            {draft?.delivery_method && methodNeedsPhone(draft.delivery_method) && (
+                              <Input
+                                placeholder="Contact phone (optional)"
+                                value={draft.contact_phone || ""}
+                                onChange={(e) => updateDraft(item.id, { contact_phone: e.target.value })}
+                                className="h-8 text-xs"
+                              />
+                            )}
+                          </div>
+                        )}
 
                         {/* Bottom section: qty + remove */}
                         <div className="px-4 py-3 flex items-center justify-between">

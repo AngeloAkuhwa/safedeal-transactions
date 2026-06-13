@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       // Fetch products with primary media
       const { data: products } = await admin
         .from("products")
-        .select("id, title, slug, unit_price, currency_code, stock_quantity, reserved_quantity, status, is_active, visibility_type, seller_id, short_description")
+        .select("id, title, slug, unit_price, currency_code, stock_quantity, reserved_quantity, status, is_active, visibility_type, seller_id, short_description, delivery_method")
         .in("id", productIds);
 
       // Fetch primary media for these products
@@ -103,6 +103,7 @@ Deno.serve(async (req) => {
             seller_id: product.seller_id,
             seller_name: seller?.full_name || "Seller",
             seller_slug: seller?.store_slug || null,
+            delivery_method: product.delivery_method ?? null,
           },
         };
       });
