@@ -75,6 +75,7 @@ export interface PayoutRow {
     account_name: string | null;
     verification_status: string | null;
     has_recipient_code: boolean;
+    account_state: "verified_ready" | "verified_no_recipient" | "unverified" | "no_account" | null;
   } | null;
   pricing: {
     item_total: number;
