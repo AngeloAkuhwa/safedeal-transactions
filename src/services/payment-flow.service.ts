@@ -12,6 +12,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type {
   PricingSnapshot,
+  PricingSnapshotView,
   PayoutEligibility,
   RefundDecision,
   RefundOutcome,
@@ -67,6 +68,69 @@ export async function getPricingSnapshot(transactionId: string): Promise<Pricing
     .maybeSingle();
   if (error) throw error;
   return snapshotFromRow(data as unknown as Record<string, unknown> | null);
+}
+
+/**
+ * Adapt a `PricingSnapshot` (where every field is required and numeric) into
+ * the looser `PricingSnapshotView` shape consumed by `<PricingBreakdown>` and
+ * `<SellerPayoutLine>`. Pass-through; no math.
+ */
+export function toBuyerBreakdown(
+  snapshot: PricingSnapshot | null | undefined,
+  opts?: { isEstimate?: boolean },
+): PricingSnapshotView | null {
+  if (!snapshot) return null;
+  return {
+    item_amount: snapshot.item_amount,
+    safedeal_fee_amount: snapshot.safedeal_fee_amount,
+    payment_processing_fee_amount: snapshot.payment_processing_fee_amount,
+    service_fee_amount: snapshot.service_fee_amount,
+    total_amount: snapshot.total_amount,
+    seller_payout_amount: snapshot.seller_payout_amount,
+    currency: snapshot.currency,
+    is_total_service_fee_capped: snapshot.is_total_service_fee_capped,
+    is_estimate: opts?.isEstimate ?? false,
+  };
+}
+
+/**
+ * Build a `PricingSnapshotView` directly from a raw `transaction_pricing`
+ * row (or an `agreement_snapshot.pricing` JSONB). Preserves NULLs so locked
+ * legacy rows render `—` for the lines that were never stamped.
+ */
+export function viewFromRow(
+  row: Record<string, unknown> | null | undefined,
+  opts?: { isEstimate?: boolean },
+): PricingSnapshotView | null {
+  if (!row) return null;
+  const num = (v: unknown): number | null => {
+    if (v === null || v === undefined || v === "") return null;
+    const n = typeof v === "string" ? Number(v) : (v as number);
+    return Number.isFinite(n) ? n : null;
+  };
+  const item = num(row.item_amount);
+  const safedeal = num(row.platform_fee_amount) ?? num(row.safedeal_fee_amount);
+  const processing =
+    num(row.payment_processing_fee_amount) ?? num(row.processing_fee_amount);
+  const service =
+    num(row.service_fee_amount) ??
+    (safedeal != null && processing != null ? safedeal + processing : null);
+  const total = num(row.buyer_total_amount) ?? num(row.total_amount);
+  const sellerPayout =
+    num(row.seller_payout_amount) ?? num(row.seller_net_amount);
+  return {
+    item_amount: item,
+    safedeal_fee_amount: safedeal,
+    payment_processing_fee_amount: processing,
+    service_fee_amount: service,
+    total_amount: total,
+    seller_payout_amount: sellerPayout,
+    currency: (row.currency_code as string) ?? (row.currency as string) ?? "NGN",
+    is_total_service_fee_capped:
+      Boolean(row.is_total_service_fee_capped) ||
+      (service != null && service >= 2500),
+    is_estimate: opts?.isEstimate ?? false,
+  };
 }
 
 /** Initiate a Paystack payment via the existing edge function. */
