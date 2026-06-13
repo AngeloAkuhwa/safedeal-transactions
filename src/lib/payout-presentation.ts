@@ -107,6 +107,45 @@ export function getAccountPresentation(
       tone: "red",
     };
   }
+  // Prefer canonical state from `v_payout_account_state` view when present.
+  // Falls back to raw-field derivation for backward compatibility.
+  const canonical = (account as { account_state?: string | null }).account_state ?? null;
+  if (canonical === "verified_ready") {
+    return {
+      state: "verified_ready",
+      tableLabel: "Verified",
+      drawerVerificationLabel: "verified",
+      drawerRecipientPresent: true,
+      tone: "emerald",
+    };
+  }
+  if (canonical === "verified_no_recipient") {
+    return {
+      state: "verified_no_recipient",
+      tableLabel: "Recipient code missing",
+      drawerVerificationLabel: "verified",
+      drawerRecipientPresent: false,
+      tone: "red",
+    };
+  }
+  if (canonical === "unverified") {
+    return {
+      state: "unverified",
+      tableLabel: "Payout account unverified",
+      drawerVerificationLabel: account.verification_status ?? "unverified",
+      drawerRecipientPresent: !!account.has_recipient_code,
+      tone: "amber",
+    };
+  }
+  if (canonical === "no_account") {
+    return {
+      state: "no_account",
+      tableLabel: "No payout account",
+      drawerVerificationLabel: "missing",
+      drawerRecipientPresent: null,
+      tone: "red",
+    };
+  }
   const verified = account.verification_status === "verified";
   if (!verified) {
     return {
