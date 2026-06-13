@@ -78,7 +78,6 @@ export function EscrowFilters({ value, search, onSearchChange, onChange, onApply
             options={[
               { value: "all", label: "All Records" },
               { value: "disputed", label: "Disputed Only" },
-              { value: "disputed", label: "Flagged Only" },
               { value: "high_value", label: "High Value Only" },
             ]}
           />
