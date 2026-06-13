@@ -4425,6 +4425,14 @@ export type Database = {
         Args: { p_tx_id: string }
         Returns: undefined
       }
+      reconcile_all_product_reservations: {
+        Args: never
+        Returns: {
+          new_reserved: number
+          old_reserved: number
+          product_id: string
+        }[]
+      }
       release_expired_awaiting_payment: {
         Args: { _cutoff: string }
         Returns: {
