@@ -47,6 +47,7 @@ import { toast } from "sonner";
 import { deriveDisputeDisplay } from "@/lib/dispute-display-status";
 import { deriveActiveState, riskBannerTone, visibleRiskFlags, flagChipTone } from "@/lib/admin-active-state";
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
+import { performFlaggedAction } from "@/services/admin-flagged-users.service";
 
 const ngn = (v: number | null | undefined) => formatMoney(v ?? 0, "NGN");
 
@@ -200,6 +201,7 @@ export default function AdminTransactionDetail() {
   const [unfreezeOpen, setUnfreezeOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [flagOpen, setFlagOpen] = useState(false);
+  const [flagUserTarget, setFlagUserTarget] = useState<null | { id: string; role: "buyer" | "seller"; name: string }>(null);
   const [investigateOpen, setInvestigateOpen] = useState(false);
   const [resolveDisputeOpen, setResolveDisputeOpen] = useState(false);
   const [agreementOpen, setAgreementOpen] = useState(false);
