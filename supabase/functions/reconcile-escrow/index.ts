@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
       .in("transaction_id", txIds)
       .in("status", ["processing", "completed"]),
     admin.from("refunds")
-      .select("transaction_id, amount, status")
+      .select("transaction_id, refund_amount, status")
       .in("transaction_id", txIds)
       .in("status", ["processing", "completed"]),
     admin.from("escrow_ledger_entries")
@@ -112,14 +112,15 @@ Deno.serve(async (req) => {
     return json(500, { error: "fetch_failed" });
   }
 
-  const sumBy = <T extends { transaction_id: string; amount: number | string }>(
+  const sumBy = <T extends { transaction_id: string }>(
     rows: T[] | null,
     txId: string,
+    amountKey: keyof T,
     where: (r: T) => boolean = () => true,
   ): number =>
     (rows ?? [])
       .filter((r) => r.transaction_id === txId && where(r))
-      .reduce((acc, r) => acc + Number(r.amount || 0), 0);
+      .reduce((acc, r) => acc + Number((r[amountKey] as unknown as number | string) || 0), 0);
 
   const ledgerBalance = (txId: string): number => {
     let credit = 0, debit = 0;
@@ -161,9 +162,9 @@ Deno.serve(async (req) => {
     const meta = txMap.get(txId);
     if (!meta) continue;
 
-    const collected = sumBy(payments.data, txId);
-    const paid_out  = sumBy(payouts.data, txId);
-    const refunded  = sumBy(refunds.data, txId);
+    const collected = sumBy(payments.data as Array<{ transaction_id: string; amount: number | string }> | null, txId, "amount");
+    const paid_out  = sumBy(payouts.data as Array<{ transaction_id: string; amount: number | string }> | null, txId, "amount");
+    const refunded  = sumBy(refunds.data as Array<{ transaction_id: string; refund_amount: number | string }> | null, txId, "refund_amount");
     const ledger_bal = ledgerBalance(txId);
     const expected   = collected - paid_out - refunded;
     const delta      = Number((ledger_bal - expected).toFixed(2));
