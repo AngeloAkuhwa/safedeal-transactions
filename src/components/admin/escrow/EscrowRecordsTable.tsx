@@ -1,4 +1,4 @@
-import { Flag, ExternalLink, Filter, Download } from "lucide-react";
+import { Flag, ExternalLink, Filter, Download, FileText, Vault, Scale, SearchCheck, StickyNote, Link2, Hourglass, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatMoney } from "@/lib/format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
@@ -18,6 +18,56 @@ function Avatar({ name, url }: { name: string; url: string | null }) {
   return (
     <div className="w-8 h-8 rounded-full bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center shrink-0">
       {initials || "??"}
+    </div>
+  );
+}
+
+function StateSubLines({ row }: { row: EscrowRecordRow }) {
+  const lines: { icon: React.ReactNode; text: string; className: string }[] = [];
+  if (row.flagged) {
+    lines.push({ icon: <Link2 className="h-3 w-3" />, text: "Linked dispute", className: "text-slate-400" });
+    lines.push({ icon: <Hourglass className="h-3 w-3" />, text: "Admin review", className: "text-orange-400" });
+  } else if (row.money_status === "funds_releasing") {
+    lines.push({ icon: <CheckCircle2 className="h-3 w-3" />, text: "Buyer confirmed", className: "text-emerald-400" });
+    lines.push({ icon: <Hourglass className="h-3 w-3" />, text: "Auto-release pending", className: "text-orange-400" });
+  }
+  if (!lines.length) return null;
+  return (
+    <div className="mt-1.5 space-y-0.5">
+      {lines.map((l, i) => (
+        <p key={i} className={`text-[11px] inline-flex items-center gap-1 ${l.className}`}>
+          {l.icon} <span>{l.text}</span>
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function ActionButtons({ row, onOpen, onDispute }: { row: EscrowRecordRow; onOpen: () => void; onDispute: () => void }) {
+  const btn = "w-9 h-9 rounded-lg flex items-center justify-center transition-all group";
+  return (
+    <div className="flex items-center justify-center gap-1.5">
+      <button type="button" onClick={onOpen} title="View Transaction" className={`${btn} bg-slate-800 hover:bg-blue-600`}>
+        <FileText className="h-4 w-4 text-slate-300 group-hover:text-white" />
+      </button>
+      <button type="button" onClick={onOpen} title="View Escrow Record" className={`${btn} bg-slate-800 hover:bg-emerald-600`}>
+        <Vault className="h-4 w-4 text-slate-300 group-hover:text-white" />
+      </button>
+      <button
+        type="button"
+        onClick={onDispute}
+        title={row.flagged ? "Active Dispute" : "No dispute"}
+        disabled={!row.flagged}
+        className={`${btn} ${row.flagged ? "bg-red-500/20 border border-red-500/40 hover:bg-red-600" : "bg-slate-800/50 opacity-50 cursor-not-allowed"}`}
+      >
+        <Scale className={`h-4 w-4 ${row.flagged ? "text-red-400 group-hover:text-white" : "text-slate-500"}`} />
+      </button>
+      <button type="button" disabled title="Investigate (coming soon)" className={`${btn} bg-slate-800 opacity-60 cursor-not-allowed`}>
+        <SearchCheck className="h-4 w-4 text-slate-400" />
+      </button>
+      <button type="button" disabled title="Add Internal Note (coming soon)" className={`${btn} bg-slate-800 opacity-60 cursor-not-allowed`}>
+        <StickyNote className="h-4 w-4 text-slate-400" />
+      </button>
     </div>
   );
 }
@@ -103,16 +153,15 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage }: {
                       <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
                       {st.label}
                     </span>
+                    <StateSubLines row={r} />
                   </td>
                   <td className="p-4 text-slate-400 text-xs whitespace-nowrap">{formatRelative(r.last_changed_at)}</td>
-                  <td className="p-4 text-center">
-                    <button
-                      type="button"
-                      onClick={() => nav(`/admin/transactions/${r.transaction_id}`)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-medium"
-                    >
-                      <ExternalLink className="h-3 w-3" /> Open
-                    </button>
+                  <td className="p-4">
+                    <ActionButtons
+                      row={r}
+                      onOpen={() => nav(`/admin/transactions/${r.transaction_id}`)}
+                      onDispute={() => nav(`/admin/disputes?tx=${r.transaction_id}`)}
+                    />
                   </td>
                 </tr>
               );
