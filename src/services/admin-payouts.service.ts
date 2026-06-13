@@ -93,7 +93,26 @@ export interface PayoutListResponse {
   pagination: { page: number; limit: number; total: number; total_pages: number };
 }
 
-export interface PayoutEligibilityGate { key: string; label: string; pass: boolean }
+export interface PayoutEligibilityGate {
+  key: string;
+  label: string;
+  pass: boolean;
+  actual?: string;
+  detail?: string;
+}
+
+export interface PayoutTimelineEntry {
+  id: string;
+  at: string;
+  type: string;
+  title: string;
+  description?: string | null;
+  actorType?: string | null;
+  actorName?: string | null;
+  severity?: string | null;
+  icon?: string | null;
+  subtype?: string | null;
+}
 
 export interface PayoutDetail {
   payout: PayoutRow extends infer R ? Omit<PayoutRow, "transaction" | "seller" | "payout_account" | "pricing"> & { notes: string | null } : never;
@@ -108,6 +127,7 @@ export interface PayoutDetail {
   queue: any[];
   notes: any[];
   events: any[];
+  timeline?: PayoutTimelineEntry[];
   eligibility: { gates: PayoutEligibilityGate[]; eligible: boolean };
 }
 
