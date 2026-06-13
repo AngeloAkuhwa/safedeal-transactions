@@ -354,6 +354,7 @@ function RowMenu({
 export function PayoutsTable({
   rows, loading, selected, onToggleSelect, onToggleSelectAll, onOpen,
   onRelease, onRetry, onUnblock, onOpenTransaction, releasingId,
+  onOpenSeller, onUpdateBank, onDownloadReceipt, onAddNote, onBlock, onPause,
   total, page = 1, limit = 50, onRefresh, onPageChange,
 }: Props) {
   if (loading && rows.length === 0) {
