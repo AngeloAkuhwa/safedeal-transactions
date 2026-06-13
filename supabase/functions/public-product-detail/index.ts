@@ -119,6 +119,7 @@ Deno.serve(async (req) => {
         unit_price: product.unit_price,
         original_price: product.original_price,
         stock_quantity: product.stock_quantity,
+        reserved_quantity: product.reserved_quantity ?? 0,
         agreement_terms: product.agreement_terms,
         delivery_method: product.delivery_method,
         verification_window_hours: product.verification_window_hours,
