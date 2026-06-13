@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { PayoutTab } from "@/services/admin-payouts.service";
 
-export type DateRangePreset = "last_7d" | "last_30d" | "last_3m" | "custom";
+export type DateRangePreset = "all_time" | "last_7d" | "last_30d" | "last_3m" | "custom";
 export type AmountRange = "any" | "0_10k" | "10k_100k" | "100k_1m" | "1m_plus";
 export type BankStatus = "all" | "verified" | "unverified" | "pending";
 export type QuickFilter = "none" | "failed_only" | "blocked_only" | "high_priority";
@@ -24,7 +24,7 @@ export interface PayoutFilterState {
 
 export const DEFAULT_PAYOUT_FILTERS: PayoutFilterState = {
   status: "all",
-  dateRange: "last_7d",
+  dateRange: "all_time",
   amount: "any",
   bank: "all",
   quick: "none",
@@ -62,6 +62,7 @@ export function PayoutAdvancedFilters({ value, onChange }: Props) {
       <div>
         <label className="text-slate-400 text-xs font-medium mb-2 block">Date Range</label>
         <select className={selectCls} value={value.dateRange} onChange={(e) => set("dateRange", e.target.value as DateRangePreset)}>
+          <option value="all_time">All time</option>
           <option value="last_7d">Last 7 days</option>
           <option value="last_30d">Last 30 days</option>
           <option value="last_3m">Last 3 months</option>
@@ -147,7 +148,10 @@ export function filtersToQuery(f: PayoutFilterState) {
     quick?: "failed_only" | "blocked_only" | "high_priority";
   } = {};
   const now = new Date();
-  if (f.dateRange === "last_7d") out.date_from = new Date(now.getTime() - 7*86400000).toISOString();
+  if (f.dateRange === "all_time") {
+    // no date bounds
+  }
+  else if (f.dateRange === "last_7d") out.date_from = new Date(now.getTime() - 7*86400000).toISOString();
   else if (f.dateRange === "last_30d") out.date_from = new Date(now.getTime() - 30*86400000).toISOString();
   else if (f.dateRange === "last_3m") out.date_from = new Date(now.getTime() - 90*86400000).toISOString();
   else if (f.dateRange === "custom") {

@@ -34,7 +34,7 @@ export default function AdminPayouts() {
   const [filters, setFilters] = useState<PayoutFilterState>(() => ({
     ...DEFAULT_PAYOUT_FILTERS,
     status: (initialTab && VALID_TABS.includes(initialTab) ? initialTab : "all") as PayoutTab,
-    dateRange: (searchParams.get("range") as PayoutFilterState["dateRange"]) || "last_7d",
+    dateRange: (searchParams.get("range") as PayoutFilterState["dateRange"]) || "all_time",
     amount: (searchParams.get("amount") as PayoutFilterState["amount"]) || "any",
     bank: (searchParams.get("bank") as PayoutFilterState["bank"]) || "all",
     quick: (searchParams.get("quick") as PayoutFilterState["quick"]) || "none",
