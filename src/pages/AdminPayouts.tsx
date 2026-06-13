@@ -316,6 +316,7 @@ export default function AdminPayouts() {
         {mobileFiltersOpen && (
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
             <PayoutAdvancedFilters
+              variant="mobile"
               value={filters}
               onChange={(next) => {
                 setFilters(next);
@@ -361,6 +362,19 @@ export default function AdminPayouts() {
         </div>
         {/* Mobile cards */}
         <div className="lg:hidden pb-20">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-white text-sm font-semibold">
+              Payout Records{" "}
+              <span className="text-slate-500 font-normal">{pagination?.total ?? rows.length}</span>
+            </h3>
+            <button
+              type="button"
+              onClick={() => { loadList(); loadSummary(); }}
+              className="text-slate-400 text-xs flex items-center gap-1 hover:text-white"
+            >
+              Refresh
+            </button>
+          </div>
           <PayoutMobileCards
             rows={rows} loading={listLoading}
             selected={selectedIds}
