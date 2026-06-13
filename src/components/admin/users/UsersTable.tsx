@@ -2,10 +2,12 @@ import {
   Flag, AlertTriangle, ShieldCheck, IdCard, Mail, Phone, Star, Clock,
   User as UserIcon, Banknote, Scale, Search, ChevronLeft, ChevronRight,
   Ban, CheckCircle2, UserCog,
+  ArrowLeftRight, FileSearch, FlagOff, FileDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { UserDirectoryRow } from "@/services/admin-users-directory.service";
 import { formatMoneyCompact } from "@/lib/format";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   rows: UserDirectoryRow[];
@@ -172,18 +174,17 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                   <td className="p-4">
                     <div className="flex items-center justify-end gap-1.5">
                       <button title="View profile" onClick={() => onOpenDetail(r.user_id)} className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs"><UserIcon className="h-3.5 w-3.5" /></button>
-                      <button title="Transactions" onClick={() => navigate(`/admin/transactions?user=${r.user_id}`)} className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs"><Banknote className="h-3.5 w-3.5" /></button>
+                      <button title="Transactions" onClick={() => navigate(`/admin/transactions?user=${r.user_id}`)} className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs"><ArrowLeftRight className="h-3.5 w-3.5" /></button>
                       <button title="Disputes" disabled={r.disputes.total === 0} onClick={() => navigate(`/admin/disputes?user=${r.user_id}`)} className={`px-2.5 py-1.5 rounded text-xs relative ${r.disputes.total === 0 ? "bg-slate-700/50 text-slate-500 cursor-not-allowed" : "bg-orange-600 hover:bg-orange-700 text-white"}`}>
                         <Scale className="h-3.5 w-3.5" />
                         {r.disputes.active > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">{r.disputes.active}</span>}
                       </button>
-                      <button title="Open in Flagged Users" onClick={() => navigate(`/admin/flagged-users?u=${r.user_id}`)} className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs"><AlertTriangle className="h-3.5 w-3.5" /></button>
-                      <button title={r.is_flagged ? "Clear flag" : "Flag user"} onClick={() => onFlagToggle(r)} className={`px-2.5 py-1.5 rounded text-xs text-white ${r.is_flagged ? "bg-slate-700 hover:bg-slate-600" : "bg-yellow-600 hover:bg-yellow-700"}`}>
-                        <Flag className="h-3.5 w-3.5" />
+                      <button title="Review Investigation" onClick={() => navigate(`/admin/flagged-users?u=${r.user_id}`)} className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs"><FileSearch className="h-3.5 w-3.5" /></button>
+                      <button title="Start Impersonation" onClick={() => toast({ title: "Impersonation coming soon" })} className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs"><UserCog className="h-3.5 w-3.5" /></button>
+                      <button title={r.is_flagged ? "Unflag user" : "Flag user"} onClick={() => onFlagToggle(r)} className={`px-2.5 py-1.5 rounded text-xs text-white ${r.is_flagged ? "bg-slate-700 hover:bg-slate-600" : "bg-yellow-600 hover:bg-yellow-700"}`}>
+                        {r.is_flagged ? <FlagOff className="h-3.5 w-3.5" /> : <Flag className="h-3.5 w-3.5" />}
                       </button>
-                      <button title={r.is_suspended ? "Suspended" : "Suspend"} disabled={r.is_suspended} onClick={() => onSuspend(r)} className={`px-2.5 py-1.5 rounded text-xs ${r.is_suspended ? "bg-slate-700/50 text-slate-500 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700 text-white"}`}>
-                        {r.is_suspended ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
-                      </button>
+                      <button title="Generate Export" onClick={() => toast({ title: "Per-user export coming soon" })} className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded text-xs"><FileDown className="h-3.5 w-3.5" /></button>
                     </div>
                   </td>
                 </tr>
