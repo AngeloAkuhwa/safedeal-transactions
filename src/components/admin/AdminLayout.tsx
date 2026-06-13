@@ -65,7 +65,13 @@ export function AdminLayout({
             ? typeof mobileHeaderSlot === "function"
               ? mobileHeaderSlot({ onOpenMenu: () => setMobileOpen(true) })
               : mobileHeaderSlot
-            : !hideDefaultHeaders && <AdminMobileHeader onOpenMenu={() => setMobileOpen(true)} />}
+            : !hideDefaultHeaders && (
+                <AdminMobileHeader
+                  onOpenMenu={() => setMobileOpen(true)}
+                  title={title}
+                  subtitle={subtitle}
+                />
+              )}
           {headerSlot
             ? typeof headerSlot === "function"
               ? headerSlot({ onOpenMenu: () => setMobileOpen(true) })
