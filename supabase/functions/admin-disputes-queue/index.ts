@@ -248,18 +248,18 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
   // ---------- Batch-fetch pricing and items by transaction_id ----------
   const rawRows = (rowsRaw ?? []) as unknown as Raw[];
   const txIds = Array.from(new Set(rawRows.map((r) => r.transaction_id).filter(Boolean)));
-  const pricingMap = new Map<string, { buyer_total_amount: number | null; item_amount: number | null; platform_fee_amount: number | null; processing_fee_amount: number | null; currency_code: string | null }>();
+  const pricingMap = new Map<string, { buyer_total_amount: number | null; item_amount: number | null; platform_fee_amount: number | null; payment_processing_fee_amount: number | null; currency_code: string | null }>();
   const itemsMap = new Map<string, { title: string | null }>();
   if (txIds.length) {
     const [pricingRes, itemsRes] = await Promise.all([
       adminClient.from("transaction_pricing")
-        .select("transaction_id, buyer_total_amount, item_amount, platform_fee_amount, processing_fee_amount, currency_code")
+        .select("transaction_id, buyer_total_amount, item_amount, platform_fee_amount, payment_processing_fee_amount, currency_code")
         .in("transaction_id", txIds),
       adminClient.from("transaction_items")
         .select("transaction_id, title")
         .in("transaction_id", txIds),
     ]);
-    for (const p of (pricingRes.data ?? []) as Array<{ transaction_id: string; buyer_total_amount: number | null; item_amount: number | null; platform_fee_amount: number | null; processing_fee_amount: number | null; currency_code: string | null }>) {
+    for (const p of (pricingRes.data ?? []) as Array<{ transaction_id: string; buyer_total_amount: number | null; item_amount: number | null; platform_fee_amount: number | null; payment_processing_fee_amount: number | null; currency_code: string | null }>) {
       if (!pricingMap.has(p.transaction_id)) pricingMap.set(p.transaction_id, p);
     }
     for (const i of (itemsRes.data ?? []) as Array<{ transaction_id: string; title: string | null }>) {
@@ -275,7 +275,7 @@ async function buildPayload(adminClient: ReturnType<typeof createClient>, params
     // Amount fallback chain: buyer_total_amount → sum of components → 0
     let amountNum = Number(pricing?.buyer_total_amount ?? 0);
     if (!amountNum && pricing) {
-      amountNum = Number(pricing.item_amount ?? 0) + Number(pricing.platform_fee_amount ?? 0) + Number(pricing.processing_fee_amount ?? 0);
+      amountNum = Number(pricing.item_amount ?? 0) + Number(pricing.platform_fee_amount ?? 0) + Number(pricing.payment_processing_fee_amount ?? 0);
     }
     const sla = slaFor({
       status: r.status,

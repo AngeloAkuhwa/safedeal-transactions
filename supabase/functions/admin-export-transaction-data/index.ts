@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     userIds.length
       ? admin.from("profiles").select("id, full_name, email").in("id", userIds)
       : Promise.resolve({ data: [] as any[] }),
-    admin.from("transaction_pricing").select("currency_code, item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount").eq("transaction_id", txId).maybeSingle(),
+    admin.from("transaction_pricing").select("currency_code, item_amount, platform_fee_amount, payment_processing_fee_amount, seller_payout_amount, buyer_total_amount").eq("transaction_id", txId).maybeSingle(),
     admin.from("escrow_states").select("state, held_amount, frozen_amount, released_amount, refunded_amount, last_changed_at").eq("transaction_id", txId).maybeSingle(),
     admin.from("payments").select("id, provider, status, amount, currency_code, payment_method_type, authorized_at, captured_at, failed_at, failure_reason, created_at").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     admin.from("payouts").select("id, status, amount, currency_code, initiated_at, completed_at, released_at, failed_at, failure_reason, created_at").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
