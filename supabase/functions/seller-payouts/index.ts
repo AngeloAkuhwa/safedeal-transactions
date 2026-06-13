@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       adminClient.from("payouts").select("id, amount, status, currency_code, completed_at, failed_at, failure_reason, transaction_id, initiated_at, created_at, payout_blocked_reason, release_blocked").eq("seller_id", userId),
       adminClient.from("transactions").select("id, transaction_code, status, money_status, buyer_id, verification_deadline_at, created_at, needs_release_review, release_review_reason").eq("seller_id", userId),
       adminClient.from("account_verifications").select("payout_verified").eq("user_id", userId).single(),
-      adminClient.from("payout_accounts").select("bank_name, account_name, masked_account_number, verification_status, last_verified_at, provider_recipient_code").eq("user_id", userId).single(),
+      adminClient.from("v_payout_account_state").select("bank_name, masked_account_number, verification_status, last_verified_at, provider_recipient_code, account_state").eq("user_id", userId).maybeSingle(),
     ]);
 
     // Profile
@@ -199,12 +199,15 @@ Deno.serve(async (req) => {
     if (allNeededTxIds.length > 0) {
       const { data: pricingData } = await adminClient
         .from("transaction_pricing")
-        .select("transaction_id, seller_net_amount")
+        .select("transaction_id, seller_payout_amount, seller_net_amount")
         .in("transaction_id", allNeededTxIds);
 
       if (pricingData) {
         const pricingMap = new Map(
-          pricingData.map((p: Record<string, unknown>) => [p.transaction_id as string, (p.seller_net_amount as number) ?? 0])
+          pricingData.map((p: Record<string, unknown>) => [
+            p.transaction_id as string,
+            Number((p.seller_payout_amount as number | null) ?? (p.seller_net_amount as number | null) ?? 0),
+          ])
         );
         for (const id of heldTxIds) {
           heldInEscrow += pricingMap.get(id) ?? 0;
@@ -260,7 +263,7 @@ Deno.serve(async (req) => {
     if (payoutTxIdsUnique.length > 0) {
       const [itemsResult, pricingResult, txDetailsResult] = await Promise.allSettled([
         adminClient.from("transaction_items").select("transaction_id, title").in("transaction_id", payoutTxIdsUnique),
-        adminClient.from("transaction_pricing").select("transaction_id, item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, currency_code").in("transaction_id", payoutTxIdsUnique),
+        adminClient.from("transaction_pricing").select("transaction_id, item_amount, platform_fee_amount, processing_fee_amount, payment_processing_fee_amount, seller_net_amount, seller_payout_amount, currency_code").in("transaction_id", payoutTxIdsUnique),
         adminClient.from("transactions").select("id, transaction_code, buyer_id").in("id", payoutTxIdsUnique),
       ]);
 
@@ -315,7 +318,7 @@ Deno.serve(async (req) => {
           gross_amount: (pricing?.item_amount as number) ?? 0,
           fees:
             ((pricing?.platform_fee_amount as number) ?? 0) +
-            ((pricing?.processing_fee_amount as number) ?? 0),
+            Number((pricing?.payment_processing_fee_amount as number | null) ?? (pricing?.processing_fee_amount as number | null) ?? 0),
           net_payout: p.amount as number,
           currency_code: (pricing?.currency_code as string) ?? "NGN",
           release_date: (p.completed_at ?? p.initiated_at ?? p.created_at) as string,
@@ -347,7 +350,7 @@ Deno.serve(async (req) => {
     if (upcomingTxIds.length > 0) {
       const [upItemsRes, upPricingRes, upTxRes] = await Promise.allSettled([
         adminClient.from("transaction_items").select("transaction_id, title").in("transaction_id", upcomingTxIds),
-        adminClient.from("transaction_pricing").select("transaction_id, seller_net_amount, currency_code").in("transaction_id", upcomingTxIds),
+        adminClient.from("transaction_pricing").select("transaction_id, seller_payout_amount, seller_net_amount, currency_code").in("transaction_id", upcomingTxIds),
         adminClient.from("transactions").select("id, transaction_code, status, buyer_id, verification_deadline_at").in("id", upcomingTxIds),
       ]);
 
@@ -391,7 +394,7 @@ Deno.serve(async (req) => {
           transaction_code: tx.transaction_code as string,
           item_title: itemMap.get(txId) ?? "Untitled",
           buyer_name: buyerMap.get(tx.buyer_id as string) ?? "Unknown",
-          amount: (pricing?.seller_net_amount as number) ?? 0,
+          amount: Number((pricing?.seller_payout_amount as number | null) ?? (pricing?.seller_net_amount as number | null) ?? 0),
           currency_code: (pricing?.currency_code as string) ?? "NGN",
           release_trigger: releaseTrigger,
           verification_deadline_at: tx.verification_deadline_at ?? null,
@@ -405,7 +408,7 @@ Deno.serve(async (req) => {
     if (allBlockedTxIds.length > 0) {
       const [blItemsRes, blPricingRes, blTxRes] = await Promise.allSettled([
         adminClient.from("transaction_items").select("transaction_id, title").in("transaction_id", allBlockedTxIds),
-        adminClient.from("transaction_pricing").select("transaction_id, seller_net_amount, currency_code").in("transaction_id", allBlockedTxIds),
+        adminClient.from("transaction_pricing").select("transaction_id, seller_payout_amount, seller_net_amount, currency_code").in("transaction_id", allBlockedTxIds),
         adminClient.from("transactions").select("id, transaction_code, status, buyer_id, needs_release_review, release_review_reason").in("id", allBlockedTxIds),
       ]);
 
@@ -448,7 +451,7 @@ Deno.serve(async (req) => {
           transaction_code: tx.transaction_code as string,
           item_title: itemMap.get(txId) ?? "Untitled",
           buyer_name: buyerMap.get(tx.buyer_id as string) ?? "Unknown",
-          amount: (pricing?.seller_net_amount as number) ?? 0,
+          amount: Number((pricing?.seller_payout_amount as number | null) ?? (pricing?.seller_net_amount as number | null) ?? 0),
           currency_code: (pricing?.currency_code as string) ?? "NGN",
           blocker_reason: blockerReason,
           status: txStatus,
@@ -526,15 +529,17 @@ Deno.serve(async (req) => {
           : null;
         const verificationStatus = (pa?.verification_status as string) ?? "pending";
         const recipientCodePresent = Boolean(pa?.provider_recipient_code);
+        const accountState = (pa?.account_state as string | undefined) ?? null;
         return {
           verified: payoutVerified,
           last_payout_date: lastPayoutDate,
           bank_name: pa?.bank_name as string | null ?? null,
-          account_name: pa?.account_name as string ?? seller.full_name,
+          account_name: seller.full_name,
           masked_account_number: pa?.masked_account_number as string | null ?? null,
           verification_status: verificationStatus,
           status: verificationStatus,
           recipient_code_present: recipientCodePresent,
+          account_state: accountState,
           typical_processing_time: "1-3 business days",
         };
       })(),
