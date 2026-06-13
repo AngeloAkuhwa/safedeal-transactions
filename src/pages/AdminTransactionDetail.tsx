@@ -1687,6 +1687,27 @@ export default function AdminTransactionDetail() {
           setReloadKey((k) => k + 1);
         }}
       />
+      <ActionConfirmDialog
+        open={!!flagUserTarget}
+        onOpenChange={(o) => { if (!o) setFlagUserTarget(null); }}
+        title={`Flag ${flagUserTarget?.role === "seller" ? "Seller" : "Buyer"} for Fraud Review`}
+        description={`This adds ${flagUserTarget?.name ?? "the user"} to the Flagged Users workspace with an admin flag signal. A note is required.`}
+        confirmLabel="Flag User"
+        confirmTone="danger"
+        onConfirm={async (reason) => {
+          if (!flagUserTarget) return;
+          await performFlaggedAction({
+            action: "flag_user",
+            user_id: flagUserTarget.id,
+            note: reason,
+            transaction_id: transactionId ?? undefined,
+          });
+          toast.success("User flagged for review");
+          const id = flagUserTarget.id;
+          setFlagUserTarget(null);
+          navigate(`/admin/flagged-users?u=${id}`);
+        }}
+      />
       <InvestigationDrawer
         open={investigateOpen}
         onOpenChange={setInvestigateOpen}
