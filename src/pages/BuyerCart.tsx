@@ -300,6 +300,28 @@ const BuyerCart = () => {
             </Button>
           </div>
 
+          {activeSessionId && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <Clock className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">You have an unfinished checkout</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Reserved stock is held for you. Resume to complete payment, or it will auto-release.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                className="gap-1.5 h-8 text-xs shrink-0"
+                onClick={() => navigate(`/dashboard/cart/checkout?session=${activeSessionId}`)}
+              >
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Resume checkout
+              </Button>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="h-7 w-7 animate-spin text-primary" />
