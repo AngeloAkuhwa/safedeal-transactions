@@ -142,6 +142,7 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
   }
 
   const pricing = computePricing(price, currencyCode);
+  const snapshot = buildPricingSnapshot(price, currencyCode);
   const fileIds = (body.file_ids as string[]) ?? [];
 
   await Promise.all([
@@ -172,6 +173,10 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
       processing_fee_amount: pricing.paystack_fee_amount,
       seller_net_amount: price - pricing.platform_fee_amount,
       buyer_total_amount: pricing.total_amount,
+      payment_processing_fee_amount: snapshot.payment_processing_fee_amount,
+      seller_payout_amount: snapshot.seller_payout_amount,
+      is_total_service_fee_capped: snapshot.is_total_service_fee_capped,
+      pricing_model_version: snapshot.pricing_model_version,
     }),
     expectedDeliveryDate
       ? upsertByTransaction(adminClient, "transaction_delivery_terms", transactionId!, {
