@@ -202,8 +202,6 @@ Deno.serve(async (req) => {
         await admin.from("transaction_pricing").update({
           item_amount: groupItemAmount,
           platform_fee_amount: pricing.platform_fee_amount,
-          processing_fee_amount: pricing.paystack_fee_amount,
-          seller_net_amount: groupItemAmount,
           buyer_total_amount: pricing.total_amount,
           payment_processing_fee_amount: snapshot.payment_processing_fee_amount,
           seller_payout_amount: snapshot.seller_payout_amount,
@@ -274,8 +272,6 @@ Deno.serve(async (req) => {
             currency_code: firstProduct.currency_code,
             item_amount: groupItemAmount,
             platform_fee_amount: pricing.platform_fee_amount,
-            processing_fee_amount: pricing.paystack_fee_amount,
-            seller_net_amount: groupItemAmount,
             buyer_total_amount: pricing.total_amount,
             payment_processing_fee_amount: snapshot.payment_processing_fee_amount,
             seller_payout_amount: snapshot.seller_payout_amount,

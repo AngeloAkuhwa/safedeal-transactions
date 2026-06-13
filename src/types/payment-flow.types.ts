@@ -20,9 +20,8 @@ export type PayoutAccountState =
   | "verified_ready";
 
 /**
- * Shape consumed by `<PricingBreakdown>`. Mirrors `PricingSnapshot` but
- * keeps every field nullable so locked legacy rows can render `—` for
- * the lines that were never stamped.
+ * Shape consumed by `<PricingBreakdown>`. Mirrors `PricingSnapshot` with
+ * nullable fields for streaming/loading states.
  */
 export interface PricingSnapshotView {
   item_amount: number | null;
@@ -34,25 +33,6 @@ export interface PricingSnapshotView {
   currency: string;
   is_total_service_fee_capped: boolean;
   is_estimate?: boolean;
-}
-
-/**
- * Legacy raw-row column names retained on `transaction_pricing` so previously
- * locked snapshots still deserialize. Phase 7 cleanup: never read these on
- * new code paths — use the canonical fields above. Keep the optional types
- * here only so the row shape stays assignable.
- *
- * @deprecated do not read in new code; preserved for locked-row history only.
- */
-export interface LegacyPricingRowFields {
-  /** @deprecated use `payment_processing_fee_amount` */
-  processing_fee_amount?: number | string | null;
-  /** @deprecated use `seller_payout_amount` */
-  seller_net_amount?: number | string | null;
-  /** @deprecated never displayed; delivery fees are external to SafeDeal */
-  escrow_fee_amount?: number | string | null;
-  /** @deprecated never displayed; delivery fees are external to SafeDeal */
-  delivery_fee_amount?: number | string | null;
 }
 
 export interface PricingSnapshot {

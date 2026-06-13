@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
       const [pricingRes, itemsRes, buyerRes] = await Promise.all([
         adminClient
           .from("transaction_pricing")
-          .select("transaction_id, seller_net_amount, currency_code")
+          .select("transaction_id, seller_payout_amount, currency_code")
           .in("transaction_id", frozenTxIds),
         adminClient
           .from("transaction_items")
@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
       for (const txId of frozenTxIds) {
         const tx = txLookup.get(txId)!;
         const pricing = pricingLookup.get(txId);
-        const amount = (pricing?.seller_net_amount as number) ?? 0;
+        const amount = (pricing?.seller_payout_amount as number) ?? 0;
         totalBlocked += amount;
 
         // Find associated dispute
@@ -361,7 +361,7 @@ Deno.serve(async (req) => {
         disputeTxIds.length > 0
           ? adminClient
               .from("transaction_pricing")
-              .select("transaction_id, seller_net_amount")
+              .select("transaction_id, seller_payout_amount")
               .in("transaction_id", disputeTxIds)
           : Promise.resolve({ data: [] }),
         buyerIdsForEnrich.length > 0
@@ -381,7 +381,7 @@ Deno.serve(async (req) => {
       if (enrichResults[1].status === "fulfilled") {
         const d = (enrichResults[1].value as { data: Array<Record<string, unknown>> | null }).data;
         if (d) for (const p of d) {
-          pricingMap.set(p.transaction_id as string, (p.seller_net_amount as number) ?? 0);
+          pricingMap.set(p.transaction_id as string, (p.seller_payout_amount as number) ?? 0);
         }
       }
 

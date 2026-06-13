@@ -365,8 +365,6 @@ async function createTransactionFromOffer(adminClient: any, offer: any, buyerId:
       currency_code: currencyCode,
       item_amount: totalAmount,
       platform_fee_amount: pricing.platform_fee_amount,
-      processing_fee_amount: pricing.paystack_fee_amount,
-      seller_net_amount: totalAmount - pricing.platform_fee_amount,
       buyer_total_amount: pricing.total_amount,
       payment_processing_fee_amount: snapshot.payment_processing_fee_amount,
       seller_payout_amount: snapshot.seller_payout_amount,

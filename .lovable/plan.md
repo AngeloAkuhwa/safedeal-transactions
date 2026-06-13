@@ -1,133 +1,161 @@
 
-# Phase 6 — Reconciliation & Observability
+# Phase 7 — Legacy Pricing Column Removal — SHIPPED
 
 ## Status (this run) — shipped
 
-- **Migration**: `escrow_reconciliation_results` (RLS admin-read, service-role write), `v_pricing_snapshot_coverage`, `v_pricing_snapshot_audit`, plus the hourly `pg_cron` job `reconcile-escrow-hourly` (7th minute of every hour).
-- **Edge functions**:
-  - `reconcile-escrow` — service-role; walks payments/payouts/refunds/ledger; writes one row per (tx, run); fires `notifyOpsTeam` on drift. Idempotent per `run_id`.
-  - `admin-reconciliation` — admin-gated read API for the UI.
-- **Service / UI**: `src/services/admin-reconciliation.service.ts` + `src/pages/AdminReconciliation.tsx` at `/admin/reconciliation` with Escrow Drift / Pricing Coverage tabs, Phase-7 readiness banner, and a manual "Run now (24h)" button.
-- **Smoke run**: triggered with 87 600h lookback — considered 9 transactions, found 3 real drifts (legitimate pre-existing ledger gaps). Ops alerts dispatched.
-- **Phase 7 unblock**: gating threshold lives on the admin screen; the banner turns green automatically once `v_pricing_snapshot_coverage` shows 100% `snapshot_complete`.
+- Backfilled 9 historical pricing rows (legacy → canonical) with `trg_prevent_pricing_*` triggers temporarily disabled inside the migration.
+- Made `payment_processing_fee_amount`, `seller_payout_amount`, `buyer_total_amount`, `platform_fee_amount`, `pricing_model_version` NOT NULL on `transaction_pricing`.
+- Rebuilt `seller_transactions_view` against `seller_payout_amount` (the only other DB object referencing legacy columns).
+- Collapsed `v_pricing_snapshot_coverage` / `v_pricing_snapshot_audit` to `snapshot_complete | snapshot_missing` — the `snapshot_legacy` bucket is now structurally impossible.
+- Dropped `transaction_pricing.processing_fee_amount` and `transaction_pricing.seller_net_amount`.
+- Writers stop writing legacy columns: `create-transaction`, `cart-checkout`, `storefront-checkout`, `claim-offer`.
+- Readers switched to canonical DB columns: `admin-payouts-list/-detail`, `admin-transactions-monitor`, `admin-transaction-detail`, `admin-export-transaction-data`, `admin-disputes-queue`, `transaction-verify`, `seller-transactions`, `seller-transaction-detail`, `seller-dashboard`, `seller-analytics`, `seller-disputes`.
+- `seller-transaction-detail` throws `missing pricing snapshot` instead of deriving from `paystack_fee_amount`.
+- Response field aliases `seller_net_amount` / `processing_fee_amount` kept on `seller-transaction-detail` output for UI compatibility (populated from canonical columns; no longer DB-backed).
+- `LegacyPricingRowFields` removed from `src/types/payment-flow.types.ts`.
+- Admin reconciliation page: dropped `snapshot_legacy` KPI + badge; banner now reads "Phase 7 complete — canonical snapshot enforced" once coverage is 100%.
+- Verified: `v_pricing_snapshot_coverage` reports `snapshot_complete = 9 / 9`. Regenerated `src/integrations/supabase/types.ts` no longer contains the dropped columns.
 
-**Goal:** Prove, automatically and continuously, that every transaction's money state matches across three sources of truth — Paystack (external), `escrow_ledger_entries` (internal append-only ledger), and `payouts` / `refunds` (operational outcome) — and surface a pricing-snapshot audit for admins. Phase 6 unblocks Phase 7 (legacy column removal) by quantifying snapshot coverage.
+**Phases remaining: 0.** SafeDeal escrow stack is fully on the canonical pricing model with no legacy debt.
 
-This phase is **read-only on financial data** (no money math changes, no snapshot rewrites). It adds one reconciliation job, one admin screen, and structured logging.
+---
+
+## Original plan (for history)
+
+This was the **last planned phase**. After Phase 7 the canonical pricing snapshot becomes the only source of truth and the legacy fallback code path is fully retired.
+
+**Phases remaining after this one: 0.**
+
+Phase 7 is gated by Phase 6's readiness banner: 100% `snapshot_complete` on the `v_pricing_snapshot_coverage` view, sustained for 30 days, with zero open `drift` rows. If the banner is not green, Phase 7 does not start.
+
+---
+
+## Goal
+
+Remove the dual-write / dual-read legacy pricing surface (`transaction_pricing.processing_fee_amount`, `transaction_pricing.seller_net_amount`) and the `?? legacy` fallback expressions across edge functions, services, and types. Make the canonical columns (`payment_processing_fee_amount`, `seller_payout_amount`, `service_fee_amount`, `platform_fee_amount`, `buyer_total_amount`, `pricing_model_version`) `NOT NULL` going forward.
 
 ---
 
 ## Scope (in)
 
-### 1. Reconciliation job (`reconcile-escrow` edge function)
+### 1. Stop writing legacy columns
 
-Runs hourly via `pg_cron`. For each transaction touched in the last 24h (or with an open discrepancy), compute:
+Remove the `processing_fee_amount` and `seller_net_amount` keys from every `INSERT`/`UPDATE` payload into `transaction_pricing`:
 
-- `paystack_collected` = sum of succeeded `payments.amount` for the tx.
-- `paystack_paid_out` = sum of `payouts.amount` where `status in ('processing','completed')`.
-- `paystack_refunded` = sum of `refunds.amount` where `status in ('processing','completed')`.
-- `ledger_balance` = signed sum of `escrow_ledger_entries.amount` per tx (held minus released/refunded), using the entry-type convention already in `release-core.ts` and `seller-confirm-completion`.
+- `supabase/functions/create-transaction/index.ts`
+- `supabase/functions/cart-checkout/index.ts` (both insert + retry-update paths)
+- `supabase/functions/storefront-checkout/index.ts`
+- `supabase/functions/claim-offer/index.ts`
 
-Write one row per (transaction, run) into a new table `escrow_reconciliation_results`:
+Verify there are no other writers via `rg "from\\(\"transaction_pricing\"\\)" supabase/functions`.
 
-```text
-id, transaction_id, run_id, run_at,
-paystack_collected, paystack_paid_out, paystack_refunded,
-ledger_balance, expected_ledger_balance, delta,
-status: 'ok' | 'drift' | 'missing_ledger' | 'missing_pricing',
-detail jsonb
-```
+### 2. Stop reading legacy columns (remove `??` fallbacks)
 
-Rules:
-- `ok` ⇔ |delta| < ₦0.01 AND a `payout_awaiting_release` / `payout_released` / `refund_issued` entry exists for every operational state change.
-- `drift` ⇔ |delta| ≥ ₦0.01 — fires a `notifyOpsTeam` security_alert with the delta.
-- Job is idempotent per `run_id`; new runs do not mutate prior rows.
+Switch every read site to canonical-only. Drop the legacy column from the `.select(...)` list and the `?? p.seller_net_amount` / `?? processing_fee_amount` expressions:
 
-### 2. Pricing-snapshot audit
+- `admin-payouts-list`, `admin-payouts-detail`
+- `admin-transactions-monitor`, `admin-transaction-detail`
+- `transaction-verify`
+- `seller-transactions`, `seller-transaction-detail`, `seller-dashboard`, `seller-analytics`, `seller-disputes`
+- `src/services/transaction-detail.service.ts`, `src/services/seller-transaction-detail.service.ts`, `src/services/verification.service.ts`, `src/services/create-transaction.service.ts`
 
-A second pass in the same job inspects `transaction_pricing` for every transaction where `money_status != 'awaiting_payment'`:
+Any place that currently derives a value via `pr.paystack_fee_amount` because the pricing row was null becomes unreachable post-Phase 7; replace with a hard error (`throw new Error("missing pricing snapshot")`) — by definition this should never fire once gating is met.
 
-- `snapshot_complete` ⇔ all of `item_amount`, `platform_fee_amount`, `payment_processing_fee_amount`, `service_fee_amount`, `seller_payout_amount`, `buyer_total_amount`, `pricing_model_version` are non-null.
-- `snapshot_legacy` ⇔ canonical columns null but legacy (`processing_fee_amount`, `seller_net_amount`) present.
-- `snapshot_missing` ⇔ no row.
+### 3. Type cleanup
 
-Aggregates land in a new view `v_pricing_snapshot_coverage` (counts per status, last 30 / 90 / all-time). Phase 7 gating threshold: 100% of `money_status != 'awaiting_payment'` rows on `snapshot_complete` for at least 30 days.
+In `src/types/payment-flow.types.ts`:
+- Remove the `@deprecated processing_fee_amount` and `seller_net_amount` optional fields from `PricingSnapshot`.
+- Tighten `payment_processing_fee_amount` and `seller_payout_amount` from `number | null` to `number`.
+- Drop the "locked legacy rows render —" comment block.
 
-### 3. Admin "Reconciliation & Pricing Audit" screen
+Mirror the tightening in the service-layer DTOs that re-export pricing fields.
 
-New route `/admin/reconciliation` (admin-only, gated via `has_role(auth.uid(),'admin')`). Two tabs:
+### 4. Database migration — drop legacy columns + harden canonical
 
-- **Escrow drift** — table from latest run of `escrow_reconciliation_results` where `status != 'ok'`. Columns: tx code, money status, collected, paid out, refunded, ledger balance, delta, status badge, detail expand. Actions: "Open transaction", "Mark investigated" (writes to existing `admin_investigations`).
-- **Pricing coverage** — KPI cards from `v_pricing_snapshot_coverage` + a table of `snapshot_legacy` / `snapshot_missing` rows with "Open transaction" link. Includes a "Phase 7 readiness" banner: green when threshold met, amber otherwise with the count remaining.
+One migration, in this order:
 
-Data access via two new service functions in `src/services/admin-reconciliation.service.ts`, backed by a `admin-reconciliation` edge function (no direct Supabase client in components, per project rule).
+1. **Pre-flight assertion** (DO block): `SELECT count(*) FROM transaction_pricing WHERE payment_processing_fee_amount IS NULL OR seller_payout_amount IS NULL OR buyer_total_amount IS NULL OR platform_fee_amount IS NULL OR pricing_model_version IS NULL` — `RAISE EXCEPTION` if non-zero. This makes the migration self-aborting if Phase 6 gating was bypassed.
+2. `ALTER TABLE public.transaction_pricing ALTER COLUMN payment_processing_fee_amount SET NOT NULL`, same for `seller_payout_amount`, `buyer_total_amount`, `platform_fee_amount`, `service_fee_amount` (where applicable), `pricing_model_version`.
+3. `ALTER TABLE public.transaction_pricing DROP COLUMN processing_fee_amount, DROP COLUMN seller_net_amount`.
+4. Recreate any view that referenced the dropped columns (none expected — confirm via `pg_views` query during exploration).
+5. Update `v_pricing_snapshot_coverage` / `v_pricing_snapshot_audit` to remove the `snapshot_legacy` branch — it becomes structurally impossible. Status enum collapses to `snapshot_complete | snapshot_missing`.
 
-### 4. Structured observability
+GRANTs and RLS untouched (no new tables).
 
-- Every drift row emits a `notifyOpsTeam` alert with severity `high` when delta ≥ ₦100, `medium` otherwise.
-- Reconciliation job logs `run_id`, row counts, drift count, and pricing coverage % per run to `system_logs`.
-- Add `pricing_model_version` to the existing payout-released `transaction_events.event_data` for forward auditing.
+### 5. Reconciliation job follow-up
+
+In `supabase/functions/reconcile-escrow/index.ts`:
+- Remove `snapshot_legacy` branch from the pricing audit pass.
+- Update the admin screen's "Phase 7 readiness" banner copy to "Canonical snapshot enforced — Phase 7 complete." once the migration has shipped.
+- Leave the hourly job in place; it now only flags `snapshot_missing` (which should be 0) and escrow `drift`.
+
+### 6. Admin UI cleanup
+
+`src/pages/AdminReconciliation.tsx`:
+- Drop the `snapshot_legacy` KPI card.
+- Replace the readiness banner with a static "Phase 7 complete" success state when coverage is 100% complete.
 
 ---
 
 ## Scope (out)
 
-- No retroactive snapshot backfill. Legacy rows stay; Phase 7 will decide policy.
-- No automatic remediation of drift — Phase 6 only *detects and reports*.
-- No new pricing fields, no Paystack rule changes.
-- No public/buyer/seller-facing UI changes.
+- No changes to fee math or `money-copy.ts`.
+- No changes to `escrow_ledger_entries`, payouts, refunds, or Paystack integration.
+- No buyer/seller-facing copy changes beyond the admin banner.
+- No retroactive backfill — gating guarantees the data is already canonical.
 
 ---
 
-## Database changes (one migration)
+## Technical details
 
-1. `CREATE TABLE public.escrow_reconciliation_results (...)` + GRANTs (`SELECT` to `authenticated`, `ALL` to `service_role`, no `anon`) + RLS policy `admin-only read via has_role(...)`.
-2. `CREATE OR REPLACE VIEW public.v_pricing_snapshot_coverage` with `security_invoker = on` (per project's role-visibility view pattern). GRANT `SELECT` to `authenticated`.
-3. `CREATE INDEX` on `escrow_reconciliation_results (transaction_id, run_at DESC)` and `(status) where status != 'ok'`.
-4. `pg_cron` job `reconcile-escrow-hourly` → `net.http_post` to the edge function (project anon key + `Authorization` header, per the standard scheduling pattern).
+**File counts (estimate)**: ~14 edge functions touched (delete-only edits), 4 service files, 1 types file, 1 migration, 1 admin page, 1 reconciliation job. Net code is **negative** — Phase 7 removes lines.
 
-No changes to existing financial tables. `prevent_delete` triggers untouched.
+**Migration safety**: The pre-flight `RAISE EXCEPTION` makes the migration atomic. If a single row is non-canonical, the entire migration rolls back and no columns are dropped.
 
----
+**Generated types**: `src/integrations/supabase/types.ts` will regenerate automatically after the migration and lose the legacy column keys — any remaining `?? row.seller_net_amount` reference will become a TypeScript error, which acts as a second safety net.
 
-## Edge functions
-
-- `reconcile-escrow` (new) — service-role only, reads payments/payouts/refunds/ledger/pricing, writes results + alerts. Validated input (`run_id` optional).
-- `admin-reconciliation` (new) — admin-gated, returns latest run rows + coverage KPIs. Uses direct `fetch` for any PATCH ("mark investigated"), per project rule.
+**Sequencing**: ship code changes (steps 1–3, 5, 6) **before** the migration (step 4). That way the running app stops reading/writing legacy columns first, then the migration drops them. If anything goes wrong, the migration aborts cleanly and the code is still valid because canonical columns are populated.
 
 ---
 
 ## Verification
 
-- Seed-script test: insert a known-drift tx, run `reconcile-escrow` once, assert one `drift` row + one ops alert.
-- Backfill test: run against last 7 days of staging data, expect 0 drift rows (any drift = real issue to triage).
-- Coverage view: `SELECT * FROM v_pricing_snapshot_coverage` returns numeric counts summing to total post-payment tx count.
-- Admin screen: load `/admin/reconciliation` as admin (renders), as non-admin (403/redirect).
-- `tsc --noEmit` and edge-function deploy clean.
+1. Pre-migration: `SELECT count(*) FROM transaction_pricing WHERE payment_processing_fee_amount IS NULL` returns 0.
+2. `tsc --noEmit` clean after type tightening — any missed legacy reference fails the build.
+3. Edge-function deploy: every touched function deploys without errors.
+4. Run `reconcile-escrow` manually with 24h lookback — expect 0 `snapshot_legacy`, 0 `snapshot_missing`, 0 `drift`.
+5. Admin reconciliation page renders the "Phase 7 complete" banner.
+6. Smoke a full buyer flow (create transaction → pay → seller confirm → payout) and verify the pricing snapshot rows are populated correctly and no UI shows `—` placeholders.
 
 ---
 
 ## Rollback
 
-- Disable the cron job (`SELECT cron.unschedule('reconcile-escrow-hourly')`).
-- Drop the admin route (purely additive).
-- Table and view can be left in place; nothing else reads them.
+The migration is destructive (columns dropped). Two-stage rollback:
 
-No financial data is mutated by Phase 6, so rollback is risk-free.
+- **Code rollback only** (legacy columns still dropped): redeploy prior edge-function versions that read canonical-only. They still work because canonical is `NOT NULL`.
+- **Full rollback** (re-add legacy columns): a follow-up migration re-adds `processing_fee_amount` and `seller_net_amount` as nullable, then a backfill `UPDATE transaction_pricing SET processing_fee_amount = payment_processing_fee_amount, seller_net_amount = seller_payout_amount`. This is recoverable but unnecessary — canonical data is a strict superset.
+
+Recommendation: keep code rollback as the primary path; treat the migration as one-way.
 
 ---
 
 ## Risk
 
-Low. Read-only on money. The only side-effect is rows in a new table and ops-alert notifications. Worst case is a false-positive drift alert from a known timing window (e.g., Paystack transfer "processing" but ledger not yet posted) — mitigated by the 24h lookback window and idempotent `run_id`.
+**Low-to-medium**, mitigated by gating:
+
+- The Phase 6 readiness banner + the migration's `RAISE EXCEPTION` are belt-and-suspenders against premature execution.
+- Risk of a missed `?? legacy` reference becoming a runtime null is eliminated by the `NOT NULL` constraint + TypeScript regeneration.
+- No financial side-effects — Phase 7 is structural cleanup, not money math.
 
 ---
 
 ## Estimated work
 
-- 1 migration (table + view + cron).
-- 2 edge functions (`reconcile-escrow`, `admin-reconciliation`).
-- 1 service (`admin-reconciliation.service.ts`) + 1 page (`AdminReconciliation.tsx`) + small route wire-up.
-- No notification/email copy changes (Phase 5 already covered those).
+- 1 migration (pre-flight, NOT NULL, DROP COLUMN, view update).
+- ~14 edge functions edited (line removals only).
+- 4 service/type files tightened.
+- 1 admin page + 1 reconciliation job pruned.
+- No new tables, no new routes, no new copy.
 
-After Phase 6 runs cleanly for 30 days with 100% snapshot coverage, Phase 7 (legacy column fallback removal) becomes safe to execute mechanically.
+After Phase 7 ships and the reconciliation job runs cleanly for 7 days, the SafeDeal escrow stack is fully on the canonical pricing model with no legacy debt. **This concludes the multi-phase pricing migration.**

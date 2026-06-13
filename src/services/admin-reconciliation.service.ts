@@ -6,7 +6,6 @@ const FN_BASE = `https://${PROJECT_ID}.supabase.co/functions/v1`;
 
 export type SnapshotState =
   | "snapshot_complete"
-  | "snapshot_legacy"
   | "snapshot_missing";
 
 export type ReconciliationStatus =

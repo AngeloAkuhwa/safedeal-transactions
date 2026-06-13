@@ -396,7 +396,7 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
       ]
     : await Promise.all([
         client.from("transaction_items").select("transaction_id, title, condition_label, created_at").in("transaction_id", txIds),
-        client.from("transaction_pricing").select("transaction_id, currency_code, item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount").in("transaction_id", txIds),
+        client.from("transaction_pricing").select("transaction_id, currency_code, item_amount, platform_fee_amount, payment_processing_fee_amount, seller_payout_amount, buyer_total_amount").in("transaction_id", txIds),
         client.from("escrow_states").select("transaction_id, state, held_amount, frozen_amount, released_amount, refunded_amount, last_changed_at").in("transaction_id", txIds),
         client.from("disputes").select("id, transaction_id, status, opened_at, seller_response_due_at").in("transaction_id", txIds),
         client.from("money_status_history").select("transaction_id, changed_at, new_status").in("transaction_id", txIds).order("changed_at", { ascending: false }).limit(2000),
@@ -535,9 +535,9 @@ async function buildPayload(client: SupabaseClient, params: MonitorParams) {
 
     const amount = pricing ? Number(pricing.buyer_total_amount ?? 0) : 0;
     const protectionFee = pricing
-      ? Number(pricing.platform_fee_amount ?? 0) + Number(pricing.processing_fee_amount ?? 0)
+      ? Number(pricing.platform_fee_amount ?? 0) + Number(pricing.payment_processing_fee_amount ?? 0)
       : 0;
-    const sellerNet = pricing ? Number(pricing.seller_net_amount ?? 0) : null;
+    const sellerNet = pricing ? Number(pricing.seller_payout_amount ?? 0) : null;
 
     return {
       transactionId: t.id,
