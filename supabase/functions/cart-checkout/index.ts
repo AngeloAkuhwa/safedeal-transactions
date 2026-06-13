@@ -129,6 +129,7 @@ Deno.serve(async (req) => {
 
     // Compute per-seller-group pricing and sum fees
     const sellerGroupPricings: Map<string, any> = new Map();
+    const sellerGroupSnapshots: Map<string, ReturnType<typeof buildPricingSnapshot>> = new Map();
     for (const [sellerId, items] of sellerGroups) {
       let groupItemAmount = 0;
       for (const { cartItem, product } of items) {
@@ -137,6 +138,7 @@ Deno.serve(async (req) => {
       const pricing = computePricing(groupItemAmount, items[0].product.currency_code);
       const snapshot = buildPricingSnapshot(groupItemAmount, items[0].product.currency_code);
       sellerGroupPricings.set(sellerId, pricing);
+      sellerGroupSnapshots.set(sellerId, snapshot);
       totalProtectionFee += pricing.service_fee_amount;
     }
 
@@ -163,6 +165,7 @@ Deno.serve(async (req) => {
     for (const [sellerId, items] of sellerGroups) {
       const sellerProfile = sellerMap.get(sellerId);
       const pricing = sellerGroupPricings.get(sellerId);
+      const snapshot = sellerGroupSnapshots.get(sellerId)!;
       let groupItemAmount = 0;
       for (const { cartItem, product } of items) {
         groupItemAmount += product.unit_price * cartItem.quantity;
