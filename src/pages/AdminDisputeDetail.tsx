@@ -34,6 +34,7 @@ import {
 } from "@/services/admin-transaction-actions.service";
 import { ResolveDisputeDialog } from "@/components/admin/transactions/ResolveDisputeDialog";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
+import { performFlaggedAction } from "@/services/admin-flagged-users.service";
 import { InternalNoteDialog } from "@/components/admin/transactions/InternalNoteDialog";
 import { EvidencePreviewDialog } from "@/components/admin/transactions/EvidencePreviewDialog";
 import { AgreementPreviewDialog } from "@/components/admin/transactions/AgreementPreviewDialog";
@@ -296,6 +297,7 @@ type DialogState = {
 function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refresh: () => void; dialogs: DialogState }) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [flagUserTarget, setFlagUserTarget] = useState<null | { id: string; role: "buyer" | "seller" }>(null);
   const { dispute: row, txDetail } = data;
   const tx = txDetail.transaction ?? {};
   const dispute = txDetail.dispute ?? {};
@@ -820,6 +822,12 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                 <LinkedTile tone="orange" icon={<Flag className="h-5 w-5" />} title="Seller in Flagged Users"
                   subtitle={parties.seller ? "Review fraud signals" : "—"}
                   onClick={parties.seller ? () => navigate(`/admin/flagged-users?u=${parties.seller!.id}`) : undefined} />
+                <LinkedTile tone="orange" icon={<Flag className="h-5 w-5" />} title="Flag Buyer for Fraud"
+                  subtitle={parties.buyer ? "Open admin flag dialog" : "—"}
+                  onClick={parties.buyer ? () => setFlagUserTarget({ id: parties.buyer!.id, role: "buyer" }) : undefined} />
+                <LinkedTile tone="orange" icon={<Flag className="h-5 w-5" />} title="Flag Seller for Fraud"
+                  subtitle={parties.seller ? "Open admin flag dialog" : "—"}
+                  onClick={parties.seller ? () => setFlagUserTarget({ id: parties.seller!.id, role: "seller" }) : undefined} />
                 <LinkedTile tone="emerald" icon={<CreditCard className="h-5 w-5" />} title="Payment Record"
                   subtitle={payment ? `${(payment.providerReference ?? "").slice(0, 20)}` : "No payment record"} />
                 <LinkedTile tone="yellow" icon={<Vault className="h-5 w-5" />} title="Escrow Record"
@@ -965,6 +973,27 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
           transactionCode={txCode}
         />
       )}
+      <ActionConfirmDialog
+        open={!!flagUserTarget}
+        onOpenChange={(o) => { if (!o) setFlagUserTarget(null); }}
+        title={`Flag ${flagUserTarget?.role === "seller" ? "Seller" : "Buyer"} for Fraud Review`}
+        description="This adds the user to the Flagged Users workspace with an admin flag signal. A note is required."
+        confirmLabel="Flag User"
+        confirmTone="danger"
+        onConfirm={async (reason) => {
+          if (!flagUserTarget) return;
+          await performFlaggedAction({
+            action: "flag_user",
+            user_id: flagUserTarget.id,
+            note: reason,
+            dispute_id: dispute?.id ?? undefined,
+          });
+          toast.success("User flagged for review");
+          const id = flagUserTarget.id;
+          setFlagUserTarget(null);
+          navigate(`/admin/flagged-users?u=${id}`);
+        }}
+      />
     </AdminLayout>
   );
 }

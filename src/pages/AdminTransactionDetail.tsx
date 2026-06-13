@@ -47,6 +47,7 @@ import { toast } from "sonner";
 import { deriveDisputeDisplay } from "@/lib/dispute-display-status";
 import { deriveActiveState, riskBannerTone, visibleRiskFlags, flagChipTone } from "@/lib/admin-active-state";
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
+import { performFlaggedAction } from "@/services/admin-flagged-users.service";
 
 const ngn = (v: number | null | undefined) => formatMoney(v ?? 0, "NGN");
 
@@ -200,6 +201,7 @@ export default function AdminTransactionDetail() {
   const [unfreezeOpen, setUnfreezeOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [flagOpen, setFlagOpen] = useState(false);
+  const [flagUserTarget, setFlagUserTarget] = useState<null | { id: string; role: "buyer" | "seller"; name: string }>(null);
   const [investigateOpen, setInvestigateOpen] = useState(false);
   const [resolveDisputeOpen, setResolveDisputeOpen] = useState(false);
   const [agreementOpen, setAgreementOpen] = useState(false);
@@ -583,6 +585,16 @@ export default function AdminTransactionDetail() {
               {data?.parties?.seller?.id && (
                 <DropdownMenuItem onClick={() => navigate(`/admin/flagged-users?u=${data.parties.seller!.id}`)}>
                   <Flag className="h-4 w-4 mr-2" /> Review Seller in Flagged Users
+                </DropdownMenuItem>
+              )}
+              {data?.parties?.buyer?.id && (
+                <DropdownMenuItem onClick={() => setFlagUserTarget({ id: data.parties.buyer!.id, role: "buyer", name: data.parties.buyer!.name ?? "Buyer" })}>
+                  <Flag className="h-4 w-4 mr-2 text-red-500" /> Flag Buyer for Fraud Review
+                </DropdownMenuItem>
+              )}
+              {data?.parties?.seller?.id && (
+                <DropdownMenuItem onClick={() => setFlagUserTarget({ id: data.parties.seller!.id, role: "seller", name: data.parties.seller!.name ?? "Seller" })}>
+                  <Flag className="h-4 w-4 mr-2 text-red-500" /> Flag Seller for Fraud Review
                 </DropdownMenuItem>
               )}
               {adminCan.canViewPayment && (
@@ -1673,6 +1685,27 @@ export default function AdminTransactionDetail() {
           await flagForReview(transactionId, reason);
           toast.success("Flagged for review");
           setReloadKey((k) => k + 1);
+        }}
+      />
+      <ActionConfirmDialog
+        open={!!flagUserTarget}
+        onOpenChange={(o) => { if (!o) setFlagUserTarget(null); }}
+        title={`Flag ${flagUserTarget?.role === "seller" ? "Seller" : "Buyer"} for Fraud Review`}
+        description={`This adds ${flagUserTarget?.name ?? "the user"} to the Flagged Users workspace with an admin flag signal. A note is required.`}
+        confirmLabel="Flag User"
+        confirmTone="danger"
+        onConfirm={async (reason) => {
+          if (!flagUserTarget) return;
+          await performFlaggedAction({
+            action: "flag_user",
+            user_id: flagUserTarget.id,
+            note: reason,
+            transaction_id: transactionId ?? undefined,
+          });
+          toast.success("User flagged for review");
+          const id = flagUserTarget.id;
+          setFlagUserTarget(null);
+          navigate(`/admin/flagged-users?u=${id}`);
         }}
       />
       <InvestigationDrawer
