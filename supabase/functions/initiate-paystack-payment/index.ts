@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
+import { buildPricingSnapshot, MAX_TOTAL_SERVICE_FEE } from "../_shared/safedeal-money-policy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -177,6 +178,14 @@ Deno.serve(async (req) => {
 
     const itemAmount = Number(pricingRow.item_amount);
     const pricing = computePricing(itemAmount, pricingRow.currency_code || "NGN");
+    const snapshot = buildPricingSnapshot(itemAmount, pricingRow.currency_code || "NGN");
+
+    // SafeDeal central gate: the combined service fee is capped at ₦2,500 and the
+    // provider (Paystack) fee is covered first inside the cap. If the provider
+    // estimate alone would exceed the cap, the payment method is blocked.
+    if (snapshot.payment_processing_fee_amount > MAX_TOTAL_SERVICE_FEE) {
+      return jsonErr("payment_method_blocked", 409);
+    }
 
     // Gate 3: Amount limit by verification level
     const amountLimit = LIMIT_BY_LEVEL[level] ?? 0;
