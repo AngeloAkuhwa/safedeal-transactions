@@ -627,6 +627,21 @@ const BuyerCart = () => {
                           <div className="flex items-center gap-4">
                             {isSoldOut ? (
                               <span className="text-sm font-semibold text-destructive">Sold Out</span>
+                            ) : item.product?.active_checkout_session_id ? (
+                              <>
+                                <span className="text-base font-bold text-foreground">
+                                  {item.product ? formatPrice(item.product.unit_price * item.quantity, item.product.currency_code) : "—"}
+                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1.5 h-8 text-xs border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
+                                  onClick={() => navigate(`/dashboard/cart/checkout?session=${item.product!.active_checkout_session_id}`)}
+                                >
+                                  <ShieldCheck className="h-3.5 w-3.5" />
+                                  Resume checkout
+                                </Button>
+                              </>
                             ) : (
                               <span className="text-base font-bold text-foreground">
                                 {item.product ? formatPrice(item.product.unit_price * item.quantity, item.product.currency_code) : "—"}
