@@ -575,6 +575,16 @@ export default function AdminTransactionDetail() {
               {adminCan.canViewSeller && data?.parties?.seller?.id && (
                 <DropdownMenuItem onClick={() => navigate(`/admin/users/${data.parties.seller!.id}`)}><User className="h-4 w-4 mr-2" /> View Seller</DropdownMenuItem>
               )}
+              {data?.parties?.buyer?.id && (
+                <DropdownMenuItem onClick={() => navigate(`/admin/flagged-users?u=${data.parties.buyer!.id}`)}>
+                  <Flag className="h-4 w-4 mr-2" /> Review Buyer in Flagged Users
+                </DropdownMenuItem>
+              )}
+              {data?.parties?.seller?.id && (
+                <DropdownMenuItem onClick={() => navigate(`/admin/flagged-users?u=${data.parties.seller!.id}`)}>
+                  <Flag className="h-4 w-4 mr-2" /> Review Seller in Flagged Users
+                </DropdownMenuItem>
+              )}
               {adminCan.canViewPayment && (
                 <DropdownMenuItem onClick={() => scrollToId("linked-records")}><CreditCard className="h-4 w-4 mr-2" /> View Payment Record</DropdownMenuItem>
               )}
@@ -1610,6 +1620,8 @@ export default function AdminTransactionDetail() {
             {adminCan.canAddNote && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setNoteOpen(true); }}><StickyNote className="h-4 w-4 mr-1.5" /> Add Note</Button>}
             {adminCan.canViewBuyer && data?.parties?.buyer?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/users/${data.parties.buyer!.id}`); }}><User className="h-4 w-4 mr-1.5" /> View Buyer</Button>}
             {adminCan.canViewSeller && data?.parties?.seller?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/users/${data.parties.seller!.id}`); }}><User className="h-4 w-4 mr-1.5" /> View Seller</Button>}
+            {data?.parties?.buyer?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/flagged-users?u=${data.parties.buyer!.id}`); }}><Flag className="h-4 w-4 mr-1.5" /> Flagged: Buyer</Button>}
+            {data?.parties?.seller?.id && <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigate(`/admin/flagged-users?u=${data.parties.seller!.id}`); }}><Flag className="h-4 w-4 mr-1.5" /> Flagged: Seller</Button>}
             {adminCan.canExport && <Button variant="outline" onClick={() => { setActionSheetOpen(false); setExportOpen(true); }}><Download className="h-4 w-4 mr-1.5" /> Export</Button>}
             <Button variant="outline" onClick={() => { setActionSheetOpen(false); navigator.clipboard.writeText(code); toast.success("Code copied"); }}>
               <Receipt className="h-4 w-4 mr-1.5" /> Copy Code
