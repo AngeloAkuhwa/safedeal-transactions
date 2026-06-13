@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
   //    open drift from a prior run.
   const { data: recentTx, error: recentErr } = await admin
     .from("transactions")
-    .select("id, transaction_code, money_status, currency_code, updated_at")
+    .select("id, transaction_code, money_status, updated_at")
     .gte("updated_at", since)
     .not("money_status", "in", "(not_secured,payment_pending)");
   if (recentErr) {
@@ -98,8 +98,10 @@ Deno.serve(async (req) => {
       .select("transaction_id, entry_type, amount")
       .in("transaction_id", txIds),
     admin.from("transactions")
-      .select("id, transaction_code, money_status, currency_code")
+      .select("id, transaction_code, money_status")
       .in("id", txIds),
+    // currency lives on transaction_pricing; fetched separately so a missing
+    // pricing row doesn't blow up the join.
   ]);
 
   if (payments.error || payouts.error || refunds.error || ledger.error || txRows.error) {
@@ -136,8 +138,20 @@ Deno.serve(async (req) => {
     txMap.set(t.id as string, {
       transaction_code: t.transaction_code as string,
       money_status: t.money_status as string,
-      currency_code: (t.currency_code as string) || "NGN",
+      currency_code: "NGN",
     });
+  }
+
+  // Hydrate currency from transaction_pricing where available.
+  const { data: pricingCurrencies } = await admin
+    .from("transaction_pricing")
+    .select("transaction_id, currency_code")
+    .in("transaction_id", txIds);
+  for (const p of pricingCurrencies ?? []) {
+    const m = txMap.get(p.transaction_id as string);
+    if (m && (p as { currency_code?: string }).currency_code) {
+      m.currency_code = (p as { currency_code: string }).currency_code;
+    }
   }
 
   const rowsToInsert: Array<Record<string, unknown>> = [];
