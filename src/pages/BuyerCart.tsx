@@ -664,7 +664,13 @@ const BuyerCart = () => {
                               variant="ghost"
                               size="sm"
                               className="gap-1.5 text-muted-foreground hover:text-destructive"
-                              onClick={() => handleRemove(item.product_id, item.id)}
+                              onClick={() => {
+                                if (isLocked) {
+                                  setConfirmRemove({ productId: item.product_id, cartItemId: item.id });
+                                } else {
+                                  handleRemove(item.product_id, item.id);
+                                }
+                              }}
                               disabled={isRemoving}
                             >
                               {isRemoving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
