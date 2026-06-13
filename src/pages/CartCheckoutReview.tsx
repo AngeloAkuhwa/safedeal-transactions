@@ -412,22 +412,15 @@ const CartCheckoutReview = () => {
                   <h2 className="text-lg font-semibold text-foreground">Payment Summary</h2>
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Items Subtotal</span>
+                      <span className="text-muted-foreground">{PRICING_LINE_LABELS.item_amount}</span>
                       <span className="font-medium">{formatPrice(Number(session.subtotal_amount))}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <div>
-                        <span className="text-primary font-medium">Protection Fee</span>
+                        <span className="text-primary font-medium">{PRICING_LINE_LABELS.service_fee_amount}</span>
                         <p className="text-[10px] text-muted-foreground">Non-refundable</p>
                       </div>
                       <span className="font-medium text-primary">{formatPrice(Number(session.total_protection_fee))}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Delivery Fee</span>
-                        <p className="text-[10px] text-muted-foreground">Per seller</p>
-                      </div>
-                      <span className="text-xs italic text-muted-foreground">Calculated after payment</span>
                     </div>
                     <div className="border-t border-border pt-3 flex justify-between items-end">
                       <span className="font-bold text-foreground">{PRICING_LINE_LABELS.total_amount}</span>
