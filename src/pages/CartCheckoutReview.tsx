@@ -430,7 +430,7 @@ const CartCheckoutReview = () => {
                       <span className="text-xs italic text-muted-foreground">Calculated after payment</span>
                     </div>
                     <div className="border-t border-border pt-3 flex justify-between items-end">
-                      <span className="font-bold text-foreground">Total Amount</span>
+                      <span className="font-bold text-foreground">{PRICING_LINE_LABELS.total_amount}</span>
                       <span className="text-2xl font-bold text-foreground">{formatPrice(Number(session.total_amount))}</span>
                     </div>
                   </div>
