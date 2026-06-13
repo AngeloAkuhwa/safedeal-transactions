@@ -284,7 +284,7 @@ export async function refundBuyerCore(
   // Legacy rows missing the snapshot columns fall back to a full refund.
   const { data: pricingRow } = await admin
     .from("transaction_pricing")
-    .select("buyer_total_amount, payment_processing_fee_amount, processing_fee_amount")
+    .select("buyer_total_amount, payment_processing_fee_amount")
     .eq("transaction_id", transaction_id)
     .maybeSingle();
 
@@ -292,9 +292,7 @@ export async function refundBuyerCore(
   const processingFee =
     (pricingRow as any)?.payment_processing_fee_amount != null
       ? Number((pricingRow as any).payment_processing_fee_amount)
-      : (pricingRow as any)?.processing_fee_amount != null
-        ? Number((pricingRow as any).processing_fee_amount)
-        : null;
+      : null;
 
   const paymentAmount = Number((payment as any).amount);
   const refundAmount =

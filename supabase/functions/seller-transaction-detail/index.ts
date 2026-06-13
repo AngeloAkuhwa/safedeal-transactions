@@ -228,20 +228,22 @@ Deno.serve(async (req) => {
       }
       const sellerPayout = Number((pricingRow as any).seller_payout_amount);
       const paymentProcessingFee = Number((pricingRow as any).payment_processing_fee_amount);
+      const platformFee = Number((pricingRow as any).platform_fee_amount ?? 0);
+      const serviceFee = platformFee + paymentProcessingFee;
       computedPricing = {
         item_amount: pr.item_amount,
-        platform_fee_amount: pr.platform_fee_amount,
+        platform_fee_amount: platformFee || pr.platform_fee_amount,
         paystack_fee_amount: pr.paystack_fee_amount,
         // SafeDeal canonical:
         payment_processing_fee_amount: paymentProcessingFee,
         // Response alias kept for UI compatibility (no longer a DB column).
         processing_fee_amount: paymentProcessingFee,
-        service_fee_amount: pr.service_fee_amount,
+        service_fee_amount: serviceFee || pr.service_fee_amount,
         service_fee_rate: pr.service_fee_rate,
         // Response alias kept for UI compatibility (no longer a DB column).
         seller_net_amount: sellerPayout,
         seller_payout_amount: sellerPayout,
-        buyer_total_amount: pr.total_amount,
+        buyer_total_amount: Number((pricingRow as any).buyer_total_amount ?? pr.total_amount),
         currency_code: pr.currency_code,
         is_total_service_fee_capped: Boolean((pricingRow as any).is_total_service_fee_capped) || pr.is_capped,
         pricing_model_version: (pricingRow as any).pricing_model_version ?? null,

@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
   if (txIds.length > 0) {
     const { data: prices } = await admin
       .from("transaction_pricing")
-      .select("transaction_id, item_amount, platform_fee_amount, payment_processing_fee_amount, seller_payout_amount, buyer_total_amount, total_amount, currency_code")
+      .select("transaction_id, item_amount, platform_fee_amount, payment_processing_fee_amount, seller_payout_amount, buyer_total_amount, currency_code")
       .in("transaction_id", txIds);
     for (const p of (prices ?? []) as any[]) pricingMap.set(p.transaction_id, p);
   }
@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
     const protectionFee = Math.min(rawProtection, MAX_PROTECTION_FEE);
     const paymentProcessingFee = Number(pricing?.payment_processing_fee_amount ?? 0);
     const totalCharged = Number(
-      pricing?.buyer_total_amount ?? pricing?.total_amount ?? itemTotal + protectionFee + paymentProcessingFee,
+      pricing?.buyer_total_amount ?? itemTotal + protectionFee + paymentProcessingFee,
     );
     const sellerPayout = Number(pricing?.seller_payout_amount ?? r.amount ?? 0);
     const account = accountMap.get(r.seller_id) ?? null;
