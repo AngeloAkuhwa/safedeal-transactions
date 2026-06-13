@@ -1069,7 +1069,7 @@ export default function BuyerPaymentSummary() {
                   <div className="space-y-2">
                     {failureTerminal ? (
                       <button
-                        onClick={() => navigate("/buyer/marketplace")}
+                        onClick={() => navigate("/marketplace")}
                         className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5"
                       >
                         <ArrowLeft className="h-3.5 w-3.5" />
