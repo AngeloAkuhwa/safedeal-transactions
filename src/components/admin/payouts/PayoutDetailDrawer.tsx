@@ -1,18 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, X, ExternalLink, AlertTriangle, ShieldCheck, ShieldOff } from "lucide-react";
+import { Loader2, X, ExternalLink, AlertTriangle, ShieldCheck, ShieldOff, Check, Clock, RotateCcw } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
-import { PayoutStatusPill } from "./PayoutStatusPill";
 import { PayoutEligibilityChecklist } from "./PayoutEligibilityChecklist";
 import * as payoutsApi from "@/services/admin-payouts.service";
 
@@ -27,12 +24,32 @@ interface Props {
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex justify-between text-sm py-1">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium text-foreground text-right">{value}</span>
+    <div className="flex items-center justify-between">
+      <span className="text-slate-400 text-sm">{label}</span>
+      <span className="text-white text-sm text-right">{value}</span>
     </div>
   );
 }
+
+function statusPill(status: string, blocked: boolean) {
+  if (blocked) return { cls: "bg-orange-500/20 border-orange-500/30 text-orange-400", icon: <ShieldOff className="h-3.5 w-3.5" />, label: "Blocked" };
+  switch (status) {
+    case "released":
+    case "paid":
+      return { cls: "bg-emerald-500/20 border-emerald-500/30 text-emerald-400", icon: <Check className="h-3.5 w-3.5" />, label: "Released" };
+    case "processing":
+    case "initiated":
+      return { cls: "bg-blue-500/20 border-blue-500/30 text-blue-400", icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />, label: "Processing" };
+    case "failed":
+      return { cls: "bg-red-500/20 border-red-500/30 text-red-400", icon: <X className="h-3.5 w-3.5" />, label: "Failed" };
+    case "awaiting_release":
+    case "queued":
+    default:
+      return { cls: "bg-amber-500/20 border-amber-500/30 text-amber-400", icon: <Clock className="h-3.5 w-3.5" />, label: status.replace(/_/g, " ") };
+  }
+}
+
+const actionBtn = "px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center gap-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed";
 
 export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, onActionDone }: Props) {
   const navigate = useNavigate();
@@ -96,141 +113,174 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-[480px] p-0 bg-card border-l border-border overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
+      <SheetContent side="right" className="w-full sm:max-w-[480px] p-0 bg-slate-900 border-l border-slate-800 shadow-2xl overflow-y-auto overflow-x-hidden no-scrollbar">
+        <div className="sticky top-0 z-10 bg-slate-900 border-b border-slate-800 p-6 flex items-center justify-between">
           <div className="min-w-0">
-            <div className="font-mono text-xs text-muted-foreground truncate">{p?.id ?? payoutId}</div>
-            <div className="font-semibold text-foreground">Payout details</div>
+            <div className="font-mono text-xs text-slate-500 truncate mb-0.5">{p?.id ?? payoutId}</div>
+            <h3 className="text-white text-lg font-semibold">Payout Details</h3>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         {loading || !detail ? (
-          <div className="p-4 space-y-3">
-            <Skeleton className="h-24" />
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
+          <div className="p-6 space-y-3">
+            <Skeleton className="h-40 bg-slate-800/60" />
+            <Skeleton className="h-32 bg-slate-800/60" />
+            <Skeleton className="h-32 bg-slate-800/60" />
           </div>
         ) : (
-          <div className="p-4 space-y-5">
-            {/* Header */}
-            <div className="rounded-xl border border-border bg-muted/30 p-4">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <PayoutStatusPill row={{ status: p!.status, release_blocked: p!.release_blocked, transaction: detail.transaction as any }} />
-                {detail.pricing.protection_fee_capped && (
-                  <Badge variant="outline" className="text-xs">Protection capped @ ₦2,500</Badge>
+          (() => {
+            const pill = statusPill(p!.status, p!.release_blocked);
+            return (
+            <div className="p-6 space-y-6">
+              {/* Hero amount card */}
+              <div className="bg-slate-800 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-slate-400 text-sm">Payout ID</span>
+                  <span className="text-white font-semibold text-sm font-mono truncate max-w-[240px]">{detail.transaction?.code ?? p!.id}</span>
+                </div>
+                <div className="flex items-center justify-center py-4">
+                  <div className="text-center">
+                    <p className="text-slate-400 text-sm mb-2">Amount</p>
+                    <p className="text-white text-4xl font-bold">{formatMoney(p!.amount, p!.currency)}</p>
+                    <p className="text-slate-400 text-sm mt-1">{detail.seller?.name ?? "Seller"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-sm font-semibold ${pill.cls}`}>
+                    {pill.icon}
+                    {pill.label}
+                  </span>
+                </div>
+                {p!.failure_reason && (
+                  <p className="mt-3 text-xs text-red-400 text-center flex items-center justify-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5" />{p!.failure_reason}
+                  </p>
+                )}
+                {p!.payout_blocked_reason && (
+                  <p className="mt-3 text-xs text-orange-400 text-center flex items-center justify-center gap-1.5">
+                    <ShieldOff className="h-3.5 w-3.5" />{p!.payout_blocked_reason}
+                  </p>
                 )}
               </div>
-              <div className="text-2xl font-bold text-foreground">{formatMoney(p!.amount, p!.currency)}</div>
-              <div className="text-sm text-muted-foreground mt-1">{detail.seller?.name ?? "Seller"}</div>
-              <div className="text-xs text-muted-foreground font-mono mt-0.5">{detail.transaction?.code}</div>
-              {p!.failure_reason && (
-                <div className="mt-2 text-xs text-red-400 flex items-start gap-2"><AlertTriangle className="h-4 w-4 mt-0.5" />{p!.failure_reason}</div>
-              )}
-              {p!.payout_blocked_reason && (
-                <div className="mt-2 text-xs text-red-400 flex items-start gap-2"><ShieldOff className="h-4 w-4 mt-0.5" />{p!.payout_blocked_reason}</div>
-              )}
-            </div>
 
-            {/* Eligibility */}
-            <section>
-              <h3 className="text-sm font-semibold text-foreground mb-2">Eligibility checklist</h3>
-              <PayoutEligibilityChecklist gates={detail.eligibility.gates} />
-            </section>
-            <Separator />
-
-            {/* Pricing */}
-            <section>
-              <h3 className="text-sm font-semibold text-foreground mb-2">Pricing breakdown</h3>
-              <Row label="Item Total" value={formatMoney(detail.pricing.item_total, detail.pricing.currency)} />
-              <Row label="Protection Fee" value={formatMoney(detail.pricing.protection_fee, detail.pricing.currency)} />
-              <Row label="Payment Processing Fee" value={formatMoney(detail.pricing.payment_processing_fee, detail.pricing.currency)} />
-              <Separator className="my-2" />
-              <Row label="Total Charged" value={<span className="font-bold">{formatMoney(detail.pricing.total_charged, detail.pricing.currency)}</span>} />
-              <Row label="Seller Payout" value={<span className="font-bold text-emerald-500">{formatMoney(detail.pricing.seller_payout, detail.pricing.currency)}</span>} />
-            </section>
-            <Separator />
-
-            {/* Account */}
-            <section>
-              <h3 className="text-sm font-semibold text-foreground mb-2">Seller payout account</h3>
-              {detail.payout_account ? (
-                <div className="space-y-1">
-                  <Row label="Bank" value={detail.payout_account.bank_name ?? "—"} />
-                  <Row label="Account" value={detail.payout_account.masked_account ?? "—"} />
-                  <Row label="Account name" value={detail.payout_account.account_name ?? "—"} />
-                  <Row label="Verification" value={
-                    <span className={detail.payout_account.verification_status === "verified" ? "text-emerald-500" : "text-amber-500"}>
-                      {detail.payout_account.verification_status ?? "unverified"}
-                    </span>
-                  } />
-                  <Row label="Recipient code" value={
-                    detail.payout_account.has_recipient_code
-                      ? <span className="inline-flex items-center gap-1 text-emerald-500"><ShieldCheck className="h-3 w-3" />present</span>
-                      : <span className="text-red-400">missing</span>
-                  } />
-                </div>
-              ) : <p className="text-sm text-muted-foreground">No payout account on file.</p>}
-            </section>
-            <Separator />
-
-            {/* Linked */}
-            <section className="space-y-2">
-              <h3 className="text-sm font-semibold text-foreground mb-1">Linked records</h3>
-              <Button variant="outline" size="sm" className="w-full justify-between"
-                onClick={() => navigate(`/admin/transactions/${detail.transaction?.id}`)}>
-                Open Transaction <ExternalLink className="h-4 w-4" />
-              </Button>
-              {detail.dispute && (
-                <Button variant="outline" size="sm" className="w-full justify-between"
-                  onClick={() => navigate(`/admin/disputes/${detail.dispute.id}`)}>
-                  Open Dispute <ExternalLink className="h-4 w-4" />
-                </Button>
-              )}
-            </section>
-            <Separator />
-
-            {/* Timeline */}
-            <section>
-              <h3 className="text-sm font-semibold text-foreground mb-2">Timeline</h3>
-              <ul className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                {detail.events.length === 0 && <li className="text-xs text-muted-foreground">No events recorded.</li>}
-                {detail.events.map((e: any) => (
-                  <li key={e.id} className="text-xs border-l-2 border-border pl-3 py-1">
-                    <div className="font-medium text-foreground">{e.event_type}</div>
-                    <div className="text-muted-foreground">{new Date(e.created_at).toLocaleString()}</div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-            <Separator />
-
-            {/* Actions */}
-            <section className="space-y-2 pb-6">
-              <h3 className="text-sm font-semibold text-foreground">Actions</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                  disabled={!eligible || busy === "release"}
-                  onClick={() => setConfirm("release")}
-                >
-                  {busy === "release" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Release"}
-                </Button>
-                <Button variant="outline"
-                  disabled={!(p!.status === "failed" && p!.retry_allowed) || busy === "retry"}
-                  onClick={handleRetry}>
-                  {busy === "retry" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Retry"}
-                </Button>
-                {p!.release_blocked
-                  ? <Button variant="outline" onClick={() => { setReasonOpen("unblock"); setReason(""); }}>Unblock</Button>
-                  : <Button variant="outline" onClick={() => { setReasonOpen("block"); setReason(""); }}>Block</Button>}
-                <Button variant="outline" onClick={() => navigate(`/admin/transactions/${detail.transaction?.id}`)}>Open Transaction</Button>
+              {/* Eligibility */}
+              <div className="space-y-3">
+                <h4 className="text-white font-semibold text-sm">Eligibility checklist</h4>
+                <PayoutEligibilityChecklist gates={detail.eligibility.gates} />
               </div>
-              {!eligible && (
-                <p className="text-xs text-muted-foreground">Release is disabled — resolve the failing gate above before retrying.</p>
-              )}
-            </section>
-          </div>
+
+              {/* Pricing */}
+              <div className="space-y-3">
+                <h4 className="text-white font-semibold text-sm">Pricing breakdown</h4>
+                <div className="bg-slate-800 rounded-lg p-4 space-y-2">
+                  <Row label="Item Total" value={formatMoney(detail.pricing.item_total, detail.pricing.currency)} />
+                  <Row label="Protection Fee" value={formatMoney(detail.pricing.protection_fee, detail.pricing.currency)} />
+                  <Row label="Payment Processing Fee" value={formatMoney(detail.pricing.payment_processing_fee, detail.pricing.currency)} />
+                  <div className="border-t border-slate-700 my-2" />
+                  <Row label="Total Charged" value={<span className="font-semibold text-white">{formatMoney(detail.pricing.total_charged, detail.pricing.currency)}</span>} />
+                  <Row label="Seller Payout" value={<span className="font-semibold text-emerald-400">{formatMoney(detail.pricing.seller_payout, detail.pricing.currency)}</span>} />
+                </div>
+              </div>
+
+              {/* Account */}
+              <div className="space-y-3">
+                <h4 className="text-white font-semibold text-sm">Seller payout account</h4>
+                {detail.payout_account ? (
+                  <div className="bg-slate-800 rounded-lg p-4 space-y-2">
+                    <Row label="Bank" value={detail.payout_account.bank_name ?? "—"} />
+                    <Row label="Account" value={detail.payout_account.masked_account ?? "—"} />
+                    <Row label="Account name" value={detail.payout_account.account_name ?? "—"} />
+                    <Row label="Verification" value={
+                      <span className={detail.payout_account.verification_status === "verified" ? "text-emerald-400" : "text-amber-400"}>
+                        {detail.payout_account.verification_status ?? "unverified"}
+                      </span>
+                    } />
+                    <Row label="Recipient code" value={
+                      detail.payout_account.has_recipient_code
+                        ? <span className="inline-flex items-center gap-1 text-emerald-400"><ShieldCheck className="h-3.5 w-3.5" />present</span>
+                        : <span className="text-red-400">missing</span>
+                    } />
+                  </div>
+                ) : <p className="text-sm text-slate-400">No payout account on file.</p>}
+              </div>
+
+              {/* Linked */}
+              <div className="space-y-3">
+                <h4 className="text-white font-semibold text-sm">Linked records</h4>
+                <div className="flex flex-col gap-2">
+                  <button className={`${actionBtn} justify-between`} onClick={() => navigate(`/admin/transactions/${detail.transaction?.id}`)}>
+                    Open Transaction <ExternalLink className="h-4 w-4" />
+                  </button>
+                  {detail.dispute && (
+                    <button className={`${actionBtn} justify-between`} onClick={() => navigate(`/admin/disputes/${detail.dispute.id}`)}>
+                      Open Dispute <ExternalLink className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Timeline */}
+              <div className="space-y-3">
+                <h4 className="text-white font-semibold text-sm">Timeline</h4>
+                <div className="bg-slate-800 rounded-lg p-4">
+                  <ul className="space-y-3 max-h-72 overflow-y-auto pr-1 no-scrollbar">
+                    {detail.events.length === 0 && <li className="text-xs text-slate-400">No events recorded.</li>}
+                    {detail.events.map((e: any) => (
+                      <li key={e.id} className="border-l-2 border-slate-700 pl-3">
+                        <div className="text-white text-sm font-medium">{e.event_type}</div>
+                        <div className="text-slate-400 text-xs">{new Date(e.created_at).toLocaleString()}</div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-3 pb-4">
+                <h4 className="text-white font-semibold text-sm">Actions</h4>
+                <div className="flex flex-col gap-2">
+                  <button
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!eligible || busy === "release"}
+                    onClick={() => setConfirm("release")}
+                  >
+                    {busy === "release" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    Release Payout
+                  </button>
+                  <button
+                    className={actionBtn}
+                    disabled={!(p!.status === "failed" && p!.retry_allowed) || busy === "retry"}
+                    onClick={handleRetry}
+                  >
+                    {busy === "retry" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                    Retry Payout
+                  </button>
+                  {p!.release_blocked ? (
+                    <button className={actionBtn} onClick={() => { setReasonOpen("unblock"); setReason(""); }}>
+                      <ShieldCheck className="h-4 w-4" /> Unblock Payout
+                    </button>
+                  ) : (
+                    <button className={actionBtn} onClick={() => { setReasonOpen("block"); setReason(""); }}>
+                      <ShieldOff className="h-4 w-4" /> Block Payout
+                    </button>
+                  )}
+                  <button className={actionBtn} onClick={() => navigate(`/admin/transactions/${detail.transaction?.id}`)}>
+                    <ExternalLink className="h-4 w-4" /> Open Transaction
+                  </button>
+                </div>
+                {!eligible && (
+                  <p className="text-xs text-slate-500 mt-1">Release is disabled — resolve the failing gate above before retrying.</p>
+                )}
+              </div>
+            </div>
+            );
+          })()
         )}
       </SheetContent>
 
