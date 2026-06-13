@@ -43,6 +43,9 @@ export interface UserDirectorySummary {
   new_this_week: number;
   id_verified: number;
   email_verified: number;
+  new_this_month: number;
+  new_per_day_avg: number;
+  id_verified_pct: number;
   deltas: { total: string; verified: string; flagged: string; new_week: string; id: string; email: string };
 }
 
