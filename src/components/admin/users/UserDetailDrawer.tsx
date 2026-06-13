@@ -124,7 +124,7 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
                 {data.timeline.map((a) => (
                   <div key={a.id} className="bg-slate-900 border border-slate-800 rounded-lg p-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-white text-sm font-medium capitalize">{a.type.replaceAll("_", " ")}</p>
+                      <p className="text-white text-sm font-medium capitalize">{a.type.replace(/_/g, " ")}</p>
                       <p className="text-slate-500 text-xs">{fmt(a.created_at)}</p>
                     </div>
                     <p className="text-slate-400 text-xs mt-1">by {a.admin_name}</p>
