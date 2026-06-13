@@ -406,10 +406,11 @@ const BuyerCart = () => {
                     const isRemoving = removing === item.id;
                     const isSelected = selected.has(item.id);
                     const isSoldOut = stock.variant === "destructive";
+                    const isLocked = !!item.product?.active_checkout_session_id;
                     const enabledMethods = parseEnabledMethods(item.product?.delivery_method);
                     const draft = deliveryDrafts[item.id];
                     const draftInvalid = isSelected && showDeliveryErrors && !isDraftValid(draft);
-                    const showPicker = isSelected && !isSoldOut && enabledMethods.length > 0;
+                    const showPicker = isSelected && !isSoldOut && !isLocked && enabledMethods.length > 0;
 
                     return (
                       <div
