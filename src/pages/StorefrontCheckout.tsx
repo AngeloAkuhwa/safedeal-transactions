@@ -261,24 +261,74 @@ const StorefrontCheckout = () => {
               <Truck className="h-5 w-5 text-primary" />
               Delivery Method
             </h2>
-            <div className="rounded-xl border-2 border-primary bg-primary/5 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Truck className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">
-                      {resolveDeliveryMethod(primaryDelivery)}
-                    </p>
-                    {product.estimated_delivery_days && (
-                      <p className="text-sm text-muted-foreground">
-                        Estimated {product.estimated_delivery_days} days
-                      </p>
-                    )}
+            <div className="space-y-3">
+              {deliveryMethods.map((m) => {
+                const isActive = m === activeMethod;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setSelectedMethod(m)}
+                    className={`w-full text-left rounded-xl border-2 p-4 transition-colors ${
+                      isActive ? "border-primary bg-primary/5" : "border-border bg-transparent hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${isActive ? "bg-primary/10" : "bg-muted"}`}>
+                        <Truck className={`h-5 w-5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-foreground">{resolveDeliveryMethod(m)}</p>
+                        {product.estimated_delivery_days && (
+                          <p className="text-sm text-muted-foreground">Estimated {product.estimated_delivery_days} days</p>
+                        )}
+                      </div>
+                      {isActive && <CheckCircle2 className="h-5 w-5 text-primary" />}
+                    </div>
+                  </button>
+                );
+              })}
+              {needsAddress && (
+                <div className="rounded-xl border border-border p-4 space-y-3">
+                  <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" /> Delivery Address
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="sm:col-span-2">
+                      <Label className="text-xs">Address line 1</Label>
+                      <Input value={addrLine1} onChange={(e) => setAddrLine1(e.target.value)} placeholder="Street address" />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label className="text-xs">Address line 2 (optional)</Label>
+                      <Input value={addrLine2} onChange={(e) => setAddrLine2(e.target.value)} placeholder="Apartment, suite, etc." />
+                    </div>
+                    <div>
+                      <Label className="text-xs">City</Label>
+                      <Input value={addrCity} onChange={(e) => setAddrCity(e.target.value)} placeholder="Lagos" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">State</Label>
+                      <Input value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="Lagos State" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Postal code (optional)</Label>
+                      <Input value={addrPostal} onChange={(e) => setAddrPostal(e.target.value)} placeholder="100001" />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+              {needsPhone && (
+                <div className="rounded-xl border border-border p-4 space-y-2">
+                  <Label className="text-xs">Contact phone</Label>
+                  <Input
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    placeholder="+234…"
+                    type="tel"
+                  />
+                  <p className="text-xs text-muted-foreground">The seller will use this number to coordinate {activeMethod === "pickup" ? "pickup" : activeMethod === "meetup" ? "the meetup" : "hand delivery"}.</p>
+                </div>
+              )}
               <div className="flex items-center gap-3 flex-wrap">
                 <Badge variant="outline" className="rounded-full text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1">
                   <ShieldCheck className="h-3 w-3" />
