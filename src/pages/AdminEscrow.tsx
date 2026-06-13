@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Download, RefreshCw, Clock } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -8,6 +9,9 @@ import { EscrowCharts } from "@/components/admin/escrow/EscrowCharts";
 import { EscrowAlertsPanel } from "@/components/admin/escrow/EscrowAlertsPanel";
 import { EscrowFilters } from "@/components/admin/escrow/EscrowFilters";
 import { EscrowRecordsTable } from "@/components/admin/escrow/EscrowRecordsTable";
+import { EscrowExportButton } from "@/components/admin/escrow/EscrowExportButton";
+import { EscrowRecordDrawer } from "@/components/admin/escrow/EscrowRecordDrawer";
+import { EscrowMobileHero } from "@/components/admin/escrow/EscrowMobileHero";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { fetchEscrowOverview, type EscrowQuery } from "@/services/admin-escrow.service";
@@ -25,10 +29,18 @@ const DEFAULTS: EscrowQuery = {
 };
 
 export default function AdminEscrow() {
-  const [filters, setFilters] = useState<EscrowQuery>(DEFAULTS);
-  const [search, setSearch] = useState("");
-  const [appliedSearch, setAppliedSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [params, setParams] = useSearchParams();
+  const [filters, setFilters] = useState<EscrowQuery>(() => ({
+    ...DEFAULTS,
+    state: (params.get("state") as EscrowQuery["state"]) ?? DEFAULTS.state,
+    date_range: (params.get("date_range") as EscrowQuery["date_range"]) ?? DEFAULTS.date_range,
+    amount_bucket: (params.get("amount_bucket") as EscrowQuery["amount_bucket"]) ?? DEFAULTS.amount_bucket,
+    flag: (params.get("flag") as EscrowQuery["flag"]) ?? DEFAULTS.flag,
+  }));
+  const [search, setSearch] = useState(params.get("q") ?? "");
+  const [appliedSearch, setAppliedSearch] = useState(params.get("q") ?? "");
+  const [page, setPage] = useState(Number(params.get("page") ?? "1") || 1);
+  const [drawerTx, setDrawerTx] = useState<string | null>(params.get("tx"));
   const queryClient = useQueryClient();
 
   const query = useMemo<EscrowQuery>(() => ({
@@ -40,11 +52,25 @@ export default function AdminEscrow() {
     queryFn: () => fetchEscrowOverview(query),
     staleTime: 30_000,
     refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
   });
 
   useEffect(() => {
     if (isError && error) toast({ title: "Failed to load escrow", description: (error as Error).message, variant: "destructive" });
   }, [isError, error]);
+
+  // Sync filters + drawer + page to URL.
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (filters.state && filters.state !== "all") next.set("state", filters.state);
+    if (filters.date_range && filters.date_range !== "30d") next.set("date_range", filters.date_range);
+    if (filters.amount_bucket && filters.amount_bucket !== "any") next.set("amount_bucket", filters.amount_bucket);
+    if (filters.flag && filters.flag !== "all") next.set("flag", filters.flag);
+    if (appliedSearch) next.set("q", appliedSearch);
+    if (page > 1) next.set("page", String(page));
+    if (drawerTx) next.set("tx", drawerTx);
+    setParams(next, { replace: true });
+  }, [filters, appliedSearch, page, drawerTx, setParams]);
 
   const onApply = useCallback(() => { setAppliedSearch(search); setPage(1); }, [search]);
   const onReset = useCallback(() => { setFilters(DEFAULTS); setSearch(""); setAppliedSearch(""); setPage(1); }, []);
@@ -74,14 +100,7 @@ export default function AdminEscrow() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            disabled
-            className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-sm font-medium opacity-70 cursor-not-allowed"
-          >
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Export Report</span>
-          </button>
+          <EscrowExportButton query={query} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60" />
           <button
             type="button"
             onClick={() => void refetch()}
@@ -108,6 +127,15 @@ export default function AdminEscrow() {
       )}
     >
       <div className="mx-auto w-full max-w-[1400px] px-4 py-5 sm:px-6 lg:px-8 lg:py-6 space-y-4 lg:space-y-6">
+        {data && (
+          <EscrowMobileHero
+            lastUpdated={lastUpdated}
+            isFetching={isFetching}
+            onRefresh={() => void refetch()}
+            critical={data.alerts.counts.critical}
+            warnings={data.alerts.counts.warning}
+          />
+        )}
         {isLoading || !data ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4">
@@ -146,6 +174,13 @@ export default function AdminEscrow() {
               page={data.records.page}
               pageSize={data.records.page_size}
               onPage={setPage}
+              onOpenDetail={(id) => setDrawerTx(id)}
+              exportSlot={<EscrowExportButton query={query} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-sm font-medium inline-flex items-center gap-2 disabled:opacity-60" />}
+            />
+            <EscrowRecordDrawer
+              txId={drawerTx}
+              open={!!drawerTx}
+              onClose={() => setDrawerTx(null)}
             />
           </>
         )}
