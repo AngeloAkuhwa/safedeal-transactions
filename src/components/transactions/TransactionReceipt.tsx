@@ -31,18 +31,18 @@ export const TransactionReceipt = React.forwardRef<HTMLDivElement, TransactionRe
         <style>{`
           #safedeal-receipt-root { display: none; }
           @media print {
-            html, body { background: #fff !important; }
-            body * { visibility: hidden !important; }
-            #safedeal-receipt-root,
-            #safedeal-receipt-root * { visibility: visible !important; }
+            html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+            /* Hide everything else so it does not occupy printed pages. */
+            body > *:not(#safedeal-receipt-root) { display: none !important; }
             #safedeal-receipt-root {
               display: block !important;
-              position: absolute !important;
-              left: 0; top: 0; width: 100%;
+              position: static !important;
+              width: 100% !important;
               background: #fff !important;
               color: #111 !important;
             }
-            @page { margin: 20mm; size: A4; }
+            #safedeal-receipt-root * { color: #111 !important; }
+            @page { margin: 16mm; size: A4; }
           }
         `}</style>
 
