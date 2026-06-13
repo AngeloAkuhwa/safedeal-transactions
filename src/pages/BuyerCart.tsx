@@ -759,6 +759,31 @@ const BuyerCart = () => {
           )}
         </div>
       </main>
+      <AlertDialog open={!!confirmRemove} onOpenChange={(o) => { if (!o) setConfirmRemove(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel reserved checkout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will cancel your reserved checkout for this item and release the stock. You can re-add the product and start a new checkout afterwards.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep checkout</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (confirmRemove) {
+                  const { productId, cartItemId } = confirmRemove;
+                  setConfirmRemove(null);
+                  handleRemove(productId, cartItemId);
+                }
+              }}
+            >
+              Cancel & remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
