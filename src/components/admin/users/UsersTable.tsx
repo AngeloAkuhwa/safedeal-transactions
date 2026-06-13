@@ -1,0 +1,206 @@
+import {
+  Flag, AlertTriangle, ShieldCheck, IdCard, Mail, Phone, Star, Clock,
+  User as UserIcon, Banknote, Scale, Search, ChevronLeft, ChevronRight,
+  Ban, CheckCircle2, UserCog,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import type { UserDirectoryRow } from "@/services/admin-users-directory.service";
+import { formatMoneyCompact } from "@/lib/format";
+
+interface Props {
+  rows: UserDirectoryRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  onOpenDetail: (id: string) => void;
+  onPage: (p: number) => void;
+  onFlagToggle: (row: UserDirectoryRow) => void;
+  onSuspend: (row: UserDirectoryRow) => void;
+}
+
+const ROLE_CLASS: Record<string, string> = {
+  buyer: "bg-blue-500/10 border-blue-500/20 text-blue-400",
+  seller: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
+  business: "bg-purple-500/10 border-purple-500/20 text-purple-400",
+  admin: "bg-amber-500/10 border-amber-500/20 text-amber-400",
+};
+
+const STATUS_CLASS: Record<string, string> = {
+  active: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
+  flagged: "bg-red-500/10 border-red-500/20 text-red-400",
+  suspended: "bg-purple-500/10 border-purple-500/20 text-purple-400",
+  pending: "bg-yellow-500/10 border-yellow-500/20 text-yellow-400",
+  under_investigation: "bg-orange-500/10 border-orange-500/20 text-orange-400",
+};
+
+function relativeDate(iso: string | null): string {
+  if (!iso) return "—";
+  const ms = Date.now() - new Date(iso).getTime();
+  const d = Math.floor(ms / (24 * 60 * 60 * 1000));
+  if (d < 1) return "today";
+  if (d < 30) return `${d}d ago`;
+  const m = Math.floor(d / 30);
+  if (m < 12) return `${m}mo ago`;
+  const y = Math.floor(m / 12);
+  return `${y}yr${y === 1 ? "" : "s"} ago`;
+}
+
+function fmtJoined(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-NG", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, onFlagToggle, onSuspend }: Props) {
+  const navigate = useNavigate();
+  const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(total, page * pageSize);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+
+  return (
+    <div className="hidden lg:block bg-slate-900 border border-slate-800 rounded-xl">
+      <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <h3 className="text-white text-lg font-semibold">User Records</h3>
+          <p className="text-slate-400 text-sm mt-1">{total.toLocaleString()} total • Showing {start}-{end}</p>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-slate-800 border-b border-slate-700">
+            <tr>
+              <th className="text-left p-4 text-slate-300 font-semibold text-sm whitespace-nowrap">User</th>
+              <th className="text-left p-4 text-slate-300 font-semibold text-sm whitespace-nowrap">Contact</th>
+              <th className="text-left p-4 text-slate-300 font-semibold text-sm whitespace-nowrap">Roles</th>
+              <th className="text-left p-4 text-slate-300 font-semibold text-sm whitespace-nowrap">Verification</th>
+              <th className="text-right p-4 text-slate-300 font-semibold text-sm whitespace-nowrap">Transactions</th>
+              <th className="text-right p-4 text-slate-300 font-semibold text-sm whitespace-nowrap">Disputes</th>
+              <th className="text-left p-4 text-slate-300 font-semibold text-sm whitespace-nowrap">Status</th>
+              <th className="text-left p-4 text-slate-300 font-semibold text-sm whitespace-nowrap">Joined</th>
+              <th className="text-center p-4 text-slate-300 font-semibold text-sm whitespace-nowrap">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            {rows.length === 0 && (
+              <tr><td colSpan={9} className="p-12 text-center text-slate-400">
+                <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                No users match these filters.
+              </td></tr>
+            )}
+            {rows.map((r) => {
+              const ring = r.is_flagged || r.is_suspended ? "ring-red-500/30"
+                : r.trust_badge === "trusted_seller" ? "ring-emerald-500/30"
+                : r.status === "pending" ? "ring-yellow-500/30" : "ring-slate-700";
+              const init = (r.full_name || "?").slice(0, 1).toUpperCase();
+              return (
+                <tr key={r.user_id} className="hover:bg-slate-800/50 transition-all">
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => onOpenDetail(r.user_id)} className="block">
+                        {r.avatar_url
+                          ? <img src={r.avatar_url} className={`w-10 h-10 rounded-full ring-2 ${ring}`} alt={r.full_name} />
+                          : <span className={`w-10 h-10 rounded-full ring-2 ${ring} bg-slate-700 text-white font-semibold inline-flex items-center justify-center`}>{init}</span>}
+                      </button>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => onOpenDetail(r.user_id)} className="text-white font-semibold hover:underline">{r.full_name}</button>
+                          {r.is_flagged && (
+                            <span className="w-5 h-5 bg-red-500/10 border border-red-500/30 rounded flex items-center justify-center" title="Flagged">
+                              <Flag className="h-3 w-3 text-red-400" />
+                            </span>
+                          )}
+                          {r.trust_badge === "trusted_seller" && (
+                            <span className="w-5 h-5 bg-emerald-500/10 border border-emerald-500/30 rounded flex items-center justify-center" title="Trusted Seller">
+                              <Star className="h-3 w-3 text-emerald-400" />
+                            </span>
+                          )}
+                          {r.status === "pending" && (
+                            <span className="w-5 h-5 bg-yellow-500/10 border border-yellow-500/30 rounded flex items-center justify-center" title="Pending verification">
+                              <Clock className="h-3 w-3 text-yellow-400" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-slate-400 text-xs mt-0.5">{r.handle}</p>
+                        <p className="text-slate-500 text-[10px] mt-1">{r.display_id}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <p className="text-white text-sm font-medium truncate max-w-[220px]">{r.email || "—"}</p>
+                    <p className="text-slate-400 text-xs mt-0.5">{r.phone ?? "—"}</p>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex flex-wrap gap-1.5">
+                      {r.roles.length === 0 && <span className="text-slate-500 text-xs">—</span>}
+                      {r.roles.map((role) => (
+                        <span key={role} className={`px-2.5 py-1 border rounded-md text-xs font-semibold capitalize ${ROLE_CLASS[role] ?? "bg-slate-700 text-slate-300 border-slate-600"}`}>{role}</span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="space-y-1.5">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-xs font-semibold ${r.verification.level === "fully" || r.verification.level === "id" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : r.verification.level === "none" ? "bg-slate-700/40 border-slate-600/30 text-slate-400" : "bg-yellow-500/10 border-yellow-500/20 text-yellow-400"}`}>
+                        <ShieldCheck className="h-3 w-3" />
+                        {r.verification.level === "fully" ? "Fully Verified" : r.verification.level === "id" ? "ID Verified" : r.verification.level === "phone" ? "Phone Verified" : r.verification.level === "email" ? "Email Only" : "Unverified"}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-5 h-5 rounded flex items-center justify-center border ${r.verification.email ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : "bg-slate-700/40 border-slate-600/30 text-slate-500"}`} title="Email"><Mail className="h-3 w-3" /></span>
+                        <span className={`w-5 h-5 rounded flex items-center justify-center border ${r.verification.phone ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : "bg-slate-700/40 border-slate-600/30 text-slate-500"}`} title="Phone"><Phone className="h-3 w-3" /></span>
+                        <span className={`w-5 h-5 rounded flex items-center justify-center border ${r.verification.id ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : "bg-slate-700/40 border-slate-600/30 text-slate-500"}`} title="ID"><IdCard className="h-3 w-3" /></span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-4 text-right">
+                    <p className="text-white font-bold text-base">{r.transactions.count}</p>
+                    <p className="text-emerald-400 text-xs mt-0.5 font-medium">{r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume) : "—"}</p>
+                  </td>
+                  <td className="p-4 text-right">
+                    <p className="text-white font-bold text-base">{r.disputes.total}</p>
+                    {r.disputes.active > 0
+                      ? <p className="text-red-400 text-xs mt-0.5 font-medium">{r.disputes.active} active</p>
+                      : <p className="text-slate-400 text-xs mt-0.5">Clean record</p>}
+                  </td>
+                  <td className="p-4">
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-xs font-semibold capitalize ${STATUS_CLASS[r.status]}`}>
+                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                      {r.status.replace("_", " ")}
+                    </span>
+                  </td>
+                  <td className="p-4">
+                    <p className="text-white text-sm font-medium">{fmtJoined(r.joined_at)}</p>
+                    <p className="text-slate-400 text-xs mt-0.5">{relativeDate(r.joined_at)}</p>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button title="View profile" onClick={() => onOpenDetail(r.user_id)} className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs"><UserIcon className="h-3.5 w-3.5" /></button>
+                      <button title="Transactions" onClick={() => navigate(`/admin/transactions?user=${r.user_id}`)} className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs"><Banknote className="h-3.5 w-3.5" /></button>
+                      <button title="Disputes" disabled={r.disputes.total === 0} onClick={() => navigate(`/admin/disputes?user=${r.user_id}`)} className={`px-2.5 py-1.5 rounded text-xs relative ${r.disputes.total === 0 ? "bg-slate-700/50 text-slate-500 cursor-not-allowed" : "bg-orange-600 hover:bg-orange-700 text-white"}`}>
+                        <Scale className="h-3.5 w-3.5" />
+                        {r.disputes.active > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">{r.disputes.active}</span>}
+                      </button>
+                      <button title="Open in Flagged Users" onClick={() => navigate(`/admin/flagged-users?u=${r.user_id}`)} className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs"><AlertTriangle className="h-3.5 w-3.5" /></button>
+                      <button title={r.is_flagged ? "Clear flag" : "Flag user"} onClick={() => onFlagToggle(r)} className={`px-2.5 py-1.5 rounded text-xs text-white ${r.is_flagged ? "bg-slate-700 hover:bg-slate-600" : "bg-yellow-600 hover:bg-yellow-700"}`}>
+                        <Flag className="h-3.5 w-3.5" />
+                      </button>
+                      <button title={r.is_suspended ? "Suspended" : "Suspend"} disabled={r.is_suspended} onClick={() => onSuspend(r)} className={`px-2.5 py-1.5 rounded text-xs ${r.is_suspended ? "bg-slate-700/50 text-slate-500 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700 text-white"}`}>
+                        {r.is_suspended ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="p-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p className="text-slate-400 text-sm">Showing {start}-{end} of {total.toLocaleString()} users</p>
+        <div className="flex items-center gap-2">
+          <button disabled={page <= 1} onClick={() => onPage(page - 1)} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg disabled:opacity-50"><ChevronLeft className="h-4 w-4" /></button>
+          <span className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium">{page}</span>
+          <span className="text-slate-500 text-sm">of {pageCount.toLocaleString()}</span>
+          <button disabled={page >= pageCount} onClick={() => onPage(page + 1)} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg disabled:opacity-50"><ChevronRight className="h-4 w-4" /></button>
+        </div>
+      </div>
+    </div>
+  );
+}
