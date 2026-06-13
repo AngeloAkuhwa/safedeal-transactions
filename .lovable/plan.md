@@ -1,231 +1,165 @@
 
-## Goal
+# SafeDeal Payment Engine — Nigeria MVP Final Plan
 
-Bring `/admin/payouts` to match the full functional spec, with the corrected defaults: **All everywhere**, drawer perfectly aligned with the row it was opened from, and CTA states that visually match their real eligibility. UI design is locked.
+Confirmed: **₦2,500 combined fee cap stays** (covers SafeDeal + Paystack together), **provider fee comes out of the cap first**, **seller payout = item amount**, **processing fee non-refundable once charged**, **hardcoded test email kept for now** (dev/testing).
 
-## What the current build already covers (no work needed)
+---
 
-- Read-only page load; summary, list, and drawer fetched independently.
-- KPI cards with 60s polling, skeletons, and tab counts wired to `admin-payouts-summary`.
-- Tab / filter / search / `payout_id` query-param sync, deep-link drawer open & close that removes only `payout_id`.
-- `eligibleForRelease` row gating, per-row Release/Retry/Unblock/View primary actions, status-aware kebab menus, blocked-disabled Release with tooltip reason.
-- Batch release with concurrency = 3, summary toast, refresh.
-- Drawer sections: hero, seller, eligibility checklist, pricing breakdown, account, transaction, payout history, linked records, timeline (uses `AdminCaseTimeline`), release/retry/block/unblock action buttons with reason capture.
-- CSV export of current filtered rows + per-row Download Receipt.
-- Mobile cards path; navigation to `/admin/users/:id`, `/admin/transactions/:id`, `/admin/disputes/:id`.
+## Phase 1 — Shared policy + label layer (no behaviour change yet)
 
-## Corrected defaults (replaces the prior "Pending Release / Last 7 days" default)
+### Backend `supabase/functions/_shared/`
+- **`safedeal-money-policy.ts`** — single source of truth:
+  - `PRICING_MODEL_VERSION = "NG_MVP_TOTAL_SERVICE_FEE_CAP_2500_V1"`
+  - `MAX_TOTAL_SERVICE_FEE = 2500` (one combined cap — no separate SafeDeal/Paystack caps).
+  - `buildPricingSnapshot(itemAmount, currency)` returns:
+    ```
+    { item_amount, safedeal_fee_amount, payment_processing_fee_amount,
+      service_fee_amount, total_amount, seller_payout_amount,
+      currency, is_total_service_fee_capped, pricing_model_version }
+    ```
+  - Algorithm (matches spec §4 / §16):
+    1. `provider_fee_estimate = computePaystackLocalFee(item)`
+    2. `raw_safedeal_fee = max(MIN_PLATFORM_FEE, round(item*tierRate) - provider_fee_estimate)`
+    3. `raw_total = provider_fee_estimate + raw_safedeal_fee`
+    4. `service_fee_amount = min(raw_total, 2500)`
+    5. `payment_processing_fee_amount = min(provider_fee_estimate, service_fee_amount)` ← provider covered first
+    6. `safedeal_fee_amount = max(service_fee_amount - payment_processing_fee_amount, 0)`
+    7. `total_amount = item_amount + service_fee_amount`
+    8. `seller_payout_amount = item_amount`
+  - Central label maps for `transaction_status`, `money_status`, `payout_status`, `escrow_state`, `refund_status`, `dispute_case_status`.
 
-Opening `/admin/payouts` with NO query params hydrates to the broadest view:
+- **`payment-state-machine.ts`** — JS mirror of DB transition matrix (migrations 013/014) so edge functions short-circuit before triggers.
+- **`payout-eligibility.ts`** — `evaluatePayoutEligibility(payout_id, admin_id)` → `{ can_release, can_retry, can_block, can_unblock, can_refund, first_blocker, gates[] }`. Reads ONLY `seller_payout_amount`.
+- **`refund-eligibility.ts`** — `evaluateRefundEligibility(transaction_id, admin_id)` → returns the **central `refund_decision` object** from spec §12, including `payment_processing_fee_non_refundable: true` once payment is processed, `seller_payout_cancelled`, `outcome`, `first_blocker`.
 
-- Active tab: **All**
-- Status dropdown: **All Statuses**
-- Date Range: **All time**
-- Amount Range: **Any Amount**
-- Bank Verification: **All Accounts**
-- Quick Filters: **None**
-- Search: empty
+### Frontend `src/lib/payment/`
+- **`money-format.ts`** — NGN formatter, masked account, `—` for null (never `₦0.00`).
+- **`payment-labels.ts`** — re-export of label maps. Required labels:
+  - `Item Total`, `SafeDeal Fee`, `Payment Processing Fee`, `Total Service Fee`, `Total Charged`, `Seller Payout`.
+  - Forbidden labels: `Delivery Fee`, `Shipping Fee`, `Platform Processing Fee`, `Protection & Processing Fee`, anything with `$`/`USD`.
+- **`src/types/payment-flow.types.ts`** — TS shapes mirroring backend.
+- **`src/services/payment-flow.service.ts`** — single client gateway: `getPricingSnapshot`, `initiatePayment`, `verifyPayment`, `getRefundDecision`, `getPayoutEligibility`.
 
-Initial URL becomes `/admin/payouts?tab=all&range=all_time`. Already-stored URL params win over defaults. When the drawer closes only `payout_id` is removed; tab, range, and every other filter/search param are preserved.
+### Update `src/lib/pricing.ts` + `supabase/functions/_shared/pricing.ts`
+Add the new fields to `PricingResult` (`safedeal_fee_amount`, `payment_processing_fee_amount`, `seller_payout_amount`, `is_total_service_fee_capped`, `pricing_model_version`). Keep `platform_fee_amount`/`service_fee_amount`/`paystack_fee_amount` for backwards compatibility — they will continue to populate existing DB columns unchanged.
 
-The Status dropdown must not silently override the active tab on page load — when Status is "All Statuses", the active tab stays on whatever the URL says (defaulting to All).
+---
 
-## What to add / change
+## Phase 2 — DB hardening (one migration, no rename)
 
-### 1. URL & default hydration
+**`src/db/migrations/018_central_payment_snapshot_hardening.sql`**
 
-- Change initial state in `AdminPayouts.tsx` so when no `tab` param is present, default to `all`; when no `range`, default to `all_time`. (Already matches today — keep and lock it in.)
-- Hydrate `search` from `searchParams.get("search")` and write it back (debounced ~300ms). Today it lives only in component state.
-- On tab change: reset page to 1, clear selection, do NOT clear search/filters.
-- Custom date range: only fire the list fetch once both `from` and `to` are set.
+1. **Add derived columns to `transaction_pricing`** (no renames):
+   - `payment_processing_fee_amount NUMERIC(18,2)` — backfill from `paystack_fee_amount`
+   - `seller_payout_amount NUMERIC(18,2) NOT NULL DEFAULT 0` — backfill from `item_amount`
+   - `pricing_model_version TEXT` — backfill `NULL` for old rows; new rows get `NG_MVP_TOTAL_SERVICE_FEE_CAP_2500_V1`
+   - `is_total_service_fee_capped BOOLEAN DEFAULT false`
 
-### 2. Tabs & filters
+2. **Pricing-lock trigger** — block `UPDATE transaction_pricing` once `transactions.agreement_locked_at IS NOT NULL` OR `money_status IN ('funds_held_in_escrow','funds_pending_release','funds_releasing','funds_released','funds_frozen','refund_pending','refund_issued')`. Exception: `admin_correct_pricing(...)` SECURITY DEFINER RPC gated by `has_role(super_admin)`; writes `admin_actions` + `transaction_events` + ledger adjustment.
 
-- Add Bank Verification options the spec calls out: `Missing Recipient Code`, `No verified payout account`.
-  - Server (`admin-payouts-list`): extend `bank_status` to include `missing_recipient` (account verified AND `provider_recipient_code IS NULL`) and `no_account` (no `payout_accounts` row OR not verified).
-- Add Quick Filters: `Oldest First`, `Needs Review`, `Insufficient Balance Risk`.
-  - `oldest_first` → explicit `created_at asc`.
-  - `needs_review` → `transactions.needs_release_review = true`.
-  - `insufficient_balance_risk` → client-side flag once cumulative `amount` exceeds `summary.paystack_balance.available`.
-- Tighten tab semantics in `admin-payouts-list`:
-  - `pending_release`: `status = awaiting_release AND release_blocked = false AND money_status = 'funds_pending_release'`.
-  - `processing`: also require `money_status = 'funds_releasing'`.
-  - `completed`: also require `money_status = 'funds_released'`.
-  - `blocked`: `release_blocked = true OR status = 'blocked' OR release_review_queue.held OR account not verified`.
-  - `on_hold` (Disputed/On Hold): move from client-side filter to server (dispute_active / manual_hold / silent_dispute / release_review_hold / partial_dispute_hold).
+3. **Dispute transition trigger** — enforce `disputes.status` matrix (`open → seller_response_pending|under_review|resolved`, `seller_response_pending → under_review|resolved`, `under_review → resolved`, `resolved` terminal). `resolve_dispute_atomic` already complies.
 
-### 3. Sort per tab (server-side)
+4. **`v_payout_account_state(user_id)` view** — returns one of `no_account | unverified | verified_no_recipient | verified_ready` so table + drawer agree. `security_invoker = on`.
 
-- Pending Release → oldest queued first.
-- All → newest activity first (`greatest(updated_at, released_at, initiated_at) desc`).
-- Failed → most recent failure first.
-- Processing → most recent first.
-- Completed → newest released first.
+5. GRANTs per `<public-schema-grants>`.
 
-### 4. Row selection & batch
+**Important:** old/locked transactions are **not** recomputed (spec §17). Backfill is purely derived from existing columns.
 
-- Keep "select all eligible" only.
-- Add a "Retry Selected" batch when active tab = `failed`; same concurrency-3 worker; calls `retry-payout`.
-- Replace the current `window.confirm` with a real Process-Batch confirmation modal:
-  - Shows selected count, total amount, Paystack available balance, warning copy "This will initiate real seller payout transfers."
-  - Cancel / Process Selected; Confirm disabled while in flight.
-- Progress dialog during run: total / done / success / fail / current; do not abort on failure. Show summary with reasons afterwards.
-- Inline warning in batch bar when `Σ selected.amount > paystack_balance.available`: "Selected payouts exceed available Paystack balance." Warning only — backend remains the gate.
+---
 
-### 5. Single-row Release & Retry confirmation modals
+## Phase 3 — Edge functions wired through the policy layer
 
-- Replace immediate fire with a confirmation modal.
-- Release modal shows: seller name, payout amount, bank/masked account, transaction code, warning "This starts a real provider transfer." Cancel / Confirm Release.
-- Retry modal shows: failure reason, payout amount, seller account, Cancel / Confirm Retry.
-- Same modals used from both the row and the drawer.
+Refactor in place; verify each via `supabase--curl_edge_functions` before moving on. **No column renames.**
 
-### 6. Drawer alignment with the row that opened it
+| Function | Change |
+|---|---|
+| `initiate-paystack-payment` | Call `buildPricingSnapshot`; persist new derived columns; stamp `pricing_model_version`. **Test email kept** per your note. |
+| `paystack-webhook` | Assert `amount == total_amount` from snapshot; insert 4 ledger entries tagged `payment_processing_fee_paid`, `safedeal_fee_earned`, buyer_payment_secured, seller_payable_recorded. |
+| `verify-paystack-payment` | Same snapshot validation, no frontend-trusted amount. |
+| `release-payout` | Use `evaluatePayoutEligibility`; transfer **only** `seller_payout_amount` from snapshot (never recomputed). |
+| `retry-payout` | Same eligibility helper; preserve attempt counter + safe reference `payout_{id}_r{n}`. |
+| `refund-transaction` | Use `evaluateRefundEligibility`; emit central `refund_decision`; enforce processing-fee-non-refundable; emit `processing_fee_non_refundable`, `safedeal_fee_refunded`/`buyer_refund_issued`/`seller_payout_cancelled` ledger tags. |
+| `admin-payouts-list / -detail / -summary` | Return raw enum + display label; use `v_payout_account_state`. |
+| `cart-checkout` / `storefront-checkout` / `checkout-review` | All call `buildPricingSnapshot`. |
+| Dispute/delivery/confirmation | Use state-machine helper; assert none call Paystack transfer directly. |
 
-The drawer must visually reconcile with the row.
+### Payment method guard (spec §15)
+In `initiate-paystack-payment`, if `provider_fee_estimate > MAX_TOTAL_SERVICE_FEE` for the chosen channel, return:
+`This payment method is not available for this transaction. Please use a local card or bank transfer.`
+Do not silently absorb the difference.
 
-- **Hero status pill** uses friendly labels — never raw enum text:
-  - `released` / `paid` → **Released**
-  - `processing` / `initiated` / `pending` (provider) → **Processing**
-  - `failed` → **Failed**
-  - `awaiting_release` / `queued` → **Pending Release**
-  - `release_blocked = true` → **Blocked**
-  - `reversed` → **Reversed**
-- **Hero caption** (single source of truth for the row + drawer subtitle):
-  - If `payout_blocked_reason` → show it.
-  - Else if `failure_reason` → show it (e.g. "Bank account blocked by provider").
-  - Else if `status = completed` → "Completed successfully".
-  - Else if `status in (pending, processing)` → "Bank processing".
-  - Pull this from a shared helper (`getPayoutCaption(row)`) used by `PayoutsTable` and `PayoutDetailDrawer`.
-- Optimistic update: when the drawer opens, prime hero from the row data, then replace with the freshly fetched `admin-payouts-detail` payload so the badge never flickers to a stale "Pending".
+---
 
-### 7. Eligibility checklist — bug fixes & status awareness
+## Phase 4 — UI wiring (no redesign)
 
-- Fix the "No active dispute" gate: `pass = (!dispute || dispute.status === 'resolved')`. When passing, label = `PASS` (green). Today it can render `ACTION NEEDED` with the description "No open dispute" — that's the bug. Apply the same audit to every gate: green pass icon when `pass = true`, red action-needed only when `pass = false`. The label and icon must derive from the same `pass` boolean.
-- For terminal-state payouts the checklist must still evaluate correctly per the current row:
-  - Failed payout: `Payout awaiting release` fails (status is failed); `Funds pending release` fails if money status no longer equals `funds_pending_release`; `No active dispute` / `No investigation` / `Not blocked` / `Account verified` / `Recipient code` / `No in-flight refund` evaluate independently and only fail when actually failing.
-  - Released/processing payout: gates are informational — checklist may still show passes where applicable; Release CTA remains disabled regardless.
+Every money-displaying screen swaps to `payment-flow.service` + central labels. Affected files include:
+- Buyer: `BuyerPaymentSummary`, `StorefrontCheckout`, `CartCheckoutReview`, `BuyerTransactionDetail`, `BuyerTransactionAgreement`, `TransactionReceipt`
+- Seller: `SellerTransactionDetail`, `SellerPayouts`, agreement/share pages
+- Admin: `AdminPayouts`, `AdminTransactionDetail`, `AdminDisputeDetail`, refund UI, audit/event feeds
 
-### 8. Release & Retry CTA visual states in the drawer
+Per-screen acceptance:
+- 5-line breakdown shown at checkout: **Item Total / SafeDeal Fee / Payment Processing Fee / Total Service Fee / Total Charged**.
+- Seller-facing screens show **Seller Payout** only.
+- Forbidden labels (Delivery Fee, USD, etc.) do not appear.
+- Missing pricing → `—`, never `₦0.00`.
+- No raw enum strings in user text.
+- Helper text (spec §8) shown next to SafeDeal Fee, Payment Processing Fee, Total Service Fee.
 
-- Release Payout: derive `enabled = eligibility.eligible && payout.status === 'awaiting_release' && !release_blocked`. When not enabled, render the disabled style (muted slate/green, low opacity, `cursor-not-allowed`, no hover) — not the bright emerald active CTA. Add helper text underneath the action group when disabled: "Release is disabled — resolve the failing gate above before retrying."
-- Retry Payout: enabled only when backend `payout.retry_allowed = true` AND `status = failed`. When disabled, show the blocker pulled from backend (e.g. "Bank account must be updated or re-verified before retry."). Add a `retry_blocker_reason` field to the `admin-payouts-detail` response so the frontend stops guessing.
-- Block Payout: visible for `pending_release` and `failed`; hidden for `processing`/`completed` unless backend allows it.
-- Unblock Payout: replaces Block when `release_blocked = true`.
+---
 
-### 9. Pricing breakdown — no fake zeros
+## Phase 5 — Tests & sign-off
 
-- `admin-payouts-detail` already returns numeric pricing. Update the response so missing pricing values are returned as `null` (not coerced to 0). In the drawer, render `formatMoney(value)` only when `value !== null`, otherwise show `—`.
-- Always render `Seller Payout` from the backend `payout.amount` (it exists even when pricing snapshot is missing) so the hero amount and the breakdown agree.
-- Never recompute the seller payout on the client.
+1. **Pricing parity** — feed item amounts ₦5k / ₦50k / ₦200k / ₦650k / ₦5m through both client and edge `buildPricingSnapshot`; assert exact match for all six output fields and the three worked examples in spec §9.
+2. **Cap split correctness** — when provider fee = ₦2,000 and item ≥ ₦200k, assert `payment_processing_fee_amount = 2000`, `safedeal_fee_amount = 500`, `service_fee_amount = 2500`, `is_total_service_fee_capped = true`.
+3. **Happy path** — checkout → webhook → escrow → release → completed. Assert ledger entries with new tags balance.
+4. **Pricing lock** — direct `UPDATE transaction_pricing` after lock → blocked; `admin_correct_pricing` works only for `super_admin`.
+5. **Refund mutex** — in-flight payout blocks refund; pending refund blocks release. `start_refund_atomic` already enforces this.
+6. **Refund decision matrix** — for each spec §11 scenario (seller-fault, platform-fault, buyer early/late cancellation, buyer-loses, partial), assert refund_decision returns correct amounts and `payment_processing_fee_non_refundable = true`.
+7. **Transfer failure → retry** — failure produces `failed` + `retry_allowed=true`; retry uses `_r1` reference.
+8. **Idempotency** — double Release returns rejection from atomic RPC.
+9. **Old transactions untouched** — sample 5 pre-migration transactions; confirm `service_fee_amount`, `total_amount`, `item_amount` unchanged; `seller_payout_amount` backfilled = `item_amount`; `pricing_model_version` is NULL.
+10. **Payment method guard** — simulate provider fee > ₦2,500 → method blocked with copy from §15.
+11. **Label sweep** — `rg` for raw enums (`funds_held_in_escrow`, `awaiting_release`, etc.) in JSX → none in user-visible strings; forbidden labels (`Delivery Fee`, `$`, `USD`) → none.
 
-### 10. Seller payout account — table vs drawer parity
+---
 
-Use the four canonical states everywhere (`getAccountState(row)`):
+## Files created / modified
 
-- `no_account` → Table: "No payout account" · Drawer: "No payout account on file".
-- `unverified` → Table: "Payout account unverified" · Drawer: `Verification: unverified`.
-- `verified_no_recipient` → Table: "Recipient code missing" · Drawer: `Verification: verified`, `Recipient code: missing`.
-- `verified_ready` → Table: bank name · ****1234 · VERIFIED · Drawer: `Verification: verified`, `Recipient code: present`.
+**Created**
+- `supabase/functions/_shared/safedeal-money-policy.ts`
+- `supabase/functions/_shared/payment-state-machine.ts`
+- `supabase/functions/_shared/payout-eligibility.ts`
+- `supabase/functions/_shared/refund-eligibility.ts`
+- `src/lib/payment/money-format.ts`
+- `src/lib/payment/payment-labels.ts`
+- `src/types/payment-flow.types.ts`
+- `src/services/payment-flow.service.ts`
+- `src/db/migrations/018_central_payment_snapshot_hardening.sql`
+- Deno + Vitest test files
 
-This removes the contradiction where the table says "No verified payout account" while the drawer shows a verified Citibank account with a missing recipient code.
+**Modified (logic-preserving)**
+- `src/lib/pricing.ts` + `supabase/functions/_shared/pricing.ts` — extend `PricingResult`, no math change
+- Edge functions in the Phase 3 table
+- Money-displaying UI components in Phase 4
 
-### 11. Drawer action set per status
+**Explicitly deferred (Decision 6)**
+- Provider-neutral abstraction
+- Dual-approval / maker-checker
+- Reconciliation runner + exceptions queue
+- AML/sanctions/PEP/device-risk screening
+- `fund_holding_model` / multi-jurisdiction config
 
-- **Released** → Open Transaction · Download Receipt (if available) · Add Internal Note. Hide Release / Retry.
-- **Processing** → Open Transaction · View Processing Status · Add Internal Note. Release/Retry hidden (or shown disabled).
-- **Failed** → Retry Payout (if `retry_allowed`) · Block Payout · Open Transaction · Add Internal Note. Release disabled or hidden.
-- **Pending Release** → Release Payout (only if all gates pass) · Block Payout · Open Transaction · Add Internal Note.
-- **Blocked** → Unblock Payout · Open Transaction · Add Internal Note. Release hidden until unblock + revalidation.
+---
 
-### 12. Refund Buyer (drawer only)
+## Final decisions baked into this plan
 
-- Backend (`admin-payouts-detail`): add `refund: { allowed, amount, blocker }`.
-- Show "Refund Buyer" when `refund.allowed`; disabled when `status in ('processing','completed')` or `refund_in_flight` or no permission.
-- Click → confirm modal → POST existing `refund-transaction`.
-- On success: refresh detail + list + summary; Release becomes disabled while refund is in flight.
+1. **Cap:** combined ₦2,500 stays. No separate caps.
+2. **Order of cost:** Payment Processing Fee first inside the cap, SafeDeal Fee = remainder.
+3. **Seller payout:** = Item Total. Read from `seller_payout_amount` only. Never recomputed on frontend.
+4. **Refund:** Processing Fee non-refundable once charged. Seller-fault → refund Item Total + SafeDeal Fee. Other outcomes use central `refund_decision`. Refund ⟂ payout mutex.
+5. **DB enums:** keep names, re-skin via display labels.
+6. **Old transactions:** not recomputed; only derived backfill.
+7. **Hardcoded test email in `initiate-paystack-payment`:** **left in place** (testing) — flagged here so we don't forget to remove before live traffic.
+8. **Pricing model version stamp:** `NG_MVP_TOTAL_SERVICE_FEE_CAP_2500_V1` on all new transactions.
 
-### 13. Drawer loading / error / polling
-
-- Add `detailError` state. When fetch fails, render an inline error block with Retry inside the drawer (don't just toast).
-- When backend returns 404: "Payout not found or no longer available." with a Close button.
-- While drawer is open AND payout status is `pending`/`processing`, refetch detail every 15s; stop on close or terminal state.
-
-### 14. Post-action and post-webhook refresh
-
-- After Release/Retry/Block/Unblock/Refund: refetch list + summary (already done). Additionally schedule list refetches at 5s / 15s / 30s after Release so Paystack webhook results surface without manual refresh.
-- Tab-aware polling: every 60s refetch the list only when active tab is `processing` or `pending_release`.
-
-### 15. Kebab vs drawer interaction
-
-- Eye icon, View, Details, and row click all open the drawer; never trigger another action and never select the row checkbox.
-- Clicking the kebab opens menu only — never the drawer.
-- Menu items:
-  - "View Details" → opens drawer.
-  - "Open Transaction" → navigates.
-  - "Retry Payout" → retry confirmation modal.
-  - "Block Payout" → block reason modal.
-  - "Open Dispute" → added whenever `row.transaction.dispute_status` is set.
-  - "Release Payout" → added to the eligible-pending kebab default branch (currently missing).
-
-### 16. Loading / empty / error states
-
-- Summary error: inline retry block in the KPI section (not toast-only).
-- List error: full empty card "Unable to load payouts" + Retry button.
-- Empty subtext per active tab (spec strings); search-empty uses "No payouts match your search."
-- On refetch with existing rows: subtle overlay, not full-page skeleton.
-
-### 17. Security guardrails (verification, no new code needed)
-
-- Every action endpoint runs `requireAdmin` server-side.
-- Frontend never marks a payout completed after Release — only webhook does.
-- Pricing values come from backend; frontend never recalculates seller payout.
-
-## Things to drop or defer
-
-1. **"Disputed / On Hold" as a 7th visible tab.** Tab strip stays at All / Pending / Processing / Failed / Completed / Blocked. Surface "On Hold" via the Quick Filter `needs_review`; the drawer eligibility checklist explains the hold reason.
-2. **"Open Investigation" link.** No `/admin/investigations/:id` route yet — show investigation summary inline in the drawer instead of a dead link.
-3. **"View payment record" / "View escrow record" buttons.** Same reason — inline summary, no dead routes.
-4. **Admin-side bank account editor.** Sellers own that record. "Update Bank Account" stays as a navigation to the seller profile.
-5. **Hard-blocking batch on insufficient balance.** Warning only — backend enforces.
-6. **Realtime subscription on payouts.** Skip for now; targeted refetches plus tab-conditional polling are enough.
-7. **Custom Amount Range UI.** Defer — four preset bands cover real ops needs.
-
-## Things to do better than the spec
-
-1. **One `<PayoutConfirmDialog>`** with a variant prop for Release / Retry / Refund / Block / Unblock. Keeps copy and behavior consistent.
-2. **One source of truth for sort order** — keep it server-side in `admin-payouts-list` so pagination stays correct.
-3. **Two shared row helpers** — `getPayoutCaption(row)` and `getAccountState(row)` — consumed by the table, mobile cards, and drawer so they cannot drift.
-4. **Friendly status pill mapper** shared between table and drawer (`statusPillLabel(status, blocked)`), eliminating raw `awaiting_release` / `pending` strings in the UI.
-5. **Tab-aware polling** only on `pending_release` and `processing` tabs — cheaper than blanket polling.
-6. **Persist `search` in the URL** (spec implies it but our build didn't sync it).
-
-## Technical notes (for engineering)
-
-Files to edit:
-
-- `src/pages/AdminPayouts.tsx` — lock defaults to All/All time, search-in-URL with debounce, batch retry, post-release refetch cadence, conditional list polling, mount of shared confirm/refund modals.
-- `src/components/admin/payouts/PayoutDetailDrawer.tsx` — friendly status pill, hero caption from shared helper, fixed eligibility rendering (pass icon == pass label), pricing `—` for nulls, disabled-style Release/Retry buttons with helper text, refund action, drawer error/not-found states, in-flight polling, "Open Dispute" wiring.
-- `src/components/admin/payouts/PayoutsTable.tsx` — adopt shared caption + account-state helpers, add "Release Payout" + "Open Dispute" kebab items, route release/retry through the shared confirm dialog, expose retryable batch state.
-- `src/components/admin/payouts/PayoutAdvancedFilters.tsx` — add Bank `missing_recipient` / `no_account` options and Quick Filters `oldest_first`, `needs_review`, `insufficient_balance_risk`. Defaults already correct.
-- `src/components/admin/payouts/PayoutBatchBar.tsx` — Retry batch button, balance-warning line, shared confirm dialog wiring.
-- New: `src/components/admin/payouts/PayoutConfirmDialog.tsx`, `src/components/admin/payouts/PayoutBatchProgressDialog.tsx`.
-- New: `src/lib/payout-presentation.ts` — `statusPillLabel`, `getPayoutCaption`, `getAccountState`.
-- `supabase/functions/admin-payouts-list/index.ts` — extend `bank_status` + `quick` enums, per-tab money_status checks, per-tab sort order, server-side `on_hold` filter.
-- `supabase/functions/admin-payouts-detail/index.ts` — fix gate `pass` derivation, return `pricing` fields as `null` when absent, add `refund: { allowed, amount, blocker }`, add `payout.retry_blocker_reason`, include inline `investigation` summary.
-- `src/services/admin-payouts.service.ts` — type updates for new filter/quick values, nullable pricing fields, `retry_blocker_reason`, refund payload; add `refundBuyer()` wrapper.
-
-No schema changes. No migrations. No new RLS policies.
-
-## Acceptance check
-
-- `/admin/payouts` with no params lands on All / All time / All Statuses / Any Amount / All Accounts / Quick = None / search empty; URL becomes `tab=all&range=all_time`.
-- Deep link with `payout_id` opens the drawer; closing it keeps tab, range, search, and all filters.
-- Tab badges populate from summary and match the listed rows after the tab-semantic tightening.
-- Eye icon, View, Details, and row click all open the drawer without changing the table or row selection.
-- Drawer hero status and caption match the row that opened it (friendly labels, no raw enums).
-- Eligibility checklist: "No active dispute" shows PASS when no open dispute exists; every gate's icon, color, and label derive from the same boolean.
-- Release CTA: disabled style + helper text whenever any gate fails or the payout is not `awaiting_release`. Retry CTA: enabled only when backend `retry_allowed` is true; blocker reason shown when disabled.
-- Pricing breakdown shows `—` for missing values, never fake `₦0.00`; hero amount matches Seller Payout row.
-- Seller account states (table + drawer) follow the four canonical labels — no contradictions.
-- Batch Process opens confirmation modal, runs with progress dialog, continues past per-row failures, summarizes results.
-- Loading, empty, and error states use the spec strings; summary failure does not block the list.
+Approve and I'll start Phase 1.
