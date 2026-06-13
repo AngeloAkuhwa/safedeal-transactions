@@ -76,19 +76,17 @@ Deno.serve(async (req) => {
   for (const r of (rows ?? []) as any[]) {
     const ms = r.transactions?.money_status as string | undefined;
     const needsReview = !!r.transactions?.needs_release_review;
-    if (r.status === "awaiting_release" && !r.release_blocked && ms === "funds_pending_release") {
+    if (r.status === "awaiting_release" && !r.release_blocked) {
       pending.push(r);
       if (r.created_at && new Date(r.created_at).getTime() >= last24hMs) pendingDelta24++;
     }
-    if ((r.status === "pending" || r.status === "processing") && ms === "funds_releasing") {
+    if (r.status === "pending" || r.status === "processing") {
       processing.push(r);
       if (r.created_at && new Date(r.created_at).getTime() >= last24hMs) processingDelta24++;
     }
     if (r.status === "failed") {
-      if (r.retry_allowed) {
-        failedRetry.push(r);
-        if (r.created_at && new Date(r.created_at).getTime() >= last24hMs) failedDelta24++;
-      }
+      failedRetry.push(r);
+      if (r.created_at && new Date(r.created_at).getTime() >= last24hMs) failedDelta24++;
     }
     if (r.release_blocked || r.status === "blocked") blocked.push(r);
     if (r.status === "reversed") reversed.push(r);
@@ -119,8 +117,8 @@ Deno.serve(async (req) => {
       pending_release: { count: pending.length, amount: sum(pending), delta_24h: pendingDelta24 },
       processing: { count: processing.length, amount: sum(processing), delta_24h: processingDelta24 },
       failed: { count: failedRetry.length, amount: sum(failedRetry), delta_24h: failedDelta24 },
-      released_today: { amount: releasedToday },
-      released_week: { amount: releasedWeek },
+      released_today: { amount: releasedToday, count: completed.filter((r:any)=>r.released_at && new Date(r.released_at).getTime() >= new Date(startOfDay).getTime()).length },
+      released_week: { amount: releasedWeek, count: completed.filter((r:any)=>r.released_at && new Date(r.released_at).getTime() >= new Date(startOfWeek).getTime()).length },
       avg_release_hours: avg(leadHours),
     },
     tab_counts: {

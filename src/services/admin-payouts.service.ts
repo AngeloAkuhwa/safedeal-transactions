@@ -36,8 +36,8 @@ export interface PayoutSummary {
     pending_release: { count: number; amount: number; delta_24h?: number };
     processing: { count: number; amount: number; delta_24h?: number };
     failed: { count: number; amount: number; delta_24h?: number };
-    released_today: { amount: number };
-    released_week: { amount: number };
+    released_today: { amount: number; count?: number };
+    released_week: { amount: number; count?: number };
     avg_release_hours: number | null;
   };
   tab_counts: Record<PayoutTab, number> & { all: number };
@@ -135,12 +135,31 @@ export function getSummary() {
   return call<PayoutSummary>("/admin-payouts-summary", { method: "GET" });
 }
 
-export function listPayouts(params: { tab?: PayoutTab; search?: string; page?: number; limit?: number } = {}) {
+export interface PayoutListParams {
+  tab?: PayoutTab;
+  search?: string;
+  page?: number;
+  limit?: number;
+  date_from?: string;
+  date_to?: string;
+  amount_min?: number;
+  amount_max?: number;
+  bank_status?: "verified" | "unverified" | "pending";
+  quick?: "failed_only" | "blocked_only" | "high_priority";
+}
+
+export function listPayouts(params: PayoutListParams = {}) {
   const qs = new URLSearchParams();
   if (params.tab) qs.set("tab", params.tab);
   if (params.search) qs.set("search", params.search);
   if (params.page) qs.set("page", String(params.page));
   if (params.limit) qs.set("limit", String(params.limit));
+  if (params.date_from) qs.set("date_from", params.date_from);
+  if (params.date_to) qs.set("date_to", params.date_to);
+  if (typeof params.amount_min === "number") qs.set("amount_min", String(params.amount_min));
+  if (typeof params.amount_max === "number") qs.set("amount_max", String(params.amount_max));
+  if (params.bank_status) qs.set("bank_status", params.bank_status);
+  if (params.quick) qs.set("quick", params.quick);
   return call<PayoutListResponse>(`/admin-payouts-list?${qs.toString()}`, { method: "GET" });
 }
 

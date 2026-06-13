@@ -16,7 +16,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { formatMoney } from "@/lib/format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import { PayoutStatusPill } from "./PayoutStatusPill";
-import { toast } from "@/hooks/use-toast";
 import type { PayoutRow } from "@/services/admin-payouts.service";
 
 interface Props {
@@ -30,6 +29,12 @@ interface Props {
   onRetry: (row: PayoutRow) => void;
   onUnblock: (row: PayoutRow) => void;
   onOpenTransaction: (row: PayoutRow) => void;
+  onOpenSeller: (row: PayoutRow) => void;
+  onUpdateBank: (row: PayoutRow) => void;
+  onDownloadReceipt: (row: PayoutRow) => void;
+  onAddNote: (row: PayoutRow) => void;
+  onBlock: (row: PayoutRow) => void;
+  onPause: (row: PayoutRow) => void;
   releasingId: string | null;
   total?: number;
   page?: number;
@@ -171,22 +176,25 @@ function buildPageList(current: number, total: number): (number | "…")[] {
   return pages;
 }
 
-function comingSoon(label: string) {
-  toast({ title: `${label} — coming soon` });
-}
-
 function RowMenu({
   row, onOpen, onOpenTransaction, onRetry, onUnblock,
+  onOpenSeller, onUpdateBank, onDownloadReceipt, onAddNote, onBlock, onPause,
 }: {
   row: PayoutRow;
   onOpen: () => void;
   onOpenTransaction: () => void;
   onRetry: () => void;
   onUnblock: () => void;
+  onOpenSeller: () => void;
+  onUpdateBank: () => void;
+  onDownloadReceipt: () => void;
+  onAddNote: () => void;
+  onBlock: () => void;
+  onPause: () => void;
 }) {
   const itemCls = "gap-2.5 cursor-pointer";
   const seller = (
-    <DropdownMenuItem className={itemCls} onClick={() => comingSoon("View Seller Profile")}>
+    <DropdownMenuItem className={itemCls} onClick={onOpenSeller}>
       <FaUser className="text-blue-400" /> View Seller Profile
     </DropdownMenuItem>
   );
@@ -196,12 +204,12 @@ function RowMenu({
     </DropdownMenuItem>
   );
   const note = (
-    <DropdownMenuItem className={itemCls} onClick={() => comingSoon("Add Internal Note")}>
+    <DropdownMenuItem className={itemCls} onClick={onAddNote}>
       <FaNoteSticky className="text-yellow-400" /> Add Internal Note
     </DropdownMenuItem>
   );
   const block = (
-    <DropdownMenuItem className={`${itemCls} text-red-400 focus:text-red-400`} onClick={() => comingSoon("Block Payout")}>
+    <DropdownMenuItem className={`${itemCls} text-red-400 focus:text-red-400`} onClick={onBlock}>
       <FaBan className="text-red-400" /> Block Payout
     </DropdownMenuItem>
   );
@@ -235,11 +243,11 @@ function RowMenu({
           <span className={iconSlot}><FaCircleInfo className="text-blue-400" /></span>
           <span>View Failure Details</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={rowCls} onClick={() => comingSoon("Update Bank Account")}>
+        <DropdownMenuItem className={rowCls} onClick={onUpdateBank}>
           <span className={iconSlot}><FaPenToSquare className="text-pink-400" /></span>
           <span>Update Bank Account</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={rowCls} onClick={() => comingSoon("View Seller Profile")}>
+        <DropdownMenuItem className={rowCls} onClick={onOpenSeller}>
           <span className={iconSlot}><FaUser className="text-pink-400" /></span>
           <span>View Seller Profile</span>
         </DropdownMenuItem>
@@ -248,11 +256,11 @@ function RowMenu({
           <span>View Transaction</span>
         </DropdownMenuItem>
         <div className="border-t border-slate-700 my-2" />
-        <DropdownMenuItem className={rowCls} onClick={() => comingSoon("Add Internal Note")}>
+        <DropdownMenuItem className={rowCls} onClick={onAddNote}>
           <span className={iconSlot}><FaNoteSticky className="text-yellow-400" /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400`} onClick={() => comingSoon("Block Payout")}>
+        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400`} onClick={onBlock}>
           <span className={iconSlot}><FaBan className="text-red-400" /></span>
           <span>Block Payout</span>
         </DropdownMenuItem>
@@ -272,7 +280,7 @@ function RowMenu({
           <span className={iconSlot}><FaCircleInfo className="text-blue-400" /></span>
           <span>View Processing Status</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={rowCls} onClick={() => comingSoon("View Seller Profile")}>
+        <DropdownMenuItem className={rowCls} onClick={onOpenSeller}>
           <span className={iconSlot}><FaUser className="text-pink-400" /></span>
           <span>View Seller Profile</span>
         </DropdownMenuItem>
@@ -281,15 +289,15 @@ function RowMenu({
           <span>View Transaction Details</span>
         </DropdownMenuItem>
         <div className="border-t border-slate-700 my-2" />
-        <DropdownMenuItem className={rowCls} onClick={() => comingSoon("Add Internal Note")}>
+        <DropdownMenuItem className={rowCls} onClick={onAddNote}>
           <span className={iconSlot}><FaNoteSticky className="text-yellow-400" /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={`${rowCls} text-orange-400 focus:text-orange-400`} onClick={() => comingSoon("Pause Payout")}>
+        <DropdownMenuItem className={`${rowCls} text-orange-400 focus:text-orange-400`} onClick={onPause}>
           <span className={iconSlot}><FaPause className="text-orange-400" /></span>
           <span>Pause Payout</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400`} onClick={() => comingSoon("Block Payout")}>
+        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400`} onClick={onBlock}>
           <span className={iconSlot}><FaBan className="text-red-400" /></span>
           <span>Block Payout</span>
         </DropdownMenuItem>
@@ -307,7 +315,7 @@ function RowMenu({
           <span className="w-4 flex justify-center text-slate-300"><FaCircleCheck /></span>
           <span>View Completion Details</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => comingSoon("View Seller Profile")} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={onOpenSeller} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
           <span className="w-4 flex justify-center text-slate-300"><FaUser /></span>
           <span>View Seller Profile</span>
         </DropdownMenuItem>
@@ -316,11 +324,11 @@ function RowMenu({
           <span>View Transaction</span>
         </DropdownMenuItem>
         <div className="border-t border-slate-700 my-2" />
-        <DropdownMenuItem onClick={() => comingSoon("Download Receipt")} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={onDownloadReceipt} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
           <span className="w-4 flex justify-center text-slate-300"><FaDownload /></span>
           <span>Download Receipt</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => comingSoon("Add Internal Note")} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={onAddNote} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
           <span className="w-4 flex justify-center text-slate-300"><FaNoteSticky /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
@@ -345,6 +353,7 @@ function RowMenu({
 export function PayoutsTable({
   rows, loading, selected, onToggleSelect, onToggleSelectAll, onOpen,
   onRelease, onRetry, onUnblock, onOpenTransaction, releasingId,
+  onOpenSeller, onUpdateBank, onDownloadReceipt, onAddNote, onBlock, onPause,
   total, page = 1, limit = 50, onRefresh, onPageChange,
 }: Props) {
   if (loading && rows.length === 0) {
@@ -515,6 +524,12 @@ export function PayoutsTable({
                         onOpenTransaction={() => onOpenTransaction(r)}
                         onRetry={() => onRetry(r)}
                         onUnblock={() => onUnblock(r)}
+                        onOpenSeller={() => onOpenSeller(r)}
+                        onUpdateBank={() => onUpdateBank(r)}
+                        onDownloadReceipt={() => onDownloadReceipt(r)}
+                        onAddNote={() => onAddNote(r)}
+                        onBlock={() => onBlock(r)}
+                        onPause={() => onPause(r)}
                       />
                     </DropdownMenu>
                   </div>

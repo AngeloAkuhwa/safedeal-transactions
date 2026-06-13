@@ -5,15 +5,17 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { PayoutSummaryCards } from "@/components/admin/payouts/PayoutSummaryCards";
-import { PayoutAdvancedFilters } from "@/components/admin/payouts/PayoutAdvancedFilters";
+import { PayoutAdvancedFilters, DEFAULT_PAYOUT_FILTERS, filtersToQuery, type PayoutFilterState } from "@/components/admin/payouts/PayoutAdvancedFilters";
 import { PayoutTabs } from "@/components/admin/payouts/PayoutTabs";
 import { PayoutFilters } from "@/components/admin/payouts/PayoutFilters";
 import { PayoutBatchBar } from "@/components/admin/payouts/PayoutBatchBar";
 import { PayoutsTable, eligibleForRelease } from "@/components/admin/payouts/PayoutsTable";
 import { PayoutMobileCards } from "@/components/admin/payouts/PayoutMobileCards";
 import { PayoutDetailDrawer } from "@/components/admin/payouts/PayoutDetailDrawer";
+import { PayoutPromptDialog } from "@/components/admin/payouts/PayoutPromptDialog";
 import * as payoutsApi from "@/services/admin-payouts.service";
 import type { PayoutRow, PayoutDetail, PayoutSummary, PayoutTab, PayoutListResponse } from "@/services/admin-payouts.service";
+import { exportPayoutsCsv } from "@/lib/payout-export";
 
 const SIDEBAR_BADGES = { disputes: 0, identity: 0, payouts: 0, flagged_users: 0, exports: 0 } as const;
 
@@ -29,6 +31,16 @@ export default function AdminPayouts() {
   );
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState<PayoutFilterState>(() => ({
+    ...DEFAULT_PAYOUT_FILTERS,
+    status: (initialTab && VALID_TABS.includes(initialTab) ? initialTab : "all") as PayoutTab,
+    dateRange: (searchParams.get("range") as PayoutFilterState["dateRange"]) || "last_7d",
+    amount: (searchParams.get("amount") as PayoutFilterState["amount"]) || "any",
+    bank: (searchParams.get("bank") as PayoutFilterState["bank"]) || "all",
+    quick: (searchParams.get("quick") as PayoutFilterState["quick"]) || "none",
+    customFrom: searchParams.get("from") ?? undefined,
+    customTo: searchParams.get("to") ?? undefined,
+  }));
   const [summary, setSummary] = useState<PayoutSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [rows, setRows] = useState<PayoutRow[]>([]);
@@ -42,6 +54,8 @@ export default function AdminPayouts() {
   const [openPayoutId, setOpenPayoutId] = useState<string | null>(initialDeepPayout);
   const [detail, setDetail] = useState<PayoutDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [noteFor, setNoteFor] = useState<PayoutRow | null>(null);
+  const [blockFor, setBlockFor] = useState<{ row: PayoutRow; pause: boolean } | null>(null);
 
   const loadSummary = useCallback(async () => {
     setSummaryLoading(true);
@@ -53,13 +67,14 @@ export default function AdminPayouts() {
   const loadList = useCallback(async () => {
     setListLoading(true);
     try {
-      const res = await payoutsApi.listPayouts({ tab, search: search || undefined, page, limit: 50 });
+      const q = filtersToQuery(filters);
+      const res = await payoutsApi.listPayouts({ tab, search: search || undefined, page, limit: 50, ...q });
       setRows(res.rows);
       setPagination(res.pagination);
     } catch (e) {
       toast({ title: "Failed to load payouts", description: (e as Error).message, variant: "destructive" });
     } finally { setListLoading(false); }
-  }, [tab, search, page]);
+  }, [tab, search, page, filters]);
 
   const loadDetail = useCallback(async (id: string) => {
     setDetailLoading(true);
@@ -72,14 +87,26 @@ export default function AdminPayouts() {
   useEffect(() => { loadList(); }, [loadList]);
   useEffect(() => { if (openPayoutId) loadDetail(openPayoutId); else setDetail(null); }, [openPayoutId, loadDetail]);
 
+  // Live polling of summary so KPI cards stay current
+  useEffect(() => {
+    const id = setInterval(() => { loadSummary(); }, 60_000);
+    return () => clearInterval(id);
+  }, [loadSummary]);
+
   // Sync URL with tab + open payout
   useEffect(() => {
     const p = new URLSearchParams(searchParams);
     p.set("tab", tab);
     if (openPayoutId) p.set("payout_id", openPayoutId); else p.delete("payout_id");
+    p.set("range", filters.dateRange);
+    if (filters.amount !== "any") p.set("amount", filters.amount); else p.delete("amount");
+    if (filters.bank !== "all") p.set("bank", filters.bank); else p.delete("bank");
+    if (filters.quick !== "none") p.set("quick", filters.quick); else p.delete("quick");
+    if (filters.customFrom) p.set("from", filters.customFrom); else p.delete("from");
+    if (filters.customTo) p.set("to", filters.customTo); else p.delete("to");
     setSearchParams(p, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, openPayoutId]);
+  }, [tab, openPayoutId, filters]);
 
   const selectedRows = useMemo(() => rows.filter((r) => selectedIds.has(r.id)), [rows, selectedIds]);
 
@@ -123,6 +150,17 @@ export default function AdminPayouts() {
     setOpenPayoutId(row.id);
   }
 
+  function handleOpenSeller(row: PayoutRow) {
+    navigate(`/admin/users/${row.seller.id}`);
+  }
+  function handleUpdateBank(row: PayoutRow) {
+    navigate(`/admin/users/${row.seller.id}?tab=payout`);
+  }
+  function handleDownloadReceipt(row: PayoutRow) {
+    exportPayoutsCsv([row], `payout-receipt-${row.transaction.code || row.id}.csv`);
+    toast({ title: "Receipt downloaded" });
+  }
+
   async function handleBatchProcess() {
     const candidates = selectedRows.filter((r) => eligibleForRelease(r).ok);
     if (candidates.length === 0) {
@@ -154,6 +192,33 @@ export default function AdminPayouts() {
   const eligibleSelectedCount = selectedRows.filter((r) => eligibleForRelease(r).ok).length;
   const batchDisabled = batchProcessing || eligibleSelectedCount === 0;
 
+  function handleExport() {
+    if (rows.length === 0) {
+      toast({ title: "Nothing to export", description: "There are no payouts in the current filter." });
+      return;
+    }
+    exportPayoutsCsv(rows);
+    toast({ title: "Export ready", description: `Exported ${rows.length} payout${rows.length === 1 ? "" : "s"} to CSV.` });
+  }
+
+  async function handleProcessBatchClick() {
+    if (eligibleSelectedCount === 0) {
+      // Auto-select all eligible on current page
+      const eligible = rows.filter((r) => eligibleForRelease(r).ok);
+      if (eligible.length === 0) {
+        toast({ title: "No payouts eligible for release", description: "Adjust your filters and try again." });
+        return;
+      }
+      const ok = window.confirm(`Release ${eligible.length} eligible payout${eligible.length === 1 ? "" : "s"} on this page?`);
+      if (!ok) return;
+      setSelectedIds(new Set(eligible.map((r) => r.id)));
+      // Defer to next tick so selection is reflected
+      setTimeout(() => { handleBatchProcess(); }, 0);
+      return;
+    }
+    await handleBatchProcess();
+  }
+
   const headerSlot = (
     <div className="sticky top-0 z-30 hidden border-b border-border bg-card lg:block">
       <div className="flex items-start justify-between gap-4 px-8 py-5">
@@ -162,13 +227,13 @@ export default function AdminPayouts() {
           <p className="mt-1 text-sm text-muted-foreground">Monitor and manage seller payout processing</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button size="sm" className="gap-2 bg-slate-800 hover:bg-slate-700 text-foreground border border-slate-700">
+          <Button size="sm" className="gap-2 bg-slate-800 hover:bg-slate-700 text-foreground border border-slate-700" onClick={handleExport}>
             <Download className="h-4 w-4" /> Export Report
           </Button>
           <Button
             size="sm"
             className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-            onClick={handleBatchProcess}
+            onClick={handleProcessBatchClick}
             disabled={batchProcessing}
           >
             <Play className="h-4 w-4" /> Process Batch
@@ -192,11 +257,19 @@ export default function AdminPayouts() {
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
-          <PayoutTabs active={tab} onChange={(t) => { setTab(t); setPage(1); setSelectedIds(new Set()); }} summary={summary} />
+          <PayoutTabs active={tab} onChange={(t) => { setTab(t); setFilters((f) => ({ ...f, status: t })); setPage(1); setSelectedIds(new Set()); }} summary={summary} />
           <PayoutFilters search={search} onSearch={(v) => { setSearch(v); setPage(1); }} />
         </div>
 
-        <PayoutAdvancedFilters />
+        <PayoutAdvancedFilters
+          value={filters}
+          onChange={(next) => {
+            setFilters(next);
+            setPage(1);
+            // Keep tab in sync with the Status select
+            if (next.status !== tab) setTab(next.status);
+          }}
+        />
 
         <PayoutBatchBar
           selected={selectedRows.filter((r) => eligibleForRelease(r).ok)}
@@ -219,6 +292,12 @@ export default function AdminPayouts() {
             onUnblock={handleUnblockOne}
             onOpenTransaction={(r) => navigate(`/admin/transactions/${r.transaction.id}`)}
             releasingId={releasingId}
+            onOpenSeller={handleOpenSeller}
+            onUpdateBank={handleUpdateBank}
+            onDownloadReceipt={handleDownloadReceipt}
+            onAddNote={(r) => setNoteFor(r)}
+            onBlock={(r) => setBlockFor({ row: r, pause: false })}
+            onPause={(r) => setBlockFor({ row: r, pause: true })}
             total={pagination?.total}
             page={pagination?.page}
             limit={pagination?.limit}
@@ -249,6 +328,46 @@ export default function AdminPayouts() {
         onActionDone={() => {
           if (openPayoutId) loadDetail(openPayoutId);
           loadList(); loadSummary();
+        }}
+      />
+      <PayoutPromptDialog
+        open={!!noteFor}
+        title="Add internal note"
+        description={noteFor ? `Transaction ${noteFor.transaction.code}` : undefined}
+        placeholder="Note visible to admins only..."
+        confirmLabel="Save note"
+        onClose={() => setNoteFor(null)}
+        onConfirm={async (note) => {
+          if (!noteFor) return;
+          try {
+            await payoutsApi.addInternalNote({ transaction_id: noteFor.transaction.id, note });
+            toast({ title: "Note added" });
+          } catch (e) {
+            toast({ title: "Failed to add note", description: (e as Error).message, variant: "destructive" });
+          }
+        }}
+      />
+      <PayoutPromptDialog
+        open={!!blockFor}
+        title={blockFor?.pause ? "Pause payout" : "Block payout"}
+        description={blockFor ? `Transaction ${blockFor.row.transaction.code}` : undefined}
+        placeholder="Reason (required)..."
+        confirmLabel={blockFor?.pause ? "Pause" : "Block"}
+        destructive
+        onClose={() => setBlockFor(null)}
+        onConfirm={async (reason) => {
+          if (!blockFor) return;
+          try {
+            await payoutsApi.blockPayout({
+              transaction_id: blockFor.row.transaction.id,
+              payout_id: blockFor.row.id,
+              reason: blockFor.pause ? `Paused for review: ${reason}` : reason,
+            });
+            toast({ title: blockFor.pause ? "Payout paused" : "Payout blocked" });
+            loadList(); loadSummary();
+          } catch (e) {
+            toast({ title: "Action failed", description: (e as Error).message, variant: "destructive" });
+          }
         }}
       />
     </AdminLayout>
