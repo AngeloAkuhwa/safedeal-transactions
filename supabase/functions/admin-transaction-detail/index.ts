@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
     userIds.length
       ? admin.from("account_verifications").select("user_id, verification_level, identity_verified, email_verified, phone_verified, payout_verified").in("user_id", userIds)
       : Promise.resolve({ data: [] as any[] }),
-    admin.from("transaction_pricing").select("currency_code, item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount").eq("transaction_id", txId).maybeSingle(),
+    admin.from("transaction_pricing").select("currency_code, item_amount, platform_fee_amount, payment_processing_fee_amount, seller_payout_amount, buyer_total_amount").eq("transaction_id", txId).maybeSingle(),
     admin.from("escrow_states").select("state, held_amount, frozen_amount, released_amount, refunded_amount, last_changed_at").eq("transaction_id", txId).maybeSingle(),
     admin.from("escrow_ledger_entries").select("id, created_at, entry_type, amount, currency_code, balance_after, reference_type, reference_id, notes").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(100),
     admin.from("transaction_items").select("id, title, description, quantity, condition_label, brand, model, warranty_info, created_at").eq("transaction_id", txId).order("created_at", { ascending: true }),
@@ -317,9 +317,9 @@ Deno.serve(async (req) => {
     const itemTotal = num(pricing.item_amount);
     const rawProtection = num(pricing.platform_fee_amount);
     const protectionFee = Math.min(rawProtection, MAX_PROTECTION_FEE);
-    // Payment processing fee: prefer transaction_pricing.processing_fee_amount,
+    // Payment processing fee: prefer transaction_pricing.payment_processing_fee_amount,
     // fall back to payments row if present, else 0.
-    const processingFromPricing = num(pricing.processing_fee_amount);
+    const processingFromPricing = num(pricing.payment_processing_fee_amount);
     const processingFromPayment = paymentRes.data ? num((paymentRes.data as any).fee_amount) : 0;
     const paymentProcessingFee = processingFromPricing > 0
       ? processingFromPricing
