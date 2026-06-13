@@ -3814,12 +3814,10 @@ export type Database = {
           id: string
           is_total_service_fee_capped: boolean
           item_amount: number
-          payment_processing_fee_amount: number | null
+          payment_processing_fee_amount: number
           platform_fee_amount: number
-          pricing_model_version: string | null
-          processing_fee_amount: number
-          seller_net_amount: number
-          seller_payout_amount: number | null
+          pricing_model_version: string
+          seller_payout_amount: number
           transaction_id: string
           updated_at: string
         }
@@ -3830,12 +3828,10 @@ export type Database = {
           id?: string
           is_total_service_fee_capped?: boolean
           item_amount: number
-          payment_processing_fee_amount?: number | null
+          payment_processing_fee_amount: number
           platform_fee_amount?: number
-          pricing_model_version?: string | null
-          processing_fee_amount?: number
-          seller_net_amount: number
-          seller_payout_amount?: number | null
+          pricing_model_version: string
+          seller_payout_amount: number
           transaction_id: string
           updated_at?: string
         }
@@ -3846,12 +3842,10 @@ export type Database = {
           id?: string
           is_total_service_fee_capped?: boolean
           item_amount?: number
-          payment_processing_fee_amount?: number | null
+          payment_processing_fee_amount?: number
           platform_fee_amount?: number
-          pricing_model_version?: string | null
-          processing_fee_amount?: number
-          seller_net_amount?: number
-          seller_payout_amount?: number | null
+          pricing_model_version?: string
+          seller_payout_amount?: number
           transaction_id?: string
           updated_at?: string
         }
@@ -4319,7 +4313,7 @@ export type Database = {
           id: string | null
           item_amount: number | null
           money_status: Database["public"]["Enums"]["money_status"] | null
-          seller_net_amount: number | null
+          seller_payout_amount: number | null
           status: Database["public"]["Enums"]["transaction_status"] | null
           transaction_code: string | null
         }
