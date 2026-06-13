@@ -1,7 +1,11 @@
 import { TriangleAlert, Clock, Hourglass, Pause, GitCompare, Lock, AlertTriangle, PauseCircle, AlertCircle, Bell, Settings } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatMoney } from "@/lib/format";
 import type { EscrowAlerts } from "@/services/admin-escrow.service";
+import { canConfigureEscrowAlerts } from "@/services/admin-escrow-alerts.service";
+import { ConfigureAlertsModal } from "./ConfigureAlertsModal";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type Accent = {
   bg: string;        // icon container background
@@ -86,6 +90,14 @@ function AlertCard({
 export function EscrowAlertsPanel({ alerts }: { alerts: EscrowAlerts }) {
   const nav = useNavigate();
   const open = (id: string) => nav(`/admin/transactions/${id}`);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [canConfigure, setCanConfigure] = useState(false);
+
+  useEffect(() => {
+    canConfigureEscrowAlerts().then(setCanConfigure).catch(() => setCanConfigure(false));
+  }, []);
+
+  const t = alerts.thresholds ?? { frozen_days: 30, overdue_days: 5, idle_days: 15, high_value_amount: 1_000_000, mismatch_min_delta: 0.01 };
 
   // Map existing aggregator output → reference's four visual categories.
   const frozenItems: Item[] = alerts.frozen_too_long.map((r) => ({
@@ -194,20 +206,43 @@ export function EscrowAlertsPanel({ alerts }: { alerts: EscrowAlerts }) {
           <div className="flex items-center gap-3 min-w-0">
             <Bell className="h-4 w-4 text-slate-400 shrink-0" />
             <p className="text-slate-300 text-xs sm:text-sm truncate">
-              Alert thresholds: Frozen &gt;30d | Overdue &gt;5d | Idle &gt;15d | Any state mismatch
+              Alert thresholds: Frozen &gt;{t.frozen_days}d | Overdue &gt;{t.overdue_days}d | Idle &gt;{t.idle_days}d | Mismatch ≥{formatMoney(t.mismatch_min_delta, "NGN")}
             </p>
           </div>
-          <button
-            type="button"
-            disabled
-            title="Coming soon"
-            className="px-4 py-2 bg-slate-700/60 text-slate-300 rounded-lg text-sm font-medium inline-flex items-center gap-2 cursor-not-allowed shrink-0"
-          >
-            <Settings className="h-4 w-4" />
-            Configure Alerts
-          </button>
+          {canConfigure ? (
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-sm font-medium inline-flex items-center gap-2 shrink-0 transition-colors"
+            >
+              <Settings className="h-4 w-4" />
+              Configure Alerts
+            </button>
+          ) : (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    disabled
+                    className="px-4 py-2 bg-slate-700/60 text-slate-400 rounded-lg text-sm font-medium inline-flex items-center gap-2 cursor-not-allowed shrink-0"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Configure Alerts
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Requires admin clearance</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       </div>
+
+      <ConfigureAlertsModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        initial={alerts.thresholds}
+      />
     </div>
   );
 }
