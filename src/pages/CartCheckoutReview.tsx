@@ -15,6 +15,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { computePricing } from "@/lib/pricing";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatMoney } from "@/lib/format";
+import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
+import { viewFromRow } from "@/services/payment-flow.service";
+import { PRICING_LINE_LABELS } from "@/lib/payment/payment-labels";
 
 const formatPrice = (amount: number, currency = "NGN") => formatMoney(amount, currency);
 
@@ -380,29 +383,21 @@ const CartCheckoutReview = () => {
                         </div>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <div className="px-5 pb-4 pt-1 space-y-2 bg-muted/30">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Paystack Processing Fee</span>
-                            <span className="font-medium">{formatPrice(sellerPricing.paystack_fee_amount)}</span>
-                          </div>
-                          <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">SafeDeal Platform Fee</span>
-                            <span className="font-medium">{formatPrice(sellerPricing.platform_fee_amount)}</span>
-                          </div>
-                          <div className="border-t border-border pt-2 flex justify-between text-xs font-semibold">
-                            <span className="text-foreground">Total Protection Fee</span>
-                            <span className="text-primary">{formatPrice(sellerPricing.service_fee_amount)}</span>
-                          </div>
-                          <div className="flex flex-col gap-1 pt-1">
-                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                              <AlertCircle className="h-3 w-3" /> Non-refundable fee
-                            </p>
-                            {sellerPricing.is_capped && (
-                              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Fee capped at ₦2,500
-                              </p>
+                        <div className="px-5 pb-4 pt-2 bg-muted/30">
+                          <PricingBreakdown
+                            snapshot={viewFromRow(
+                              {
+                                item_amount: sellerSubtotal,
+                                platform_fee_amount: sellerPricing.platform_fee_amount,
+                                processing_fee_amount: sellerPricing.paystack_fee_amount,
+                                service_fee_amount: sellerPricing.service_fee_amount,
+                                buyer_total_amount: sellerPricing.total_amount,
+                                is_total_service_fee_capped: sellerPricing.is_capped,
+                              },
+                              { isEstimate: true },
                             )}
-                          </div>
+                            audience="buyer"
+                          />
                         </div>
                       </CollapsibleContent>
                     </Collapsible>
@@ -417,25 +412,18 @@ const CartCheckoutReview = () => {
                   <h2 className="text-lg font-semibold text-foreground">Payment Summary</h2>
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Items Subtotal</span>
+                      <span className="text-muted-foreground">{PRICING_LINE_LABELS.item_amount}</span>
                       <span className="font-medium">{formatPrice(Number(session.subtotal_amount))}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <div>
-                        <span className="text-primary font-medium">Protection Fee</span>
+                        <span className="text-primary font-medium">{PRICING_LINE_LABELS.service_fee_amount}</span>
                         <p className="text-[10px] text-muted-foreground">Non-refundable</p>
                       </div>
                       <span className="font-medium text-primary">{formatPrice(Number(session.total_protection_fee))}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Delivery Fee</span>
-                        <p className="text-[10px] text-muted-foreground">Per seller</p>
-                      </div>
-                      <span className="text-xs italic text-muted-foreground">Calculated after payment</span>
-                    </div>
                     <div className="border-t border-border pt-3 flex justify-between items-end">
-                      <span className="font-bold text-foreground">Total Amount</span>
+                      <span className="font-bold text-foreground">{PRICING_LINE_LABELS.total_amount}</span>
                       <span className="text-2xl font-bold text-foreground">{formatPrice(Number(session.total_amount))}</span>
                     </div>
                   </div>

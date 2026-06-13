@@ -14,6 +14,8 @@ import { getPublicProductDetail } from "@/services/public-storefront.service";
 import { createStorefrontTransaction } from "@/services/storefront-checkout.service";
 import { computePricing } from "@/lib/pricing";
 import { formatMoney } from "@/lib/format";
+import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
+import { viewFromRow } from "@/services/payment-flow.service";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
@@ -275,40 +277,26 @@ const StorefrontCheckout = () => {
             {/* Payment Summary */}
             <div className={`${glassPanel} p-5`}>
               <h2 className="text-lg font-semibold text-foreground mb-4">Payment Summary</h2>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Item Subtotal</span>
-                  <span className="font-medium text-foreground">
-                    {formatPrice(itemSubtotal, product.currency_code)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-muted-foreground">SafeDeal Protection Fee</span>
-                    {isCapped && (
-                      <Badge variant="outline" className="rounded-full text-[10px] px-1.5 py-0 bg-amber-500/10 text-amber-600 border-amber-500/20">
-                        capped
-                      </Badge>
-                    )}
-                    {isFloored && !isCapped && (
-                      <Badge variant="outline" className="rounded-full text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
-                        min
-                      </Badge>
-                    )}
-                  </div>
-                  <span className="font-medium text-foreground">
-                    {formatPrice(pricing.service_fee_amount, product.currency_code)}
-                  </span>
-                </div>
-                <p className="text-[10px] text-muted-foreground -mt-1">Non-refundable</p>
-                <div className="border-t border-border my-2" />
-                <div className="flex items-center justify-between">
-                  <span className="text-base font-bold text-foreground">Total Amount</span>
-                  <span className="text-xl font-bold text-foreground">
-                    {formatPrice(pricing.total_amount, product.currency_code)}
-                  </span>
-                </div>
-              </div>
+              <PricingBreakdown
+                snapshot={viewFromRow(
+                  {
+                    item_amount: itemSubtotal,
+                    platform_fee_amount: pricing.platform_fee_amount,
+                    processing_fee_amount: pricing.paystack_fee_amount,
+                    service_fee_amount: pricing.service_fee_amount,
+                    buyer_total_amount: pricing.total_amount,
+                    currency_code: product.currency_code,
+                    is_total_service_fee_capped: pricing.is_capped,
+                  },
+                  { isEstimate: true },
+                )}
+                audience="buyer"
+              />
+              {isFloored && !isCapped ? (
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  Minimum SafeDeal Fee applied.
+                </p>
+              ) : null}
             </div>
 
             {/* SafeDeal Protection card */}

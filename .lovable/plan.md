@@ -1,132 +1,87 @@
 
-# Phase 4 — UI Sweep (Pricing Breakdown + Payout-Account State)
+# Phase 4 (Sweep, cont.) — wire the breakdown into 5 more surfaces
 
-Goal: every money-displaying screen renders the canonical 5-line breakdown (`Item Total`, `SafeDeal Fee`, `Payment Processing Fee`, `Total Service Fee`, `Total Charged`) plus `Seller Payout`, reading from the new `transaction_pricing` columns that Phase 3 now writes. Every payout-account UI reads the canonical `account_state` from `v_payout_account_state` instead of recomputing readiness from raw fields. No DB changes, no edge-function changes, no math.
-
----
-
-## Quick answer — `payout_accounts` vs `v_payout_account_state`
-
-- **`payout_accounts`** (table) is the raw storage row: `bank_code`, `account_number`, `account_name`, `verification_status` (`unverified` / `verified` / `failed`), `provider_recipient_code`, audit columns. It holds *what the seller typed and what Paystack verified*. Multiple rows per seller are possible (historical / re-entered accounts).
-- **`v_payout_account_state`** (view, added in migration 018) is a derived, **per-seller** projection that picks the seller's current best row and collapses it into one canonical 4-state label:
-  - `no_account` — seller has no `payout_accounts` row.
-  - `unverified` — row exists, `verification_status != 'verified'`.
-  - `verified_no_recipient` — verified, but no Paystack `provider_recipient_code` yet → cannot transfer.
-  - `verified_ready` — verified **and** has a recipient code → eligible for payout.
-  - View has `security_invoker = on`, so it inherits the caller's RLS; rows are ranked by priority so each seller appears at most once.
-
-Practical rule: **writes go to `payout_accounts`; every readiness check and UI badge reads `v_payout_account_state.account_state`.** That removes the 3 places in code that each invented their own "is this seller ready" check.
+Goal: extend the canonical pricing + payout labels into the remaining high-traffic surfaces. Pure presentation; no math, no DB, no edge-function changes. Each change preserves existing fallbacks so locked legacy rows still render correctly.
 
 ---
 
-## 1. Shared UI primitives (new, small, design-token only)
+## 1. `src/pages/BuyerTransactionDetail.tsx`
 
-| File | Purpose |
-|---|---|
-| `src/components/payment/PricingBreakdown.tsx` (new) | Renders the 5-line buyer breakdown from a `PricingSnapshot`. Uses `PRICING_LINE_LABELS`, `PRICING_HELPER_COPY`, `BUYER_PRICING_ORDER` from `src/lib/payment/payment-labels.ts`. Shows `—` for any missing line (never fake ₦0.00). When `is_total_service_fee_capped === true`, appends a single small note: "Total service fee capped at ₦2,500." Tooltip/popover on each line uses the helper copy already defined. |
-| `src/components/payment/SellerPayoutLine.tsx` (new) | Single-line "Seller Payout: ₦X" component using the same snapshot, with the seller-side helper copy. |
-| `src/components/payout/PayoutAccountStateBadge.tsx` (new) | One badge that maps `account_state` → label + tone (`verified_ready` = success, `verified_no_recipient` = warning, `unverified` = warning, `no_account` = muted). Used by every payout surface so the same seller looks identical everywhere. |
-| `src/lib/payment/money-format.ts` (existing) | No change; both new components format through it so the `₦` symbol, thousands separators, and `—` fallback stay consistent. |
+Two places render the buyer pricing card (lines ~684 and ~773) with `Item Price` / `Service Fee (x%)` / `Total Paid`.
 
-All three are presentational only: no fetching, no Supabase imports.
+- Replace both hand-rolled tables with `<PricingBreakdown snapshot={view} audience="buyer" />`.
+- Build `view` once via `viewFromRow(pricing)` from `payment-flow.service.ts` (the existing `pricing` object already has `item_amount`, `platform_fee_amount`, `paystack_fee_amount`/`payment_processing_fee_amount`, `service_fee_amount`, `total_amount`, and `is_total_service_fee_capped` after Phase 3).
+- Keep the surrounding `Card` and any non-pricing copy untouched.
+- Escrow status sentences ("Your payment of … is securely held…") stay as-is.
 
----
+## 2. `src/pages/StorefrontCheckout.tsx`
 
-## 2. Buyer-facing screens — swap raw fields for `PricingBreakdown`
+Right-rail summary at lines ~280–308 uses `computePricing(itemSubtotal)` for an estimate.
 
-| File | Today | After |
-|---|---|---|
-| `src/pages/StorefrontCheckout.tsx` | Hand-rolled line items, sometimes shows "Processing Fee" | `<PricingBreakdown snapshot={...} audience="buyer" />` from the storefront-checkout snapshot. |
-| `src/pages/CartCheckoutReview.tsx` | Per-item lines + a summary | Per-item lines untouched; the bottom summary becomes `<PricingBreakdown>` reading the aggregated cart snapshot returned by `cart-checkout`. |
-| `src/pages/BuyerCart.tsx` | Estimated totals | Use the same component with `is_estimate` flag → suppresses the cap note, shows "Final fees confirmed at checkout." |
-| `src/pages/BuyerTransactionVerify.tsx`, `BuyerTransactionDetail.tsx`, `BuyerTransactionReview.tsx`, `BuyerTransactionTracking.tsx` | Mixed labels | All read pricing via `payment-flow.service.ts → getPricingSnapshot(transactionId)` and render `<PricingBreakdown>`. |
-| `src/components/transactions/TransactionReceipt.tsx` | Receipt PDF/email view | Same component; this is the canonical receipt layout. |
-| `src/components/disputes/AgreementSnapshotSection.tsx`, `BuyerDisputeList.tsx`, `DisputeCaseSummary.tsx` | Renders the locked snapshot | Use `<PricingBreakdown snapshot={agreement_snapshot.pricing}>` directly — locked rows display whatever was stamped at the time (legacy rows naturally hide the missing lines as `—`). |
+- Build a `PricingSnapshotView` from that local `pricing` object via `viewFromRow({ item_amount: itemSubtotal, platform_fee_amount: pricing.platform_fee_amount, processing_fee_amount: pricing.processing_fee_amount, buyer_total_amount: pricing.total_amount, service_fee_amount: pricing.service_fee_amount, currency_code: product.currency_code, is_total_service_fee_capped: pricing.is_capped })` with `{ isEstimate: true }`.
+- Replace the inline "Item Subtotal / Service Fee / Total Amount" block with `<PricingBreakdown snapshot={view} audience="buyer" />`.
+- Keep the existing floor/cap notes if they aren't already covered by the breakdown's "Final fees confirmed at checkout." helper.
+- Item-line block above the summary stays as-is.
 
-Forbidden labels (`Delivery Fee`, `Shipping Fee`, `Platform Processing Fee`, `Protection & Processing Fee`, `USD`, `$`) are already declared in `FORBIDDEN_PRICING_LABELS`. Add a one-time vitest snapshot test that asserts none of them appear in the rendered HTML of the components in §1.
+## 3. `src/pages/CartCheckoutReview.tsx`
 
----
+Per-seller subtotal cards (lines ~286–394) use `computePricing(sellerSubtotal)` and render "Subtotal / Total Protection Fee / Platform Fee / Total Protection Fee".
 
-## 3. Seller-facing screens — payout-first view
+- For each seller group, build a `PricingSnapshotView` from `sellerPricing` (same shape as §2, including `is_estimate: true`).
+- Replace the fee/subtotal block (only the summary, not the per-item rows) with `<PricingBreakdown snapshot={view} audience="buyer" />`.
+- The grand-total row (line ~420–438) stays as a separate component since it sums across sellers and isn't a per-transaction snapshot; relabel its "Total Amount" to "Total Charged" via `PRICING_LINE_LABELS.total_amount` for consistency.
+- Remove the now-orphaned "Total Protection Fee" / "Platform Fee" labels.
 
-| File | Change |
-|---|---|
-| `src/pages/SellerCreateTransaction.tsx` | The "What you'll receive" preview uses `<SellerPayoutLine>`; the buyer-side breakdown moves behind a "Show buyer breakdown" disclosure that uses `<PricingBreakdown audience="seller-preview">`. |
-| `src/pages/SellerTransactionShare.tsx`, `SellerTransactionDetail.tsx`, `SellerUpdateDelivery.tsx` | Replace raw `seller_net_amount` reads with `seller_payout_amount` from the snapshot via the service layer. Render with `<SellerPayoutLine>`. |
-| `src/components/seller/TransactionSuccess.tsx` | Same. |
-| `src/components/seller/SellerConfirmCompletionCard.tsx` | "You will receive ₦X" line reads `seller_payout_amount` (fallback `seller_net_amount`). |
-| `src/pages/SellerPayouts.tsx` | Table column "Amount" reads `seller_payout_amount` first. Top-of-page "Payout account" widget swaps the three inline checks for `<PayoutAccountStateBadge state={account_state} />` and a single explainer sentence keyed off `account_state`. Auto-release countdown unchanged. |
-| `src/components/seller/EditPayoutDetailsModal.tsx`, `ExportPayoutsDialog.tsx` | The status pill at the top becomes `<PayoutAccountStateBadge>`. The export CSV column header changes from "Net Amount" to "Seller Payout" (the underlying field already reads `seller_payout_amount` after Phase 3). |
-| `src/pages/SellerAnalytics.tsx`, `SellerMetricsCards.tsx` | "Total earnings" and "Pending payouts" read the new column with the fallback. No formula change. |
-| `src/pages/SellerDisputeDetail.tsx`, `src/components/seller-disputes/SellerDisputeTable.tsx` | Display reads through `<PricingBreakdown>` for the agreement snapshot section. |
+## 4. `src/components/disputes/AgreementSnapshotSection.tsx`
 
----
+The `pricingFields` group (lines ~82–84) currently lists raw JSON keys, including `escrow_fee_amount` and `delivery_fee_amount` — both are forbidden labels under the new policy and `delivery_fee_amount` should never display since delivery fees are excluded from protection-fee calculation (per memory).
 
-## 4. Admin-facing screens
+- Replace the entire "Pricing" section with `<PricingBreakdown snapshot={viewFromRow(json)} audience="admin" />`, so locked snapshots render the canonical 5 lines plus Seller Payout in a dedicated row beneath via `<SellerPayoutLine snapshot={view} />`.
+- Drop `escrow_fee_amount` and `delivery_fee_amount` from `KNOWN_KEYS` and from `pricingFields`.
+- Keep the "Raw JSON" toggle so admins can still inspect the original snapshot.
+- Item / Parties / Delivery sections unchanged.
 
-| File | Change |
-|---|---|
-| `src/pages/AdminPayouts.tsx` | List "Amount" column → `seller_payout_amount`. "Account" column → `<PayoutAccountStateBadge>`. The detail drawer keeps its current per-check breakdown (verification, recipient code, etc.) **and** shows the badge at the top so the drawer and the list always agree for the same seller. |
-| `src/pages/AdminTransactions.tsx`, `AdminTransactionDetail.tsx` | Render the locked snapshot through `<PricingBreakdown audience="admin">` — audience adds an internal-reason tooltip via `describeInternalReason`. |
-| `src/pages/AdminDisputeDetail.tsx` | Same. |
+## 5. `src/components/seller/SellerConfirmCompletionCard.tsx`
 
-No new admin actions; the existing super-admin pricing-override path (`admin_correct_pricing` RPC from Phase 2) keeps its current entry point untouched in this phase.
+Today this card shows only a confirm button + checkbox — no payout amount.
+
+- Extend `SellerConfirmCompletionCardProps` with `sellerPayoutAmount: number | null` and `currency: string` (caller in `SellerTransactionDetail.tsx` reads `pricing.seller_payout_amount ?? pricing.seller_net_amount` and `pricing.currency_code`, then passes them in).
+- Render `<SellerPayoutLine amount={sellerPayoutAmount} currency={currency} className="mb-3" />` above the confirmation checkbox so the seller sees exactly what they'll receive before agreeing.
+- No mutation logic changes; the toast / success copy stays.
+- Update `src/pages/SellerTransactionDetail.tsx` (the one caller) to pass the two new props.
 
 ---
 
-## 5. Service-layer + types tidy-up
+## Service-layer touch-ups
 
-| File | Change |
-|---|---|
-| `src/services/payment-flow.service.ts` | Already returns the new fields after Phase 3. Add one helper `toBuyerBreakdown(snapshot)` that returns the array `<PricingBreakdown>` consumes, so each page doesn't re-derive it. |
-| `src/types/payment-flow.types.ts` | Export a `PayoutAccountState = 'no_account' \| 'unverified' \| 'verified_no_recipient' \| 'verified_ready'` union and a `PricingSnapshotView` shape for the breakdown component. |
-| `src/services/admin-payouts.service.ts` | Already carries `account_state` after Phase 3 — just re-export the union type from above so the page and the table share it. |
-| `src/services/seller-transaction-detail.service.ts`, `seller-disputes.service.ts`, `seller-dispute-detail.service.ts`, `disputes.service.ts`, `verification.service.ts` | Update return types to include `payment_processing_fee_amount` / `seller_payout_amount`; passthrough only. |
+- `src/services/transaction-detail.service.ts` — already extended with the three optional snapshot fields. No new change.
+- `src/services/seller-transaction-detail.service.ts` — confirm its pricing return includes `seller_payout_amount` and `is_total_service_fee_capped`; add the optional fields if missing (passthrough only).
 
-No new fetch logic. No new endpoints.
+## Forbidden labels check
 
----
+After these edits, re-run `rg "Delivery Fee|Shipping Fee|Platform Processing Fee|Protection & Processing Fee|Total Protection Fee|Total Paid"` under `src/` and remove any survivors (notably `CartCheckoutReview.tsx` "Total Protection Fee" / `BuyerTransactionDetail.tsx` "Total Paid").
 
-## 6. Removals & deprecations (UI only, safe)
+## Verification
 
-After the components in §1 are wired everywhere:
-- Remove ad-hoc inline labels like `Processing Fee`, `Net Amount`, `Platform Fee` across the files listed in §2–§4.
-- Delete any local helpers that recomputed `buyer_total - seller_net` for display — they're replaced by direct snapshot reads.
-- **Do not** remove the legacy snapshot columns (`processing_fee_amount`, `seller_net_amount`) — they're still the fallback for locked legacy rows and remain the source of truth in immutable `agreement_snapshot` JSON.
-
----
-
-## 7. Verification
-
-A. **Visual**
-1. Buyer checkout (storefront + cart) shows the 5 canonical lines and the cap note when applicable.
-2. Buyer dashboard, receipt, dispute case summary all render the same 5 lines, byte-for-byte identical labels.
-3. Seller pages show "Seller Payout" only (no buyer-facing fees) unless the disclosure is opened.
-4. `SellerPayouts` and `AdminPayouts` show the same `PayoutAccountStateBadge` for the same seller.
-
-B. **Regression**
-- `rg "Delivery Fee|Shipping Fee|Platform Processing Fee|Protection & Processing Fee"` returns no hits under `src/`.
-- `rg "seller_net_amount|processing_fee_amount"` under `src/` returns only fallback reads (`?? seller_net_amount`, `?? processing_fee_amount`).
-- A locked legacy transaction (no `seller_payout_amount`) still renders its receipt with no `—` placeholders for the lines that were stamped at the time.
-- A capped transaction (`is_total_service_fee_capped = true`) shows the cap note exactly once per breakdown.
-- Sellers with `account_state = 'verified_no_recipient'` see a warning badge + a "Finish payout setup" link on `SellerPayouts`, and admin sees the same badge on `AdminPayouts`.
-
-C. **Tests**
-- Vitest snapshot for `PricingBreakdown` with each `PricingSnapshotView` variant (full / partial / capped / legacy fallback).
-- Vitest unit for `PayoutAccountStateBadge` covering all four states.
-- One Playwright/route test that loads `BuyerTransactionDetail` for a seeded legacy row and asserts the breakdown renders without throwing.
-
----
-
-## 8. Out of scope (kept for later phases)
-
-- No new DB columns, RPCs, or views.
-- No edge-function changes.
-- No money formulas; no refund/payout policy changes.
-- No dropping of the legacy `processing_fee_amount` / `seller_net_amount` columns.
-- No notification or email-template rewrites — they'll inherit the new labels via the shared registry without per-template edits, but a deliberate sweep is deferred to Phase 5.
-- No mobile-app sweep — web only.
+A. Type-check (`tsc --noEmit`) passes.
+B. Visual:
+1. Buyer detail page shows the 5-line breakdown on both the summary card and the side card, with the cap note when applicable.
+2. Storefront checkout right-rail shows the 5 lines + "Final fees confirmed at checkout."
+3. Cart review per-seller blocks show the 5 lines per seller; grand total row reads "Total Charged".
+4. Dispute "Locked Agreement" → Pricing section renders the 5 lines from the immutable snapshot, with Seller Payout beneath; raw JSON toggle still works.
+5. Seller confirm completion card shows "Seller Payout: ₦X" above the checkbox.
+C. No occurrence of the forbidden labels in the rendered HTML of those 5 surfaces.
 
 ## Rollback
 
-Pure presentational change. Reverting the touched files restores the prior labels. The new shared components can be left in place because they're side-effect-free.
+Pure presentational. Reverting each file restores the prior labels; shared primitives remain in place and are side-effect-free.
+
+---
+
+## How many phases are left after this sweep?
+
+Two — plus a final cleanup pass:
+
+- **Phase 5 — Notifications + transactional emails.** Sweep email templates / push / in-app notification copy through the shared `PRICING_LINE_LABELS` and `resolveMoneyLabel` registry so receipts, payout-released and refund-issued messages match the in-app labels word-for-word. No DB or math.
+- **Phase 6 — Reconciliation + observability.** Daily job that compares `escrow_ledger_entries` totals to `payouts.amount` and `refunds.amount` per transaction, alerting on drift; admin "pricing audit" screen that lists rows where `transaction_pricing.pricing_model_version` is NULL or older than the current version. No user-facing pricing changes.
+- **Phase 7 (cleanup, optional) — drop legacy column reads** (`seller_net_amount`, `processing_fee_amount`) from edge functions and the service layer once Phase 6 confirms 100% of unlocked rows are on the new snapshot. Locked rows keep their original snapshot intact; only the read paths simplify.

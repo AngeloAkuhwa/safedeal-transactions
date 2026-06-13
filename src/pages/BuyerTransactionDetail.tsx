@@ -48,6 +48,8 @@ import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { useEffect, useState, useRef } from "react";
 import { ContactSellerModal } from "@/components/transactions/ContactSellerModal";
 import { TransactionReceipt } from "@/components/transactions/TransactionReceipt";
+import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
+import { viewFromRow } from "@/services/payment-flow.service";
 import { ProductMediaGallery } from "@/components/transactions/ProductMediaGallery";
 import { InTransitBlock } from "@/components/transactions/InTransitBlock";
 import { VerifyReceiptCTA } from "@/components/transactions/VerifyReceiptCTA";
@@ -679,23 +681,10 @@ const BuyerTransactionDetail = () => {
                 Payment Summary
               </h3>
               <div className="space-y-3 sm:space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Item Price</span>
-                  <span className="font-semibold text-foreground">{formatMoney(pricing.item_amount, pricing.currency_code)}</span>
-                </div>
-                {(pricing.service_fee_amount || 0) > 0 && (
-                  <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-border text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
-                      <p className="text-xs text-muted-foreground mt-0.5">Includes payment processing</p>
-                    </div>
-                    <span className="font-semibold text-foreground">{formatMoney(pricing.service_fee_amount, pricing.currency_code)}</span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-sm sm:text-base font-bold text-foreground">Total Paid</span>
-                  <span className="text-lg sm:text-xl font-bold text-primary">{formatMoney(pricing.total_amount, pricing.currency_code)}</span>
-                </div>
+                <PricingBreakdown
+                  snapshot={viewFromRow(pricing as unknown as Record<string, unknown>)}
+                  audience="buyer"
+                />
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Currency</span>
                   <span className="text-xs font-semibold text-muted-foreground">{pricing.currency_code}</span>
@@ -768,23 +757,10 @@ const BuyerTransactionDetail = () => {
                   Payment Summary
                 </h3>
                 <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Item Price</span>
-                    <span className="font-semibold text-foreground">{formatMoney(pricing.item_amount, pricing.currency_code)}</span>
-                  </div>
-                  {(pricing.service_fee_amount || 0) > 0 && (
-                    <div className="flex justify-between pb-3 border-b border-border text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</span>
-                        <p className="text-xs text-muted-foreground mt-0.5">Includes payment processing</p>
-                      </div>
-                      <span className="font-semibold text-foreground">{formatMoney(pricing.service_fee_amount, pricing.currency_code)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between pt-2">
-                    <span className="text-base font-bold text-foreground">Total Paid</span>
-                    <span className="text-xl font-bold text-primary">{formatMoney(pricing.total_amount, pricing.currency_code)}</span>
-                  </div>
+                  <PricingBreakdown
+                    snapshot={viewFromRow(pricing as unknown as Record<string, unknown>)}
+                    audience="buyer"
+                  />
                 </div>
                 <div className="mt-4 pt-4 border-t border-border">
                   <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-start gap-3 mb-3">

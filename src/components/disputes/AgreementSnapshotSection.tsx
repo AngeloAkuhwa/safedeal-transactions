@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { DisputeDetailResponse } from "@/services/disputes.service";
 import { formatMoney } from "@/lib/format";
+import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
+import { SellerPayoutLine } from "@/components/payment/SellerPayoutLine";
+import { viewFromRow } from "@/services/payment-flow.service";
 
 interface AgreementSnapshotSectionProps {
   snapshot: DisputeDetailResponse["agreement_snapshot"];
@@ -13,9 +16,13 @@ interface AgreementSnapshotSectionProps {
 const KNOWN_KEYS = [
   "item_title", "item_description", "item_condition", "condition_label",
   "buyer_name", "seller_name", "buyer_email", "seller_email",
-  "item_amount", "buyer_total_amount", "seller_net_amount", "currency_code",
+  "item_amount", "buyer_total_amount", "seller_net_amount", "seller_payout_amount",
+  "platform_fee_amount", "safedeal_fee_amount",
+  "processing_fee_amount", "payment_processing_fee_amount",
+  "service_fee_amount", "is_total_service_fee_capped",
+  "currency_code",
   "delivery_method", "expected_delivery_date", "verification_window_hours",
-  "quantity", "escrow_fee_amount", "delivery_fee_amount",
+  "quantity",
   "delivery_address_line1", "delivery_city", "delivery_state",
 ];
 
@@ -79,9 +86,14 @@ export function AgreementSnapshotSection({ snapshot }: AgreementSnapshotSectionP
   const partyFields = knownEntries.filter((e) =>
     ["buyer_name", "seller_name", "buyer_email", "seller_email"].includes(e.key)
   );
-  const pricingFields = knownEntries.filter((e) =>
-    ["item_amount", "buyer_total_amount", "seller_net_amount", "currency_code", "escrow_fee_amount", "delivery_fee_amount"].includes(e.key)
-  );
+  const PRICING_KEYS = new Set([
+    "item_amount", "buyer_total_amount", "seller_net_amount", "seller_payout_amount",
+    "platform_fee_amount", "safedeal_fee_amount",
+    "processing_fee_amount", "payment_processing_fee_amount",
+    "service_fee_amount", "is_total_service_fee_capped", "currency_code",
+  ]);
+  const hasPricing = Object.keys(json).some((k) => PRICING_KEYS.has(k));
+  const pricingView = hasPricing ? viewFromRow(json) : null;
   const deliveryFields = knownEntries.filter((e) =>
     ["delivery_method", "expected_delivery_date", "verification_window_hours", "delivery_address_line1", "delivery_city", "delivery_state"].includes(e.key)
   );
@@ -89,7 +101,6 @@ export function AgreementSnapshotSection({ snapshot }: AgreementSnapshotSectionP
   const sections = [
     { title: "Item Details", entries: itemFields },
     { title: "Parties", entries: partyFields },
-    { title: "Pricing", entries: pricingFields },
     { title: "Delivery", entries: deliveryFields },
   ].filter((s) => s.entries.length > 0);
 
@@ -129,6 +140,20 @@ export function AgreementSnapshotSection({ snapshot }: AgreementSnapshotSectionP
             </div>
           </div>
         ))}
+
+        {pricingView ? (
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              Pricing
+            </p>
+            <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+              <PricingBreakdown snapshot={pricingView} audience="admin" />
+              <div className="border-t pt-3">
+                <SellerPayoutLine snapshot={pricingView} />
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/* Fallback: if no known fields matched, show all as grid */}
         {sections.length === 0 && (

@@ -309,6 +309,12 @@ const SellerTransactionDetail = () => {
               transactionId={transactionId!}
               transactionCode={tx.transaction_code}
               buyerConfirmedAt={tx.buyer_confirmed_at}
+              sellerPayoutAmount={
+                (pricing as { seller_payout_amount?: number | null } | null)?.seller_payout_amount ??
+                pricing?.seller_net_amount ??
+                null
+              }
+              currency={currency}
             />
           )}
 
