@@ -16,7 +16,7 @@
  * Admin-only.
  */
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
-import { buildRows, summarize, applyFilters, sortRows } from "./engine.ts";
+import { buildRows, summarize, applyFilters, sortRows } from "../_shared/flagged-users-engine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
