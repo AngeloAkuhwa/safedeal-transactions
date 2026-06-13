@@ -1025,7 +1025,11 @@ export default function BuyerPaymentSummary() {
                 {/* Title */}
                 <div className="text-center mb-4">
                   <h2 className="text-lg font-bold text-foreground mb-1">
-                    {failureTerminal ? "Transaction No Longer Payable" : "Payment Failed"}
+                    {failureTerminal
+                      ? "Transaction No Longer Payable"
+                      : failureBlocker === "concurrency"
+                      ? "Purchase Limit Reached"
+                      : "Payment Failed"}
                   </h2>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {failureReason || "We were unable to process your payment. No funds were deducted from your account."}
@@ -1084,6 +1088,23 @@ export default function BuyerPaymentSummary() {
                         <ArrowLeft className="h-3.5 w-3.5" />
                         Back to Marketplace
                       </button>
+                    ) : failureBlocker === "concurrency" ? (
+                      <>
+                        <button
+                          onClick={() => { setShowFailed(false); navigate("/dashboard/transactions"); }}
+                          className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          View My Transactions
+                        </button>
+                        <button
+                          onClick={() => { setShowFailed(false); navigate(`/t/${shareToken}`); }}
+                          className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
+                        >
+                          <ArrowLeft className="h-3.5 w-3.5" />
+                          Return to Review
+                        </button>
+                      </>
                     ) : (
                       <>
                         <button
@@ -1122,7 +1143,7 @@ export default function BuyerPaymentSummary() {
                 </div>
 
                 {/* Security reassurance — only when retry is still valid */}
-                {!failureTerminal && (
+                {!failureTerminal && failureBlocker !== "concurrency" && (
                   <div className="bg-success/5 border border-success/20 rounded-lg p-3 mb-3">
                     <div className="flex items-start gap-2">
                       <ShieldCheck className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
