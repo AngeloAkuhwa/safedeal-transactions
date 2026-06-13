@@ -1,4 +1,4 @@
-import { Lock, Hourglass, RotateCcw, CheckCircle2, CalendarDays, Wallet } from "lucide-react";
+import { Lock, Hourglass, RotateCcw, CheckCircle2, CalendarDays, Vault } from "lucide-react";
 import type { EscrowKpis } from "@/services/admin-escrow.service";
 
 function deltaClass(d: number, positiveIsGood = true): string {
@@ -45,28 +45,28 @@ export function EscrowKpiCards({ kpis }: { kpis: EscrowKpis }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4">
       <Card
-        icon={<Wallet className="h-5 w-5" />} iconBg="bg-emerald-500/10" iconBorder="border-emerald-500/30" iconColor="text-emerald-400"
-        label="Total Held" value={kpis.total_held} sub={`${kpis.total_held_count} active`} delta={kpis.total_held_delta_pct}
+        icon={<Vault className="h-5 w-5" />} iconBg="bg-blue-500/10" iconBorder="border-blue-500/30" iconColor="text-blue-400"
+        label="Total Held in Escrow" value={kpis.total_held} sub={`Across ${kpis.total_held_count.toLocaleString("en-NG")} transactions`} delta={kpis.total_held_delta_pct}
       />
       <Card
         icon={<Lock className="h-5 w-5" />} iconBg="bg-red-500/10" iconBorder="border-red-500/30" iconColor="text-red-400"
-        label="Total Frozen" value={kpis.total_frozen} sub={`${kpis.total_frozen_count} frozen`} delta={kpis.total_frozen_delta_pct} positiveIsGood={false}
+        label="Total Frozen" value={kpis.total_frozen} sub={`${kpis.total_frozen_count.toLocaleString("en-NG")} frozen transactions`} delta={kpis.total_frozen_delta_pct} positiveIsGood={false}
       />
       <Card
         icon={<Hourglass className="h-5 w-5" />} iconBg="bg-orange-500/10" iconBorder="border-orange-500/30" iconColor="text-orange-400"
-        label="Pending Release" value={kpis.pending_release} sub={`${kpis.pending_release_count} pending`} delta={kpis.pending_release_delta_pct}
+        label="Pending Release" value={kpis.pending_release} sub={`${kpis.pending_release_count.toLocaleString("en-NG")} pending releases`} delta={kpis.pending_release_delta_pct}
       />
       <Card
         icon={<RotateCcw className="h-5 w-5" />} iconBg="bg-purple-500/10" iconBorder="border-purple-500/30" iconColor="text-purple-400"
-        label="Total Refunded" value={kpis.total_refunded} sub={`${kpis.total_refunded_count} refunded`} delta={kpis.total_refunded_delta_pct} positiveIsGood={false}
+        label="Total Refunded" value={kpis.total_refunded} sub={`${kpis.total_refunded_count.toLocaleString("en-NG")} refunded today`} delta={kpis.total_refunded_delta_pct} positiveIsGood={false}
       />
       <Card
         icon={<CheckCircle2 className="h-5 w-5" />} iconBg="bg-emerald-500/10" iconBorder="border-emerald-500/30" iconColor="text-emerald-400"
-        label="Released Today" value={kpis.released_today} sub={`${kpis.released_today_count} transactions`} delta={kpis.released_today_delta_pct}
+        label="Released Today" value={kpis.released_today} sub={`${kpis.released_today_count.toLocaleString("en-NG")} transactions`} delta={kpis.released_today_delta_pct}
       />
       <Card
         icon={<CalendarDays className="h-5 w-5" />} iconBg="bg-cyan-500/10" iconBorder="border-cyan-500/30" iconColor="text-cyan-400"
-        label="Released This Week" value={kpis.released_week} sub={`${kpis.released_week_count} in 7 days`} delta={kpis.released_week_delta_pct}
+        label="Released This Week" value={kpis.released_week} sub="7 days total" delta={kpis.released_week_delta_pct}
       />
     </div>
   );

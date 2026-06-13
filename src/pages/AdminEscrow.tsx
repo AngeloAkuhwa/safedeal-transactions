@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Download, RefreshCw, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminMobileHeader } from "@/components/admin/AdminMobileHeader";
 import { EscrowKpiCards } from "@/components/admin/escrow/EscrowKpiCards";
 import { EscrowCharts } from "@/components/admin/escrow/EscrowCharts";
 import { EscrowAlertsPanel } from "@/components/admin/escrow/EscrowAlertsPanel";
@@ -47,37 +48,64 @@ export default function AdminEscrow() {
   const onApply = useCallback(() => { setAppliedSearch(search); setPage(1); }, [search]);
   const onReset = useCallback(() => { setFilters(DEFAULTS); setSearch(""); setAppliedSearch(""); setPage(1); }, []);
 
-  return (
-    <AdminLayout title={TITLE} subtitle={SUBTITLE}>
-      <div className="space-y-4 lg:space-y-6">
-        {/* Header bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-[11px] font-medium">
-              <Clock className="h-3 w-3" />
-              Last updated {new Date().toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
-            </span>
+  const lastUpdated = useMemo(
+    () => new Date().toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" }),
+    [data],
+  );
+
+  const desktopHeader = (
+    <header className="sticky top-0 z-30 hidden border-b border-slate-800 bg-slate-900 px-4 py-5 md:px-8 lg:block">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div>
+            <h2 className="text-white text-xl font-semibold">{TITLE}</h2>
+            <p className="text-slate-400 text-sm mt-0.5">{SUBTITLE}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button type="button" disabled className="px-3 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm font-medium inline-flex items-center gap-2 cursor-not-allowed opacity-70">
-              <Download className="h-4 w-4" /> <span className="hidden sm:inline">Export Report</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => void refetch()}
-              disabled={isFetching}
-              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-              <span className="hidden sm:inline">Refresh Data</span>
-            </button>
+          <div className="flex items-center gap-2 ml-0 md:ml-4">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-emerald-400 font-semibold text-sm">Live</span>
+            </div>
+            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg">
+              <Clock className="h-3.5 w-3.5 text-slate-400" />
+              <span className="text-slate-300 text-sm">Last updated: {lastUpdated}</span>
+            </div>
           </div>
         </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            disabled
+            className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-sm font-medium opacity-70 cursor-not-allowed"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Export Report</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60"
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">Refresh Data</span>
+          </button>
+        </div>
+      </div>
+    </header>
+  );
 
+  return (
+    <AdminLayout
+      title={TITLE}
+      subtitle={SUBTITLE}
+      hideDefaultHeaders
+      headerSlot={desktopHeader}
+      mobileHeaderSlot={({ onOpenMenu }) => (
+        <AdminMobileHeader onOpenMenu={onOpenMenu} title={TITLE} subtitle={SUBTITLE} />
+      )}
+    >
+      <div className="space-y-4 lg:space-y-6">
         {isLoading || !data ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4">
