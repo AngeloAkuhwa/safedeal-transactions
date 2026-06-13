@@ -23,7 +23,7 @@ export async function releasePayoutCore(
   // 1. Load tx
   const { data: tx, error: txErr } = await admin
     .from("transactions")
-    .select("id, money_status, seller_id, buyer_id, currency_code, transaction_code")
+    .select("id, money_status, seller_id, buyer_id, transaction_code")
     .eq("id", transaction_id)
     .maybeSingle();
   if (txErr) return { ok: false, status: 500, body: { error: "tx_fetch_failed" } };
@@ -175,7 +175,7 @@ export async function releasePayoutCore(
     event_data: {
       description: `SafeDeal initiated ${PRICING_LINE_LABELS.seller_payout_amount} of ${formatMoney(
         Number((payout as any).amount),
-        (tx as any).currency_code,
+        (payout as any).currency_code ?? "NGN",
       )}`,
       payout_id: (payout as any).id,
       reference,
@@ -190,7 +190,7 @@ export async function releasePayoutCore(
     title: "Payout on the way",
     message: `Your ${PRICING_LINE_LABELS.seller_payout_amount} of ${formatMoney(
       Number((payout as any).amount),
-      (tx as any).currency_code,
+      (payout as any).currency_code ?? "NGN",
     )} for ${(tx as any).transaction_code} is on its way to your bank.`,
     related_transaction_id: transaction_id,
   });
