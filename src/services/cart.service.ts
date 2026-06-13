@@ -58,7 +58,7 @@ export interface CartItem {
   product: CartProduct | null;
 }
 
-export async function getCartItems(): Promise<{ items: CartItem[]; count: number }> {
+export async function getCartItems(): Promise<{ items: CartItem[]; count: number; active_checkout_session_id?: string | null }> {
   return cartRequest("GET");
 }
 
