@@ -51,7 +51,7 @@ function fmtJoined(iso: string | null): string {
   return new Date(iso).toLocaleDateString("en-NG", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, onFlagToggle, onSuspend }: Props) {
+export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, onFlagToggle }: Props) {
   const navigate = useNavigate();
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(total, page * pageSize);
