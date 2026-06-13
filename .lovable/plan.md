@@ -1,161 +1,97 @@
+# Phase 8 — Pricing Read Hotfix (full sweep)
 
-# Phase 7 — Legacy Pricing Column Removal — SHIPPED
+## Symptom (from screenshots + edge logs)
 
-## Status (this run) — shipped
+Across **seller dashboard, transactions list, analytics, payouts, blocked/delayed funds, private offers receipts**, and likely the equivalent buyer + admin screens, every persisted money figure renders as ₦0.00. UI alignment, statuses, counts, and `payouts.amount` (from the `payouts` table) all still render correctly — only fields sourced from `transaction_pricing` collapse to zero. Live edge-function log proof:
 
-- Backfilled 9 historical pricing rows (legacy → canonical) with `trg_prevent_pricing_*` triggers temporarily disabled inside the migration.
-- Made `payment_processing_fee_amount`, `seller_payout_amount`, `buyer_total_amount`, `platform_fee_amount`, `pricing_model_version` NOT NULL on `transaction_pricing`.
-- Rebuilt `seller_transactions_view` against `seller_payout_amount` (the only other DB object referencing legacy columns).
-- Collapsed `v_pricing_snapshot_coverage` / `v_pricing_snapshot_audit` to `snapshot_complete | snapshot_missing` — the `snapshot_legacy` bucket is now structurally impossible.
-- Dropped `transaction_pricing.processing_fee_amount` and `transaction_pricing.seller_net_amount`.
-- Writers stop writing legacy columns: `create-transaction`, `cart-checkout`, `storefront-checkout`, `claim-offer`.
-- Readers switched to canonical DB columns: `admin-payouts-list/-detail`, `admin-transactions-monitor`, `admin-transaction-detail`, `admin-export-transaction-data`, `admin-disputes-queue`, `transaction-verify`, `seller-transactions`, `seller-transaction-detail`, `seller-dashboard`, `seller-analytics`, `seller-disputes`.
-- `seller-transaction-detail` throws `missing pricing snapshot` instead of deriving from `paystack_fee_amount`.
-- Response field aliases `seller_net_amount` / `processing_fee_amount` kept on `seller-transaction-detail` output for UI compatibility (populated from canonical columns; no longer DB-backed).
-- `LegacyPricingRowFields` removed from `src/types/payment-flow.types.ts`.
-- Admin reconciliation page: dropped `snapshot_legacy` KPI + badge; banner now reads "Phase 7 complete — canonical snapshot enforced" once coverage is 100%.
-- Verified: `v_pricing_snapshot_coverage` reports `snapshot_complete = 9 / 9`. Regenerated `src/integrations/supabase/types.ts` no longer contains the dropped columns.
+```
+seller-analytics tx fetch error {
+  code: "42703",
+  message: "column transaction_pricing_1.seller_net_amount does not exist"
+}
+```
 
-**Phases remaining: 0.** SafeDeal escrow stack is fully on the canonical pricing model with no legacy debt.
+## Root cause
 
----
+Phase 7 dropped `processing_fee_amount`, `seller_net_amount`, and `total_amount` from `public.transaction_pricing`. Canonical columns (`platform_fee_amount`, `payment_processing_fee_amount`, `seller_payout_amount`, `buyer_total_amount`) are populated and verified non-zero in the DB. Two regression patterns remain in the read path:
 
-## Original plan (for history)
+1. **Broken `.select(...)` lists** — Several edge functions still name dropped columns. PostgREST rejects the whole query (`42703`), `data` becomes `null`, and every downstream `Number(... ?? 0)` collapses to 0. This is why the screenshots show ₦0 everywhere.
+2. **`service_fee_amount` returned from a non-existent row attribute** — `seller-transaction-detail` (and the shared `safedeal-money-policy` helper) read `pr.service_fee_amount` from a row that no longer has that column. UIs that bind to `pricing.service_fee_amount` render ₦0 even when the rest of the response is correct.
 
-This was the **last planned phase**. After Phase 7 the canonical pricing snapshot becomes the only source of truth and the legacy fallback code path is fully retired.
+Scope: **data flow only — no screen redesign, no migration, no new columns.**
 
-**Phases remaining after this one: 0.**
+## Files to fix
 
-Phase 7 is gated by Phase 6's readiness banner: 100% `snapshot_complete` on the `v_pricing_snapshot_coverage` view, sustained for 30 days, with zero open `drift` rows. If the banner is not green, Phase 7 does not start.
+### A. Remove dropped columns from `.select(...)` lists
 
----
+| File | Lines | Drop |
+| --- | --- | --- |
+| `supabase/functions/seller-payouts/index.ts` | 202, 266, 353, 411 | `seller_net_amount`, `processing_fee_amount` |
+| `supabase/functions/seller-confirm-completion/index.ts` | 195 | `seller_net_amount` |
+| `supabase/functions/_shared/release-core.ts` | 287 | `processing_fee_amount` |
+| `supabase/functions/admin-payouts-list/index.ts` | 130 | `total_amount` |
+| `supabase/functions/admin-payouts-detail/index.ts` | 50 | `total_amount` |
 
-## Goal
+Mapping for any downstream code that referenced the dropped key on the row object:
+- `seller_net_amount` → `seller_payout_amount`
+- `processing_fee_amount` → `payment_processing_fee_amount`
+- `total_amount` → `buyer_total_amount`
 
-Remove the dual-write / dual-read legacy pricing surface (`transaction_pricing.processing_fee_amount`, `transaction_pricing.seller_net_amount`) and the `?? legacy` fallback expressions across edge functions, services, and types. Make the canonical columns (`payment_processing_fee_amount`, `seller_payout_amount`, `service_fee_amount`, `platform_fee_amount`, `buyer_total_amount`, `pricing_model_version`) `NOT NULL` going forward.
+Apply the rename at the point of read, e.g.
 
----
+```ts
+const sellerNet     = Number(pricing?.seller_payout_amount ?? 0);
+const processingFee = Number(pricing?.payment_processing_fee_amount ?? 0);
+const buyerTotal    = Number(pricing?.buyer_total_amount ?? 0);
+```
 
-## Scope (in)
+### B. Response shape: derive `service_fee_amount`
 
-### 1. Stop writing legacy columns
+The DB has no `service_fee_amount` column. The "Total Service Fee" exposed to the UI is `platform_fee_amount + payment_processing_fee_amount` (capped — capping is already done at write time).
 
-Remove the `processing_fee_amount` and `seller_net_amount` keys from every `INSERT`/`UPDATE` payload into `transaction_pricing`:
+Files to update:
+- `supabase/functions/seller-transaction-detail/index.ts` lines 231–263 — replace `service_fee_amount: pr.service_fee_amount` with `service_fee_amount: Number(pricingRow.platform_fee_amount) + Number(pricingRow.payment_processing_fee_amount)` in both the `pricingRow` branch and the escrow-fallback branch.
+- `supabase/functions/_shared/safedeal-money-policy.ts` — `snapshotFromPersisted`: derive `service_fee_amount` from canonical columns only; drop the `processing_fee_amount`/`seller_net_amount` branches from the input type and body (canonical columns are NOT NULL post-Phase-7).
+- Any other reader returning `service_fee_amount` in JSON: same derivation.
 
-- `supabase/functions/create-transaction/index.ts`
-- `supabase/functions/cart-checkout/index.ts` (both insert + retry-update paths)
-- `supabase/functions/storefront-checkout/index.ts`
-- `supabase/functions/claim-offer/index.ts`
+### C. Screen-by-screen impact this resolves
 
-Verify there are no other writers via `rg "from\\(\"transaction_pricing\"\\)" supabase/functions`.
+| Screen | Endpoint | Failure mode now | Fixed by |
+| --- | --- | --- | --- |
+| Seller Dashboard KPIs (₦0 across all six cards) | `seller-dashboard` | OK select today, but blocked indirectly because the page also calls `seller-payouts` whose 4 selects 42703-fail and zero out "Total Released / Pending Release / Held in Escrow / On Hold" | A (seller-payouts) |
+| Seller Transactions list ("Gross ₦0 · Net to seller ₦0") | `seller-transactions` | Selects are clean; UI binds to `tx.amount` and `tx.seller_net`. Already returns correct values — re-verify after deploy and confirm no stale build | Verification only |
+| Seller Analytics ("We couldn't load analytics") | `seller-analytics` | Embedded `transaction_pricing(...)` returns 42703 because deployed function still names `seller_net_amount`. Repo file is already correct → just needs deploy | Redeploy |
+| Seller Payouts (Gross/Fees columns ₦0, Upcoming Releases ₦0, Blocked/Delayed Funds ₦0) | `seller-payouts` | 4 selects name dropped columns → all `pricing` maps empty | A |
+| Private Offers list (last row ₦0 with 0 items) | `seller-offers` | Pricing comes from offer items, not `transaction_pricing`; ₦0 row is intentional (empty offer). No fix needed | Verification only |
+| Seller Transaction Detail (`/seller/transactions/:id`) — Total Service Fee ₦0 | `seller-transaction-detail` | `service_fee_amount` derived from missing column | B |
+| Buyer Tracking / Buyer Transaction Detail | `transaction-detail` | Re-computes pricing from `item_amount` only — UI shows non-zero for tiered fees but loses persisted cap/snapshot. Switch to canonical persisted columns for consistency | B (optional) |
+| Admin Transaction Detail | `admin-transaction-detail` | Selects are canonical; already correct. Verify only | Verification only |
+| Admin Payouts (list + detail) | `admin-payouts-list`, `admin-payouts-detail` | Both still select dropped `total_amount` → 42703 → zero | A |
 
-### 2. Stop reading legacy columns (remove `??` fallbacks)
+### D. Out of scope
 
-Switch every read site to canonical-only. Drop the legacy column from the `.select(...)` list and the `?? p.seller_net_amount` / `?? processing_fee_amount` expressions:
-
-- `admin-payouts-list`, `admin-payouts-detail`
-- `admin-transactions-monitor`, `admin-transaction-detail`
-- `transaction-verify`
-- `seller-transactions`, `seller-transaction-detail`, `seller-dashboard`, `seller-analytics`, `seller-disputes`
-- `src/services/transaction-detail.service.ts`, `src/services/seller-transaction-detail.service.ts`, `src/services/verification.service.ts`, `src/services/create-transaction.service.ts`
-
-Any place that currently derives a value via `pr.paystack_fee_amount` because the pricing row was null becomes unreachable post-Phase 7; replace with a hard error (`throw new Error("missing pricing snapshot")`) — by definition this should never fire once gating is met.
-
-### 3. Type cleanup
-
-In `src/types/payment-flow.types.ts`:
-- Remove the `@deprecated processing_fee_amount` and `seller_net_amount` optional fields from `PricingSnapshot`.
-- Tighten `payment_processing_fee_amount` and `seller_payout_amount` from `number | null` to `number`.
-- Drop the "locked legacy rows render —" comment block.
-
-Mirror the tightening in the service-layer DTOs that re-export pricing fields.
-
-### 4. Database migration — drop legacy columns + harden canonical
-
-One migration, in this order:
-
-1. **Pre-flight assertion** (DO block): `SELECT count(*) FROM transaction_pricing WHERE payment_processing_fee_amount IS NULL OR seller_payout_amount IS NULL OR buyer_total_amount IS NULL OR platform_fee_amount IS NULL OR pricing_model_version IS NULL` — `RAISE EXCEPTION` if non-zero. This makes the migration self-aborting if Phase 6 gating was bypassed.
-2. `ALTER TABLE public.transaction_pricing ALTER COLUMN payment_processing_fee_amount SET NOT NULL`, same for `seller_payout_amount`, `buyer_total_amount`, `platform_fee_amount`, `service_fee_amount` (where applicable), `pricing_model_version`.
-3. `ALTER TABLE public.transaction_pricing DROP COLUMN processing_fee_amount, DROP COLUMN seller_net_amount`.
-4. Recreate any view that referenced the dropped columns (none expected — confirm via `pg_views` query during exploration).
-5. Update `v_pricing_snapshot_coverage` / `v_pricing_snapshot_audit` to remove the `snapshot_legacy` branch — it becomes structurally impossible. Status enum collapses to `snapshot_complete | snapshot_missing`.
-
-GRANTs and RLS untouched (no new tables).
-
-### 5. Reconciliation job follow-up
-
-In `supabase/functions/reconcile-escrow/index.ts`:
-- Remove `snapshot_legacy` branch from the pricing audit pass.
-- Update the admin screen's "Phase 7 readiness" banner copy to "Canonical snapshot enforced — Phase 7 complete." once the migration has shipped.
-- Leave the hourly job in place; it now only flags `snapshot_missing` (which should be 0) and escrow `drift`.
-
-### 6. Admin UI cleanup
-
-`src/pages/AdminReconciliation.tsx`:
-- Drop the `snapshot_legacy` KPI card.
-- Replace the readiness banner with a static "Phase 7 complete" success state when coverage is 100% complete.
-
----
-
-## Scope (out)
-
-- No changes to fee math or `money-copy.ts`.
-- No changes to `escrow_ledger_entries`, payouts, refunds, or Paystack integration.
-- No buyer/seller-facing copy changes beyond the admin banner.
-- No retroactive backfill — gating guarantees the data is already canonical.
-
----
-
-## Technical details
-
-**File counts (estimate)**: ~14 edge functions touched (delete-only edits), 4 service files, 1 types file, 1 migration, 1 admin page, 1 reconciliation job. Net code is **negative** — Phase 7 removes lines.
-
-**Migration safety**: The pre-flight `RAISE EXCEPTION` makes the migration atomic. If a single row is non-canonical, the entire migration rolls back and no columns are dropped.
-
-**Generated types**: `src/integrations/supabase/types.ts` will regenerate automatically after the migration and lose the legacy column keys — any remaining `?? row.seller_net_amount` reference will become a TypeScript error, which acts as a second safety net.
-
-**Sequencing**: ship code changes (steps 1–3, 5, 6) **before** the migration (step 4). That way the running app stops reading/writing legacy columns first, then the migration drops them. If anything goes wrong, the migration aborts cleanly and the code is still valid because canonical columns are populated.
-
----
+- No new SQL migration. No new columns.
+- No UI redesign. Component contracts (`pricing.service_fee_amount`, `pricing.seller_net_amount` aliases, `pricing.buyer_total_amount`, `pricing.total_amount`) stay the same — they're already preserved as response aliases or derived values.
+- No writer-path changes. Writers were updated in Phase 7 and DB rows are already correct.
 
 ## Verification
 
-1. Pre-migration: `SELECT count(*) FROM transaction_pricing WHERE payment_processing_fee_amount IS NULL` returns 0.
-2. `tsc --noEmit` clean after type tightening — any missed legacy reference fails the build.
-3. Edge-function deploy: every touched function deploys without errors.
-4. Run `reconcile-escrow` manually with 24h lookback — expect 0 `snapshot_legacy`, 0 `snapshot_missing`, 0 `drift`.
-5. Admin reconciliation page renders the "Phase 7 complete" banner.
-6. Smoke a full buyer flow (create transaction → pay → seller confirm → payout) and verify the pricing snapshot rows are populated correctly and no UI shows `—` placeholders.
-
----
+1. **Static**: `rg "\.select\([^)]*(seller_net_amount|processing_fee_amount|service_fee_amount|total_amount[^_])" supabase/functions/` returns no matches.
+2. **Deploy** the affected edge functions.
+3. **Edge logs**: re-pull `seller-analytics`, `seller-payouts`, `admin-payouts-list`, `admin-payouts-detail` logs and assert no `42703` / `column ... does not exist` errors.
+4. **Smoke** with existing tx `06c3374c-b4ac-4f91-9859-ba7a598f2125` (DB: item=12,345, buyer_total=12,880, seller_payout=12,095):
+   - `seller-transaction-detail` → `pricing.item_amount=12345`, `service_fee_amount=535`, `seller_net_amount=12095`, `buyer_total_amount=12880`.
+   - `transaction-detail` (buyer) → non-zero `pricing.total_amount` and `service_fee_amount`.
+   - `admin-transaction-detail` → `pricing.itemTotal`, `protectionFee`, `paymentProcessingFee`, `totalCharged`, `sellerNet` all non-zero.
+   - `seller-payouts` → `gross_amount`, `fees`, `net_payout` non-zero; Upcoming Releases and Blocked/Delayed cards show real ₦.
+   - `seller-dashboard` → six KPI cards render the real totals from screenshot 1.
+   - `seller-analytics` → response 200, no error banner.
+5. **UI spot-check** `/seller`, `/seller/transactions`, `/seller/transactions/:id`, `/seller/analytics`, `/seller/payouts`, `/buyer/transactions/:id`, `/admin/transactions/:id`, `/admin/payouts` — confirm real ₦ values.
 
 ## Rollback
 
-The migration is destructive (columns dropped). Two-stage rollback:
+Code-only rollback. No schema change to undo.
 
-- **Code rollback only** (legacy columns still dropped): redeploy prior edge-function versions that read canonical-only. They still work because canonical is `NOT NULL`.
-- **Full rollback** (re-add legacy columns): a follow-up migration re-adds `processing_fee_amount` and `seller_net_amount` as nullable, then a backfill `UPDATE transaction_pricing SET processing_fee_amount = payment_processing_fee_amount, seller_net_amount = seller_payout_amount`. This is recoverable but unnecessary — canonical data is a strict superset.
+## Estimated change
 
-Recommendation: keep code rollback as the primary path; treat the migration as one-way.
-
----
-
-## Risk
-
-**Low-to-medium**, mitigated by gating:
-
-- The Phase 6 readiness banner + the migration's `RAISE EXCEPTION` are belt-and-suspenders against premature execution.
-- Risk of a missed `?? legacy` reference becoming a runtime null is eliminated by the `NOT NULL` constraint + TypeScript regeneration.
-- No financial side-effects — Phase 7 is structural cleanup, not money math.
-
----
-
-## Estimated work
-
-- 1 migration (pre-flight, NOT NULL, DROP COLUMN, view update).
-- ~14 edge functions edited (line removals only).
-- 4 service/type files tightened.
-- 1 admin page + 1 reconciliation job pruned.
-- No new tables, no new routes, no new copy.
-
-After Phase 7 ships and the reconciliation job runs cleanly for 7 days, the SafeDeal escrow stack is fully on the canonical pricing model with no legacy debt. **This concludes the multi-phase pricing migration.**
+~7 edge functions + 1 shared module. Net diff small (column-name corrections + one derivation line per response builder). Phases remaining after this: **0**.

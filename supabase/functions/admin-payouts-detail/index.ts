@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
   const [{ data: tx }, { data: pricing }, { data: account }, { data: accountState }, { data: profile }, { data: queue }, { data: notes }, { data: events }, { data: dispute }, { data: investigation }, { data: refunds }, { data: payment }] = await Promise.all([
     admin.from("transactions").select("id, transaction_code, status, money_status, dispute_status, needs_release_review, needs_admin_review, source_product_id, buyer_id, seller_id, created_at").eq("id", payout.transaction_id).maybeSingle(),
-    admin.from("transaction_pricing").select("item_amount, platform_fee_amount, payment_processing_fee_amount, seller_payout_amount, buyer_total_amount, total_amount, currency_code, is_total_service_fee_capped, pricing_model_version").eq("transaction_id", payout.transaction_id).maybeSingle(),
+    admin.from("transaction_pricing").select("item_amount, platform_fee_amount, payment_processing_fee_amount, seller_payout_amount, buyer_total_amount, currency_code, is_total_service_fee_capped, pricing_model_version").eq("transaction_id", payout.transaction_id).maybeSingle(),
     admin.from("payout_accounts").select("*").eq("user_id", payout.seller_id).maybeSingle(),
     admin.from("v_payout_account_state").select("account_state").eq("user_id", payout.seller_id).maybeSingle(),
     admin.from("profiles").select("id, full_name, email, avatar_url").eq("id", payout.seller_id).maybeSingle(),
@@ -77,11 +77,9 @@ Deno.serve(async (req) => {
     : null;
   const totalCharged = hasPricing && pricing!.buyer_total_amount != null
     ? Number(pricing!.buyer_total_amount)
-    : hasPricing && pricing!.total_amount != null
-      ? Number(pricing!.total_amount)
-      : (itemTotal != null && protectionFee != null && paymentProcessingFee != null
-          ? itemTotal + protectionFee + paymentProcessingFee
-          : null);
+    : (itemTotal != null && protectionFee != null && paymentProcessingFee != null
+        ? itemTotal + protectionFee + paymentProcessingFee
+        : null);
   // Seller payout always comes from payouts.amount (single source of truth)
   const sellerPayout = Number(payout.amount ?? 0);
 
