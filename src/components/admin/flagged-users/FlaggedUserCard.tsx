@@ -15,7 +15,7 @@ const REASON_PILL: Record<string, string> = {
   identity_issues: "bg-orange-500/10 border-orange-500/20 text-orange-400",
   suspicious_activity: "bg-yellow-500/10 border-yellow-500/20 text-yellow-300",
   fraud_detection: "bg-purple-500/10 border-purple-500/20 text-purple-300",
-  stuck_escrow: "bg-purple-500/10 border-purple-500/20 text-purple-300",
+  stuck_frozen_escrow: "bg-purple-500/10 border-purple-500/20 text-purple-300",
   admin_flag: "bg-blue-500/10 border-blue-500/20 text-blue-300",
 };
 

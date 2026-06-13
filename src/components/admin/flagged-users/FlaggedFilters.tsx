@@ -49,7 +49,7 @@ export function FlaggedFilters({ value, search, onChange, onSearchChange, onAppl
               <option value="chargeback_pattern">Chargeback Pattern</option>
               <option value="identity_issues">Identity Issues</option>
               <option value="fraud_detection">Fraud Detection</option>
-              <option value="stuck_escrow">Stuck/Frozen Escrow</option>
+              <option value="stuck_frozen_escrow">Stuck/Frozen Escrow</option>
               <option value="admin_flag">Admin Flag</option>
             </select>
           </div>
