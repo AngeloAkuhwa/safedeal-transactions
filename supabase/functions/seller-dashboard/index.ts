@@ -222,13 +222,16 @@ Deno.serve(async (req) => {
     if (amountTxIds.length > 0) {
       const { data: pricingData } = await adminClient
         .from("transaction_pricing")
-        .select("transaction_id, seller_net_amount, buyer_total_amount")
+        .select("transaction_id, seller_net_amount, seller_payout_amount, buyer_total_amount")
         .in("transaction_id", amountTxIds);
       if (pricingData) {
         const pricingMap = new Map(
           pricingData.map((p: Record<string, unknown>) => [
             p.transaction_id as string,
-            { sellerNet: (p.seller_net_amount as number) ?? 0, buyerTotal: (p.buyer_total_amount as number) ?? 0 },
+            {
+              sellerNet: Number((p.seller_payout_amount as number | null) ?? (p.seller_net_amount as number | null) ?? 0),
+              buyerTotal: Number((p.buyer_total_amount as number | null) ?? 0),
+            },
           ])
         );
         for (const id of awaitingPaymentTxIds) awaitingBuyerPaymentAmount += pricingMap.get(id)?.buyerTotal ?? 0;
