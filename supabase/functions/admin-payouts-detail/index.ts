@@ -45,10 +45,11 @@ Deno.serve(async (req) => {
   if (pErr) return json({ error: "payout_fetch_failed", detail: pErr.message }, 500);
   if (!payout) return json({ error: "not_found" }, 404);
 
-  const [{ data: tx }, { data: pricing }, { data: account }, { data: profile }, { data: queue }, { data: notes }, { data: events }, { data: dispute }, { data: investigation }, { data: refunds }, { data: payment }] = await Promise.all([
+  const [{ data: tx }, { data: pricing }, { data: account }, { data: accountState }, { data: profile }, { data: queue }, { data: notes }, { data: events }, { data: dispute }, { data: investigation }, { data: refunds }, { data: payment }] = await Promise.all([
     admin.from("transactions").select("id, transaction_code, status, money_status, dispute_status, needs_release_review, needs_admin_review, source_product_id, buyer_id, seller_id, created_at").eq("id", payout.transaction_id).maybeSingle(),
-    admin.from("transaction_pricing").select("item_amount, platform_fee_amount, processing_fee_amount, total_amount, currency_code").eq("transaction_id", payout.transaction_id).maybeSingle(),
+    admin.from("transaction_pricing").select("item_amount, platform_fee_amount, processing_fee_amount, payment_processing_fee_amount, seller_payout_amount, seller_net_amount, buyer_total_amount, total_amount, currency_code, is_total_service_fee_capped, pricing_model_version").eq("transaction_id", payout.transaction_id).maybeSingle(),
     admin.from("payout_accounts").select("*").eq("user_id", payout.seller_id).maybeSingle(),
+    admin.from("v_payout_account_state").select("account_state").eq("user_id", payout.seller_id).maybeSingle(),
     admin.from("profiles").select("id, full_name, email, avatar_url").eq("id", payout.seller_id).maybeSingle(),
     admin.from("release_review_queue").select("id, queue_type, status, notes, entered_queue_at, resolved_at").eq("transaction_id", payout.transaction_id).order("created_at", { ascending: false }),
     admin.from("admin_transaction_notes").select("id, note, created_at, admin_user_id").eq("transaction_id", payout.transaction_id).order("created_at", { ascending: false }).limit(20),
@@ -71,10 +72,18 @@ Deno.serve(async (req) => {
   const itemTotal = hasPricing && pricing!.item_amount != null ? Number(pricing!.item_amount) : null;
   const rawProtection = hasPricing && pricing!.platform_fee_amount != null ? Number(pricing!.platform_fee_amount) : null;
   const protectionFee = rawProtection != null ? Math.min(rawProtection, MAX_PROTECTION_FEE) : null;
-  const paymentProcessingFee = hasPricing && pricing!.processing_fee_amount != null ? Number(pricing!.processing_fee_amount) : null;
-  const totalCharged = (itemTotal != null && protectionFee != null && paymentProcessingFee != null)
-    ? itemTotal + protectionFee + paymentProcessingFee
+  const paymentProcessingFee = hasPricing
+    ? (pricing!.payment_processing_fee_amount != null
+        ? Number(pricing!.payment_processing_fee_amount)
+        : (pricing!.processing_fee_amount != null ? Number(pricing!.processing_fee_amount) : null))
     : null;
+  const totalCharged = hasPricing && pricing!.buyer_total_amount != null
+    ? Number(pricing!.buyer_total_amount)
+    : hasPricing && pricing!.total_amount != null
+      ? Number(pricing!.total_amount)
+      : (itemTotal != null && protectionFee != null && paymentProcessingFee != null
+          ? itemTotal + protectionFee + paymentProcessingFee
+          : null);
   // Seller payout always comes from payouts.amount (single source of truth)
   const sellerPayout = Number(payout.amount ?? 0);
 
@@ -239,6 +248,7 @@ Deno.serve(async (req) => {
       verification_status: account.verification_status,
       has_recipient_code: !!account.provider_recipient_code,
       last_verified_at: account.verified_at ?? null,
+      account_state: (accountState as any)?.account_state ?? null,
     } : null,
     payment: payment ?? null,
     refunds: refunds ?? [],
