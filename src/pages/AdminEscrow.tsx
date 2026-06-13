@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, FileText, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { EscrowKpiCards } from "@/components/admin/escrow/EscrowKpiCards";
@@ -12,7 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { fetchEscrowOverview, type EscrowQuery } from "@/services/admin-escrow.service";
 
 const TITLE = "Escrow Overview";
-const SUBTITLE = "Monitor escrow balances, alerts, and active transactions";
+const SUBTITLE = "Real-time financial control center for all platform escrow funds";
 
 const DEFAULTS: EscrowQuery = {
   state: "all",
@@ -57,25 +57,23 @@ export default function AdminEscrow() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               Live
             </span>
-            <span className="text-xs text-slate-400">
-              Updated {new Date().toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-[11px] font-medium">
+              <Clock className="h-3 w-3" />
+              Last updated {new Date().toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <button type="button" disabled className="px-3 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm font-medium inline-flex items-center gap-2 cursor-not-allowed opacity-70">
+              <Download className="h-4 w-4" /> <span className="hidden sm:inline">Export Report</span>
+            </button>
             <button
               type="button"
               onClick={() => void refetch()}
               disabled={isFetching}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-sm font-medium inline-flex items-center gap-2 disabled:opacity-50"
+              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-50"
             >
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
-            <button type="button" disabled className="px-3 py-2 bg-slate-800 text-slate-400 rounded-lg text-sm font-medium inline-flex items-center gap-2 cursor-not-allowed">
-              <Download className="h-4 w-4" /> <span className="hidden sm:inline">Export</span>
-            </button>
-            <button type="button" disabled className="px-3 py-2 bg-emerald-600/60 text-white rounded-lg text-sm font-semibold inline-flex items-center gap-2 cursor-not-allowed">
-              <FileText className="h-4 w-4" /> <span className="hidden sm:inline">Audit Report</span>
+              <span className="hidden sm:inline">Refresh Data</span>
             </button>
           </div>
         </div>
