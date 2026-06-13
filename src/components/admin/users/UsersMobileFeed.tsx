@@ -144,15 +144,19 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                       <p className="text-white font-bold text-lg">
                         {r.transactions.count}{" "}
                         <span className="text-[10px] font-normal text-slate-400">
-                          ({r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume) : "—"})
+                          ({r.transactions.resolved > 0
+                            ? `${r.transactions.resolved} resolved`
+                            : r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume) : "—"})
                         </span>
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Disputes</p>
                       {r.disputes.active > 0
-                        ? <p className="text-red-400 font-bold text-lg">{r.disputes.active} Active</p>
-                        : <p className="text-slate-400 font-bold text-sm">Clean record</p>}
+                        ? <p className="text-red-400 font-bold text-sm">Active disputes</p>
+                        : r.disputes.total > 0
+                          ? <p className="text-yellow-400 font-bold text-sm">In progress</p>
+                          : <p className="text-slate-400 font-bold text-sm">Clean record</p>}
                     </div>
                   </>
                 )}
