@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
+import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

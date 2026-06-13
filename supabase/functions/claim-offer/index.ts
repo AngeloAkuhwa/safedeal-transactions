@@ -2,6 +2,7 @@
 // Locked responsibility: validate → link → reuse-or-create tx → return redirect_to.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
+import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -307,6 +308,7 @@ async function createTransactionFromOffer(adminClient: any, offer: any, buyerId:
 
   const totalAmount = items.reduce((sum, it) => sum + (Number(it.unit_price_snapshot) * (it.quantity || 1)), 0);
   const pricing = computePricing(totalAmount, currencyCode);
+  const snapshot = buildPricingSnapshot(totalAmount, currencyCode);
 
   const { data: codeData } = await adminClient.rpc("generate_transaction_code");
   const transactionCode = codeData ?? `SD-${Date.now()}`;
@@ -366,6 +368,10 @@ async function createTransactionFromOffer(adminClient: any, offer: any, buyerId:
       processing_fee_amount: pricing.paystack_fee_amount,
       seller_net_amount: totalAmount - pricing.platform_fee_amount,
       buyer_total_amount: pricing.total_amount,
+      payment_processing_fee_amount: snapshot.payment_processing_fee_amount,
+      seller_payout_amount: snapshot.seller_payout_amount,
+      is_total_service_fee_capped: snapshot.is_total_service_fee_capped,
+      pricing_model_version: snapshot.pricing_model_version,
     }),
     adminClient.from("transaction_delivery_terms").insert({
       transaction_id: txId,

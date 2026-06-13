@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
+import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -134,6 +135,7 @@ Deno.serve(async (req) => {
         groupItemAmount += product.unit_price * cartItem.quantity;
       }
       const pricing = computePricing(groupItemAmount, items[0].product.currency_code);
+      const snapshot = buildPricingSnapshot(groupItemAmount, items[0].product.currency_code);
       sellerGroupPricings.set(sellerId, pricing);
       totalProtectionFee += pricing.service_fee_amount;
     }
@@ -203,6 +205,10 @@ Deno.serve(async (req) => {
           processing_fee_amount: pricing.paystack_fee_amount,
           seller_net_amount: groupItemAmount,
           buyer_total_amount: pricing.total_amount,
+          payment_processing_fee_amount: snapshot.payment_processing_fee_amount,
+          seller_payout_amount: snapshot.seller_payout_amount,
+          is_total_service_fee_capped: snapshot.is_total_service_fee_capped,
+          pricing_model_version: snapshot.pricing_model_version,
         }).eq("transaction_id", transactionId);
       } else {
         // Create new transaction
@@ -271,6 +277,10 @@ Deno.serve(async (req) => {
             processing_fee_amount: pricing.paystack_fee_amount,
             seller_net_amount: groupItemAmount,
             buyer_total_amount: pricing.total_amount,
+            payment_processing_fee_amount: snapshot.payment_processing_fee_amount,
+            seller_payout_amount: snapshot.seller_payout_amount,
+            is_total_service_fee_capped: snapshot.is_total_service_fee_capped,
+            pricing_model_version: snapshot.pricing_model_version,
           }),
           admin.from("transaction_delivery_terms").insert({
             transaction_id: transactionId,
