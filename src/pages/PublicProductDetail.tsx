@@ -145,10 +145,11 @@ const PublicProductDetail = () => {
     toast.success("Link copied to clipboard!");
   };
 
-  const stockStatus = product.stock_quantity === 0
+  const availableQty = Math.max(0, (product.stock_quantity ?? 0) - (product.reserved_quantity ?? 0));
+  const stockStatus = availableQty === 0
     ? { label: "Out of Stock", cls: "bg-destructive/10 text-destructive border-destructive/20", dot: "bg-destructive" }
-    : product.stock_quantity <= 5
-    ? { label: `Only ${product.stock_quantity} left`, cls: "bg-amber-500/10 text-amber-600 border-amber-500/20", dot: "bg-amber-500" }
+    : availableQty <= 5
+    ? { label: `Only ${availableQty} left`, cls: "bg-amber-500/10 text-amber-600 border-amber-500/20", dot: "bg-amber-500" }
     : { label: "In Stock", cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", dot: "bg-emerald-500" };
 
   // Parse agreement terms into titled bullets
@@ -341,8 +342,8 @@ const PublicProductDetail = () => {
               <span className="w-10 text-center text-sm font-semibold">{quantity}</span>
               <button
                 className="h-9 w-9 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors disabled:opacity-50"
-                onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))}
-                disabled={quantity >= product.stock_quantity}
+                onClick={() => setQuantity(Math.min(availableQty, quantity + 1))}
+                disabled={quantity >= availableQty}
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -354,7 +355,7 @@ const PublicProductDetail = () => {
             size="lg"
             className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
             onClick={handleBuyCTA}
-            disabled={product.stock_quantity === 0 || addingToCart}
+            disabled={availableQty === 0 || addingToCart}
           >
             {addingToCart ? <Loader2 className="h-5 w-5 animate-spin" /> : inCart ? <ShoppingCart className="h-5 w-5" /> : <ShieldCheck className="h-5 w-5" />}
             {addingToCart ? "Adding..." : inCart ? "View in Cart" : "Add to Cart"}

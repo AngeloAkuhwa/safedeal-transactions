@@ -4,6 +4,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { formatMoney } from "@/lib/format";
+import { getAvailableQuantity } from "@/lib/inventory";
 import {
   resolveProductStatusLabel,
   TONE_CLASSNAMES,
@@ -17,6 +18,7 @@ interface SellerProductCardProps {
     unit_price: number;
     currency_code: string;
     stock_quantity: number;
+    reserved_quantity?: number | null;
     status?: string;
     visibility_type?: string;
     primary_image_url?: string | null;
@@ -51,8 +53,10 @@ const visibilityConfig: Record<string, { label: string; bg: string; text: string
 };
 
 export function SellerProductCard({ product, onClick, onEdit, onManageVisibility, onUpdateStock, onDuplicate }: SellerProductCardProps) {
-  const isOutOfStock = product.stock_quantity === 0;
-  const isLowStock = product.stock_quantity >= 1 && product.stock_quantity <= 5;
+  const available = getAvailableQuantity(product);
+  const reserved = Number(product.reserved_quantity ?? 0);
+  const isOutOfStock = available === 0;
+  const isLowStock = available >= 1 && available <= 5;
   const statusEntry = resolveProductStatusLabel(product.status || "draft");
   const statusClass = TONE_CLASSNAMES[statusEntry.tone];
   const visibility = visibilityConfig[product.visibility_type || "public"] || visibilityConfig.public;
@@ -124,7 +128,9 @@ export function SellerProductCard({ product, onClick, onEdit, onManageVisibility
             <span className={`text-xs font-medium ${stockText}`}>{stockLabel}</span>
           </div>
           <span className="text-xs text-muted-foreground">
-            Qty: {product.stock_quantity}
+            {reserved > 0
+              ? `${available} avail · ${reserved} reserved`
+              : `Qty: ${product.stock_quantity}`}
           </span>
         </div>
 

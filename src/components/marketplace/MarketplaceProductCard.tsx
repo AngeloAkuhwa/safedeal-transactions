@@ -11,6 +11,7 @@ import { toast } from "@/components/ui/sonner";
 import { addToCart } from "@/services/cart.service";
 import { useQueryClient } from "@tanstack/react-query";
 import type { MarketplaceProduct } from "@/services/marketplace.service";
+import { getAvailableQuantity } from "@/lib/inventory";
 
 interface Props {
   product: MarketplaceProduct;
@@ -45,8 +46,9 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
   const [addingToCart, setAddingToCart] = useState(false);
 
   const isSaved = (savedIds || []).includes(product.id);
-  const outOfStock = product.stock_quantity <= 0;
-  const lowStock = product.stock_quantity > 0 && product.stock_quantity <= 5;
+  const available = getAvailableQuantity(product);
+  const outOfStock = available <= 0;
+  const lowStock = available > 0 && available <= 5;
   const seller = product.seller;
   const sellerInitial = (seller.full_name || "S")[0].toUpperCase();
 
