@@ -300,22 +300,15 @@ export default function AdminPayouts() {
             type="button"
             onClick={() => setMobileFiltersOpen((v) => !v)}
             aria-label="Toggle filters"
-            className={`w-11 h-11 rounded-xl border border-slate-800 flex items-center justify-center flex-shrink-0 ${mobileFiltersOpen ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-slate-900 text-slate-400"}`}
+            className={`w-11 h-11 rounded-xl border flex items-center justify-center flex-shrink-0 ${mobileFiltersOpen ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-slate-900 text-slate-400 border-slate-800"}`}
           >
             <SlidersHorizontal className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={handleExport}
-            aria-label="Export report"
-            className="w-11 h-11 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 flex items-center justify-center flex-shrink-0"
-          >
-            <Download className="h-4 w-4" />
           </button>
         </div>
         {mobileFiltersOpen && (
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
             <PayoutAdvancedFilters
+              variant="mobile"
               value={filters}
               onChange={(next) => {
                 setFilters(next);
@@ -361,6 +354,19 @@ export default function AdminPayouts() {
         </div>
         {/* Mobile cards */}
         <div className="lg:hidden pb-20">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-white text-sm font-semibold">
+              Payout Records{" "}
+              <span className="text-slate-500 font-normal">{pagination?.total ?? rows.length}</span>
+            </h3>
+            <button
+              type="button"
+              onClick={() => { loadList(); loadSummary(); }}
+              className="text-slate-400 text-xs flex items-center gap-1 hover:text-white"
+            >
+              Refresh
+            </button>
+          </div>
           <PayoutMobileCards
             rows={rows} loading={listLoading}
             selected={selectedIds}
