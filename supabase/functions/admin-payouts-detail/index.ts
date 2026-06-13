@@ -85,7 +85,10 @@ Deno.serve(async (req) => {
 
   const investigationOpen = investigation && ["open","under_review","escalated"].includes(investigation.status);
   const refundInFlight = (refunds ?? []).some((r: any) => ["pending","processing"].includes(r.status));
-  const openQueue = (queue ?? []).find((q: any) => ["pending","claimed","processing"].includes(q.status));
+  const openQueue = (queue ?? []).find((q: any) =>
+    ["pending","claimed","processing","awaiting_info","held"].includes(q.status)
+    && q.queue_type !== "ready_for_release"
+  );
   const activeDisputeStatuses = new Set(["open","under_review","awaiting_response","escalated","pending"]);
   const hasActiveDispute = !!(dispute && dispute.status && activeDisputeStatuses.has(String(dispute.status).toLowerCase()))
     || !!(tx?.dispute_status && activeDisputeStatuses.has(String(tx.dispute_status).toLowerCase()));
