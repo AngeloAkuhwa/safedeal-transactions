@@ -14,6 +14,7 @@ import { PayoutMobileCards } from "@/components/admin/payouts/PayoutMobileCards"
 import { PayoutDetailDrawer } from "@/components/admin/payouts/PayoutDetailDrawer";
 import * as payoutsApi from "@/services/admin-payouts.service";
 import type { PayoutRow, PayoutDetail, PayoutSummary, PayoutTab, PayoutListResponse } from "@/services/admin-payouts.service";
+import { exportPayoutsCsv } from "@/lib/payout-export";
 
 const SIDEBAR_BADGES = { disputes: 0, identity: 0, payouts: 0, flagged_users: 0, exports: 0 } as const;
 
@@ -177,6 +178,33 @@ export default function AdminPayouts() {
   const eligibleSelectedCount = selectedRows.filter((r) => eligibleForRelease(r).ok).length;
   const batchDisabled = batchProcessing || eligibleSelectedCount === 0;
 
+  function handleExport() {
+    if (rows.length === 0) {
+      toast({ title: "Nothing to export", description: "There are no payouts in the current filter." });
+      return;
+    }
+    exportPayoutsCsv(rows);
+    toast({ title: "Export ready", description: `Exported ${rows.length} payout${rows.length === 1 ? "" : "s"} to CSV.` });
+  }
+
+  async function handleProcessBatchClick() {
+    if (eligibleSelectedCount === 0) {
+      // Auto-select all eligible on current page
+      const eligible = rows.filter((r) => eligibleForRelease(r).ok);
+      if (eligible.length === 0) {
+        toast({ title: "No payouts eligible for release", description: "Adjust your filters and try again." });
+        return;
+      }
+      const ok = window.confirm(`Release ${eligible.length} eligible payout${eligible.length === 1 ? "" : "s"} on this page?`);
+      if (!ok) return;
+      setSelectedIds(new Set(eligible.map((r) => r.id)));
+      // Defer to next tick so selection is reflected
+      setTimeout(() => { handleBatchProcess(); }, 0);
+      return;
+    }
+    await handleBatchProcess();
+  }
+
   const headerSlot = (
     <div className="sticky top-0 z-30 hidden border-b border-border bg-card lg:block">
       <div className="flex items-start justify-between gap-4 px-8 py-5">
@@ -185,13 +213,13 @@ export default function AdminPayouts() {
           <p className="mt-1 text-sm text-muted-foreground">Monitor and manage seller payout processing</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button size="sm" className="gap-2 bg-slate-800 hover:bg-slate-700 text-foreground border border-slate-700">
+          <Button size="sm" className="gap-2 bg-slate-800 hover:bg-slate-700 text-foreground border border-slate-700" onClick={handleExport}>
             <Download className="h-4 w-4" /> Export Report
           </Button>
           <Button
             size="sm"
             className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-            onClick={handleBatchProcess}
+            onClick={handleProcessBatchClick}
             disabled={batchProcessing}
           >
             <Play className="h-4 w-4" /> Process Batch
