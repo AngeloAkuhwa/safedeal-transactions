@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
         .maybeSingle(),
       adminClient
         .from("transaction_pricing")
-        .select("item_amount, platform_fee_amount, processing_fee_amount, payment_processing_fee_amount, seller_net_amount, seller_payout_amount, buyer_total_amount, currency_code, is_total_service_fee_capped, pricing_model_version")
+        .select("item_amount, platform_fee_amount, payment_processing_fee_amount, seller_payout_amount, buyer_total_amount, currency_code, is_total_service_fee_capped, pricing_model_version")
         .eq("transaction_id", transactionId)
         .maybeSingle(),
       adminClient
@@ -222,25 +222,20 @@ Deno.serve(async (req) => {
         Number(pricingRow.item_amount) || 0,
         pricingRow.currency_code || "NGN",
       );
-      // SafeDeal canonical values: prefer persisted snapshot columns where
-      // present, fall back to derived values for legacy rows.
-      const sellerPayout = (pricingRow as any).seller_payout_amount != null
-        ? Number((pricingRow as any).seller_payout_amount)
-        : pr.item_amount; // MVP rule: seller_payout = item_amount
-      const paymentProcessingFee = (pricingRow as any).payment_processing_fee_amount != null
-        ? Number((pricingRow as any).payment_processing_fee_amount)
-        : pr.paystack_fee_amount;
+      // Phase 7: canonical snapshot columns are NOT NULL post-migration; read directly.
+      if ((pricingRow as any).seller_payout_amount == null || (pricingRow as any).payment_processing_fee_amount == null) {
+        throw new Error("missing pricing snapshot");
+      }
+      const sellerPayout = Number((pricingRow as any).seller_payout_amount);
+      const paymentProcessingFee = Number((pricingRow as any).payment_processing_fee_amount);
       computedPricing = {
         item_amount: pr.item_amount,
         platform_fee_amount: pr.platform_fee_amount,
         paystack_fee_amount: pr.paystack_fee_amount,
         // SafeDeal canonical:
         payment_processing_fee_amount: paymentProcessingFee,
-        // Legacy alias for older UI code:
-        processing_fee_amount: paymentProcessingFee,
         service_fee_amount: pr.service_fee_amount,
         service_fee_rate: pr.service_fee_rate,
-        seller_net_amount: sellerPayout,
         seller_payout_amount: sellerPayout,
         buyer_total_amount: pr.total_amount,
         currency_code: pr.currency_code,
@@ -254,10 +249,8 @@ Deno.serve(async (req) => {
         platform_fee_amount: pr.platform_fee_amount,
         paystack_fee_amount: pr.paystack_fee_amount,
         payment_processing_fee_amount: pr.paystack_fee_amount,
-        processing_fee_amount: pr.paystack_fee_amount,
         service_fee_amount: pr.service_fee_amount,
         service_fee_rate: pr.service_fee_rate,
-        seller_net_amount: pr.item_amount,
         seller_payout_amount: pr.item_amount,
         buyer_total_amount: pr.total_amount,
         currency_code: pr.currency_code,

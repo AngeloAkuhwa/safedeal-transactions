@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
       .from("transactions")
       .select(
         "id,status,money_status,buyer_confirmed_at,seller_confirmed_at,release_completed_at,delivered_at,created_at,completed_at,source_product_id," +
-          "transaction_pricing(seller_net_amount,buyer_total_amount,platform_fee_amount,processing_fee_amount,currency_code)"
+          "transaction_pricing(seller_payout_amount,buyer_total_amount,platform_fee_amount,payment_processing_fee_amount,currency_code)"
       )
       .eq("seller_id", userId)
       .limit(5000);
@@ -162,9 +162,9 @@ Deno.serve(async (req) => {
 
     for (const t of txRows) {
       const p = (t as any).transaction_pricing;
-      const net = num(p?.seller_net_amount);
+      const net = num(p?.seller_payout_amount);
       const gross = num(p?.buyer_total_amount);
-      const fees = num(p?.platform_fee_amount) + num(p?.processing_fee_amount);
+      const fees = num(p?.platform_fee_amount) + num(p?.payment_processing_fee_amount);
       const ms = t.money_status as string;
 
       if (ms === "funds_released") seller_net_released += net;
@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
       if (!["open","seller_response_pending","under_review"].includes(d.status)) continue;
       if (frozenIds.has(d.transaction_id)) continue;
       const t = txRows.find(x => x.id === d.transaction_id);
-      if (t) disputed_amount += num((t as any).transaction_pricing?.seller_net_amount);
+      if (t) disputed_amount += num((t as any).transaction_pricing?.seller_payout_amount);
     }
 
     const { count: failed_payouts_count } = await admin
@@ -235,9 +235,9 @@ Deno.serve(async (req) => {
         buckets.set(k, b);
       }
       const p = (t as any).transaction_pricing;
-      b.seller_net_released += num(p?.seller_net_amount);
+      b.seller_net_released += num(p?.seller_payout_amount);
       b.gross_sales += num(p?.buyer_total_amount);
-      b.fees_deducted += num(p?.platform_fee_amount) + num(p?.processing_fee_amount);
+      b.fees_deducted += num(p?.platform_fee_amount) + num(p?.payment_processing_fee_amount);
       b.completed_transactions += 1;
     }
     const trendData = [...buckets.values()].sort((a, b) => a.start_date.localeCompare(b.start_date));
@@ -258,7 +258,7 @@ Deno.serve(async (req) => {
       const p = (t as any).transaction_pricing;
       a.completed += 1;
       a.gross += num(p?.buyer_total_amount);
-      a.net += num(p?.seller_net_amount);
+      a.net += num(p?.seller_payout_amount);
       productAgg.set(t.source_product_id, a);
     }
     const topIds = [...productAgg.entries()]

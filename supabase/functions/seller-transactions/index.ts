@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
           .in("transaction_id", txIds),
         adminClient
           .from("transaction_pricing")
-          .select("transaction_id, item_amount, buyer_total_amount, seller_net_amount, seller_payout_amount, platform_fee_amount, processing_fee_amount, payment_processing_fee_amount, currency_code")
+          .select("transaction_id, item_amount, buyer_total_amount, seller_payout_amount, platform_fee_amount, payment_processing_fee_amount, currency_code")
           .in("transaction_id", txIds),
         buyerIds.length > 0
           ? adminClient
@@ -166,9 +166,9 @@ Deno.serve(async (req) => {
           pricingMap.set(p.transaction_id, {
             amount: p.item_amount ?? 0,
             currency: p.currency_code ?? "NGN",
-            sellerNet: Number(p.seller_payout_amount ?? p.seller_net_amount ?? 0),
+            sellerNet: Number(p.seller_payout_amount ?? 0),
             platformFee: p.platform_fee_amount ?? 0,
-            processingFee: p.processing_fee_amount ?? 0,
+            processingFee: p.payment_processing_fee_amount ?? 0,
           });
         }
       }
@@ -329,11 +329,11 @@ Deno.serve(async (req) => {
     if (completedIds.length > 0) {
       const { data: completedPricing } = await adminClient
         .from("transaction_pricing")
-        .select("seller_net_amount, seller_payout_amount")
+        .select("seller_payout_amount")
         .in("transaction_id", completedIds);
       if (completedPricing) {
         for (const p of completedPricing) {
-          summary.total_earned += Number((p.seller_payout_amount as number | null) ?? (p.seller_net_amount as number | null) ?? 0);
+          summary.total_earned += Number((p.seller_payout_amount as number | null) ?? 0);
         }
       }
     }
