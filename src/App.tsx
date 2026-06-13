@@ -59,6 +59,7 @@ import AdminDisputes from "./pages/AdminDisputes";
 import AdminDisputeDetail from "./pages/AdminDisputeDetail";
 import AdminPayouts from "./pages/AdminPayouts";
 import AdminReconciliation from "./pages/AdminReconciliation";
+import AdminEscrow from "./pages/AdminEscrow";
 import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
