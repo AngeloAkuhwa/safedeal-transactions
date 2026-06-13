@@ -29,8 +29,16 @@ const formatPrice = (amount: number, currency = "NGN") => formatMoney(amount, cu
 
 function getStockStatus(item: CartItem) {
   if (!item.product) return { label: "Unavailable", variant: "destructive" as const, canCheckout: false };
-  const avail = item.product.available_quantity;
+  // Treat units the buyer themselves has reserved (via their own pending
+  // checkout session) as available — otherwise the cart row misleadingly
+  // shows "Sold Out" the moment they start checking out.
+  const ownReserved = item.product.own_reserved_quantity || 0;
+  const avail = item.product.available_quantity + ownReserved;
+  const hasPending = !!item.product.active_checkout_session_id;
   if (avail <= 0) return { label: "Sold Out", variant: "destructive" as const, canCheckout: false };
+  if (hasPending) {
+    return { label: "Checkout in progress", variant: "warning" as const, canCheckout: true };
+  }
   if (item.quantity > avail) return { label: `Only ${avail} left — reduce qty`, variant: "warning" as const, canCheckout: false };
   if (avail <= 3) return { label: `Low Stock (${avail} left)`, variant: "warning" as const, canCheckout: true };
   return { label: "In Stock", variant: "success" as const, canCheckout: true };
