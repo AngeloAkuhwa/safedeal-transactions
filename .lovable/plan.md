@@ -1,72 +1,75 @@
-## Goal
+## Review of the `/admin/users` wiring spec
 
-Bring `/admin/users` to a 100% visual match with the attached `Screenshift - User Directory.html` reference on both desktop and mobile, without changing already-correct wiring. The data flow, services, edge functions, summary calculations, drawer behavior, row actions, fraud hooks, URL filters, navigation, and loading/empty/error/permission states are already wired and working — those stay as-is. The remaining gap is purely presentation: the mobile layout currently renders our own simplified card feed instead of the reference mobile design, and a few desktop micro-details (avatar ring color logic, status chip wording for "Investigating"/"Active Now"/"Pending ID", and currency display) don't match the reference exactly.
+The 26-item acceptance spec you pasted is **already implemented** in prior turns. Below is a status audit mapped to your numbered criteria, plus the small gaps that are still worth closing.
 
-## Scope
+### Already done (no work needed)
 
-Frontend-only. No edge functions, no services, no routes, no DB.
+| Spec section | Status | Where it lives |
+|---|---|---|
+| 2 — Route `/admin/users` | Done | `src/App.tsx` (also `/admin/users/:id`) |
+| 3 — Uses `AdminLayout`, no sidebar copy | Done | `src/pages/AdminUsers.tsx` |
+| 4 — Files created | Done | `src/components/admin/users/*`, `src/services/admin-users-directory.service.ts`, three edge functions |
+| 5 — Backend sources, no direct table access from UI | Done | All queries via `admin-users-directory.service.ts` |
+| 6 — Admin guard server-side | Done | `requireAdmin` in every edge function |
+| 7–9 — URL params, drawer open via `?u=`, defaults | Done | `AdminUsers.tsx` |
+| 10–13 — `admin-users-directory` contract + summary calcs | Done | `supabase/functions/_shared/users-directory-engine.ts` (`new_this_month`, `new_per_day_avg`, `id_verified_pct` already added) |
+| 14–23 — Row contract, columns, status/verification/joined wiring | Done | `UsersTable.tsx` + engine |
+| 24 — 7-button action row (Profile, Tx, Disputes, Investigation, Impersonate placeholder, Flag/Unflag, Export) | Done | `UsersTable.tsx` |
+| 25 — Header bar with Live chip + total chip + Export + Add User toast | Done | `UsersHeaderBar.tsx` |
+| 26 — Export uses current filters, NGN, CSV | Done | `admin-users-directory-export` |
+| 27–30 — Drawer, sections, actions | Done | `UserDetailDrawer.tsx` + `admin-user-detail` |
+| 31 — Fraud hook (flag/clear/suspend through `admin-flagged-users-action`, query invalidations) | Done | `AdminUsers.tsx` |
+| 33–35 — Filters, search debounce, pagination, sorting | Done | `UsersFilters.tsx`, `AdminUsers.tsx` |
+| 36 — Risk/trust icons | Done | `UsersTable.tsx` ring + badge logic |
+| 38–40 — Loading skeletons, empty, error states | Done | `AdminUsers.tsx` |
+| 41 — Reason/note required for sensitive actions | Done | `ActionConfirmDialog` |
+| 42–43 — Impersonation + Add User placeholders | Done | Toast stubs |
+| Mobile port (top bar, stats carousel, filters sheet, card feed) | Done | `UsersMobileTopBar.tsx`, `UsersMobileStatsScroll.tsx`, `UsersAdvancedFiltersSheet.tsx`, `UsersMobileFeed.tsx` |
 
-## Files to edit
+### Remaining gaps to close (this is the only build work)
 
-1. `src/components/admin/users/UsersMobileTopBar.tsx` — replace with reference mobile header.
-2. `src/components/admin/users/UsersMobileFeed.tsx` — replace card layout with the reference's three-section card (avatar+name+status chip / two-column stats strip / 2-button + overflow action row).
-3. `src/components/admin/users/UsersTable.tsx` — small polish only (currency in NGN already, keep; ensure status chip text variants match reference: "Investigating", "Active Now", "Pending ID" when applicable). Action row already matches the previously approved 7-button set; no structural change.
-4. `src/pages/AdminUsers.tsx` — add the reference mobile sub-bar: a "Stats Carousel" (horizontal scroll of the 6 KPI cards on mobile, 40-width cards with icon-wrap+delta+label+value) and a "Directory Label & Filters" row ("USER DIRECTORY" + Filters button that opens the existing filters in a sheet). Desktop layout unchanged.
-5. `src/components/admin/users/UsersMobileStatsScroll.tsx` (new) — horizontal-scroll carousel of summary cards for mobile, matching reference markup.
-6. `src/components/admin/users/UsersAdvancedFiltersSheet.tsx` (new) — wraps existing `UsersFilters` in a bottom sheet triggered by the mobile "Filters" pill.
+1. **Spec 32 — Deep links from Transaction Detail and Dispute Detail**
+   - Add "Open Buyer in User Directory" / "Open Seller in User Directory" actions in `src/pages/AdminTransactionDetail.tsx` and `src/pages/AdminDisputeDetail.tsx`, routing to `/admin/users?u=<id>`.
+   - Currently missing — users can navigate `users → transactions/disputes` but not the reverse.
 
-No new icons libraries; reuse `lucide-react` (Users, UserCheck, Flag, Star, Clock, Filter, Search, Plus, ChevronLeft/Right, Mail, Phone, IdCard, ShieldHalf, Scale, User, MoreVertical).
+2. **Spec 20 — Transactions column secondary value**
+   - Reference shows "X resolved" when resolved count > 0, otherwise NGN volume. Engine returns `transactions.count` and `transactions.volume` but no `resolved` count. Add `resolved` to `UserDirectoryRow.transactions` in the engine, then surface in `UsersTable.tsx` and `UsersMobileFeed.tsx`.
 
-## Reference mapping (mobile)
+3. **Spec 21 — Disputes column wording**
+   - Reference uses "Active disputes" / "In progress" / "Clean record". `UsersTable.tsx` currently shows count + active badge only. Tighten the secondary label to match the three reference variants.
 
-Header bar (`UsersMobileTopBar`):
-- Left: hamburger button (`bg-slate-800`, rounded-lg).
-- Center-left: title "Users" + tiny live dot (`text-emerald-400 animate-pulse`) and `"{compact} Total"` (e.g. "347.8K Total"), uppercase tracking-tight.
-- Right: search icon button (opens existing search input focus) + emerald `+` button that fires the existing "Add User is coming soon" toast.
+4. **Spec 22 status precedence — "Pending ID" detection**
+   - Currently `status === "pending"` is shown when no ID; confirm the engine returns `pending` when verification.id is false AND `id_status` is `submitted`/`pending` (not when simply missing). Small engine guard.
 
-Stats carousel (`UsersMobileStatsScroll`):
-- `overflow-x-auto`, inner `flex gap-4 pb-2 w-max`.
-- Six cards (Total / Verified / Flagged / New This Week / ID Verified / Email Verified) — each `w-40 bg-slate-900 border border-slate-800 p-4 rounded-2xl`, icon wrap top-left, delta chip top-right, label, big value. Same icon/color tokens as desktop `UsersSummaryCards`.
+5. **Spec 34 — Pagination footer text**
+   - Reference: `Showing X–Y of Z users`. Verify the current footer in `UsersTable.tsx` mobile and desktop matches this exact wording.
 
-Directory label + filters pill row: "USER DIRECTORY" heading + `Filters` pill button.
+6. **Spec 37 — Contact masking when admin lacks unmask permission**
+   - We currently always return raw email/phone to any admin. If there is no separate "unmask" permission today, this is acceptable; flag as a future-phase item.
 
-Card list (`UsersMobileFeed` rewrite) — three sections per card, exactly as reference:
-1. Header strip: avatar with ring color (red for flagged/investigating, emerald for trusted seller, yellow for pending), corner badge (flag / star / clock) reflecting `is_flagged` / `trust_badge === "trusted_seller"` / `status === "pending"`; name + status chip (`Investigating` red, `Active Now` emerald, `Pending ID` yellow, `Suspended` purple, `Flagged` red, `Active` emerald) + handle and "Active {relative}" or joined date.
-2. Stats strip (`bg-slate-800/30 grid grid-cols-2`): left = Transactions count + `({NGN compact})` muted; right = Disputes ("{n} Active" red when active, "Clean record" muted otherwise) — OR Verification mini-icons + Volume for trusted sellers, OR Type (`Business Account`) + Disputes for business users. Selection rule:
-   - if seller and trust_badge=="trusted_seller" → Verification + Volume layout
-   - else if roles includes business and verification.level !== "fully" → Type + Disputes layout
-   - else → Transactions + Disputes layout
-3. Actions row: two stretched buttons + 12x12 overflow. Mapping:
-   - If flagged/investigation: `Profile` (blue) + `Review` (slate→opens `/admin/flagged-users?u=`).
-   - If active seller: `Profile` (blue) + `Transactions` (emerald-tinted outline → `/admin/transactions?user=`).
-   - Else: `Profile` (blue) + `Disputes` (slate → `/admin/disputes?user=`).
-   - Overflow `MoreVertical` opens a small bottom sheet listing the remaining row actions (Flag/Unflag, Suspend, Investigation, Impersonate placeholder, Export).
+7. **Verification mini-icons (spec 19)**
+   - Confirm `UsersTable.tsx` Verification column shows three mini icons (email/phone/ID) with green vs muted reflecting actual booleans, not just the overall badge.
 
-Pagination row at the bottom of the mobile feed: `"1 - 20 of {total}"` left, prev/page-pill/next right (emerald active page) — replaces our current generic prev/next.
+### Plan for closing the gaps
 
-Bottom tab nav from the reference is intentionally NOT ported — `AdminLayout` already owns nav chrome.
+1. Add `resolved` to `UserDirectoryRow.transactions` in `supabase/functions/_shared/users-directory-engine.ts` (count transactions where `status` is in the completed set per buyer/seller).
+2. Update `src/services/admin-users-directory.service.ts` type to include `resolved`.
+3. Update `UsersTable.tsx`:
+   - Transactions cell: show `{resolved} resolved` when `resolved > 0`, else NGN compact volume.
+   - Disputes cell: `Active disputes` (red) when `active>0`, `In progress` when `total>0 && active===0`, `Clean record` otherwise.
+   - Verify mini-icons row (email/phone/ID).
+4. Update `UsersMobileFeed.tsx` to mirror the same Transactions/Disputes secondary strings.
+5. Add to `AdminTransactionDetail.tsx`: two menu items under the existing "Open in…" affordance → `/admin/users?u=<buyer_id|seller_id>`.
+6. Add to `AdminDisputeDetail.tsx`: same pair.
+7. Tighten engine status mapping so `pending` requires an actual pending identity_submission (not just a missing one — those stay `active` unverified).
+8. Confirm pagination footer wording exactly matches `Showing {start}–{end} of {total} users` on both desktop table and mobile feed.
 
-## Reference mapping (desktop)
+No new edge functions, no new routes, no schema changes. Deploy is automatic after the engine edit.
 
-Already matches the reference for header, summary cards, filters, and 7-button action column. Only adjust:
-- Status chip label: when `status==="under_investigation"` show "Investigating"; when `status==="active"` and `last_active_at` within ~5 minutes show "Active Now"; when `status==="pending"` and id not verified show "Pending ID". Color tokens already correct.
-- Avatar ring color rule: red for flagged or under_investigation, emerald for trusted_seller, yellow for pending. (Already close — just confirm and tighten.)
+### Verification
 
-## Behavior preserved (no changes)
-
-- `useQuery` + URL params + drawer open/close + filter reset + page sync.
-- `performFlaggedAction` for flag/clear/suspend with `ActionConfirmDialog`.
-- All edge functions (`admin-users-directory`, `admin-user-detail`, `admin-users-directory-export`) and the service layer.
-- Summary card data fields, formulas, and hint strings already aligned to the previous reference pass.
-
-## Verification
-
-- Resize to 875px (current viewport): mobile header, stats carousel, label+filters pill, card list, mobile pagination all render and match reference markup class-for-class.
-- Resize to ≥1024px: desktop header, 6-card grid, filters bar, and 9-column table render exactly as the reference; only one filters bar present.
-- Flag/Unflag/Suspend from a mobile card still triggers `ActionConfirmDialog`; success invalidates `admin-users-directory`, `admin-user-detail`, and `admin-flagged-users` queries.
-- Drawer opens from any "Profile" tap (desktop row, mobile card, URL `?u=`), and closing strips only `u` from the URL.
-- No TS errors. No new dependencies.
-
-## Out of scope
-
-- Edge functions, services, summary math, drawer internals, routing, sidebar, fraud engine, identity flow, exports, real impersonation, real "Add user".
+- Reload `/admin/users` at 875px and ≥1024px — visuals unchanged, Transactions/Disputes secondary text now matches reference variants.
+- Open an admin transaction → "Open Buyer in User Directory" routes to `/admin/users?u=<buyer_id>` and the drawer opens.
+- Open an admin dispute → same for buyer and seller.
+- A user mid-identity-review shows "Pending ID"; a user who simply never started ID stays "Active" with the Unverified mini-icons.
+- Pagination footer reads `Showing 1–20 of 347 users`.

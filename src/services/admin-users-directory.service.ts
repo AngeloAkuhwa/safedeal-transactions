@@ -24,7 +24,7 @@ export interface UserDirectoryRow {
     id: boolean;
     id_status: string | null;
   };
-  transactions: { count: number; volume: number; currency: "NGN" };
+  transactions: { count: number; resolved: number; volume: number; currency: "NGN" };
   disputes: { total: number; active: number };
   status: DirStatus;
   trust_badge: "trusted_seller" | "flagged" | "pending" | null;
