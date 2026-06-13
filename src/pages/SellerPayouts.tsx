@@ -27,6 +27,7 @@ import { resolvePayoutStatusLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 import { getSellerPayouts, updatePayoutAccount } from "@/services/seller-payouts.service";
 import { toast } from "@/hooks/use-toast";
 import type { PayoutHistoryItem, UpcomingRelease, BlockedFund } from "@/services/seller-payouts.service";
+import { PayoutAccountStateBadge, payoutAccountStateExplainer } from "@/components/payout/PayoutAccountStateBadge";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" });
