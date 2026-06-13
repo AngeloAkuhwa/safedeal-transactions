@@ -55,6 +55,24 @@ Deno.serve(async (req) => {
   const since30 = new Date(now - 30 * DAY_MS).toISOString();
   const since14 = new Date(now - 14 * DAY_MS).toISOString();
 
+  // ---- Dynamic alert thresholds (admin-editable) ----
+  const THRESHOLD_DEFAULTS = {
+    frozen_days: 30,
+    overdue_days: 5,
+    idle_days: 15,
+    high_value_amount: 1_000_000,
+    mismatch_min_delta: 0.01,
+  };
+  const { data: thresholdRow } = await admin
+    .from("system_settings")
+    .select("setting_value")
+    .eq("setting_key", "escrow_alert_thresholds")
+    .maybeSingle();
+  const thresholds = {
+    ...THRESHOLD_DEFAULTS,
+    ...((thresholdRow?.setting_value as Record<string, unknown>) ?? {}),
+  };
+
   // ---- KPIs from escrow_states (cheap & accurate) ----
   const { data: states, error: statesErr } = await admin
     .from("escrow_states")
