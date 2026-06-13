@@ -75,14 +75,14 @@ export async function releasePayoutCore(
 
   // 5. Resolve seller's verified Paystack recipient
   const { data: account, error: acctErr } = await admin
-    .from("payout_accounts")
-    .select("id, provider_recipient_code, verification_status")
+    .from("v_payout_account_state")
+    .select("account_id, provider_recipient_code, verification_status, account_state")
     .eq("user_id", tx.seller_id)
     .maybeSingle();
   if (acctErr) return { ok: false, status: 500, body: { error: "account_fetch_failed" } };
 
   const recipientCode = (account as any)?.provider_recipient_code;
-  if (!recipientCode || (account as any)?.verification_status !== "verified") {
+  if ((account as any)?.account_state !== "verified_ready" || !recipientCode) {
     try {
       await admin.rpc("flag_for_release_review", {
         p_transaction_id: transaction_id,

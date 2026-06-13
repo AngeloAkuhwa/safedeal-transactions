@@ -247,13 +247,12 @@ Deno.serve(async (req) => {
 
     // ── Payout account safeguard ──────────────────────────────────────────
     const { data: payoutAccount } = await admin
-      .from("payout_accounts")
-      .select("id, verification_status, last_verified_at")
+      .from("v_payout_account_state")
+      .select("account_id, verification_status, last_verified_at, account_state")
       .eq("user_id", tx.seller_id)
-      .eq("verification_status", "verified")
       .maybeSingle();
 
-    if (!payoutAccount) {
+    if (!payoutAccount || (payoutAccount as any).account_state !== "verified_ready") {
       // Create payout in blocked state, queue review.
       const { data: blockedPayout, error: payoutErr } = await admin
         .from("payouts")
