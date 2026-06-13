@@ -19,7 +19,7 @@ interface Props {
 export function PayoutTabs({ active, onChange, summary }: Props) {
   const counts = summary?.tab_counts;
   return (
-    <div className="flex bg-slate-800 rounded-lg p-1 min-w-max">
+    <div className="flex gap-1.5 overflow-x-auto lg:bg-slate-800 lg:rounded-lg lg:p-1 lg:min-w-max lg:gap-0 scrollbar-none">
       {TABS.map((t) => {
         const isActive = active === t.value;
         const c = counts?.[t.value];
@@ -29,10 +29,10 @@ export function PayoutTabs({ active, onChange, summary }: Props) {
             type="button"
             onClick={() => onChange(t.value)}
             className={cn(
-              "px-4 py-2 rounded text-sm font-medium whitespace-nowrap transition-all inline-flex items-center gap-2",
+              "px-3 py-2 rounded-lg lg:rounded text-xs lg:text-sm font-medium whitespace-nowrap transition-all inline-flex items-center gap-2 flex-shrink-0",
               isActive
                 ? "bg-emerald-500 text-white"
-                : "text-slate-400 hover:text-white"
+                : "bg-slate-800 lg:bg-transparent text-slate-400 hover:text-white"
             )}
           >
             {t.label}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Download, Play } from "lucide-react";
+import { Download, Play, SlidersHorizontal } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -56,6 +56,7 @@ export default function AdminPayouts() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [noteFor, setNoteFor] = useState<PayoutRow | null>(null);
   const [blockFor, setBlockFor] = useState<{ row: PayoutRow; pause: boolean } | null>(null);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const loadSummary = useCallback(async () => {
     setSummaryLoading(true);
@@ -255,7 +256,8 @@ export default function AdminPayouts() {
     >
       <PayoutSummaryCards summary={summary} loading={summaryLoading} />
 
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+      {/* Desktop: original slate panel with all filters visible */}
+      <div className="hidden lg:block bg-slate-900 border border-slate-800 rounded-xl p-6">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
           <PayoutTabs active={tab} onChange={(t) => { setTab(t); setFilters((f) => ({ ...f, status: t })); setPage(1); setSelectedIds(new Set()); }} summary={summary} />
           <PayoutFilters search={search} onSearch={(v) => { setSearch(v); setPage(1); }} />
@@ -266,7 +268,6 @@ export default function AdminPayouts() {
           onChange={(next) => {
             setFilters(next);
             setPage(1);
-            // Keep tab in sync with the Status select
             if (next.status !== tab) setTab(next.status);
           }}
         />
@@ -279,8 +280,61 @@ export default function AdminPayouts() {
         />
       </div>
 
+      {/* Mobile: flat layout matching reference */}
+      <div className="lg:hidden space-y-3">
+        <div className="relative">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" /></svg>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Search seller, payout ID..."
+            className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 text-sm"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0 overflow-x-auto">
+            <PayoutTabs active={tab} onChange={(t) => { setTab(t); setFilters((f) => ({ ...f, status: t })); setPage(1); setSelectedIds(new Set()); }} summary={summary} />
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileFiltersOpen((v) => !v)}
+            aria-label="Toggle filters"
+            className={`w-11 h-11 rounded-xl border border-slate-800 flex items-center justify-center flex-shrink-0 ${mobileFiltersOpen ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-slate-900 text-slate-400"}`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={handleExport}
+            aria-label="Export report"
+            className="w-11 h-11 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 flex items-center justify-center flex-shrink-0"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+        </div>
+        {mobileFiltersOpen && (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <PayoutAdvancedFilters
+              value={filters}
+              onChange={(next) => {
+                setFilters(next);
+                setPage(1);
+                if (next.status !== tab) setTab(next.status);
+              }}
+            />
+          </div>
+        )}
+        <PayoutBatchBar
+          selected={selectedRows.filter((r) => eligibleForRelease(r).ok)}
+          onClear={() => setSelectedIds(new Set())}
+          onProcess={handleBatchProcess}
+          processing={batchProcessing}
+        />
+      </div>
+
         {/* Desktop table */}
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <PayoutsTable
             rows={rows} loading={listLoading}
             selected={selectedIds}
@@ -306,7 +360,7 @@ export default function AdminPayouts() {
           />
         </div>
         {/* Mobile cards */}
-        <div className="md:hidden">
+        <div className="lg:hidden pb-20">
           <PayoutMobileCards
             rows={rows} loading={listLoading}
             selected={selectedIds}

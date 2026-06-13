@@ -35,9 +35,10 @@ const selectCls = "w-full p-3 bg-slate-800 border border-slate-700 rounded-lg te
 interface Props {
   value: PayoutFilterState;
   onChange: (next: PayoutFilterState) => void;
+  className?: string;
 }
 
-export function PayoutAdvancedFilters({ value, onChange }: Props) {
+export function PayoutAdvancedFilters({ value, onChange, className }: Props) {
   const [open, setOpen] = useState(false);
   const set = <K extends keyof PayoutFilterState>(k: K, v: PayoutFilterState[K]) => onChange({ ...value, [k]: v });
 
@@ -47,7 +48,7 @@ export function PayoutAdvancedFilters({ value, onChange }: Props) {
       : "Pick dates";
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+    <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4", className)}>
       <div>
         <label className="text-slate-400 text-xs font-medium mb-2 block">Status</label>
         <select className={selectCls} value={value.status} onChange={(e) => set("status", e.target.value as PayoutTab)}>
