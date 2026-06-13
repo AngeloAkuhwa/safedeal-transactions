@@ -178,7 +178,7 @@ export default function AdminReconciliation() {
           </TabsContent>
 
           <TabsContent value="coverage" className="mt-4 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <Card className="p-4">
                 <div className="text-xs text-muted-foreground">Complete (all-time)</div>
                 <div className="text-2xl font-semibold">{completeAll}</div>
