@@ -1,64 +1,103 @@
 
-## Audit findings (admin dashboard, transactions, disputes, payouts)
+# Storefront / Marketplace stock visibility — root cause + fix plan
 
-I cross-checked the four admin sections against the edge functions and Phase 8 fixes. Money flows now render correctly. The remaining issues are **presentation/consistency**, not money math:
+## What you're seeing
 
-### What's already correct
-- Transaction Monitor amounts (₦14.3M total, ₦3.1M in escrow, per-row totals + protection fees) — all reading canonical columns after Phase 8.
-- Payouts list amounts (₦926,250, ₦19,620, etc.) — coming from `payouts.amount` and `transaction_pricing.seller_payout_amount`.
-- Dashboard KPIs (20 tx, ₦3,077,545 escrow, 3 active users, 2 flagged) — consistent with DB.
-- **Batch selection on Payouts already exists**: header "select-all-eligible" checkbox, per-row checkboxes, `PayoutBatchBar`, and `Process Batch` button with concurrency=3 worker pool in `AdminPayouts.handleBatchProcess`.
+For the Air Jordan Retro 10 listing (`cdb185e5-…`):
 
-### Real issues to fix
+| Field on DB row                    | Value          |
+| ---------------------------------- | -------------- |
+| `status`                           | `out_of_stock` |
+| `stock_quantity`                   | 4              |
+| `reserved_quantity`                | 4              |
+| `available = stock - reserved`     | **0**          |
 
-1. **Released payout still shows "RECIPIENT MISSING" badge** (image-141 row 1). The badge reflects the seller's *current* payout-account state, but for completed/released/reversed payouts it's noise and misleading. Hide bank-verification badges for terminal statuses.
+So the row really does have 0 sellable units. The marketplace and public storefront hide it (they filter `.eq("status","published")`), which is why buyers can't see it. That filter is correct — the bug is **why reserved_quantity is stuck at 4**, plus several **UI surfaces that lie about availability**.
 
-2. **Critical Alerts says "All clear" despite real signals** (image-148). The 95-day overdue dispute, 1 failed payout, and 1 stuck transaction should be surfaced. Currently `admin-dashboard` only seeds alerts from a narrow rule. Extend alert generation to include: overdue disputes (SLA breached), failed payouts in last 7d, stuck transactions flagged `needs_release_review`.
+### Root cause of reserved_quantity = 4
 
-3. **"No item snapshot" caption on released payout row** (image-141 row 1). `transactions.source_product_id` is null for that legacy tx, so admin-payouts-list returns `item_title: null`. Fallback: when product title is missing, show the transaction code's first item from `transaction_items` (already populated for cart-based tx) instead of "No item snapshot".
+Open `awaiting_payment` transactions for this product:
 
-4. **Disputes queue → Critical Alerts mismatch.** Dispute is OVERDUE (95 days) but dashboard's `dispute_sla_pressure.overdue=1` only renders inline; it never escalates to Critical Alerts. Wire `overdue > 0` and `escalated > 0` into the Critical Alerts feed.
+```
+2026-04-14 11:38  awaiting_payment   (never paid, never declined)
+2026-04-14 11:42  awaiting_payment   (never paid, never declined)
+2026-04-14 11:42  awaiting_payment   (never paid, never declined)
+2026-06-13 10:59  awaiting_payment   (today's cart, still in checkout)
+```
 
-5. **"Process Batch" button is invisible / confusing when no rows are eligible.** All 4 payouts in the screenshot have `RECIPIENT MISSING`, so every checkbox is disabled and clicking Process Batch silently no-ops with a toast. Add an inline hint above the table: *"0 of 4 payouts are eligible for batch release. Reasons: 3 missing recipient code, 1 already released."* This makes batch UX self-explanatory.
+Each of those reserved 1 unit. **There is no job that releases reservations from stale `awaiting_payment` transactions** (`buyer-cart`, `cart-checkout`, `storefront-checkout`, `decline-transaction`, `verify-paystack-payment`, `paystack-webhook` only release on explicit decline / successful payment). So once a buyer abandons a checkout, the unit is reserved forever — exactly what happened here.
 
-6. **Payouts "Pending Payouts: 0" vs Dashboard "Awaiting Release: 2"** (images 140 vs 146). Two different metrics labeled similarly. Rename dashboard tile to "Funds Awaiting Release" (counts transactions, not payouts) and Payouts KPI stays "Pending Payouts" (counts `payouts.status=awaiting_release`). Add tooltips clarifying each.
+Result: real, sellable stock = 1 (4 raw − 1 truly-pending) but the system shows 0 because 3 reservations are zombies.
 
-### Files to change
+### UI surfaces that show the wrong number
 
-| File | Change |
-|---|---|
-| `src/components/admin/payouts/PayoutsTable.tsx` | Suppress `RECIPIENT MISSING` / `UNVERIFIED` bank badge when `r.status` ∈ {completed, reversed, cancelled}. Show "VERIFIED" or hide entirely. |
-| `src/components/admin/payouts/PayoutsTable.tsx` | Add eligibility hint banner above table: `{eligible}/{total} eligible for batch release` with breakdown of top reasons. |
-| `supabase/functions/admin-payouts-list/index.ts` | When `productMap.get(...)` is empty, fall back to a join on `transaction_items` (first item's snapshot title) for `item_title`. |
-| `supabase/functions/admin-dashboard/index.ts` | Extend `critical_alerts` generator: push items for overdue disputes (`dispute_sla_pressure.overdue > 0`), recent failed payouts, stuck transactions. Each alert has `severity`, `title`, `link`. |
-| `src/pages/AdminDashboard.tsx` | Rename "Awaiting Release" KPI to "Funds Awaiting Release"; add tooltip clarifying it counts transactions, not payout rows. |
-| `src/components/admin/payouts/PayoutSummaryCards.tsx` | Add tooltip to "Pending Payouts" tile: "Payouts with status = awaiting_release". |
+These render raw `stock_quantity` instead of `available = stock_quantity − reserved_quantity`:
 
-### Out of scope
-- No schema migration. No money-math change (Phase 8 already corrected the canonical column reads).
-- No redesign of any screen — text/badge/alert tweaks only.
-- Batch processing logic stays untouched; only the surrounding UX hints change.
+| File                                                       | What it shows                              |
+| ---------------------------------------------------------- | ------------------------------------------ |
+| `src/pages/SellerProductDetail.tsx` (status card + header) | "Stock: 4 remaining" when available is 0   |
+| `src/components/storefront/SellerProductCard.tsx`          | "Qty: 4" / "In Stock" badge                |
+| `src/components/storefront/ProductCard.tsx`                | "Out of Stock" only when raw stock = 0     |
+| `src/components/marketplace/MarketplaceProductCard.tsx`    | "Out of Stock" only when raw stock ≤ 0     |
+| `src/pages/PublicProductDetail.tsx`                        | "Only X left", qty stepper cap, Buy button |
+| `src/components/storefront/UpdateStockModal.tsx`           | "Out of Stock" label uses raw stock        |
 
-### Verification
-- Reload Admin → Payouts: the released row no longer shows `RECIPIENT MISSING`; eligibility hint reads "0 of 4 eligible — 3 missing recipient code, 1 already released".
-- Reload Admin → Dashboard: Critical Alerts shows the overdue dispute and failed payout.
-- Reload Admin → Payouts row 1: caption shows item title from `transaction_items` instead of "No item snapshot" (if any item rows exist for that tx).
-- Hover the two "release" KPIs to confirm tooltips appear and labels are no longer ambiguous.
+Net effect: even when reservations clear, the seller's own dashboard still shows numbers that don't match what cart-checkout will accept, and marketplace cards can show "In Stock" for items the buyer can't actually buy.
 
-## Phase 10 — Buyer surfaces audit + payment-engine verification (executed)
+---
 
-Files:
-- supabase/functions/buyer-dashboard/index.ts — extended bucket mappings (awaiting_delivery: awaiting_fulfillment | seller_dispatched | in_transit; awaiting_verification: delivered_awaiting_verification | delivered | awaiting_buyer_confirmation), added `declined` to terminal-exclusion list, added rejection/error logging + `[buyer-dashboard] metrics` info log.
-- src/components/admin/payouts/PayoutsTable.tsx — `no_account` (non-terminal) badge softened to gray "Seller bank not set up" instead of red text.
+## Fix plan
 
-### How to test a real payment
-1. Log in as buyer (Tunde).
-2. Marketplace → product → Buy Now → Payment Summary.
-3. Paystack test card `4084 0840 8408 4081`, CVV `408`, exp any future, PIN `0000`, OTP `123456`.
-4. Redirect lands on `/dashboard/transactions/:id/verify`; `transaction-verify` fires.
-5. Expected: `payments.status='succeeded'`, `transactions.status='awaiting_fulfillment'`, `money_status='funds_held_in_escrow'`, +1 row in `escrow_ledger_entries`.
+### 1. Release zombie reservations (data + recurring job)
 
-### How to test a payout (admin manual release)
-1. Seller adds bank in Profile → Payout Destination → name resolves → `create-payout-recipient` populates `payout_accounts.provider_recipient_code`.
-2. Buyer confirms delivery (or auto-confirm fires) → `payouts` row created with `status='awaiting_release'`.
-3. Admin → `/admin/payouts` → tick row(s) → Process Batch (or per-row Release) → `release-core` calls Paystack `/transfer`. On success: `payouts.status='completed'`, `money_status='funds_released'`, -debit row in ledger.
+**a. One-off SQL** (via migration / insert tool) to release reservations for the 4 abandoned `awaiting_payment` txs older than 24 h:
+
+```text
+For each awaiting_payment tx older than 24h:
+  - cancel the tx (status='expired', money_status='not_secured')
+  - decrement products.reserved_quantity by the reserved qty
+  - write product_inventory_logs row (change_type='release', reference=tx)
+  - flip products.status back to 'published' if available > 0
+```
+
+**b. Recurring cleanup edge function** `cart-expiry-cleanup` (invoked by a scheduled cron, e.g. every 15 min):
+
+* Finds `transactions.status='awaiting_payment'` with `created_at < now() - interval '24 hours'`.
+* Runs the same release logic transactionally.
+* Also deletes stale `cart_items` older than 7 days for hygiene.
+
+This is the missing piece — without it, every abandoned checkout permanently bleeds stock.
+
+### 2. Single source of truth for "available" in the UI
+
+Add a tiny helper:
+
+```text
+src/lib/inventory.ts
+  getAvailableQuantity(p) = max(0, (p.stock_quantity ?? 0) - (p.reserved_quantity ?? 0))
+  getStockBadge(p) → { label, tone }  // "Out of Stock" | "Only N left" | "In Stock"
+```
+
+Then replace raw `stock_quantity` checks in:
+
+* `SellerProductDetail.tsx` — status card "Stock" tile shows `available` with "(N reserved)" subtext; header badge derived from available.
+* `SellerProductCard.tsx`, `ProductCard.tsx`, `MarketplaceProductCard.tsx`, `UpdateStockModal.tsx`, `PublicProductDetail.tsx` — use `getAvailableQuantity` for "Out of Stock", "Only N left", quantity-stepper cap, and disabled add-to-cart.
+
+No DB/API changes — `reserved_quantity` is already returned on every product payload that includes stock.
+
+### 3. Marketplace listing filter — keep as-is
+
+`marketplace-products` and `public-storefront` already correctly filter by `status='published'` and the `auto_out_of_stock_status` trigger flips status when available reaches 0. After fix #1 stops the zombie reservations, products will reappear in the marketplace automatically.
+
+### 4. Verification
+
+1. Run the one-off cleanup → reload `/seller/storefront/cdb185e5-…`: status flips to **Published**, available shows 1 (or 4 if no other reservations remain).
+2. Reload `/marketplace` (signed-out and as buyer) → the Air Jordan listing reappears.
+3. Add the product to cart → "Available: N" decrements; abandon checkout for 24 h + cron tick → reservation auto-released, available restored.
+4. Edit Product page: when reserved > 0, status tile reads e.g. **"Stock 1 available · 3 reserved"** instead of misleading "4 remaining".
+
+## Out of scope
+
+* No change to escrow, payouts, or payment engine.
+* No schema changes to `products` (still uses `stock_quantity` + `reserved_quantity`).
+* No redesign of any screen — only label/number corrections + one helper.

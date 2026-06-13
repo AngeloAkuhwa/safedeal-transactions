@@ -22,6 +22,7 @@ export interface MarketplaceProduct {
   unit_price: number;
   currency_code: string;
   stock_quantity: number;
+  reserved_quantity?: number;
   condition_label: string | null;
   category_id: string | null;
   primary_image_url: string | null;

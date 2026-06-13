@@ -4,6 +4,7 @@ import { ProductStatusBadge } from "./ProductStatusBadge";
 import { ProductVisibilityBadge } from "./ProductVisibilityBadge";
 import { Package, ShieldCheck, AlertTriangle } from "lucide-react";
 import { formatMoney } from "@/lib/format";
+import { getAvailableQuantity } from "@/lib/inventory";
 
 interface SellerTrustSummary {
   verification_level: string;
@@ -21,6 +22,7 @@ interface ProductCardProps {
     unit_price: number;
     currency_code: string;
     stock_quantity: number;
+    reserved_quantity?: number | null;
     status?: string;
     visibility_type?: string;
     primary_image_url?: string | null;
@@ -38,8 +40,9 @@ function getTrustLabel(level: string) {
 }
 
 export function ProductCard({ product, onClick, showBadges = true, sellerName, sellerTrustSummary }: ProductCardProps) {
-  const isOutOfStock = product.stock_quantity === 0;
-  const isLowStock = product.stock_quantity >= 1 && product.stock_quantity <= 5;
+  const available = getAvailableQuantity(product);
+  const isOutOfStock = available === 0;
+  const isLowStock = available >= 1 && available <= 5;
   const trustLabel = sellerTrustSummary ? getTrustLabel(sellerTrustSummary.verification_level) : null;
 
   return (
@@ -107,9 +110,9 @@ export function ProductCard({ product, onClick, showBadges = true, sellerName, s
             )}
           </div>
         )}
-        {!showBadges && !sellerName && product.stock_quantity > 0 && (
+        {!showBadges && !sellerName && available > 0 && (
           <p className="text-xs text-muted-foreground">
-            {product.stock_quantity} in stock
+            {available} in stock
           </p>
         )}
       </CardContent>

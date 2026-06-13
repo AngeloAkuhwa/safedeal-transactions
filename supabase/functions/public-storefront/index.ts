@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
 
     let query = adminClient
       .from("products")
-      .select("id, title, slug, short_description, unit_price, currency_code, stock_quantity, status, condition_label, created_at", { count: "exact" })
+      .select("id, title, slug, short_description, unit_price, currency_code, stock_quantity, reserved_quantity, status, condition_label, created_at", { count: "exact" })
       .eq("seller_id", seller.id)
       .eq("status", "published")
       .eq("visibility_type", "public")

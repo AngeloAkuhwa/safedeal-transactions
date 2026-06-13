@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Boxes, Minus, Plus, Package, Info } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import { resolveProductStatusLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
+import { getAvailableQuantity } from "@/lib/inventory";
 
 interface UpdateStockProduct {
   id: string;
@@ -12,6 +13,7 @@ interface UpdateStockProduct {
   unit_price: number;
   currency_code: string;
   stock_quantity: number;
+  reserved_quantity?: number | null;
   status?: string;
   primary_image_url?: string | null;
 }
@@ -39,7 +41,10 @@ export function UpdateStockModal({ open, onOpenChange, product, onSave, isPendin
 
   if (!product) return null;
 
-  const stockStatus = getStockStatus(quantity);
+  const reserved = Number(product.reserved_quantity ?? 0);
+  const projectedAvailable = Math.max(0, quantity - reserved);
+  const stockStatus = getStockStatus(projectedAvailable);
+  const currentAvailable = getAvailableQuantity(product);
   const productStatus = resolveProductStatusLabel(product.status || "draft");
   const productStatusClass = TONE_CLASSNAMES[productStatus.tone];
 
@@ -75,7 +80,7 @@ export function UpdateStockModal({ open, onOpenChange, product, onSave, isPendin
               </p>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${stockStatus.bg} ${stockStatus.color}`}>
-                  {getStockStatus(product.stock_quantity).label}
+                  {getStockStatus(currentAvailable).label}
                 </span>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${productStatusClass}`}>
                   {productStatus.label}
@@ -87,7 +92,14 @@ export function UpdateStockModal({ open, onOpenChange, product, onSave, isPendin
           {/* Current stock */}
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-foreground">Current Stock</p>
-            <p className="text-sm text-muted-foreground">{product.stock_quantity} units</p>
+            <p className="text-sm text-muted-foreground">
+              {product.stock_quantity} units
+              {reserved > 0 && (
+                <span className="ml-1 text-xs">
+                  ({currentAvailable} available · {reserved} reserved)
+                </span>
+              )}
+            </p>
           </div>
 
           {/* Quantity adjuster */}
@@ -143,7 +155,8 @@ export function UpdateStockModal({ open, onOpenChange, product, onSave, isPendin
             <span className={`h-2 w-2 rounded-full ${stockStatus.dot}`} />
             <p className={`text-sm font-medium ${stockStatus.color}`}>
               {stockStatus.label}
-              {quantity > 0 && ` — ${quantity} units available`}
+              {projectedAvailable > 0 && ` — ${projectedAvailable} units available`}
+              {reserved > 0 && ` (${reserved} reserved)`}
             </p>
           </div>
 

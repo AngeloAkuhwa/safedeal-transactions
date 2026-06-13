@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     let query = adminClient
       .from("products")
       .select(
-        `id, title, slug, short_description, unit_price, currency_code, stock_quantity, condition_label, category_id, created_at,
+        `id, title, slug, short_description, unit_price, currency_code, stock_quantity, reserved_quantity, condition_label, category_id, created_at,
          seller_id,
          product_media!inner ( file_id, is_primary, files!inner ( file_url ) )`,
         { count: "exact" }
@@ -177,6 +177,7 @@ Deno.serve(async (req) => {
         unit_price: p.unit_price,
         currency_code: p.currency_code,
         stock_quantity: p.stock_quantity,
+        reserved_quantity: p.reserved_quantity ?? 0,
         condition_label: p.condition_label,
         category_id: p.category_id || null,
         primary_image_url: primaryImageUrl,

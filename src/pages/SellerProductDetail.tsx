@@ -188,8 +188,10 @@ const SellerProductDetail = () => {
 
   const product = data.product;
   const isPrivateOffer = product.visibility_type === "buyer_specific";
-  const isOutOfStock = product.stock_quantity === 0;
-  const isLowStock = product.stock_quantity >= 1 && product.stock_quantity <= 5;
+  const reservedQty = Number(product.reserved_quantity ?? 0);
+  const availableQty = Math.max(0, Number(product.stock_quantity ?? 0) - reservedQty);
+  const isOutOfStock = availableQty === 0;
+  const isLowStock = availableQty >= 1 && availableQty <= 5;
 
   const stockColor = isOutOfStock ? "text-destructive" : isLowStock ? "text-amber-500" : "text-emerald-500";
 
@@ -242,7 +244,12 @@ const SellerProductDetail = () => {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Stock</p>
-                  <p className={`text-lg font-semibold ${stockColor}`}>{product.stock_quantity}</p>
+                  <p className={`text-lg font-semibold ${stockColor}`}>{availableQty}</p>
+                  {reservedQty > 0 && (
+                    <p className="text-[10px] text-muted-foreground">
+                      of {product.stock_quantity} ({reservedQty} reserved)
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -590,7 +597,10 @@ const SellerProductDetail = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Stock</span>
-                    <span className={`text-xs font-semibold ${stockColor}`}>{product.stock_quantity} remaining</span>
+                    <span className={`text-xs font-semibold ${stockColor}`}>
+                      {availableQty} available
+                      {reservedQty > 0 ? ` · ${reservedQty} reserved` : ""}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Views</span>
