@@ -113,3 +113,12 @@ verify_jwt = false
 
 [functions.admin-flagged-users-export]
 verify_jwt = false
+
+[functions.admin-users-directory]
+verify_jwt = false
+
+[functions.admin-users-directory-export]
+verify_jwt = false
+
+[functions.admin-user-detail]
+verify_jwt = false
