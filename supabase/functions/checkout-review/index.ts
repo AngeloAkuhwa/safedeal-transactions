@@ -73,13 +73,20 @@ Deno.serve(async (req) => {
     const productIds = [...new Set(sessionItems.map((i: any) => i.product_id))];
     const sellerIds = [...new Set(sessionItems.map((i: any) => i.seller_id))];
 
-    // Fetch products, seller profiles, and verifications in parallel
-    const [productsResult, profilesResult, verificationsResult] = await Promise.all([
+    // Fetch products, primary media, seller profiles, and verifications in parallel
+    const [productsResult, mediaResult, profilesResult, verificationsResult] = await Promise.all([
       productIds.length > 0
         ? admin
             .from("products")
-            .select("id,title,short_description,primary_image,stock_quantity,reserved_quantity,status")
+            .select("id,title,short_description,stock_quantity,reserved_quantity,status")
             .in("id", productIds)
+        : Promise.resolve({ data: [] }),
+      productIds.length > 0
+        ? admin
+            .from("product_media")
+            .select("product_id, files(file_url)")
+            .in("product_id", productIds)
+            .eq("is_primary", true)
         : Promise.resolve({ data: [] }),
       sellerIds.length > 0
         ? admin.from("profiles").select("id,full_name,store_slug").in("id", sellerIds)
@@ -90,6 +97,7 @@ Deno.serve(async (req) => {
     ]);
 
     const products = productsResult.data || [];
+    const mediaRows = (mediaResult as any).data || [];
     const profiles = profilesResult.data || [];
     const verifications = verificationsResult.data || [];
 
@@ -104,10 +112,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Build product map
+    // Build primary image map (product_id -> file_url)
+    const mediaMap = new Map<string, string>();
+    for (const m of mediaRows) {
+      const url = (m as any)?.files?.file_url;
+      if (url) mediaMap.set((m as any).product_id, url);
+    }
+
+    // Build product map and inject primary_image from product_media
     const productMap: Record<string, any> = {};
     for (const p of products) {
-      productMap[p.id] = p;
+      productMap[p.id] = { ...p, primary_image: mediaMap.get(p.id) || null };
     }
 
     console.log(`checkout-review: returning ${sessionItems.length} items, ${Object.keys(sellerMap).length} sellers`);

@@ -33,6 +33,10 @@ export interface CartProduct {
   stock_quantity: number;
   reserved_quantity: number;
   available_quantity: number;
+  /** Quantity reserved by this buyer's own active pending checkout session(s). */
+  own_reserved_quantity?: number;
+  /** Newest pending checkout session id that holds this product (if any). */
+  active_checkout_session_id?: string | null;
   status: string;
   is_active: boolean;
   visibility_type: string;
@@ -54,7 +58,7 @@ export interface CartItem {
   product: CartProduct | null;
 }
 
-export async function getCartItems(): Promise<{ items: CartItem[]; count: number }> {
+export async function getCartItems(): Promise<{ items: CartItem[]; count: number; active_checkout_session_id?: string | null }> {
   return cartRequest("GET");
 }
 

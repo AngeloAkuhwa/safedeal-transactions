@@ -75,6 +75,37 @@ Deno.serve(async (req) => {
         .select("id, full_name, store_slug")
         .in("id", sellerIds);
 
+      // Fetch this buyer's own active (pending) checkout reservations so the
+      // UI can distinguish "actually sold out" from "you have a checkout in
+      // progress". reserved_quantity on products already includes these.
+      const { data: ownSessions } = await admin
+        .from("checkout_sessions")
+        .select("id, status, created_at")
+        .eq("buyer_id", buyerId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+
+      const activeSessionIds = (ownSessions || []).map((s: any) => s.id);
+      const newestSessionId = activeSessionIds[0] || null;
+
+      let ownReservedMap = new Map<string, number>();
+      const productSessionMap = new Map<string, string>();
+      if (activeSessionIds.length > 0) {
+        const { data: ownItems } = await admin
+          .from("checkout_session_items")
+          .select("product_id, quantity, checkout_session_id")
+          .in("checkout_session_id", activeSessionIds);
+        for (const it of ownItems || []) {
+          const pid = (it as any).product_id as string;
+          const qty = Number((it as any).quantity || 0);
+          ownReservedMap.set(pid, (ownReservedMap.get(pid) || 0) + qty);
+          // Prefer newest session (first in ordered list) for resume link
+          if (!productSessionMap.has(pid)) {
+            productSessionMap.set(pid, (it as any).checkout_session_id);
+          }
+        }
+      }
+
       const productMap = new Map((products || []).map((p: any) => [p.id, p]));
       const mediaMap = new Map((mediaRows || []).map((m: any) => [m.product_id, m.files?.file_url]));
       const sellerMap = new Map((sellers || []).map((s: any) => [s.id, s]));
@@ -83,6 +114,7 @@ Deno.serve(async (req) => {
         const product = productMap.get(ci.product_id);
         if (!product) return { ...ci, product: null };
         const availableQuantity = Math.max(0, product.stock_quantity - product.reserved_quantity);
+        const ownReserved = ownReservedMap.get(product.id) || 0;
         const seller = sellerMap.get(product.seller_id);
         return {
           ...ci,
@@ -95,6 +127,8 @@ Deno.serve(async (req) => {
             stock_quantity: product.stock_quantity,
             reserved_quantity: product.reserved_quantity,
             available_quantity: availableQuantity,
+            own_reserved_quantity: ownReserved,
+            active_checkout_session_id: productSessionMap.get(product.id) || null,
             status: product.status,
             is_active: product.is_active,
             visibility_type: product.visibility_type,
@@ -108,7 +142,11 @@ Deno.serve(async (req) => {
         };
       });
 
-      return json({ items: enriched, count: enriched.length });
+      return json({
+        items: enriched,
+        count: enriched.length,
+        active_checkout_session_id: newestSessionId,
+      });
     }
 
     // ── POST: add / remove / update_quantity ──

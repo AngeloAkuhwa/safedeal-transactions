@@ -29,8 +29,16 @@ const formatPrice = (amount: number, currency = "NGN") => formatMoney(amount, cu
 
 function getStockStatus(item: CartItem) {
   if (!item.product) return { label: "Unavailable", variant: "destructive" as const, canCheckout: false };
-  const avail = item.product.available_quantity;
+  // Treat units the buyer themselves has reserved (via their own pending
+  // checkout session) as available — otherwise the cart row misleadingly
+  // shows "Sold Out" the moment they start checking out.
+  const ownReserved = item.product.own_reserved_quantity || 0;
+  const avail = item.product.available_quantity + ownReserved;
+  const hasPending = !!item.product.active_checkout_session_id;
   if (avail <= 0) return { label: "Sold Out", variant: "destructive" as const, canCheckout: false };
+  if (hasPending) {
+    return { label: "Checkout in progress", variant: "warning" as const, canCheckout: true };
+  }
   if (item.quantity > avail) return { label: `Only ${avail} left — reduce qty`, variant: "warning" as const, canCheckout: false };
   if (avail <= 3) return { label: `Low Stock (${avail} left)`, variant: "warning" as const, canCheckout: true };
   return { label: "In Stock", variant: "success" as const, canCheckout: true };
@@ -90,6 +98,7 @@ const BuyerCart = () => {
   });
 
   const items: CartItem[] = data?.items || [];
+  const activeSessionId = data?.active_checkout_session_id || null;
 
   // Auto-initialize delivery drafts: pre-select when only one method is offered.
   useEffect(() => {
@@ -290,6 +299,28 @@ const BuyerCart = () => {
               Continue Shopping
             </Button>
           </div>
+
+          {activeSessionId && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <Clock className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">You have an unfinished checkout</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Reserved stock is held for you. Resume to complete payment, or it will auto-release.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                className="gap-1.5 h-8 text-xs shrink-0"
+                onClick={() => navigate(`/dashboard/cart/checkout?session=${activeSessionId}`)}
+              >
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Resume checkout
+              </Button>
+            </div>
+          )}
 
           {isLoading ? (
             <div className="flex items-center justify-center py-10">
@@ -576,7 +607,7 @@ const BuyerCart = () => {
                               <button
                                 className="h-8 w-8 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors disabled:opacity-40"
                                 onClick={() => handleQuantityChange(item.product_id, item.quantity + 1)}
-                                disabled={isSoldOut || (item.product ? item.quantity >= item.product.available_quantity : true)}
+                disabled={isSoldOut || (item.product ? item.quantity >= (item.product.available_quantity + (item.product.own_reserved_quantity || 0)) : true)}
                               >
                                 <Plus className="h-3.5 w-3.5" />
                               </button>
@@ -596,6 +627,21 @@ const BuyerCart = () => {
                           <div className="flex items-center gap-4">
                             {isSoldOut ? (
                               <span className="text-sm font-semibold text-destructive">Sold Out</span>
+                            ) : item.product?.active_checkout_session_id ? (
+                              <>
+                                <span className="text-base font-bold text-foreground">
+                                  {item.product ? formatPrice(item.product.unit_price * item.quantity, item.product.currency_code) : "—"}
+                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1.5 h-8 text-xs border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
+                                  onClick={() => navigate(`/dashboard/cart/checkout?session=${item.product!.active_checkout_session_id}`)}
+                                >
+                                  <ShieldCheck className="h-3.5 w-3.5" />
+                                  Resume checkout
+                                </Button>
+                              </>
                             ) : (
                               <span className="text-base font-bold text-foreground">
                                 {item.product ? formatPrice(item.product.unit_price * item.quantity, item.product.currency_code) : "—"}
