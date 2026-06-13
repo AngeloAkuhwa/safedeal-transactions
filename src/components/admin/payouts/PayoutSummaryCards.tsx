@@ -26,26 +26,26 @@ function Tile({
 }: { icon: IconType; tone: Tone; label: string; value: string; badge?: string | null; hint?: string }) {
   const t = TONE[tone];
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-6">
       <div className="flex items-center justify-between mb-2">
-        <div className={`w-12 h-12 rounded-lg flex items-center justify-center border ${t.box}`}>
-          <Icon className={t.icon} size={18} />
+        <div className={`w-9 h-9 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center border ${t.box}`}>
+          <Icon className={t.icon} size={16} />
         </div>
         {badge ? (
-          <span className={`text-xs font-semibold px-2 py-1 rounded ${t.chip}`}>{badge}</span>
+          <span className={`text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded ${t.chip}`}>{badge}</span>
         ) : null}
       </div>
       {hint ? (
         <Tooltip>
           <TooltipTrigger asChild>
-            <p className="text-slate-400 text-xs font-medium mb-1 cursor-help underline decoration-dotted decoration-slate-600 underline-offset-2">{label}</p>
+            <p className="text-slate-400 text-xs font-medium mb-0.5 sm:mb-1 cursor-help underline decoration-dotted decoration-slate-600 underline-offset-2 truncate">{label}</p>
           </TooltipTrigger>
           <TooltipContent>{hint}</TooltipContent>
         </Tooltip>
       ) : (
-        <p className="text-slate-400 text-xs font-medium mb-1">{label}</p>
+        <p className="text-slate-400 text-xs font-medium mb-0.5 sm:mb-1 truncate">{label}</p>
       )}
-      <p className="text-white text-2xl font-bold">{value}</p>
+      <p className="text-white text-xl sm:text-2xl font-bold">{value}</p>
     </div>
   );
 }
@@ -53,9 +53,9 @@ function Tile({
 export function PayoutSummaryCards({ summary, loading }: Props) {
   if (loading || !summary) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-[148px] rounded-xl" />
+          <Skeleton key={i} className="h-[108px] sm:h-[148px] rounded-xl" />
         ))}
       </div>
     );
@@ -66,7 +66,7 @@ export function PayoutSummaryCards({ summary, loading }: Props) {
   const failedDelta = s.failed.delta_24h;
   const fmtDelta = (n?: number) => `+${typeof n === "number" ? n : 0}`;
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
       <Tile icon={FaClock} tone="orange"
         badge={fmtDelta(pendingDelta)}
         hint="Payouts with status = awaiting_release (held for admin to disburse)."
