@@ -1,70 +1,63 @@
-## Problem
+# Fix Review & Pay image + misleading "Sold Out" in cart
 
-Clicking **Checkout Selected Items** on `/dashboard/cart` calls the `cart-checkout` edge function with only the cart item IDs. The Air Jordan product has three delivery methods enabled (`["pickup","delivery","courier_shipping"]`), so the backend correctly rejects with:
+You're right — the current flow has two real problems and one UX gap worth fixing together.
+
+## Issue 1 — Review & Pay shows a placeholder instead of the product image
+
+**Root cause:** `supabase/functions/checkout-review/index.ts` reads `primary_image` directly from the `products` table:
 
 ```
-"Delivery method required (multiple options)"
+.select("id,title,short_description,primary_image,stock_quantity,reserved_quantity,status")
 ```
 
-The cart UI never asks the buyer to pick a delivery method (or an address/phone), even though `cart-checkout` already accepts a `delivery_selections` array. Single-product checkout (`StorefrontCheckout.tsx`) does this correctly; cart checkout skipped it.
+But in this project, product images don't live on `products.primary_image` — they live in `product_media` (joined to `files.file_url`). That's exactly how the cart endpoint (`buyer-cart`) resolves the image, which is why the cart page shows the Air Jordan thumbnail correctly but the Review & Pay page falls back to the package icon.
 
-This is purely a missing UI step in the cart flow — no backend logic changes needed.
+**Fix:** Mirror the cart's resolution inside `checkout-review`:
+- After loading products, fetch `product_media` rows (`product_id, files(file_url)`) for the involved `product_ids` filtered to `is_primary = true`.
+- Build a `mediaMap` and inject `primary_image` into the returned `products` map.
+- No DB/schema changes; no frontend changes — `CartCheckoutReview.tsx` already renders `product.primary_image` if present.
 
-## Fix — collect delivery selection per cart item before calling `cart-checkout`
+## Issue 2 — Cart shows "Sold Out" for the buyer's own pending item
 
-### 1. Add a "Delivery options" step on the cart page
+**Root cause:** When the buyer starts checkout, `cart-checkout` creates a pending checkout session and reserves stock (`reserved_quantity` goes up). The cart page then computes:
 
-In `src/pages/BuyerCart.tsx`:
-
-- For each selected cart item whose product has more than one enabled delivery method, render an inline delivery picker directly inside the cart row (radio group of the product's enabled methods, mapped through `resolveDeliveryMethod`). When the product has exactly one enabled method, auto-select it silently.
-- When the chosen method is `courier_shipping` or `delivery`, show an address form (line1, line2, city, state, postal_code, country=NG) under the picker.
-- When the chosen method is `pickup`, `meetup`, or `hand_delivery`, show an optional contact-phone field (default to the buyer's profile phone).
-- Track selections in component state keyed by `cart_item_id`:
-  ```ts
-  Record<string, { delivery_method: string; delivery_address?: {...}|null; contact_phone?: string|null }>
-  ```
-
-### 2. Block the checkout button until each selected item is valid
-
-Update `handleCheckout` in `BuyerCart.tsx` so it:
-
-- Iterates the selected cart items, confirms each has a method chosen, and (when required) a complete address.
-- Surfaces inline validation errors on the offending rows + a toast (`"Choose delivery options for all selected items"`); does not call the edge function.
-- When valid, builds the `delivery_selections` array and passes it through.
-
-### 3. Forward selections through the service layer
-
-In `src/services/cart.service.ts`, extend `checkoutSelected` to accept and forward the selections:
-
-```ts
-export type CartDeliverySelection = {
-  cart_item_id: string;
-  delivery_method: string;
-  delivery_address?: { line1?: string; line2?: string; city?: string; state?: string; postal_code?: string; country_code?: string } | null;
-  contact_phone?: string | null;
-};
-
-export async function checkoutSelected(
-  cartItemIds: string[],
-  deliverySelections: CartDeliverySelection[],
-) { ... body: JSON.stringify({ cart_item_ids, delivery_selections }) }
+```
+available = stock_quantity - reserved_quantity   // = 0
 ```
 
-The `cart-checkout` edge function already reads `body.delivery_selections` and matches by `cart_item_id` / `product_id`, so no edge-function change is required.
+…and `getStockStatus` flags the row as **Sold Out**, even though the only reason it's "out" is the buyer's own active reservation. Going back from Review & Pay to the cart therefore looks broken: the user sees their own item as unavailable and can't return to checkout.
 
-### 4. Preserve the chosen selections through the review step
+**Fix (frontend + light backend):**
+1. In `buyer-cart`'s edge function, when loading the buyer's active `checkout_session` + `checkout_session_items`, sum the quantity this buyer already has reserved for each `product_id` (their "own reservation") and return it alongside the product, e.g. `own_reserved_quantity`.
+2. In `BuyerCart.tsx`'s `getStockStatus`, compute:
+   ```
+   effective_available = available_quantity + own_reserved_quantity
+   ```
+   Use that for the Sold Out / Low Stock / quantity-cap checks. The product is only truly Sold Out if `effective_available <= 0`.
+3. When the buyer has an active pending session for an item, change the row affordance:
+   - Replace the red "Sold Out" badge with a neutral "Checkout in progress" pill.
+   - Show a primary "Resume checkout" button that routes to `/dashboard/cart/checkout?session=<id>` (the existing Review & Pay route) instead of forcing them to re-trigger `cart-checkout`.
 
-The selections are needed only at checkout-creation time (cart-checkout writes them into `transaction_delivery_terms` immediately). `CartCheckoutReview` continues to display whatever the backend stored — no change needed there.
+No state-machine or escrow changes — purely surfacing what's already true in the data.
 
-## Out of scope
+## Issue 3 (recommendation) — Tighten the round trip between cart and Review & Pay
 
-- No changes to `cart-checkout`, `storefront-checkout`, `verify-paystack-payment`, or `paystack-webhook` (the stock/payment-fee fixes from earlier stay as-is).
-- No DB schema changes.
-- No change to the single-item `/store/.../checkout` flow.
+Two small UX additions that prevent the "is my order lost?" feeling the screenshots show:
 
-## Validation
+- **Cart banner when a pending session exists:** at the top of `/dashboard/cart`, show an info banner "You have an unfinished checkout — Resume" linking to the active session. Today the cart silently looks broken.
+- **Back to Cart preserves the session:** on Review & Pay, the "Back to Cart" link should be a normal back navigation (current behaviour) but the cart page should not auto-cancel the session. The reservation auto-release cron (existing) still cleans up abandoned sessions after the configured TTL.
 
-1. Reload `/dashboard/cart` with the Air Jordan item. The card now shows a delivery-method radio group (Pickup / Delivery / Courier shipping) and, when needed, an address form.
-2. Without choosing a method, the **Checkout Selected Items** button shows a validation toast and does not POST.
-3. After choosing **Pickup** (or any single method), clicking checkout succeeds, navigates to `/dashboard/cart/checkout?session=...`, and the resulting transaction's delivery terms reflect the chosen method.
-4. The earlier validation error `"Delivery method required (multiple options)"` no longer occurs.
+Out of scope: no changes to `cart-checkout`, `verify-paystack-payment`, `paystack-webhook`, pricing, or DB schema.
+
+## Files touched
+
+- `supabase/functions/checkout-review/index.ts` — add product_media join + return `primary_image`.
+- `supabase/functions/buyer-cart/index.ts` — return `own_reserved_quantity` and active `checkout_session_id` per product.
+- `src/pages/BuyerCart.tsx` — adjust `getStockStatus`, render "Checkout in progress" + Resume button, add pending-session banner.
+
+## Verification
+
+1. Reload `/dashboard/cart/checkout?session=...` — Air Jordan thumbnail renders in the seller group (no package placeholder).
+2. Click "Back to Cart" — row no longer shows "Sold Out"; instead shows "Checkout in progress" with a "Resume checkout" button that returns to the same Review & Pay session.
+3. Complete payment — cart item disappears as today; stock decrements as today.
+4. From another buyer's account, the product still shows correct availability (own_reserved only applies to the current buyer).
