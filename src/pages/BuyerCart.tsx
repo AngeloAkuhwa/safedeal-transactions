@@ -98,6 +98,7 @@ const BuyerCart = () => {
   });
 
   const items: CartItem[] = data?.items || [];
+  const activeSessionId = data?.active_checkout_session_id || null;
 
   // Auto-initialize delivery drafts: pre-select when only one method is offered.
   useEffect(() => {
