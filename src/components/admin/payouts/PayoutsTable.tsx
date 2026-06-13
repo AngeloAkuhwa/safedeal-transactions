@@ -16,7 +16,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { formatMoney } from "@/lib/format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import { PayoutStatusPill } from "./PayoutStatusPill";
-import { toast } from "@/hooks/use-toast";
 import type { PayoutRow } from "@/services/admin-payouts.service";
 
 interface Props {
