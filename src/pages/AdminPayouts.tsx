@@ -292,6 +292,12 @@ export default function AdminPayouts() {
             onUnblock={handleUnblockOne}
             onOpenTransaction={(r) => navigate(`/admin/transactions/${r.transaction.id}`)}
             releasingId={releasingId}
+            onOpenSeller={handleOpenSeller}
+            onUpdateBank={handleUpdateBank}
+            onDownloadReceipt={handleDownloadReceipt}
+            onAddNote={(r) => setNoteFor(r)}
+            onBlock={(r) => setBlockFor({ row: r, pause: false })}
+            onPause={(r) => setBlockFor({ row: r, pause: true })}
             total={pagination?.total}
             page={pagination?.page}
             limit={pagination?.limit}
@@ -322,6 +328,46 @@ export default function AdminPayouts() {
         onActionDone={() => {
           if (openPayoutId) loadDetail(openPayoutId);
           loadList(); loadSummary();
+        }}
+      />
+      <PayoutPromptDialog
+        open={!!noteFor}
+        title="Add internal note"
+        description={noteFor ? `Transaction ${noteFor.transaction.code}` : undefined}
+        placeholder="Note visible to admins only..."
+        confirmLabel="Save note"
+        onClose={() => setNoteFor(null)}
+        onConfirm={async (note) => {
+          if (!noteFor) return;
+          try {
+            await payoutsApi.addInternalNote({ transaction_id: noteFor.transaction.id, note });
+            toast({ title: "Note added" });
+          } catch (e) {
+            toast({ title: "Failed to add note", description: (e as Error).message, variant: "destructive" });
+          }
+        }}
+      />
+      <PayoutPromptDialog
+        open={!!blockFor}
+        title={blockFor?.pause ? "Pause payout" : "Block payout"}
+        description={blockFor ? `Transaction ${blockFor.row.transaction.code}` : undefined}
+        placeholder="Reason (required)..."
+        confirmLabel={blockFor?.pause ? "Pause" : "Block"}
+        destructive
+        onClose={() => setBlockFor(null)}
+        onConfirm={async (reason) => {
+          if (!blockFor) return;
+          try {
+            await payoutsApi.blockPayout({
+              transaction_id: blockFor.row.transaction.id,
+              payout_id: blockFor.row.id,
+              reason: blockFor.pause ? `Paused for review: ${reason}` : reason,
+            });
+            toast({ title: blockFor.pause ? "Payout paused" : "Payout blocked" });
+            loadList(); loadSummary();
+          } catch (e) {
+            toast({ title: "Action failed", description: (e as Error).message, variant: "destructive" });
+          }
         }}
       />
     </AdminLayout>
