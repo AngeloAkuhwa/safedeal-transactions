@@ -1,6 +1,16 @@
 
 # Phase 6 — Reconciliation & Observability
 
+## Status (this run) — shipped
+
+- **Migration**: `escrow_reconciliation_results` (RLS admin-read, service-role write), `v_pricing_snapshot_coverage`, `v_pricing_snapshot_audit`, plus the hourly `pg_cron` job `reconcile-escrow-hourly` (7th minute of every hour).
+- **Edge functions**:
+  - `reconcile-escrow` — service-role; walks payments/payouts/refunds/ledger; writes one row per (tx, run); fires `notifyOpsTeam` on drift. Idempotent per `run_id`.
+  - `admin-reconciliation` — admin-gated read API for the UI.
+- **Service / UI**: `src/services/admin-reconciliation.service.ts` + `src/pages/AdminReconciliation.tsx` at `/admin/reconciliation` with Escrow Drift / Pricing Coverage tabs, Phase-7 readiness banner, and a manual "Run now (24h)" button.
+- **Smoke run**: triggered with 87 600h lookback — considered 9 transactions, found 3 real drifts (legitimate pre-existing ledger gaps). Ops alerts dispatched.
+- **Phase 7 unblock**: gating threshold lives on the admin screen; the banner turns green automatically once `v_pricing_snapshot_coverage` shows 100% `snapshot_complete`.
+
 **Goal:** Prove, automatically and continuously, that every transaction's money state matches across three sources of truth — Paystack (external), `escrow_ledger_entries` (internal append-only ledger), and `payouts` / `refunds` (operational outcome) — and surface a pricing-snapshot audit for admins. Phase 6 unblocks Phase 7 (legacy column removal) by quantifying snapshot coverage.
 
 This phase is **read-only on financial data** (no money math changes, no snapshot rewrites). It adds one reconciliation job, one admin screen, and structured logging.
