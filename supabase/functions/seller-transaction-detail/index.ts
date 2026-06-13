@@ -234,8 +234,12 @@ Deno.serve(async (req) => {
         paystack_fee_amount: pr.paystack_fee_amount,
         // SafeDeal canonical:
         payment_processing_fee_amount: paymentProcessingFee,
+        // Response alias kept for UI compatibility (no longer a DB column).
+        processing_fee_amount: paymentProcessingFee,
         service_fee_amount: pr.service_fee_amount,
         service_fee_rate: pr.service_fee_rate,
+        // Response alias kept for UI compatibility (no longer a DB column).
+        seller_net_amount: sellerPayout,
         seller_payout_amount: sellerPayout,
         buyer_total_amount: pr.total_amount,
         currency_code: pr.currency_code,
@@ -249,8 +253,10 @@ Deno.serve(async (req) => {
         platform_fee_amount: pr.platform_fee_amount,
         paystack_fee_amount: pr.paystack_fee_amount,
         payment_processing_fee_amount: pr.paystack_fee_amount,
+        processing_fee_amount: pr.paystack_fee_amount,
         service_fee_amount: pr.service_fee_amount,
         service_fee_rate: pr.service_fee_rate,
+        seller_net_amount: pr.item_amount,
         seller_payout_amount: pr.item_amount,
         buyer_total_amount: pr.total_amount,
         currency_code: pr.currency_code,
