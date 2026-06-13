@@ -142,6 +142,13 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "admin_actions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       admin_investigations: {
@@ -209,6 +216,13 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "admin_investigations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       admin_transaction_notes: {
@@ -264,6 +278,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_transaction_notes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
         ]
       }
@@ -336,6 +357,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
         ]
       }
@@ -756,6 +784,13 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "delivery_confirmations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       delivery_proof_files: {
@@ -811,6 +846,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_proof_files_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
           {
             foreignKeyName: "delivery_proof_files_uploaded_by_user_id_fkey"
@@ -883,6 +925,13 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "delivery_tracking_details_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       delivery_updates: {
@@ -931,6 +980,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_updates_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
           {
             foreignKeyName: "delivery_updates_updated_by_user_id_fkey"
@@ -1311,6 +1367,13 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "disputes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       edge_function_errors: {
@@ -1418,6 +1481,90 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "escrow_ledger_entries_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
+        ]
+      }
+      escrow_reconciliation_results: {
+        Row: {
+          created_at: string
+          delta: number
+          detail: Json
+          expected_ledger_balance: number
+          id: string
+          ledger_balance: number
+          paystack_collected: number
+          paystack_paid_out: number
+          paystack_refunded: number
+          run_at: string
+          run_id: string
+          status: Database["public"]["Enums"]["escrow_reconciliation_status"]
+          transaction_id: string
+        }
+        Insert: {
+          created_at?: string
+          delta?: number
+          detail?: Json
+          expected_ledger_balance?: number
+          id?: string
+          ledger_balance?: number
+          paystack_collected?: number
+          paystack_paid_out?: number
+          paystack_refunded?: number
+          run_at?: string
+          run_id: string
+          status: Database["public"]["Enums"]["escrow_reconciliation_status"]
+          transaction_id: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          detail?: Json
+          expected_ledger_balance?: number
+          id?: string
+          ledger_balance?: number
+          paystack_collected?: number
+          paystack_paid_out?: number
+          paystack_refunded?: number
+          run_at?: string
+          run_id?: string
+          status?: Database["public"]["Enums"]["escrow_reconciliation_status"]
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escrow_reconciliation_results_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escrow_reconciliation_results_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escrow_reconciliation_results_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escrow_reconciliation_results_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       escrow_states: {
@@ -1478,6 +1625,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escrow_states_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
         ]
       }
@@ -1715,6 +1869,13 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "money_status_history_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       notification_deliveries: {
@@ -1891,6 +2052,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "notifications_related_transaction_id_fkey"
+            columns: ["related_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
+          {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -2052,6 +2220,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
           {
             foreignKeyName: "payments_user_id_fkey"
@@ -2224,6 +2399,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
         ]
       }
@@ -2684,6 +2866,13 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "refunds_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       release_review_queue: {
@@ -2780,6 +2969,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "release_review_queue_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
         ]
       }
@@ -2980,6 +3176,13 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transaction_agreement_snapshots_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       transaction_completion_confirmations: {
@@ -3038,6 +3241,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_completion_confirmations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
         ]
       }
@@ -3109,6 +3319,13 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transaction_delivery_terms_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       transaction_events: {
@@ -3177,6 +3394,13 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transaction_events_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       transaction_items: {
@@ -3240,6 +3464,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_items_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
         ]
       }
@@ -3305,6 +3536,13 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transaction_links_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       transaction_media: {
@@ -3360,6 +3598,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_media_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
         ]
       }
@@ -3430,6 +3675,13 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transaction_messages_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       transaction_notes: {
@@ -3475,6 +3727,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_notes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
         ]
       }
@@ -3530,6 +3789,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_participants_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
           {
             foreignKeyName: "transaction_participants_user_id_fkey"
@@ -3611,6 +3877,13 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transaction_pricing_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       transaction_status_history: {
@@ -3672,6 +3945,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_status_history_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
         ]
       }
@@ -4004,6 +4284,13 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "disputes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
         ]
       }
       buyer_transactions_view: {
@@ -4048,6 +4335,26 @@ export type Database = {
           provider_recipient_code: string | null
           user_id: string | null
           verification_status: string | null
+        }
+        Relationships: []
+      }
+      v_pricing_snapshot_audit: {
+        Row: {
+          created_at: string | null
+          money_status: Database["public"]["Enums"]["money_status"] | null
+          pricing_model_version: string | null
+          snapshot_state: string | null
+          transaction_code: string | null
+          transaction_id: string | null
+        }
+        Relationships: []
+      }
+      v_pricing_snapshot_coverage: {
+        Row: {
+          last_30d_count: number | null
+          last_90d_count: number | null
+          snapshot_state: string | null
+          total_count: number | null
         }
         Relationships: []
       }
@@ -4325,6 +4632,11 @@ export type Database = {
         | "dispute_refund_reserved"
         | "dispute_release_approved_pending_admin_release"
         | "dispute_no_action"
+      escrow_reconciliation_status:
+        | "ok"
+        | "drift"
+        | "missing_ledger"
+        | "missing_pricing"
       escrow_state:
         | "awaiting_payment"
         | "held"
@@ -4724,6 +5036,12 @@ export const Constants = {
         "dispute_refund_reserved",
         "dispute_release_approved_pending_admin_release",
         "dispute_no_action",
+      ],
+      escrow_reconciliation_status: [
+        "ok",
+        "drift",
+        "missing_ledger",
+        "missing_pricing",
       ],
       escrow_state: [
         "awaiting_payment",
