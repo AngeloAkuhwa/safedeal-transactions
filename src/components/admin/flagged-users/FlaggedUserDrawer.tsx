@@ -15,6 +15,8 @@ import { RISK_AVATAR_RING, RISK_LABEL, RISK_PILL, RISK_DOT, absoluteDate, relati
 
 interface Props {
   row: FlaggedUserRow | null;
+  /** Deep-link fallback when row isn't present in the current page. */
+  userId?: string | null;
   open: boolean;
   onClose: () => void;
 }
@@ -28,20 +30,38 @@ const ACTION_LABELS: Record<FlaggedActionType, string> = {
   flag_user: "Flag",
 };
 
-export function FlaggedUserDrawer({ row, open, onClose }: Props) {
+export function FlaggedUserDrawer({ row, userId, open, onClose }: Props) {
   const qc = useQueryClient();
   const [pending, setPending] = useState<FlaggedActionType | null>(null);
   const [note, setNote] = useState("");
-  const userId = row?.user_id ?? "";
+  const targetId = row?.user_id ?? userId ?? "";
 
   const { data: detail, isLoading: detailLoading } = useQuery({
-    queryKey: ["admin-flagged-user-detail", userId],
-    queryFn: () => fetchFlaggedUserDetail(userId),
-    enabled: !!userId && open,
+    queryKey: ["admin-flagged-user-detail", targetId],
+    queryFn: () => fetchFlaggedUserDetail(targetId),
+    enabled: !!targetId && open,
     staleTime: 15_000,
   });
 
-  if (!open || !row) return null;
+  if (!open || !targetId) return null;
+
+  // Build display from row when present, otherwise from the detail payload
+  const view = row ?? (detail ? {
+    user_id: detail.user.id,
+    name: detail.user.full_name || "Unknown user",
+    email: detail.user.email || null,
+    avatar_url: detail.user.avatar_url,
+    short_id: detail.user.display_id,
+    risk: detail.risk.level,
+    reasons: detail.flag_reasons.map((r) => ({ key: r.key, label: r.label })),
+    disputes_30d: 0, refunds_30d: 0, identity_rejected: false,
+    auto_detected: false,
+    related: { tx_code: null, tx_id: null, tx_amount: 0, dispute_count: 0 },
+    escrow_at_risk: 0,
+    flagged_by: { name: "Auto-Detection", avatar_url: null, is_system: true },
+    flagged_at: detail.flagged_at,
+    status: detail.status,
+  } as FlaggedUserRow : null);
 
   const runAction = async (action: FlaggedActionType) => {
     if (!note.trim()) {
@@ -51,15 +71,15 @@ export function FlaggedUserDrawer({ row, open, onClose }: Props) {
     setPending(action);
     try {
       await performFlaggedAction({
-        action, user_id: row.user_id, note: note.trim(),
-        reason_key: row.reasons[0]?.key,
-        transaction_id: row.related.tx_id ?? undefined,
+        action, user_id: targetId, note: note.trim(),
+        reason_key: view?.reasons[0]?.key,
+        transaction_id: view?.related.tx_id ?? undefined,
       });
-      toast({ title: `${ACTION_LABELS[action]} recorded`, description: row.name });
+      toast({ title: `${ACTION_LABELS[action]} recorded`, description: view?.name ?? "" });
       setNote("");
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["admin-flagged-users"] }),
-        qc.invalidateQueries({ queryKey: ["admin-flagged-user-detail", userId] }),
+        qc.invalidateQueries({ queryKey: ["admin-flagged-user-detail", targetId] }),
       ]);
       if (action === "suspend_user" || action === "clear_flag") onClose();
     } catch (e) {
@@ -70,9 +90,21 @@ export function FlaggedUserDrawer({ row, open, onClose }: Props) {
   };
 
   const av = detail?.available_actions;
-  const canSuspend = av?.can_suspend ?? (row.status !== "suspended");
-  const canClear = av?.can_clear ?? (row.reasons.length > 0);
-  const canEscalate = av?.can_escalate ?? (row.status !== "suspended");
+  const canSuspend = av?.can_suspend ?? (view?.status !== "suspended");
+  const canClear = av?.can_clear ?? ((view?.reasons.length ?? 0) > 0);
+  const canEscalate = av?.can_escalate ?? (view?.status !== "suspended");
+
+  // While detail is loading and we have no row, show a minimal shell
+  if (!view) {
+    return (
+      <div className="fixed inset-0 z-50 flex justify-end">
+        <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+        <aside className="relative h-full w-full max-w-md bg-slate-950 border-l border-slate-800 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
+        </aside>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
