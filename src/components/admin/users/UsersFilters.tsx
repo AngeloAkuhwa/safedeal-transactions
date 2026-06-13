@@ -8,7 +8,6 @@ interface Props {
   onSearchChange: (s: string) => void;
   onApply: () => void;
   onReset: () => void;
-  mobile?: boolean;
 }
 
 const ROLES: Array<{ v: string; l: string }> = [
@@ -43,10 +42,9 @@ function Select({ value, options, onChange }: { value: string; options: { v: str
   );
 }
 
-export function UsersFilters({ value, search, onChange, onSearchChange, onApply, onReset, mobile }: Props) {
-  const cls = mobile ? "block" : "hidden lg:block";
+export function UsersFilters({ value, search, onChange, onSearchChange, onApply, onReset }: Props) {
   return (
-    <div className={`${cls} bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-6`}>
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
         <div className="md:col-span-2 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
