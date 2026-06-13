@@ -1,44 +1,44 @@
-## What's happening
+## What's actually happening
 
-The 403 is correct behavior, not a bug. Gate 4 in `initiate-paystack-payment` caps each buyer at **5 active transactions** (status in `awaiting_payment`, `payment_secured`, `seller_preparing_delivery`, `seller_dispatched`, `delivered_awaiting_verification`, `disputed`). The buyer already has 5 active, so this new payment is refused.
+The red "Release review cleared — ACTION NEEDED" check is firing on a queue row that is **not** a real review/hold — it's the *work item itself*. Here's the trail:
 
-Fix B already surfaces the real message in the modal subtitle — that's why "You've reached your active purchase limit (5)…" now shows. The remaining UX problem: the primary CTA is still **Retry Payment**, which will fail again with the exact same error every time. The buyer needs to be sent somewhere they can actually resolve it.
+1. When both buyer & seller confirm completion, `seller-confirm-completion` inserts a row into `release_review_queue` with `queue_type = 'ready_for_release'`, `status = 'pending'`. This row's only purpose is to give admins a work item that says "this payout is ready, go release it."
+2. The payout eligibility gate (`supabase/functions/_shared/payout-eligibility.ts`, gate `no_release_review`) blocks release whenever **any** queue row exists in `('pending','in_progress')` regardless of `queue_type`.
+3. So the very row that means "ready to release" is the row that blocks the release. Catch-22. There is no admin UI that resolves it either — the `resolve-release-review` edge function is unwired from the UI.
 
-## Scope (UX only — no limit change, no backend change)
+The actual review-style queue types that *should* block release are the ones produced by `flag_for_release_review` (`stuck`, `payout_account_missing`, `pricing_missing`, `silent_dispute`, `failed_payout`, `refund_request`, `transfer_reversed`, `manual_hold`, `delivery_proof_missing`, `suspicious_activity`) and the dispute-resolved variants. `ready_for_release` is a workqueue marker, not a blocker.
 
-### Fix D — Smart CTA for the concurrency-limit case (Payment Failed modal)
+Also note the gate query filters on `status in ('pending','in_progress')`, but the real in-flight statuses used elsewhere in the codebase are `claimed`, `processing`, `awaiting_info`, `held` — `in_progress` doesn't exist as a status value. Worth tightening at the same time.
 
-`src/pages/BuyerPaymentSummary.tsx` around the existing `failureTerminal` branch (lines ~179–185 and ~1019–1112):
+## The fix (one file)
 
-- Add a second non-terminal "blocker" state alongside `failureTerminal`. Call it `failureBlocker: "concurrency" | null`.
-- After capturing `errMsg`, detect the concurrency case with `/active purchase limit/i.test(errMsg)` and set `failureBlocker = "concurrency"`. Keep `failureTerminal = null` (the transaction itself is still payable; the buyer is the bottleneck).
-- In the modal:
-  - Heading: **"Purchase Limit Reached"** (instead of "Payment Failed" / "Transaction No Longer Payable").
-  - Subtitle: the raw `failureReason` (already correct).
-  - Replace the Retry Payment + Return to Review pair with:
-    1. Primary: **View My Transactions** → `/dashboard/transactions` (where they can complete, cancel, or confirm receipt on existing rows to free up a slot).
-    2. Secondary: **Return to Review** → `/t/${shareToken}` (unchanged).
-  - Keep the "Contact support if card appears charged" row.
-  - Keep the "No funds were deducted" reassurance block — it's still true (no charge happened) and reduces anxiety.
-- All other 4xx/5xx and `failureTerminal` branches keep today's behavior.
+**`supabase/functions/_shared/payout-eligibility.ts`**
 
-### Reset on close
+Change the `release_review_queue` query and the `no_release_review` gate so that:
 
-`setFailureBlocker(null)` wherever `setFailureTerminal(null)` is already called (modal open path and dismiss path), so a later genuine card-decline doesn't inherit the wrong CTA.
+- It ignores rows with `queue_type = 'ready_for_release'` (these are the "go do it" rows, not blockers).
+- It uses the correct open-status set: `pending`, `claimed`, `processing`, `awaiting_info`, `held`. (Matches the partial unique index used by `flag_for_release_review` and the values written by `resolve-release-review`.)
+- The gate still passes only when there are no truly-blocking review rows.
 
-## Out of scope (deferred / not changing)
+Concretely, replace the `reviewRes` query with:
 
-- The limit value (5) and the `CONCURRENT_BY_LEVEL` matrix — backend policy, not touched.
-- Adding a pre-emptive lock banner on `/t/:token/pay` for the concurrency case. The existing `canPay` / `lockReason === "concurrency"` banner is driven by `buyer-permissions` and already covers the proactive path on the Review page; the modal fix is enough to recover from the slip-through.
-- `initiate-paystack-payment`, pricing, escrow, cart locking, terminal-status guards (already shipped in the prior turn).
+```ts
+admin
+  .from("release_review_queue")
+  .select("id, status, queue_type")
+  .eq("transaction_id", transaction_id)
+  .in("status", ["pending", "claimed", "processing", "awaiting_info", "held"])
+  .neq("queue_type", "ready_for_release"),
+```
 
-## Files modified
+The `no_release_review` gate's `pass: reviews.length === 0` then becomes correct on its own.
 
-- `src/pages/BuyerPaymentSummary.tsx` (state, error detection, modal render branch).
+When the admin clicks Release, `release_payout_atomic` already transitions any matching queue row to `processing` (and the `ready_for_release` row gets carried along), so nothing downstream needs to change.
 
-## Verification
+## After the fix
 
-1. With a buyer that already has 5 active transactions, open a 6th `/t/:token/pay` and press Pay.
-2. Modal opens with heading **"Purchase Limit Reached"**, subtitle quoting `"You've reached your active purchase limit (5)…"`, primary CTA **View My Transactions** linking to `/dashboard/transactions`, secondary **Return to Review**. No Retry button visible.
-3. Trigger a normal card decline on a buyer under the limit → modal still reads "Payment Failed" with the original Retry Payment + Return to Review pair.
-4. Hit a `cancelled` share token → modal still reads "Transaction No Longer Payable" with the Back to Marketplace CTA from the previous turn.
+For this specific payout (SD-2026-000024): the checklist will recompute to all-PASS and the Release button in the Payout Details drawer becomes clickable. No manual SQL needed.
+
+## Out of scope (call out only)
+
+- Building an admin "Resolve release review" UI that wires up the existing `resolve-release-review` edge function. That's still useful for legitimately stuck/held cases (`manual_hold`, `stuck`, etc.) where an admin needs to dismiss/hold/refund. Today those cases are also un-actionable from the UI — but that's a separate feature, not what's blocking you right now.

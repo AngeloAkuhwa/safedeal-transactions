@@ -98,9 +98,10 @@ export async function evaluatePayoutEligibility(
       .eq("transaction_id", transaction_id),
     admin
       .from("release_review_queue")
-      .select("id, status")
+      .select("id, status, queue_type")
       .eq("transaction_id", transaction_id)
-      .in("status", ["pending", "in_progress"]),
+      .in("status", ["pending", "claimed", "processing", "awaiting_info", "held"])
+      .neq("queue_type", "ready_for_release"),
     admin.rpc("has_role", { _user_id: admin_user_id, _role: "super_admin" }),
   ]);
 
