@@ -715,7 +715,7 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       flagged_activity_delta_pct: calculateDeltaPct(flaggedActivity, flaggedActivityPrev),
     },
     action_required: [
-      { key: "awaiting_release", label: "Awaiting Release", count: awaitingRelease, severity: "blue", action_label: "Open Release Queue", action_href: "/admin/release-queue" },
+      { key: "awaiting_release", label: "Funds Awaiting Release", count: awaitingRelease, severity: "blue", action_label: "Open Release Queue", action_href: "/admin/release-queue" },
       { key: "failed_payouts", label: "Failed Payouts", count: failedPayouts, severity: "red", action_label: "Investigate", action_href: "/admin/payouts" },
       { key: "disputes_needing_decision", label: "Disputes Needing Decision", count: disputesOpen, severity: "orange", action_label: "Decide", action_href: "/admin/disputes" },
       { key: "stuck_transactions", label: "Stuck Transactions", count: stuckTx > 0 ? stuckTx : flaggedNeedsReview, severity: "purple", action_label: "Review Queue", action_href: "/admin/transactions/stuck" },
