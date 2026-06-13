@@ -37,10 +37,13 @@ Deno.serve(async (req) => {
 
   const { data: tx, error: txErr } = await admin
     .from("transactions")
-    .select("id, transaction_code, created_at, transaction_status, money_status, buyer_id, seller_id")
+    .select("id, transaction_code, created_at, status, money_status, buyer_id, seller_id")
     .eq("id", txId)
     .maybeSingle();
-  if (txErr) return json(500, { error: "tx_fetch_failed" });
+  if (txErr) {
+    console.error("[admin-escrow-detail] tx fetch", txErr);
+    return json(500, { error: "tx_fetch_failed", detail: txErr.message });
+  }
   if (!tx) return json(404, { error: "not_found" });
 
   const [escrowRes, pricingRes, ledgerRes, statusHistRes, moneyHistRes, notesRes, disputeRes, profilesRes] = await Promise.all([
@@ -49,7 +52,7 @@ Deno.serve(async (req) => {
     admin.from("escrow_ledger_entries").select("id, entry_type, amount, created_at, reference").eq("transaction_id", txId).order("created_at", { ascending: true }).limit(100),
     admin.from("transaction_status_history").select("id, from_status, to_status, changed_at, reason").eq("transaction_id", txId).order("changed_at", { ascending: false }).limit(50),
     admin.from("money_status_history").select("id, from_status, to_status, changed_at, reason").eq("transaction_id", txId).order("changed_at", { ascending: false }).limit(50),
-    admin.from("admin_transaction_notes").select("id, note, created_at, admin_id").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(20),
+    admin.from("admin_transaction_notes").select("id, note, created_at, admin_user_id").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(20),
     admin.from("disputes").select("id, status, opened_at").eq("transaction_id", txId).order("opened_at", { ascending: false }).limit(1),
     admin.from("profiles").select("id, full_name, avatar_url, email").in("id", [tx.buyer_id as string, tx.seller_id as string]),
   ]);
@@ -58,7 +61,7 @@ Deno.serve(async (req) => {
     (profilesRes.data ?? []).map((p) => [p.id as string, p as never]),
   );
 
-  const adminIds = Array.from(new Set((notesRes.data ?? []).map((n) => n.admin_id as string).filter(Boolean)));
+  const adminIds = Array.from(new Set((notesRes.data ?? []).map((n) => n.admin_user_id as string).filter(Boolean)));
   const adminMap = new Map<string, string>();
   if (adminIds.length) {
     const { data: admins } = await admin.from("profiles").select("id, full_name").in("id", adminIds);
@@ -74,7 +77,7 @@ Deno.serve(async (req) => {
       id: tx.id,
       code: tx.transaction_code,
       created_at: tx.created_at,
-      transaction_status: tx.transaction_status,
+      transaction_status: tx.status,
       money_status: tx.money_status,
       buyer: { id: tx.buyer_id, name: buyer?.full_name ?? "Unknown", email: buyer?.email ?? null, avatar_url: buyer?.avatar_url ?? null },
       seller: { id: tx.seller_id, name: seller?.full_name ?? "Unknown", email: seller?.email ?? null, avatar_url: seller?.avatar_url ?? null },
@@ -95,7 +98,7 @@ Deno.serve(async (req) => {
     money_history: moneyHistRes.data ?? [],
     notes: (notesRes.data ?? []).map((n) => ({
       id: n.id, note: n.note, created_at: n.created_at,
-      admin_name: adminMap.get(n.admin_id as string) ?? null,
+      admin_name: adminMap.get(n.admin_user_id as string) ?? null,
     })),
     dispute: disputeRes.data?.[0] ?? null,
   });
