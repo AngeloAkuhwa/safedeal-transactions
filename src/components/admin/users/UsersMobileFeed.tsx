@@ -211,7 +211,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
       {/* Pagination */}
       {rows.length > 0 && (
         <div className="px-4 py-4 flex items-center justify-between">
-          <span className="text-slate-500 text-xs font-medium">{start} - {end} of {total.toLocaleString()}</span>
+          <span className="text-slate-500 text-xs font-medium">Showing {start}–{end} of {total.toLocaleString()} users</span>
           <div className="flex gap-2">
             <button
               disabled={page <= 1}
