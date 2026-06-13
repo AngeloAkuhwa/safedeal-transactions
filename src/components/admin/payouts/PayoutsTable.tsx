@@ -244,11 +244,11 @@ function RowMenu({
           <span className={iconSlot}><FaCircleInfo className="text-blue-400" /></span>
           <span>View Failure Details</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={rowCls} onClick={() => comingSoon("Update Bank Account")}>
+        <DropdownMenuItem className={rowCls} onClick={onUpdateBank}>
           <span className={iconSlot}><FaPenToSquare className="text-pink-400" /></span>
           <span>Update Bank Account</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={rowCls} onClick={() => comingSoon("View Seller Profile")}>
+        <DropdownMenuItem className={rowCls} onClick={onOpenSeller}>
           <span className={iconSlot}><FaUser className="text-pink-400" /></span>
           <span>View Seller Profile</span>
         </DropdownMenuItem>
@@ -257,11 +257,11 @@ function RowMenu({
           <span>View Transaction</span>
         </DropdownMenuItem>
         <div className="border-t border-slate-700 my-2" />
-        <DropdownMenuItem className={rowCls} onClick={() => comingSoon("Add Internal Note")}>
+        <DropdownMenuItem className={rowCls} onClick={onAddNote}>
           <span className={iconSlot}><FaNoteSticky className="text-yellow-400" /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400`} onClick={() => comingSoon("Block Payout")}>
+        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400`} onClick={onBlock}>
           <span className={iconSlot}><FaBan className="text-red-400" /></span>
           <span>Block Payout</span>
         </DropdownMenuItem>
@@ -281,7 +281,7 @@ function RowMenu({
           <span className={iconSlot}><FaCircleInfo className="text-blue-400" /></span>
           <span>View Processing Status</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={rowCls} onClick={() => comingSoon("View Seller Profile")}>
+        <DropdownMenuItem className={rowCls} onClick={onOpenSeller}>
           <span className={iconSlot}><FaUser className="text-pink-400" /></span>
           <span>View Seller Profile</span>
         </DropdownMenuItem>
@@ -290,15 +290,15 @@ function RowMenu({
           <span>View Transaction Details</span>
         </DropdownMenuItem>
         <div className="border-t border-slate-700 my-2" />
-        <DropdownMenuItem className={rowCls} onClick={() => comingSoon("Add Internal Note")}>
+        <DropdownMenuItem className={rowCls} onClick={onAddNote}>
           <span className={iconSlot}><FaNoteSticky className="text-yellow-400" /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={`${rowCls} text-orange-400 focus:text-orange-400`} onClick={() => comingSoon("Pause Payout")}>
+        <DropdownMenuItem className={`${rowCls} text-orange-400 focus:text-orange-400`} onClick={onPause}>
           <span className={iconSlot}><FaPause className="text-orange-400" /></span>
           <span>Pause Payout</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400`} onClick={() => comingSoon("Block Payout")}>
+        <DropdownMenuItem className={`${rowCls} text-red-400 focus:text-red-400`} onClick={onBlock}>
           <span className={iconSlot}><FaBan className="text-red-400" /></span>
           <span>Block Payout</span>
         </DropdownMenuItem>
@@ -316,7 +316,7 @@ function RowMenu({
           <span className="w-4 flex justify-center text-slate-300"><FaCircleCheck /></span>
           <span>View Completion Details</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => comingSoon("View Seller Profile")} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={onOpenSeller} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
           <span className="w-4 flex justify-center text-slate-300"><FaUser /></span>
           <span>View Seller Profile</span>
         </DropdownMenuItem>
@@ -325,11 +325,11 @@ function RowMenu({
           <span>View Transaction</span>
         </DropdownMenuItem>
         <div className="border-t border-slate-700 my-2" />
-        <DropdownMenuItem onClick={() => comingSoon("Download Receipt")} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={onDownloadReceipt} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
           <span className="w-4 flex justify-center text-slate-300"><FaDownload /></span>
           <span>Download Receipt</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => comingSoon("Add Internal Note")} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
+        <DropdownMenuItem onClick={onAddNote} className="px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-300 flex items-center gap-3 cursor-pointer rounded-none">
           <span className="w-4 flex justify-center text-slate-300"><FaNoteSticky /></span>
           <span>Add Internal Note</span>
         </DropdownMenuItem>
