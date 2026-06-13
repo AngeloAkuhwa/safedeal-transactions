@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
           .single(),
         supabase
           .from("transaction_items")
-          .select("title, description, quantity, condition_label, brand, model, warranty_terms")
+          .select("title, description, quantity, condition_label, brand, model, warranty_info")
           .eq("transaction_id", txId)
           .maybeSingle(),
         supabase
@@ -89,6 +89,19 @@ Deno.serve(async (req) => {
 
     if (txRes.error) throw txRes.error;
     const tx = txRes.data;
+
+    // Surface silent failures from the parallel fetches.
+    for (const [name, res] of [
+      ["item", itemRes],
+      ["pricing", pricingRes],
+      ["delivery", deliveryRes],
+      ["escrow", escrowRes],
+      ["media", mediaRes],
+    ] as const) {
+      if ((res as { error?: unknown }).error) {
+        console.error(`resolve-share-token: ${name} query error`, (res as { error: unknown }).error);
+      }
+    }
 
     // 3. Fetch seller profile + verification
     const [sellerRes, verifyRes] = await Promise.all([
@@ -155,7 +168,13 @@ Deno.serve(async (req) => {
         created_at: tx.created_at,
         agreement_locked_at: tx.agreement_locked_at,
       },
-      item: itemRes.data || null,
+      item: itemRes.data
+        ? {
+            ...itemRes.data,
+            // Preserve the existing client contract (`warranty_terms`).
+            warranty_terms: (itemRes.data as { warranty_info?: unknown }).warranty_info ?? null,
+          }
+        : null,
       pricing: computedPricing,
       delivery: deliveryRes.data || null,
       escrow: escrowRes.data || null,
