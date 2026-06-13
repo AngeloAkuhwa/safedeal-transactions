@@ -334,7 +334,7 @@ export default function AdminPayouts() {
       </div>
 
         {/* Desktop table */}
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <PayoutsTable
             rows={rows} loading={listLoading}
             selected={selectedIds}
