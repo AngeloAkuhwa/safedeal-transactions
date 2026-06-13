@@ -4425,6 +4425,14 @@ export type Database = {
         Args: { p_tx_id: string }
         Returns: undefined
       }
+      release_expired_awaiting_payment: {
+        Args: { _cutoff: string }
+        Returns: {
+          product_id: string
+          qty: number
+          transaction_id: string
+        }[]
+      }
       release_payout_atomic: {
         Args: {
           p_actor_user_id: string
