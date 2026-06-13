@@ -137,7 +137,6 @@ const SellerProductDetail = () => {
       description,
       condition_label: conditionLabel,
       unit_price: parseFloat(unitPrice),
-      stock_quantity: parseInt(stockQuantity) || 0,
       agreement_terms: agreementTerms,
       delivery_methods: deliveryMethods,
       seller_notes: sellerNotes,
@@ -466,10 +465,27 @@ const SellerProductDetail = () => {
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-foreground">Stock Quantity</Label>
-                      <Input type="number" value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} className="mt-1.5 px-4 py-3 rounded-lg" />
-                      <p className="text-xs text-muted-foreground mt-1.5">
-                        Reserved: <span className="font-semibold text-amber-500">{product.reserved_quantity || 0}</span>{" "}
-                        · Available: <span className="font-semibold text-emerald-500">{Math.max(0, (product.stock_quantity || 0) - (product.reserved_quantity || 0))}</span>
+                      <Input
+                        type="number"
+                        value={stockQuantity}
+                        readOnly
+                        disabled
+                        className="mt-1.5 px-4 py-3 rounded-lg bg-muted/50 cursor-not-allowed"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5 flex-wrap">
+                        Reserved: <span className="font-semibold text-amber-500">{product.reserved_quantity || 0}</span>
+                        <span>·</span>
+                        Available: <span className="font-semibold text-emerald-500">{Math.max(0, (product.stock_quantity || 0) - (product.reserved_quantity || 0))}</span>
+                        <span
+                          title="Available = Stock Quantity − Reserved Quantity (clamped at 0). Reserved units are locked by in-flight checkouts that have not yet completed payment."
+                          className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-muted text-[10px] text-muted-foreground cursor-help"
+                          aria-label="What do Reserved and Available mean?"
+                        >
+                          ?
+                        </span>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Use the <span className="font-semibold">Restock</span> button above to add inventory. Every change is logged below.
                       </p>
                     </div>
                   </div>
