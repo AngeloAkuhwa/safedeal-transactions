@@ -383,29 +383,21 @@ const CartCheckoutReview = () => {
                         </div>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <div className="px-5 pb-4 pt-1 space-y-2 bg-muted/30">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Paystack Processing Fee</span>
-                            <span className="font-medium">{formatPrice(sellerPricing.paystack_fee_amount)}</span>
-                          </div>
-                          <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">SafeDeal Platform Fee</span>
-                            <span className="font-medium">{formatPrice(sellerPricing.platform_fee_amount)}</span>
-                          </div>
-                          <div className="border-t border-border pt-2 flex justify-between text-xs font-semibold">
-                            <span className="text-foreground">Total Protection Fee</span>
-                            <span className="text-primary">{formatPrice(sellerPricing.service_fee_amount)}</span>
-                          </div>
-                          <div className="flex flex-col gap-1 pt-1">
-                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                              <AlertCircle className="h-3 w-3" /> Non-refundable fee
-                            </p>
-                            {sellerPricing.is_capped && (
-                              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Fee capped at ₦2,500
-                              </p>
+                        <div className="px-5 pb-4 pt-2 bg-muted/30">
+                          <PricingBreakdown
+                            snapshot={viewFromRow(
+                              {
+                                item_amount: sellerSubtotal,
+                                platform_fee_amount: sellerPricing.platform_fee_amount,
+                                processing_fee_amount: sellerPricing.paystack_fee_amount,
+                                service_fee_amount: sellerPricing.service_fee_amount,
+                                buyer_total_amount: sellerPricing.total_amount,
+                                is_total_service_fee_capped: sellerPricing.is_capped,
+                              },
+                              { isEstimate: true },
                             )}
-                          </div>
+                            audience="buyer"
+                          />
                         </div>
                       </CollapsibleContent>
                     </Collapsible>
