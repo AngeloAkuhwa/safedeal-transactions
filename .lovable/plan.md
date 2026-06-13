@@ -1,7 +1,28 @@
 
-# Phase 7 — Legacy Pricing Column Removal (Final Phase)
+# Phase 7 — Legacy Pricing Column Removal — SHIPPED
 
-This is the **last planned phase**. After Phase 7 the canonical pricing snapshot becomes the only source of truth and the legacy fallback code path is fully retired.
+## Status (this run) — shipped
+
+- Backfilled 9 historical pricing rows (legacy → canonical) with `trg_prevent_pricing_*` triggers temporarily disabled inside the migration.
+- Made `payment_processing_fee_amount`, `seller_payout_amount`, `buyer_total_amount`, `platform_fee_amount`, `pricing_model_version` NOT NULL on `transaction_pricing`.
+- Rebuilt `seller_transactions_view` against `seller_payout_amount` (the only other DB object referencing legacy columns).
+- Collapsed `v_pricing_snapshot_coverage` / `v_pricing_snapshot_audit` to `snapshot_complete | snapshot_missing` — the `snapshot_legacy` bucket is now structurally impossible.
+- Dropped `transaction_pricing.processing_fee_amount` and `transaction_pricing.seller_net_amount`.
+- Writers stop writing legacy columns: `create-transaction`, `cart-checkout`, `storefront-checkout`, `claim-offer`.
+- Readers switched to canonical DB columns: `admin-payouts-list/-detail`, `admin-transactions-monitor`, `admin-transaction-detail`, `admin-export-transaction-data`, `admin-disputes-queue`, `transaction-verify`, `seller-transactions`, `seller-transaction-detail`, `seller-dashboard`, `seller-analytics`, `seller-disputes`.
+- `seller-transaction-detail` throws `missing pricing snapshot` instead of deriving from `paystack_fee_amount`.
+- Response field aliases `seller_net_amount` / `processing_fee_amount` kept on `seller-transaction-detail` output for UI compatibility (populated from canonical columns; no longer DB-backed).
+- `LegacyPricingRowFields` removed from `src/types/payment-flow.types.ts`.
+- Admin reconciliation page: dropped `snapshot_legacy` KPI + badge; banner now reads "Phase 7 complete — canonical snapshot enforced" once coverage is 100%.
+- Verified: `v_pricing_snapshot_coverage` reports `snapshot_complete = 9 / 9`. Regenerated `src/integrations/supabase/types.ts` no longer contains the dropped columns.
+
+**Phases remaining: 0.** SafeDeal escrow stack is fully on the canonical pricing model with no legacy debt.
+
+---
+
+## Original plan (for history)
+
+This was the **last planned phase**. After Phase 7 the canonical pricing snapshot becomes the only source of truth and the legacy fallback code path is fully retired.
 
 **Phases remaining after this one: 0.**
 
