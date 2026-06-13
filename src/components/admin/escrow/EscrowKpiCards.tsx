@@ -1,5 +1,4 @@
 import { Lock, Hourglass, RotateCcw, CheckCircle2, CalendarDays, Wallet } from "lucide-react";
-import { formatMoney } from "@/lib/format";
 import type { EscrowKpis } from "@/services/admin-escrow.service";
 
 function deltaClass(d: number, positiveIsGood = true): string {
@@ -11,6 +10,14 @@ function deltaClass(d: number, positiveIsGood = true): string {
 function fmtDelta(d: number): string {
   if (!d) return "—";
   return `${d > 0 ? "+" : ""}${d.toFixed(1)}%`;
+}
+
+function fmtCompact(n: number): string {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return `₦${(n / 1_000_000_000).toFixed(2)}B`;
+  if (abs >= 1_000_000)     return `₦${(n / 1_000_000).toFixed(2)}M`;
+  if (abs >= 10_000)        return `₦${(n / 1_000).toFixed(1)}K`;
+  return `₦${n.toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
 }
 
 function Card({ icon, iconBg, iconBorder, iconColor, label, value, sub, delta, positiveIsGood }: {
@@ -26,7 +33,9 @@ function Card({ icon, iconBg, iconBorder, iconColor, label, value, sub, delta, p
         <span className={`text-xs font-semibold ${deltaClass(delta, positiveIsGood ?? true)}`}>{fmtDelta(delta)}</span>
       </div>
       <h3 className="text-slate-400 text-xs lg:text-sm font-medium mb-1">{label}</h3>
-      <p className="text-white text-lg lg:text-2xl font-bold truncate">{formatMoney(value, "NGN")}</p>
+      <p className="text-white text-lg lg:text-2xl font-bold truncate" title={`₦${value.toLocaleString("en-NG")}`}>
+        {fmtCompact(value)}
+      </p>
       <p className="text-slate-500 text-[11px] lg:text-xs mt-1 truncate">{sub}</p>
     </div>
   );
