@@ -17,6 +17,7 @@ import { formatMoney } from "@/lib/format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import { PayoutStatusPill } from "./PayoutStatusPill";
 import type { PayoutRow } from "@/services/admin-payouts.service";
+import { getPayoutCaptionFromRow, getAccountPresentation } from "@/lib/payout-presentation";
 
 interface Props {
   rows: PayoutRow[];
@@ -128,12 +129,8 @@ function PayoutIdIcon({ row }: { row: PayoutRow }) {
   return <div className="w-8 h-8 bg-orange-500/10 border border-orange-500/30 rounded-lg flex items-center justify-center shrink-0"><FaClock className="text-orange-400 text-xs" /></div>;
 }
 
-function payoutCaption(r: PayoutRow): { text: string; tone: "red" | "muted" | "emerald" } | null {
-  if (r.payout_blocked_reason) return { text: r.payout_blocked_reason, tone: "red" };
-  if (r.failure_reason) return { text: r.failure_reason, tone: "red" };
-  if (r.status === "completed") return { text: "Completed successfully", tone: "emerald" };
-  if (r.status === "pending" || r.status === "processing") return { text: "Bank processing", tone: "muted" };
-  return null;
+function payoutCaption(r: PayoutRow) {
+  return getPayoutCaptionFromRow(r);
 }
 
 function formatAbsolute(iso: string): string {
@@ -479,29 +476,41 @@ export function PayoutsTable({
                   <p className="text-slate-400 text-xs">NGN</p>
                 </td>
                 <td className="p-4">
-                  {r.payout_account && r.payout_account.verification_status === "verified" ? (
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-slate-300 text-sm font-medium whitespace-nowrap">{r.payout_account.bank_name ?? "—"}</p>
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded text-[10px] font-bold shrink-0">
-                          <FaCheck className="text-[8px]" /> VERIFIED
-                        </span>
+                  {(() => {
+                    const ap = getAccountPresentation(r.payout_account);
+                    if (ap.state === "no_account") {
+                      return <p className="text-red-400 text-xs font-medium">No payout account</p>;
+                    }
+                    if (ap.state === "verified_ready") {
+                      return (
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-slate-300 text-sm font-medium whitespace-nowrap">{r.payout_account!.bank_name ?? "—"}</p>
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded text-[10px] font-bold shrink-0">
+                              <FaCheck className="text-[8px]" /> VERIFIED
+                            </span>
+                          </div>
+                          <p className="text-slate-400 text-xs whitespace-nowrap">{r.payout_account!.masked_account ?? "—"}</p>
+                        </div>
+                      );
+                    }
+                    const badgeTone =
+                      ap.state === "verified_no_recipient"
+                        ? "bg-red-500/20 border-red-500/30 text-red-400"
+                        : "bg-amber-500/20 border-amber-500/30 text-amber-400";
+                    const badgeText = ap.state === "verified_no_recipient" ? "RECIPIENT MISSING" : "UNVERIFIED";
+                    return (
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-slate-300 text-sm font-medium whitespace-nowrap">{r.payout_account?.bank_name ?? "Account"}</p>
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 ${badgeTone} border rounded text-[10px] font-bold shrink-0`}>
+                            <FaXmark className="text-[8px]" /> {badgeText}
+                          </span>
+                        </div>
+                        <p className="text-slate-400 text-xs whitespace-nowrap">{r.payout_account?.masked_account ?? ap.tableLabel}</p>
                       </div>
-                      <p className="text-slate-400 text-xs whitespace-nowrap">{r.payout_account.masked_account ?? "—"}</p>
-                    </div>
-                  ) : r.payout_account ? (
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-slate-300 text-sm font-medium whitespace-nowrap">{r.payout_account.bank_name ?? "Account"}</p>
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-500/20 border border-red-500/30 text-red-400 rounded text-[10px] font-bold shrink-0">
-                          <FaXmark className="text-[8px]" /> INVALID
-                        </span>
-                      </div>
-                      <p className="text-slate-400 text-xs whitespace-nowrap">{r.payout_account.masked_account ?? "—"}</p>
-                    </div>
-                  ) : (
-                    <p className="text-red-400 text-xs font-medium">No verified payout account</p>
-                  )}
+                    );
+                  })()}
                 </td>
                 <td className="p-4"><PayoutStatusPill row={r} /></td>
                 <td className="p-4 whitespace-nowrap" title={new Date(r.entered_queue_at).toLocaleString()}>
