@@ -300,17 +300,9 @@ export default function AdminPayouts() {
             type="button"
             onClick={() => setMobileFiltersOpen((v) => !v)}
             aria-label="Toggle filters"
-            className={`w-11 h-11 rounded-xl border border-slate-800 flex items-center justify-center flex-shrink-0 ${mobileFiltersOpen ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-slate-900 text-slate-400"}`}
+            className={`w-11 h-11 rounded-xl border flex items-center justify-center flex-shrink-0 ${mobileFiltersOpen ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-slate-900 text-slate-400 border-slate-800"}`}
           >
             <SlidersHorizontal className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={handleExport}
-            aria-label="Export report"
-            className="w-11 h-11 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 flex items-center justify-center flex-shrink-0"
-          >
-            <Download className="h-4 w-4" />
           </button>
         </div>
         {mobileFiltersOpen && (
