@@ -18,6 +18,12 @@ export interface TransactionDetailPricing {
   service_fee_amount: number;
   service_fee_rate: number;
   total_amount: number;
+  /** Phase 2 snapshot column; falls back to paystack_fee_amount when null. */
+  payment_processing_fee_amount?: number | null;
+  /** Phase 2 snapshot column; falls back to seller_net_amount when null. */
+  seller_payout_amount?: number | null;
+  /** True when the total service fee was capped at the policy maximum. */
+  is_total_service_fee_capped?: boolean | null;
 }
 
 export interface TransactionDetailDeliveryTerms {

@@ -1,4 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { PayoutAccountState } from "@/types/payment-flow.types";
+
+export type { PayoutAccountState };
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -75,7 +78,7 @@ export interface PayoutRow {
     account_name: string | null;
     verification_status: string | null;
     has_recipient_code: boolean;
-    account_state: "verified_ready" | "verified_no_recipient" | "unverified" | "no_account" | null;
+    account_state: PayoutAccountState | null;
   } | null;
   pricing: {
     item_total: number;

@@ -27,6 +27,7 @@ import { resolvePayoutStatusLabel, TONE_CLASSNAMES } from "@/lib/status-labels";
 import { getSellerPayouts, updatePayoutAccount } from "@/services/seller-payouts.service";
 import { toast } from "@/hooks/use-toast";
 import type { PayoutHistoryItem, UpcomingRelease, BlockedFund } from "@/services/seller-payouts.service";
+import { PayoutAccountStateBadge, payoutAccountStateExplainer } from "@/components/payout/PayoutAccountStateBadge";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" });
@@ -459,18 +460,23 @@ const SellerPayouts = () => {
             {/* Payout Account */}
             <Card className={`rounded-lg ${!payout_account.verified ? "border-warning/30" : ""}`}>
               <CardHeader className="pb-2 pt-3 px-3 sm:px-4">
-                <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-                  <Banknote className="h-4 w-4 text-primary" />
-                  Payout Account
+                <CardTitle className="text-sm font-semibold flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5">
+                    <Banknote className="h-4 w-4 text-primary" />
+                    Payout Account
+                  </span>
+                  <PayoutAccountStateBadge state={payout_account.account_state ?? null} />
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 px-3 sm:px-4 pb-3">
-                {!payout_account.verified && (
+                {payout_account.account_state && payout_account.account_state !== "verified_ready" && (
                   <div className="bg-warning/10 border border-warning/20 rounded-md p-2.5 flex items-start gap-2">
                     <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs font-semibold text-warning">Verification Incomplete</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Complete payout verification to receive funds.</p>
+                      <p className="text-xs font-semibold text-warning">Finish Payout Setup</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {payoutAccountStateExplainer(payout_account.account_state)}
+                      </p>
                       <Button size="sm" className="mt-2 h-7 text-xs" onClick={() => setEditModalOpen(true)}>
                         Complete Verification
                       </Button>

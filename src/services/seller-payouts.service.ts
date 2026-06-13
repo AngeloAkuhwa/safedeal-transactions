@@ -73,6 +73,8 @@ export interface PayoutAccount {
   masked_account_number: string | null;
   verification_status: string;
   typical_processing_time: string;
+  /** Canonical readiness from `v_payout_account_state` (migration 018). */
+  account_state?: import("@/types/payment-flow.types").PayoutAccountState | null;
 }
 
 export interface SellerPayoutsResponse {
