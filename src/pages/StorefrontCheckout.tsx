@@ -1,6 +1,6 @@
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   ArrowLeft, Lock, ShieldCheck, Truck, Clock, Package, Star,
   CheckCircle2, Loader2, AlertCircle, Shield, FileText, MapPin,
@@ -8,6 +8,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/sonner";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { getPublicProductDetail } from "@/services/public-storefront.service";
@@ -26,12 +28,37 @@ const StorefrontCheckout = () => {
   const navigate = useNavigate();
   const quantity = Math.max(1, Number(searchParams.get("qty")) || 1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<string>("");
+  const [addrLine1, setAddrLine1] = useState("");
+  const [addrLine2, setAddrLine2] = useState("");
+  const [addrCity, setAddrCity] = useState("");
+  const [addrState, setAddrState] = useState("");
+  const [addrPostal, setAddrPostal] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["public-product-detail", sellerSlug, productSlug],
     queryFn: () => getPublicProductDetail(sellerSlug!, productSlug!),
     enabled: !!sellerSlug && !!productSlug,
   });
+
+  // Parse delivery methods (must run before any early return so hook order stays stable).
+  const deliveryMethods = useMemo<string[]>(() => {
+    const dm = data?.product?.delivery_method;
+    if (!dm) return [];
+    try {
+      const parsed = JSON.parse(dm);
+      return Array.isArray(parsed) ? parsed : [dm];
+    } catch {
+      return [dm];
+    }
+  }, [data?.product?.delivery_method]);
+
+  useEffect(() => {
+    if (!selectedMethod && deliveryMethods.length > 0) {
+      setSelectedMethod(deliveryMethods[0]);
+    }
+  }, [deliveryMethods, selectedMethod]);
 
   if (isLoading) {
     return (
@@ -65,16 +92,9 @@ const StorefrontCheckout = () => {
   const images = (product.media || []).filter((m: any) => m.media_type === "image");
   const primaryImage = images.find((m: any) => m.is_primary)?.file_url || images[0]?.file_url;
 
-  // Parse delivery methods
-  let deliveryMethods: string[] = [];
-  if (product.delivery_method) {
-    try {
-      deliveryMethods = JSON.parse(product.delivery_method);
-    } catch {
-      deliveryMethods = [product.delivery_method];
-    }
-  }
-  const primaryDelivery = deliveryMethods[0] || "delivery";
+  const activeMethod = selectedMethod || deliveryMethods[0] || "delivery";
+  const needsAddress = activeMethod === "courier_shipping" || activeMethod === "delivery";
+  const needsPhone = activeMethod === "pickup" || activeMethod === "meetup" || activeMethod === "hand_delivery";
 
   // Parse agreement terms
   const agreementBullets = product.agreement_terms
@@ -82,9 +102,34 @@ const StorefrontCheckout = () => {
     : [];
 
   const handleConfirm = async () => {
+    if (!activeMethod) {
+      toast.error("Please select a delivery method");
+      return;
+    }
+    if (needsAddress && (!addrLine1.trim() || !addrCity.trim() || !addrState.trim())) {
+      toast.error("Please enter your delivery address (line 1, city, state)");
+      return;
+    }
+    if (needsPhone && !contactPhone.trim()) {
+      toast.error("Please enter a contact phone number");
+      return;
+    }
     setIsSubmitting(true);
     try {
-      const result = await createStorefrontTransaction(product.id, quantity);
+      const result = await createStorefrontTransaction(product.id, quantity, {
+        delivery_method: activeMethod,
+        delivery_address: needsAddress
+          ? {
+              line1: addrLine1.trim(),
+              line2: addrLine2.trim() || undefined,
+              city: addrCity.trim(),
+              state: addrState.trim(),
+              postal_code: addrPostal.trim() || undefined,
+              country_code: "NG",
+            }
+          : null,
+        contact_phone: needsPhone ? contactPhone.trim() : null,
+      });
       toast.success("Order created! Redirecting to payment...");
       navigate(`/t/${result.share_token}/pay`);
     } catch (err: any) {
