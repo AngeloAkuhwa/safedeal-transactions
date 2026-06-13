@@ -5,7 +5,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { PayoutSummaryCards } from "@/components/admin/payouts/PayoutSummaryCards";
-import { PayoutAdvancedFilters } from "@/components/admin/payouts/PayoutAdvancedFilters";
+import { PayoutAdvancedFilters, DEFAULT_PAYOUT_FILTERS, filtersToQuery, type PayoutFilterState } from "@/components/admin/payouts/PayoutAdvancedFilters";
 import { PayoutTabs } from "@/components/admin/payouts/PayoutTabs";
 import { PayoutFilters } from "@/components/admin/payouts/PayoutFilters";
 import { PayoutBatchBar } from "@/components/admin/payouts/PayoutBatchBar";
@@ -29,6 +29,16 @@ export default function AdminPayouts() {
   );
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState<PayoutFilterState>(() => ({
+    ...DEFAULT_PAYOUT_FILTERS,
+    status: (initialTab && VALID_TABS.includes(initialTab) ? initialTab : "all") as PayoutTab,
+    dateRange: (searchParams.get("range") as PayoutFilterState["dateRange"]) || "last_7d",
+    amount: (searchParams.get("amount") as PayoutFilterState["amount"]) || "any",
+    bank: (searchParams.get("bank") as PayoutFilterState["bank"]) || "all",
+    quick: (searchParams.get("quick") as PayoutFilterState["quick"]) || "none",
+    customFrom: searchParams.get("from") ?? undefined,
+    customTo: searchParams.get("to") ?? undefined,
+  }));
   const [summary, setSummary] = useState<PayoutSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [rows, setRows] = useState<PayoutRow[]>([]);
@@ -53,13 +63,14 @@ export default function AdminPayouts() {
   const loadList = useCallback(async () => {
     setListLoading(true);
     try {
-      const res = await payoutsApi.listPayouts({ tab, search: search || undefined, page, limit: 50 });
+      const q = filtersToQuery(filters);
+      const res = await payoutsApi.listPayouts({ tab, search: search || undefined, page, limit: 50, ...q });
       setRows(res.rows);
       setPagination(res.pagination);
     } catch (e) {
       toast({ title: "Failed to load payouts", description: (e as Error).message, variant: "destructive" });
     } finally { setListLoading(false); }
-  }, [tab, search, page]);
+  }, [tab, search, page, filters]);
 
   const loadDetail = useCallback(async (id: string) => {
     setDetailLoading(true);
@@ -72,14 +83,26 @@ export default function AdminPayouts() {
   useEffect(() => { loadList(); }, [loadList]);
   useEffect(() => { if (openPayoutId) loadDetail(openPayoutId); else setDetail(null); }, [openPayoutId, loadDetail]);
 
+  // Live polling of summary so KPI cards stay current
+  useEffect(() => {
+    const id = setInterval(() => { loadSummary(); }, 60_000);
+    return () => clearInterval(id);
+  }, [loadSummary]);
+
   // Sync URL with tab + open payout
   useEffect(() => {
     const p = new URLSearchParams(searchParams);
     p.set("tab", tab);
     if (openPayoutId) p.set("payout_id", openPayoutId); else p.delete("payout_id");
+    p.set("range", filters.dateRange);
+    if (filters.amount !== "any") p.set("amount", filters.amount); else p.delete("amount");
+    if (filters.bank !== "all") p.set("bank", filters.bank); else p.delete("bank");
+    if (filters.quick !== "none") p.set("quick", filters.quick); else p.delete("quick");
+    if (filters.customFrom) p.set("from", filters.customFrom); else p.delete("from");
+    if (filters.customTo) p.set("to", filters.customTo); else p.delete("to");
     setSearchParams(p, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, openPayoutId]);
+  }, [tab, openPayoutId, filters]);
 
   const selectedRows = useMemo(() => rows.filter((r) => selectedIds.has(r.id)), [rows, selectedIds]);
 
