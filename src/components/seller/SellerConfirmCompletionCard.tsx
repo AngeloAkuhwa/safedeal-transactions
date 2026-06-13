@@ -7,17 +7,22 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { sellerConfirmCompletion } from "@/services/seller-transaction-detail.service";
 import { useNavigate } from "react-router-dom";
+import { SellerPayoutLine } from "@/components/payment/SellerPayoutLine";
 
 interface SellerConfirmCompletionCardProps {
   transactionId: string;
   transactionCode: string;
   buyerConfirmedAt: string;
+  sellerPayoutAmount?: number | null;
+  currency?: string;
 }
 
 export function SellerConfirmCompletionCard({
   transactionId,
   transactionCode,
   buyerConfirmedAt,
+  sellerPayoutAmount = null,
+  currency = "NGN",
 }: SellerConfirmCompletionCardProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -90,6 +95,14 @@ export function SellerConfirmCompletionCard({
           <p className="text-sm text-muted-foreground leading-relaxed">
             The buyer confirmed receipt for <span className="font-semibold text-foreground">#{transactionCode}</span> on {buyerConfirmedDate}. Once you confirm, SafeDeal will review and release your funds — typically within 1 business day.
           </p>
+
+          <div className="mt-4 rounded-lg border border-primary/20 bg-background/60 px-3 py-2">
+            <SellerPayoutLine
+              snapshot={null}
+              amount={sellerPayoutAmount}
+              currency={currency}
+            />
+          </div>
 
           <label className="flex items-start gap-3 mt-4 cursor-pointer select-none">
             <Checkbox
