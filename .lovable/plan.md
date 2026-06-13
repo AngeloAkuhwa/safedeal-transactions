@@ -1,44 +1,85 @@
-## What's actually happening
+## Two separate bugs, both blocking this payout
 
-The red "Release review cleared — ACTION NEEDED" check is firing on a queue row that is **not** a real review/hold — it's the *work item itself*. Here's the trail:
+I checked the live data for `SD-2026-000024`:
 
-1. When both buyer & seller confirm completion, `seller-confirm-completion` inserts a row into `release_review_queue` with `queue_type = 'ready_for_release'`, `status = 'pending'`. This row's only purpose is to give admins a work item that says "this payout is ready, go release it."
-2. The payout eligibility gate (`supabase/functions/_shared/payout-eligibility.ts`, gate `no_release_review`) blocks release whenever **any** queue row exists in `('pending','in_progress')` regardless of `queue_type`.
-3. So the very row that means "ready to release" is the row that blocks the release. Catch-22. There is no admin UI that resolves it either — the `resolve-release-review` edge function is unwired from the UI.
+| Field | Value |
+|---|---|
+| `money_status` | `funds_pending_release` ✓ |
+| `dispute_status` | `none` (no dispute exists) |
+| `needs_release_review` | `false` |
+| `release_review_queue` | 1 row, `queue_type='ready_for_release'`, `status='pending'` |
 
-The actual review-style queue types that *should* block release are the ones produced by `flag_for_release_review` (`stuck`, `payout_account_missing`, `pricing_missing`, `silent_dispute`, `failed_payout`, `refund_request`, `transfer_reversed`, `manual_hold`, `delivery_proof_missing`, `suspicious_activity`) and the dispute-resolved variants. `ready_for_release` is a workqueue marker, not a blocker.
+So nothing in the database actually requires admin action. The two UI elements are wrong for different reasons.
 
-Also note the gate query filters on `status in ('pending','in_progress')`, but the real in-flight statuses used elsewhere in the codebase are `claimed`, `processing`, `awaiting_info`, `held` — `in_progress` doesn't exist as a status value. Worth tightening at the same time.
+### Bug 1 — drawer still shows "Release review cleared — ACTION NEEDED"
 
-## The fix (one file)
-
-**`supabase/functions/_shared/payout-eligibility.ts`**
-
-Change the `release_review_queue` query and the `no_release_review` gate so that:
-
-- It ignores rows with `queue_type = 'ready_for_release'` (these are the "go do it" rows, not blockers).
-- It uses the correct open-status set: `pending`, `claimed`, `processing`, `awaiting_info`, `held`. (Matches the partial unique index used by `flag_for_release_review` and the values written by `resolve-release-review`.)
-- The gate still passes only when there are no truly-blocking review rows.
-
-Concretely, replace the `reviewRes` query with:
+The previous fix patched `supabase/functions/_shared/payout-eligibility.ts`, but the drawer (the right-hand panel) is powered by a **different** edge function — `supabase/functions/admin-payouts-detail/index.ts` — which has its own copy of the queue check at line 88:
 
 ```ts
-admin
-  .from("release_review_queue")
-  .select("id, status, queue_type")
-  .eq("transaction_id", transaction_id)
-  .in("status", ["pending", "claimed", "processing", "awaiting_info", "held"])
-  .neq("queue_type", "ready_for_release"),
+const openQueue = (queue ?? []).find((q: any) =>
+  ["pending","claimed","processing"].includes(q.status)
+);
 ```
 
-The `no_release_review` gate's `pass: reviews.length === 0` then becomes correct on its own.
+This catches the `ready_for_release` row and turns the drawer gate red. Fix: filter that queue_type out here too.
 
-When the admin clicks Release, `release_payout_atomic` already transitions any matching queue row to `processing` (and the `ready_for_release` row gets carried along), so nothing downstream needs to change.
+### Bug 2 — checkbox is disabled and "1 active dispute" footer is wrong
+
+The row checkbox uses a **client-side** eligibility check in `src/components/admin/payouts/PayoutsTable.tsx` (line 51):
+
+```ts
+if (r.transaction.dispute_status && r.transaction.dispute_status !== "resolved")
+  return { ok: false, reason: "Active dispute" };
+```
+
+The database stores `dispute_status = 'none'` for transactions that never had a dispute (it's the default literal, not `NULL`). The check above treats `"none"` as an active dispute, so:
+
+- The select checkbox is disabled with tooltip "Active dispute"
+- The "Release Payout" button in the drawer footer is disabled with the same reason
+- The "1 active dispute" subtitle in Payout Records is the same false positive being aggregated
+
+Fix: also accept `none`/`null` as not-disputed.
+
+## The fix (two files, surgical)
+
+**1. `supabase/functions/admin-payouts-detail/index.ts` (line 88)**
+
+Replace:
+```ts
+const openQueue = (queue ?? []).find((q: any) =>
+  ["pending","claimed","processing"].includes(q.status)
+);
+```
+with:
+```ts
+const openQueue = (queue ?? []).find((q: any) =>
+  ["pending","claimed","processing","awaiting_info","held"].includes(q.status)
+  && q.queue_type !== "ready_for_release"
+);
+```
+
+(Same logic and same status set as the shared evaluator — they should agree.)
+
+**2. `src/components/admin/payouts/PayoutsTable.tsx` (line 51)**
+
+Replace:
+```ts
+if (r.transaction.dispute_status && r.transaction.dispute_status !== "resolved")
+  return { ok: false, reason: "Active dispute" };
+```
+with:
+```ts
+const ds = r.transaction.dispute_status;
+if (ds && ds !== "resolved" && ds !== "none")
+  return { ok: false, reason: "Active dispute" };
+```
 
 ## After the fix
 
-For this specific payout (SD-2026-000024): the checklist will recompute to all-PASS and the Release button in the Payout Details drawer becomes clickable. No manual SQL needed.
+- Drawer checklist for `SD-2026-000024` flips to 9/9, "Release Payout" button enables.
+- The row checkbox enables, "1 active dispute" footer text disappears, batch release works.
+- No DB migration, no other endpoint changes.
 
-## Out of scope (call out only)
+## Out of scope (worth noting, not blocking you)
 
-- Building an admin "Resolve release review" UI that wires up the existing `resolve-release-review` edge function. That's still useful for legitimately stuck/held cases (`manual_hold`, `stuck`, etc.) where an admin needs to dismiss/hold/refund. Today those cases are also un-actionable from the UI — but that's a separate feature, not what's blocking you right now.
+The fact that `payout-eligibility.ts` and `admin-payouts-detail/index.ts` have **two independent implementations** of the same gates is the root cause. Long-term they should share one evaluator, but consolidating them is a bigger refactor than what you need right now.

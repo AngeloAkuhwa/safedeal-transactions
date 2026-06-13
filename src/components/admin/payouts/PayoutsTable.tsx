@@ -48,7 +48,8 @@ function eligibleForRelease(r: PayoutRow): { ok: boolean; reason?: string } {
   if (r.release_blocked) return { ok: false, reason: r.payout_blocked_reason ?? "Payout is blocked" };
   if (r.status !== "awaiting_release") return { ok: false, reason: `Status is ${r.status}` };
   if (r.transaction.money_status !== "funds_pending_release") return { ok: false, reason: `Money status is ${r.transaction.money_status ?? "unknown"}` };
-  if (r.transaction.dispute_status && r.transaction.dispute_status !== "resolved") return { ok: false, reason: "Active dispute" };
+  const ds = r.transaction.dispute_status;
+  if (ds && ds !== "resolved" && ds !== "none") return { ok: false, reason: "Active dispute" };
   if (r.transaction.needs_release_review) return { ok: false, reason: "Needs admin review" };
   if (r.transaction.refund_in_flight) return { ok: false, reason: "Refund in flight" };
   if (r.payout_account?.verification_status !== "verified") return { ok: false, reason: "Payout account not verified" };
