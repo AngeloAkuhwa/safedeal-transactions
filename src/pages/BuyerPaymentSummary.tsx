@@ -290,6 +290,25 @@ export default function BuyerPaymentSummary() {
     );
   }
 
+  // Terminal-status guard: if the transaction is no longer payable (cancelled,
+  // expired, completed, etc.) show a recovery screen instead of the pay UI.
+  // Stale share links that point at long-dead transactions land here.
+  const terminalStatus = deriveTerminalStatus(data.transaction.status);
+  if (terminalStatus) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <TerminalTransactionScreen
+          status={terminalStatus}
+          transactionCode={data.transaction.transaction_code}
+          timestamp={data.transaction.created_at}
+          transactionId={data.transaction.id}
+        />
+        <Footer />
+      </div>
+    );
+  }
+
   const currencyCode = data.pricing?.currency_code || "NGN";
   const totalAmount = data.pricing?.total_amount ?? 0;
   const itemAmount = data.pricing?.item_amount ?? 0;
