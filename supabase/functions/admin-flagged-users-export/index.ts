@@ -65,19 +65,35 @@ Deno.serve(async (req) => {
   const body = await res.json() as { rows: any[] };
 
   const header = [
-    "user_id", "name", "email", "short_id", "risk", "status",
-    "reasons", "disputes_30d", "refunds_30d", "escrow_at_risk",
-    "related_tx_code", "related_tx_amount",
-    "flagged_by", "flagged_at", "auto_detected",
+    "user_id", "display_id", "full_name", "email", "phone",
+    "risk_level", "risk_score", "status",
+    "flag_reasons", "amount_at_risk",
+    "disputes_30d", "refunds_30d",
+    "latest_transaction_code", "latest_transaction_id",
+    "flagged_by", "flagged_by_type", "flagged_at",
+    "auto_detected",
   ];
   const lines = [header.join(",")];
   for (const r of body.rows ?? []) {
     lines.push([
-      r.user_id, r.name, r.email ?? "", r.short_id, r.risk, r.status,
-      (r.reasons ?? []).map((x: any) => x.label).join("; "),
-      r.disputes_30d, r.refunds_30d, r.escrow_at_risk,
-      r.related?.tx_code ?? "", r.related?.tx_amount ?? 0,
-      r.flagged_by?.name ?? "", r.flagged_at ?? "", r.auto_detected ? "yes" : "no",
+      r.user_id,
+      r.user?.display_id ?? "",
+      r.user?.full_name ?? "",
+      r.user?.email ?? "",
+      r.user?.phone ?? "",
+      r.risk?.level ?? "",
+      r.risk?.score ?? 0,
+      r.status,
+      (r.flag_reasons ?? []).map((x: any) => x.label).join("; "),
+      r.related_context?.amount_at_risk ?? 0,
+      r.related_context?.disputes_30d ?? 0,
+      r.related_context?.refunds_30d ?? 0,
+      r.related_context?.latest_transaction_code ?? "",
+      r.related_context?.latest_transaction_id ?? "",
+      r.flagged_by?.label ?? r.flagged_by?.admin_name ?? "",
+      r.flagged_by?.type ?? "",
+      r.flagged_at ?? "",
+      r.auto_detected ? "yes" : "no",
     ].map(csvEscape).join(","));
   }
 

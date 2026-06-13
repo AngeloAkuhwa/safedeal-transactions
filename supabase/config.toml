@@ -98,3 +98,18 @@ verify_jwt = false
 
 [functions.auto-escalate-silent-disputes]
 verify_jwt = false
+
+[functions.admin-flagged-users]
+verify_jwt = false
+
+[functions.admin-flagged-user-detail]
+verify_jwt = false
+
+[functions.admin-flagged-users-action]
+verify_jwt = false
+
+[functions.admin-flagged-users-bulk]
+verify_jwt = false
+
+[functions.admin-flagged-users-export]
+verify_jwt = false
