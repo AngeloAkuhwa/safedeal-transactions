@@ -167,7 +167,10 @@ Deno.serve(async (req) => {
     actor_user_id: ctx.userId,
     actor_role: "admin",
     event_data: {
-      description: `SafeDeal retry ${attempt} initiated payout transfer of ${tx.currency_code} ${Number(payout.amount).toLocaleString()}`,
+      description: `SafeDeal retry ${attempt} initiated ${PRICING_LINE_LABELS.seller_payout_amount} of ${formatMoney(
+        Number(payout.amount),
+        tx.currency_code,
+      )}`,
       payout_id: payout.id,
       reference,
       transfer_code: transferCode,
