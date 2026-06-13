@@ -486,6 +486,11 @@ const BuyerCart = () => {
                                     {stock.variant === "warning" && <AlertTriangle className="h-3 w-3" />}
                                     {stock.label}
                                   </Badge>
+                                  {isLocked && (
+                                    <p className="text-[11px] text-muted-foreground mt-1">
+                                      Finish or cancel this checkout to edit.
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             );
