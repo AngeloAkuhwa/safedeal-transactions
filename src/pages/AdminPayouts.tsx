@@ -12,6 +12,7 @@ import { PayoutBatchBar } from "@/components/admin/payouts/PayoutBatchBar";
 import { PayoutsTable, eligibleForRelease } from "@/components/admin/payouts/PayoutsTable";
 import { PayoutMobileCards } from "@/components/admin/payouts/PayoutMobileCards";
 import { PayoutDetailDrawer } from "@/components/admin/payouts/PayoutDetailDrawer";
+import { PayoutPromptDialog } from "@/components/admin/payouts/PayoutPromptDialog";
 import * as payoutsApi from "@/services/admin-payouts.service";
 import type { PayoutRow, PayoutDetail, PayoutSummary, PayoutTab, PayoutListResponse } from "@/services/admin-payouts.service";
 import { exportPayoutsCsv } from "@/lib/payout-export";
@@ -53,6 +54,8 @@ export default function AdminPayouts() {
   const [openPayoutId, setOpenPayoutId] = useState<string | null>(initialDeepPayout);
   const [detail, setDetail] = useState<PayoutDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [noteFor, setNoteFor] = useState<PayoutRow | null>(null);
+  const [blockFor, setBlockFor] = useState<{ row: PayoutRow; pause: boolean } | null>(null);
 
   const loadSummary = useCallback(async () => {
     setSummaryLoading(true);
@@ -145,6 +148,17 @@ export default function AdminPayouts() {
 
   function handleUnblockOne(row: PayoutRow) {
     setOpenPayoutId(row.id);
+  }
+
+  function handleOpenSeller(row: PayoutRow) {
+    navigate(`/admin/users/${row.seller.id}`);
+  }
+  function handleUpdateBank(row: PayoutRow) {
+    navigate(`/admin/users/${row.seller.id}?tab=payout`);
+  }
+  function handleDownloadReceipt(row: PayoutRow) {
+    exportPayoutsCsv([row], `payout-receipt-${row.transaction.code || row.id}.csv`);
+    toast({ title: "Receipt downloaded" });
   }
 
   async function handleBatchProcess() {
