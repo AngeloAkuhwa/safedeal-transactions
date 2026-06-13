@@ -356,9 +356,9 @@ Deno.serve(async (req) => {
   // Amount bucket on (held+frozen)
   if (amountBucket !== "any") {
     const bands: Record<string, [number, number]> = {
-      "lt_1k": [0, 1_000],
-      "1k_10k": [1_000, 10_000],
-      "gt_10k": [10_000, Number.POSITIVE_INFINITY],
+      "lt_100k": [0, 100_000],
+      "100k_1m": [100_000, 1_000_000],
+      "gt_1m": [1_000_000, Number.POSITIVE_INFINITY],
     };
     const [lo, hi] = bands[amountBucket] ?? [0, Number.POSITIVE_INFINITY];
     candidate = candidate.filter((s) => {
@@ -419,9 +419,15 @@ Deno.serve(async (req) => {
           total_held: Number(s.held_amount ?? 0) + Number(s.frozen_amount ?? 0),
           frozen: Number(s.frozen_amount ?? 0),
           releasable: Number(s.held_amount ?? 0),
+          released: Number(s.released_amount ?? 0),
+          refunded: Number(s.refunded_amount ?? 0),
           state: derivedState,
           last_changed_at: s.last_changed_at,
           flagged: disputedSet.has(tx.id as string),
+          state_mismatch:
+            (Number(s.frozen_amount ?? 0) > 0 && (tx.money_status as string) === "released") ||
+            (Number(s.held_amount ?? 0) > 0 && (tx.money_status as string) === "released") ||
+            ((tx.money_status as string) === "funds_releasing" && Number(s.held_amount ?? 0) === 0),
         };
       })
       .filter(Boolean) as Array<Record<string, unknown>>;
@@ -436,8 +442,9 @@ Deno.serve(async (req) => {
       String((r.seller as { name: string }).name).toLowerCase().includes(needle),
     );
   }
-  if (flag === "disputed") records = records.filter((r) => r.flagged === true);
+  if (flag === "disputed" || flag === "flagged") records = records.filter((r) => r.flagged === true);
   if (flag === "high_value") records = records.filter((r) => Number(r.total_held) >= 1_000_000);
+  if (flag === "state_mismatch") records = records.filter((r) => r.state_mismatch === true);
 
   return json(200, {
     kpis: {

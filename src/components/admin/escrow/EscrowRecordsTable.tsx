@@ -1,4 +1,4 @@
-import { Flag, ExternalLink, Filter, Download, FileText, Vault, Scale, SearchCheck, StickyNote, Link2, Hourglass, CheckCircle2 } from "lucide-react";
+import { Flag, ExternalLink, FileText, Vault, Scale, SearchCheck, StickyNote, Link2, Hourglass, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatMoney } from "@/lib/format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
@@ -31,6 +31,9 @@ function StateSubLines({ row }: { row: EscrowRecordRow }) {
     lines.push({ icon: <CheckCircle2 className="h-3 w-3" />, text: "Buyer confirmed", className: "text-emerald-400" });
     lines.push({ icon: <Hourglass className="h-3 w-3" />, text: "Auto-release pending", className: "text-orange-400" });
   }
+  if (row.state_mismatch) {
+    lines.push({ icon: <AlertTriangle className="h-3 w-3" />, text: "State mismatch", className: "text-yellow-400" });
+  }
   if (!lines.length) return null;
   return (
     <div className="mt-1.5 space-y-0.5">
@@ -43,14 +46,14 @@ function StateSubLines({ row }: { row: EscrowRecordRow }) {
   );
 }
 
-function ActionButtons({ row, onOpen, onDispute }: { row: EscrowRecordRow; onOpen: () => void; onDispute: () => void }) {
+function ActionButtons({ row, onOpenTx, onOpenDetail, onDispute }: { row: EscrowRecordRow; onOpenTx: () => void; onOpenDetail: () => void; onDispute: () => void }) {
   const btn = "w-9 h-9 rounded-lg flex items-center justify-center transition-all group";
   return (
     <div className="flex items-center justify-center gap-1.5">
-      <button type="button" onClick={onOpen} title="View Transaction" className={`${btn} bg-slate-800 hover:bg-blue-600`}>
+      <button type="button" onClick={onOpenTx} title="View Transaction" className={`${btn} bg-slate-800 hover:bg-blue-600`}>
         <FileText className="h-4 w-4 text-slate-300 group-hover:text-white" />
       </button>
-      <button type="button" onClick={onOpen} title="View Escrow Record" className={`${btn} bg-slate-800 hover:bg-emerald-600`}>
+      <button type="button" onClick={onOpenDetail} title="View Escrow Record" className={`${btn} bg-slate-800 hover:bg-emerald-600`}>
         <Vault className="h-4 w-4 text-slate-300 group-hover:text-white" />
       </button>
       <button
@@ -72,8 +75,10 @@ function ActionButtons({ row, onOpen, onDispute }: { row: EscrowRecordRow; onOpe
   );
 }
 
-export function EscrowRecordsTable({ rows, total, page, pageSize, onPage }: {
+export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpenDetail, exportSlot }: {
   rows: EscrowRecordRow[]; total: number; page: number; pageSize: number; onPage: (p: number) => void;
+  onOpenDetail: (txId: string) => void;
+  exportSlot?: React.ReactNode;
 }) {
   const nav = useNavigate();
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -91,14 +96,7 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage }: {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" disabled className="px-3 py-2 bg-slate-800 text-slate-400 rounded-lg text-sm font-medium inline-flex items-center cursor-not-allowed">
-              <Filter className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Advanced Filters</span>
-            </button>
-            <button type="button" disabled className="px-3 py-2 bg-slate-800 text-slate-400 rounded-lg text-sm font-medium inline-flex items-center cursor-not-allowed">
-              <Download className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Export</span>
-            </button>
+            {exportSlot}
           </div>
         </div>
       </div>
@@ -108,9 +106,9 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage }: {
         <table className="w-full">
           <thead className="bg-slate-800 border-b border-slate-700">
             <tr>
-              {["Transaction","Buyer","Seller","Total Held","Frozen","Releasable","State","Last Changed","Actions"].map((h, i) => (
+              {["Transaction","Buyer","Seller","Total Held","Frozen","Releasable","Released","State","Last Changed","Actions"].map((h, i) => (
                 <th key={h}
-                    className={`p-4 text-slate-300 font-semibold text-sm whitespace-nowrap ${i >= 3 && i <= 5 ? "text-right" : i === 8 ? "text-center" : "text-left"}`}>
+                    className={`p-4 text-slate-300 font-semibold text-sm whitespace-nowrap ${i >= 3 && i <= 6 ? "text-right" : i === 9 ? "text-center" : "text-left"}`}>
                   {h}
                 </th>
               ))}
@@ -118,7 +116,7 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage }: {
           </thead>
           <tbody className="divide-y divide-slate-800">
             {rows.length === 0 ? (
-              <tr><td colSpan={9} className="p-12 text-center text-sm text-slate-500">No escrow records match these filters.</td></tr>
+              <tr><td colSpan={10} className="p-12 text-center text-sm text-slate-500">No escrow records match these filters.</td></tr>
             ) : rows.map((r) => {
               const st = STATE_STYLES[r.state];
               return (
@@ -145,9 +143,10 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage }: {
                       <p className="text-white text-sm font-medium truncate max-w-[160px]">{r.seller.name}</p>
                     </div>
                   </td>
-                  <td className="p-4 text-right text-white text-sm font-medium whitespace-nowrap">{formatMoney(r.total_held, "NGN")}</td>
-                  <td className="p-4 text-right text-red-400 text-sm whitespace-nowrap">{formatMoney(r.frozen, "NGN")}</td>
-                  <td className="p-4 text-right text-emerald-400 text-sm whitespace-nowrap">{formatMoney(r.releasable, "NGN")}</td>
+                  <td className="p-4 text-right text-white text-sm font-medium whitespace-nowrap">{r.total_held ? formatMoney(r.total_held, "NGN") : "—"}</td>
+                  <td className="p-4 text-right text-red-400 text-sm whitespace-nowrap">{r.frozen ? formatMoney(r.frozen, "NGN") : "—"}</td>
+                  <td className="p-4 text-right text-emerald-400 text-sm whitespace-nowrap">{r.releasable ? formatMoney(r.releasable, "NGN") : "—"}</td>
+                  <td className="p-4 text-right text-cyan-400 text-sm whitespace-nowrap">{r.released ? formatMoney(r.released, "NGN") : "—"}</td>
                   <td className="p-4">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold ${st.pill}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
@@ -159,7 +158,8 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage }: {
                   <td className="p-4">
                     <ActionButtons
                       row={r}
-                      onOpen={() => nav(`/admin/transactions/${r.transaction_id}`)}
+                      onOpenTx={() => nav(`/admin/transactions/${r.transaction_id}`)}
+                      onOpenDetail={() => onOpenDetail(r.transaction_id)}
                       onDispute={() => nav(`/admin/disputes?tx=${r.transaction_id}`)}
                     />
                   </td>
@@ -180,7 +180,7 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage }: {
             <button
               key={r.transaction_id}
               type="button"
-              onClick={() => nav(`/admin/transactions/${r.transaction_id}`)}
+              onClick={() => onOpenDetail(r.transaction_id)}
               className="w-full text-left bg-slate-800/60 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-all"
             >
               <div className="flex items-start justify-between mb-3">
@@ -188,6 +188,7 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage }: {
                   <span className={`w-2 h-2 ${st.dot} rounded-full`} />
                   <span className="text-white text-sm font-semibold truncate">#{r.transaction_code}</span>
                   {r.flagged && <Flag className="h-3 w-3 text-red-400 shrink-0" />}
+                  {r.state_mismatch && <AlertTriangle className="h-3 w-3 text-yellow-400 shrink-0" />}
                 </div>
                 <span className={`px-2.5 py-1 rounded-full border text-[10px] font-semibold ${st.pill}`}>{st.label}</span>
               </div>
@@ -207,18 +208,22 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage }: {
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="grid grid-cols-4 gap-2 text-center">
                 <div className="bg-slate-900/60 rounded-lg p-2">
                   <p className="text-slate-500 text-[10px] uppercase">Held</p>
-                  <p className="text-white text-xs font-semibold mt-0.5">{formatMoney(r.total_held, "NGN")}</p>
+                  <p className="text-white text-xs font-semibold mt-0.5">{r.total_held ? formatMoney(r.total_held, "NGN") : "—"}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
                   <p className="text-slate-500 text-[10px] uppercase">Frozen</p>
-                  <p className="text-red-400 text-xs font-semibold mt-0.5">{formatMoney(r.frozen, "NGN")}</p>
+                  <p className="text-red-400 text-xs font-semibold mt-0.5">{r.frozen ? formatMoney(r.frozen, "NGN") : "—"}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
                   <p className="text-slate-500 text-[10px] uppercase">Releasable</p>
-                  <p className="text-emerald-400 text-xs font-semibold mt-0.5">{formatMoney(r.releasable, "NGN")}</p>
+                  <p className="text-emerald-400 text-xs font-semibold mt-0.5">{r.releasable ? formatMoney(r.releasable, "NGN") : "—"}</p>
+                </div>
+                <div className="bg-slate-900/60 rounded-lg p-2">
+                  <p className="text-slate-500 text-[10px] uppercase">Released</p>
+                  <p className="text-cyan-400 text-xs font-semibold mt-0.5">{r.released ? formatMoney(r.released, "NGN") : "—"}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between mt-3 text-xs">

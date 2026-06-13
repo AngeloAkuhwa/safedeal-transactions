@@ -66,9 +66,9 @@ export function EscrowFilters({ value, search, onSearchChange, onChange, onApply
             onChange={(v) => onChange({ ...value, amount_bucket: v })}
             options={[
               { value: "any", label: "All Amounts" },
-              { value: "lt_1k", label: "₦0 – ₦1,000" },
-              { value: "1k_10k", label: "₦1,000 – ₦10,000" },
-              { value: "gt_10k", label: "₦10,000+" },
+              { value: "lt_100k", label: "₦0 – ₦100,000" },
+              { value: "100k_1m", label: "₦100,000 – ₦1,000,000" },
+              { value: "gt_1m", label: "₦1,000,000+" },
             ]}
           />
           <Select
@@ -77,8 +77,9 @@ export function EscrowFilters({ value, search, onSearchChange, onChange, onApply
             onChange={(v) => onChange({ ...value, flag: v })}
             options={[
               { value: "all", label: "All Records" },
-              { value: "disputed", label: "Disputed Only" },
-              { value: "high_value", label: "High Value Only" },
+              { value: "flagged", label: "Flagged / Disputed" },
+              { value: "high_value", label: "High Value (₦1M+)" },
+              { value: "state_mismatch", label: "State Mismatch" },
             ]}
           />
         </div>
