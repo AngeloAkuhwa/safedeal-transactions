@@ -325,6 +325,7 @@ Deno.serve(async (req) => {
       critical: frozenTooLongRows.length + (drift?.length ?? 0),
       warning: highValueRows.length + (stalledDisputes?.length ?? 0),
     },
+    thresholds,
   };
 
   // ---- Records (paginated) ----
