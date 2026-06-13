@@ -54,6 +54,22 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const cartItemIds: string[] = body.cart_item_ids || [];
+    type DeliverySelection = {
+      cart_item_id?: string;
+      product_id?: string;
+      delivery_method?: string;
+      delivery_address?: {
+        line1?: string; line2?: string; city?: string; state?: string; postal_code?: string; country_code?: string;
+      } | null;
+      contact_phone?: string | null;
+    };
+    const deliverySelections: DeliverySelection[] = Array.isArray(body.delivery_selections) ? body.delivery_selections : [];
+    const selectionByCartItem = new Map<string, DeliverySelection>();
+    const selectionByProduct = new Map<string, DeliverySelection>();
+    for (const s of deliverySelections) {
+      if (s?.cart_item_id) selectionByCartItem.set(s.cart_item_id, s);
+      if (s?.product_id) selectionByProduct.set(s.product_id, s);
+    }
     if (!cartItemIds.length) return json({ error: "cart_item_ids required" }, 400);
 
     // 1. Fetch cart items
@@ -79,6 +95,8 @@ Deno.serve(async (req) => {
 
     // 3. Validate ALL items — block entire checkout if any fail
     const errors: Array<{ product_id: string; error: string }> = [];
+    // Resolved selection per cart item, populated during validation
+    const resolvedByCartItem = new Map<string, { rawMethod: string; address: any; phone: string | null }>();
     for (const ci of cartItems) {
       const product = productMap.get(ci.product_id);
       if (!product) { errors.push({ product_id: ci.product_id, error: "Product not found" }); continue; }
@@ -92,6 +110,50 @@ Deno.serve(async (req) => {
       if (ci.quantity > available) {
         errors.push({ product_id: ci.product_id, error: available > 0 ? `Only ${available} available` : "Sold out" }); continue;
       }
+
+      // Validate delivery selection per item
+      let enabled: string[] = [];
+      if (product.delivery_method) {
+        try {
+          const parsed = JSON.parse(product.delivery_method);
+          enabled = Array.isArray(parsed) ? parsed : [String(parsed)];
+        } catch {
+          enabled = [String(product.delivery_method)];
+        }
+      }
+      if (enabled.length === 0) {
+        errors.push({ product_id: ci.product_id, error: "Seller has not configured delivery methods" });
+        continue;
+      }
+      const sel = selectionByCartItem.get(ci.id) ?? selectionByProduct.get(ci.product_id);
+      let rawMethod: string | null = null;
+      if (sel?.delivery_method) {
+        if (!enabled.includes(sel.delivery_method)) {
+          errors.push({ product_id: ci.product_id, error: `Delivery method '${sel.delivery_method}' not offered` });
+          continue;
+        }
+        rawMethod = sel.delivery_method;
+      } else if (enabled.length === 1) {
+        rawMethod = enabled[0];
+      } else {
+        errors.push({ product_id: ci.product_id, error: "Delivery method required (multiple options)" });
+        continue;
+      }
+      const needsAddress = rawMethod === "courier_shipping" || rawMethod === "delivery";
+      const needsPhone = rawMethod === "pickup" || rawMethod === "meetup" || rawMethod === "hand_delivery";
+      if (needsAddress) {
+        const a = sel?.delivery_address ?? null;
+        if (!a?.line1 || !a?.city || !a?.state) {
+          errors.push({ product_id: ci.product_id, error: "Delivery address required" });
+          continue;
+        }
+      }
+      const phone = (sel?.contact_phone ?? buyerProfileEarlyPhone()) || null;
+      function buyerProfileEarlyPhone() { return null; }
+      if (needsPhone && !phone) {
+        // we'll re-check with buyer profile later; defer hard failure
+      }
+      resolvedByCartItem.set(ci.id, { rawMethod, address: sel?.delivery_address ?? null, phone: sel?.contact_phone ?? null });
     }
 
     if (errors.length > 0) {
@@ -252,17 +314,12 @@ Deno.serve(async (req) => {
           model: product.model,
         }));
 
-        // Parse delivery method from first product
-        let primaryDeliveryMethod = "courier";
+        // Use the buyer's selection captured at validation time
         const firstProduct = items[0].product;
-        if (firstProduct.delivery_method) {
-          try {
-            const methods = JSON.parse(firstProduct.delivery_method);
-            primaryDeliveryMethod = mapDeliveryMethod(Array.isArray(methods) ? methods[0] : firstProduct.delivery_method);
-          } catch {
-            primaryDeliveryMethod = mapDeliveryMethod(firstProduct.delivery_method);
-          }
-        }
+        const firstResolved = resolvedByCartItem.get(items[0].cartItem.id)!;
+        const primaryDeliveryMethod = mapDeliveryMethod(firstResolved.rawMethod);
+        const needsAddress = firstResolved.rawMethod === "courier_shipping" || firstResolved.rawMethod === "delivery";
+        const addr = firstResolved.address ?? {};
 
         const deliveryDays = parseInt(firstProduct.estimated_delivery_days || "7", 10) || 7;
         const expectedDate = new Date();
@@ -286,6 +343,12 @@ Deno.serve(async (req) => {
             delivery_method: primaryDeliveryMethod,
             expected_delivery_date: expectedDate.toISOString().split("T")[0],
             verification_window_hours: firstProduct.verification_window_hours || 48,
+            delivery_address_line1: needsAddress ? (addr.line1 ?? null) : null,
+            delivery_address_line2: needsAddress ? (addr.line2 ?? null) : null,
+            delivery_city: needsAddress ? (addr.city ?? null) : null,
+            delivery_state: needsAddress ? (addr.state ?? null) : null,
+            delivery_postal_code: needsAddress ? (addr.postal_code ?? null) : null,
+            delivery_country_code: needsAddress ? (addr.country_code ?? "NG") : null,
           }),
           admin.from("transaction_participants").insert([
             {
