@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
       // Check for linked awaiting_payment transaction to cancel
       const { data: linkedTx } = await admin
         .from("transactions")
-        .select("id, status, source_product_id, buyer_id")
+        .select("id, status, money_status, source_product_id, buyer_id")
         .eq("buyer_id", buyerId)
         .eq("source_product_id", productId)
         .eq("status", "awaiting_payment")
@@ -218,11 +218,38 @@ Deno.serve(async (req) => {
 
         const reservedQty = txItems?.reduce((sum: number, i: any) => sum + (i.quantity || 0), 0) || 0;
 
-        // Cancel the transaction
+        // Cancel the transaction with full audit trail.
+        const nowIso = new Date().toISOString();
+        const moneyShouldCancel =
+          linkedTx.money_status === "not_secured" ||
+          linkedTx.money_status === "payment_pending";
         await admin
           .from("transactions")
-          .update({ status: "cancelled" })
+          .update({
+            status: "cancelled",
+            cancelled_at: nowIso,
+            ...(moneyShouldCancel ? { money_status: "cancelled" } : {}),
+            updated_at: nowIso,
+          })
           .eq("id", linkedTx.id);
+
+        await admin.from("transaction_status_history").insert({
+          transaction_id: linkedTx.id,
+          old_status: linkedTx.status,
+          new_status: "cancelled",
+          reason: "Cart item removed during pending checkout",
+          changed_by_user_id: buyerId,
+          changed_at: nowIso,
+        });
+        if (moneyShouldCancel) {
+          await admin.from("money_status_history").insert({
+            transaction_id: linkedTx.id,
+            old_status: linkedTx.money_status,
+            new_status: "cancelled",
+            reason: "Cart item removed during pending checkout",
+            changed_by_user_id: buyerId,
+          });
+        }
 
         // Release reserved stock
         if (reservedQty > 0) {
