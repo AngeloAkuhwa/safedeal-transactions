@@ -61,6 +61,7 @@ import AdminPayouts from "./pages/AdminPayouts";
 import AdminReconciliation from "./pages/AdminReconciliation";
 import AdminEscrow from "./pages/AdminEscrow";
 import AdminFlaggedUsers from "./pages/AdminFlaggedUsers";
+import AdminUsers from "./pages/AdminUsers";
 import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -127,6 +128,8 @@ const App = () => (
               <Route path="/admin/reconciliation" element={<AdminReconciliation />} />
               <Route path="/admin/escrow" element={<AdminEscrow />} />
               <Route path="/admin/flagged-users" element={<AdminFlaggedUsers />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/users/:id" element={<AdminUsers />} />
             </Route>
 
             {/* Protected: requires session + seller role */}
