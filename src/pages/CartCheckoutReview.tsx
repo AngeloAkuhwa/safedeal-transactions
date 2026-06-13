@@ -15,6 +15,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { computePricing } from "@/lib/pricing";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatMoney } from "@/lib/format";
+import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
+import { viewFromRow } from "@/services/payment-flow.service";
+import { PRICING_LINE_LABELS } from "@/lib/payment/payment-labels";
 
 const formatPrice = (amount: number, currency = "NGN") => formatMoney(amount, currency);
 
