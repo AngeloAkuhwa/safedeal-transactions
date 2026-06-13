@@ -7,6 +7,35 @@
 export const PRICING_MODEL_VERSION = "NG_MVP_TOTAL_SERVICE_FEE_CAP_2500_V1" as const;
 export const MAX_TOTAL_SERVICE_FEE = 2500;
 
+/**
+ * Canonical payout-account readiness states. Source of truth is the
+ * `v_payout_account_state` DB view (migration 018). UI badges must map
+ * 1-to-1 from these values; never re-derive readiness from raw
+ * `payout_accounts` columns on the client.
+ */
+export type PayoutAccountState =
+  | "no_account"
+  | "unverified"
+  | "verified_no_recipient"
+  | "verified_ready";
+
+/**
+ * Shape consumed by `<PricingBreakdown>`. Mirrors `PricingSnapshot` but
+ * keeps every field nullable so locked legacy rows can render `—` for
+ * the lines that were never stamped.
+ */
+export interface PricingSnapshotView {
+  item_amount: number | null;
+  safedeal_fee_amount: number | null;
+  payment_processing_fee_amount: number | null;
+  service_fee_amount: number | null;
+  total_amount: number | null;
+  seller_payout_amount: number | null;
+  currency: string;
+  is_total_service_fee_capped: boolean;
+  is_estimate?: boolean;
+}
+
 export interface PricingSnapshot {
   item_amount: number;
   safedeal_fee_amount: number;
