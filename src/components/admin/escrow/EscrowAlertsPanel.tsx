@@ -1,4 +1,4 @@
-import { TriangleAlert, Clock, HourglassIcon, Pause, GitCompare, Lock, AlertTriangle, PauseCircle, AlertCircle, Bell, Settings } from "lucide-react";
+import { TriangleAlert, Clock, Hourglass, Pause, GitCompare, Lock, AlertTriangle, PauseCircle, AlertCircle, Bell, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatMoney } from "@/lib/format";
 import type { EscrowAlerts } from "@/services/admin-escrow.service";
@@ -159,7 +159,7 @@ export function EscrowAlertsPanel({ alerts }: { alerts: EscrowAlerts }) {
             onOpen={open}
           />
           <AlertCard
-            icon={<HourglassIcon className="h-5 w-5" />}
+            icon={<Hourglass className="h-5 w-5" />}
             title="Release Overdue"
             subtitle="Pending release past expected date"
             count={overdueItems.length}
