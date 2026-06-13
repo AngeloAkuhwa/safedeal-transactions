@@ -68,13 +68,21 @@ Deno.serve(async (req) => {
   }
 
   const { data: account } = await admin
-    .from("payout_accounts")
-    .select("provider_recipient_code, verification_status")
+    .from("v_payout_account_state")
+    .select("provider_recipient_code, verification_status, account_state")
     .eq("user_id", tx.seller_id)
     .maybeSingle();
   const recipientCode = account?.provider_recipient_code;
-  if (!recipientCode || account?.verification_status !== "verified") {
-    return json(409, { error: "recipient_missing" });
+  if (account?.account_state !== "verified_ready" || !recipientCode) {
+    const state = account?.account_state ?? "no_account";
+    return json(409, {
+      error: state === "verified_no_recipient"
+        ? "payout_account_recipient_missing"
+        : state === "unverified"
+          ? "payout_account_unverified"
+          : "payout_account_missing",
+      account_state: state,
+    });
   }
 
   // Re-arm: failed -> awaiting_release (audited).

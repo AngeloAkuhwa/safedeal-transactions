@@ -115,11 +115,9 @@ export async function evaluatePayoutEligibility(
   let accountRow: any = null;
   if (tx?.seller_id) {
     const { data } = await admin
-      .from("payout_accounts")
-      .select("id, verification_status, provider_recipient_code")
+      .from("v_payout_account_state")
+      .select("account_id, verification_status, provider_recipient_code, account_state")
       .eq("user_id", tx.seller_id)
-      .order("is_default", { ascending: false })
-      .limit(1)
       .maybeSingle();
     accountRow = data;
   }

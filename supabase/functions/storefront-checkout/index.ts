@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
+import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -172,6 +173,7 @@ Deno.serve(async (req) => {
     // Calculate pricing
     const itemAmount = product.unit_price * quantity;
     const pricing = computePricing(itemAmount, product.currency_code);
+    const snapshot = buildPricingSnapshot(itemAmount, product.currency_code);
 
     // Generate transaction code + share token
     const { data: transactionCode } = await adminClient.rpc("generate_transaction_code");
@@ -242,6 +244,10 @@ Deno.serve(async (req) => {
         processing_fee_amount: pricing.paystack_fee_amount,
         seller_net_amount: itemAmount,
         buyer_total_amount: pricing.total_amount,
+        payment_processing_fee_amount: snapshot.payment_processing_fee_amount,
+        seller_payout_amount: snapshot.seller_payout_amount,
+        is_total_service_fee_capped: snapshot.is_total_service_fee_capped,
+        pricing_model_version: snapshot.pricing_model_version,
       }),
 
       // Delivery terms

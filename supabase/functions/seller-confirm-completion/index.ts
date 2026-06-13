@@ -191,11 +191,16 @@ Deno.serve(async (req) => {
     // ── Pricing safeguard ─────────────────────────────────────────────────
     const { data: pricing } = await admin
       .from("transaction_pricing")
-      .select("seller_net_amount, currency_code")
+      .select("seller_payout_amount, seller_net_amount, currency_code")
       .eq("transaction_id", transactionId)
       .maybeSingle();
 
-    const sellerNet = pricing?.seller_net_amount;
+    // SafeDeal canonical payout amount = transaction_pricing.seller_payout_amount.
+    // Legacy rows (pre-migration 018) fall back to seller_net_amount.
+    const sellerNet =
+      (pricing as any)?.seller_payout_amount != null
+        ? Number((pricing as any).seller_payout_amount)
+        : (pricing as any)?.seller_net_amount;
     const currency = pricing?.currency_code ?? "NGN";
     if (!pricing || typeof sellerNet !== "number" || sellerNet <= 0) {
       await admin
@@ -242,13 +247,12 @@ Deno.serve(async (req) => {
 
     // ── Payout account safeguard ──────────────────────────────────────────
     const { data: payoutAccount } = await admin
-      .from("payout_accounts")
-      .select("id, verification_status, last_verified_at")
+      .from("v_payout_account_state")
+      .select("account_id, verification_status, last_verified_at, account_state")
       .eq("user_id", tx.seller_id)
-      .eq("verification_status", "verified")
       .maybeSingle();
 
-    if (!payoutAccount) {
+    if (!payoutAccount || (payoutAccount as any).account_state !== "verified_ready") {
       // Create payout in blocked state, queue review.
       const { data: blockedPayout, error: payoutErr } = await admin
         .from("payouts")
