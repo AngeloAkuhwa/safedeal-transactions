@@ -973,6 +973,27 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
           transactionCode={txCode}
         />
       )}
+      <ActionConfirmDialog
+        open={!!flagUserTarget}
+        onOpenChange={(o) => { if (!o) setFlagUserTarget(null); }}
+        title={`Flag ${flagUserTarget?.role === "seller" ? "Seller" : "Buyer"} for Fraud Review`}
+        description="This adds the user to the Flagged Users workspace with an admin flag signal. A note is required."
+        confirmLabel="Flag User"
+        confirmTone="danger"
+        onConfirm={async (reason) => {
+          if (!flagUserTarget) return;
+          await performFlaggedAction({
+            action: "flag_user",
+            user_id: flagUserTarget.id,
+            note: reason,
+            dispute_id: dispute?.id ?? undefined,
+          });
+          toast.success("User flagged for review");
+          const id = flagUserTarget.id;
+          setFlagUserTarget(null);
+          navigate(`/admin/flagged-users?u=${id}`);
+        }}
+      />
     </AdminLayout>
   );
 }
