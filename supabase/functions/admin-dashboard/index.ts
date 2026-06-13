@@ -580,13 +580,36 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       });
     }
 
-    const failedPayoutThreshold = numSetting("failed_payout_spike_threshold", 5)!;
+    // SLA-overdue disputes — any overdue case is alert-worthy
+    if (slaOverdue > 0) {
+      criticalAlerts.push({
+        id: "alert-disputes-overdue",
+        title: `${slaOverdue} dispute${slaOverdue === 1 ? "" : "s"} overdue`,
+        description: `Response SLA breached. Triage in the dispute queue.`,
+        severity: "red", at_iso: nowIso,
+        action_label: "Open Disputes", action_href: "/admin/disputes",
+      });
+    }
+
+    // Stuck transactions flagged for admin review — surface immediately
+    if (flaggedNeedsReview > 0) {
+      criticalAlerts.push({
+        id: "alert-stuck-tx",
+        title: `${flaggedNeedsReview} transaction${flaggedNeedsReview === 1 ? "" : "s"} need admin review`,
+        description: `Marked needs_release_review. Investigate before releasing funds.`,
+        severity: "yellow", at_iso: nowIso,
+        action_label: "Review Queue", action_href: "/admin/transactions",
+      });
+    }
+
+    const failedPayoutThreshold = numSetting("failed_payout_spike_threshold", 0)!;
     if (failedPayouts > failedPayoutThreshold) {
       criticalAlerts.push({
         id: "alert-failed-payouts",
-        title: "Failed payout spike",
-        description: `${failedPayouts} failed payouts pending retry (threshold ${failedPayoutThreshold}).`,
+        title: `${failedPayouts} failed payout${failedPayouts === 1 ? "" : "s"}`,
+        description: `Pending retry. Check bank verification and recipient codes.`,
         severity: "red", at_iso: nowIso,
+        action_label: "Open Payouts", action_href: "/admin/payouts?tab=failed",
       });
     }
 
@@ -692,7 +715,7 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       flagged_activity_delta_pct: calculateDeltaPct(flaggedActivity, flaggedActivityPrev),
     },
     action_required: [
-      { key: "awaiting_release", label: "Awaiting Release", count: awaitingRelease, severity: "blue", action_label: "Open Release Queue", action_href: "/admin/release-queue" },
+      { key: "awaiting_release", label: "Funds Awaiting Release", count: awaitingRelease, severity: "blue", action_label: "Open Release Queue", action_href: "/admin/release-queue" },
       { key: "failed_payouts", label: "Failed Payouts", count: failedPayouts, severity: "red", action_label: "Investigate", action_href: "/admin/payouts" },
       { key: "disputes_needing_decision", label: "Disputes Needing Decision", count: disputesOpen, severity: "orange", action_label: "Decide", action_href: "/admin/disputes" },
       { key: "stuck_transactions", label: "Stuck Transactions", count: stuckTx > 0 ? stuckTx : flaggedNeedsReview, severity: "purple", action_label: "Review Queue", action_href: "/admin/transactions/stuck" },

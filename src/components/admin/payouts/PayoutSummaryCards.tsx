@@ -1,6 +1,7 @@
 import { FaClock, FaArrowsRotate, FaTriangleExclamation, FaCheck, FaCalendarWeek, FaStopwatch } from "react-icons/fa6";
 import type { IconType } from "react-icons";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatMoney } from "@/lib/format";
 import type { PayoutSummary } from "@/services/admin-payouts.service";
 
@@ -21,8 +22,8 @@ const TONE: Record<Tone, { box: string; icon: string; chip: string }> = {
 };
 
 function Tile({
-  icon: Icon, tone, label, value, badge,
-}: { icon: IconType; tone: Tone; label: string; value: string; badge?: string | null }) {
+  icon: Icon, tone, label, value, badge, hint,
+}: { icon: IconType; tone: Tone; label: string; value: string; badge?: string | null; hint?: string }) {
   const t = TONE[tone];
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
@@ -34,7 +35,16 @@ function Tile({
           <span className={`text-xs font-semibold px-2 py-1 rounded ${t.chip}`}>{badge}</span>
         ) : null}
       </div>
-      <p className="text-slate-400 text-xs font-medium mb-1">{label}</p>
+      {hint ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <p className="text-slate-400 text-xs font-medium mb-1 cursor-help underline decoration-dotted decoration-slate-600 underline-offset-2">{label}</p>
+          </TooltipTrigger>
+          <TooltipContent>{hint}</TooltipContent>
+        </Tooltip>
+      ) : (
+        <p className="text-slate-400 text-xs font-medium mb-1">{label}</p>
+      )}
       <p className="text-white text-2xl font-bold">{value}</p>
     </div>
   );
@@ -59,6 +69,7 @@ export function PayoutSummaryCards({ summary, loading }: Props) {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
       <Tile icon={FaClock} tone="orange"
         badge={fmtDelta(pendingDelta)}
+        hint="Payouts with status = awaiting_release (held for admin to disburse)."
         label="Pending Payouts" value={`${s.pending_release.count}`} />
       <Tile icon={FaArrowsRotate} tone="blue"
         badge={fmtDelta(processingDelta)}
