@@ -1,14 +1,14 @@
 import { Users, UserCheck, Flag, UserPlus, IdCard, Mail } from "lucide-react";
 import type { UserDirectorySummary } from "@/services/admin-users-directory.service";
 
-interface Props { summary: UserDirectorySummary; mobile?: boolean }
+interface Props { summary: UserDirectorySummary }
 
 function StatCard({ icon: Icon, iconWrap, iconClass, label, value, delta, deltaClass, hint }: {
   icon: typeof Users; iconWrap: string; iconClass: string;
   label: string; value: number | string; delta: string; deltaClass: string; hint: string;
 }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 min-w-[240px]">
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
       <div className="flex items-center justify-between mb-4">
         <div className={`w-12 h-12 rounded-lg flex items-center justify-center border ${iconWrap}`}>
           <Icon className={`h-5 w-5 ${iconClass}`} />
@@ -22,10 +22,10 @@ function StatCard({ icon: Icon, iconWrap, iconClass, label, value, delta, deltaC
   );
 }
 
-export function UsersSummaryCards({ summary, mobile }: Props) {
+export function UsersSummaryCards({ summary }: Props) {
   const d = summary.deltas;
-  const cards = (
-    <>
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
       <StatCard icon={Users} iconWrap="bg-blue-500/10 border-blue-500/30" iconClass="text-blue-400"
         label="Total Users" value={summary.total_users} delta={d.total} deltaClass="text-emerald-400" hint="All platform accounts" />
       <StatCard icon={UserCheck} iconWrap="bg-emerald-500/10 border-emerald-500/30" iconClass="text-emerald-400"
@@ -38,16 +38,6 @@ export function UsersSummaryCards({ summary, mobile }: Props) {
         label="ID Verified" value={summary.id_verified} delta={d.id} deltaClass="text-purple-400" hint="Identity confirmed" />
       <StatCard icon={Mail} iconWrap="bg-slate-500/10 border-slate-500/30" iconClass="text-slate-400"
         label="Email Verified" value={summary.email_verified} delta={d.email} deltaClass="text-slate-400" hint="Email confirmed" />
-    </>
+    </div>
   );
-  if (mobile) {
-    return (
-      <div className="lg:hidden -mx-4 px-4 overflow-x-auto">
-        <div className="flex gap-3 snap-x snap-mandatory">
-          {cards}
-        </div>
-      </div>
-    );
-  }
-  return <div className="hidden lg:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">{cards}</div>;
 }
