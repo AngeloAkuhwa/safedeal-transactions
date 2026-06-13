@@ -1,0 +1,200 @@
+import { Flag, ExternalLink, Filter, Download } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { formatMoney } from "@/lib/format";
+import { formatRelative } from "@/components/admin/dashboard/relative";
+import type { EscrowRecordRow } from "@/services/admin-escrow.service";
+
+const STATE_STYLES: Record<string, { dot: string; pill: string; label: string }> = {
+  held:            { dot: "bg-emerald-400",   pill: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30", label: "Held" },
+  frozen:          { dot: "bg-red-400 animate-pulse", pill: "bg-red-500/15 text-red-300 border-red-500/30",     label: "Frozen" },
+  pending_release: { dot: "bg-orange-400",    pill: "bg-orange-500/15 text-orange-300 border-orange-500/30",     label: "Pending Release" },
+  released:        { dot: "bg-cyan-400",      pill: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",           label: "Released" },
+  refunded:        { dot: "bg-purple-400",    pill: "bg-purple-500/15 text-purple-300 border-purple-500/30",     label: "Refunded" },
+};
+
+function Avatar({ name, url }: { name: string; url: string | null }) {
+  const initials = name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
+  if (url) return <img src={url} alt={name} className="w-8 h-8 rounded-full object-cover shrink-0" />;
+  return (
+    <div className="w-8 h-8 rounded-full bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center shrink-0">
+      {initials || "??"}
+    </div>
+  );
+}
+
+export function EscrowRecordsTable({ rows, total, page, pageSize, onPage }: {
+  rows: EscrowRecordRow[]; total: number; page: number; pageSize: number; onPage: (p: number) => void;
+}) {
+  const nav = useNavigate();
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
+  const lastPage = Math.max(1, Math.ceil(total / pageSize));
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-xl">
+      <div className="p-4 lg:p-6 border-b border-slate-800">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h3 className="text-white text-base lg:text-lg font-semibold">Escrow Records</h3>
+            <p className="text-slate-400 text-xs lg:text-sm mt-1">
+              {total.toLocaleString()} active escrow transactions • Showing {from}-{to}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" disabled className="px-3 py-2 bg-slate-800 text-slate-400 rounded-lg text-sm font-medium inline-flex items-center cursor-not-allowed">
+              <Filter className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Advanced Filters</span>
+            </button>
+            <button type="button" disabled className="px-3 py-2 bg-slate-800 text-slate-400 rounded-lg text-sm font-medium inline-flex items-center cursor-not-allowed">
+              <Download className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Export</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden lg:block overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-slate-800 border-b border-slate-700">
+            <tr>
+              {["Transaction","Buyer","Seller","Total Held","Frozen","Releasable","State","Last Changed","Actions"].map((h, i) => (
+                <th key={h}
+                    className={`p-4 text-slate-300 font-semibold text-sm whitespace-nowrap ${i >= 3 && i <= 5 ? "text-right" : i === 8 ? "text-center" : "text-left"}`}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            {rows.length === 0 ? (
+              <tr><td colSpan={9} className="p-12 text-center text-sm text-slate-500">No escrow records match these filters.</td></tr>
+            ) : rows.map((r) => {
+              const st = STATE_STYLES[r.state];
+              return (
+                <tr key={r.transaction_id} className="hover:bg-slate-800/50 transition-all">
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 ${st.dot} rounded-full`} />
+                      <div className="min-w-0">
+                        <p className="text-white text-sm font-medium whitespace-nowrap">#{r.transaction_code}</p>
+                        <p className="text-slate-400 text-xs">{new Date(r.created_at).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" })}</p>
+                      </div>
+                      {r.flagged && <Flag className="h-3 w-3 text-red-400" />}
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <Avatar name={r.buyer.name} url={r.buyer.avatar_url} />
+                      <p className="text-white text-sm font-medium truncate max-w-[160px]">{r.buyer.name}</p>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <Avatar name={r.seller.name} url={r.seller.avatar_url} />
+                      <p className="text-white text-sm font-medium truncate max-w-[160px]">{r.seller.name}</p>
+                    </div>
+                  </td>
+                  <td className="p-4 text-right text-white text-sm font-medium whitespace-nowrap">{formatMoney(r.total_held, "NGN")}</td>
+                  <td className="p-4 text-right text-red-400 text-sm whitespace-nowrap">{formatMoney(r.frozen, "NGN")}</td>
+                  <td className="p-4 text-right text-emerald-400 text-sm whitespace-nowrap">{formatMoney(r.releasable, "NGN")}</td>
+                  <td className="p-4">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold ${st.pill}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
+                      {st.label}
+                    </span>
+                  </td>
+                  <td className="p-4 text-slate-400 text-xs whitespace-nowrap">{formatRelative(r.last_changed_at)}</td>
+                  <td className="p-4 text-center">
+                    <button
+                      type="button"
+                      onClick={() => nav(`/admin/transactions/${r.transaction_id}`)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-medium"
+                    >
+                      <ExternalLink className="h-3 w-3" /> Open
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile / tablet cards */}
+      <div className="lg:hidden p-3 space-y-3">
+        {rows.length === 0 ? (
+          <p className="p-8 text-center text-sm text-slate-500">No escrow records match these filters.</p>
+        ) : rows.map((r) => {
+          const st = STATE_STYLES[r.state];
+          return (
+            <button
+              key={r.transaction_id}
+              type="button"
+              onClick={() => nav(`/admin/transactions/${r.transaction_id}`)}
+              className="w-full text-left bg-slate-800/60 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-all"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`w-2 h-2 ${st.dot} rounded-full`} />
+                  <span className="text-white text-sm font-semibold truncate">#{r.transaction_code}</span>
+                  {r.flagged && <Flag className="h-3 w-3 text-red-400 shrink-0" />}
+                </div>
+                <span className={`px-2.5 py-1 rounded-full border text-[10px] font-semibold ${st.pill}`}>{st.label}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Avatar name={r.buyer.name} url={r.buyer.avatar_url} />
+                  <div className="min-w-0">
+                    <p className="text-slate-500 text-[10px] uppercase">Buyer</p>
+                    <p className="text-white text-xs font-medium truncate">{r.buyer.name}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <Avatar name={r.seller.name} url={r.seller.avatar_url} />
+                  <div className="min-w-0">
+                    <p className="text-slate-500 text-[10px] uppercase">Seller</p>
+                    <p className="text-white text-xs font-medium truncate">{r.seller.name}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="bg-slate-900/60 rounded-lg p-2">
+                  <p className="text-slate-500 text-[10px] uppercase">Held</p>
+                  <p className="text-white text-xs font-semibold mt-0.5">{formatMoney(r.total_held, "NGN")}</p>
+                </div>
+                <div className="bg-slate-900/60 rounded-lg p-2">
+                  <p className="text-slate-500 text-[10px] uppercase">Frozen</p>
+                  <p className="text-red-400 text-xs font-semibold mt-0.5">{formatMoney(r.frozen, "NGN")}</p>
+                </div>
+                <div className="bg-slate-900/60 rounded-lg p-2">
+                  <p className="text-slate-500 text-[10px] uppercase">Releasable</p>
+                  <p className="text-emerald-400 text-xs font-semibold mt-0.5">{formatMoney(r.releasable, "NGN")}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between mt-3 text-xs">
+                <span className="text-slate-500">{formatRelative(r.last_changed_at)}</span>
+                <span className="text-emerald-400 inline-flex items-center gap-1 font-medium">
+                  Open <ExternalLink className="h-3 w-3" />
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Pagination */}
+      {total > pageSize && (
+        <div className="p-4 border-t border-slate-800 flex items-center justify-between text-sm">
+          <span className="text-slate-400">Page {page} of {lastPage}</span>
+          <div className="flex items-center gap-2">
+            <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)}
+              className="px-3 py-1.5 bg-slate-800 text-slate-200 rounded disabled:opacity-40 disabled:cursor-not-allowed">Prev</button>
+            <button type="button" disabled={page >= lastPage} onClick={() => onPage(page + 1)}
+              className="px-3 py-1.5 bg-slate-800 text-slate-200 rounded disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
