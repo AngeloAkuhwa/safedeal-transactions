@@ -1,141 +1,123 @@
 
-# Phase 5 — Notifications & Transactional Emails (canonical labels + amounts)
+# Phase 6 — Reconciliation & Observability
 
-## Status (this run)
+**Goal:** Prove, automatically and continuously, that every transaction's money state matches across three sources of truth — Paystack (external), `escrow_ledger_entries` (internal append-only ledger), and `payouts` / `refunds` (operational outcome) — and surface a pricing-snapshot audit for admins. Phase 6 unblocks Phase 7 (legacy column removal) by quantifying snapshot coverage.
 
-- **Done**: `_shared/money-copy.ts` (server-side label registry + `formatMoney`,
-  `formatMoneyOrDash`, `buildBuyerReceiptLines`, `buildSellerPayoutLines`).
-  Notification copy rewritten to use canonical labels + amounts in
-  `release-core.ts` (payout-released, refund-issued), `retry-payout` (retry
-  attempt with amount), `seller-confirm-completion` (release-pending message
-  now names `Seller Payout` + amount). Affected edge functions redeployed.
-- **Deferred — email templates**: `email_domain--check_email_domain_status`
-  reports no domain configured. Email scaffolding (6 templates +
-  `send-transactional-email` wiring) is blocked on the user completing
-  domain setup. Once set up, run `scaffold_transactional_email`, then author
-  templates using `buildBuyerReceiptLines` / `buildSellerPayoutLines`.
-
-## Email-setup follow-up
-
-<presentation-actions>
-<presentation-open-email-setup>Set up email domain</presentation-open-email-setup>
-</presentation-actions>
-
-**Goal:** Every user-facing money string sent outside the app (in-app notifications, push payloads, transactional emails) must use the same labels and amounts as the in-app UI built in Phase 4. No new pricing math, no DB schema changes — purely copy + adapter wiring through the existing `PRICING_LINE_LABELS` registry and `viewFromRow()` helper.
-
-## Scope (in)
-
-1. **In-app notifications** written from edge functions via `_shared/notify.ts`:
-   - `release-core.ts` — payout-approved + refund-initiated messages.
-   - `retry-payout/index.ts` — retry success/failed notifications.
-   - `seller-confirm-completion/index.ts` — "add payout account" + confirmation messages.
-   - `transaction-verify/index.ts` — payment confirmed → buyer + seller.
-   - `cart-checkout`, `claim-offer`, `storefront-checkout`, `create-transaction` — any notification that quotes an amount.
-   - `seller-notifications` / `buyer-notifications` listing functions — only the `message`/`title` formatting paths that re-render amounts.
-
-2. **Transactional email templates** (scaffolded under `supabase/functions/_shared/transactional-email-templates/` once `scaffold_transactional_email` runs as part of this phase if absent):
-   - `payment-received-buyer` (receipt)
-   - `payment-received-seller`
-   - `payout-released-seller`
-   - `payout-failed-seller`
-   - `refund-issued-buyer`
-   - `dispute-opened-seller` / `dispute-resolved-buyer-seller` (amount lines only)
-
-3. **Shared formatting module** — new `supabase/functions/_shared/money-copy.ts`:
-   - `formatMoney(amount, currency)` — single source for `₦12,500.00` style.
-   - `formatMoneyOrDash(amount, currency)` — mirrors the frontend helper.
-   - `resolveMoneyLabel(key)` — server-side mirror of `PRICING_LINE_LABELS`, exported as a typed map so both edge-function notifications and React Email templates pull the same strings (e.g. `item_amount → "Item Total"`, `platform_fee_amount → "SafeDeal Fee"`, `payment_processing_fee_amount → "Payment Processing Fee"`, `service_fee_amount → "Total Service Fee"`, `total_amount → "Total Charged"`, `seller_payout_amount → "Seller Payout"`).
-   - `buildBuyerReceiptLines(pricingRow)` and `buildSellerPayoutLines(pricingRow)` — use the same `viewFromRow` semantics already in `payment-flow.service.ts` (fall back `payment_processing_fee_amount ?? processing_fee_amount`, never read `escrow_fee_amount` / `delivery_fee_amount`).
-
-4. **Notification copy rewrites** (illustrative, not exhaustive):
-   - Payout released seller:
-     - title: `Payout on the way`
-     - message: `Your Seller Payout of ${formatMoney(seller_payout_amount)} for ${transaction_code} is on its way to your bank.`
-   - Refund issued buyer:
-     - message: `SafeDeal has initiated a refund of ${formatMoney(refund_amount)} for ${transaction_code}.` (already correct shape; switch to helper so currency + grouping are consistent).
-   - Payment confirmed buyer:
-     - message: `We've received your ${formatMoney(total_amount)} ("Total Charged") for ${transaction_code}. Funds are held in escrow until you confirm delivery.`
-   - Payment confirmed seller:
-     - message: `Payment received for ${transaction_code}. After fees, your Seller Payout will be ${formatMoney(seller_payout_amount)}.`
-
-5. **Email template content** — each transactional email uses:
-   - A 5-line `<PricingBreakdown>`-equivalent block in React Email (`Section` + `Row`/`Column`) generated from `buildBuyerReceiptLines`, with the "capped at ₦2,500" footnote when `is_total_service_fee_capped` is true.
-   - A `Seller Payout` single line on seller-facing emails (mirrors `<SellerPayoutLine>`).
-   - Never references "Delivery Fee", "Shipping Fee", "Escrow Fee", "Total Paid", "Net Amount", or any legacy label.
-
-## Scope (out)
-
-- No pricing math changes, no DB migrations, no policy snapshot changes.
-- No new notification triggers — only re-format copy on existing ones.
-- No marketing/digest emails (forbidden).
-
-## Implementation steps
-
-1. **Add `_shared/money-copy.ts`** with `resolveMoneyLabel`, `formatMoney`, `formatMoneyOrDash`, `buildBuyerReceiptLines`, `buildSellerPayoutLines`. Unit-test by importing into one edge function and logging.
-2. **Sweep edge-function notifications**: replace inline ``${(tx as any).amount}`` / `toLocaleString()` strings with `formatMoney(...)` and the registry labels. Files: `release-core.ts`, `retry-payout`, `seller-confirm-completion`, `transaction-verify`, `cart-checkout`, `claim-offer`, `storefront-checkout`, `create-transaction`.
-3. **Email infrastructure**: run `email_domain--check_email_domain_status`; if no domain → show setup dialog and pause. If domain present but `scaffold_transactional_email` not yet run → scaffold once.
-4. **Author / refactor templates** under `_shared/transactional-email-templates/` (6 templates above). Register each in `registry.ts`. Drive amounts from `templateData` populated by callers using `buildBuyerReceiptLines` / `buildSellerPayoutLines`.
-5. **Wire send calls** at the existing trigger sites (`transaction-verify`, `release-core`, `retry-payout`, refund flow, dispute flow). Use idempotency keys like `payout-released-${transaction_code}` to prevent duplicate sends.
-6. **Deploy** all touched edge functions (`deploy_edge_functions`) and email functions.
-
-## Verification
-
-- `tsc --noEmit` clean.
-- `rg -n "Total Paid|Protection Fee|Escrow Fee|Delivery Fee|Shipping Fee|Net Amount|seller_net_amount" supabase/functions/_shared/transactional-email-templates supabase/functions/**/index.ts | rg -v "// legacy"` returns zero matches in notification/email code.
-- Manual smoke: trigger one of each event in preview, confirm in-app notification copy + `email_send_log` row + rendered preview match Phase 4 UI breakdown line-for-line.
-- Spot-check capped + floored transactions show the same footnotes the UI shows.
-
-## Rollback
-
-Pure copy + adapter changes. Reverting `_shared/money-copy.ts` and the touched files restores prior strings. Email templates are additive; un-registering them disables sends without affecting other flows.
-
-## Risk
-
-Low. Only side effect is one queued email per existing trigger. Idempotency keys prevent duplicate sends. No money math touched.
+This phase is **read-only on financial data** (no money math changes, no snapshot rewrites). It adds one reconciliation job, one admin screen, and structured logging.
 
 ---
 
-# Phase 7 (optional cleanup) — Drop legacy column reads
+## Scope (in)
 
-## Status (this run)
+### 1. Reconciliation job (`reconcile-escrow` edge function)
 
-- **Done — type-level deprecation**: added `LegacyPricingRowFields` to
-  `src/types/payment-flow.types.ts` with `@deprecated` JSDoc on
-  `processing_fee_amount`, `seller_net_amount`, `escrow_fee_amount`,
-  `delivery_fee_amount`. New code surfaces a compile-time hint to avoid
-  reading them.
-- **Deferred — fallback removal**: keeping `?? processing_fee_amount` and
-  `?? seller_net_amount` reads in service/edge layers until Phase 6
-  reconciliation confirms 100% snapshot coverage on unlocked rows. Removing
-  them now risks `—` rendering for any unmigrated locked row. Phase 7 will
-  delete those `??` branches in one mechanical sweep once Phase 6 ships.
+Runs hourly via `pg_cron`. For each transaction touched in the last 24h (or with an open discrepancy), compute:
 
-**Prerequisite:** Phase 6 reconciliation confirms 100% of unlocked rows carry a complete `transaction_pricing` snapshot and `pricing_model_version` is non-null. Locked (paid/immutable) rows keep their original snapshot — we never rewrite those.
+- `paystack_collected` = sum of succeeded `payments.amount` for the tx.
+- `paystack_paid_out` = sum of `payouts.amount` where `status in ('processing','completed')`.
+- `paystack_refunded` = sum of `refunds.amount` where `status in ('processing','completed')`.
+- `ledger_balance` = signed sum of `escrow_ledger_entries.amount` per tx (held minus released/refunded), using the entry-type convention already in `release-core.ts` and `seller-confirm-completion`.
 
-## Scope
+Write one row per (transaction, run) into a new table `escrow_reconciliation_results`:
 
-1. **Service layer** (`src/services/*`): remove fallbacks like `pricing.payment_processing_fee_amount ?? pricing.processing_fee_amount` and `pricing.seller_payout_amount ?? pricing.seller_net_amount`. After cleanup, `viewFromRow` reads only canonical keys.
-2. **Edge functions**: same fallback removal in `seller-payouts`, `seller-transactions`, `seller-transaction-detail`, `admin-payouts-*`, `admin-transaction-detail`, `admin-export-transaction-data`, `seller-analytics`, `release-core`, `refund-eligibility`, `safedeal-money-policy`.
-3. **Type narrowing** (`src/types/payment-flow.types.ts` and edge equivalents): mark `processing_fee_amount`, `seller_net_amount`, `escrow_fee_amount`, `delivery_fee_amount` as `@deprecated never read` and remove from `PricingSnapshotView`. Keep them as optional/ignored in raw row types so locked snapshots still deserialize.
-4. **Tests / fixtures**: update any fixture that seeds `seller_net_amount` / `processing_fee_amount` to use canonical keys.
-5. **Documentation**: update `.lovable/plan.md` and the policy doc to mark legacy keys as "read-only on locked snapshots, never written, never displayed".
+```text
+id, transaction_id, run_id, run_at,
+paystack_collected, paystack_paid_out, paystack_refunded,
+ledger_balance, expected_ledger_balance, delta,
+status: 'ok' | 'drift' | 'missing_ledger' | 'missing_pricing',
+detail jsonb
+```
 
-## Out of scope
+Rules:
+- `ok` ⇔ |delta| < ₦0.01 AND a `payout_awaiting_release` / `payout_released` / `refund_issued` entry exists for every operational state change.
+- `drift` ⇔ |delta| ≥ ₦0.01 — fires a `notifyOpsTeam` security_alert with the delta.
+- Job is idempotent per `run_id`; new runs do not mutate prior rows.
 
-- No DB column drops. Legacy columns stay on `transaction_pricing` to preserve locked-row history.
-- No retroactive backfill — Phase 6 already gated this.
+### 2. Pricing-snapshot audit
+
+A second pass in the same job inspects `transaction_pricing` for every transaction where `money_status != 'awaiting_payment'`:
+
+- `snapshot_complete` ⇔ all of `item_amount`, `platform_fee_amount`, `payment_processing_fee_amount`, `service_fee_amount`, `seller_payout_amount`, `buyer_total_amount`, `pricing_model_version` are non-null.
+- `snapshot_legacy` ⇔ canonical columns null but legacy (`processing_fee_amount`, `seller_net_amount`) present.
+- `snapshot_missing` ⇔ no row.
+
+Aggregates land in a new view `v_pricing_snapshot_coverage` (counts per status, last 30 / 90 / all-time). Phase 7 gating threshold: 100% of `money_status != 'awaiting_payment'` rows on `snapshot_complete` for at least 30 days.
+
+### 3. Admin "Reconciliation & Pricing Audit" screen
+
+New route `/admin/reconciliation` (admin-only, gated via `has_role(auth.uid(),'admin')`). Two tabs:
+
+- **Escrow drift** — table from latest run of `escrow_reconciliation_results` where `status != 'ok'`. Columns: tx code, money status, collected, paid out, refunded, ledger balance, delta, status badge, detail expand. Actions: "Open transaction", "Mark investigated" (writes to existing `admin_investigations`).
+- **Pricing coverage** — KPI cards from `v_pricing_snapshot_coverage` + a table of `snapshot_legacy` / `snapshot_missing` rows with "Open transaction" link. Includes a "Phase 7 readiness" banner: green when threshold met, amber otherwise with the count remaining.
+
+Data access via two new service functions in `src/services/admin-reconciliation.service.ts`, backed by a `admin-reconciliation` edge function (no direct Supabase client in components, per project rule).
+
+### 4. Structured observability
+
+- Every drift row emits a `notifyOpsTeam` alert with severity `high` when delta ≥ ₦100, `medium` otherwise.
+- Reconciliation job logs `run_id`, row counts, drift count, and pricing coverage % per run to `system_logs`.
+- Add `pricing_model_version` to the existing payout-released `transaction_events.event_data` for forward auditing.
+
+---
+
+## Scope (out)
+
+- No retroactive snapshot backfill. Legacy rows stay; Phase 7 will decide policy.
+- No automatic remediation of drift — Phase 6 only *detects and reports*.
+- No new pricing fields, no Paystack rule changes.
+- No public/buyer/seller-facing UI changes.
+
+---
+
+## Database changes (one migration)
+
+1. `CREATE TABLE public.escrow_reconciliation_results (...)` + GRANTs (`SELECT` to `authenticated`, `ALL` to `service_role`, no `anon`) + RLS policy `admin-only read via has_role(...)`.
+2. `CREATE OR REPLACE VIEW public.v_pricing_snapshot_coverage` with `security_invoker = on` (per project's role-visibility view pattern). GRANT `SELECT` to `authenticated`.
+3. `CREATE INDEX` on `escrow_reconciliation_results (transaction_id, run_at DESC)` and `(status) where status != 'ok'`.
+4. `pg_cron` job `reconcile-escrow-hourly` → `net.http_post` to the edge function (project anon key + `Authorization` header, per the standard scheduling pattern).
+
+No changes to existing financial tables. `prevent_delete` triggers untouched.
+
+---
+
+## Edge functions
+
+- `reconcile-escrow` (new) — service-role only, reads payments/payouts/refunds/ledger/pricing, writes results + alerts. Validated input (`run_id` optional).
+- `admin-reconciliation` (new) — admin-gated, returns latest run rows + coverage KPIs. Uses direct `fetch` for any PATCH ("mark investigated"), per project rule.
+
+---
 
 ## Verification
 
-- `rg -n "processing_fee_amount|seller_net_amount|escrow_fee_amount|delivery_fee_amount" src supabase/functions | rg -v "// locked-snapshot only|@deprecated"` returns zero matches in active read paths.
-- `tsc --noEmit` clean.
-- Smoke: open one historic locked transaction (legacy snapshot) + one new transaction; both render identical Phase 4 breakdown.
-- Reconciliation dashboard (built in Phase 6) still reports 100% snapshot coverage post-cleanup.
+- Seed-script test: insert a known-drift tx, run `reconcile-escrow` once, assert one `drift` row + one ops alert.
+- Backfill test: run against last 7 days of staging data, expect 0 drift rows (any drift = real issue to triage).
+- Coverage view: `SELECT * FROM v_pricing_snapshot_coverage` returns numeric counts summing to total post-payment tx count.
+- Admin screen: load `/admin/reconciliation` as admin (renders), as non-admin (403/redirect).
+- `tsc --noEmit` and edge-function deploy clean.
+
+---
 
 ## Rollback
 
-Each file is mechanically reverted by re-adding the `??` fallback. Because nothing is dropped at the DB level, rollback is risk-free.
+- Disable the cron job (`SELECT cron.unschedule('reconcile-escrow-hourly')`).
+- Drop the admin route (purely additive).
+- Table and view can be left in place; nothing else reads them.
+
+No financial data is mutated by Phase 6, so rollback is risk-free.
+
+---
 
 ## Risk
 
-Low–medium. The only failure mode is a row missing a canonical key that previously relied on fallback — Phase 6 reconciliation explicitly gates against this. If any are found post-merge, restore the single-line fallback for that field only.
+Low. Read-only on money. The only side-effect is rows in a new table and ops-alert notifications. Worst case is a false-positive drift alert from a known timing window (e.g., Paystack transfer "processing" but ledger not yet posted) — mitigated by the 24h lookback window and idempotent `run_id`.
+
+---
+
+## Estimated work
+
+- 1 migration (table + view + cron).
+- 2 edge functions (`reconcile-escrow`, `admin-reconciliation`).
+- 1 service (`admin-reconciliation.service.ts`) + 1 page (`AdminReconciliation.tsx`) + small route wire-up.
+- No notification/email copy changes (Phase 5 already covered those).
+
+After Phase 6 runs cleanly for 30 days with 100% snapshot coverage, Phase 7 (legacy column fallback removal) becomes safe to execute mechanically.
