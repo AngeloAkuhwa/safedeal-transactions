@@ -98,6 +98,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const productId = body.product_id as string;
     const quantity = Math.max(1, Math.floor(Number(body.quantity) || 1));
+    const buyerDeliveryMethod = typeof body.delivery_method === "string" ? body.delivery_method : null;
+    const buyerAddress = (body.delivery_address && typeof body.delivery_address === "object") ? body.delivery_address : null;
+    const buyerContactPhone = typeof body.contact_phone === "string" ? body.contact_phone.trim() : null;
 
     if (!productId) {
       return jsonResponse({ error: "product_id is required" }, 400);
@@ -205,16 +208,43 @@ Deno.serve(async (req) => {
 
     const transactionId = newTx.id;
 
-    // Parse delivery method (product may store JSON array or single string)
-    let primaryDeliveryMethod = "courier";
+    // Resolve buyer's delivery selection against the product's enabled methods.
+    let enabledMethods: string[] = [];
     if (product.delivery_method) {
       try {
-        const methods = JSON.parse(product.delivery_method);
-        primaryDeliveryMethod = mapDeliveryMethod(Array.isArray(methods) ? methods[0] : product.delivery_method);
+        const parsed = JSON.parse(product.delivery_method);
+        enabledMethods = Array.isArray(parsed) ? parsed : [String(parsed)];
       } catch {
-        primaryDeliveryMethod = mapDeliveryMethod(product.delivery_method);
+        enabledMethods = [String(product.delivery_method)];
       }
     }
+    if (enabledMethods.length === 0) {
+      return jsonResponse({ error: "Seller has not configured any delivery methods" }, 400);
+    }
+
+    let chosenRawMethod: string;
+    if (buyerDeliveryMethod) {
+      if (!enabledMethods.includes(buyerDeliveryMethod)) {
+        return jsonResponse({ error: `Delivery method '${buyerDeliveryMethod}' is not offered for this product` }, 400);
+      }
+      chosenRawMethod = buyerDeliveryMethod;
+    } else if (enabledMethods.length === 1) {
+      chosenRawMethod = enabledMethods[0];
+    } else {
+      return jsonResponse({ error: "delivery_method is required (multiple options available)" }, 400);
+    }
+
+    const needsAddress = chosenRawMethod === "courier_shipping" || chosenRawMethod === "delivery";
+    const needsPhone = chosenRawMethod === "pickup" || chosenRawMethod === "meetup" || chosenRawMethod === "hand_delivery";
+    if (needsAddress) {
+      if (!buyerAddress?.line1 || !buyerAddress?.city || !buyerAddress?.state) {
+        return jsonResponse({ error: "delivery_address (line1, city, state) is required for this delivery method" }, 400);
+      }
+    }
+    if (needsPhone && !buyerContactPhone && !buyerProfile.phone) {
+      return jsonResponse({ error: "contact_phone is required for this delivery method" }, 400);
+    }
+    const primaryDeliveryMethod = mapDeliveryMethod(chosenRawMethod);
 
     // Calculate expected delivery date (today + estimated days or default 7 days)
     const deliveryDays = parseInt(product.estimated_delivery_days || "7", 10) || 7;
@@ -254,6 +284,12 @@ Deno.serve(async (req) => {
         delivery_method: primaryDeliveryMethod,
         expected_delivery_date: expectedDeliveryDate,
         verification_window_hours: product.verification_window_hours || 48,
+        delivery_address_line1: needsAddress ? (buyerAddress?.line1 ?? null) : null,
+        delivery_address_line2: needsAddress ? (buyerAddress?.line2 ?? null) : null,
+        delivery_city: needsAddress ? (buyerAddress?.city ?? null) : null,
+        delivery_state: needsAddress ? (buyerAddress?.state ?? null) : null,
+        delivery_postal_code: needsAddress ? (buyerAddress?.postal_code ?? null) : null,
+        delivery_country_code: needsAddress ? (buyerAddress?.country_code ?? "NG") : null,
       }),
 
       // Buyer participant
