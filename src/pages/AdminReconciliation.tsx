@@ -15,8 +15,6 @@ import {
   type CoverageRow,
 } from "@/services/admin-reconciliation.service";
 
-const SIDEBAR_BADGES = { disputes: 0, identity: 0, payouts: 0, flagged_users: 0, exports: 0 } as const;
-
 function coverageFor(rows: CoverageRow[], state: CoverageRow["snapshot_state"], field: keyof CoverageRow): number {
   const r = rows.find((x) => x.snapshot_state === state);
   return r ? Number(r[field] ?? 0) : 0;
@@ -91,7 +89,7 @@ export default function AdminReconciliation() {
   };
 
   return (
-    <AdminLayout sidebarBadges={SIDEBAR_BADGES}>
+    <AdminLayout title="Reconciliation & Pricing Audit" subtitle="Phase 6 — escrow drift + snapshot coverage">
       <div className="space-y-6 p-4 md:p-6">
         <div className="flex items-center justify-between gap-2">
           <div>
