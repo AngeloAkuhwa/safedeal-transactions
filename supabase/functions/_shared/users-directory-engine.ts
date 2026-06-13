@@ -133,6 +133,21 @@ export async function buildDirectory(admin: SupabaseClient): Promise<DirRow[]> {
     }
   } catch (_e) { /* best effort */ }
 
+  // 4b) account_verifications (phone/email/identity flags)
+  const phoneVerifiedByUser = new Map<string, boolean>();
+  const emailVerifiedFromAcct = new Map<string, boolean>();
+  const idVerifiedFromAcct = new Map<string, boolean>();
+  const { data: avs } = await admin
+    .from("account_verifications")
+    .select("user_id, email_verified, phone_verified, identity_verified")
+    .in("user_id", ids);
+  for (const a of avs ?? []) {
+    const uid = a.user_id as string;
+    phoneVerifiedByUser.set(uid, !!a.phone_verified);
+    emailVerifiedFromAcct.set(uid, !!a.email_verified);
+    idVerifiedFromAcct.set(uid, !!a.identity_verified);
+  }
+
   // 5) Transactions count + volume per user (as buyer or seller)
   const txByUser = new Map<string, { count: number; volume: number }>();
   const { data: txs } = await admin
@@ -223,7 +238,7 @@ export async function buildDirectory(admin: SupabaseClient): Promise<DirRow[]> {
       if (def) userRoles.push(def);
     }
     const idStatus = idStatusByUser.get(uid) ?? null;
-    const emailVerified = emailConfirmedByUser.get(uid) ?? false;
+    const emailVerified = emailConfirmedByUser.get(uid) ?? emailVerifiedFromAcct.get(uid) ?? false;
     // Phone verification source-of-truth is account_verifications; fall back to false
     const phoneVerified = phoneVerifiedByUser.get(uid) ?? false;
     const v = deriveVerification(idStatus, emailVerified, phoneVerified);
