@@ -89,7 +89,7 @@ export function EscrowFilters({ value, search, onSearchChange, onChange, onApply
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") onApply(); }}
-              placeholder="Search by transaction code, buyer, or seller…"
+              placeholder="Search by transaction code, buyer, seller, or payment reference…"
               className="w-full p-2.5 lg:p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500"
             />
           </div>
