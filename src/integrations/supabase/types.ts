@@ -4545,6 +4545,10 @@ export type Database = {
         | "update_investigation"
         | "export_data"
         | "resolve_dispute"
+        | "suspend_user"
+        | "unsuspend_user"
+        | "clear_flag"
+        | "add_note"
       admin_investigation_priority: "low" | "medium" | "high" | "critical"
       admin_investigation_status:
         | "open"
@@ -4938,6 +4942,10 @@ export const Constants = {
         "update_investigation",
         "export_data",
         "resolve_dispute",
+        "suspend_user",
+        "unsuspend_user",
+        "clear_flag",
+        "add_note",
       ],
       admin_investigation_priority: ["low", "medium", "high", "critical"],
       admin_investigation_status: [
