@@ -502,7 +502,11 @@ export function PayoutsTable({
                       if (terminal) {
                         return <p className="text-slate-400 text-xs">—</p>;
                       }
-                      return <p className="text-red-400 text-xs font-medium">No payout account</p>;
+                      return (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-700/40 border border-slate-600/40 text-slate-300 rounded text-[10px] font-medium">
+                          Seller bank not set up
+                        </span>
+                      );
                     }
                     if (ap.state === "verified_ready") {
                       return (

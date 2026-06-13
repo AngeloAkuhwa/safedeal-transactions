@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
           .from("transactions")
           .select("id, status")
           .eq("buyer_id", userId)
-          .not("status", "in", '("completed","cancelled","timed_out","expired","refunded")'),
+          .not("status", "in", '("completed","cancelled","timed_out","expired","refunded","declined")'),
 
         adminClient
           .from("disputes")
@@ -104,12 +104,24 @@ Deno.serve(async (req) => {
       const txRows = metricsResult.value.data as Array<{ id: string; status: string }>;
       metrics.active_purchases = txRows.length;
       metrics.awaiting_delivery = txRows.filter(
-        (t) => t.status === "seller_dispatched"
+        (t) =>
+          t.status === "awaiting_fulfillment" ||
+          t.status === "seller_dispatched" ||
+          t.status === "in_transit"
       ).length;
       metrics.awaiting_verification = txRows.filter(
-        (t) => t.status === "delivered_awaiting_verification"
+        (t) =>
+          t.status === "delivered_awaiting_verification" ||
+          t.status === "delivered" ||
+          t.status === "awaiting_buyer_confirmation"
       ).length;
+    } else if (metricsResult.status === "rejected") {
+      console.error("[buyer-dashboard] metrics query failed:", metricsResult.reason);
+    } else if (metricsResult.status === "fulfilled" && metricsResult.value.error) {
+      console.error("[buyer-dashboard] metrics query error:", metricsResult.value.error);
     }
+
+    console.info("[buyer-dashboard] metrics", metrics);
 
     if (disputeCountResult.status === "fulfilled") {
       metrics.open_disputes = disputeCountResult.value.count ?? 0;
