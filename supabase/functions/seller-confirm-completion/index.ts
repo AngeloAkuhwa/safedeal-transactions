@@ -382,7 +382,10 @@ Deno.serve(async (req) => {
         type: "payment_update",
         channel: "in_app",
         title: "Confirmation recorded",
-        message: "Confirmation recorded. SafeDeal will review and release your funds shortly.",
+        message: `Confirmation recorded. SafeDeal will review and release your ${PRICING_LINE_LABELS.seller_payout_amount} of ${formatMoney(
+          sellerNet,
+          currency,
+        )} shortly.`,
         related_transaction_id: transactionId,
         status: "pending",
       }),
