@@ -1,63 +1,44 @@
-## Scope (bundled A + B + C)
+## What's happening
 
-### Fix A — Terminal-status guards on Review & Pay pages
+The 403 is correct behavior, not a bug. Gate 4 in `initiate-paystack-payment` caps each buyer at **5 active transactions** (status in `awaiting_payment`, `payment_secured`, `seller_preparing_delivery`, `seller_dispatched`, `delivered_awaiting_verification`, `disputed`). The buyer already has 5 active, so this new payment is refused.
 
-`src/pages/BuyerTransactionAgreement.tsx` and `src/pages/BuyerPaymentSummary.tsx`:
+Fix B already surfaces the real message in the modal subtitle — that's why "You've reached your active purchase limit (5)…" now shows. The remaining UX problem: the primary CTA is still **Retry Payment**, which will fail again with the exact same error every time. The buyer needs to be sent somewhere they can actually resolve it.
 
-- After the transaction loads, branch on `tx.status` before rendering pay UI.
-- For `cancelled`, `expired`, `completed`, `disputed`, `refunded` → render a terminal banner with:
-  - Icon + heading matching the status (e.g. "Transaction Cancelled", "Agreement Expired")
-  - Transaction code and the cancellation/terminal timestamp
-  - Subtext explaining payment is no longer possible
-  - Primary CTA: **Back to Marketplace** (`/buyer/marketplace`)
-  - Secondary CTA: **Back to Dashboard** (`/dashboard`)
-- Hide Pay button, Decline button, Retry, and the "Awaiting Payment / Payment Pending" badges in these states.
-- Only `awaiting_payment` keeps today's full pay/retry flow.
+## Scope (UX only — no limit change, no backend change)
 
-### Fix B — Payment Failed modal: real error + smart CTA
+### Fix D — Smart CTA for the concurrency-limit case (Payment Failed modal)
 
-In the modal rendered by `BuyerPaymentSummary.tsx` (or its child component):
+`src/pages/BuyerPaymentSummary.tsx` around the existing `failureTerminal` branch (lines ~179–185 and ~1019–1112):
 
-- Capture the JSON `error` field returned by `initiate-paystack-payment` (currently swallowed by the SDK's generic "non-2xx" string). Use a direct `fetch` against the function URL (per our PATCH/DELETE pattern memory) to read the body on non-2xx, or parse `error.context.body` from `supabase.functions.invoke`.
-- Display the real message as the modal subtitle.
-- When the error string matches `/Invalid state: status=(cancelled|expired|completed|disputed|refunded)/`:
-  - Replace "Retry Payment" with **Back to Marketplace**.
-  - Change heading to "Transaction No Longer Payable".
-  - Hide the "No funds were deducted / safely retry" reassurance block (since retry isn't valid).
-- All other 4xx/5xx → keep today's Retry Payment + Return to Review + Contact Support actions.
+- Add a second non-terminal "blocker" state alongside `failureTerminal`. Call it `failureBlocker: "concurrency" | null`.
+- After capturing `errMsg`, detect the concurrency case with `/active purchase limit/i.test(errMsg)` and set `failureBlocker = "concurrency"`. Keep `failureTerminal = null` (the transaction itself is still payable; the buyer is the bottleneck).
+- In the modal:
+  - Heading: **"Purchase Limit Reached"** (instead of "Payment Failed" / "Transaction No Longer Payable").
+  - Subtitle: the raw `failureReason` (already correct).
+  - Replace the Retry Payment + Return to Review pair with:
+    1. Primary: **View My Transactions** → `/dashboard/transactions` (where they can complete, cancel, or confirm receipt on existing rows to free up a slot).
+    2. Secondary: **Return to Review** → `/t/${shareToken}` (unchanged).
+  - Keep the "Contact support if card appears charged" row.
+  - Keep the "No funds were deducted" reassurance block — it's still true (no charge happened) and reduces anxiety.
+- All other 4xx/5xx and `failureTerminal` branches keep today's behavior.
 
-### Fix C — Consistent cancellation writes (no schema change)
+### Reset on close
 
-`supabase/functions/decline-transaction/index.ts` and `supabase/functions/buyer-cart/index.ts` (the `remove` action's two `UPDATE transactions SET status='cancelled'` blocks at lines ~224 and ~296):
+`setFailureBlocker(null)` wherever `setFailureTerminal(null)` is already called (modal open path and dismiss path), so a later genuine card-decline doesn't inherit the wrong CTA.
 
-- In the same `UPDATE`, also set `cancelled_at = new Date().toISOString()` and `money_status = 'cancelled'` when current `money_status` is `not_secured` or `payment_pending`.
-- Immediately after the update, `INSERT` into `transaction_status_history`:
-  - `old_status` = the value read before the update
-  - `new_status` = `'cancelled'`
-  - `changed_by_user_id` = the acting buyer
-  - `reason` = `"Buyer declined transaction"` (decline-transaction) / `"Cart item removed during pending checkout"` (buyer-cart)
-- If `money_status` transitioned, also insert a matching `money_status_history` row with the same reason.
-- Idempotent: skip the history insert if the row was already `cancelled` (no-op update returned 0 rows).
+## Out of scope (deferred / not changing)
 
-No DB migration required — both history tables and the `cancelled_at` / `money_status` columns already exist.
-
-## Out of scope (deferred)
-
-- `awaiting_payment` hard-expiry rule, cron, and `initiate-paystack-payment` freshness check (covered in a separate follow-up plan).
-- One-off cleanup migration for historical stale `awaiting_payment` rows.
-- Backfilling `cancelled_at` / history for already-cancelled rows.
-- Any change to Paystack code paths, pricing, escrow math, or the cart row-locking we just shipped.
+- The limit value (5) and the `CONCURRENT_BY_LEVEL` matrix — backend policy, not touched.
+- Adding a pre-emptive lock banner on `/t/:token/pay` for the concurrency case. The existing `canPay` / `lockReason === "concurrency"` banner is driven by `buyer-permissions` and already covers the proactive path on the Review page; the modal fix is enough to recover from the slip-through.
+- `initiate-paystack-payment`, pricing, escrow, cart locking, terminal-status guards (already shipped in the prior turn).
 
 ## Files modified
 
-- `src/pages/BuyerTransactionAgreement.tsx`
-- `src/pages/BuyerPaymentSummary.tsx`
-- `supabase/functions/decline-transaction/index.ts`
-- `supabase/functions/buyer-cart/index.ts`
+- `src/pages/BuyerPaymentSummary.tsx` (state, error detection, modal render branch).
 
 ## Verification
 
-1. Reload the failing share token `/t/CrSMOKX5IiUQ5igTMn4omfCu/pay` → Review/Pay pages should now show the "Transaction Cancelled" terminal banner instead of "Awaiting Payment".
-2. Click any leftover pay flow that bypasses the banner → the Payment Failed modal should now read "Invalid state: status=cancelled" with a "Back to Marketplace" CTA, not a Retry button.
-3. From the cart, remove a product with an active checkout session → query `transaction_status_history` for that tx → confirm a new row exists with `new_status='cancelled'` and reason `"Cart item removed during pending checkout"`, and `transactions.cancelled_at` is now non-null.
-4. Decline a fresh awaiting-payment transaction → same audit checks for the decline reason.
+1. With a buyer that already has 5 active transactions, open a 6th `/t/:token/pay` and press Pay.
+2. Modal opens with heading **"Purchase Limit Reached"**, subtitle quoting `"You've reached your active purchase limit (5)…"`, primary CTA **View My Transactions** linking to `/dashboard/transactions`, secondary **Return to Review**. No Retry button visible.
+3. Trigger a normal card decline on a buyer under the limit → modal still reads "Payment Failed" with the original Retry Payment + Return to Review pair.
+4. Hit a `cancelled` share token → modal still reads "Transaction No Longer Payable" with the Back to Marketplace CTA from the previous turn.
