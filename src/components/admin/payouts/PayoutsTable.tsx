@@ -30,6 +30,12 @@ interface Props {
   onRetry: (row: PayoutRow) => void;
   onUnblock: (row: PayoutRow) => void;
   onOpenTransaction: (row: PayoutRow) => void;
+  onOpenSeller: (row: PayoutRow) => void;
+  onUpdateBank: (row: PayoutRow) => void;
+  onDownloadReceipt: (row: PayoutRow) => void;
+  onAddNote: (row: PayoutRow) => void;
+  onBlock: (row: PayoutRow) => void;
+  onPause: (row: PayoutRow) => void;
   releasingId: string | null;
   total?: number;
   page?: number;
@@ -171,22 +177,25 @@ function buildPageList(current: number, total: number): (number | "…")[] {
   return pages;
 }
 
-function comingSoon(label: string) {
-  toast({ title: `${label} — coming soon` });
-}
-
 function RowMenu({
   row, onOpen, onOpenTransaction, onRetry, onUnblock,
+  onOpenSeller, onUpdateBank, onDownloadReceipt, onAddNote, onBlock, onPause,
 }: {
   row: PayoutRow;
   onOpen: () => void;
   onOpenTransaction: () => void;
   onRetry: () => void;
   onUnblock: () => void;
+  onOpenSeller: () => void;
+  onUpdateBank: () => void;
+  onDownloadReceipt: () => void;
+  onAddNote: () => void;
+  onBlock: () => void;
+  onPause: () => void;
 }) {
   const itemCls = "gap-2.5 cursor-pointer";
   const seller = (
-    <DropdownMenuItem className={itemCls} onClick={() => comingSoon("View Seller Profile")}>
+    <DropdownMenuItem className={itemCls} onClick={onOpenSeller}>
       <FaUser className="text-blue-400" /> View Seller Profile
     </DropdownMenuItem>
   );
@@ -196,12 +205,12 @@ function RowMenu({
     </DropdownMenuItem>
   );
   const note = (
-    <DropdownMenuItem className={itemCls} onClick={() => comingSoon("Add Internal Note")}>
+    <DropdownMenuItem className={itemCls} onClick={onAddNote}>
       <FaNoteSticky className="text-yellow-400" /> Add Internal Note
     </DropdownMenuItem>
   );
   const block = (
-    <DropdownMenuItem className={`${itemCls} text-red-400 focus:text-red-400`} onClick={() => comingSoon("Block Payout")}>
+    <DropdownMenuItem className={`${itemCls} text-red-400 focus:text-red-400`} onClick={onBlock}>
       <FaBan className="text-red-400" /> Block Payout
     </DropdownMenuItem>
   );
