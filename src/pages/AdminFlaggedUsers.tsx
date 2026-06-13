@@ -182,7 +182,12 @@ export default function AdminFlaggedUsers() {
         onReset={onReset}
       />
 
-      <FlaggedUserDrawer row={drawerRow} open={!!drawerUser} onClose={() => setDrawerUser(null)} />
+      <FlaggedUserDrawer
+        row={drawerRow}
+        userId={drawerUser}
+        open={!!drawerUser}
+        onClose={() => setDrawerUser(null)}
+      />
 
       <FlaggedBulkActionBar userIds={Array.from(selected)} onClear={() => setSelected(new Set())} />
     </AdminLayout>
