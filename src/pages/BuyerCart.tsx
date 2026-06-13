@@ -425,7 +425,7 @@ const BuyerCart = () => {
                             <Checkbox
                               checked={isSelected}
                               onCheckedChange={() => toggleSelect(item.id)}
-                              disabled={!stock.canCheckout}
+                              disabled={!stock.canCheckout || isLocked}
                             />
                           </div>
                           {(() => {
