@@ -143,10 +143,10 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
                       <p className="text-white text-sm font-medium truncate max-w-[160px]">{r.seller.name}</p>
                     </div>
                   </td>
-                  <td className="p-4 text-right text-white text-sm font-medium whitespace-nowrap">{r.total_held ? formatMoney(r.total_held, "NGN") : "—"}</td>
-                  <td className="p-4 text-right text-red-400 text-sm whitespace-nowrap">{r.frozen ? formatMoney(r.frozen, "NGN") : "—"}</td>
-                  <td className="p-4 text-right text-emerald-400 text-sm whitespace-nowrap">{r.releasable ? formatMoney(r.releasable, "NGN") : "—"}</td>
-                  <td className="p-4 text-right text-cyan-400 text-sm whitespace-nowrap">{r.released ? formatMoney(r.released, "NGN") : "—"}</td>
+                  <td className={`p-4 text-right text-sm font-medium whitespace-nowrap ${r.total_held ? "text-white" : "text-slate-500"}`}>{formatMoney(r.total_held, "NGN")}</td>
+                  <td className={`p-4 text-right text-sm whitespace-nowrap ${r.frozen ? "text-red-400" : "text-slate-500"}`}>{formatMoney(r.frozen, "NGN")}</td>
+                  <td className={`p-4 text-right text-sm whitespace-nowrap ${r.releasable ? "text-emerald-400" : "text-slate-500"}`}>{formatMoney(r.releasable, "NGN")}</td>
+                  <td className={`p-4 text-right text-sm whitespace-nowrap ${r.released ? "text-cyan-400" : "text-slate-500"}`}>{formatMoney(r.released, "NGN")}</td>
                   <td className="p-4">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold ${st.pill}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
@@ -211,19 +211,19 @@ export function EscrowRecordsTable({ rows, total, page, pageSize, onPage, onOpen
               <div className="grid grid-cols-4 gap-2 text-center">
                 <div className="bg-slate-900/60 rounded-lg p-2">
                   <p className="text-slate-500 text-[10px] uppercase">Held</p>
-                  <p className="text-white text-xs font-semibold mt-0.5">{r.total_held ? formatMoney(r.total_held, "NGN") : "—"}</p>
+                  <p className={`text-xs font-semibold mt-0.5 ${r.total_held ? "text-white" : "text-slate-500"}`}>{formatMoney(r.total_held, "NGN")}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
                   <p className="text-slate-500 text-[10px] uppercase">Frozen</p>
-                  <p className="text-red-400 text-xs font-semibold mt-0.5">{r.frozen ? formatMoney(r.frozen, "NGN") : "—"}</p>
+                  <p className={`text-xs font-semibold mt-0.5 ${r.frozen ? "text-red-400" : "text-slate-500"}`}>{formatMoney(r.frozen, "NGN")}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
                   <p className="text-slate-500 text-[10px] uppercase">Releasable</p>
-                  <p className="text-emerald-400 text-xs font-semibold mt-0.5">{r.releasable ? formatMoney(r.releasable, "NGN") : "—"}</p>
+                  <p className={`text-xs font-semibold mt-0.5 ${r.releasable ? "text-emerald-400" : "text-slate-500"}`}>{formatMoney(r.releasable, "NGN")}</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-lg p-2">
                   <p className="text-slate-500 text-[10px] uppercase">Released</p>
-                  <p className="text-cyan-400 text-xs font-semibold mt-0.5">{r.released ? formatMoney(r.released, "NGN") : "—"}</p>
+                  <p className={`text-xs font-semibold mt-0.5 ${r.released ? "text-cyan-400" : "text-slate-500"}`}>{formatMoney(r.released, "NGN")}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between mt-3 text-xs">

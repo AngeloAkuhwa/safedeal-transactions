@@ -1,56 +1,26 @@
-## Goal
+## Plan: Fix Escrow page polish
 
-Replace the hardcoded escrow alert thresholds (Frozen >30d, Overdue >5d, Idle >15d, plus mismatch detection) with a dynamic, admin-editable configuration. Wire the existing "Configure Alerts" button to a real settings modal, and gate writes behind an admin permission check that can later be tightened to a specific clearance level.
+### 1. Show ₦0.00 for known zeros (Frozen / Released)
+The records table currently renders `—` for any falsy number, but `0` is a real, known value here — nothing has been frozen or released yet. Reserve `—` for true unknowns only.
 
-## What changes
+- `src/components/admin/escrow/EscrowRecordsTable.tsx`
+  - Desktop rows: render `formatMoney(r.frozen, "NGN")` and `formatMoney(r.released, "NGN")` unconditionally (no `r.x ? … : "—"`). Same for Total Held and Releasable to stay consistent.
+  - Mobile cards: same change for the Held / Frozen / Releasable / Released tiles.
+  - Keep colour cues (red for frozen, cyan for released) but dim zero amounts slightly (`text-slate-500` when value is `0`) so non-zero rows still pop.
 
-### 1. Storage — `system_settings`
-Use the existing `public.system_settings` table (JSONB key/value, admin-only RLS already in place). One row:
+### 2. "View all N alerts" expands the card inline
+Each of the four alert cards (Frozen Too Long, Release Overdue, Stuck Escrow, State Mismatch) only previews 3 items; the "View all N alerts →" link is currently inert, so the user sees the chip count but can't reach the extra items.
 
-- `setting_key = 'escrow_alert_thresholds'`
-- `setting_value` JSONB:
-  ```json
-  {
-    "frozen_days": 30,
-    "overdue_days": 5,
-    "idle_days": 15,
-    "mismatch_min_delta": 0.01,
-    "high_value_amount": 1000000,
-    "updated_by": "<uuid>",
-    "updated_at": "<iso>"
-  }
-  ```
+- `src/components/admin/escrow/EscrowAlertsPanel.tsx`
+  - Add `useState<Record<string, boolean>>` for per-card expand state, keyed by card id (`frozen`, `overdue`, `stuck`, `mismatch`).
+  - Pass an `expanded` flag + `onToggle` into `AlertCard`. When expanded, show `items` (no slice) and switch the link label to "Show less ↑".
+  - Hide the toggle link when `items.length <= 3` (already nothing extra to reveal).
+  - Add a scroll cap (`max-h-72 overflow-y-auto`) on the expanded list so a large category doesn't push the rest of the page down.
 
-Seeded by a new migration with the current defaults so behavior is unchanged on day one.
+### 3. No backend changes required
+The aggregator already returns up to 10 items per category. The records table will keep using current data — only the render guards change.
 
-### 2. Backend — `admin-escrow-overview` edge function
-- Load the thresholds row once per request (fallback to current defaults if missing).
-- Replace hardcoded `30`, `5`, `15`, `0.01` in the alert queries with values from settings.
-- Return the active thresholds in the response (`alerts.thresholds`) so the UI can display them in the footer strip and the modal can preload them without a second round trip.
-
-### 3. Backend — new `admin-escrow-alert-settings` edge function
-- `GET` → returns current thresholds + last updater (admin only).
-- `PUT` → validates payload (positive integers, sensible ranges), writes to `system_settings`, logs to `admin_actions` with `action_type = 'settings_update'` (already in the enum), returns updated row.
-- Auth via `requireAdmin` (existing helper). Permission gate is centralized in one helper so we can swap it for a finer-grained check later (see §5).
-
-### 4. Frontend
-- New service `src/services/admin-escrow-alerts.service.ts` with `getThresholds()` / `updateThresholds()`.
-- New `ConfigureAlertsModal` component (shadcn `Dialog` + `Input` + `Button`), opened from the existing "Configure Alerts" button in `EscrowAlertsPanel`. Fields: Frozen days, Overdue days, Idle days, High-value amount, Mismatch tolerance. Inline validation, optimistic save, toast on success/failure.
-- Footer strip text ("Frozen >30d | Overdue >5d | Idle >15d | Any state mismatch") becomes data-driven from `alerts.thresholds`.
-- Button is hidden / disabled with a tooltip ("Requires admin clearance") when the user lacks permission.
-
-### 5. Permission gating (designed for future tightening)
-Phase A (now): gate on `has_role(auth.uid(), 'admin')` using the existing helper. One central function `canConfigureEscrowAlerts(userId)` on both client and server.
-
-Phase B (later, not built now but the seam is ready): introduce a granular permission such as `escrow.alerts.configure` stored in a new `admin_permissions` table or a new `app_role` value like `finance_admin`. Only `canConfigureEscrowAlerts` needs to change; the modal, service, and edge function stay the same.
-
-## Out of scope
-- Building the finer-grained permission model itself (Phase B).
-- Changing alert categories, copy, icons, or the alerts UI layout.
-- Notification routing (who gets pinged when a threshold trips).
-
-## Technical notes
-- Migration: insert default row if not present (`ON CONFLICT (setting_key) DO NOTHING`); no schema change to `system_settings`.
-- Edge function CORS: include `PUT, OPTIONS, GET` in `Access-Control-Allow-Methods` per project convention.
-- Client uses direct `fetch` for the `PUT` (project rule — SDK `invoke()` is avoided for PATCH/PUT/DELETE).
-- All threshold reads on the server happen inside the edge function — UI never queries `system_settings` directly.
+### Acceptance
+- Frozen / Released columns show `₦0.00` (muted) for the current transaction instead of `—`.
+- Clicking "View all 4 stuck alerts →" expands the Stuck Escrow card to show the 4th item (currently hidden) and the link flips to "Show less ↑".
+- Header chip totals (3 Critical / 5 Warnings) still match the sum of per-card counts.

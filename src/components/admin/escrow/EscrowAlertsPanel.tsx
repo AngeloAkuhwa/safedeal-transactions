@@ -29,7 +29,7 @@ type Item = {
 };
 
 function AlertCard({
-  icon, title, subtitle, count, accent, items, viewAllLabel, onOpen,
+  icon, title, subtitle, count, accent, items, expanded, onToggle, onOpen,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -37,9 +37,12 @@ function AlertCard({
   count: number;
   accent: Accent;
   items: Item[];
-  viewAllLabel: string;
+  expanded: boolean;
+  onToggle: () => void;
   onOpen: (id: string) => void;
 }) {
+  const visible = expanded ? items : items.slice(0, 3);
+  const hiddenCount = Math.max(0, items.length - 3);
   return (
     <div className={`bg-slate-800/50 border ${accent.border} rounded-lg p-4`}>
       <div className="flex items-start justify-between mb-3">
@@ -54,10 +57,10 @@ function AlertCard({
         </div>
         <span className={`px-2 py-1 ${accent.chipBg} ${accent.text} rounded text-xs font-bold`}>{count}</span>
       </div>
-      <div className="space-y-2">
+      <div className={`space-y-2 ${expanded && items.length > 3 ? "max-h-72 overflow-y-auto pr-1" : ""}`}>
         {items.length === 0 ? (
           <p className="text-slate-500 text-xs italic px-2 py-2">No active alerts.</p>
-        ) : items.slice(0, 3).map((it) => (
+        ) : visible.map((it) => (
           <button
             key={it.id}
             type="button"
@@ -74,15 +77,16 @@ function AlertCard({
             <div className="shrink-0 ml-2">{it.right}</div>
           </button>
         ))}
-        {count > 0 && (
-          <button
-            type="button"
-            className={`w-full text-center ${accent.text} hover:opacity-80 text-xs font-medium pt-2`}
-          >
-            {viewAllLabel}
-          </button>
-        )}
       </div>
+      {hiddenCount > 0 && (
+        <button
+          type="button"
+          onClick={onToggle}
+          className={`w-full text-center ${accent.text} hover:opacity-80 text-xs font-medium pt-2`}
+        >
+          {expanded ? "Show less ↑" : `View all ${items.length} ${title.toLowerCase()} alerts →`}
+        </button>
+      )}
     </div>
   );
 }
@@ -99,6 +103,8 @@ export function EscrowAlertsPanel({
   const [modalOpen, setModalOpen] = useState(false);
   const [canConfigure, setCanConfigure] = useState(false);
   const [liveThresholds, setLiveThresholds] = useState(alerts.thresholds);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggle = (key: string) => setExpanded((p) => ({ ...p, [key]: !p[key] }));
 
   useEffect(() => {
     canConfigureEscrowAlerts().then(setCanConfigure).catch(() => setCanConfigure(false));
@@ -175,7 +181,8 @@ export function EscrowAlertsPanel({
             count={frozenItems.length}
             accent={RED}
             items={frozenItems}
-            viewAllLabel={`View all ${frozenItems.length} frozen alerts →`}
+            expanded={!!expanded.frozen}
+            onToggle={() => toggle("frozen")}
             onOpen={open}
           />
           <AlertCard
@@ -185,7 +192,8 @@ export function EscrowAlertsPanel({
             count={overdueItems.length}
             accent={ORANGE}
             items={overdueItems}
-            viewAllLabel={`View all ${overdueItems.length} overdue alerts →`}
+            expanded={!!expanded.overdue}
+            onToggle={() => toggle("overdue")}
             onOpen={open}
           />
           <AlertCard
@@ -195,7 +203,8 @@ export function EscrowAlertsPanel({
             count={stuckItems.length}
             accent={PURPLE}
             items={stuckItems}
-            viewAllLabel={`View all ${stuckItems.length} stuck alerts →`}
+            expanded={!!expanded.stuck}
+            onToggle={() => toggle("stuck")}
             onOpen={open}
           />
           <AlertCard
@@ -205,7 +214,8 @@ export function EscrowAlertsPanel({
             count={mismatchItems.length}
             accent={YELLOW}
             items={mismatchItems}
-            viewAllLabel={`View all ${mismatchItems.length} mismatch alerts →`}
+            expanded={!!expanded.mismatch}
+            onToggle={() => toggle("mismatch")}
             onOpen={open}
           />
         </div>
