@@ -27,6 +27,15 @@ export interface EscrowAlerts {
   high_value_held: { tx_id: string; code: string; amount: number; held_for: number }[];
   dispute_stalled: { tx_id: string; code: string; stalled_for: number }[];
   counts: { critical: number; warning: number };
+  thresholds: EscrowAlertThresholds;
+}
+
+export interface EscrowAlertThresholds {
+  frozen_days: number;
+  overdue_days: number;
+  idle_days: number;
+  high_value_amount: number;
+  mismatch_min_delta: number;
 }
 
 export interface EscrowRecordRow {
