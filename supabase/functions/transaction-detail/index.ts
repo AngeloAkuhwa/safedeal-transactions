@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     // Fetch transaction and validate buyer ownership
     const { data: tx, error: txError } = await adminClient
       .from("transactions")
-      .select("id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, created_at, updated_at, share_token, source_offer_id, agreement_locked_at, buyer_confirmed_at, seller_confirmed_at")
+      .select("id, transaction_code, status, money_status, dispute_status, buyer_id, seller_id, created_at, updated_at, share_token, source_offer_id, source_product_id, agreement_locked_at, buyer_confirmed_at, seller_confirmed_at")
       .eq("id", transactionId)
       .single();
 
@@ -181,14 +181,23 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fetch product media for offer-sourced transactions
+    // Fetch product media for both single-product (source_product_id) and
+    // offer-sourced (source_offer_id, potentially multi-product) transactions.
     let productMedia: Array<{ product_id: string; file_url: string | null; secure_url: string | null; mime_type: string | null; media_type: string | null; sort_order: number }> = [];
-    if (tx.source_offer_id) {
-      const { data: offerItems } = await adminClient
-        .from("buyer_specific_offer_items")
-        .select("product_id")
-        .eq("offer_id", tx.source_offer_id);
-      const productIds = (offerItems ?? []).map((r: any) => r.product_id).filter(Boolean);
+    {
+      const productIds: string[] = [];
+      if ((tx as any).source_product_id) productIds.push((tx as any).source_product_id);
+      if (tx.source_offer_id) {
+        const { data: offerItems } = await adminClient
+          .from("buyer_specific_offer_items")
+          .select("product_id")
+          .eq("offer_id", tx.source_offer_id);
+        for (const r of offerItems ?? []) {
+          if ((r as any).product_id && !productIds.includes((r as any).product_id)) {
+            productIds.push((r as any).product_id);
+          }
+        }
+      }
       if (productIds.length > 0) {
         const { data: mediaRows } = await adminClient
           .from("product_media")
@@ -197,6 +206,23 @@ Deno.serve(async (req) => {
           .order("sort_order", { ascending: true });
         productMedia = (mediaRows ?? []).map((m: any) => ({
           product_id: m.product_id,
+          file_url: m.files?.file_url ?? null,
+          secure_url: m.files?.secure_url ?? null,
+          mime_type: m.files?.mime_type ?? null,
+          media_type: m.media_type ?? null,
+          sort_order: m.sort_order ?? 0,
+        }));
+      }
+
+      // Fallback: transaction_media (custom uploads attached to the transaction itself).
+      if (productMedia.length === 0) {
+        const { data: txMedia } = await adminClient
+          .from("transaction_media")
+          .select("media_type, sort_order, files:file_id (file_url, secure_url, mime_type)")
+          .eq("transaction_id", transactionId)
+          .order("sort_order", { ascending: true });
+        productMedia = (txMedia ?? []).map((m: any) => ({
+          product_id: transactionId,
           file_url: m.files?.file_url ?? null,
           secure_url: m.files?.secure_url ?? null,
           mime_type: m.files?.mime_type ?? null,
