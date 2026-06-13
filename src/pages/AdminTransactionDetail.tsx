@@ -587,6 +587,16 @@ export default function AdminTransactionDetail() {
                   <Flag className="h-4 w-4 mr-2" /> Review Seller in Flagged Users
                 </DropdownMenuItem>
               )}
+              {data?.parties?.buyer?.id && (
+                <DropdownMenuItem onClick={() => setFlagUserTarget({ id: data.parties.buyer!.id, role: "buyer", name: data.parties.buyer!.name ?? "Buyer" })}>
+                  <Flag className="h-4 w-4 mr-2 text-red-500" /> Flag Buyer for Fraud Review
+                </DropdownMenuItem>
+              )}
+              {data?.parties?.seller?.id && (
+                <DropdownMenuItem onClick={() => setFlagUserTarget({ id: data.parties.seller!.id, role: "seller", name: data.parties.seller!.name ?? "Seller" })}>
+                  <Flag className="h-4 w-4 mr-2 text-red-500" /> Flag Seller for Fraud Review
+                </DropdownMenuItem>
+              )}
               {adminCan.canViewPayment && (
                 <DropdownMenuItem onClick={() => scrollToId("linked-records")}><CreditCard className="h-4 w-4 mr-2" /> View Payment Record</DropdownMenuItem>
               )}
