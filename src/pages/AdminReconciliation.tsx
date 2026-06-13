@@ -65,7 +65,6 @@ export default function AdminReconciliation() {
   const coverage = data?.coverage ?? [];
   const total30 = totalCount(coverage, "last_30d_count");
   const complete30 = coverageFor(coverage, "snapshot_complete", "last_30d_count");
-  const legacy30 = coverageFor(coverage, "snapshot_legacy", "last_30d_count");
   const missing30 = coverageFor(coverage, "snapshot_missing", "last_30d_count");
   const totalAll = totalCount(coverage, "total_count");
   const completeAll = coverageFor(coverage, "snapshot_complete", "total_count");
@@ -84,12 +83,11 @@ export default function AdminReconciliation() {
 
   const snapshotBadge = (s: string) => {
     if (s === "snapshot_complete") return <Badge variant="outline">Complete</Badge>;
-    if (s === "snapshot_legacy") return <Badge variant="secondary">Legacy</Badge>;
     return <Badge variant="destructive">Missing</Badge>;
   };
 
   return (
-    <AdminLayout title="Reconciliation & Pricing Audit" subtitle="Phase 6 — escrow drift + snapshot coverage">
+    <AdminLayout title="Reconciliation & Pricing Audit" subtitle="Escrow drift + snapshot coverage">
       <div className="space-y-6 p-4 md:p-6">
         <div className="flex items-center justify-between gap-2">
           <div>
@@ -110,11 +108,11 @@ export default function AdminReconciliation() {
         </div>
 
         <Card className={`p-4 border-l-4 ${phase7Ready ? "border-l-green-500" : "border-l-amber-500"}`}>
-          <div className="text-sm font-medium">Phase 7 readiness</div>
+          <div className="text-sm font-medium">Canonical snapshot status</div>
           <div className="text-sm text-muted-foreground mt-1">
             {phase7Ready
-              ? `All ${totalAll} post-payment transactions are on the canonical snapshot. Safe to remove legacy column fallbacks.`
-              : `${completeAll}/${totalAll} post-payment transactions on canonical snapshot. ${legacy30 + missing30 > 0 ? `${legacy30 + missing30} non-complete in last 30d.` : ""}`}
+              ? `Phase 7 complete — canonical snapshot enforced on all ${totalAll} post-payment transactions.`
+              : `${completeAll}/${totalAll} post-payment transactions on canonical snapshot. ${missing30 > 0 ? `${missing30} missing in last 30d.` : ""}`}
           </div>
         </Card>
 
@@ -190,10 +188,6 @@ export default function AdminReconciliation() {
                 <div className="text-xs text-muted-foreground">Complete (30d)</div>
                 <div className="text-2xl font-semibold">{complete30}</div>
                 <div className="text-xs text-muted-foreground">{pct(complete30, total30)} of {total30}</div>
-              </Card>
-              <Card className="p-4">
-                <div className="text-xs text-muted-foreground">Legacy (30d)</div>
-                <div className="text-2xl font-semibold">{legacy30}</div>
               </Card>
               <Card className="p-4">
                 <div className="text-xs text-muted-foreground">Missing (30d)</div>
