@@ -120,7 +120,7 @@ export function TerminalTransactionScreen({ status, transactionCode, timestamp, 
                 View Agreement
               </Button>
             ) : (
-              <Button onClick={() => navigate("/buyer/marketplace")} className="w-full">
+              <Button onClick={() => navigate("/marketplace")} className="w-full">
                 <ShoppingBag className="h-4 w-4 mr-2" />
                 Back to Marketplace
               </Button>
