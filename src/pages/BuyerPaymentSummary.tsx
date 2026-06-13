@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { formatMoney } from "@/lib/format";
+import { TerminalTransactionScreen, deriveTerminalStatus } from "@/components/transactions/TerminalTransactionScreen";
 
 declare global {
   interface Window {
@@ -66,6 +67,7 @@ export default function BuyerPaymentSummary() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showFailed, setShowFailed] = useState(false);
   const [failureReason, setFailureReason] = useState<string>("");
+  const [failureTerminal, setFailureTerminal] = useState<null | "cancelled" | "expired" | "completed" | "disputed" | "refunded" | "paid">(null);
   const [paystackLoaded, setPaystackLoaded] = useState(false);
 
   // Load Paystack Inline JS
@@ -145,6 +147,7 @@ export default function BuyerPaymentSummary() {
 
     setIsProcessing(true);
     setFailureReason("");
+    setFailureTerminal(null);
 
     try {
       const { data: initData, error: initError } = await supabase.functions.invoke(
@@ -153,13 +156,32 @@ export default function BuyerPaymentSummary() {
       );
 
       if (initError || initData?.error) {
-        const errMsg = initData?.error || initError?.message || "Failed to initialize payment";
+        // The Supabase JS SDK swallows the JSON error body on non-2xx and
+        // gives a generic "Edge Function returned a non-2xx status code".
+        // Reach into `initError.context` (a Response object) to pull the
+        // real `{ error: "…" }` payload.
+        let errMsg = initData?.error || initError?.message || "Failed to initialize payment";
+        if (!initData?.error && initError && (initError as any).context?.json) {
+          try {
+            const ctx = await (initError as any).context.json();
+            if (ctx?.error) errMsg = ctx.error;
+          } catch {
+            /* keep generic message */
+          }
+        }
         // If transaction is already paid, show success instead of failed
         if (errMsg.includes("payment_secured") || errMsg.includes("funds_held_in_escrow")) {
           setIsProcessing(false);
           setShowFailed(false);
           setShowSuccess(true);
           return;
+        }
+        // Detect "Invalid state: status=<terminal>" so we can swap Retry
+        // for a recovery CTA in the failure modal.
+        const m = /Invalid state: status=([a-z_]+)/i.exec(errMsg);
+        if (m) {
+          const t = deriveTerminalStatus(m[1]);
+          if (t) setFailureTerminal(t);
         }
         setFailureReason(errMsg);
         setIsProcessing(false);
@@ -216,6 +238,7 @@ export default function BuyerPaymentSummary() {
 
   const handleRetryPay = useCallback(() => {
     setShowFailed(false);
+    setFailureTerminal(null);
     openPaystackPayment();
   }, [openPaystackPayment]);
 
