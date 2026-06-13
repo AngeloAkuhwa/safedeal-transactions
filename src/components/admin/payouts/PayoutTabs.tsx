@@ -17,23 +17,31 @@ interface Props {
 }
 
 export function PayoutTabs({ active, onChange, summary }: Props) {
+  const counts = summary?.tab_counts;
   return (
     <div className="flex bg-slate-800 rounded-lg p-1 min-w-max">
       {TABS.map((t) => {
         const isActive = active === t.value;
+        const c = counts?.[t.value];
         return (
           <button
             key={t.value}
             type="button"
             onClick={() => onChange(t.value)}
             className={cn(
-              "px-4 py-2 rounded text-sm font-medium whitespace-nowrap transition-all",
+              "px-4 py-2 rounded text-sm font-medium whitespace-nowrap transition-all inline-flex items-center gap-2",
               isActive
                 ? "bg-emerald-500 text-white"
                 : "text-slate-400 hover:text-white"
             )}
           >
             {t.label}
+            {typeof c === "number" && c > 0 && (
+              <span className={cn(
+                "text-[10px] font-semibold px-1.5 py-0.5 rounded",
+                isActive ? "bg-white/20 text-white" : "bg-slate-700 text-slate-300"
+              )}>{c}</span>
+            )}
           </button>
         );
       })}
