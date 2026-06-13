@@ -9,6 +9,7 @@ import { StorefrontShareCard } from "@/components/storefront/StorefrontShareCard
 import { ManageVisibilityModal } from "@/components/storefront/ManageVisibilityModal";
 import { UpdateStockModal } from "@/components/storefront/UpdateStockModal";
 import { getSellerProducts, getProductCategories, updateProduct, archiveProduct, duplicateProduct } from "@/services/seller-storefront.service";
+import { setStockQuantity } from "@/services/inventory.service";
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 import { toast } from "@/components/ui/sonner";
 
@@ -95,7 +96,7 @@ const SellerStorefront = () => {
   const handleSaveStock = async (productId: string, newQuantity: number) => {
     setStockPending(true);
     try {
-      await updateProduct(productId, { stock_quantity: newQuantity });
+      await setStockQuantity(productId, newQuantity, "Stock updated via Update Stock modal");
       toast.success("Stock updated successfully");
       setStockProduct(null);
       queryClient.invalidateQueries({ queryKey: ["seller-products"] });
