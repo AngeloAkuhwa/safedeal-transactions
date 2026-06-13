@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { formatMoney } from "@/lib/format";
+import { TerminalTransactionScreen, deriveTerminalStatus } from "@/components/transactions/TerminalTransactionScreen";
 
 declare global {
   interface Window {
@@ -66,6 +67,7 @@ export default function BuyerPaymentSummary() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showFailed, setShowFailed] = useState(false);
   const [failureReason, setFailureReason] = useState<string>("");
+  const [failureTerminal, setFailureTerminal] = useState<null | "cancelled" | "expired" | "completed" | "disputed" | "refunded" | "paid">(null);
   const [paystackLoaded, setPaystackLoaded] = useState(false);
 
   // Load Paystack Inline JS
@@ -145,6 +147,7 @@ export default function BuyerPaymentSummary() {
 
     setIsProcessing(true);
     setFailureReason("");
+    setFailureTerminal(null);
 
     try {
       const { data: initData, error: initError } = await supabase.functions.invoke(
@@ -153,13 +156,32 @@ export default function BuyerPaymentSummary() {
       );
 
       if (initError || initData?.error) {
-        const errMsg = initData?.error || initError?.message || "Failed to initialize payment";
+        // The Supabase JS SDK swallows the JSON error body on non-2xx and
+        // gives a generic "Edge Function returned a non-2xx status code".
+        // Reach into `initError.context` (a Response object) to pull the
+        // real `{ error: "…" }` payload.
+        let errMsg = initData?.error || initError?.message || "Failed to initialize payment";
+        if (!initData?.error && initError && (initError as any).context?.json) {
+          try {
+            const ctx = await (initError as any).context.json();
+            if (ctx?.error) errMsg = ctx.error;
+          } catch {
+            /* keep generic message */
+          }
+        }
         // If transaction is already paid, show success instead of failed
         if (errMsg.includes("payment_secured") || errMsg.includes("funds_held_in_escrow")) {
           setIsProcessing(false);
           setShowFailed(false);
           setShowSuccess(true);
           return;
+        }
+        // Detect "Invalid state: status=<terminal>" so we can swap Retry
+        // for a recovery CTA in the failure modal.
+        const m = /Invalid state: status=([a-z_]+)/i.exec(errMsg);
+        if (m) {
+          const t = deriveTerminalStatus(m[1]);
+          if (t) setFailureTerminal(t);
         }
         setFailureReason(errMsg);
         setIsProcessing(false);
@@ -216,6 +238,7 @@ export default function BuyerPaymentSummary() {
 
   const handleRetryPay = useCallback(() => {
     setShowFailed(false);
+    setFailureTerminal(null);
     openPaystackPayment();
   }, [openPaystackPayment]);
 
@@ -262,6 +285,25 @@ export default function BuyerPaymentSummary() {
             </div>
           </div>
         </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Terminal-status guard: if the transaction is no longer payable (cancelled,
+  // expired, completed, etc.) show a recovery screen instead of the pay UI.
+  // Stale share links that point at long-dead transactions land here.
+  const terminalStatus = deriveTerminalStatus(data.transaction.status);
+  if (terminalStatus) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <TerminalTransactionScreen
+          status={terminalStatus}
+          transactionCode={data.transaction.transaction_code}
+          timestamp={data.transaction.created_at}
+          transactionId={data.transaction.id}
+        />
         <Footer />
       </div>
     );
@@ -973,7 +1015,9 @@ export default function BuyerPaymentSummary() {
 
                 {/* Title */}
                 <div className="text-center mb-4">
-                  <h2 className="text-lg font-bold text-foreground mb-1">Payment Failed</h2>
+                  <h2 className="text-lg font-bold text-foreground mb-1">
+                    {failureTerminal ? "Transaction No Longer Payable" : "Payment Failed"}
+                  </h2>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {failureReason || "We were unable to process your payment. No funds were deducted from your account."}
                   </p>
@@ -1023,30 +1067,42 @@ export default function BuyerPaymentSummary() {
                 <div className="mb-4">
                   <p className="text-xs font-semibold text-foreground mb-2.5">What you can do next</p>
                   <div className="space-y-2">
-                    <button
-                      onClick={handleRetryPay}
-                      disabled={isProcessing}
-                      className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
-                    >
-                      {isProcessing ? (
-                        <>
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <RotateCcw className="h-3.5 w-3.5" />
-                          Retry Payment
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => { setShowFailed(false); navigate(`/t/${shareToken}`); }}
-                      className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
-                    >
-                      <ArrowLeft className="h-3.5 w-3.5" />
-                      Return to Review
-                    </button>
+                    {failureTerminal ? (
+                      <button
+                        onClick={() => navigate("/marketplace")}
+                        className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5"
+                      >
+                        <ArrowLeft className="h-3.5 w-3.5" />
+                        Back to Marketplace
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleRetryPay}
+                          disabled={isProcessing}
+                          className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-all text-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        >
+                          {isProcessing ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              Retry Payment
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => { setShowFailed(false); navigate(`/t/${shareToken}`); }}
+                          className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
+                        >
+                          <ArrowLeft className="h-3.5 w-3.5" />
+                          Return to Review
+                        </button>
+                      </>
+                    )}
                     <button
                       className="w-full bg-transparent border border-border text-foreground font-medium py-2.5 rounded-lg hover:bg-muted transition-all text-xs flex items-center justify-center gap-1.5"
                     >
@@ -1056,16 +1112,18 @@ export default function BuyerPaymentSummary() {
                   </div>
                 </div>
 
-                {/* Security reassurance */}
-                <div className="bg-success/5 border border-success/20 rounded-lg p-3 mb-3">
-                  <div className="flex items-start gap-2">
-                    <ShieldCheck className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-[10px] font-semibold text-foreground mb-0.5">No funds were deducted</p>
-                      <p className="text-[10px] text-muted-foreground leading-relaxed">Your account has not been charged. You can safely retry the payment or choose a different payment method.</p>
+                {/* Security reassurance — only when retry is still valid */}
+                {!failureTerminal && (
+                  <div className="bg-success/5 border border-success/20 rounded-lg p-3 mb-3">
+                    <div className="flex items-start gap-2">
+                      <ShieldCheck className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] font-semibold text-foreground mb-0.5">No funds were deducted</p>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed">Your account has not been charged. You can safely retry the payment or choose a different payment method.</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Help footer */}
                 <div className="text-center pt-2 border-t">

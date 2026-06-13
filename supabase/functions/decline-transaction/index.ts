@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     // 2. Fetch current transaction status
     const { data: tx, error: txErr } = await supabase
       .from("transactions")
-      .select("id, transaction_code, status, money_status, seller_id")
+      .select("id, transaction_code, status, money_status, seller_id, buyer_id")
       .eq("id", txId)
       .single();
 
@@ -61,25 +61,42 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 4. Update transaction status → cancelled
+    // 4. Update transaction status → cancelled (also stamp cancelled_at and
+    //    transition money_status so the audit trail and ledger views line up)
+    const nowIso = new Date().toISOString();
+    const moneyShouldCancel =
+      tx.money_status === "not_secured" || tx.money_status === "payment_pending";
     const { error: updateErr } = await supabase
       .from("transactions")
       .update({
         status: "cancelled",
-        updated_at: new Date().toISOString(),
+        cancelled_at: nowIso,
+        ...(moneyShouldCancel ? { money_status: "cancelled" } : {}),
+        updated_at: nowIso,
       })
       .eq("id", txId);
 
     if (updateErr) throw updateErr;
 
-    // 5. Insert transaction_status_history record
+    // 5. Insert transaction_status_history record (and money_status_history
+    //    when the money state also transitioned).
     await supabase.from("transaction_status_history").insert({
       transaction_id: txId,
       old_status: tx.status,
       new_status: "cancelled",
       reason: "Buyer declined the transaction",
-      changed_at: new Date().toISOString(),
+      changed_by_user_id: tx.buyer_id ?? null,
+      changed_at: nowIso,
     });
+    if (moneyShouldCancel) {
+      await supabase.from("money_status_history").insert({
+        transaction_id: txId,
+        old_status: tx.money_status,
+        new_status: "cancelled",
+        reason: "Buyer declined the transaction",
+        changed_by_user_id: tx.buyer_id ?? null,
+      });
+    }
 
     // 6. Deactivate the share link
     await supabase

@@ -33,6 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { ProductMediaGallery } from "@/components/transactions/ProductMediaGallery";
+import { TerminalTransactionScreen, deriveTerminalStatus } from "@/components/transactions/TerminalTransactionScreen";
 
 type AuthState = "loading" | "anonymous" | "needs-role" | "ready";
 
@@ -170,6 +171,25 @@ export default function BuyerTransactionReview() {
             </div>
           </div>
         </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Terminal-status guard: cancelled / expired / completed / disputed / refunded
+  // transactions cannot proceed through Review → Pay. Show a clear recovery
+  // screen instead of the pay CTAs (which would 409 at Paystack init).
+  const terminalStatus = deriveTerminalStatus(data.transaction.status);
+  if (terminalStatus) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <TerminalTransactionScreen
+          status={terminalStatus}
+          transactionCode={data.transaction.transaction_code}
+          timestamp={data.transaction.created_at}
+          transactionId={data.transaction.id}
+        />
         <Footer />
       </div>
     );
