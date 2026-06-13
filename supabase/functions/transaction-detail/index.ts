@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
       deliveryConfResult,
     ] = await Promise.allSettled([
       adminClient.from("transaction_items").select("title, description, quantity, condition_label, brand, model").eq("transaction_id", transactionId).single(),
-      adminClient.from("transaction_pricing").select("item_amount, currency_code, platform_fee_amount, processing_fee_amount, payment_processing_fee_amount, service_fee_amount, service_fee_rate, buyer_total_amount, seller_net_amount, seller_payout_amount, is_total_service_fee_capped, pricing_model_version").eq("transaction_id", transactionId).single(),
+      adminClient.from("transaction_pricing").select("item_amount, currency_code, platform_fee_amount, payment_processing_fee_amount, buyer_total_amount, seller_payout_amount, is_total_service_fee_capped, pricing_model_version").eq("transaction_id", transactionId).single(),
       adminClient.from("transaction_delivery_terms").select("delivery_method, expected_delivery_date, verification_window_hours, delivery_address_line1, delivery_address_line2, delivery_city, delivery_state, delivery_postal_code, delivery_country_code").eq("transaction_id", transactionId).single(),
       adminClient.from("delivery_tracking_details").select("courier_name, tracking_number, tracking_url, shipped_at, delivered_at, expected_delivery_at, signature_name").eq("transaction_id", transactionId).single(),
       adminClient.from("delivery_proof_files").select("id, proof_type, created_at, file_id, files(file_url, secure_url, original_file_name, mime_type)").eq("transaction_id", transactionId),
@@ -126,6 +126,11 @@ Deno.serve(async (req) => {
     ]);
 
     const item = itemResult.status === "fulfilled" ? itemResult.value.data : null;
+    if (pricingResult.status === "rejected") {
+      console.error("transaction_pricing select failed:", pricingResult.reason);
+    } else if (pricingResult.value.error) {
+      console.error("transaction_pricing select error:", pricingResult.value.error);
+    }
     const pricingRaw = pricingResult.status === "fulfilled" ? pricingResult.value.data : null;
     const deliveryTerms = deliveryTermsResult.status === "fulfilled" ? deliveryTermsResult.value.data : null;
     const tracking = trackingResult.status === "fulfilled" ? trackingResult.value.data : null;
@@ -146,21 +151,31 @@ Deno.serve(async (req) => {
     );
     const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
     const processingSnapshot = pricingRaw
-      ? (num((pricingRaw as any).payment_processing_fee_amount) ?? num((pricingRaw as any).processing_fee_amount))
+      ? num((pricingRaw as any).payment_processing_fee_amount)
       : null;
+    const platformSnapshot = pricingRaw
+      ? num((pricingRaw as any).platform_fee_amount)
+      : null;
+    const serviceSnapshot =
+      processingSnapshot != null && platformSnapshot != null
+        ? processingSnapshot + platformSnapshot
+        : null;
+    const itemAmountSnapshot = pricingRaw ? Number(pricingRaw.item_amount) || 0 : 0;
     const computedPricing = pricingRaw
       ? {
           currency_code: pricingRaw.currency_code || "NGN",
-          item_amount: Number(pricingRaw.item_amount) || 0,
-          platform_fee_amount: num((pricingRaw as any).platform_fee_amount) ?? fallback.platform_fee_amount,
+          item_amount: itemAmountSnapshot,
+          platform_fee_amount: platformSnapshot ?? fallback.platform_fee_amount,
           paystack_fee_amount: processingSnapshot ?? fallback.paystack_fee_amount,
           payment_processing_fee_amount: processingSnapshot ?? fallback.paystack_fee_amount,
-          service_fee_amount: num((pricingRaw as any).service_fee_amount) ?? fallback.service_fee_amount,
-          service_fee_rate: num((pricingRaw as any).service_fee_rate) ?? fallback.service_fee_rate,
+          service_fee_amount: serviceSnapshot ?? fallback.service_fee_amount,
+          service_fee_rate:
+            serviceSnapshot != null && itemAmountSnapshot > 0
+              ? Math.round((serviceSnapshot / itemAmountSnapshot) * 10000) / 10000
+              : fallback.service_fee_rate,
           total_amount: num((pricingRaw as any).buyer_total_amount) ?? fallback.total_amount,
           seller_payout_amount:
             num((pricingRaw as any).seller_payout_amount) ??
-            num((pricingRaw as any).seller_net_amount) ??
             null,
           is_total_service_fee_capped:
             (pricingRaw as any).is_total_service_fee_capped ?? fallback.is_capped ?? false,
