@@ -25,7 +25,7 @@ export interface DirRow {
     id: boolean;
     id_status: string | null;
   };
-  transactions: { count: number; volume: number; currency: "NGN" };
+  transactions: { count: number; resolved: number; volume: number; currency: "NGN" };
   disputes: { total: number; active: number };
   status: DirStatus;
   trust_badge: "trusted_seller" | "flagged" | "pending" | null;
@@ -152,7 +152,8 @@ export async function buildDirectory(admin: SupabaseClient): Promise<DirRow[]> {
   }
 
   // 5) Transactions count + volume per user (as buyer or seller)
-  const txByUser = new Map<string, { count: number; volume: number }>();
+  const txByUser = new Map<string, { count: number; resolved: number; volume: number }>();
+  const RESOLVED_STATES = new Set(["completed", "released"]);
   const { data: txs } = await admin
     .from("transactions")
     .select("buyer_id, seller_id, total_amount, status")
@@ -160,11 +161,13 @@ export async function buildDirectory(admin: SupabaseClient): Promise<DirRow[]> {
     .limit(20000);
   for (const t of txs ?? []) {
     const amount = Number((t as Record<string, unknown>).total_amount ?? 0);
+    const status = ((t as Record<string, unknown>).status as string) ?? "";
     for (const uid of [t.buyer_id, t.seller_id].filter(Boolean) as string[]) {
       if (!ids.includes(uid)) continue;
-      const cur = txByUser.get(uid) ?? { count: 0, volume: 0 };
+      const cur = txByUser.get(uid) ?? { count: 0, resolved: 0, volume: 0 };
       cur.count++;
       cur.volume += amount;
+      if (RESOLVED_STATES.has(status)) cur.resolved++;
       txByUser.set(uid, cur);
     }
   }
@@ -250,13 +253,14 @@ export async function buildDirectory(admin: SupabaseClient): Promise<DirRow[]> {
     const isSuspended = !!flags?.suspended || profileStatus === "suspended" || profileStatus === "blocked";
     const isFlagged = !!flags?.flagged;
     const hasInvestigation = !!flags?.investigation;
-    const tx = txByUser.get(uid) ?? { count: 0, volume: 0 };
+    const tx = txByUser.get(uid) ?? { count: 0, resolved: 0, volume: 0 };
     const dp = dispByUser.get(uid) ?? { total: 0, active: 0 };
 
+    const idPendingReview = idStatus === "pending" || idStatus === "submitted" || idStatus === "in_review";
     const status: DirStatus = isSuspended ? "suspended"
       : hasInvestigation ? "under_investigation"
       : isFlagged ? "flagged"
-      : (v.level === "none" || idStatus === "pending") ? "pending"
+      : idPendingReview ? "pending"
       : "active";
 
     const trust_badge: DirRow["trust_badge"] =
@@ -278,7 +282,7 @@ export async function buildDirectory(admin: SupabaseClient): Promise<DirRow[]> {
       avatar_url: (p.avatar_url as string) ?? null,
       roles: userRoles,
       verification: { ...v, id_status: idStatus },
-      transactions: { count: tx.count, volume: tx.volume, currency: "NGN" },
+      transactions: { count: tx.count, resolved: tx.resolved, volume: tx.volume, currency: "NGN" },
       disputes: dp,
       status,
       trust_badge,
