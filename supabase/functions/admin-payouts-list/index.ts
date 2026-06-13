@@ -115,8 +115,8 @@ Deno.serve(async (req) => {
   let accountMap = new Map<string, any>();
   if (sellerIds.length > 0) {
     const { data: accounts } = await admin
-      .from("payout_accounts")
-      .select("user_id, bank_name, account_number, account_name, verification_status, provider_recipient_code")
+      .from("v_payout_account_state")
+      .select("user_id, bank_name, masked_account_number, verification_status, provider_recipient_code, account_state")
       .in("user_id", sellerIds);
     for (const a of (accounts ?? []) as any[]) accountMap.set(a.user_id, a);
   }
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
   if (txIds.length > 0) {
     const { data: prices } = await admin
       .from("transaction_pricing")
-      .select("transaction_id, item_amount, platform_fee_amount, processing_fee_amount, total_amount, currency_code")
+      .select("transaction_id, item_amount, platform_fee_amount, processing_fee_amount, payment_processing_fee_amount, seller_payout_amount, seller_net_amount, buyer_total_amount, total_amount, currency_code")
       .in("transaction_id", txIds);
     for (const p of (prices ?? []) as any[]) pricingMap.set(p.transaction_id, p);
   }
@@ -157,9 +157,15 @@ Deno.serve(async (req) => {
     const itemTotal = Number(pricing?.item_amount ?? 0);
     const rawProtection = Number(pricing?.platform_fee_amount ?? 0);
     const protectionFee = Math.min(rawProtection, MAX_PROTECTION_FEE);
-    const paymentProcessingFee = Number(pricing?.processing_fee_amount ?? 0);
-    const totalCharged = itemTotal + protectionFee + paymentProcessingFee;
-    const sellerPayout = Math.max(itemTotal - protectionFee, Number(r.amount ?? 0));
+    const paymentProcessingFee = Number(
+      pricing?.payment_processing_fee_amount ?? pricing?.processing_fee_amount ?? 0,
+    );
+    const totalCharged = Number(
+      pricing?.buyer_total_amount ?? pricing?.total_amount ?? itemTotal + protectionFee + paymentProcessingFee,
+    );
+    const sellerPayout = Number(
+      pricing?.seller_payout_amount ?? pricing?.seller_net_amount ?? r.amount ?? 0,
+    );
     const account = accountMap.get(r.seller_id) ?? null;
     const profile = r.profiles;
     return {
@@ -194,10 +200,11 @@ Deno.serve(async (req) => {
       },
       payout_account: account ? {
         bank_name: account.bank_name ?? null,
-        masked_account: maskAccount(account.account_number),
-        account_name: account.account_name ?? null,
+        masked_account: account.masked_account_number ?? null,
+        account_name: null,
         verification_status: account.verification_status ?? null,
         has_recipient_code: !!account.provider_recipient_code,
+        account_state: account.account_state ?? null,
       } : null,
       pricing: {
         item_total: itemTotal,
