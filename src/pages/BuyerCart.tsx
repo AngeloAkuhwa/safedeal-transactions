@@ -95,6 +95,7 @@ const BuyerCart = () => {
   const [checkingOut, setCheckingOut] = useState(false);
   const [deliveryDrafts, setDeliveryDrafts] = useState<Record<string, DeliveryDraft>>({});
   const [showDeliveryErrors, setShowDeliveryErrors] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState<{ productId: string; cartItemId: string } | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["buyer-cart"],
