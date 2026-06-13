@@ -1,6 +1,15 @@
-import { X, Flag, Banknote, Scale, Bot, Clock } from "lucide-react";
-import type { FlaggedUserRow } from "@/services/admin-flagged-users.service";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  X, Flag, Banknote, Scale, Bot, Clock, Loader2,
+  Ban, CheckCircle2, ArrowUpRight, StickyNote, ShieldCheck,
+} from "lucide-react";
+import {
+  fetchFlaggedUserDetail, performFlaggedAction,
+  type FlaggedUserRow, type FlaggedActionType,
+} from "@/services/admin-flagged-users.service";
 import { formatMoney } from "@/lib/format";
+import { toast } from "@/hooks/use-toast";
 import { UserAvatar } from "./UserAvatar";
 import { RISK_AVATAR_RING, RISK_LABEL, RISK_PILL, RISK_DOT, absoluteDate, relative } from "./risk";
 
@@ -10,8 +19,61 @@ interface Props {
   onClose: () => void;
 }
 
+const ACTION_LABELS: Record<FlaggedActionType, string> = {
+  clear_flag: "Clear Flag",
+  suspend_user: "Suspend",
+  unsuspend_user: "Unsuspend",
+  escalate_case: "Escalate",
+  add_note: "Add Note",
+  flag_user: "Flag",
+};
+
 export function FlaggedUserDrawer({ row, open, onClose }: Props) {
+  const qc = useQueryClient();
+  const [pending, setPending] = useState<FlaggedActionType | null>(null);
+  const [note, setNote] = useState("");
+  const userId = row?.user_id ?? "";
+
+  const { data: detail, isLoading: detailLoading } = useQuery({
+    queryKey: ["admin-flagged-user-detail", userId],
+    queryFn: () => fetchFlaggedUserDetail(userId),
+    enabled: !!userId && open,
+    staleTime: 15_000,
+  });
+
   if (!open || !row) return null;
+
+  const runAction = async (action: FlaggedActionType) => {
+    if (!note.trim()) {
+      toast({ title: "Note required", description: "Add a short reason before continuing.", variant: "destructive" });
+      return;
+    }
+    setPending(action);
+    try {
+      await performFlaggedAction({
+        action, user_id: row.user_id, note: note.trim(),
+        reason_key: row.reasons[0]?.key,
+        transaction_id: row.related.tx_id ?? undefined,
+      });
+      toast({ title: `${ACTION_LABELS[action]} recorded`, description: row.name });
+      setNote("");
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["admin-flagged-users"] }),
+        qc.invalidateQueries({ queryKey: ["admin-flagged-user-detail", userId] }),
+      ]);
+      if (action === "suspend_user" || action === "clear_flag") onClose();
+    } catch (e) {
+      toast({ title: `${ACTION_LABELS[action]} failed`, description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const av = detail?.available_actions;
+  const canSuspend = av?.can_suspend ?? (row.status !== "suspended");
+  const canClear = av?.can_clear ?? (row.reasons.length > 0);
+  const canEscalate = av?.can_escalate ?? (row.status !== "suspended");
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
@@ -114,6 +176,96 @@ export function FlaggedUserDrawer({ row, open, onClose }: Props) {
                 </>
               )}
             </div>
+          </section>
+
+          {detail?.risk?.recommendation && (
+            <section className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+              <div className="flex items-start gap-2">
+                <ShieldCheck className="h-4 w-4 text-blue-300 mt-0.5" />
+                <div>
+                  <p className="text-blue-200 text-xs font-semibold uppercase tracking-wider mb-1">Recommendation</p>
+                  <p className="text-slate-200 text-sm">{detail.risk.recommendation}</p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          <section>
+            <h4 className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">
+              Recent admin actions
+            </h4>
+            {detailLoading && <Loader2 className="h-4 w-4 animate-spin text-slate-500" />}
+            {!detailLoading && (detail?.admin_actions?.length ?? 0) === 0 && (
+              <p className="text-slate-500 text-xs">No admin actions yet.</p>
+            )}
+            <ul className="space-y-2">
+              {detail?.admin_actions?.slice(0, 5).map((a) => (
+                <li key={a.id} className="p-2 rounded-lg bg-slate-900 border border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white text-xs font-semibold">{a.label}</span>
+                    <span className="text-slate-500 text-[10px]">{relative(a.created_at)}</span>
+                  </div>
+                  <p className="text-slate-400 text-xs mt-0.5">by {a.admin_name}</p>
+                  {a.note && <p className="text-slate-500 text-xs mt-1 line-clamp-2">{a.note}</p>}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="space-y-2 pt-2 border-t border-slate-800">
+            <h4 className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Take action</h4>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Required note: reason for this action…"
+              rows={3}
+              className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-red-500"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button" disabled={!canSuspend || !!pending}
+                onClick={() => runAction("suspend_user")}
+                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold"
+              >
+                {pending === "suspend_user" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+                Suspend
+              </button>
+              <button
+                type="button" disabled={!canClear || !!pending}
+                onClick={() => runAction("clear_flag")}
+                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold"
+              >
+                {pending === "clear_flag" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                Clear Flag
+              </button>
+              <button
+                type="button" disabled={!canEscalate || !!pending}
+                onClick={() => runAction("escalate_case")}
+                className="px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold"
+              >
+                {pending === "escalate_case" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpRight className="h-4 w-4" />}
+                Escalate
+              </button>
+              <button
+                type="button" disabled={!!pending}
+                onClick={() => runAction("add_note")}
+                className="px-3 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-white text-sm font-semibold"
+              >
+                {pending === "add_note" ? <Loader2 className="h-4 w-4 animate-spin" /> : <StickyNote className="h-4 w-4" />}
+                Add Note
+              </button>
+              {row.status === "suspended" && (
+                <button
+                  type="button" disabled={!!pending}
+                  onClick={() => runAction("unsuspend_user")}
+                  className="col-span-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 disabled:opacity-50 rounded-lg flex items-center justify-center gap-2 text-emerald-300 text-sm font-semibold"
+                >
+                  {pending === "unsuspend_user" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                  Unsuspend Account
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-500">All actions are recorded in the admin audit log.</p>
           </section>
         </div>
       </aside>

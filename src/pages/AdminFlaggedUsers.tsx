@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Zap } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
@@ -16,6 +15,7 @@ import { FlaggedUsersMobileFeed } from "@/components/admin/flagged-users/Flagged
 import { FlaggedUserDrawer } from "@/components/admin/flagged-users/FlaggedUserDrawer";
 import { FlaggedHeaderBar } from "@/components/admin/flagged-users/FlaggedHeaderBar";
 import { FlaggedMobileTopBar } from "@/components/admin/flagged-users/FlaggedMobileTopBar";
+import { FlaggedBulkActionBar } from "@/components/admin/flagged-users/FlaggedBulkActionBar";
 
 const TITLE = "Flagged Users";
 const SUBTITLE = "Fraud review workspace for suspicious accounts and high-risk users";
@@ -184,13 +184,7 @@ export default function AdminFlaggedUsers() {
 
       <FlaggedUserDrawer row={drawerRow} open={!!drawerUser} onClose={() => setDrawerUser(null)} />
 
-      {selected.size > 0 && (
-        <div className="fixed bottom-6 right-6 z-40 lg:hidden">
-          <button type="button" className="w-14 h-14 bg-red-600 text-white rounded-full shadow-2xl flex items-center justify-center text-xl active:scale-90 transition-transform" aria-label="Bulk actions">
-            <Zap className="h-5 w-5" />
-          </button>
-        </div>
-      )}
+      <FlaggedBulkActionBar userIds={Array.from(selected)} onClear={() => setSelected(new Set())} />
     </AdminLayout>
   );
 }
