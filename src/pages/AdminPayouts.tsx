@@ -215,7 +215,7 @@ export default function AdminPayouts() {
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
-          <PayoutTabs active={tab} onChange={(t) => { setTab(t); setPage(1); setSelectedIds(new Set()); }} summary={summary} />
+          <PayoutTabs active={tab} onChange={(t) => { setTab(t); setFilters((f) => ({ ...f, status: t })); setPage(1); setSelectedIds(new Set()); }} summary={summary} />
           <PayoutFilters search={search} onSearch={(v) => { setSearch(v); setPage(1); }} />
         </div>
 
