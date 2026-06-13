@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 import * as payoutsApi from "@/services/admin-payouts.service";
+import { getPayoutPill, getPayoutCaption, getAccountPresentation } from "@/lib/payout-presentation";
 
 interface Props {
   open: boolean;
@@ -32,21 +33,17 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function statusPill(status: string, blocked: boolean) {
-  if (blocked) return { cls: "bg-orange-500/20 border-orange-500/30 text-orange-400", icon: <ShieldOff className="h-3.5 w-3.5" />, label: "Blocked" };
-  switch (status) {
-    case "released":
-    case "paid":
-      return { cls: "bg-emerald-500/20 border-emerald-500/30 text-emerald-400", icon: <Check className="h-3.5 w-3.5" />, label: "Released" };
-    case "processing":
-    case "initiated":
-      return { cls: "bg-blue-500/20 border-blue-500/30 text-blue-400", icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />, label: "Processing" };
-    case "failed":
-      return { cls: "bg-red-500/20 border-red-500/30 text-red-400", icon: <X className="h-3.5 w-3.5" />, label: "Failed" };
-    case "awaiting_release":
-    case "queued":
-    default:
-      return { cls: "bg-amber-500/20 border-amber-500/30 text-amber-400", icon: <Clock className="h-3.5 w-3.5" />, label: status.replace(/_/g, " ") };
-  }
+  const pill = getPayoutPill(status, blocked);
+  const map: Record<typeof pill.tone, { cls: string; icon: JSX.Element }> = {
+    emerald: { cls: "bg-emerald-500/20 border-emerald-500/30 text-emerald-400", icon: <Check className="h-3.5 w-3.5" /> },
+    blue: { cls: "bg-blue-500/20 border-blue-500/30 text-blue-400", icon: <Loader2 className="h-3.5 w-3.5 animate-spin" /> },
+    red: { cls: "bg-red-500/20 border-red-500/30 text-red-400", icon: <X className="h-3.5 w-3.5" /> },
+    amber: { cls: "bg-amber-500/20 border-amber-500/30 text-amber-400", icon: <Clock className="h-3.5 w-3.5" /> },
+    orange: { cls: "bg-orange-500/20 border-orange-500/30 text-orange-400", icon: <ShieldOff className="h-3.5 w-3.5" /> },
+    slate: { cls: "bg-slate-500/20 border-slate-500/30 text-slate-300", icon: <Clock className="h-3.5 w-3.5" /> },
+  };
+  const t = map[pill.tone];
+  return { cls: t.cls, icon: t.icon, label: pill.label };
 }
 
 function ChecklistItem({ gate }: { gate: payoutsApi.PayoutEligibilityGate }) {
@@ -150,6 +147,14 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
 
   const p = detail?.payout;
   const eligible = detail?.eligibility.eligible ?? false;
+  const releaseEnabled = !!(detail?.payout && eligible && detail.payout.status === "awaiting_release" && !detail.payout.release_blocked);
+  const retryEnabled = !!(detail?.payout && detail.payout.status === "failed" && detail.payout.retry_allowed);
+  const caption = detail ? getPayoutCaption({
+    status: detail.payout.status,
+    releaseBlocked: !!detail.payout.release_blocked,
+    payoutBlockedReason: detail.payout.payout_blocked_reason,
+    failureReason: detail.payout.failure_reason,
+  }) : null;
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
@@ -205,14 +210,15 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                     {pill.label}
                   </span>
                 </div>
-                {p!.failure_reason && (
-                  <p className="mt-3 text-xs text-red-400 text-center flex items-center justify-center gap-1.5">
-                    <AlertTriangle className="h-3.5 w-3.5" />{p!.failure_reason}
-                  </p>
-                )}
-                {p!.payout_blocked_reason && (
-                  <p className="mt-3 text-xs text-orange-400 text-center flex items-center justify-center gap-1.5">
-                    <ShieldOff className="h-3.5 w-3.5" />{p!.payout_blocked_reason}
+                {caption && (
+                  <p className={`mt-3 text-xs text-center flex items-center justify-center gap-1.5 ${
+                    caption.tone === "red" ? "text-red-400"
+                    : caption.tone === "emerald" ? "text-emerald-400"
+                    : caption.tone === "blue" ? "text-blue-400"
+                    : "text-slate-400"
+                  }`}>
+                    {caption.tone === "red" && <AlertTriangle className="h-3.5 w-3.5" />}
+                    {caption.text}
                   </p>
                 )}
               </div>
@@ -247,11 +253,15 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
               <div className="space-y-3">
                 <h4 className="text-white font-semibold text-sm">Pricing breakdown</h4>
                 <div className="bg-slate-800 rounded-lg p-4 space-y-2">
-                  <Row label="Item Total" value={formatMoney(detail.pricing.item_total, detail.pricing.currency)} />
-                  <Row label="Protection Fee" value={formatMoney(detail.pricing.protection_fee, detail.pricing.currency)} />
-                  <Row label="Payment Processing Fee" value={formatMoney(detail.pricing.payment_processing_fee, detail.pricing.currency)} />
+                  <Row label="Item Total" value={detail.pricing.item_total != null ? formatMoney(detail.pricing.item_total, detail.pricing.currency) : "—"} />
+                  <Row label="Protection Fee" value={detail.pricing.protection_fee != null ? formatMoney(detail.pricing.protection_fee, detail.pricing.currency) : "—"} />
+                  <Row label="Payment Processing Fee" value={detail.pricing.payment_processing_fee != null ? formatMoney(detail.pricing.payment_processing_fee, detail.pricing.currency) : "—"} />
                   <div className="border-t border-slate-700 my-2" />
-                  <Row label="Total Charged" value={<span className="font-semibold text-white">{formatMoney(detail.pricing.total_charged, detail.pricing.currency)}</span>} />
+                  <Row label="Total Charged" value={
+                    <span className="font-semibold text-white">
+                      {detail.pricing.total_charged != null ? formatMoney(detail.pricing.total_charged, detail.pricing.currency) : "—"}
+                    </span>
+                  } />
                   <Row label="Seller Payout" value={<span className="font-semibold text-emerald-400">{formatMoney(detail.pricing.seller_payout, detail.pricing.currency)}</span>} />
                 </div>
               </div>
@@ -260,21 +270,26 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
               <div className="space-y-3">
                 <h4 className="text-white font-semibold text-sm">Seller payout account</h4>
                 {detail.payout_account ? (
+                  (() => {
+                    const ap = getAccountPresentation(detail.payout_account);
+                    return (
                   <div className="bg-slate-800 rounded-lg p-4 space-y-2">
                     <Row label="Bank" value={detail.payout_account.bank_name ?? "—"} />
                     <Row label="Account" value={detail.payout_account.masked_account ?? "—"} />
                     <Row label="Account name" value={detail.payout_account.account_name ?? "—"} />
                     <Row label="Verification" value={
-                      <span className={detail.payout_account.verification_status === "verified" ? "text-emerald-400" : "text-amber-400"}>
-                        {detail.payout_account.verification_status ?? "unverified"}
+                      <span className={ap.state === "verified_ready" || ap.state === "verified_no_recipient" ? "text-emerald-400" : "text-amber-400"}>
+                        {ap.drawerVerificationLabel}
                       </span>
                     } />
                     <Row label="Recipient code" value={
-                      detail.payout_account.has_recipient_code
+                      ap.drawerRecipientPresent
                         ? <span className="inline-flex items-center gap-1 text-emerald-400"><ShieldCheck className="h-3.5 w-3.5" />present</span>
                         : <span className="text-red-400">missing</span>
                     } />
                   </div>
+                    );
+                  })()
                 ) : <p className="text-sm text-slate-400">No payout account on file.</p>}
               </div>
 
@@ -342,16 +357,24 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                 <h4 className="text-white font-semibold text-sm">Actions</h4>
                 <div className="flex flex-col gap-2">
                   <button
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={!eligible || busy === "release"}
+                    className={
+                      releaseEnabled
+                        ? "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        : "px-4 py-2 bg-slate-800 text-slate-500 border border-slate-700 rounded-lg flex items-center justify-center gap-2 text-sm font-medium cursor-not-allowed"
+                    }
+                    disabled={!releaseEnabled || busy === "release"}
                     onClick={() => setConfirm("release")}
                   >
                     {busy === "release" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                     Release Payout
                   </button>
                   <button
-                    className={actionBtn}
-                    disabled={!(p!.status === "failed" && p!.retry_allowed) || busy === "retry"}
+                    className={
+                      retryEnabled
+                        ? "px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center gap-2 text-sm font-medium transition-all justify-center"
+                        : "px-4 py-2 bg-slate-800/60 text-slate-500 border border-slate-800 rounded-lg flex items-center gap-2 text-sm font-medium cursor-not-allowed justify-center"
+                    }
+                    disabled={!retryEnabled || busy === "retry"}
                     onClick={handleRetry}
                   >
                     {busy === "retry" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
@@ -361,17 +384,20 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                     <button className={actionBtn} onClick={() => { setReasonOpen("unblock"); setReason(""); }}>
                       <ShieldCheck className="h-4 w-4" /> Unblock Payout
                     </button>
-                  ) : (
+                  ) : (p!.status === "awaiting_release" || p!.status === "failed") ? (
                     <button className={actionBtn} onClick={() => { setReasonOpen("block"); setReason(""); }}>
                       <ShieldOff className="h-4 w-4" /> Block Payout
                     </button>
-                  )}
+                  ) : null}
                   <button className={actionBtn} onClick={() => navigate(`/admin/transactions/${detail.transaction?.id}`)}>
                     <ExternalLink className="h-4 w-4" /> Open Transaction
                   </button>
                 </div>
-                {!eligible && (
+                {!releaseEnabled && p!.status === "awaiting_release" && (
                   <p className="text-xs text-slate-500 mt-1">Release is disabled — resolve the failing gate above before retrying.</p>
+                )}
+                {p!.status === "failed" && !retryEnabled && (
+                  <p className="text-xs text-slate-500 mt-1">Retry is disabled — the bank account must be updated or re-verified before retry.</p>
                 )}
               </div>
             </div>
