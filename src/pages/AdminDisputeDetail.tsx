@@ -34,6 +34,7 @@ import {
 } from "@/services/admin-transaction-actions.service";
 import { ResolveDisputeDialog } from "@/components/admin/transactions/ResolveDisputeDialog";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
+import { performFlaggedAction } from "@/services/admin-flagged-users.service";
 import { InternalNoteDialog } from "@/components/admin/transactions/InternalNoteDialog";
 import { EvidencePreviewDialog } from "@/components/admin/transactions/EvidencePreviewDialog";
 import { AgreementPreviewDialog } from "@/components/admin/transactions/AgreementPreviewDialog";
@@ -171,6 +172,7 @@ export default function AdminDisputeDetail() {
   const [highRiskOpen, setHighRiskOpen] = useState(false);
   const [fraudOpen, setFraudOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
+  const [flagUserTarget, setFlagUserTarget] = useState<null | { id: string; role: "buyer" | "seller" }>(null);
   const [evidencePreview, setEvidencePreview] = useState<AdminTxEvidenceItem | null>(null);
   const [agreementOpen, setAgreementOpen] = useState(false);
 
