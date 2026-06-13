@@ -172,7 +172,6 @@ export default function AdminDisputeDetail() {
   const [highRiskOpen, setHighRiskOpen] = useState(false);
   const [fraudOpen, setFraudOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
-  const [flagUserTarget, setFlagUserTarget] = useState<null | { id: string; role: "buyer" | "seller" }>(null);
   const [evidencePreview, setEvidencePreview] = useState<AdminTxEvidenceItem | null>(null);
   const [agreementOpen, setAgreementOpen] = useState(false);
 
