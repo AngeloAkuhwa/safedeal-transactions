@@ -48,6 +48,12 @@ Deno.serve(async (req) => {
   const search = (url.searchParams.get("search") ?? "").trim().toLowerCase();
   const page = Math.max(1, Number(url.searchParams.get("page") ?? 1));
   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") ?? 25)));
+  const dateFrom = url.searchParams.get("date_from");
+  const dateTo = url.searchParams.get("date_to");
+  const amountMin = url.searchParams.get("amount_min");
+  const amountMax = url.searchParams.get("amount_max");
+  const bankStatus = url.searchParams.get("bank_status"); // verified|unverified|pending
+  const quick = url.searchParams.get("quick"); // failed_only|blocked_only|high_priority
 
   let q = admin
     .from("payouts")
@@ -91,6 +97,13 @@ Deno.serve(async (req) => {
     default:
       break;
   }
+
+  if (quick === "failed_only") q = q.eq("status", "failed");
+  if (quick === "blocked_only") q = q.or("release_blocked.eq.true,status.eq.blocked");
+  if (dateFrom) q = q.gte("created_at", dateFrom);
+  if (dateTo) q = q.lte("created_at", dateTo);
+  if (amountMin) q = q.gte("amount", Number(amountMin));
+  if (amountMax) q = q.lte("amount", Number(amountMax));
 
   q = q.order("created_at", { ascending: true }).range((page - 1) * limit, page * limit - 1);
 
@@ -201,6 +214,20 @@ Deno.serve(async (req) => {
 
   if (tab === "on_hold") {
     mapped = mapped.filter((r) => r.transaction.needs_release_review);
+  }
+
+  if (quick === "high_priority") {
+    mapped = mapped.filter((r) => r.transaction.needs_release_review || r.transaction.refund_in_flight);
+  }
+
+  if (bankStatus) {
+    mapped = mapped.filter((r) => {
+      const v = r.payout_account?.verification_status ?? null;
+      if (bankStatus === "verified") return v === "verified";
+      if (bankStatus === "unverified") return !r.payout_account || (v !== "verified" && v !== "pending");
+      if (bankStatus === "pending") return v === "pending";
+      return true;
+    });
   }
 
   if (search.length > 0) {
