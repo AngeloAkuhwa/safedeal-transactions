@@ -205,7 +205,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
         </table>
       </div>
       <div className="p-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p className="text-slate-400 text-sm">Showing {start}-{end} of {total.toLocaleString()} users</p>
+        <p className="text-slate-400 text-sm">Showing {start}–{end} of {total.toLocaleString()} users</p>
         <div className="flex items-center gap-2">
           <button disabled={page <= 1} onClick={() => onPage(page - 1)} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg disabled:opacity-50"><ChevronLeft className="h-4 w-4" /></button>
           <span className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium">{page}</span>
