@@ -110,7 +110,7 @@ export async function evaluateRefundEligibility(
     admin
       .from("transaction_pricing")
       .select(
-        "item_amount, paystack_fee_amount, platform_fee_amount, service_fee_amount, total_amount, payment_processing_fee_amount, safedeal_fee_amount, seller_payout_amount, currency_code, is_total_service_fee_capped, pricing_model_version",
+        "item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount, payment_processing_fee_amount, seller_payout_amount, currency_code, is_total_service_fee_capped, pricing_model_version",
       )
       .eq("transaction_id", transaction_id)
       .maybeSingle(),
