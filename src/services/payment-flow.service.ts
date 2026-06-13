@@ -31,12 +31,14 @@ export function snapshotFromRow(row: Record<string, unknown> | null | undefined)
   };
   const item = num(row.item_amount);
   if (item == null) return null;
-  const service = num(row.service_fee_amount) ?? 0;
+  // Real DB columns: platform_fee_amount, processing_fee_amount,
+  // seller_net_amount, buyer_total_amount. Migration 018 will add
+  // payment_processing_fee_amount and seller_payout_amount as derived columns.
   const provider =
-    num(row.payment_processing_fee_amount) ?? num(row.paystack_fee_amount) ?? 0;
-  const safedeal =
-    num(row.safedeal_fee_amount) ?? num(row.platform_fee_amount) ?? Math.max(service - provider, 0);
-  const total = num(row.total_amount) ?? item + service;
+    num(row.payment_processing_fee_amount) ?? num(row.processing_fee_amount) ?? 0;
+  const safedeal = num(row.platform_fee_amount) ?? 0;
+  const service = provider + safedeal;
+  const total = num(row.buyer_total_amount) ?? item + service;
   const sellerPayout = num(row.seller_payout_amount) ?? item;
   return {
     item_amount: item,
@@ -59,12 +61,12 @@ export async function getPricingSnapshot(transactionId: string): Promise<Pricing
   const { data, error } = await supabase
     .from("transaction_pricing")
     .select(
-      "item_amount, paystack_fee_amount, platform_fee_amount, service_fee_amount, total_amount, currency_code",
+      "item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount, currency_code",
     )
     .eq("transaction_id", transactionId)
     .maybeSingle();
   if (error) throw error;
-  return snapshotFromRow(data as Record<string, unknown> | null);
+  return snapshotFromRow(data as unknown as Record<string, unknown> | null);
 }
 
 /** Initiate a Paystack payment via the existing edge function. */
