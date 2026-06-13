@@ -272,8 +272,31 @@ export async function refundBuyerCore(
     return { ok: false, status: 409, body: { error: "no_successful_payment" } };
   }
 
-  // Phase B = full refund only — refund the full captured payment amount.
-  const refundAmount = Number((payment as any).amount);
+  // SafeDeal MVP rule: Payment Processing Fee is non-refundable once payment
+  // has been processed. Refund = buyer_total - payment_processing_fee.
+  // Legacy rows missing the snapshot columns fall back to a full refund.
+  const { data: pricingRow } = await admin
+    .from("transaction_pricing")
+    .select("buyer_total_amount, payment_processing_fee_amount, processing_fee_amount")
+    .eq("transaction_id", transaction_id)
+    .maybeSingle();
+
+  const buyerTotal = Number((pricingRow as any)?.buyer_total_amount);
+  const processingFee =
+    (pricingRow as any)?.payment_processing_fee_amount != null
+      ? Number((pricingRow as any).payment_processing_fee_amount)
+      : (pricingRow as any)?.processing_fee_amount != null
+        ? Number((pricingRow as any).processing_fee_amount)
+        : null;
+
+  const paymentAmount = Number((payment as any).amount);
+  const refundAmount =
+    Number.isFinite(buyerTotal) && Number.isFinite(processingFee as number)
+      ? Math.max(buyerTotal - (processingFee as number), 0)
+      : paymentAmount; // legacy fallback
+  const isPartial =
+    Number.isFinite(buyerTotal) && Number.isFinite(processingFee as number) && refundAmount < paymentAmount;
+
   if (!Number.isFinite(refundAmount) || refundAmount <= 0) {
     return { ok: false, status: 409, body: { error: "invalid_refund_amount" } };
   }
@@ -291,11 +314,13 @@ export async function refundBuyerCore(
   }
   const refundId = refundIdRaw as string;
 
-  // Full refund: omit `amount` so Paystack refunds the entire payment.
+  // Partial refund: pass `amount` (kobo) so Paystack refunds the buyer minus
+  // the non-refundable Payment Processing Fee. Full refund omits `amount`.
   const paystack = await createRefund({
     transaction: (payment as any).provider_reference,
     customer_note: `SafeDeal refund for ${(tx as any).transaction_code}`,
     merchant_note: notes ? `${reason} / ${notes}` : reason,
+    ...(isPartial ? { amount: nairaToKobo(refundAmount) } : {}),
   });
 
   if (!paystack.ok) {
@@ -335,8 +360,9 @@ export async function refundBuyerCore(
       notes: notes ?? null,
       refund_id: refundId,
       provider_reference: providerRef,
-      partial: false,
+      partial: isPartial,
       amount: refundAmount,
+      payment_processing_fee_non_refundable: isPartial,
     },
   });
 
@@ -363,7 +389,8 @@ export async function refundBuyerCore(
       refund_id: refundId,
       provider_reference: providerRef,
       amount: refundAmount,
-      partial: false,
+      partial: isPartial,
+      payment_processing_fee_non_refundable: isPartial,
       status: "processing",
     },
   };
