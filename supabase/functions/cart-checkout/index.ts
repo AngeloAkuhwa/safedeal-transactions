@@ -270,6 +270,61 @@ Deno.serve(async (req) => {
           is_total_service_fee_capped: snapshot.is_total_service_fee_capped,
           pricing_model_version: snapshot.pricing_model_version,
         }).eq("transaction_id", transactionId);
+
+        // Reconcile transaction_items with the current cart contents
+        // (qty may have changed since the prior pending checkout)
+        const newItemRows = items.map(({ cartItem, product }: any) => ({
+          transaction_id: transactionId,
+          title: product.title,
+          description: product.short_description || product.description || "",
+          quantity: cartItem.quantity,
+          condition_label: mapCondition(product.condition_label),
+          brand: product.brand,
+          model: product.model,
+        }));
+        await admin.from("transaction_items").delete().eq("transaction_id", transactionId);
+        if (newItemRows.length > 0) {
+          await admin.from("transaction_items").insert(newItemRows);
+        }
+
+        // Reconcile reserved_quantity per product for THIS transaction.
+        // Look up previously logged reservation delta for this tx, compute
+        // the desired delta, and adjust.
+        for (const { cartItem, product } of items) {
+          const { data: priorLogs } = await admin
+            .from("product_inventory_logs")
+            .select("quantity_delta, change_type")
+            .eq("product_id", product.id)
+            .eq("reference_type", "transaction")
+            .eq("reference_id", transactionId)
+            .in("change_type", ["reserve", "release"]);
+
+          const priorReserved = (priorLogs || []).reduce(
+            (s: number, r: any) => s + (Number(r.quantity_delta) || 0),
+            0,
+          );
+          const desiredQty = cartItem.quantity;
+          const delta = desiredQty - priorReserved;
+
+          if (delta !== 0) {
+            const newReserved = Math.max(0, product.reserved_quantity + delta);
+            await admin
+              .from("products")
+              .update({ reserved_quantity: newReserved })
+              .eq("id", product.id);
+
+            await admin.from("product_inventory_logs").insert({
+              product_id: product.id,
+              change_type: delta > 0 ? "reserve" : "release",
+              quantity_delta: delta,
+              balance_after: product.stock_quantity - newReserved,
+              reference_type: "transaction",
+              reference_id: transactionId,
+              notes: `Reservation adjusted on cart checkout retry (${priorReserved} → ${desiredQty})`,
+              changed_by_user_id: buyerId,
+            });
+          }
+        }
       } else {
         // Create new transaction
         const { data: txCode } = await admin.rpc("generate_transaction_code");

@@ -288,70 +288,115 @@ async function convertReservedToSold(
   supabase: ReturnType<typeof createClient>,
   txId: string
 ) {
-  // Get the source product (single-product txns) and items quantity
-  const { data: tx } = await supabase
-    .from("transactions")
-    .select("id, source_product_id")
-    .eq("id", txId)
-    .maybeSingle();
+  // Resolve authoritative per-product paid quantities.
+  //
+  // Priority:
+  //   1. checkout_session_items rows linked to this tx (covers cart + storefront flows)
+  //   2. fallback to (tx.source_product_id + sum of transaction_items.quantity)
+  //      for legacy/private-offer transactions without a checkout session row.
+  const perProduct = new Map<string, number>();
 
-  if (!tx?.source_product_id) {
-    // Multi-product transactions: not supported in current model; skip
-    return;
-  }
-
-  const productId = tx.source_product_id;
-
-  // Idempotency check
-  const { data: existingSoldLog } = await supabase
-    .from("product_inventory_logs")
-    .select("id")
-    .eq("product_id", productId)
-    .eq("change_type", "sold")
-    .eq("reference_type", "transaction")
-    .eq("reference_id", txId)
-    .maybeSingle();
-
-  if (existingSoldLog) return;
-
-  // Sum quantities from transaction_items
-  const { data: items } = await supabase
-    .from("transaction_items")
-    .select("quantity")
+  const { data: csItems } = await supabase
+    .from("checkout_session_items")
+    .select("product_id, quantity")
     .eq("transaction_id", txId);
 
-  const totalQty = (items || []).reduce((s: number, i: any) => s + (Number(i.quantity) || 0), 0);
-  if (totalQty <= 0) return;
+  if (csItems && csItems.length > 0) {
+    for (const row of csItems) {
+      if (!row.product_id) continue;
+      perProduct.set(
+        row.product_id,
+        (perProduct.get(row.product_id) || 0) + (Number(row.quantity) || 0),
+      );
+    }
+  } else {
+    const { data: tx } = await supabase
+      .from("transactions")
+      .select("id, source_product_id")
+      .eq("id", txId)
+      .maybeSingle();
+    if (!tx?.source_product_id) return;
 
-  // Atomic decrement of both stock_quantity AND reserved_quantity
-  const { data: product } = await supabase
-    .from("products")
-    .select("stock_quantity, reserved_quantity")
-    .eq("id", productId)
-    .single();
+    const { data: items } = await supabase
+      .from("transaction_items")
+      .select("quantity")
+      .eq("transaction_id", txId);
+    const totalQty = (items || []).reduce(
+      (s: number, i: any) => s + (Number(i.quantity) || 0),
+      0,
+    );
+    if (totalQty > 0) perProduct.set(tx.source_product_id, totalQty);
+  }
 
-  if (!product) return;
+  for (const [productId, qty] of perProduct) {
+    if (qty <= 0) continue;
 
-  const newStock = Math.max(0, product.stock_quantity - totalQty);
-  const newReserved = Math.max(0, product.reserved_quantity - totalQty);
+    // Idempotency check per product
+    const { data: existingSoldLog } = await supabase
+      .from("product_inventory_logs")
+      .select("id, quantity_delta")
+      .eq("product_id", productId)
+      .eq("change_type", "sold")
+      .eq("reference_type", "transaction")
+      .eq("reference_id", txId)
+      .maybeSingle();
 
-  await supabase
-    .from("products")
-    .update({
-      stock_quantity: newStock,
-      reserved_quantity: newReserved,
-    })
-    .eq("id", productId);
+    if (existingSoldLog) {
+      const alreadySold = Math.abs(Number(existingSoldLog.quantity_delta) || 0);
+      if (alreadySold >= qty) continue;
 
-  await supabase.from("product_inventory_logs").insert({
-    product_id: productId,
-    change_type: "sold",
-    quantity_delta: -totalQty,
-    balance_after: newStock - newReserved,
-    reference_type: "transaction",
-    reference_id: txId,
-    notes: "Reserved stock converted to sold after payment confirmed",
-  });
+      // Top-up: convert the remaining qty (handles older partial conversions
+      // where qty changed after the first sold log was written)
+      const remaining = qty - alreadySold;
+      const { data: product } = await supabase
+        .from("products")
+        .select("stock_quantity, reserved_quantity")
+        .eq("id", productId)
+        .single();
+      if (!product) continue;
+      const newStock = Math.max(0, product.stock_quantity - remaining);
+      const newReserved = Math.max(0, product.reserved_quantity - remaining);
+      await supabase
+        .from("products")
+        .update({ stock_quantity: newStock, reserved_quantity: newReserved })
+        .eq("id", productId);
+      await supabase.from("product_inventory_logs").insert({
+        product_id: productId,
+        change_type: "sold",
+        quantity_delta: -remaining,
+        balance_after: newStock - newReserved,
+        reference_type: "transaction",
+        reference_id: txId,
+        notes: `Reserved stock top-up sold after qty reconciliation (+${remaining})`,
+      });
+      continue;
+    }
+
+    const { data: product } = await supabase
+      .from("products")
+      .select("stock_quantity, reserved_quantity")
+      .eq("id", productId)
+      .single();
+    if (!product) continue;
+
+    const newStock = Math.max(0, product.stock_quantity - qty);
+    const newReserved = Math.max(0, product.reserved_quantity - qty);
+
+    await supabase
+      .from("products")
+      .update({ stock_quantity: newStock, reserved_quantity: newReserved })
+      .eq("id", productId);
+
+    await supabase.from("product_inventory_logs").insert({
+      product_id: productId,
+      change_type: "sold",
+      quantity_delta: -qty,
+      balance_after: newStock - newReserved,
+      reference_type: "transaction",
+      reference_id: txId,
+      notes: "Reserved stock converted to sold after payment confirmed",
+    });
+  }
 }
 
 Deno.serve(async (req) => {

@@ -299,59 +299,86 @@ Deno.serve(async (req) => {
 
         // Convert reserved stock → sold (idempotent)
         try {
-          const { data: txWithProduct } = await supabase
-            .from("transactions")
-            .select("source_product_id")
-            .eq("id", txId)
-            .maybeSingle();
+          // Resolve authoritative per-product paid quantities.
+          // Prefer checkout_session_items; fall back to (source_product_id +
+          // transaction_items) for legacy/private-offer transactions.
+          const perProduct = new Map<string, number>();
 
-          if (txWithProduct?.source_product_id) {
-            const productId = txWithProduct.source_product_id;
+          const { data: csItems } = await supabase
+            .from("checkout_session_items")
+            .select("product_id, quantity")
+            .eq("transaction_id", txId);
 
-            const { data: existingSoldLog } = await supabase
-              .from("product_inventory_logs")
-              .select("id")
-              .eq("product_id", productId)
-              .eq("change_type", "sold")
-              .eq("reference_type", "transaction")
-              .eq("reference_id", txId)
+          if (csItems && csItems.length > 0) {
+            for (const row of csItems) {
+              if (!row.product_id) continue;
+              perProduct.set(
+                row.product_id,
+                (perProduct.get(row.product_id) || 0) + (Number(row.quantity) || 0),
+              );
+            }
+          } else {
+            const { data: txWithProduct } = await supabase
+              .from("transactions")
+              .select("source_product_id")
+              .eq("id", txId)
               .maybeSingle();
-
-            if (!existingSoldLog) {
+            if (txWithProduct?.source_product_id) {
               const { data: txItems } = await supabase
                 .from("transaction_items")
                 .select("quantity")
                 .eq("transaction_id", txId);
               const totalQty = (txItems || []).reduce(
                 (s: number, i: any) => s + (Number(i.quantity) || 0),
-                0
+                0,
               );
-
-              if (totalQty > 0) {
-                const { data: prod } = await supabase
-                  .from("products")
-                  .select("stock_quantity, reserved_quantity")
-                  .eq("id", productId)
-                  .single();
-                if (prod) {
-                  const newStock = Math.max(0, prod.stock_quantity - totalQty);
-                  const newReserved = Math.max(0, prod.reserved_quantity - totalQty);
-                  await supabase
-                    .from("products")
-                    .update({ stock_quantity: newStock, reserved_quantity: newReserved })
-                    .eq("id", productId);
-                  await supabase.from("product_inventory_logs").insert({
-                    product_id: productId,
-                    change_type: "sold",
-                    quantity_delta: -totalQty,
-                    balance_after: newStock - newReserved,
-                    reference_type: "transaction",
-                    reference_id: txId,
-                    notes: "Reserved stock converted to sold (via webhook)",
-                  });
-                }
-              }
+              if (totalQty > 0) perProduct.set(txWithProduct.source_product_id, totalQty);
             }
+          }
+
+          for (const [productId, qty] of perProduct) {
+            if (qty <= 0) continue;
+
+            const { data: existingSoldLog } = await supabase
+              .from("product_inventory_logs")
+              .select("id, quantity_delta")
+              .eq("product_id", productId)
+              .eq("change_type", "sold")
+              .eq("reference_type", "transaction")
+              .eq("reference_id", txId)
+              .maybeSingle();
+
+            let toConvert = qty;
+            if (existingSoldLog) {
+              const alreadySold = Math.abs(Number(existingSoldLog.quantity_delta) || 0);
+              if (alreadySold >= qty) continue;
+              toConvert = qty - alreadySold;
+            }
+
+            const { data: prod } = await supabase
+              .from("products")
+              .select("stock_quantity, reserved_quantity")
+              .eq("id", productId)
+              .single();
+            if (!prod) continue;
+
+            const newStock = Math.max(0, prod.stock_quantity - toConvert);
+            const newReserved = Math.max(0, prod.reserved_quantity - toConvert);
+            await supabase
+              .from("products")
+              .update({ stock_quantity: newStock, reserved_quantity: newReserved })
+              .eq("id", productId);
+            await supabase.from("product_inventory_logs").insert({
+              product_id: productId,
+              change_type: "sold",
+              quantity_delta: -toConvert,
+              balance_after: newStock - newReserved,
+              reference_type: "transaction",
+              reference_id: txId,
+              notes: existingSoldLog
+                ? `Reserved stock top-up sold after qty reconciliation (+${toConvert}) (via webhook)`
+                : "Reserved stock converted to sold (via webhook)",
+            });
           }
         } catch (invErr) {
           console.error("webhook: inventory conversion failed (non-fatal):", invErr);
