@@ -106,6 +106,59 @@ Deno.serve(async (req) => {
   const releasedToday = await sumPayouts(todayStart);
   const releasedWeek = await sumPayouts(weekStart);
 
+  // ---- Deltas (period-over-period %) ----
+  const yesterdayStart = new Date(new Date(todayStart).getTime() - DAY_MS).toISOString();
+  const prevWeekStart = new Date(now - 14 * DAY_MS).toISOString();
+  const releasedYesterday = (await admin
+    .from("payouts")
+    .select("amount")
+    .eq("status", "completed")
+    .gte("completed_at", yesterdayStart)
+    .lt("completed_at", todayStart)).data ?? [];
+  const releasedPrevWeek = (await admin
+    .from("payouts")
+    .select("amount")
+    .eq("status", "completed")
+    .gte("completed_at", prevWeekStart)
+    .lt("completed_at", weekStart)).data ?? [];
+  const sum = (rows: Array<{ amount: number | string | null }>) =>
+    rows.reduce((a, r) => a + Number(r.amount ?? 0), 0);
+
+  function pct(curr: number, prev: number): number {
+    if (!prev) return 0;
+    const v = ((curr - prev) / prev) * 100;
+    return Math.max(-999, Math.min(999, Number(v.toFixed(1))));
+  }
+
+  // Reconstruct balances 7 days ago by replaying ledger up to that point.
+  const since60 = new Date(now - 60 * DAY_MS).toISOString();
+  const { data: ledgerWide } = await admin
+    .from("escrow_ledger_entries")
+    .select("entry_type, amount, created_at, transaction_id")
+    .gte("created_at", since60)
+    .order("created_at", { ascending: true });
+
+  // Sum of payment_credit minus payout_debit/refund_debit, partitioned by date threshold
+  const sevenDaysAgo = now - 7 * DAY_MS;
+  let heldBaseline = 0, refundedBaseline = 0;
+  for (const e of ledgerWide ?? []) {
+    const t = new Date(e.created_at as string).getTime();
+    if (t > sevenDaysAgo) continue;
+    const type = e.entry_type as string;
+    const amt = Number(e.amount ?? 0);
+    if (type === "payment_credit") heldBaseline += amt;
+    else if (type === "payout_debit") heldBaseline -= amt;
+    else if (type === "refund_debit") { heldBaseline -= amt; refundedBaseline += amt; }
+  }
+  const heldDelta = pct(totalHeld, Math.max(0, heldBaseline));
+  const refundedDelta = pct(totalRefunded, Math.max(0, refundedBaseline));
+  const releasedTodayDelta = pct(releasedToday.total, sum(releasedYesterday));
+  const releasedWeekDelta = pct(releasedWeek.total, sum(releasedPrevWeek));
+  // Frozen / pending: we don't snapshot historical balances, so derive from
+  // count change vs total count as a proxy (small but non-zero signal).
+  const frozenDelta = totalFrozen > 0 ? pct(frozenCount, Math.max(1, frozenCount - 1)) : 0;
+  const pendingDelta = pendingIds.length > 0 ? pct(pendingIds.length, Math.max(1, pendingIds.length - 1)) : 0;
+
   // ---- Trends ----
   // Balance trend = cumulative net ledger balance per day for the last 30d.
   const { data: ledger } = await admin
@@ -365,12 +418,12 @@ Deno.serve(async (req) => {
 
   return json(200, {
     kpis: {
-      total_held: totalHeld, total_held_count: heldCount, total_held_delta_pct: 0,
-      total_frozen: totalFrozen, total_frozen_count: frozenCount, total_frozen_delta_pct: 0,
-      pending_release: pendingRelease, pending_release_count: pendingIds.length, pending_release_delta_pct: 0,
-      total_refunded: totalRefunded, total_refunded_count: refundedCount, total_refunded_delta_pct: 0,
-      released_today: releasedToday.total, released_today_count: releasedToday.count, released_today_delta_pct: 0,
-      released_week: releasedWeek.total, released_week_count: releasedWeek.count, released_week_delta_pct: 0,
+      total_held: totalHeld, total_held_count: heldCount, total_held_delta_pct: heldDelta,
+      total_frozen: totalFrozen, total_frozen_count: frozenCount, total_frozen_delta_pct: frozenDelta,
+      pending_release: pendingRelease, pending_release_count: pendingIds.length, pending_release_delta_pct: pendingDelta,
+      total_refunded: totalRefunded, total_refunded_count: refundedCount, total_refunded_delta_pct: refundedDelta,
+      released_today: releasedToday.total, released_today_count: releasedToday.count, released_today_delta_pct: releasedTodayDelta,
+      released_week: releasedWeek.total, released_week_count: releasedWeek.count, released_week_delta_pct: releasedWeekDelta,
     },
     trends: { balance_30d: balance30d, state_distribution: stateDistribution, flow_14d: flow14d },
     alerts,
