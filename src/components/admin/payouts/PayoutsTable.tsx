@@ -478,7 +478,11 @@ export function PayoutsTable({
                 <td className="p-4">
                   {(() => {
                     const ap = getAccountPresentation(r.payout_account);
+                    const terminal = r.status === "completed" || r.status === "reversed" || r.status === "cancelled";
                     if (ap.state === "no_account") {
+                      if (terminal) {
+                        return <p className="text-slate-400 text-xs">—</p>;
+                      }
                       return <p className="text-red-400 text-xs font-medium">No payout account</p>;
                     }
                     if (ap.state === "verified_ready") {
@@ -491,6 +495,15 @@ export function PayoutsTable({
                             </span>
                           </div>
                           <p className="text-slate-400 text-xs whitespace-nowrap">{r.payout_account!.masked_account ?? "—"}</p>
+                        </div>
+                      );
+                    }
+                    // Terminal payouts: account state is no longer actionable — hide warning badge
+                    if (terminal) {
+                      return (
+                        <div>
+                          <p className="text-slate-300 text-sm font-medium whitespace-nowrap">{r.payout_account?.bank_name ?? "Account"}</p>
+                          <p className="text-slate-400 text-xs whitespace-nowrap">{r.payout_account?.masked_account ?? "—"}</p>
                         </div>
                       );
                     }
