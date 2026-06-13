@@ -152,13 +152,19 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                   </td>
                   <td className="p-4 text-right">
                     <p className="text-white font-bold text-base">{r.transactions.count}</p>
-                    <p className="text-emerald-400 text-xs mt-0.5 font-medium">{r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume) : "—"}</p>
+                    <p className="text-emerald-400 text-xs mt-0.5 font-medium">
+                      {r.transactions.resolved > 0
+                        ? `${r.transactions.resolved} resolved`
+                        : r.transactions.volume > 0 ? formatMoneyCompact(r.transactions.volume) : "—"}
+                    </p>
                   </td>
                   <td className="p-4 text-right">
                     <p className="text-white font-bold text-base">{r.disputes.total}</p>
                     {r.disputes.active > 0
-                      ? <p className="text-red-400 text-xs mt-0.5 font-medium">{r.disputes.active} active</p>
-                      : <p className="text-slate-400 text-xs mt-0.5">Clean record</p>}
+                      ? <p className="text-red-400 text-xs mt-0.5 font-medium">Active disputes</p>
+                      : r.disputes.total > 0
+                        ? <p className="text-yellow-400 text-xs mt-0.5 font-medium">In progress</p>
+                        : <p className="text-slate-400 text-xs mt-0.5">Clean record</p>}
                   </td>
                   <td className="p-4">
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-xs font-semibold ${STATUS_CLASS[r.status]}`}>
