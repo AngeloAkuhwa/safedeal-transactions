@@ -1,50 +1,63 @@
-# Lock pending-checkout cart rows + eager reservation release on Remove
+## Scope (bundled A + B + C)
 
-## 1. Lock the row in `src/pages/BuyerCart.tsx`
+### Fix A — Terminal-status guards on Review & Pay pages
 
-A row is **locked** when `item.product.active_checkout_session_id` is truthy.
+`src/pages/BuyerTransactionAgreement.tsx` and `src/pages/BuyerPaymentSummary.tsx`:
 
-When locked:
-- Checkbox: disabled and unchecked; row excluded from `selectableItems` so "Select All" ignores it.
-- Delivery method picker, address fields, and contact-phone field: not rendered at all (`showPicker = false` regardless of `enabledMethods`).
-- Qty − / + buttons: disabled.
-- Keep the amber "Checkout in progress" badge.
-- Add a one-line helper under the badge: "Finish or cancel this checkout to edit."
-- Right-side actions: **Resume checkout** (existing) and **Remove** only.
-- "Remove" opens a confirm dialog (shadcn `AlertDialog`): "This will cancel your reserved checkout for this item. Continue?"
+- After the transaction loads, branch on `tx.status` before rendering pay UI.
+- For `cancelled`, `expired`, `completed`, `disputed`, `refunded` → render a terminal banner with:
+  - Icon + heading matching the status (e.g. "Transaction Cancelled", "Agreement Expired")
+  - Transaction code and the cancellation/terminal timestamp
+  - Subtext explaining payment is no longer possible
+  - Primary CTA: **Back to Marketplace** (`/buyer/marketplace`)
+  - Secondary CTA: **Back to Dashboard** (`/dashboard`)
+- Hide Pay button, Decline button, Retry, and the "Awaiting Payment / Payment Pending" badges in these states.
+- Only `awaiting_payment` keeps today's full pay/retry flow.
 
-No changes to non-locked rows.
+### Fix B — Payment Failed modal: real error + smart CTA
 
-## 2. Release the reservation eagerly on Remove in `supabase/functions/buyer-cart/index.ts`
+In the modal rendered by `BuyerPaymentSummary.tsx` (or its child component):
 
-Extend the existing `remove` action. After deleting the `cart_items` row, for the same `buyer_id` + `product_id`:
+- Capture the JSON `error` field returned by `initiate-paystack-payment` (currently swallowed by the SDK's generic "non-2xx" string). Use a direct `fetch` against the function URL (per our PATCH/DELETE pattern memory) to read the body on non-2xx, or parse `error.context.body` from `supabase.functions.invoke`.
+- Display the real message as the modal subtitle.
+- When the error string matches `/Invalid state: status=(cancelled|expired|completed|disputed|refunded)/`:
+  - Replace "Retry Payment" with **Back to Marketplace**.
+  - Change heading to "Transaction No Longer Payable".
+  - Hide the "No funds were deducted / safely retry" reassurance block (since retry isn't valid).
+- All other 4xx/5xx → keep today's Retry Payment + Return to Review + Contact Support actions.
 
-1. Find all `checkout_session_items` whose parent `checkout_sessions.status = 'pending'` and `buyer_id = buyerId`.
-2. Sum their `quantity` and decrement `products.reserved_quantity` by that amount (floor at 0).
-3. Delete those `checkout_session_items` rows.
-4. For each affected `checkout_session_id`:
-   - If any `transaction_id` is attached, transition the transaction to `cancelled` (only when still `awaiting_payment`) using the same path the expiry cron uses.
-   - If the session now has zero items, mark the `checkout_sessions` row `cancelled`.
-5. Log a `product_inventory_logs` "released" entry for the decrement, mirroring the cron cleanup.
+### Fix C — Consistent cancellation writes (no schema change)
 
-Idempotent: if there are no pending items for that product, the remove behaves exactly as today.
+`supabase/functions/decline-transaction/index.ts` and `supabase/functions/buyer-cart/index.ts` (the `remove` action's two `UPDATE transactions SET status='cancelled'` blocks at lines ~224 and ~296):
 
-Return shape unchanged (`{ success: true }`).
+- In the same `UPDATE`, also set `cancelled_at = new Date().toISOString()` and `money_status = 'cancelled'` when current `money_status` is `not_secured` or `payment_pending`.
+- Immediately after the update, `INSERT` into `transaction_status_history`:
+  - `old_status` = the value read before the update
+  - `new_status` = `'cancelled'`
+  - `changed_by_user_id` = the acting buyer
+  - `reason` = `"Buyer declined transaction"` (decline-transaction) / `"Cart item removed during pending checkout"` (buyer-cart)
+- If `money_status` transitioned, also insert a matching `money_status_history` row with the same reason.
+- Idempotent: skip the history insert if the row was already `cancelled` (no-op update returned 0 rows).
 
-## Out of scope
+No DB migration required — both history tables and the `cancelled_at` / `money_status` columns already exist.
 
-- No changes to `cart-checkout`, `checkout-review`, `verify-paystack-payment`, `paystack-webhook`, pricing, escrow ledger, or DB schema.
-- No "apply same address to all" panel — defer until multi-item carts are common.
+## Out of scope (deferred)
 
-## Files touched
+- `awaiting_payment` hard-expiry rule, cron, and `initiate-paystack-payment` freshness check (covered in a separate follow-up plan).
+- One-off cleanup migration for historical stale `awaiting_payment` rows.
+- Backfilling `cancelled_at` / history for already-cancelled rows.
+- Any change to Paystack code paths, pricing, escrow math, or the cart row-locking we just shipped.
 
-- `src/pages/BuyerCart.tsx` — lock logic + confirm dialog on remove for locked rows.
-- `supabase/functions/buyer-cart/index.ts` — extend `remove` action with reservation release + session cleanup.
+## Files modified
+
+- `src/pages/BuyerTransactionAgreement.tsx`
+- `src/pages/BuyerPaymentSummary.tsx`
+- `supabase/functions/decline-transaction/index.ts`
+- `supabase/functions/buyer-cart/index.ts`
 
 ## Verification
 
-1. With Air Jordan in a pending checkout: checkbox disabled, no delivery picker/address form, qty +/- disabled; Resume + Remove visible; helper line shows.
-2. "Select All" no longer counts the locked row.
-3. Click Resume — opens the existing Review & Pay session unchanged.
-4. Click Remove → confirm → row disappears, `reserved_quantity` drops, product becomes available again. Re-adding from the marketplace produces a fresh, editable row.
-5. Removing a non-locked row works exactly as before (no confirm dialog, no reservation changes).
+1. Reload the failing share token `/t/CrSMOKX5IiUQ5igTMn4omfCu/pay` → Review/Pay pages should now show the "Transaction Cancelled" terminal banner instead of "Awaiting Payment".
+2. Click any leftover pay flow that bypasses the banner → the Payment Failed modal should now read "Invalid state: status=cancelled" with a "Back to Marketplace" CTA, not a Retry button.
+3. From the cart, remove a product with an active checkout session → query `transaction_status_history` for that tx → confirm a new row exists with `new_status='cancelled'` and reason `"Cart item removed during pending checkout"`, and `transactions.cancelled_at` is now non-null.
+4. Decline a fresh awaiting-payment transaction → same audit checks for the decline reason.
