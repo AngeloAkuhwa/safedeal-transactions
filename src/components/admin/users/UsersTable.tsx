@@ -161,9 +161,15 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                       : <p className="text-slate-400 text-xs mt-0.5">Clean record</p>}
                   </td>
                   <td className="p-4">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-xs font-semibold capitalize ${STATUS_CLASS[r.status]}`}>
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-xs font-semibold ${STATUS_CLASS[r.status]}`}>
                       <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                      {r.status.replace("_", " ")}
+                      {r.status === "under_investigation"
+                        ? "Investigating"
+                        : r.status === "pending"
+                          ? (r.verification.id ? "Pending" : "Pending ID")
+                          : r.status === "active"
+                            ? "Active Now"
+                            : r.status.charAt(0).toUpperCase() + r.status.slice(1)}
                     </span>
                   </td>
                   <td className="p-4">
