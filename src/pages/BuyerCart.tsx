@@ -373,6 +373,10 @@ const BuyerCart = () => {
                     const isRemoving = removing === item.id;
                     const isSelected = selected.has(item.id);
                     const isSoldOut = stock.variant === "destructive";
+                    const enabledMethods = parseEnabledMethods(item.product?.delivery_method);
+                    const draft = deliveryDrafts[item.id];
+                    const draftInvalid = isSelected && showDeliveryErrors && !isDraftValid(draft);
+                    const showPicker = isSelected && !isSoldOut && enabledMethods.length > 0;
 
                     return (
                       <div
@@ -475,6 +479,86 @@ const BuyerCart = () => {
                         </div>
 
                         <Separator />
+
+                        {showPicker && (
+                          <div className={`px-4 py-3 space-y-3 border-b border-border ${draftInvalid ? "bg-destructive/5" : ""}`}>
+                            <div className="flex items-center gap-2">
+                              <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+                              <p className="text-xs font-semibold text-foreground">Delivery method</p>
+                              {draftInvalid && (
+                                <span className="text-[11px] text-destructive">Required</span>
+                              )}
+                            </div>
+                            {enabledMethods.length === 1 ? (
+                              <p className="text-xs text-muted-foreground">
+                                {resolveDeliveryMethod(enabledMethods[0])}
+                              </p>
+                            ) : (
+                              <RadioGroup
+                                value={draft?.delivery_method || ""}
+                                onValueChange={(v) => updateDraft(item.id, { delivery_method: v })}
+                                className="grid grid-cols-1 sm:grid-cols-3 gap-2"
+                              >
+                                {enabledMethods.map((m) => (
+                                  <Label
+                                    key={m}
+                                    htmlFor={`dm-${item.id}-${m}`}
+                                    className={`flex items-center gap-2 rounded-lg border p-2 cursor-pointer text-xs ${
+                                      draft?.delivery_method === m ? "border-primary bg-primary/5" : "border-border"
+                                    }`}
+                                  >
+                                    <RadioGroupItem id={`dm-${item.id}-${m}`} value={m} />
+                                    <span>{resolveDeliveryMethod(m)}</span>
+                                  </Label>
+                                ))}
+                              </RadioGroup>
+                            )}
+
+                            {draft?.delivery_method && methodNeedsAddress(draft.delivery_method) && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <Input
+                                  placeholder="Address line 1 *"
+                                  value={draft.delivery_address.line1 || ""}
+                                  onChange={(e) => updateDraftAddress(item.id, { line1: e.target.value })}
+                                  className="h-8 text-xs sm:col-span-2"
+                                />
+                                <Input
+                                  placeholder="Address line 2"
+                                  value={draft.delivery_address.line2 || ""}
+                                  onChange={(e) => updateDraftAddress(item.id, { line2: e.target.value })}
+                                  className="h-8 text-xs sm:col-span-2"
+                                />
+                                <Input
+                                  placeholder="City *"
+                                  value={draft.delivery_address.city || ""}
+                                  onChange={(e) => updateDraftAddress(item.id, { city: e.target.value })}
+                                  className="h-8 text-xs"
+                                />
+                                <Input
+                                  placeholder="State *"
+                                  value={draft.delivery_address.state || ""}
+                                  onChange={(e) => updateDraftAddress(item.id, { state: e.target.value })}
+                                  className="h-8 text-xs"
+                                />
+                                <Input
+                                  placeholder="Postal code"
+                                  value={draft.delivery_address.postal_code || ""}
+                                  onChange={(e) => updateDraftAddress(item.id, { postal_code: e.target.value })}
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                            )}
+
+                            {draft?.delivery_method && methodNeedsPhone(draft.delivery_method) && (
+                              <Input
+                                placeholder="Contact phone (optional)"
+                                value={draft.contact_phone || ""}
+                                onChange={(e) => updateDraft(item.id, { contact_phone: e.target.value })}
+                                className="h-8 text-xs"
+                              />
+                            )}
+                          </div>
+                        )}
 
                         {/* Bottom section: qty + remove */}
                         <div className="px-4 py-3 flex items-center justify-between">
