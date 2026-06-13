@@ -3546,10 +3546,14 @@ export type Database = {
           created_at: string
           currency_code: string
           id: string
+          is_total_service_fee_capped: boolean
           item_amount: number
+          payment_processing_fee_amount: number | null
           platform_fee_amount: number
+          pricing_model_version: string | null
           processing_fee_amount: number
           seller_net_amount: number
+          seller_payout_amount: number | null
           transaction_id: string
           updated_at: string
         }
@@ -3558,10 +3562,14 @@ export type Database = {
           created_at?: string
           currency_code: string
           id?: string
+          is_total_service_fee_capped?: boolean
           item_amount: number
+          payment_processing_fee_amount?: number | null
           platform_fee_amount?: number
+          pricing_model_version?: string | null
           processing_fee_amount?: number
           seller_net_amount: number
+          seller_payout_amount?: number | null
           transaction_id: string
           updated_at?: string
         }
@@ -3570,10 +3578,14 @@ export type Database = {
           created_at?: string
           currency_code?: string
           id?: string
+          is_total_service_fee_capped?: boolean
           item_amount?: number
+          payment_processing_fee_amount?: number | null
           platform_fee_amount?: number
+          pricing_model_version?: string | null
           processing_fee_amount?: number
           seller_net_amount?: number
+          seller_payout_amount?: number | null
           transaction_id?: string
           updated_at?: string
         }
@@ -4026,8 +4038,31 @@ export type Database = {
         }
         Relationships: []
       }
+      v_payout_account_state: {
+        Row: {
+          account_id: string | null
+          account_state: string | null
+          bank_name: string | null
+          last_verified_at: string | null
+          masked_account_number: string | null
+          provider_recipient_code: string | null
+          user_id: string | null
+          verification_status: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      admin_correct_pricing: {
+        Args: {
+          p_item_amount: number
+          p_processing_fee: number
+          p_reason: string
+          p_safedeal_fee: number
+          p_transaction_id: string
+        }
+        Returns: Json
+      }
       complete_payout_atomic: {
         Args: { p_amount: number; p_payout_id: string }
         Returns: Json
@@ -4151,6 +4186,13 @@ export type Database = {
           p_transaction_id: string
         }
         Returns: Database["public"]["Enums"]["money_status"]
+      }
+      validate_dispute_transition: {
+        Args: {
+          new_status: Database["public"]["Enums"]["dispute_case_status"]
+          old_status: Database["public"]["Enums"]["dispute_case_status"]
+        }
+        Returns: boolean
       }
       validate_money_transition: {
         Args: {
