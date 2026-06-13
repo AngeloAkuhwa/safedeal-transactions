@@ -265,6 +265,40 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Clean up any pending checkout_session_items for this buyer + product
+      // so the cart UI no longer shows the row as "Checkout in progress".
+      // (Inventory + transaction cancel were already handled above when a
+      // linked awaiting_payment transaction existed.)
+      const { data: pendingSessions } = await admin
+        .from("checkout_sessions")
+        .select("id")
+        .eq("buyer_id", buyerId)
+        .eq("status", "pending");
+
+      const pendingSessionIds = (pendingSessions || []).map((s: any) => s.id);
+      if (pendingSessionIds.length > 0) {
+        // Delete this product's items from those sessions
+        await admin
+          .from("checkout_session_items")
+          .delete()
+          .in("checkout_session_id", pendingSessionIds)
+          .eq("product_id", productId);
+
+        // Cancel any session that is now empty
+        for (const sid of pendingSessionIds) {
+          const { count } = await admin
+            .from("checkout_session_items")
+            .select("id", { count: "exact", head: true })
+            .eq("checkout_session_id", sid);
+          if ((count || 0) === 0) {
+            await admin
+              .from("checkout_sessions")
+              .update({ status: "cancelled" })
+              .eq("id", sid);
+          }
+        }
+      }
+
       // Delete cart item
       await admin
         .from("cart_items")

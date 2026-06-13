@@ -1,63 +1,50 @@
-# Fix Review & Pay image + misleading "Sold Out" in cart
+# Lock pending-checkout cart rows + eager reservation release on Remove
 
-You're right — the current flow has two real problems and one UX gap worth fixing together.
+## 1. Lock the row in `src/pages/BuyerCart.tsx`
 
-## Issue 1 — Review & Pay shows a placeholder instead of the product image
+A row is **locked** when `item.product.active_checkout_session_id` is truthy.
 
-**Root cause:** `supabase/functions/checkout-review/index.ts` reads `primary_image` directly from the `products` table:
+When locked:
+- Checkbox: disabled and unchecked; row excluded from `selectableItems` so "Select All" ignores it.
+- Delivery method picker, address fields, and contact-phone field: not rendered at all (`showPicker = false` regardless of `enabledMethods`).
+- Qty − / + buttons: disabled.
+- Keep the amber "Checkout in progress" badge.
+- Add a one-line helper under the badge: "Finish or cancel this checkout to edit."
+- Right-side actions: **Resume checkout** (existing) and **Remove** only.
+- "Remove" opens a confirm dialog (shadcn `AlertDialog`): "This will cancel your reserved checkout for this item. Continue?"
 
-```
-.select("id,title,short_description,primary_image,stock_quantity,reserved_quantity,status")
-```
+No changes to non-locked rows.
 
-But in this project, product images don't live on `products.primary_image` — they live in `product_media` (joined to `files.file_url`). That's exactly how the cart endpoint (`buyer-cart`) resolves the image, which is why the cart page shows the Air Jordan thumbnail correctly but the Review & Pay page falls back to the package icon.
+## 2. Release the reservation eagerly on Remove in `supabase/functions/buyer-cart/index.ts`
 
-**Fix:** Mirror the cart's resolution inside `checkout-review`:
-- After loading products, fetch `product_media` rows (`product_id, files(file_url)`) for the involved `product_ids` filtered to `is_primary = true`.
-- Build a `mediaMap` and inject `primary_image` into the returned `products` map.
-- No DB/schema changes; no frontend changes — `CartCheckoutReview.tsx` already renders `product.primary_image` if present.
+Extend the existing `remove` action. After deleting the `cart_items` row, for the same `buyer_id` + `product_id`:
 
-## Issue 2 — Cart shows "Sold Out" for the buyer's own pending item
+1. Find all `checkout_session_items` whose parent `checkout_sessions.status = 'pending'` and `buyer_id = buyerId`.
+2. Sum their `quantity` and decrement `products.reserved_quantity` by that amount (floor at 0).
+3. Delete those `checkout_session_items` rows.
+4. For each affected `checkout_session_id`:
+   - If any `transaction_id` is attached, transition the transaction to `cancelled` (only when still `awaiting_payment`) using the same path the expiry cron uses.
+   - If the session now has zero items, mark the `checkout_sessions` row `cancelled`.
+5. Log a `product_inventory_logs` "released" entry for the decrement, mirroring the cron cleanup.
 
-**Root cause:** When the buyer starts checkout, `cart-checkout` creates a pending checkout session and reserves stock (`reserved_quantity` goes up). The cart page then computes:
+Idempotent: if there are no pending items for that product, the remove behaves exactly as today.
 
-```
-available = stock_quantity - reserved_quantity   // = 0
-```
+Return shape unchanged (`{ success: true }`).
 
-…and `getStockStatus` flags the row as **Sold Out**, even though the only reason it's "out" is the buyer's own active reservation. Going back from Review & Pay to the cart therefore looks broken: the user sees their own item as unavailable and can't return to checkout.
+## Out of scope
 
-**Fix (frontend + light backend):**
-1. In `buyer-cart`'s edge function, when loading the buyer's active `checkout_session` + `checkout_session_items`, sum the quantity this buyer already has reserved for each `product_id` (their "own reservation") and return it alongside the product, e.g. `own_reserved_quantity`.
-2. In `BuyerCart.tsx`'s `getStockStatus`, compute:
-   ```
-   effective_available = available_quantity + own_reserved_quantity
-   ```
-   Use that for the Sold Out / Low Stock / quantity-cap checks. The product is only truly Sold Out if `effective_available <= 0`.
-3. When the buyer has an active pending session for an item, change the row affordance:
-   - Replace the red "Sold Out" badge with a neutral "Checkout in progress" pill.
-   - Show a primary "Resume checkout" button that routes to `/dashboard/cart/checkout?session=<id>` (the existing Review & Pay route) instead of forcing them to re-trigger `cart-checkout`.
-
-No state-machine or escrow changes — purely surfacing what's already true in the data.
-
-## Issue 3 (recommendation) — Tighten the round trip between cart and Review & Pay
-
-Two small UX additions that prevent the "is my order lost?" feeling the screenshots show:
-
-- **Cart banner when a pending session exists:** at the top of `/dashboard/cart`, show an info banner "You have an unfinished checkout — Resume" linking to the active session. Today the cart silently looks broken.
-- **Back to Cart preserves the session:** on Review & Pay, the "Back to Cart" link should be a normal back navigation (current behaviour) but the cart page should not auto-cancel the session. The reservation auto-release cron (existing) still cleans up abandoned sessions after the configured TTL.
-
-Out of scope: no changes to `cart-checkout`, `verify-paystack-payment`, `paystack-webhook`, pricing, or DB schema.
+- No changes to `cart-checkout`, `checkout-review`, `verify-paystack-payment`, `paystack-webhook`, pricing, escrow ledger, or DB schema.
+- No "apply same address to all" panel — defer until multi-item carts are common.
 
 ## Files touched
 
-- `supabase/functions/checkout-review/index.ts` — add product_media join + return `primary_image`.
-- `supabase/functions/buyer-cart/index.ts` — return `own_reserved_quantity` and active `checkout_session_id` per product.
-- `src/pages/BuyerCart.tsx` — adjust `getStockStatus`, render "Checkout in progress" + Resume button, add pending-session banner.
+- `src/pages/BuyerCart.tsx` — lock logic + confirm dialog on remove for locked rows.
+- `supabase/functions/buyer-cart/index.ts` — extend `remove` action with reservation release + session cleanup.
 
 ## Verification
 
-1. Reload `/dashboard/cart/checkout?session=...` — Air Jordan thumbnail renders in the seller group (no package placeholder).
-2. Click "Back to Cart" — row no longer shows "Sold Out"; instead shows "Checkout in progress" with a "Resume checkout" button that returns to the same Review & Pay session.
-3. Complete payment — cart item disappears as today; stock decrements as today.
-4. From another buyer's account, the product still shows correct availability (own_reserved only applies to the current buyer).
+1. With Air Jordan in a pending checkout: checkbox disabled, no delivery picker/address form, qty +/- disabled; Resume + Remove visible; helper line shows.
+2. "Select All" no longer counts the locked row.
+3. Click Resume — opens the existing Review & Pay session unchanged.
+4. Click Remove → confirm → row disappears, `reserved_quantity` drops, product becomes available again. Re-adding from the marketplace produces a fresh, editable row.
+5. Removing a non-locked row works exactly as before (no confirm dialog, no reservation changes).

@@ -14,6 +14,10 @@ import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import {
@@ -91,6 +95,7 @@ const BuyerCart = () => {
   const [checkingOut, setCheckingOut] = useState(false);
   const [deliveryDrafts, setDeliveryDrafts] = useState<Record<string, DeliveryDraft>>({});
   const [showDeliveryErrors, setShowDeliveryErrors] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState<{ productId: string; cartItemId: string } | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["buyer-cart"],
@@ -177,7 +182,9 @@ const BuyerCart = () => {
     });
   };
 
-  const selectableItems = items.filter((i) => getStockStatus(i).canCheckout);
+  const selectableItems = items.filter(
+    (i) => getStockStatus(i).canCheckout && !i.product?.active_checkout_session_id,
+  );
   const allSelected = selectableItems.length > 0 && selectableItems.every((i) => selected.has(i.id));
 
   const toggleSelectAll = () => {
@@ -404,10 +411,11 @@ const BuyerCart = () => {
                     const isRemoving = removing === item.id;
                     const isSelected = selected.has(item.id);
                     const isSoldOut = stock.variant === "destructive";
+                    const isLocked = !!item.product?.active_checkout_session_id;
                     const enabledMethods = parseEnabledMethods(item.product?.delivery_method);
                     const draft = deliveryDrafts[item.id];
                     const draftInvalid = isSelected && showDeliveryErrors && !isDraftValid(draft);
-                    const showPicker = isSelected && !isSoldOut && enabledMethods.length > 0;
+                    const showPicker = isSelected && !isSoldOut && !isLocked && enabledMethods.length > 0;
 
                     return (
                       <div
@@ -422,7 +430,7 @@ const BuyerCart = () => {
                             <Checkbox
                               checked={isSelected}
                               onCheckedChange={() => toggleSelect(item.id)}
-                              disabled={!stock.canCheckout}
+                              disabled={!stock.canCheckout || isLocked}
                             />
                           </div>
                           {(() => {
@@ -483,6 +491,11 @@ const BuyerCart = () => {
                                     {stock.variant === "warning" && <AlertTriangle className="h-3 w-3" />}
                                     {stock.label}
                                   </Badge>
+                                  {isLocked && (
+                                    <p className="text-[11px] text-muted-foreground mt-1">
+                                      Finish or cancel this checkout to edit.
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             );
@@ -599,7 +612,7 @@ const BuyerCart = () => {
                               <button
                                 className="h-8 w-8 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors disabled:opacity-40"
                                 onClick={() => handleQuantityChange(item.product_id, item.quantity - 1)}
-                                disabled={item.quantity <= 1 || isSoldOut}
+                                disabled={item.quantity <= 1 || isSoldOut || isLocked}
                               >
                                 <Minus className="h-3.5 w-3.5" />
                               </button>
@@ -607,7 +620,7 @@ const BuyerCart = () => {
                               <button
                                 className="h-8 w-8 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors disabled:opacity-40"
                                 onClick={() => handleQuantityChange(item.product_id, item.quantity + 1)}
-                disabled={isSoldOut || (item.product ? item.quantity >= (item.product.available_quantity + (item.product.own_reserved_quantity || 0)) : true)}
+                                disabled={isSoldOut || isLocked || (item.product ? item.quantity >= (item.product.available_quantity + (item.product.own_reserved_quantity || 0)) : true)}
                               >
                                 <Plus className="h-3.5 w-3.5" />
                               </button>
@@ -651,7 +664,13 @@ const BuyerCart = () => {
                               variant="ghost"
                               size="sm"
                               className="gap-1.5 text-muted-foreground hover:text-destructive"
-                              onClick={() => handleRemove(item.product_id, item.id)}
+                              onClick={() => {
+                                if (isLocked) {
+                                  setConfirmRemove({ productId: item.product_id, cartItemId: item.id });
+                                } else {
+                                  handleRemove(item.product_id, item.id);
+                                }
+                              }}
                               disabled={isRemoving}
                             >
                               {isRemoving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
@@ -740,6 +759,31 @@ const BuyerCart = () => {
           )}
         </div>
       </main>
+      <AlertDialog open={!!confirmRemove} onOpenChange={(o) => { if (!o) setConfirmRemove(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel reserved checkout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will cancel your reserved checkout for this item and release the stock. You can re-add the product and start a new checkout afterwards.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep checkout</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (confirmRemove) {
+                  const { productId, cartItemId } = confirmRemove;
+                  setConfirmRemove(null);
+                  handleRemove(productId, cartItemId);
+                }
+              }}
+            >
+              Cancel & remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
