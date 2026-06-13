@@ -68,6 +68,7 @@ export default function BuyerPaymentSummary() {
   const [showFailed, setShowFailed] = useState(false);
   const [failureReason, setFailureReason] = useState<string>("");
   const [failureTerminal, setFailureTerminal] = useState<null | "cancelled" | "expired" | "completed" | "disputed" | "refunded" | "paid">(null);
+  const [failureBlocker, setFailureBlocker] = useState<null | "concurrency">(null);
   const [paystackLoaded, setPaystackLoaded] = useState(false);
 
   // Load Paystack Inline JS
@@ -148,6 +149,7 @@ export default function BuyerPaymentSummary() {
     setIsProcessing(true);
     setFailureReason("");
     setFailureTerminal(null);
+    setFailureBlocker(null);
 
     try {
       const { data: initData, error: initError } = await supabase.functions.invoke(
@@ -182,6 +184,12 @@ export default function BuyerPaymentSummary() {
         if (m) {
           const t = deriveTerminalStatus(m[1]);
           if (t) setFailureTerminal(t);
+        }
+        // Detect the concurrent-active-transactions cap so the modal can
+        // route the buyer to their transactions list instead of offering
+        // a retry that will fail with the same error.
+        if (/active purchase limit/i.test(errMsg)) {
+          setFailureBlocker("concurrency");
         }
         setFailureReason(errMsg);
         setIsProcessing(false);
@@ -239,6 +247,7 @@ export default function BuyerPaymentSummary() {
   const handleRetryPay = useCallback(() => {
     setShowFailed(false);
     setFailureTerminal(null);
+    setFailureBlocker(null);
     openPaystackPayment();
   }, [openPaystackPayment]);
 
