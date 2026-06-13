@@ -241,8 +241,8 @@ Deno.serve(async (req) => {
   ];
 
   // ---- Alerts ----
-  // Frozen too long (> 14 days) — uses escrow_states.last_changed_at
-  const frozenCutoff = now - 14 * DAY_MS;
+  // Frozen too long — uses dynamic threshold from system_settings
+  const frozenCutoff = now - thresholds.frozen_days * DAY_MS;
   const frozenTooLongRows = (states ?? [])
     .filter((s) => Number(s.frozen_amount ?? 0) > 0 && new Date(s.last_changed_at as string).getTime() < frozenCutoff)
     .slice(0, 10);
@@ -260,21 +260,25 @@ Deno.serve(async (req) => {
         .select("transaction_id, delta, status")
         .eq("run_id", runId)
         .neq("status", "ok")
+        .or(`delta.gte.${thresholds.mismatch_min_delta},delta.lte.${-thresholds.mismatch_min_delta}`)
         .limit(10)
     : { data: [] as Array<{ transaction_id: string; delta: number; status: string }> };
 
-  // High-value held (> 1,000,000 NGN)
+  // High-value held — dynamic threshold (acts as "stuck/idle" candidates pool)
   const highValueRows = (states ?? [])
-    .filter((s) => Number(s.held_amount ?? 0) >= 1_000_000)
+    .filter((s) =>
+      Number(s.held_amount ?? 0) >= thresholds.high_value_amount &&
+      (now - new Date(s.last_changed_at as string).getTime()) / DAY_MS >= thresholds.idle_days
+    )
     .sort((a, b) => Number(b.held_amount) - Number(a.held_amount))
     .slice(0, 10);
 
-  // Stalled disputes (open > 7 days)
+  // Stalled disputes — dynamic overdue threshold
   const { data: stalledDisputes } = await admin
     .from("disputes")
     .select("transaction_id, opened_at, status")
     .in("status", ["open", "seller_response_pending", "under_review"])
-    .lt("opened_at", new Date(now - 7 * DAY_MS).toISOString())
+    .lt("opened_at", new Date(now - thresholds.overdue_days * DAY_MS).toISOString())
     .order("opened_at", { ascending: true })
     .limit(10);
 
