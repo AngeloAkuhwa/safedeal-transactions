@@ -84,11 +84,12 @@ export interface DirFilters {
 
 export async function buildDirectory(admin: SupabaseClient): Promise<DirRow[]> {
   // 1) Profiles (universe)
-  const { data: profiles } = await admin
+  const { data: profiles, error: profErr } = await admin
     .from("profiles")
-    .select("id, full_name, email, phone, avatar_url, status, default_role, created_at, updated_at, phone_verified")
+    .select("id, full_name, email, phone, avatar_url, status, default_role, created_at, updated_at, last_login_at")
     .order("created_at", { ascending: false })
     .limit(2000);
+  if (profErr) console.error("profiles_select_failed", profErr);
   const ids = (profiles ?? []).map((p) => p.id as string);
   if (!ids.length) return [];
 
@@ -223,7 +224,8 @@ export async function buildDirectory(admin: SupabaseClient): Promise<DirRow[]> {
     }
     const idStatus = idStatusByUser.get(uid) ?? null;
     const emailVerified = emailConfirmedByUser.get(uid) ?? false;
-    const phoneVerified = !!(p as Record<string, unknown>).phone_verified;
+    // Phone verification source-of-truth is account_verifications; fall back to false
+    const phoneVerified = phoneVerifiedByUser.get(uid) ?? false;
     const v = deriveVerification(idStatus, emailVerified, phoneVerified);
     const flags = flagsByUser.get(uid);
     const profileStatus = (p.status as string) ?? null;
@@ -263,7 +265,7 @@ export async function buildDirectory(admin: SupabaseClient): Promise<DirRow[]> {
       status,
       trust_badge,
       joined_at: (p.created_at as string) ?? null,
-      last_active_at: (p.updated_at as string) ?? null,
+      last_active_at: ((p as Record<string, unknown>).last_login_at as string | null) ?? (p.updated_at as string) ?? null,
       is_suspended: isSuspended,
       is_flagged: isFlagged,
       has_open_investigation: hasInvestigation,
