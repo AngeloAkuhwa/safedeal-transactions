@@ -149,15 +149,6 @@ export default function AdminUsers() {
               onApply={onApply}
               onReset={onReset}
             />
-            <UsersFilters
-              value={filters}
-              search={search}
-              onChange={(next) => { setFilters(next); setPage(1); }}
-              onSearchChange={setSearch}
-              onApply={onApply}
-              onReset={onReset}
-              mobile
-            />
 
             <UsersTable
               rows={rows}

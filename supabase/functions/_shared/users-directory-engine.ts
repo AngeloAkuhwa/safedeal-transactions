@@ -44,6 +44,9 @@ export interface DirSummary {
   new_this_week: number;
   id_verified: number;
   email_verified: number;
+  new_this_month: number;
+  new_per_day_avg: number;
+  id_verified_pct: number;
   deltas: { total: string; verified: string; flagged: string; new_week: string; id: string; email: string };
 }
 
@@ -296,6 +299,8 @@ export function summarize(rows: DirRow[]): DirSummary {
   const flagged = rows.filter((r) => r.status === "flagged" || r.status === "under_investigation").length;
   const weekAgo = Date.now() - 7 * DAY_MS;
   const newWeek = rows.filter((r) => r.joined_at && new Date(r.joined_at).getTime() >= weekAgo).length;
+  const monthAgo = Date.now() - 30 * DAY_MS;
+  const newMonth = rows.filter((r) => r.joined_at && new Date(r.joined_at).getTime() >= monthAgo).length;
   const idVerified = rows.filter((r) => r.verification.id).length;
   const emailVerified = rows.filter((r) => r.verification.email).length;
   return {
@@ -306,6 +311,9 @@ export function summarize(rows: DirRow[]): DirSummary {
     new_this_week: newWeek,
     id_verified: idVerified,
     email_verified: emailVerified,
+    new_this_month: newMonth,
+    new_per_day_avg: Math.round(newWeek / 7),
+    id_verified_pct: total > 0 ? Math.round((idVerified / total) * 1000) / 10 : 0,
     deltas: {
       total: newWeek > 0 ? `+${newWeek} this week` : "No change",
       verified: total > 0 ? `${Math.round((verified / total) * 100)}% rate` : "—",
