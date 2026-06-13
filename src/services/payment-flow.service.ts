@@ -61,7 +61,7 @@ export async function getPricingSnapshot(transactionId: string): Promise<Pricing
   const { data, error } = await supabase
     .from("transaction_pricing")
     .select(
-      "item_amount, platform_fee_amount, processing_fee_amount, seller_net_amount, buyer_total_amount, currency_code",
+      "item_amount, platform_fee_amount, processing_fee_amount, payment_processing_fee_amount, seller_net_amount, seller_payout_amount, buyer_total_amount, currency_code, is_total_service_fee_capped, pricing_model_version",
     )
     .eq("transaction_id", transactionId)
     .maybeSingle();
