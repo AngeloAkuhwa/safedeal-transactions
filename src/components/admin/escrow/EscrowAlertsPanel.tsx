@@ -87,17 +87,25 @@ function AlertCard({
   );
 }
 
-export function EscrowAlertsPanel({ alerts }: { alerts: EscrowAlerts }) {
+export function EscrowAlertsPanel({
+  alerts,
+  onThresholdsSaved,
+}: {
+  alerts: EscrowAlerts;
+  onThresholdsSaved?: (t: EscrowAlerts["thresholds"]) => void;
+}) {
   const nav = useNavigate();
   const open = (id: string) => nav(`/admin/transactions/${id}`);
   const [modalOpen, setModalOpen] = useState(false);
   const [canConfigure, setCanConfigure] = useState(false);
+  const [liveThresholds, setLiveThresholds] = useState(alerts.thresholds);
 
   useEffect(() => {
     canConfigureEscrowAlerts().then(setCanConfigure).catch(() => setCanConfigure(false));
   }, []);
 
-  const t = alerts.thresholds ?? { frozen_days: 30, overdue_days: 5, idle_days: 15, high_value_amount: 1_000_000, mismatch_min_delta: 0.01 };
+  useEffect(() => { setLiveThresholds(alerts.thresholds); }, [alerts.thresholds]);
+  const t = liveThresholds ?? alerts.thresholds ?? { frozen_days: 30, overdue_days: 5, idle_days: 15, high_value_amount: 1_000_000, mismatch_min_delta: 0.01 };
 
   // Map existing aggregator output → reference's four visual categories.
   const frozenItems: Item[] = alerts.frozen_too_long.map((r) => ({
@@ -242,6 +250,10 @@ export function EscrowAlertsPanel({ alerts }: { alerts: EscrowAlerts }) {
         open={modalOpen}
         onOpenChange={setModalOpen}
         initial={alerts.thresholds}
+        onSaved={(next) => {
+          setLiveThresholds(next);
+          onThresholdsSaved?.(next);
+        }}
       />
     </div>
   );

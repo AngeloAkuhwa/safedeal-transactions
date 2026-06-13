@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Download, RefreshCw, Clock } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminMobileHeader } from "@/components/admin/AdminMobileHeader";
 import { EscrowKpiCards } from "@/components/admin/escrow/EscrowKpiCards";
@@ -29,6 +29,7 @@ export default function AdminEscrow() {
   const [search, setSearch] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const queryClient = useQueryClient();
 
   const query = useMemo<EscrowQuery>(() => ({
     ...filters, q: appliedSearch || undefined, page, page_size: 20,
@@ -125,7 +126,12 @@ export default function AdminEscrow() {
           <>
             <EscrowKpiCards kpis={data.kpis} />
             <EscrowCharts trends={data.trends} />
-            <EscrowAlertsPanel alerts={data.alerts} />
+            <EscrowAlertsPanel
+              alerts={data.alerts}
+              onThresholdsSaved={() => {
+                void queryClient.invalidateQueries({ queryKey: ["admin-escrow-overview"] });
+              }}
+            />
             <EscrowFilters
               value={filters}
               search={search}
