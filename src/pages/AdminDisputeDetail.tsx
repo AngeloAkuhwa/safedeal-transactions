@@ -814,10 +814,10 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                 <LinkedTile tone="orange" icon={<Store className="h-5 w-5" />} title="Seller Profile"
                   subtitle={parties.seller?.id?.slice(0, 16) ?? "—"}
                   onClick={parties.seller ? () => navigate(`/admin/users/${parties.seller!.id}`) : undefined} />
-                <LinkedTile tone="red" icon={<Flag className="h-5 w-5" />} title="Buyer in Flagged Users"
+                <LinkedTile tone="orange" icon={<Flag className="h-5 w-5" />} title="Buyer in Flagged Users"
                   subtitle={parties.buyer ? "Review fraud signals" : "—"}
                   onClick={parties.buyer ? () => navigate(`/admin/flagged-users?u=${parties.buyer!.id}`) : undefined} />
-                <LinkedTile tone="red" icon={<Flag className="h-5 w-5" />} title="Seller in Flagged Users"
+                <LinkedTile tone="orange" icon={<Flag className="h-5 w-5" />} title="Seller in Flagged Users"
                   subtitle={parties.seller ? "Review fraud signals" : "—"}
                   onClick={parties.seller ? () => navigate(`/admin/flagged-users?u=${parties.seller!.id}`) : undefined} />
                 <LinkedTile tone="emerald" icon={<CreditCard className="h-5 w-5" />} title="Payment Record"
