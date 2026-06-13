@@ -54,7 +54,7 @@ export default function AdminEscrow() {
   );
 
   const desktopHeader = (
-    <header className="sticky top-0 z-30 hidden border-b border-slate-800 bg-slate-900 px-4 py-5 md:px-8 lg:block">
+    <header className="sticky top-0 z-30 hidden border-b border-slate-800 bg-slate-900/95 backdrop-blur px-4 py-5 md:px-8 lg:block">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div>
@@ -100,12 +100,13 @@ export default function AdminEscrow() {
       title={TITLE}
       subtitle={SUBTITLE}
       hideDefaultHeaders
+      fullBleed
       headerSlot={desktopHeader}
       mobileHeaderSlot={({ onOpenMenu }) => (
         <AdminMobileHeader onOpenMenu={onOpenMenu} title={TITLE} subtitle={SUBTITLE} />
       )}
     >
-      <div className="space-y-4 lg:space-y-6">
+      <div className="mx-auto w-full max-w-[1400px] px-4 py-5 sm:px-6 lg:px-8 lg:py-6 space-y-4 lg:space-y-6">
         {isLoading || !data ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4">
