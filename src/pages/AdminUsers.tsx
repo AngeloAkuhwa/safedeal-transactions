@@ -14,6 +14,8 @@ import { UsersSummaryCards } from "@/components/admin/users/UsersSummaryCards";
 import { UsersFilters } from "@/components/admin/users/UsersFilters";
 import { UsersTable } from "@/components/admin/users/UsersTable";
 import { UsersMobileFeed } from "@/components/admin/users/UsersMobileFeed";
+import { UsersMobileStatsScroll } from "@/components/admin/users/UsersMobileStatsScroll";
+import { UsersAdvancedFiltersSheet } from "@/components/admin/users/UsersAdvancedFiltersSheet";
 import { UserDetailDrawer } from "@/components/admin/users/UserDetailDrawer";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
 
@@ -126,9 +128,9 @@ export default function AdminUsers() {
         <UsersMobileTopBar onOpenMenu={onOpenMenu} totalUsers={summary?.total_users ?? 0} />
       )}
     >
-      <div className="mx-auto w-full max-w-[1400px] px-4 py-5 sm:px-6 lg:px-8 lg:py-6 space-y-6 lg:space-y-8 bg-slate-950 min-h-screen">
+      <div className="mx-auto w-full max-w-[1400px] lg:px-8 lg:py-6 lg:space-y-8 bg-slate-950 min-h-screen">
         {isLoading || !data ? (
-          <>
+          <div className="px-4 py-5 sm:px-6 space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-[140px] rounded-xl bg-slate-900" />
@@ -136,12 +138,12 @@ export default function AdminUsers() {
             </div>
             <Skeleton className="h-[120px] rounded-xl bg-slate-900" />
             <Skeleton className="h-[400px] rounded-xl bg-slate-900" />
-          </>
+          </div>
         ) : (
           <>
-            {summary && <UsersSummaryCards summary={summary} />}
-
-            <UsersFilters
+            {/* Mobile-only sections (match reference HTML) */}
+            {summary && <UsersMobileStatsScroll summary={summary} />}
+            <UsersAdvancedFiltersSheet
               value={filters}
               search={search}
               onChange={(next) => { setFilters(next); setPage(1); }}
@@ -149,18 +151,6 @@ export default function AdminUsers() {
               onApply={onApply}
               onReset={onReset}
             />
-
-            <UsersTable
-              rows={rows}
-              total={data.total}
-              page={data.page}
-              pageSize={data.page_size}
-              onOpenDetail={(id) => setDrawerUser(id)}
-              onPage={setPage}
-              onFlagToggle={onFlag}
-              onSuspend={onSuspendRow}
-            />
-
             <UsersMobileFeed
               rows={rows}
               total={data.total}
@@ -171,6 +161,29 @@ export default function AdminUsers() {
               onFlagToggle={onFlag}
               onSuspend={onSuspendRow}
             />
+
+            {/* Desktop-only sections */}
+            <div className="hidden lg:block space-y-8">
+              {summary && <UsersSummaryCards summary={summary} />}
+              <UsersFilters
+                value={filters}
+                search={search}
+                onChange={(next) => { setFilters(next); setPage(1); }}
+                onSearchChange={setSearch}
+                onApply={onApply}
+                onReset={onReset}
+              />
+              <UsersTable
+                rows={rows}
+                total={data.total}
+                page={data.page}
+                pageSize={data.page_size}
+                onOpenDetail={(id) => setDrawerUser(id)}
+                onPage={setPage}
+                onFlagToggle={onFlag}
+                onSuspend={onSuspendRow}
+              />
+            </div>
           </>
         )}
       </div>

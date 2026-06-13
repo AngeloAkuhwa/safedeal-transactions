@@ -1,23 +1,58 @@
-import { Menu, Users as UsersIcon } from "lucide-react";
+import { Menu, Search, Plus } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   onOpenMenu: () => void;
   totalUsers: number;
+  onSearchFocus?: () => void;
 }
 
-export function UsersMobileTopBar({ onOpenMenu, totalUsers }: Props) {
+function compactTotal(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+  return n.toLocaleString();
+}
+
+export function UsersMobileTopBar({ onOpenMenu, totalUsers, onSearchFocus }: Props) {
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-900/95 backdrop-blur px-4 py-3 lg:hidden">
+    <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 py-4 lg:hidden">
       <div className="flex items-center justify-between">
-        <button type="button" onClick={onOpenMenu} className="p-2 rounded-lg bg-slate-800 text-slate-200" aria-label="Open menu">
-          <Menu className="h-5 w-5" />
-        </button>
-        <div className="text-center">
-          <h2 className="text-white text-sm font-semibold">User Directory</h2>
-          <p className="text-slate-400 text-xs">{totalUsers.toLocaleString()} total</p>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onOpenMenu}
+            className="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-lg text-slate-300 active:scale-95 transition-transform"
+            aria-label="Open menu"
+          >
+            <Menu className="h-4 w-4" />
+          </button>
+          <div>
+            <h2 className="text-white font-bold text-lg leading-tight">Users</h2>
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-slate-400 text-[10px] uppercase font-bold tracking-tight">
+                {compactTotal(totalUsers)} Total
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-          <UsersIcon className="h-4 w-4 text-emerald-400" />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onSearchFocus?.()}
+            className="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-lg text-slate-300 active:scale-95"
+            aria-label="Search"
+          >
+            <Search className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => toast({ title: "Add User is coming soon." })}
+            className="w-10 h-10 flex items-center justify-center bg-emerald-600 text-white rounded-lg shadow-lg shadow-emerald-900/20 active:scale-95"
+            aria-label="Add user"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </header>

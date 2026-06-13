@@ -1,72 +1,72 @@
 ## Goal
 
-Make the User Directory page match `User_Directory.html` 100%: align every KPI card's icon, color, label, value, delta, and hint copy; drop the duplicate filter section; and align the User Records table action buttons to the reference set.
+Bring `/admin/users` to a 100% visual match with the attached `Screenshift - User Directory.html` reference on both desktop and mobile, without changing already-correct wiring. The data flow, services, edge functions, summary calculations, drawer behavior, row actions, fraud hooks, URL filters, navigation, and loading/empty/error/permission states are already wired and working — those stay as-is. The remaining gap is purely presentation: the mobile layout currently renders our own simplified card feed instead of the reference mobile design, and a few desktop micro-details (avatar ring color logic, status chip wording for "Investigating"/"Active Now"/"Pending ID", and currency display) don't match the reference exactly.
 
-## Reference card spec (lines 185–256 of `User_Directory.html`)
+## Scope
 
-| # | Label | Icon wrap / icon | Delta tone | Hint text |
-|---|---|---|---|---|
-| 1 | Total Users | blue-500/10 wrap, `users` | emerald-400 | "+{N} this month" |
-| 2 | Verified Users | emerald-500/10 wrap, `user-check` | emerald-400 | "{rate}% verification rate" |
-| 3 | Flagged Users | red-500/10 wrap, `flag` | red-400 | "Requires review" |
-| 4 | New This Week | orange-500/10 wrap, `user-plus` | orange-400 | "{avg}/day average" |
-| 5 | ID Verified | purple-500/10 wrap, `id-card` | purple-400 | "{pct}% of total" |
-| 6 | Email Verified | slate-500/10 wrap, `envelope` | slate-400 | "{compact} verified" |
+Frontend-only. No edge functions, no services, no routes, no DB.
 
-All icon wraps stay `w-12 h-12 rounded-lg border` with matching `/30` border. Delta sits top-right as `text-xs font-semibold`. Label `text-slate-400 text-sm font-medium mb-1`. Value `text-white text-2xl font-bold`. Hint `text-slate-500 text-xs mt-1`. Card shell `bg-slate-900 border border-slate-800 rounded-xl p-6`. Grid `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6`. All of this already matches — only hint copy diverges today.
+## Files to edit
 
-## Changes
+1. `src/components/admin/users/UsersMobileTopBar.tsx` — replace with reference mobile header.
+2. `src/components/admin/users/UsersMobileFeed.tsx` — replace card layout with the reference's three-section card (avatar+name+status chip / two-column stats strip / 2-button + overflow action row).
+3. `src/components/admin/users/UsersTable.tsx` — small polish only (currency in NGN already, keep; ensure status chip text variants match reference: "Investigating", "Active Now", "Pending ID" when applicable). Action row already matches the previously approved 7-button set; no structural change.
+4. `src/pages/AdminUsers.tsx` — add the reference mobile sub-bar: a "Stats Carousel" (horizontal scroll of the 6 KPI cards on mobile, 40-width cards with icon-wrap+delta+label+value) and a "Directory Label & Filters" row ("USER DIRECTORY" + Filters button that opens the existing filters in a sheet). Desktop layout unchanged.
+5. `src/components/admin/users/UsersMobileStatsScroll.tsx` (new) — horizontal-scroll carousel of summary cards for mobile, matching reference markup.
+6. `src/components/admin/users/UsersAdvancedFiltersSheet.tsx` (new) — wraps existing `UsersFilters` in a bottom sheet triggered by the mobile "Filters" pill.
 
-### 1. `supabase/functions/_shared/users-directory-engine.ts` — extend summary
-Add three computed fields to `UserDirectorySummary` so the cards can render real-data versions of the reference hints:
+No new icons libraries; reuse `lucide-react` (Users, UserCheck, Flag, Star, Clock, Filter, Search, Plus, ChevronLeft/Right, Mail, Phone, IdCard, ShieldHalf, Scale, User, MoreVertical).
 
-- `new_this_month: number` — users created in the trailing 30 days
-- `new_per_day_avg: number` — `Math.round(new_this_week / 7)`
-- `id_verified_pct: number` — `Math.round((id_verified / total_users) * 1000) / 10`
+## Reference mapping (mobile)
 
-(`verification_rate` and `email_verified` are already present; `email_verified` compact format is done client-side.)
+Header bar (`UsersMobileTopBar`):
+- Left: hamburger button (`bg-slate-800`, rounded-lg).
+- Center-left: title "Users" + tiny live dot (`text-emerald-400 animate-pulse`) and `"{compact} Total"` (e.g. "347.8K Total"), uppercase tracking-tight.
+- Right: search icon button (opens existing search input focus) + emerald `+` button that fires the existing "Add User is coming soon" toast.
 
-### 2. `src/services/admin-users-directory.service.ts` — type sync
-Add the three new fields to the `UserDirectorySummary` interface.
+Stats carousel (`UsersMobileStatsScroll`):
+- `overflow-x-auto`, inner `flex gap-4 pb-2 w-max`.
+- Six cards (Total / Verified / Flagged / New This Week / ID Verified / Email Verified) — each `w-40 bg-slate-900 border border-slate-800 p-4 rounded-2xl`, icon wrap top-left, delta chip top-right, label, big value. Same icon/color tokens as desktop `UsersSummaryCards`.
 
-### 3. `src/components/admin/users/UsersSummaryCards.tsx` — hint copy alignment
-Rewrite each card's hint string to match the reference exactly, using real summary data:
+Directory label + filters pill row: "USER DIRECTORY" heading + `Filters` pill button.
 
-1. Total Users — `+{summary.new_this_month.toLocaleString()} this month`
-2. Verified Users — `{summary.verification_rate}% verification rate` (unchanged)
-3. Flagged Users — `Requires review` (unchanged)
-4. New This Week — `{summary.new_per_day_avg}/day average`
-5. ID Verified — `{summary.id_verified_pct}% of total`
-6. Email Verified — `{formatCompact(summary.email_verified)} verified` (e.g. "189.2K verified")
+Card list (`UsersMobileFeed` rewrite) — three sections per card, exactly as reference:
+1. Header strip: avatar with ring color (red for flagged/investigating, emerald for trusted seller, yellow for pending), corner badge (flag / star / clock) reflecting `is_flagged` / `trust_badge === "trusted_seller"` / `status === "pending"`; name + status chip (`Investigating` red, `Active Now` emerald, `Pending ID` yellow, `Suspended` purple, `Flagged` red, `Active` emerald) + handle and "Active {relative}" or joined date.
+2. Stats strip (`bg-slate-800/30 grid grid-cols-2`): left = Transactions count + `({NGN compact})` muted; right = Disputes ("{n} Active" red when active, "Clean record" muted otherwise) — OR Verification mini-icons + Volume for trusted sellers, OR Type (`Business Account`) + Disputes for business users. Selection rule:
+   - if seller and trust_badge=="trusted_seller" → Verification + Volume layout
+   - else if roles includes business and verification.level !== "fully" → Type + Disputes layout
+   - else → Transactions + Disputes layout
+3. Actions row: two stretched buttons + 12x12 overflow. Mapping:
+   - If flagged/investigation: `Profile` (blue) + `Review` (slate→opens `/admin/flagged-users?u=`).
+   - If active seller: `Profile` (blue) + `Transactions` (emerald-tinted outline → `/admin/transactions?user=`).
+   - Else: `Profile` (blue) + `Disputes` (slate → `/admin/disputes?user=`).
+   - Overflow `MoreVertical` opens a small bottom sheet listing the remaining row actions (Flag/Unflag, Suspend, Investigation, Impersonate placeholder, Export).
 
-Keep icons, wraps, deltas, labels, values, grid — they already match.
+Pagination row at the bottom of the mobile feed: `"1 - 20 of {total}"` left, prev/page-pill/next right (emerald active page) — replaces our current generic prev/next.
 
-### 4. `src/pages/AdminUsers.tsx` — remove duplicate filters
-Delete the second `<UsersFilters … mobile />` render (lines 152–160). Keep the single instance.
+Bottom tab nav from the reference is intentionally NOT ported — `AdminLayout` already owns nav chrome.
 
-### 5. `src/components/admin/users/UsersFilters.tsx` — always visible
-Remove `mobile` prop and the `hidden lg:block` wrapper class so the single instance renders at every breakpoint. No other changes.
+## Reference mapping (desktop)
 
-### 6. `src/components/admin/users/UsersTable.tsx` — action column parity
-Reference HTML row actions (left → right, exactly 7 buttons, each `px-2.5 py-1.5 rounded text-xs` with `h-3.5 w-3.5` icons):
+Already matches the reference for header, summary cards, filters, and 7-button action column. Only adjust:
+- Status chip label: when `status==="under_investigation"` show "Investigating"; when `status==="active"` and `last_active_at` within ~5 minutes show "Active Now"; when `status==="pending"` and id not verified show "Pending ID". Color tokens already correct.
+- Avatar ring color rule: red for flagged or under_investigation, emerald for trusted_seller, yellow for pending. (Already close — just confirm and tighten.)
 
-1. View profile — `bg-blue-600`, lucide `User` → opens drawer
-2. Transactions — `bg-emerald-600`, lucide `ArrowLeftRight` (matches `fa-money-bill-transfer`) → `/admin/transactions?user=…`
-3. Disputes — `bg-orange-600`, lucide `Scale`, red count badge when active → `/admin/disputes?user=…`
-4. Investigation — `bg-red-600`, lucide `FileSearch` (matches `fa-magnifying-glass-chart`) → `/admin/flagged-users?u=…`
-5. Impersonate — `bg-purple-600`, lucide `UserCog` (matches `fa-user-secret`) → "Impersonation coming soon" toast
-6. Flag / Unflag — `bg-yellow-600` (`Flag`) when not flagged, `bg-slate-700` (`FlagOff`) when flagged → existing `onFlagToggle`
-7. Export row — `bg-slate-700`, lucide `FileDown` (matches `fa-file-export`) → "Per-user export coming soon" toast
+## Behavior preserved (no changes)
 
-Drop the row-level Suspend button (reference has none; Suspend remains in the drawer).
+- `useQuery` + URL params + drawer open/close + filter reset + page sync.
+- `performFlaggedAction` for flag/clear/suspend with `ActionConfirmDialog`.
+- All edge functions (`admin-users-directory`, `admin-user-detail`, `admin-users-directory-export`) and the service layer.
+- Summary card data fields, formulas, and hint strings already aligned to the previous reference pass.
 
 ## Verification
 
-- Each KPI card hint reads exactly as in the spec table with live data.
-- Only one filter bar renders at 875px and at desktop.
-- Action column shows 7 buttons in the exact order, colors, and icon set above.
-- No TS errors; existing handlers still fire.
+- Resize to 875px (current viewport): mobile header, stats carousel, label+filters pill, card list, mobile pagination all render and match reference markup class-for-class.
+- Resize to ≥1024px: desktop header, 6-card grid, filters bar, and 9-column table render exactly as the reference; only one filters bar present.
+- Flag/Unflag/Suspend from a mobile card still triggers `ActionConfirmDialog`; success invalidates `admin-users-directory`, `admin-user-detail`, and `admin-flagged-users` queries.
+- Drawer opens from any "Profile" tap (desktop row, mobile card, URL `?u=`), and closing strips only `u` from the URL.
+- No TS errors. No new dependencies.
 
 ## Out of scope
 
-Edge functions other than the summary additions, drawer, mobile feed, header bar, sidebar, routing.
+- Edge functions, services, summary math, drawer internals, routing, sidebar, fraud engine, identity flow, exports, real impersonation, real "Add user".
