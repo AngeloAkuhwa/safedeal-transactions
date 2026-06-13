@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { formatMoney } from "@/lib/format";
+import { formatMoneyOrDash } from "@/lib/payment/money-format";
+import { PRICING_LINE_LABELS } from "@/lib/payment/payment-labels";
 import { createPortal } from "react-dom";
 import { format } from "date-fns";
 import type { TransactionDetailResponse } from "@/services/transaction-detail.service";
@@ -146,24 +147,32 @@ export const TransactionReceipt = React.forwardRef<HTMLDivElement, TransactionRe
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <tbody>
                   <tr>
-                    <td style={{ color: "#64748b", paddingBottom: "6px" }}>Item Price</td>
-                    <td style={{ textAlign: "right", paddingBottom: "6px" }}>{formatMoney(pricing.item_amount, pricing.currency_code)}</td>
+                    <td style={{ color: "#64748b", paddingBottom: "6px" }}>{PRICING_LINE_LABELS.item_amount}</td>
+                    <td style={{ textAlign: "right", paddingBottom: "6px" }}>{formatMoneyOrDash(pricing.item_amount, pricing.currency_code)}</td>
                   </tr>
-                  {(pricing.service_fee_amount || 0) > 0 && (
-                    <tr>
-                      <td style={{ color: "#64748b", paddingBottom: "2px" }}>Service Fee ({((pricing.service_fee_rate ?? 0) * 100).toFixed(1)}%)</td>
-                      <td style={{ textAlign: "right", paddingBottom: "2px" }}>{formatMoney(pricing.service_fee_amount, pricing.currency_code)}</td>
-                    </tr>
-                  )}
-                  {(pricing.service_fee_amount || 0) > 0 && (
-                    <tr>
-                      <td colSpan={2} style={{ color: "#94a3b8", fontSize: "10px", paddingBottom: "6px", borderBottom: "1px solid #e2e8f0" }}>Includes payment processing</td>
-                    </tr>
-                  )}
                   <tr>
-                    <td style={{ fontWeight: 800, paddingTop: "8px", fontSize: "14px" }}>Total Paid</td>
-                    <td style={{ textAlign: "right", fontWeight: 800, paddingTop: "8px", fontSize: "14px", color: "#2563eb" }}>{formatMoney(pricing.total_amount, pricing.currency_code)}</td>
+                    <td style={{ color: "#64748b", paddingBottom: "6px" }}>{PRICING_LINE_LABELS.safedeal_fee_amount}</td>
+                    <td style={{ textAlign: "right", paddingBottom: "6px" }}>{formatMoneyOrDash(pricing.platform_fee_amount, pricing.currency_code)}</td>
                   </tr>
+                  <tr>
+                    <td style={{ color: "#64748b", paddingBottom: "6px" }}>{PRICING_LINE_LABELS.payment_processing_fee_amount}</td>
+                    <td style={{ textAlign: "right", paddingBottom: "6px" }}>{formatMoneyOrDash(pricing.payment_processing_fee_amount ?? pricing.paystack_fee_amount, pricing.currency_code)}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ color: "#64748b", paddingBottom: "6px", borderBottom: "1px solid #e2e8f0" }}>{PRICING_LINE_LABELS.service_fee_amount}</td>
+                    <td style={{ textAlign: "right", paddingBottom: "6px", borderBottom: "1px solid #e2e8f0" }}>{formatMoneyOrDash(pricing.service_fee_amount, pricing.currency_code)}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontWeight: 800, paddingTop: "8px", fontSize: "14px" }}>{PRICING_LINE_LABELS.total_amount}</td>
+                    <td style={{ textAlign: "right", fontWeight: 800, paddingTop: "8px", fontSize: "14px", color: "#2563eb" }}>{formatMoneyOrDash(pricing.total_amount, pricing.currency_code)}</td>
+                  </tr>
+                  {pricing.is_total_service_fee_capped ? (
+                    <tr>
+                      <td colSpan={2} style={{ color: "#94a3b8", fontSize: "10px", paddingTop: "4px" }}>
+                        Total service fee capped at ₦2,500.
+                      </td>
+                    </tr>
+                  ) : null}
                   <tr>
                     <td style={{ color: "#94a3b8", fontSize: "11px" }}>Currency</td>
                     <td style={{ textAlign: "right", color: "#94a3b8", fontSize: "11px" }}>{pricing.currency_code}</td>
