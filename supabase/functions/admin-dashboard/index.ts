@@ -580,13 +580,36 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       });
     }
 
-    const failedPayoutThreshold = numSetting("failed_payout_spike_threshold", 5)!;
+    // SLA-overdue disputes — any overdue case is alert-worthy
+    if (slaOverdue > 0) {
+      criticalAlerts.push({
+        id: "alert-disputes-overdue",
+        title: `${slaOverdue} dispute${slaOverdue === 1 ? "" : "s"} overdue`,
+        description: `Response SLA breached. Triage in the dispute queue.`,
+        severity: "red", at_iso: nowIso,
+        action_label: "Open Disputes", action_href: "/admin/disputes",
+      });
+    }
+
+    // Stuck transactions flagged for admin review — surface immediately
+    if (flaggedNeedsReview > 0) {
+      criticalAlerts.push({
+        id: "alert-stuck-tx",
+        title: `${flaggedNeedsReview} transaction${flaggedNeedsReview === 1 ? "" : "s"} need admin review`,
+        description: `Marked needs_release_review. Investigate before releasing funds.`,
+        severity: "yellow", at_iso: nowIso,
+        action_label: "Review Queue", action_href: "/admin/transactions",
+      });
+    }
+
+    const failedPayoutThreshold = numSetting("failed_payout_spike_threshold", 0)!;
     if (failedPayouts > failedPayoutThreshold) {
       criticalAlerts.push({
         id: "alert-failed-payouts",
-        title: "Failed payout spike",
-        description: `${failedPayouts} failed payouts pending retry (threshold ${failedPayoutThreshold}).`,
+        title: `${failedPayouts} failed payout${failedPayouts === 1 ? "" : "s"}`,
+        description: `Pending retry. Check bank verification and recipient codes.`,
         severity: "red", at_iso: nowIso,
+        action_label: "Open Payouts", action_href: "/admin/payouts?tab=failed",
       });
     }
 
