@@ -177,7 +177,9 @@ const BuyerCart = () => {
     });
   };
 
-  const selectableItems = items.filter((i) => getStockStatus(i).canCheckout);
+  const selectableItems = items.filter(
+    (i) => getStockStatus(i).canCheckout && !i.product?.active_checkout_session_id,
+  );
   const allSelected = selectableItems.length > 0 && selectableItems.every((i) => selected.has(i.id));
 
   const toggleSelectAll = () => {
