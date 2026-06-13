@@ -70,15 +70,22 @@ export function buildPricingSnapshot(itemAmount: number, currency: string = "NGN
  * Re-derive a snapshot from a row already persisted in `transaction_pricing`,
  * so consumers don't recompute math against the policy. Used to surface a
  * canonical shape to callers that only have the persisted row.
+ *
+ * Real DB column names (transaction_pricing):
+ *   item_amount, platform_fee_amount, processing_fee_amount,
+ *   seller_net_amount, buyer_total_amount, currency_code.
+ *
+ * The new derived columns added in migration 018 (payment_processing_fee_amount,
+ * seller_payout_amount, is_total_service_fee_capped, pricing_model_version)
+ * are read here when present and fall back to the legacy columns otherwise.
  */
 export function snapshotFromPersisted(row: {
   item_amount: number | string | null;
-  paystack_fee_amount?: number | string | null;
   platform_fee_amount?: number | string | null;
+  processing_fee_amount?: number | string | null;
+  seller_net_amount?: number | string | null;
+  buyer_total_amount?: number | string | null;
   payment_processing_fee_amount?: number | string | null;
-  safedeal_fee_amount?: number | string | null;
-  service_fee_amount?: number | string | null;
-  total_amount?: number | string | null;
   seller_payout_amount?: number | string | null;
   currency_code?: string | null;
   is_total_service_fee_capped?: boolean | null;
@@ -87,13 +94,12 @@ export function snapshotFromPersisted(row: {
   const item = num(row.item_amount);
   if (item == null) return null;
 
-  const service =
-    num(row.service_fee_amount) ?? 0;
-  const provider =
-    num(row.payment_processing_fee_amount) ?? num(row.paystack_fee_amount) ?? 0;
-  const safedeal =
-    num(row.safedeal_fee_amount) ?? num(row.platform_fee_amount) ?? Math.max(service - provider, 0);
-  const total = num(row.total_amount) ?? item + service;
+  const provider = num(row.payment_processing_fee_amount) ?? num(row.processing_fee_amount) ?? 0;
+  const safedeal = num(row.platform_fee_amount) ?? 0;
+  const service = provider + safedeal;
+  const total = num(row.buyer_total_amount) ?? item + service;
+  // MVP rule: seller payout = item amount. Legacy rows that stored
+  // (item - platform_fee_amount) in `seller_net_amount` are normalized here.
   const sellerPayout = num(row.seller_payout_amount) ?? item;
 
   return {
