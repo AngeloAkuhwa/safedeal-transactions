@@ -607,7 +607,7 @@ const BuyerCart = () => {
                               <button
                                 className="h-8 w-8 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors disabled:opacity-40"
                                 onClick={() => handleQuantityChange(item.product_id, item.quantity - 1)}
-                                disabled={item.quantity <= 1 || isSoldOut}
+                                disabled={item.quantity <= 1 || isSoldOut || isLocked}
                               >
                                 <Minus className="h-3.5 w-3.5" />
                               </button>
@@ -615,7 +615,7 @@ const BuyerCart = () => {
                               <button
                                 className="h-8 w-8 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors disabled:opacity-40"
                                 onClick={() => handleQuantityChange(item.product_id, item.quantity + 1)}
-                disabled={isSoldOut || (item.product ? item.quantity >= (item.product.available_quantity + (item.product.own_reserved_quantity || 0)) : true)}
+                                disabled={isSoldOut || isLocked || (item.product ? item.quantity >= (item.product.available_quantity + (item.product.own_reserved_quantity || 0)) : true)}
                               >
                                 <Plus className="h-3.5 w-3.5" />
                               </button>
