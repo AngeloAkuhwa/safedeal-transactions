@@ -79,17 +79,106 @@ Deno.serve(async (req) => {
   const openQueue = (queue ?? []).find((q: any) => ["pending","claimed","processing"].includes(q.status));
 
   const gates = [
-    { key: "money_pending_release", label: "Transaction money status is funds_pending_release", pass: tx?.money_status === "funds_pending_release" },
-    { key: "dispute_clear", label: "No active dispute", pass: !tx?.dispute_status || tx?.dispute_status === "resolved" },
-    { key: "no_investigation", label: "No open investigation", pass: !investigationOpen && !tx?.needs_admin_review },
-    { key: "payout_awaiting", label: "Payout status is awaiting_release", pass: payout.status === "awaiting_release" },
-    { key: "not_blocked", label: "Payout is not blocked", pass: !payout.release_blocked },
-    { key: "account_verified", label: "Seller payout account is verified", pass: account?.verification_status === "verified" },
-    { key: "recipient_code", label: "Provider recipient code exists", pass: !!account?.provider_recipient_code },
-    { key: "queue_open", label: "Release review queue is pending/claimed", pass: !!openQueue },
-    { key: "no_refund", label: "No in-flight refund", pass: !refundInFlight },
+    { key: "money_pending_release", label: "Funds pending release",
+      pass: tx?.money_status === "funds_pending_release",
+      actual: tx?.money_status ?? "unknown",
+      detail: tx?.money_status === "funds_pending_release"
+        ? "Buyer payment is held in escrow and ready for release."
+        : `Money status is "${tx?.money_status ?? "unknown"}". Must be 'funds_pending_release'.` },
+    { key: "dispute_clear", label: "No active dispute",
+      pass: !tx?.dispute_status || tx?.dispute_status === "resolved",
+      actual: tx?.dispute_status ?? "none",
+      detail: dispute && dispute.status !== "resolved"
+        ? `Dispute ${dispute.id.slice(0,8)} is ${dispute.status}. Resolve before releasing.`
+        : "No open dispute." },
+    { key: "no_investigation", label: "No open investigation",
+      pass: !investigationOpen && !tx?.needs_admin_review,
+      actual: investigation?.status ?? (tx?.needs_admin_review ? "needs_admin_review" : "clear"),
+      detail: investigationOpen
+        ? `Investigation is ${investigation?.status} (priority: ${investigation?.priority ?? "n/a"}).`
+        : tx?.needs_admin_review ? "Transaction is flagged for admin review."
+        : "No active investigation." },
+    { key: "payout_awaiting", label: "Payout awaiting release",
+      pass: payout.status === "awaiting_release",
+      actual: payout.status,
+      detail: payout.status === "awaiting_release"
+        ? "Payout is queued for release."
+        : `Payout status is "${payout.status}".` },
+    { key: "not_blocked", label: "Payout not blocked",
+      pass: !payout.release_blocked,
+      actual: payout.release_blocked ? "blocked" : "unblocked",
+      detail: payout.release_blocked
+        ? `Blocked: ${payout.payout_blocked_reason ?? "no reason recorded"}.`
+        : "No admin block." },
+    { key: "account_verified", label: "Seller payout account verified",
+      pass: account?.verification_status === "verified",
+      actual: account?.verification_status ?? "missing",
+      detail: !account ? "Seller has not added a payout account."
+        : account.verification_status === "verified" ? `${account.bank_name} ${maskAccount(account.account_number)} — verified.`
+        : `Account ${maskAccount(account.account_number) ?? ""} is "${account.verification_status}".` },
+    { key: "recipient_code", label: "Provider recipient code on file",
+      pass: !!account?.provider_recipient_code,
+      actual: account?.provider_recipient_code ? "present" : "missing",
+      detail: account?.provider_recipient_code
+        ? "Paystack recipient code present."
+        : "Recipient code missing. Re-verify the bank account." },
+    { key: "queue_open", label: "Release review queue active",
+      pass: !!openQueue,
+      actual: openQueue?.status ?? "absent",
+      detail: openQueue ? `In '${openQueue.queue_type}' queue, status: ${openQueue.status}.`
+        : "Transaction is not in the release review queue." },
+    { key: "no_refund", label: "No in-flight refund",
+      pass: !refundInFlight,
+      actual: refundInFlight ? "in_flight" : "none",
+      detail: refundInFlight
+        ? `${(refunds ?? []).filter((r:any)=>["pending","processing"].includes(r.status)).length} refund(s) in flight.`
+        : "No pending or processing refunds." },
   ];
   const eligible = gates.every((g) => g.pass);
+
+  // Build the timeline (same shape as AdminCaseTimeline)
+  const [{ data: moneyHist }, { data: dispHist }] = await Promise.all([
+    admin.from("money_status_history")
+      .select("id, from_status, to_status, reason, changed_at, changed_by_role")
+      .eq("transaction_id", payout.transaction_id)
+      .order("changed_at", { ascending: false }),
+    admin.from("dispute_status_history")
+      .select("id, from_status, to_status, reason, changed_at")
+      .eq("dispute_id", dispute?.id ?? "00000000-0000-0000-0000-000000000000")
+      .order("changed_at", { ascending: false }),
+  ]);
+
+  const tl: any[] = [];
+
+  (events ?? []).forEach((e: any) => tl.push({
+    id: `evt-${e.id}`, at: e.created_at, type: "event",
+    title: String(e.event_type).replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
+    description: e.event_data?.summary ?? e.event_data?.reason ?? null,
+    actorType: e.actor_role, actorName: null, severity: "blue", icon: "activity",
+  }));
+
+  (moneyHist ?? []).forEach((m: any) => tl.push({
+    id: `money-${m.id}`, at: m.changed_at, type: "money_status",
+    title: `Money: ${String(m.to_status).replace(/_/g, " ")}`,
+    description: `From ${m.from_status ? String(m.from_status).replace(/_/g, " ") : "—"}${m.reason ? ` — ${m.reason}` : ""}`,
+    actorType: m.changed_by_role, actorName: null,
+    severity: m.to_status === "funds_frozen" ? "critical" : null, icon: "vault",
+  }));
+
+  (dispHist ?? []).forEach((d: any) => tl.push({
+    id: `disp-${d.id}`, at: d.changed_at, type: "dispute",
+    title: `Dispute: ${String(d.to_status).replace(/_/g, " ")}`,
+    description: d.reason ?? (d.from_status ? `From ${String(d.from_status).replace(/_/g, " ")}` : null),
+    actorType: null, actorName: null,
+    severity: d.to_status === "resolved" ? "success" : null, icon: "scale",
+  }));
+
+  if (payout.created_at) tl.push({ id: `pay-q-${payout.id}`, at: payout.created_at, type: "payout", title: "Payout queued", description: "Entered release review queue", severity: null, icon: "wallet" });
+  if (payout.initiated_at) tl.push({ id: `pay-i-${payout.id}`, at: payout.initiated_at, type: "payout", title: "Payout initiated", description: payout.provider_reference ?? null, severity: null, icon: "wallet" });
+  if (payout.released_at) tl.push({ id: `pay-r-${payout.id}`, at: payout.released_at, type: "payout", title: "Payout released", description: "Funds sent to seller", severity: "success", icon: "wallet" });
+  if (payout.status === "failed" && payout.failure_reason) tl.push({ id: `pay-f-${payout.id}`, at: payout.updated_at ?? payout.created_at, type: "payout", title: "Payout failed", description: payout.failure_reason, severity: "critical", icon: "wallet" });
+
+  tl.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 
   return json({
     payout: {
@@ -149,6 +238,7 @@ Deno.serve(async (req) => {
     queue: queue ?? [],
     notes: notes ?? [],
     events: events ?? [],
+    timeline: tl,
     eligibility: { gates, eligible },
   });
 });

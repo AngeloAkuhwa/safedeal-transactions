@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
-import { PayoutEligibilityChecklist } from "./PayoutEligibilityChecklist";
+import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 import * as payoutsApi from "@/services/admin-payouts.service";
 
 interface Props {
@@ -47,6 +47,46 @@ function statusPill(status: string, blocked: boolean) {
     default:
       return { cls: "bg-amber-500/20 border-amber-500/30 text-amber-400", icon: <Clock className="h-3.5 w-3.5" />, label: status.replace(/_/g, " ") };
   }
+}
+
+function ChecklistItem({ gate }: { gate: payoutsApi.PayoutEligibilityGate }) {
+  return (
+    <div className={`flex items-start gap-3 p-3 rounded-lg border ${
+      gate.pass ? "bg-emerald-500/5 border-emerald-500/20" : "bg-red-500/5 border-red-500/20"}`}>
+      <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${
+        gate.pass ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                  : "bg-red-500/15 text-red-400 border-red-500/30"}`}>
+        {gate.pass ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-white text-sm font-medium leading-snug">{gate.label}</p>
+          <span className={`text-[10px] uppercase tracking-wide font-semibold shrink-0 ${
+            gate.pass ? "text-emerald-400" : "text-red-400"}`}>
+            {gate.pass ? "Pass" : "Action needed"}
+          </span>
+        </div>
+        {gate.detail && <p className="text-slate-400 text-xs mt-1 leading-snug">{gate.detail}</p>}
+      </div>
+    </div>
+  );
+}
+
+function SellerAvatar({ name, src }: { name?: string | null; src?: string | null }) {
+  const initial = (name ?? "?").trim().charAt(0).toUpperCase() || "?";
+  return src ? (
+    <img src={src} alt={name ?? "Seller"} className="w-12 h-12 rounded-full object-cover border border-slate-700" />
+  ) : (
+    <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-white font-semibold text-base">
+      {initial}
+    </div>
+  );
+}
+
+function fmtDateTime(iso?: string | null) {
+  if (!iso) return "—";
+  try { return new Date(iso).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" }); }
+  catch { return iso; }
 }
 
 const actionBtn = "px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center gap-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed";
@@ -115,10 +155,7 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-[480px] p-0 bg-slate-900 border-l border-slate-800 shadow-2xl overflow-y-auto overflow-x-hidden no-scrollbar">
         <div className="sticky top-0 z-10 bg-slate-900 border-b border-slate-800 p-6 flex items-center justify-between">
-          <div className="min-w-0">
-            <div className="font-mono text-xs text-slate-500 truncate mb-0.5">{p?.id ?? payoutId}</div>
-            <h3 className="text-white text-lg font-semibold">Payout Details</h3>
-          </div>
+          <h3 className="text-white text-lg font-semibold">Payout Details</h3>
           <button
             onClick={onClose}
             className="w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-all"
@@ -136,6 +173,17 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
         ) : (
           (() => {
             const pill = statusPill(p!.status, p!.release_blocked);
+            const gates = detail.eligibility.gates;
+            const passed = gates.filter((g) => g.pass).length;
+            const total = gates.length;
+            const timelineItems = (detail.timeline && detail.timeline.length > 0)
+              ? detail.timeline
+              : (detail.events ?? []).map((e: any) => ({
+                  id: `evt-${e.id}`, at: e.created_at, type: "event",
+                  title: String(e.event_type).replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                  description: e.event_data?.summary ?? e.event_data?.reason ?? null,
+                  actorType: e.actor_role, actorName: null, severity: null, icon: "activity",
+                }));
             return (
             <div className="p-6 space-y-6">
               {/* Hero amount card */}
@@ -169,10 +217,30 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                 )}
               </div>
 
+              {/* Seller information */}
+              <div className="space-y-3">
+                <h4 className="text-white font-semibold text-sm">Seller Information</h4>
+                <div className="bg-slate-800 rounded-lg p-4 flex items-center gap-3">
+                  <SellerAvatar name={detail.seller?.name} src={detail.seller?.avatar_url} />
+                  <div className="min-w-0">
+                    <p className="text-white text-sm font-medium truncate">{detail.seller?.name ?? "Unknown seller"}</p>
+                    <p className="text-slate-400 text-xs truncate">{detail.seller?.email ?? "—"}</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Eligibility */}
               <div className="space-y-3">
-                <h4 className="text-white font-semibold text-sm">Eligibility checklist</h4>
-                <PayoutEligibilityChecklist gates={detail.eligibility.gates} />
+                <div className="flex items-center justify-between">
+                  <h4 className="text-white font-semibold text-sm">Eligibility Checklist</h4>
+                  <span className={`text-xs font-semibold ${detail.eligibility.eligible ? "text-emerald-400" : "text-amber-400"}`}>
+                    {passed}/{total} ready
+                  </span>
+                </div>
+                <p className="text-slate-400 text-xs">Live pre-release audit pulled from the database. Failing items must be cleared before release.</p>
+                <div className="space-y-2">
+                  {gates.map((g) => <ChecklistItem key={g.key} gate={g} />)}
+                </div>
               </div>
 
               {/* Pricing */}
@@ -210,6 +278,31 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                 ) : <p className="text-sm text-slate-400">No payout account on file.</p>}
               </div>
 
+              {/* Transaction details */}
+              <div className="space-y-3">
+                <h4 className="text-white font-semibold text-sm">Transaction Details</h4>
+                <div className="bg-slate-800 rounded-lg p-4 space-y-2">
+                  <Row label="Code" value={<span className="font-mono text-xs">{detail.transaction?.code ?? "—"}</span>} />
+                  <Row label="Item" value={<span className="truncate max-w-[220px] inline-block">{detail.transaction?.item_title ?? "—"}</span>} />
+                  <Row label="Status" value={detail.transaction?.status ?? "—"} />
+                  <Row label="Money status" value={detail.transaction?.money_status ?? "—"} />
+                  <Row label="Created" value={fmtDateTime(detail.transaction?.created_at)} />
+                </div>
+              </div>
+
+              {/* Payout history */}
+              <div className="space-y-3">
+                <h4 className="text-white font-semibold text-sm">Payout History</h4>
+                <div className="bg-slate-800 rounded-lg p-4 space-y-2">
+                  <Row label="Queued" value={fmtDateTime(p!.entered_queue_at)} />
+                  <Row label="Initiated" value={fmtDateTime(p!.initiated_at)} />
+                  <Row label="Released" value={fmtDateTime(p!.released_at)} />
+                  <Row label="Attempts" value={String(p!.failed_attempt_count ?? 0)} />
+                  {p!.failure_reason && <Row label="Failure reason" value={<span className="text-red-400">{p!.failure_reason}</span>} />}
+                  {p!.provider_reference && <Row label="Provider ref" value={<span className="font-mono text-xs">{p!.provider_reference}</span>} />}
+                </div>
+              </div>
+
               {/* Linked */}
               <div className="space-y-3">
                 <h4 className="text-white font-semibold text-sm">Linked records</h4>
@@ -225,19 +318,22 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                 </div>
               </div>
 
-              {/* Timeline */}
+              {/* Complete Transaction Timeline */}
               <div className="space-y-3">
-                <h4 className="text-white font-semibold text-sm">Timeline</h4>
-                <div className="bg-slate-800 rounded-lg p-4">
-                  <ul className="space-y-3 max-h-72 overflow-y-auto pr-1 no-scrollbar">
-                    {detail.events.length === 0 && <li className="text-xs text-slate-400">No events recorded.</li>}
-                    {detail.events.map((e: any) => (
-                      <li key={e.id} className="border-l-2 border-slate-700 pl-3">
-                        <div className="text-white text-sm font-medium">{e.event_type}</div>
-                        <div className="text-slate-400 text-xs">{new Date(e.created_at).toLocaleString()}</div>
-                      </li>
-                    ))}
-                  </ul>
+                <div>
+                  <h4 className="text-white font-semibold text-sm">Complete Transaction Timeline</h4>
+                  <p className="text-slate-400 text-xs mt-0.5">All events, status changes, and interventions</p>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-4 max-h-96 overflow-y-auto no-scrollbar">
+                  {timelineItems.length === 0 ? (
+                    <p className="text-xs text-slate-400">No events recorded.</p>
+                  ) : (
+                    <AdminCaseTimeline
+                      items={timelineItems as any}
+                      disputeStatus={detail.dispute?.status ?? null}
+                      resolvedAt={detail.dispute?.resolved_at ?? null}
+                    />
+                  )}
                 </div>
               </div>
 
