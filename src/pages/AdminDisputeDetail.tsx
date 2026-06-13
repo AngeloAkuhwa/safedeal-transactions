@@ -822,6 +822,12 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
                 <LinkedTile tone="orange" icon={<Flag className="h-5 w-5" />} title="Seller in Flagged Users"
                   subtitle={parties.seller ? "Review fraud signals" : "—"}
                   onClick={parties.seller ? () => navigate(`/admin/flagged-users?u=${parties.seller!.id}`) : undefined} />
+                <LinkedTile tone="red" icon={<Flag className="h-5 w-5" />} title="Flag Buyer for Fraud"
+                  subtitle={parties.buyer ? "Open admin flag dialog" : "—"}
+                  onClick={parties.buyer ? () => setFlagUserTarget({ id: parties.buyer!.id, role: "buyer" }) : undefined} />
+                <LinkedTile tone="red" icon={<Flag className="h-5 w-5" />} title="Flag Seller for Fraud"
+                  subtitle={parties.seller ? "Open admin flag dialog" : "—"}
+                  onClick={parties.seller ? () => setFlagUserTarget({ id: parties.seller!.id, role: "seller" }) : undefined} />
                 <LinkedTile tone="emerald" icon={<CreditCard className="h-5 w-5" />} title="Payment Record"
                   subtitle={payment ? `${(payment.providerReference ?? "").slice(0, 20)}` : "No payment record"} />
                 <LinkedTile tone="yellow" icon={<Vault className="h-5 w-5" />} title="Escrow Record"
