@@ -198,7 +198,9 @@ Deno.serve(async (req) => {
         status: r.transactions?.status ?? null,
         dispute_status: r.transactions?.dispute_status ?? null,
         needs_release_review: !!r.transactions?.needs_release_review,
-        item_title: r.transactions?.item_title ? (productMap.get(r.transactions.item_title) ?? null) : null,
+        item_title: (r.transactions?.item_title ? productMap.get(r.transactions.item_title) : null)
+          ?? itemTitleByTx.get(r.transaction_id)
+          ?? null,
         refund_in_flight: refundMap.has(r.transaction_id),
       },
       seller: {
