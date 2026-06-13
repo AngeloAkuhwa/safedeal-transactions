@@ -148,11 +148,8 @@ Deno.serve(async (req) => {
           continue;
         }
       }
-      const phone = (sel?.contact_phone ?? buyerProfileEarlyPhone()) || null;
-      function buyerProfileEarlyPhone() { return null; }
-      if (needsPhone && !phone) {
-        // we'll re-check with buyer profile later; defer hard failure
-      }
+      // Phone fallback to buyer profile is checked later; not blocking here
+      void needsPhone;
       resolvedByCartItem.set(ci.id, { rawMethod, address: sel?.delivery_address ?? null, phone: sel?.contact_phone ?? null });
     }
 
