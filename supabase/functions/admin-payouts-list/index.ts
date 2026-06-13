@@ -150,6 +150,19 @@ Deno.serve(async (req) => {
     for (const p of (prods ?? []) as any[]) productMap.set(p.id, p.title);
   }
 
+  // Fallback: pull first transaction_items.title per tx for rows missing a product link
+  const itemTitleByTx = new Map<string, string>();
+  if (txIds.length > 0) {
+    const { data: items } = await admin
+      .from("transaction_items")
+      .select("transaction_id, title, created_at")
+      .in("transaction_id", txIds)
+      .order("created_at", { ascending: true });
+    for (const it of (items ?? []) as any[]) {
+      if (!itemTitleByTx.has(it.transaction_id)) itemTitleByTx.set(it.transaction_id, it.title);
+    }
+  }
+
   const MAX_PROTECTION_FEE = 2500;
 
   let mapped = (rows ?? []).map((r: any) => {
