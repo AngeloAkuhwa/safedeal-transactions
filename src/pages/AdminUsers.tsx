@@ -120,8 +120,6 @@ export default function AdminUsers() {
         <UsersHeaderBar
           totalUsers={summary?.total_users ?? 0}
           query={query}
-          isFetching={isFetching}
-          onRefresh={() => void refetch()}
         />
       }
       mobileHeaderSlot={({ onOpenMenu }) => (
@@ -142,7 +140,6 @@ export default function AdminUsers() {
         ) : (
           <>
             {summary && <UsersSummaryCards summary={summary} />}
-            {summary && <UsersSummaryCards summary={summary} mobile />}
 
             <UsersFilters
               value={filters}
