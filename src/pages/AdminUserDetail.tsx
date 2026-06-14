@@ -272,7 +272,7 @@ export default function AdminUserDetail() {
                       <Flag className="h-4 w-4" /> Flag User
                     </button>
                   )}
-                  <button onClick={stub("Add Note")} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
+                  <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
                     <StickyNote className="h-4 w-4" /> Add Note
                   </button>
                 </div>
@@ -443,12 +443,13 @@ export default function AdminUserDetail() {
                   value={stats ? `${stats.disputes.total} Total` : "—"}
                   sub={stats ? `${stats.disputes.filed} filed, ${stats.disputes.received} received` : ""}
                   pill={stats && stats.disputes.active > 0 ? { text: `${stats.disputes.active} Active`, tone: "red" } : undefined}
+                  onClick={() => userId && navigate(`/admin/disputes?user=${userId}`)}
                 />
                 <StatCard
                   icon={<Star className="h-6 w-6 text-yellow-400" />}
                   label="Trust Score"
                   value="—"
-                  sub="Reviews coming soon"
+                  sub="Trust score not available"
                 />
               </div>
 
@@ -537,7 +538,7 @@ export default function AdminUserDetail() {
                   <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                     <StickyNote className="h-5 w-5 text-yellow-400" /> Admin Notes &amp; Flags
                   </h3>
-                  <button onClick={stub("Add Note")} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
+                  <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
                     <Plus className="h-4 w-4" /> Add Note
                   </button>
                 </div>
@@ -574,13 +575,19 @@ export default function AdminUserDetail() {
         title={
           pendingAction?.kind === "flag" ? `Flag ${data?.user.full_name ?? "user"} for fraud review`
             : pendingAction?.kind === "clear_flag" ? `Clear flag on ${data?.user.full_name ?? "user"}`
+            : pendingAction?.kind === "add_note" ? `Add note for ${data?.user.full_name ?? "user"}`
             : pendingAction ? `Suspend ${data?.user.full_name ?? "user"}` : ""
         }
         description="A note is required and will appear in the audit timeline."
         reasonLabel="Note"
         reasonPlaceholder="Explain why this action is being taken…"
-        confirmLabel={pendingAction?.kind === "clear_flag" ? "Clear flag" : pendingAction?.kind === "suspend" ? "Suspend user" : "Flag user"}
-        confirmTone={pendingAction?.kind === "clear_flag" ? "primary" : "danger"}
+        confirmLabel={
+          pendingAction?.kind === "clear_flag" ? "Clear flag"
+          : pendingAction?.kind === "suspend" ? "Suspend user"
+          : pendingAction?.kind === "add_note" ? "Save note"
+          : "Flag user"
+        }
+        confirmTone={pendingAction?.kind === "clear_flag" || pendingAction?.kind === "add_note" ? "primary" : "danger"}
         onConfirm={onConfirmAction}
       />
     </AdminLayout>
