@@ -218,13 +218,28 @@ export default function AdminUserDetail() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={onExport} disabled={!data} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-all flex items-center gap-2 text-xs sm:text-sm font-medium border border-slate-700 disabled:opacity-50">
-                <Download className="h-4 w-4" /> Sanitized Export
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button disabled={!data || !!exporting} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-all flex items-center gap-2 text-xs sm:text-sm font-medium border border-slate-700 disabled:opacity-50">
+                    {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    Export <ChevronDown className="h-3.5 w-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => runExport("sanitized")}>Sanitized User Export</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => runExport("activity")}>Activity Timeline Export</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => runExport("transactions")}>Transactions Export</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => runExport("disputes")}>Disputes Export</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => { setComplianceReason(""); setComplianceExport({ open: true }); }}>
+                    Compliance Export…
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <button onClick={() => data && setPendingAction({ kind: "add_note" })} disabled={!data} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-orange-600/20 disabled:opacity-50">
                 <StickyNote className="h-4 w-4" /> Add Note
               </button>
-              <button onClick={stub("Impersonate")} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-purple-600/20">
+              <button onClick={() => setImpersonateOpen(true)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-purple-600/20">
                 <UserCog className="h-4 w-4" /> Impersonate
               </button>
               <button onClick={() => userId && navigate(`/admin/transactions?user=${userId}`)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-blue-600/20">
@@ -261,19 +276,19 @@ export default function AdminUserDetail() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 mb-3">
                       <div className="flex items-center gap-2 text-sm min-w-0">
                         <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        <span className="text-slate-300 truncate">{revealEmail ? (data.user.email || "—") : maskEmail(data.user.email)}</span>
+                        <span className="text-slate-300 truncate">{revealedEmail !== null ? revealedEmail : maskEmail(data.user.email)}</span>
                         {data.user.email && (
-                          <button onClick={() => setRevealEmail(v => !v)} className="text-blue-400 hover:text-blue-300 text-xs" aria-label="Toggle email">
-                            {revealEmail ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          <button onClick={toggleRevealEmail} disabled={revealingEmail} className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50" aria-label="Toggle email">
+                            {revealingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : revealedEmail !== null ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        <span className="text-slate-300">{revealPhone ? (data.user.phone ?? "—") : maskPhone(data.user.phone)}</span>
+                        <span className="text-slate-300">{revealedPhone !== null ? revealedPhone : maskPhone(data.user.phone)}</span>
                         {data.user.phone && (
-                          <button onClick={() => setRevealPhone(v => !v)} className="text-blue-400 hover:text-blue-300 text-xs" aria-label="Toggle phone">
-                            {revealPhone ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          <button onClick={toggleRevealPhone} disabled={revealingPhone} className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50" aria-label="Toggle phone">
+                            {revealingPhone ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : revealedPhone !== null ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         )}
                       </div>
