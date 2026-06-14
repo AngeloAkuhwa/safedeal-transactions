@@ -322,6 +322,15 @@ export default function AdminUserDetail() {
                   <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
                     <StickyNote className="h-4 w-4" /> Add Note
                   </button>
+                  {data.user.is_suspended ? (
+                    <button onClick={() => setPendingAction({ kind: "unsuspend" })} className="px-4 py-2 bg-purple-500/20 border border-purple-500/40 text-purple-300 rounded-lg hover:bg-purple-500/30 transition-all text-sm font-medium inline-flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4" /> Unsuspend
+                    </button>
+                  ) : (
+                    <button onClick={() => setPendingAction({ kind: "suspend" })} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
+                      <Ban className="h-4 w-4" /> Suspend
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
