@@ -620,13 +620,15 @@ function VerifRow({
 }
 
 function StatCard({
-  icon, label, value, sub, pill,
+  icon, label, value, sub, pill, onClick,
 }: {
   icon: React.ReactNode; label: string; value: string; sub?: string;
   pill?: { text: string; tone: "red" | "emerald" };
+  onClick?: () => void;
 }) {
+  const Comp: any = onClick ? "button" : "div";
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+    <Comp onClick={onClick} className={`text-left bg-slate-900 border border-slate-800 rounded-xl p-5 ${onClick ? "hover:border-slate-700 hover:bg-slate-800/40 transition-all w-full" : ""}`}>
       <div className="flex items-center justify-between mb-2">
         {icon}
         {pill && (
@@ -636,6 +638,6 @@ function StatCard({
       <h3 className="text-slate-400 text-sm font-medium mb-1">{label}</h3>
       <p className="text-white text-2xl font-bold">{value}</p>
       {sub && <p className="text-slate-500 text-xs mt-1">{sub}</p>}
-    </div>
+    </Comp>
   );
 }
