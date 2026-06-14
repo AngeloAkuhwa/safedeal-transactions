@@ -153,20 +153,31 @@ export async function buildDirectory(admin: SupabaseClient): Promise<DirRow[]> {
 
   // 5) Transactions count + volume per user (as buyer or seller)
   const txByUser = new Map<string, { count: number; resolved: number; volume: number }>();
-  const RESOLVED_STATES = new Set(["completed", "released"]);
-  const { data: txs } = await admin
+  const FUNDED = new Set([
+    "payment_secured", "seller_preparing_delivery", "seller_dispatched",
+    "delivered_awaiting_verification", "disputed", "resolved", "completed", "refunded",
+  ]);
+  const RESOLVED_STATES = new Set(["completed", "resolved", "refunded"]);
+  const { data: txs, error: txErr } = await admin
     .from("transactions")
-    .select("buyer_id, seller_id, status, transaction_pricing(buyer_total_amount)")
-    .in("status", ["completed", "released", "funded", "in_escrow", "in_transit", "delivered"])
+    .select("id, buyer_id, seller_id, status")
+    .not("status", "in", "(draft,cancelled,timed_out)")
     .limit(20000);
+  if (txErr) console.error("transactions_select_failed", txErr);
+  const txIds = (txs ?? []).map((t) => t.id as string);
+  const amtByTx = new Map<string, number>();
+  if (txIds.length) {
+    const { data: pricing } = await admin
+      .from("transaction_pricing")
+      .select("transaction_id, buyer_total_amount")
+      .in("transaction_id", txIds);
+    for (const p of pricing ?? []) {
+      amtByTx.set(p.transaction_id as string, Number(p.buyer_total_amount ?? 0));
+    }
+  }
   for (const t of txs ?? []) {
-    const pricing = (t as Record<string, unknown>).transaction_pricing as
-      | { buyer_total_amount?: number | string | null }
-      | Array<{ buyer_total_amount?: number | string | null }>
-      | null;
-    const pricingRow = Array.isArray(pricing) ? pricing[0] : pricing;
-    const amount = Number(pricingRow?.buyer_total_amount ?? 0);
-    const status = ((t as Record<string, unknown>).status as string) ?? "";
+    const status = (t.status as string) ?? "";
+    const amount = FUNDED.has(status) ? (amtByTx.get(t.id as string) ?? 0) : 0;
     for (const uid of [t.buyer_id, t.seller_id].filter(Boolean) as string[]) {
       if (!ids.includes(uid)) continue;
       const cur = txByUser.get(uid) ?? { count: 0, resolved: 0, volume: 0 };
