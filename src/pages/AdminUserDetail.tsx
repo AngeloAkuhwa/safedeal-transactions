@@ -6,14 +6,17 @@ import {
   Flag, FlagOff, ShieldCheck, Mail, Phone, IdCard, Calendar,
   UserCircle, Wallet, ShoppingCart, Store, Scale, Star,
   History, ListChecks, Eye, EyeOff, Clock, CheckCircle2,
-  Building2, MapPin, Plus, Loader2,
+  Building2, MapPin, Plus, Loader2, ChevronDown, ShieldAlert, Home, Ban,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { fetchUserDirectoryDetail, type UserDirectoryDetail } from "@/services/admin-users-directory.service";
+import { fetchUserDirectoryDetail, exportUserDetail, revealUserSensitiveField, type UserDirectoryDetail, type UserExportType } from "@/services/admin-users-directory.service";
 import { performFlaggedAction } from "@/services/admin-flagged-users.service";
 import { formatMoney, formatMoneyCompact } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -48,7 +51,8 @@ function maskPhone(phone: string | null | undefined): string {
   return phone.slice(0, 2) + "•".repeat(phone.length - 6) + phone.slice(-4);
 }
 
-type PendingAction = { kind: "flag" | "clear_flag" | "suspend" | "add_note" } | null;
+type PendingAction = { kind: "flag" | "clear_flag" | "suspend" | "unsuspend" | "add_note" } | null;
+type ComplianceExportPrompt = { open: boolean };
 
 function csvEscape(v: unknown): string {
   const s = v == null ? "" : String(v);
@@ -96,9 +100,15 @@ export default function AdminUserDetail() {
   const { id: userId = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [revealEmail, setRevealEmail] = useState(false);
-  const [revealPhone, setRevealPhone] = useState(false);
+  const [revealedEmail, setRevealedEmail] = useState<string | null>(null);
+  const [revealedPhone, setRevealedPhone] = useState<string | null>(null);
+  const [revealingEmail, setRevealingEmail] = useState(false);
+  const [revealingPhone, setRevealingPhone] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [impersonateOpen, setImpersonateOpen] = useState(false);
+  const [complianceExport, setComplianceExport] = useState<ComplianceExportPrompt>({ open: false });
+  const [complianceReason, setComplianceReason] = useState("");
+  const [exporting, setExporting] = useState<UserExportType | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-user-detail", userId],
@@ -112,6 +122,7 @@ export default function AdminUserDetail() {
     const action = pendingAction.kind === "flag" ? "flag_user"
       : pendingAction.kind === "clear_flag" ? "clear_flag"
       : pendingAction.kind === "add_note" ? "add_note"
+      : pendingAction.kind === "unsuspend" ? "unsuspend_user"
       : "suspend_user";
     try {
       await performFlaggedAction({ action, user_id: data.user.user_id, note: reason });
@@ -128,24 +139,52 @@ export default function AdminUserDetail() {
     setPendingAction(null);
   };
 
-  const stub = (label: string) => () => toast({ title: `${label} — coming soon` });
-
-  const onExport = () => {
+  const runExport = async (kind: UserExportType, reason?: string) => {
     if (!data) return;
+    setExporting(kind);
     try {
-      const csv = buildSanitizedCsv(data);
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const blob = await exportUserDetail(data.user.user_id, kind, reason);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `user-${data.user.display_id}-sanitized.csv`;
+      a.download = `user-${data.user.display_id}-${kind}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast({ title: "Sanitized export ready", description: "CSV downloaded with masked fields only." });
+      toast({ title: `${kind} export ready`, description: "CSV downloaded." });
     } catch (e) {
       toast({ title: "Export failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const toggleRevealEmail = async () => {
+    if (revealedEmail !== null) { setRevealedEmail(null); return; }
+    if (!data) return;
+    setRevealingEmail(true);
+    try {
+      const { value } = await revealUserSensitiveField(data.user.user_id, "email");
+      setRevealedEmail(value ?? "—");
+    } catch (e) {
+      toast({ title: "Reveal failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setRevealingEmail(false);
+    }
+  };
+
+  const toggleRevealPhone = async () => {
+    if (revealedPhone !== null) { setRevealedPhone(null); return; }
+    if (!data) return;
+    setRevealingPhone(true);
+    try {
+      const { value } = await revealUserSensitiveField(data.user.user_id, "phone");
+      setRevealedPhone(value ?? "—");
+    } catch (e) {
+      toast({ title: "Reveal failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setRevealingPhone(false);
     }
   };
 
@@ -156,15 +195,8 @@ export default function AdminUserDetail() {
   const notes = data?.admin_notes ?? [];
   const recent = data?.recent_transactions ?? [];
   const timeline = data?.timeline ?? [];
-  const verifPct = useMemo(() => {
-    if (!verif) return 0;
-    let n = 0;
-    if (verif.email) n += 1;
-    if (verif.phone) n += 1;
-    if (verif.identity_level >= 2) n += 1;
-    if (verif.bank_status === "verified") n += 1;
-    return Math.round((n / 4) * 100);
-  }, [verif]);
+  const verifPct = verif?.progress_percent ?? 0;
+  const actions = data?.available_actions;
 
   return (
     <AdminLayout title="User Investigation Hub" hideDefaultHeaders fullBleed>
