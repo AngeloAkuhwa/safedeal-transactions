@@ -79,6 +79,30 @@ Deno.serve(async (req) => {
     .order("occurred_at", { ascending: false })
     .limit(30);
 
+  // Recent login sessions
+  const { data: sessions } = await admin
+    .from("user_sessions")
+    .select("id, created_at, ip_address, city_name, country_code")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  // Payout account history (create + update events)
+  const { data: payouts } = await admin
+    .from("payout_accounts")
+    .select("id, bank_name, masked_account_number, verification_status, created_at, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .limit(10);
+
+  // Identity submission events
+  const { data: idSubs } = await admin
+    .from("identity_submissions")
+    .select("id, status, provider, rejection_reason, created_at, reviewed_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
   const adminIds = Array.from(new Set([
     ...((actions ?? []).map((a) => a.admin_user_id as string)),
     ...((audits ?? []).map((a) => a.actor_user_id as string)),
@@ -88,6 +112,10 @@ Deno.serve(async (req) => {
     const { data: aprofs } = await admin.from("profiles").select("id, full_name").in("id", adminIds);
     for (const p of aprofs ?? []) adminNames.set(p.id as string, (p.full_name as string) ?? "Admin");
   }
+
+  // Map transaction_id → transaction_code for context lines
+  const txCodeById = new Map<string, string>();
+  for (const t of txs ?? []) txCodeById.set(t.id as string, (t.transaction_code as string) ?? "");
 
   // --- Additive blocks for the full-screen user detail page ---
 
@@ -215,31 +243,16 @@ Deno.serve(async (req) => {
       dispute_id: d.id, transaction_id: d.transaction_id, status: d.status,
       reason: d.reason, created_at: d.opened_at,
     })),
-    timeline: [
-      ...((actions ?? []).map((a) => ({
-        id: `aa_${a.id}`, type: a.action_type as string, note: a.action_notes as string | null,
-        admin_name: adminNames.get(a.admin_user_id as string) ?? "System",
-        created_at: a.created_at as string,
-        transaction_id: a.transaction_id as string | null, dispute_id: a.dispute_id as string | null,
-        source: "admin_action" as const,
-      }))),
-      ...((audits ?? []).map((a) => ({
-        id: `au_${a.id}`, type: a.action as string, note: (a.description as string | null) ?? null,
-        admin_name: adminNames.get(a.actor_user_id as string) ?? "System",
-        created_at: a.created_at as string,
-        transaction_id: a.transaction_id as string | null, dispute_id: null,
-        source: "audit" as const,
-      }))),
-      ...((txEvents ?? []).map((e) => ({
-        id: `te_${e.id}`, type: e.event_type as string, note: null,
-        admin_name: "System",
-        created_at: e.occurred_at as string,
-        transaction_id: e.transaction_id as string | null, dispute_id: null,
-        source: "transaction_event" as const,
-      }))),
-    ]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 30),
+    timeline: buildTimeline({
+      actions: actions ?? [],
+      audits: audits ?? [],
+      txEvents: txEvents ?? [],
+      sessions: sessions ?? [],
+      payouts: payouts ?? [],
+      idSubs: idSubs ?? [],
+      txCodeById,
+      adminNames,
+    }),
     stats: {
       as_buyer: { count: buyerCount, volume: buyerVolume },
       as_seller: { count: sellerCount, volume: sellerVolume },
