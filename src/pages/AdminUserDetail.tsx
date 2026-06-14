@@ -324,8 +324,10 @@ export default function AdminUserDetail() {
                       <p className="text-white font-medium">{data.user.full_name || "—"}</p>
                     </div>
                     <div>
-                      <p className="text-slate-400 text-xs font-semibold mb-1">Handle</p>
-                      <p className="text-white font-medium">{data.user.handle}</p>
+                      <p className="text-slate-400 text-xs font-semibold mb-1">Location</p>
+                      <p className="text-white font-medium">
+                        {[verif?.address_city, verif?.address_state, verif?.address_country].filter(Boolean).join(", ") || "—"}
+                      </p>
                     </div>
                     <div>
                       <p className="text-slate-400 text-xs font-semibold mb-1">Account Status</p>
@@ -383,26 +385,18 @@ export default function AdminUserDetail() {
                       pendingLabel="Pending"
                     />
                     <VerifRow
-                      icon={<ShieldAlert className="h-4 w-4" />}
-                      label="AML Screening"
-                      ok={verif?.aml_status === "clear"}
-                      okLabel="Clear"
-                      pending={verif?.aml_status === "review"}
-                      pendingLabel="In Review"
-                    />
-                    <VerifRow
                       icon={<Home className="h-4 w-4" />}
                       label="Address"
                       ok={verif?.address_status === "provided"}
                       okLabel="Provided"
                     />
                     <div className="pt-3 border-t border-slate-800">
-                      <p className="text-slate-400 text-xs mb-2">Verification Coverage</p>
+                      <p className="text-slate-400 text-xs mb-2">Verification Level</p>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
                           <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500" style={{ width: `${verifPct}%` }} />
                         </div>
-                        <span className="text-white text-sm font-bold">{verifPct}%</span>
+                        <span className="text-white text-sm font-bold">Level {verif?.identity_level ?? 0}</span>
                       </div>
                     </div>
                   </div>
