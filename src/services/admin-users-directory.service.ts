@@ -83,6 +83,35 @@ export interface UserDirectoryDetail {
     admin_name: string; created_at: string;
     transaction_id?: string | null; dispute_id?: string | null;
   }>;
+  stats?: {
+    as_buyer: { count: number; volume: number };
+    as_seller: { count: number; volume: number };
+    disputes: { total: number; active: number; filed: number; received: number };
+  };
+  payout_account?: {
+    bank_name: string | null;
+    account_name: string | null;
+    masked_account_number: string | null;
+    status: string | null;
+    added_on: string | null;
+  } | null;
+  profile_extra?: {
+    last_login_at: string | null;
+    last_login_ip: string | null;
+    last_login_city: string | null;
+    last_login_state: string | null;
+    last_login_country: string | null;
+  } | null;
+  verification_detail?: {
+    email: boolean;
+    phone: boolean;
+    identity_level: number;
+    bank_status: string;
+  };
+  admin_notes?: Array<{
+    id: string; type: string; note: string | null;
+    admin_name: string; created_at: string; priority: string;
+  }>;
 }
 
 function toParams(q: UserDirectoryQuery): URLSearchParams {
