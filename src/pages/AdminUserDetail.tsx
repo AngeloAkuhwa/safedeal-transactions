@@ -313,12 +313,12 @@ export default function AdminUserDetail() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Profile Information */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-5 border-b border-slate-800">
+                  <div className="p-6 border-b border-slate-800">
                     <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                       <UserCircle className="h-5 w-5 text-blue-400" /> Profile Information
                     </h3>
                   </div>
-                  <div className="p-5 space-y-4">
+                  <div className="p-6 space-y-4">
                     <div>
                       <p className="text-slate-400 text-xs font-semibold mb-1">Full Name</p>
                       <p className="text-white font-medium">{data.user.full_name || "—"}</p>
@@ -360,12 +360,12 @@ export default function AdminUserDetail() {
 
                 {/* Verification Status */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-5 border-b border-slate-800">
+                  <div className="p-6 border-b border-slate-800">
                     <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                       <ShieldCheck className="h-5 w-5 text-emerald-400" /> Verification Status
                     </h3>
                   </div>
-                  <div className="p-5 space-y-4">
+                  <div className="p-6 space-y-4">
                     <VerifRow icon={<Mail className="h-4 w-4" />} label="Email" ok={!!verif?.email} okLabel="Verified" />
                     <VerifRow icon={<Phone className="h-4 w-4" />} label="Phone" ok={!!verif?.phone} okLabel="Verified" />
                     <VerifRow
@@ -404,12 +404,12 @@ export default function AdminUserDetail() {
 
                 {/* Payout Account */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-5 border-b border-slate-800">
+                  <div className="p-6 border-b border-slate-800">
                     <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                       <Wallet className="h-5 w-5 text-purple-400" /> Payout Account
                     </h3>
                   </div>
-                  <div className="p-5 space-y-4">
+                  <div className="p-6 space-y-4">
                     {payout ? (
                       <>
                         <div>
@@ -480,7 +480,7 @@ export default function AdminUserDetail() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Recent Transactions */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+                  <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                     <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                       <RotateCcw className="h-5 w-5 text-blue-400" /> Recent Transactions
                     </h3>
@@ -499,7 +499,7 @@ export default function AdminUserDetail() {
                         <button
                           key={t.transaction_id}
                           onClick={() => navigate(`/admin/transactions/${t.transaction_id}`)}
-                          className="w-full text-left p-5 hover:bg-slate-800/50 transition-all"
+                          className="w-full text-left p-6 hover:bg-slate-800/50 transition-all"
                         >
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="flex items-center gap-3 min-w-0">
@@ -527,12 +527,12 @@ export default function AdminUserDetail() {
 
                 {/* Activity Log */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+                  <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                     <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                       <ListChecks className="h-5 w-5 text-purple-400" /> Activity Log
                     </h3>
                   </div>
-                  <div className="p-5 space-y-4">
+                  <div className="p-6 space-y-4">
                     {timeline.length === 0 && <p className="text-slate-500 text-sm text-center py-6">No admin activity recorded.</p>}
                     {timeline.map((a) => {
                       const t = String(a.type ?? "");
@@ -558,7 +558,7 @@ export default function AdminUserDetail() {
 
               {/* Row 4 — Admin Notes & Flags */}
               <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+                <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                   <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                     <StickyNote className="h-5 w-5 text-yellow-400" /> Admin Notes &amp; Flags
                   </h3>
@@ -571,7 +571,7 @@ export default function AdminUserDetail() {
                     </button>
                   </div>
                 </div>
-                <div className="p-5 space-y-4">
+                <div className="p-6 space-y-4">
                   {notes.length === 0 && <p className="text-slate-500 text-sm text-center py-6">No notes or flags recorded.</p>}
                   {notes.map((n) => {
                     const high = n.priority === "high";
@@ -705,7 +705,7 @@ function StatCard({
 }) {
   const Comp: any = onClick ? "button" : "div";
   return (
-    <Comp onClick={onClick} className={`text-left bg-slate-900 border border-slate-800 rounded-xl p-5 ${onClick ? "hover:border-slate-700 hover:bg-slate-800/40 transition-all w-full" : ""}`}>
+    <Comp onClick={onClick} className={`text-left bg-slate-900 border border-slate-800 rounded-xl p-6 ${onClick ? "hover:border-slate-700 hover:bg-slate-800/40 transition-all w-full" : ""}`}>
       <div className="flex items-center justify-between mb-2">
         {icon}
         {pill && (
