@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import type { UserDirectoryRow } from "@/services/admin-users-directory.service";
 import { formatMoneyCompact } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
+import { PresenceDot } from "./PresenceDot";
 
 interface Props {
   rows: UserDirectoryRow[];
@@ -17,6 +18,7 @@ interface Props {
   onPage: (p: number) => void;
   onFlagToggle: (row: UserDirectoryRow) => void;
   onSuspend: (row: UserDirectoryRow) => void;
+  isOnline?: (userId: string) => boolean;
 }
 
 const ROLE_CLASS: Record<string, string> = {
@@ -51,7 +53,7 @@ function fmtJoined(iso: string | null): string {
   return new Date(iso).toLocaleDateString("en-NG", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, onFlagToggle }: Props) {
+export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, onFlagToggle, isOnline }: Props) {
   const navigate = useNavigate();
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(total, page * pageSize);
@@ -96,10 +98,11 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                 <tr key={r.user_id} className="hover:bg-slate-800/50 transition-all">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <button onClick={() => onOpenDetail(r.user_id)} className="block">
+                      <button onClick={() => onOpenDetail(r.user_id)} className="relative block">
                         {r.avatar_url
                           ? <img src={r.avatar_url} className={`w-10 h-10 rounded-full ring-2 ${ring}`} alt={r.full_name} />
                           : <span className={`w-10 h-10 rounded-full ring-2 ${ring} bg-slate-700 text-white font-semibold inline-flex items-center justify-center`}>{init}</span>}
+                        <PresenceDot online={!!isOnline?.(r.user_id)} ringClass="ring-slate-900" />
                       </button>
                       <div>
                         <div className="flex items-center gap-2">
