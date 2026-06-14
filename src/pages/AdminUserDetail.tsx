@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Download, StickyNote, UserCog, Search,
-  Flag, FlagOff, ShieldCheck, Mail, Phone, IdBadge, Calendar,
+  Flag, FlagOff, ShieldCheck, Mail, Phone, IdCard, Calendar,
   UserCircle, Wallet, ShoppingCart, Store, Scale, Star,
   History, ListChecks, Eye, EyeOff, Clock, CheckCircle2,
   Building2, MapPin, Plus, Loader2,
@@ -179,7 +179,7 @@ export default function AdminUserDetail() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-sm">
-                        <IdBadge className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        <IdCard className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                         <span className="text-slate-300">User ID: {data.user.display_id}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
@@ -285,7 +285,7 @@ export default function AdminUserDetail() {
                     <VerifRow icon={<Mail className="h-4 w-4" />} label="Email" ok={!!verif?.email} okLabel="Verified" />
                     <VerifRow icon={<Phone className="h-4 w-4" />} label="Phone" ok={!!verif?.phone} okLabel="Verified" />
                     <VerifRow
-                      icon={<IdBadge className="h-4 w-4" />}
+                      icon={<IdCard className="h-4 w-4" />}
                       label="Identity (KYC)"
                       ok={(verif?.identity_level ?? 0) >= 2}
                       okLabel={`Level ${verif?.identity_level ?? 0}`}
