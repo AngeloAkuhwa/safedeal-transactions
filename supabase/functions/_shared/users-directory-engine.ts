@@ -156,11 +156,16 @@ export async function buildDirectory(admin: SupabaseClient): Promise<DirRow[]> {
   const RESOLVED_STATES = new Set(["completed", "released"]);
   const { data: txs } = await admin
     .from("transactions")
-    .select("buyer_id, seller_id, total_amount, status")
+    .select("buyer_id, seller_id, status, transaction_pricing(buyer_total_amount)")
     .in("status", ["completed", "released", "funded", "in_escrow", "in_transit", "delivered"])
     .limit(20000);
   for (const t of txs ?? []) {
-    const amount = Number((t as Record<string, unknown>).total_amount ?? 0);
+    const pricing = (t as Record<string, unknown>).transaction_pricing as
+      | { buyer_total_amount?: number | string | null }
+      | Array<{ buyer_total_amount?: number | string | null }>
+      | null;
+    const pricingRow = Array.isArray(pricing) ? pricing[0] : pricing;
+    const amount = Number(pricingRow?.buyer_total_amount ?? 0);
     const status = ((t as Record<string, unknown>).status as string) ?? "";
     for (const uid of [t.buyer_id, t.seller_id].filter(Boolean) as string[]) {
       if (!ids.includes(uid)) continue;

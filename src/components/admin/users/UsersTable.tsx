@@ -159,9 +159,11 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                     </p>
                   </td>
                   <td className="p-4 text-right">
-                    <p className="text-white font-bold text-base">{r.disputes.total}</p>
+                    <p className={`font-bold text-base ${r.disputes.active > 0 ? "text-red-400" : "text-white"}`}>
+                      {r.disputes.active > 0 ? r.disputes.active : r.disputes.total}
+                    </p>
                     {r.disputes.active > 0
-                      ? <p className="text-red-400 text-xs mt-0.5 font-medium">Active disputes</p>
+                      ? <p className="text-red-400 text-xs mt-0.5 font-medium">Active · of {r.disputes.total} total</p>
                       : r.disputes.total > 0
                         ? <p className="text-yellow-400 text-xs mt-0.5 font-medium">In progress</p>
                         : <p className="text-slate-400 text-xs mt-0.5">Clean record</p>}
