@@ -138,6 +138,7 @@ const App = () => (
               <Route path="/admin/flagged-users" element={<AdminFlaggedUsers />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/users/:id" element={<AdminUsers />} />
+              <Route path="/admin/users/:id/profile" element={<AdminUserDetail />} />
             </Route>
 
             {/* Protected: requires session + seller role */}
