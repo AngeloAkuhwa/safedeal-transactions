@@ -6,7 +6,8 @@ import {
   Flag, FlagOff, ShieldCheck, Mail, Phone, IdCard, Calendar,
   UserCircle, Wallet, ShoppingCart, Store, Scale, Star,
   History, ListChecks, Eye, EyeOff, Clock, CheckCircle2,
-  Building2, MapPin, Plus, Loader2, ChevronDown, ShieldAlert, Home, Ban,
+  Building2, MapPin, Plus, Loader2, ChevronDown, Home, Ban,
+  RotateCcw, ArrowDown, ArrowUp, AlertCircle, Info,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { fetchUserDirectoryDetail, exportUserDetail, revealUserSensitiveField, type UserExportType } from "@/services/admin-users-directory.service";
