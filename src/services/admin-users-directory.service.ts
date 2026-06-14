@@ -82,7 +82,11 @@ export interface UserDirectoryDetail {
     id: string; type: string; note: string | null;
     admin_name: string; created_at: string;
     transaction_id?: string | null; dispute_id?: string | null;
-    source?: "admin_action" | "audit" | "transaction_event";
+    source?: "admin_action" | "audit" | "transaction_event" | "session" | "payout" | "identity";
+    title?: string;
+    context?: string | null;
+    transaction_code?: string | null;
+    severity?: "high" | "warning" | "success" | "info" | "neutral";
   }>;
   stats?: {
     as_buyer: { count: number; volume: number };
