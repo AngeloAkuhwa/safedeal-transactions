@@ -423,6 +423,20 @@ export default function AdminUserDetail() {
                       pending={verif?.bank_status === "pending"}
                       pendingLabel="Pending"
                     />
+                    <VerifRow
+                      icon={<ShieldAlert className="h-4 w-4" />}
+                      label="AML Screening"
+                      ok={verif?.aml_status === "clear"}
+                      okLabel="Clear"
+                      pending={verif?.aml_status === "review"}
+                      pendingLabel="In Review"
+                    />
+                    <VerifRow
+                      icon={<Home className="h-4 w-4" />}
+                      label="Address"
+                      ok={verif?.address_status === "provided"}
+                      okLabel="Provided"
+                    />
                     <div className="pt-3 border-t border-slate-800">
                       <p className="text-slate-400 text-xs mb-2">Verification Coverage</p>
                       <div className="flex items-center gap-2">
@@ -632,6 +646,7 @@ export default function AdminUserDetail() {
           pendingAction?.kind === "flag" ? `Flag ${data?.user.full_name ?? "user"} for fraud review`
             : pendingAction?.kind === "clear_flag" ? `Clear flag on ${data?.user.full_name ?? "user"}`
             : pendingAction?.kind === "add_note" ? `Add note for ${data?.user.full_name ?? "user"}`
+            : pendingAction?.kind === "unsuspend" ? `Unsuspend ${data?.user.full_name ?? "user"}`
             : pendingAction ? `Suspend ${data?.user.full_name ?? "user"}` : ""
         }
         description="A note is required and will appear in the audit timeline."
@@ -640,12 +655,59 @@ export default function AdminUserDetail() {
         confirmLabel={
           pendingAction?.kind === "clear_flag" ? "Clear flag"
           : pendingAction?.kind === "suspend" ? "Suspend user"
+          : pendingAction?.kind === "unsuspend" ? "Unsuspend user"
           : pendingAction?.kind === "add_note" ? "Save note"
           : "Flag user"
         }
-        confirmTone={pendingAction?.kind === "clear_flag" || pendingAction?.kind === "add_note" ? "primary" : "danger"}
+        confirmTone={pendingAction?.kind === "clear_flag" || pendingAction?.kind === "add_note" || pendingAction?.kind === "unsuspend" ? "primary" : "danger"}
         onConfirm={onConfirmAction}
       />
+
+      {/* Impersonate informational modal */}
+      <Dialog open={impersonateOpen} onOpenChange={setImpersonateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Impersonation not available</DialogTitle>
+            <DialogDescription>
+              Impersonation is not enabled yet. Once configured, admins will be able to assume this user's session for limited troubleshooting, fully audited.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setImpersonateOpen(false)}>Got it</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Compliance export reason modal */}
+      <Dialog open={complianceExport.open} onOpenChange={(o) => setComplianceExport({ open: o })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Compliance export</DialogTitle>
+            <DialogDescription>
+              A reason is required. The export and reason will be recorded in the audit log. This export includes unmasked compliance-sensitive fields and is restricted to compliance or super-admin roles.
+            </DialogDescription>
+          </DialogHeader>
+          <textarea
+            value={complianceReason}
+            onChange={(e) => setComplianceReason(e.target.value)}
+            placeholder="Reason for compliance export…"
+            className="w-full min-h-24 rounded-md border bg-background p-3 text-sm"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setComplianceExport({ open: false })}>Cancel</Button>
+            <Button
+              disabled={!complianceReason.trim() || exporting === "compliance"}
+              onClick={async () => {
+                const r = complianceReason.trim();
+                setComplianceExport({ open: false });
+                await runExport("compliance", r);
+              }}
+            >
+              {exporting === "compliance" ? "Exporting…" : "Download"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
