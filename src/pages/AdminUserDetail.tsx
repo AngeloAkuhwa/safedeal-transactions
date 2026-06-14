@@ -541,11 +541,20 @@ export default function AdminUserDetail() {
                         : t.includes("clear") ? "bg-emerald-400"
                         : t.includes("note") ? "bg-yellow-400"
                         : "bg-blue-400";
+                      const src = (a as { source?: string }).source;
+                      const srcLabel = src === "audit" ? "Audit" : src === "transaction_event" ? "Event" : src === "admin_action" ? "Admin" : null;
                       return (
                         <div key={a.id} className="flex gap-3">
                           <div className={`w-2 h-2 ${dot} rounded-full mt-1.5 shrink-0`} />
                           <div className="flex-1 min-w-0">
-                            <p className="text-white text-sm font-medium capitalize">{t.replace(/_/g, " ")}</p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-white text-sm font-medium capitalize">{t.replace(/_/g, " ")}</p>
+                              {srcLabel && (
+                                <span className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400 text-[10px] font-semibold uppercase tracking-wide">
+                                  {srcLabel}
+                                </span>
+                              )}
+                            </div>
                             {a.note && <p className="text-slate-400 text-xs mt-0.5">{a.note}</p>}
                             <p className="text-slate-500 text-xs mt-1">{relative(a.created_at)}</p>
                           </div>

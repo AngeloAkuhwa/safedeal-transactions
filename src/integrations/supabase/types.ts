@@ -4373,6 +4373,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["verification_level_type"]
       }
+      derive_target_user_id: {
+        Args: { p_dispute_id: string; p_transaction_id: string }
+        Returns: string
+      }
       dispute_request_more_info_atomic: {
         Args: {
           p_actor: string

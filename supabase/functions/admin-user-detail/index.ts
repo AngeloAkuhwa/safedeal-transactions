@@ -59,11 +59,30 @@ Deno.serve(async (req) => {
   const { data: actions } = await admin
     .from("admin_actions")
     .select("id, action_type, action_notes, admin_user_id, created_at, transaction_id, dispute_id")
-    .eq("target_user_id", userId)
+    .or(`target_user_id.eq.${userId},transaction_id.in.(${(txs ?? []).map((t) => `'${t.id}'`).join(",") || "''"})`)
     .order("created_at", { ascending: false })
-    .limit(20);
+    .limit(30);
 
-  const adminIds = Array.from(new Set((actions ?? []).map((a) => a.admin_user_id as string).filter(Boolean)));
+  // Audit logs (widened to transactions involving this user)
+  const { data: audits } = await admin
+    .from("audit_logs")
+    .select("id, action, description, actor_user_id, created_at, transaction_id")
+    .or(`target_user_id.eq.${userId},transaction_id.in.(${(txs ?? []).map((t) => `'${t.id}'`).join(",") || "''"})`)
+    .order("created_at", { ascending: false })
+    .limit(30);
+
+  // Transaction events for any transaction where the user is buyer or seller
+  const { data: txEvents } = await admin
+    .from("transaction_events")
+    .select("id, event_type, transaction_id, actor_user_id, occurred_at")
+    .in("transaction_id", (txs ?? []).map((t) => t.id as string))
+    .order("occurred_at", { ascending: false })
+    .limit(30);
+
+  const adminIds = Array.from(new Set([
+    ...((actions ?? []).map((a) => a.admin_user_id as string)),
+    ...((audits ?? []).map((a) => a.actor_user_id as string)),
+  ].filter(Boolean)));
   const adminNames = new Map<string, string>();
   if (adminIds.length) {
     const { data: aprofs } = await admin.from("profiles").select("id, full_name").in("id", adminIds);
@@ -196,12 +215,31 @@ Deno.serve(async (req) => {
       dispute_id: d.id, transaction_id: d.transaction_id, status: d.status,
       reason: d.reason, created_at: d.opened_at,
     })),
-    timeline: (actions ?? []).map((a) => ({
-      id: a.id, type: a.action_type, note: a.action_notes,
-      admin_name: adminNames.get(a.admin_user_id as string) ?? "System",
-      created_at: a.created_at,
-      transaction_id: a.transaction_id, dispute_id: a.dispute_id,
-    })),
+    timeline: [
+      ...((actions ?? []).map((a) => ({
+        id: `aa_${a.id}`, type: a.action_type as string, note: a.action_notes as string | null,
+        admin_name: adminNames.get(a.admin_user_id as string) ?? "System",
+        created_at: a.created_at as string,
+        transaction_id: a.transaction_id as string | null, dispute_id: a.dispute_id as string | null,
+        source: "admin_action" as const,
+      }))),
+      ...((audits ?? []).map((a) => ({
+        id: `au_${a.id}`, type: a.action as string, note: (a.description as string | null) ?? null,
+        admin_name: adminNames.get(a.actor_user_id as string) ?? "System",
+        created_at: a.created_at as string,
+        transaction_id: a.transaction_id as string | null, dispute_id: null,
+        source: "audit" as const,
+      }))),
+      ...((txEvents ?? []).map((e) => ({
+        id: `te_${e.id}`, type: e.event_type as string, note: null,
+        admin_name: "System",
+        created_at: e.occurred_at as string,
+        transaction_id: e.transaction_id as string | null, dispute_id: null,
+        source: "transaction_event" as const,
+      }))),
+    ]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 30),
     stats: {
       as_buyer: { count: buyerCount, volume: buyerVolume },
       as_seller: { count: sellerCount, volume: sellerVolume },

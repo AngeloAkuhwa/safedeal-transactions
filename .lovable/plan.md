@@ -1,46 +1,47 @@
-## Goal
+## Root cause
 
-Make the **User Investigation Hub** page (`/admin/users/:id`) match the attached `User Detail View.html` design 100% — icons, structure, spacing, header stickiness, and document flow — while keeping all existing live data wiring.
+The "Activity Log" on the user investigation page is always empty because the data isn't linked to users the way the page filters it.
 
-## Findings (current vs design)
+- The page calls the `admin-user-detail` endpoint, which builds the activity timeline by selecting only `admin_actions` rows where `target_user_id = <this user>`.
+- In the database today, **0 of 12** `admin_actions` rows and **0 of 8** `audit_logs` rows have a `target_user_id` set. Every row is linked only to a `transaction_id` (or `dispute_id`).
+- So the filter always returns nothing — for every user, no matter what.
 
-1. **Sticky header**: The header already declares `sticky top-0 z-40`, but in practice the body scrolls page-wide because the surrounding wrapper has no overflow context — and on the user's screen the header scrolls away with the content. Needs to be re-anchored against the page scroll container (the `AdminLayout` main pane) so it truly pins.
-2. **Icons mismatch**: Design uses Font-Awesome glyphs that map to specific Lucide equivalents we are not all using:
-   - Header: `fa-flag-checkered` for Unflag → use `Flag` with red treatment (we have `FlagOff` which is fine; just match design wording/tone).
-   - Profile card: `fa-user-circle` → `UserCircle` ✓
-   - Verification card: `fa-shield-check` (emerald) → `ShieldCheck` ✓
-   - Payout card: `fa-wallet` (purple) → `Wallet` ✓
-   - Stat cards: `fa-shopping-cart`, `fa-store`, `fa-scale-balanced`, `fa-star` → `ShoppingCart`, `Store`, `Scale`, `Star` ✓
-   - Recent Transactions header: `fa-clock-rotate-left` (blue) → swap our `History` for `RotateCcw` (closer match) — visually identical.
-   - Each transaction row uses `fa-arrow-down` / `fa-arrow-up` / `fa-exclamation` colored tiles by counterparty/status. Currently we render a generic `Scale` for every row. Replace with `ArrowDown` (buyer), `ArrowUp` (seller), `AlertCircle`/`AlertTriangle` (disputed).
-   - Activity Log header: `fa-list-check` (purple) → `ListChecks` ✓
-   - Admin Notes header: `fa-note-sticky` (yellow) → `StickyNote` ✓; note items use `fa-flag` (red) for high, `fa-circle-info` (blue) for info — swap our yellow info icon to `Info` (blue) when not high-priority.
-3. **Profile Information card** — design shows: Full Name, Date of Birth, Location, Account Status, Last Login (with IP). Ours shows: Full Name, Handle, Account Status, Last Login, Last Active. Re-order and rename to match design: drop "Handle", add "Date of Birth" (from `verification_detail`/profile if available, else hide gracefully) and "Location" (from `verification_detail.address_*`, else "—"). Keep "Last Active" hidden when DOB/Location available to match design length.
-4. **Verification Status card** — match design order exactly: Email, Phone, Identity (KYC), Bank Account, Address. Move **AML Screening** out (design doesn't have it on this card). Progress label "Verification Coverage" → keep as "Verification Level" with `Level N` text on the right, matching design.
-5. **Payout Account card** — add **Account Type** ("Checking Account" placeholder when unknown), and **Routing Number** masked field with eye-reveal button (already wired for `account_number`; add equivalent for routing if available, otherwise omit the row gracefully).
-6. **Stat cards** — show small delta pills (`+12%`, `+8%`, `2 Active`, `Excellent`) like the design when data is available, and fall back to nothing when not. "Trust Score" stays as "—" until backend supplies it.
-7. **Recent Transactions** — each row shows item name (product/title) above the tx code in design. We currently show `transaction_code` as the title. Use the linked product/title if exposed by the edge function; otherwise keep `transaction_code` as the title and put `status` in the subtitle (already correct). The main fix is icon tiles per row (arrow-up/down/exclamation) and removing the duplicate status pill on the right (design shows one pill only).
-8. **Activity Log** — design shows colored dot + title + meta + relative-time, no admin-name prefix. Drop "by {admin_name}" line; keep "{relative}" only. Dot colors: green (login/verification), blue (payout/profile update), orange (dispute), purple (transaction completed), red (flag), already partially implemented.
-9. **Admin Notes & Flags** — `INFORMATION` notes should use a blue `Info` icon (currently yellow `StickyNote`). High priority unchanged.
-10. **Document flow / spacing** — design uses `p-6` inside cards, `space-y-6` between sections, `gap-6` grids. Match these (we currently use `p-5` in card bodies). Bump to `p-6`.
+This is consistent with how rows get created: most admin/transaction edge functions and SQL triggers insert into `admin_actions`/`audit_logs` with `transaction_id` but never populate `target_user_id`. Only a few flows (flag/clear/suspend on the flagged-users action, identity review, and the user export/reveal helpers) currently set `target_user_id`.
 
-## Implementation Steps (single file: `src/pages/AdminUserDetail.tsx`)
+## What I'll change
 
-1. **Sticky header fix**
-   - Wrap the page with a single scrollable container: change the outer wrapper to `min-h-screen` flex column, the header to `sticky top-0 z-40` on that flex column.
-   - Pass `fullHeight` to `AdminLayout` so the main pane has `overflow-y-auto` and the sticky context attaches correctly. Validate header pins on scroll.
-2. **Icons swap** — update imports and usages per the mapping above. Add `RotateCcw`, `ArrowDown`, `ArrowUp`, `AlertCircle`, `Info` from `lucide-react`.
-3. **Profile Information card** — replace Handle row with `Date of Birth` (placeholder "—" if not in data) and `Location` (compose from `verif.address_city`, `address_state`, `address_country`).
-4. **Verification Status card** — remove the AML row; keep 5 rows matching design; rename progress label to `Verification Level` and append the computed `Level N` derivation (0–3) based on completed checks.
-5. **Payout Account card** — add Account Type + Routing Number rows with masked text and eye toggles (reuse `revealUserSensitiveField` with field `account_number` for both, server fallback to "—").
-6. **Stat cards** — add optional `delta` prop to `StatCard`; supply `+12%`/`+8%`/`Excellent` only when data is present (otherwise hide pill).
-7. **Recent Transactions** — replace per-row icon tile with `ArrowDown` (buyer), `ArrowUp` (seller), `AlertCircle` (disputed); drop the duplicate status pill, keep one on the right.
-8. **Activity Log** — drop "by {admin_name}" from each item; keep the dot-color logic.
-9. **Admin Notes** — when `priority !== "high"`, render `Info` (blue) instead of yellow `StickyNote`, and use `bg-slate-800/50 border-slate-700` (already matches).
-10. **Spacing pass** — bump card body padding to `p-6` and confirm `space-y-6` / `gap-6` everywhere to match design rhythm.
+### 1. Backfill existing rows so old activity shows up
+One-time data fix:
+- For every `admin_actions` row with `target_user_id IS NULL` and a `transaction_id`, set `target_user_id` to the related transaction's `seller_id` (sellers are the most relevant party for admin freeze/release/note/escalate actions).
+- Same backfill on `audit_logs`.
+- Where the row is linked only to a `dispute_id`, derive the transaction via the dispute and use the same seller-based rule.
+
+### 2. Auto-link future rows at the database layer
+Add a `BEFORE INSERT` trigger on `admin_actions` and `audit_logs` that, if `target_user_id` is null, derives it from `transaction_id` → `seller_id` (or from `dispute_id` → transaction → seller). This is a safety net so we never silently lose the user link again, even if a future edge function forgets to set it.
+
+### 3. Widen the timeline query
+Update `supabase/functions/admin-user-detail/index.ts` so the activity feed for a user merges three sources and returns the most recent 30 entries:
+- `admin_actions` where target user matches OR where the transaction/dispute belongs to this user (covers buyer side too).
+- `audit_logs` with the same widened filter.
+- `transaction_events` for any transaction where the user is buyer or seller (gives state-change context like "payment secured", "funds released").
+
+Each entry is normalized into the existing timeline shape with an extra `source` tag (`admin_action | audit | transaction_event`) so the UI can keep its existing dot/colour logic and just render a small source label.
+
+### 4. Light UI polish on the Activity Log card
+- Add a small grey "source" pill on each timeline row.
+- Keep the existing empty state, dot colours, and "Add note" affordances unchanged.
+- No design or layout changes.
+
+### 5. Going forward
+No application code changes are required at the existing insert sites, because the new DB trigger fills in `target_user_id` automatically. We can tighten individual edge functions later if needed, but this plan keeps the surface area small.
 
 ## Out of scope
+- No change to the user-detail export endpoints or the compliance flow.
+- No change to admin notes/flags card data source.
+- No RLS changes (existing admin-only policies on both tables remain).
+- No new tables.
 
-- No backend/edge-function changes.
-- No new dependencies (Font-Awesome stays out; Lucide-only).
-- No changes to the Activity Log timeline data source (separate work).
+## Technical notes
+- Files touched: one new migration (backfill + trigger + helper function), `supabase/functions/admin-user-detail/index.ts`, `src/pages/AdminUserDetail.tsx` (source pill only), and the timeline type in `src/services/admin-users-directory.service.ts` (add optional `source` field).
+- Backfill uses `UPDATE … FROM transactions/disputes` and is idempotent (only touches rows where `target_user_id IS NULL`).
+- Trigger is `SECURITY DEFINER` with a pinned `search_path` and only fires when `target_user_id IS NULL` so it never overrides an explicit value.
