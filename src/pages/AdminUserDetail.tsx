@@ -168,9 +168,9 @@ export default function AdminUserDetail() {
 
   return (
     <AdminLayout title="User Investigation Hub" hideDefaultHeaders fullBleed>
-      <div className="bg-slate-950 min-h-screen text-slate-200">
-        {/* Sticky page header */}
-        <header className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-20">
+      <div className="bg-slate-950 text-slate-200">
+        {/* Sticky page header — pins to viewport while body scrolls under it */}
+        <header className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-40 shadow-md shadow-black/20">
           <div className="flex items-start lg:items-center justify-between mb-4 flex-col lg:flex-row gap-3">
             <div className="flex items-center gap-3 lg:gap-4">
               <button
