@@ -137,9 +137,9 @@ const App = () => (
               <Route path="/admin/escrow" element={<AdminEscrow />} />
               <Route path="/admin/flagged-users" element={<AdminFlaggedUsers />} />
               <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/users/:id" element={<AdminUsers />} />
-              <Route path="/admin/users/:id/profile" element={<AdminUserDetail />} />
-              <Route path="/admin/users/:id/hub" element={<AdminUserDetail />} />
+              <Route path="/admin/users/:id" element={<AdminUserDetail />} />
+              <Route path="/admin/users/:id/profile" element={<Navigate to=".." replace relative="path" />} />
+              <Route path="/admin/users/:id/hub" element={<Navigate to=".." replace relative="path" />} />
             </Route>
 
             {/* Protected: requires session + seller role */}
