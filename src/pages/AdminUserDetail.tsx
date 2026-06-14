@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -9,9 +9,9 @@ import {
   Building2, MapPin, Plus, Loader2, ChevronDown, ShieldAlert, Home, Ban,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { fetchUserDirectoryDetail, exportUserDetail, revealUserSensitiveField, type UserDirectoryDetail, type UserExportType } from "@/services/admin-users-directory.service";
+import { fetchUserDirectoryDetail, exportUserDetail, revealUserSensitiveField, type UserExportType } from "@/services/admin-users-directory.service";
 import { performFlaggedAction } from "@/services/admin-flagged-users.service";
-import { formatMoney, formatMoneyCompact } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
