@@ -579,8 +579,8 @@ export default function AdminUserDetail() {
                       <div key={n.id} className={`rounded-lg p-4 border ${high ? "bg-red-500/10 border-red-500/30" : "bg-slate-800/40 border-slate-700"}`}>
                         <div className="flex items-start justify-between mb-2 gap-2">
                           <div className="flex items-center gap-2">
-                            {high ? <Flag className="h-4 w-4 text-red-400" /> : <StickyNote className="h-4 w-4 text-yellow-400" />}
-                            <span className={`font-semibold text-sm ${high ? "text-red-400" : "text-yellow-400"}`}>
+                            {high ? <Flag className="h-4 w-4 text-red-400" /> : <Info className="h-4 w-4 text-blue-400" />}
+                            <span className={`font-semibold text-sm ${high ? "text-red-400" : "text-blue-400"}`}>
                               {high ? "HIGH PRIORITY FLAG" : String(n.type).replace(/_/g, " ").toUpperCase()}
                             </span>
                           </div>
