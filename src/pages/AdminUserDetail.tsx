@@ -6,7 +6,8 @@ import {
   Flag, FlagOff, ShieldCheck, Mail, Phone, IdCard, Calendar,
   UserCircle, Wallet, ShoppingCart, Store, Scale, Star,
   History, ListChecks, Eye, EyeOff, Clock, CheckCircle2,
-  Building2, MapPin, Plus, Loader2, ChevronDown, ShieldAlert, Home, Ban,
+  Building2, MapPin, Plus, Loader2, ChevronDown, Home, Ban,
+  RotateCcw, ArrowDown, ArrowUp, AlertCircle, Info,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { fetchUserDirectoryDetail, exportUserDetail, revealUserSensitiveField, type UserExportType } from "@/services/admin-users-directory.service";
@@ -158,7 +159,7 @@ export default function AdminUserDetail() {
 
   return (
     <AdminLayout title="User Investigation Hub" hideDefaultHeaders fullBleed>
-      <div className="bg-slate-950 text-slate-200">
+      <div className="bg-slate-950 text-slate-200 min-h-screen flex flex-col">
         {/* Sticky page header — pins to viewport while body scrolls under it */}
         <header className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-40 shadow-md shadow-black/20">
           <div className="flex items-start lg:items-center justify-between mb-4 flex-col lg:flex-row gap-3">
@@ -312,19 +313,21 @@ export default function AdminUserDetail() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Profile Information */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-5 border-b border-slate-800">
+                  <div className="p-6 border-b border-slate-800">
                     <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                       <UserCircle className="h-5 w-5 text-blue-400" /> Profile Information
                     </h3>
                   </div>
-                  <div className="p-5 space-y-4">
+                  <div className="p-6 space-y-4">
                     <div>
                       <p className="text-slate-400 text-xs font-semibold mb-1">Full Name</p>
                       <p className="text-white font-medium">{data.user.full_name || "—"}</p>
                     </div>
                     <div>
-                      <p className="text-slate-400 text-xs font-semibold mb-1">Handle</p>
-                      <p className="text-white font-medium">{data.user.handle}</p>
+                      <p className="text-slate-400 text-xs font-semibold mb-1">Location</p>
+                      <p className="text-white font-medium">
+                        {[verif?.address_city, verif?.address_state, verif?.address_country].filter(Boolean).join(", ") || "—"}
+                      </p>
                     </div>
                     <div>
                       <p className="text-slate-400 text-xs font-semibold mb-1">Account Status</p>
@@ -357,12 +360,12 @@ export default function AdminUserDetail() {
 
                 {/* Verification Status */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-5 border-b border-slate-800">
+                  <div className="p-6 border-b border-slate-800">
                     <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                       <ShieldCheck className="h-5 w-5 text-emerald-400" /> Verification Status
                     </h3>
                   </div>
-                  <div className="p-5 space-y-4">
+                  <div className="p-6 space-y-4">
                     <VerifRow icon={<Mail className="h-4 w-4" />} label="Email" ok={!!verif?.email} okLabel="Verified" />
                     <VerifRow icon={<Phone className="h-4 w-4" />} label="Phone" ok={!!verif?.phone} okLabel="Verified" />
                     <VerifRow
@@ -382,26 +385,18 @@ export default function AdminUserDetail() {
                       pendingLabel="Pending"
                     />
                     <VerifRow
-                      icon={<ShieldAlert className="h-4 w-4" />}
-                      label="AML Screening"
-                      ok={verif?.aml_status === "clear"}
-                      okLabel="Clear"
-                      pending={verif?.aml_status === "review"}
-                      pendingLabel="In Review"
-                    />
-                    <VerifRow
                       icon={<Home className="h-4 w-4" />}
                       label="Address"
                       ok={verif?.address_status === "provided"}
                       okLabel="Provided"
                     />
                     <div className="pt-3 border-t border-slate-800">
-                      <p className="text-slate-400 text-xs mb-2">Verification Coverage</p>
+                      <p className="text-slate-400 text-xs mb-2">Verification Level</p>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
                           <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500" style={{ width: `${verifPct}%` }} />
                         </div>
-                        <span className="text-white text-sm font-bold">{verifPct}%</span>
+                        <span className="text-white text-sm font-bold">Level {verif?.identity_level ?? 0}</span>
                       </div>
                     </div>
                   </div>
@@ -409,12 +404,12 @@ export default function AdminUserDetail() {
 
                 {/* Payout Account */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-5 border-b border-slate-800">
+                  <div className="p-6 border-b border-slate-800">
                     <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                       <Wallet className="h-5 w-5 text-purple-400" /> Payout Account
                     </h3>
                   </div>
-                  <div className="p-5 space-y-4">
+                  <div className="p-6 space-y-4">
                     {payout ? (
                       <>
                         <div>
@@ -485,9 +480,9 @@ export default function AdminUserDetail() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Recent Transactions */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+                  <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                     <h3 className="text-white text-lg font-semibold flex items-center gap-2">
-                      <History className="h-5 w-5 text-blue-400" /> Recent Transactions
+                      <RotateCcw className="h-5 w-5 text-blue-400" /> Recent Transactions
                     </h3>
                     <button onClick={() => navigate(`/admin/transactions?user=${userId}`)} className="text-blue-400 hover:text-blue-300 text-sm font-medium">View All</button>
                   </div>
@@ -499,16 +494,17 @@ export default function AdminUserDetail() {
                       const cls = inDispute ? "bg-orange-500/20 text-orange-400"
                         : isBuyer ? "bg-emerald-500/20 text-emerald-400"
                         : "bg-purple-500/20 text-purple-400";
+                      const RowIcon = inDispute ? AlertCircle : isBuyer ? ArrowDown : ArrowUp;
                       return (
                         <button
                           key={t.transaction_id}
                           onClick={() => navigate(`/admin/transactions/${t.transaction_id}`)}
-                          className="w-full text-left p-5 hover:bg-slate-800/50 transition-all"
+                          className="w-full text-left p-6 hover:bg-slate-800/50 transition-all"
                         >
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="flex items-center gap-3 min-w-0">
                               <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${cls}`}>
-                                <Scale className="h-4 w-4" />
+                                <RowIcon className="h-4 w-4" />
                               </div>
                               <div className="min-w-0">
                                 <p className="text-white font-medium truncate">{t.transaction_code}</p>
@@ -531,12 +527,12 @@ export default function AdminUserDetail() {
 
                 {/* Activity Log */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                  <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+                  <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                     <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                       <ListChecks className="h-5 w-5 text-purple-400" /> Activity Log
                     </h3>
                   </div>
-                  <div className="p-5 space-y-4">
+                  <div className="p-6 space-y-4">
                     {timeline.length === 0 && <p className="text-slate-500 text-sm text-center py-6">No admin activity recorded.</p>}
                     {timeline.map((a) => {
                       const t = String(a.type ?? "");
@@ -551,7 +547,7 @@ export default function AdminUserDetail() {
                           <div className="flex-1 min-w-0">
                             <p className="text-white text-sm font-medium capitalize">{t.replace(/_/g, " ")}</p>
                             {a.note && <p className="text-slate-400 text-xs mt-0.5">{a.note}</p>}
-                            <p className="text-slate-500 text-xs mt-1">by {a.admin_name} · {relative(a.created_at)}</p>
+                            <p className="text-slate-500 text-xs mt-1">{relative(a.created_at)}</p>
                           </div>
                         </div>
                       );
@@ -562,7 +558,7 @@ export default function AdminUserDetail() {
 
               {/* Row 4 — Admin Notes & Flags */}
               <div className="bg-slate-900 border border-slate-800 rounded-xl">
-                <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+                <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                   <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                     <StickyNote className="h-5 w-5 text-yellow-400" /> Admin Notes &amp; Flags
                   </h3>
@@ -575,7 +571,7 @@ export default function AdminUserDetail() {
                     </button>
                   </div>
                 </div>
-                <div className="p-5 space-y-4">
+                <div className="p-6 space-y-4">
                   {notes.length === 0 && <p className="text-slate-500 text-sm text-center py-6">No notes or flags recorded.</p>}
                   {notes.map((n) => {
                     const high = n.priority === "high";
@@ -583,8 +579,8 @@ export default function AdminUserDetail() {
                       <div key={n.id} className={`rounded-lg p-4 border ${high ? "bg-red-500/10 border-red-500/30" : "bg-slate-800/40 border-slate-700"}`}>
                         <div className="flex items-start justify-between mb-2 gap-2">
                           <div className="flex items-center gap-2">
-                            {high ? <Flag className="h-4 w-4 text-red-400" /> : <StickyNote className="h-4 w-4 text-yellow-400" />}
-                            <span className={`font-semibold text-sm ${high ? "text-red-400" : "text-yellow-400"}`}>
+                            {high ? <Flag className="h-4 w-4 text-red-400" /> : <Info className="h-4 w-4 text-blue-400" />}
+                            <span className={`font-semibold text-sm ${high ? "text-red-400" : "text-blue-400"}`}>
                               {high ? "HIGH PRIORITY FLAG" : String(n.type).replace(/_/g, " ").toUpperCase()}
                             </span>
                           </div>
@@ -709,7 +705,7 @@ function StatCard({
 }) {
   const Comp: any = onClick ? "button" : "div";
   return (
-    <Comp onClick={onClick} className={`text-left bg-slate-900 border border-slate-800 rounded-xl p-5 ${onClick ? "hover:border-slate-700 hover:bg-slate-800/40 transition-all w-full" : ""}`}>
+    <Comp onClick={onClick} className={`text-left bg-slate-900 border border-slate-800 rounded-xl p-6 ${onClick ? "hover:border-slate-700 hover:bg-slate-800/40 transition-all w-full" : ""}`}>
       <div className="flex items-center justify-between mb-2">
         {icon}
         {pill && (
