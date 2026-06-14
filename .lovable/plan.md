@@ -1,190 +1,46 @@
+## Goal
 
-# User Investigation Hub — Remaining Work
+Make the **User Investigation Hub** page (`/admin/users/:id`) match the attached `User Detail View.html` design 100% — icons, structure, spacing, header stickiness, and document flow — while keeping all existing live data wiring.
 
-Scope: only items still pending from the original plan. The approved HTML design, the right-side Quick Peek drawer, and existing directory behavior remain untouched.
+## Findings (current vs design)
 
----
+1. **Sticky header**: The header already declares `sticky top-0 z-40`, but in practice the body scrolls page-wide because the surrounding wrapper has no overflow context — and on the user's screen the header scrolls away with the content. Needs to be re-anchored against the page scroll container (the `AdminLayout` main pane) so it truly pins.
+2. **Icons mismatch**: Design uses Font-Awesome glyphs that map to specific Lucide equivalents we are not all using:
+   - Header: `fa-flag-checkered` for Unflag → use `Flag` with red treatment (we have `FlagOff` which is fine; just match design wording/tone).
+   - Profile card: `fa-user-circle` → `UserCircle` ✓
+   - Verification card: `fa-shield-check` (emerald) → `ShieldCheck` ✓
+   - Payout card: `fa-wallet` (purple) → `Wallet` ✓
+   - Stat cards: `fa-shopping-cart`, `fa-store`, `fa-scale-balanced`, `fa-star` → `ShoppingCart`, `Store`, `Scale`, `Star` ✓
+   - Recent Transactions header: `fa-clock-rotate-left` (blue) → swap our `History` for `RotateCcw` (closer match) — visually identical.
+   - Each transaction row uses `fa-arrow-down` / `fa-arrow-up` / `fa-exclamation` colored tiles by counterparty/status. Currently we render a generic `Scale` for every row. Replace with `ArrowDown` (buyer), `ArrowUp` (seller), `AlertCircle`/`AlertTriangle` (disputed).
+   - Activity Log header: `fa-list-check` (purple) → `ListChecks` ✓
+   - Admin Notes header: `fa-note-sticky` (yellow) → `StickyNote` ✓; note items use `fa-flag` (red) for high, `fa-circle-info` (blue) for info — swap our yellow info icon to `Info` (blue) when not high-priority.
+3. **Profile Information card** — design shows: Full Name, Date of Birth, Location, Account Status, Last Login (with IP). Ours shows: Full Name, Handle, Account Status, Last Login, Last Active. Re-order and rename to match design: drop "Handle", add "Date of Birth" (from `verification_detail`/profile if available, else hide gracefully) and "Location" (from `verification_detail.address_*`, else "—"). Keep "Last Active" hidden when DOB/Location available to match design length.
+4. **Verification Status card** — match design order exactly: Email, Phone, Identity (KYC), Bank Account, Address. Move **AML Screening** out (design doesn't have it on this card). Progress label "Verification Coverage" → keep as "Verification Level" with `Level N` text on the right, matching design.
+5. **Payout Account card** — add **Account Type** ("Checking Account" placeholder when unknown), and **Routing Number** masked field with eye-reveal button (already wired for `account_number`; add equivalent for routing if available, otherwise omit the row gracefully).
+6. **Stat cards** — show small delta pills (`+12%`, `+8%`, `2 Active`, `Excellent`) like the design when data is available, and fall back to nothing when not. "Trust Score" stays as "—" until backend supplies it.
+7. **Recent Transactions** — each row shows item name (product/title) above the tx code in design. We currently show `transaction_code` as the title. Use the linked product/title if exposed by the edge function; otherwise keep `transaction_code` as the title and put `status` in the subtitle (already correct). The main fix is icon tiles per row (arrow-up/down/exclamation) and removing the duplicate status pill on the right (design shows one pill only).
+8. **Activity Log** — design shows colored dot + title + meta + relative-time, no admin-name prefix. Drop "by {admin_name}" line; keep "{relative}" only. Dot colors: green (login/verification), blue (payout/profile update), orange (dispute), purple (transaction completed), red (flag), already partially implemented.
+9. **Admin Notes & Flags** — `INFORMATION` notes should use a blue `Info` icon (currently yellow `StickyNote`). High priority unchanged.
+10. **Document flow / spacing** — design uses `p-6` inside cards, `space-y-6` between sections, `gap-6` grids. Match these (we currently use `p-5` in card bodies). Bump to `p-6`.
 
-## 1. Routing alignment (§1)
+## Implementation Steps (single file: `src/pages/AdminUserDetail.tsx`)
 
-`src/App.tsx`:
-- Change `/admin/users/:id` to render `AdminUserDetail` (full hub) instead of `AdminUsers`.
-- Keep `/admin/users` → `AdminUsers` (directory + `?u=<id>` drawer).
-- Convert `/admin/users/:id/profile` and `/admin/users/:id/hub` into permanent redirects to `/admin/users/:id` (using a small `<Navigate replace>` wrapper) so old in-app links and the drawer "Open Full Investigation Hub" button still work.
-- Update `UsersTable.tsx`, `UsersMobileFeed.tsx`, and `UserDetailDrawer.tsx` to navigate to `/admin/users/:id` (no `/profile` suffix).
+1. **Sticky header fix**
+   - Wrap the page with a single scrollable container: change the outer wrapper to `min-h-screen` flex column, the header to `sticky top-0 z-40` on that flex column.
+   - Pass `fullHeight` to `AdminLayout` so the main pane has `overflow-y-auto` and the sticky context attaches correctly. Validate header pins on scroll.
+2. **Icons swap** — update imports and usages per the mapping above. Add `RotateCcw`, `ArrowDown`, `ArrowUp`, `AlertCircle`, `Info` from `lucide-react`.
+3. **Profile Information card** — replace Handle row with `Date of Birth` (placeholder "—" if not in data) and `Location` (compose from `verif.address_city`, `address_state`, `address_country`).
+4. **Verification Status card** — remove the AML row; keep 5 rows matching design; rename progress label to `Verification Level` and append the computed `Level N` derivation (0–3) based on completed checks.
+5. **Payout Account card** — add Account Type + Routing Number rows with masked text and eye toggles (reuse `revealUserSensitiveField` with field `account_number` for both, server fallback to "—").
+6. **Stat cards** — add optional `delta` prop to `StatCard`; supply `+12%`/`+8%`/`Excellent` only when data is present (otherwise hide pill).
+7. **Recent Transactions** — replace per-row icon tile with `ArrowDown` (buyer), `ArrowUp` (seller), `AlertCircle` (disputed); drop the duplicate status pill, keep one on the right.
+8. **Activity Log** — drop "by {admin_name}" from each item; keep the dot-color logic.
+9. **Admin Notes** — when `priority !== "high"`, render `Info` (blue) instead of yellow `StickyNote`, and use `bg-slate-800/50 border-slate-700` (already matches).
+10. **Spacing pass** — bump card body padding to `p-6` and confirm `space-y-6` / `gap-6` everywhere to match design rhythm.
 
-Result: every "View Buyer/Seller/Profile" link app-wide lands on the full hub; the drawer is only reached from the directory `?u=` flow.
+## Out of scope
 
----
-
-## 2. New edge functions (§4, §5)
-
-### 2a. `supabase/functions/admin-user-detail-export/index.ts`
-- `GET ?user_id=<id>&export_type=sanitized|activity|transactions|disputes|compliance&reason=<text>`
-- Admin gate via `has_role`. `compliance` additionally requires `compliance` or `super_admin` and a non-empty `reason`.
-- Returns `text/csv` with `Content-Disposition: attachment`.
-- Field whitelists per export type — never includes raw account number, full email/phone, NIN/BVN, raw document URLs, or raw AML payloads.
-- `transactions` and `disputes` types respond with a 302 to existing list export endpoints filtered by `?user=<id>`.
-- On success, inserts an `admin_actions` row: `action_type='export_user_detail'`, metadata `{ export_type, exported_by, user_id, reason }`.
-
-### 2b. `supabase/functions/admin-reveal-user-field/index.ts`
-- `POST { user_id, field: 'email'|'phone'|'account_number', reason? }`
-- Admin gate; `account_number` requires `compliance` or `super_admin` and a `reason`.
-- Returns `{ value }` for the single requested field only.
-- Inserts `admin_actions` row: `action_type='reveal_user_field'`, metadata `{ field, reason }`.
-
-### 2c. Extend `admin-user-detail`
-- Add AML row to `verification_detail` (`status: not_screened|clear|review|hit`, `last_screened_at`, `provider`). When `aml_screenings` table is absent, return `not_screened`.
-- Add `verification.progress_percent` = `email 20 + phone 20 + identity 30 + aml 20 + payout 10` (payout only counted for sellers/vendors; denominator adjusts accordingly).
-- Add `address` row (from `identity_submissions` or `profiles` if present, else `not_provided`).
-- Add `available_actions` flags: `{ can_flag, can_unflag, can_suspend, can_unsuspend, can_impersonate:false, can_review_payout }`.
-
-Both new functions follow project CORS/JWT-in-code conventions and use `npm:@supabase/supabase-js@2` + `cors` headers.
-
----
-
-## 3. Service layer (§6) — `src/services/admin-users-directory.service.ts`
-
-Add (no Supabase client imports leak to components):
-- `exportUserDetail(userId, exportType, reason?) → Blob`
-- `revealUserSensitiveField(userId, field, reason?) → { value: string }`
-- `addUserNote(userId, { note, type, priority, linked_transaction_id?, linked_dispute_id? })`
-- `reviewPayoutAccount(userId, { decision, note })` — decision ∈ `approve_override|reject|request_new|rerun_resolution`
-- Thin wrappers: `flagUser`, `clearFlag`, `suspendUser`, `unsuspendUser` — all call existing `admin-flagged-users-action` with `source_type: 'user_detail'`.
-
-Wrap PATCH/DELETE calls in direct `fetch` per project edge-function convention.
-
----
-
-## 4. Component breakdown (§7)
-
-Create `src/components/admin/users/detail/` and extract from the current monolithic `AdminUserDetail.tsx`:
-
-```
-UserDetailHeader.tsx           sticky header + action buttons
-UserSummaryPanel.tsx           avatar, masked contact, badges, Flag/Add Note
-ProfileInfoCard.tsx            full name, DOB, location, status, last login, IP
-VerificationStatusCard.tsx     email/phone/identity/AML/bank/address + progress
-PayoutAccountCard.tsx          Nigerian fields, recipient code, match status
-UserStatsCards.tsx             4 NGN stat cards
-RecentTransactionsCard.tsx     list + View All
-UserActivityLogCard.tsx        timeline with linked nav
-AdminNotesFlagsCard.tsx        notes list + Add Note button
-UserActionModals.tsx           Flag / Unflag / Suspend / Unsuspend / Add Note / Impersonate
-UserExportMenu.tsx             DropdownMenu with 5 export options
-PayoutAccountReviewModal.tsx   approve override / reject / request new / re-run
-UserDetailSkeleton.tsx         full-layout skeleton
-UserDetailErrorState.tsx       403 / 404 / generic error variants
-```
-
-`AdminUserDetail.tsx` shrinks to: route param parsing, react-query data fetch, modal state, and composition of the above presentational components. No visual change.
-
----
-
-## 5. Verification card data wiring (§8)
-
-- Render the AML row and the address row added in §2c.
-- Render `progress_percent` in the header circle/bar using server-supplied value (remove any client-side approximation).
-- Each row uses the documented empty-state copy when its status is missing.
-
----
-
-## 6. Sticky header re-validation (§16)
-
-- Audit `AdminLayout` ancestors: confirm no `overflow-hidden` / `overflow-auto` between `<main>` and the hub root. If `AdminLayout` wraps `<main>` in a flex/overflow container, set the hub root to participate in the page-level scroll (drop any inner scroll container).
-- `UserDetailHeader` uses `sticky top-0 z-40` with solid `bg-slate-900` and a thin bottom border.
-- Verify on desktop and mobile breakpoints in the preview after the refactor.
-
----
-
-## 7. Action modals (§11)
-
-In `UserActionModals.tsx`, build five modals using the existing `ActionConfirmDialog` primitive:
-1. **Flag User** — reason select, severity, note → `flagUser`.
-2. **Unflag User** — required note → `clearFlag`; toast warning if active risk signals remain.
-3. **Suspend / Unsuspend** — confirmation + note → `suspendUser` / `unsuspendUser`.
-4. **Add Note** — note text, type (info/warning/flag), priority, optional linked transaction/dispute → `addUserNote`.
-5. **Impersonate** — informational only: "Impersonation is not enabled yet."
-
-After each mutation, invalidate: `admin-user-detail`, `admin-users-directory`, `admin-flagged-users`, plus `admin-payouts` / `admin-identity-verification` where relevant.
-
----
-
-## 8. Export menu (§12)
-
-Replace the single "Sanitized Export" button with `UserExportMenu` (DropdownMenu):
-- Sanitized User Export (default)
-- Activity Timeline Export
-- Transactions Export (delegates to existing endpoint)
-- Disputes Export (delegates)
-- Compliance Export — role-gated, opens a Reason modal first
-
-All options call `exportUserDetail(...)`, then `URL.createObjectURL` + click. Audit row written server-side by the new function. Remove the existing client-only CSV builder.
-
----
-
-## 9. Sensitive-field reveal (§14)
-
-- Add an eye-toggle next to each masked field (email, phone, account number).
-- On click, call `revealUserSensitiveField(...)`; on success, display the value in place until toggled off (no persistence, no caching across navigations).
-- Account-number reveal opens a small Reason modal first.
-- IP renders masked (first two octets) or `—`.
-
----
-
-## 10. Remaining navigation in (§9)
-
-Wire one-line nav additions in:
-- `AdminFlaggedUsers.tsx` — "View Profile" → `/admin/users/:id`.
-- `AdminEscrow.tsx` — buyer/seller name → `/admin/users/:id`.
-- Identity Verification page (if it exists) — applicant link → `/admin/users/:id`.
-- Refunds page (if it exists) — user link → `/admin/users/:id`.
-
-Pages that don't exist render a toast "Coming soon" rather than navigate.
-
----
-
-## 11. Remaining navigation out (§10)
-
-Replace the remaining `stub()` toasts on the hub with real navigation:
-- Header **View Transactions** → `/admin/transactions?user=<id>`
-- Recent Transactions **View All** → same
-- Payout Account **View Payouts** → `/admin/payouts?seller=<id>`
-- Payout Account **Review** → opens `PayoutAccountReviewModal`
-- Verification **View KYC Details** → `/admin/identity-verification?user=<id>` (toast fallback)
-- Verification **Review AML** → `/admin/compliance/aml?user=<id>` (toast fallback)
-- Flag badge / Notes → `/admin/flagged-users?user_id=<id>`
-
-Add `?user=<id>` filter parsing to `AdminTransactions.tsx` and `AdminDisputes.tsx` query builders (additive — no other changes).
-
----
-
-## 12. States (§13)
-
-- `UserDetailSkeleton` mirrors the actual layout (header + summary + 3 column grid + lists).
-- `UserDetailErrorState` variants: `403` ("You do not have permission to view this user."), `404` ("User not found.") + back link, `generic` with Retry button.
-- Per-card empty-state copy per spec §27 (e.g. "No recent transactions", "No activity recorded", "No notes or flags").
-
----
-
-## 13. Acceptance verification
-
-After build:
-- `/admin/users/:id` opens the full hub (not the drawer); `/admin/users?u=:id` still opens the drawer.
-- Sticky header stays pinned while body scrolls under it on desktop and mobile.
-- Verification card shows AML row + address row + server-supplied progress percent.
-- Every export option downloads a CSV and writes an `admin_actions` audit row server-side.
-- Eye-toggle reveals each masked field and writes a reveal audit row.
-- Flag / Unflag / Suspend / Unsuspend / Add Note / Impersonate modals work and invalidate the right queries.
-- All header buttons and card-level "View" links navigate correctly; transactions/disputes monitors honor `?user=` filter.
-- `AdminFlaggedUsers`, `AdminEscrow`, and (if present) Identity Verification / Refunds link to the hub.
-- No `$`, no Chase Bank, no fabricated trust score, no hardcoded sample data.
-
----
-
-## Out of scope (unchanged)
-
-- Right-side Quick Peek drawer (`UserDetailDrawer.tsx`).
-- Directory filters, presence dots, summary cards, pagination, bulk actions.
-- DB schema migrations — none required; new server logic reads existing tables and writes only to `admin_actions`.
-- Creating AML dashboard, refunds page, or impersonation backend — hub degrades gracefully when those routes are absent.
+- No backend/edge-function changes.
+- No new dependencies (Font-Awesome stays out; Lucide-only).
+- No changes to the Activity Log timeline data source (separate work).
