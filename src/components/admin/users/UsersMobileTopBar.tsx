@@ -5,6 +5,8 @@ interface Props {
   onOpenMenu: () => void;
   totalUsers: number;
   onSearchFocus?: () => void;
+  onlineCount?: number;
+  offlineCount?: number;
 }
 
 function compactTotal(n: number): string {
@@ -13,7 +15,7 @@ function compactTotal(n: number): string {
   return n.toLocaleString();
 }
 
-export function UsersMobileTopBar({ onOpenMenu, totalUsers, onSearchFocus }: Props) {
+export function UsersMobileTopBar({ onOpenMenu, totalUsers, onSearchFocus, onlineCount = 0, offlineCount = 0 }: Props) {
   return (
     <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 py-4 lg:hidden">
       <div className="flex items-center justify-between">
@@ -31,7 +33,7 @@ export function UsersMobileTopBar({ onOpenMenu, totalUsers, onSearchFocus }: Pro
             <div className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-slate-400 text-[10px] uppercase font-bold tracking-tight">
-                {compactTotal(totalUsers)} Total
+                {compactTotal(totalUsers)} Total · {onlineCount} on · {offlineCount} off
               </span>
             </div>
           </div>
