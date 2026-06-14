@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
 
   // Load profile + payout + auth
   const [{ data: prof }, { data: authUser }, { data: payout }] = await Promise.all([
-    admin.from("profiles").select("id, full_name, handle, phone, created_at, is_suspended, is_flagged").eq("id", user_id).maybeSingle(),
+    admin.from("profiles").select("id, full_name, phone, created_at, status, store_slug").eq("id", user_id).maybeSingle(),
     admin.auth.admin.getUserById(user_id),
     admin.from("payout_accounts").select("bank_name, account_name, masked_account_number, verification_status, created_at").eq("user_id", user_id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
@@ -127,10 +127,10 @@ Deno.serve(async (req) => {
       ["Field", "Value"],
       ["User ID", displayId],
       ["Full Name", String(prof.full_name ?? "")],
-      ["Handle", String((prof as Record<string, unknown>).handle ?? "")],
+      ["Handle", String((prof as Record<string, unknown>).store_slug ?? "")],
       ["Email", export_type === "compliance" ? email : maskEmail(email)],
       ["Phone", export_type === "compliance" ? (phone ?? "") : maskPhone(phone)],
-      ["Status", (prof as Record<string, unknown>).is_suspended ? "Suspended" : (prof as Record<string, unknown>).is_flagged ? "Flagged" : "Active"],
+      ["Status", String((prof as Record<string, unknown>).status ?? "active")],
       ["Joined", String(prof.created_at ?? "")],
       ["Payout Bank", String((payout as Record<string, unknown> | null)?.bank_name ?? "")],
       ["Payout Account (masked)", String((payout as Record<string, unknown> | null)?.masked_account_number ?? "")],
