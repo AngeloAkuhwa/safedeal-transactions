@@ -18,6 +18,7 @@ import { UsersMobileStatsScroll } from "@/components/admin/users/UsersMobileStat
 import { UsersAdvancedFiltersSheet } from "@/components/admin/users/UsersAdvancedFiltersSheet";
 import { UserDetailDrawer } from "@/components/admin/users/UserDetailDrawer";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
+import { useOnlinePresence } from "@/hooks/useOnlinePresence";
 
 const TITLE = "User Directory";
 const SUBTITLE = "Search and manage all platform users";
@@ -111,6 +112,9 @@ export default function AdminUsers() {
 
   const summary = data?.summary;
   const rows = data?.rows ?? [];
+  const { isOnline, onlineCount: globalOnline } = useOnlinePresence();
+  const pageOnline = rows.reduce((acc, r) => acc + (isOnline(r.user_id) ? 1 : 0), 0);
+  const pageOffline = Math.max(0, rows.length - pageOnline);
 
   return (
     <AdminLayout
@@ -122,10 +126,18 @@ export default function AdminUsers() {
         <UsersHeaderBar
           totalUsers={summary?.total_users ?? 0}
           query={query}
+          onlineCount={pageOnline}
+          offlineCount={pageOffline}
+          globalOnline={globalOnline}
         />
       }
       mobileHeaderSlot={({ onOpenMenu }) => (
-        <UsersMobileTopBar onOpenMenu={onOpenMenu} totalUsers={summary?.total_users ?? 0} />
+        <UsersMobileTopBar
+          onOpenMenu={onOpenMenu}
+          totalUsers={summary?.total_users ?? 0}
+          onlineCount={pageOnline}
+          offlineCount={pageOffline}
+        />
       )}
     >
       <div className="mx-auto w-full max-w-[1400px] lg:px-8 lg:py-6 lg:space-y-8 bg-slate-950 min-h-screen">
@@ -160,6 +172,7 @@ export default function AdminUsers() {
               onPage={setPage}
               onFlagToggle={onFlag}
               onSuspend={onSuspendRow}
+              isOnline={isOnline}
             />
 
             {/* Desktop-only sections */}
@@ -182,6 +195,7 @@ export default function AdminUsers() {
                 onPage={setPage}
                 onFlagToggle={onFlag}
                 onSuspend={onSuspendRow}
+                isOnline={isOnline}
               />
             </div>
           </>

@@ -1,61 +1,38 @@
-## Root cause
+## Add Live Presence Indicators to Admin User Directory
 
-`admin-user-detail` returns two data blocks:
+Show which users are currently online (app open) using Supabase Realtime presence, with a green/gray dot on each avatar and an "X online · Y offline" chip in the header.
 
-- `user.transactions.count` — comes from `buildDirectory()` in `supabase/functions/_shared/users-directory-engine.ts`.
-- `recent_transactions` — comes from a separate query in `admin-user-detail/index.ts` using `.or(buyer_id|seller_id)` with **no status filter**.
+### 1. Global presence broadcaster (new)
+Create `src/hooks/usePresenceHeartbeat.ts` and mount it once in `src/App.tsx` (inside the authenticated tree). When a user is signed in, it joins a shared Realtime channel `presence:users` and tracks `{ user_id }`. On unmount / sign-out / tab close it untracks, so Supabase Realtime presence naturally reports them as offline.
 
-The second works (5 rows for Tunde). The first returns 0 because the engine still has:
+This means any authenticated user with the app open broadcasts presence — no DB writes, no extra tables, no polling.
 
-1. A bogus status whitelist `["completed","released","funded","in_escrow","in_transit","delivered"]` — only `completed` is a real enum value; `payment_secured`, `awaiting_payment`, `disputed`, `resolved`, `refunded`, `delivered_awaiting_verification` are silently excluded.
-2. A PostgREST embed `transaction_pricing(buyer_total_amount)` combined with `.in("status", […])` and `.limit(20000)` — if the embed is rejected for any reason, the entire `txs` becomes `null` and every user gets `count = 0`.
+### 2. Admin presence subscriber (new)
+Create `src/hooks/useOnlinePresence.ts` for admin screens. It subscribes to the same `presence:users` channel in observer mode and returns:
+- `onlineIds: Set<string>` — currently tracked user IDs
+- `isOnline(userId): boolean`
+- `onlineCount: number`
 
-## Fix — one file: `supabase/functions/_shared/users-directory-engine.ts`
+Single channel instance, cleaned up on unmount (per cloud-realtime rules).
 
-Replace the transactions aggregation block with two simple queries merged in JS:
+### 3. UI changes on Admin Users page only
+- **`src/components/admin/users/UsersTable.tsx`** — wrap each avatar in a relative container and render a small dot (bottom-right): green (`bg-emerald-500`) if online, gray (`bg-slate-500`) if offline, with a subtle ring for contrast. Tooltip: "Online now" / "Offline".
+- **`src/components/admin/users/UsersMobileFeed.tsx`** — same avatar dot treatment.
+- **`src/components/admin/users/UsersHeaderBar.tsx`** — next to the existing "Live · N total users" chip, add a compact chip: green dot + `{onlineCount} online` · gray dot + `{rows.length - onlineCount} offline` (computed against the currently loaded page so it stays cheap). Hidden on small screens to avoid clutter.
+- **`src/components/admin/users/UsersMobileTopBar.tsx`** — add the same compact chip below the title.
+- **`src/pages/AdminUsers.tsx`** — call `useOnlinePresence()` once, pass `isOnline` / `onlineCount` down to the table, mobile feed, and header bars.
 
-```ts
-const FUNDED = new Set([
-  "payment_secured","seller_preparing_delivery","seller_dispatched",
-  "delivered_awaiting_verification","disputed","resolved","completed","refunded"
-]);
-const RESOLVED_STATES = new Set(["completed","resolved","refunded"]);
+### 4. No backend / schema changes
+Realtime presence is ephemeral and lives entirely in the Realtime service — no migrations, no new tables, no edge function edits. The existing `last_active_at` field is untouched.
 
-const { data: txs } = await admin
-  .from("transactions")
-  .select("id, buyer_id, seller_id, status")
-  .not("status", "in", "(draft,cancelled,timed_out)")
-  .limit(20000);
+### Technical notes
+- Channel name: `presence:users`. Presence key: `user_id`. Payload: `{ user_id, joined_at }`.
+- Heartbeat hook only mounts when `useAuthState().isAuthenticated` is true; tears down on logout.
+- Subscriber hook uses `channel.on('presence', { event: 'sync' }, …)` to rebuild the `Set` from `channel.presenceState()`.
+- Dot styling: `absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-slate-950` with emerald/slate fill.
+- Counts reflect users visible on the current page (matches the realtime cost model — we only know about users whose tabs are open, regardless of pagination).
 
-const txIds = (txs ?? []).map(t => t.id as string);
-const amtByTx = new Map<string, number>();
-if (txIds.length) {
-  const { data: pricing } = await admin
-    .from("transaction_pricing")
-    .select("transaction_id, buyer_total_amount")
-    .in("transaction_id", txIds);
-  for (const p of pricing ?? []) {
-    amtByTx.set(p.transaction_id as string, Number(p.buyer_total_amount ?? 0));
-  }
-}
-
-const txByUser = new Map<string, { count: number; resolved: number; volume: number }>();
-for (const t of txs ?? []) {
-  const status = (t.status as string) ?? "";
-  const amt = FUNDED.has(status) ? (amtByTx.get(t.id as string) ?? 0) : 0;
-  for (const uid of [t.buyer_id, t.seller_id].filter(Boolean) as string[]) {
-    if (!ids.includes(uid)) continue;
-    const cur = txByUser.get(uid) ?? { count: 0, resolved: 0, volume: 0 };
-    cur.count++;
-    cur.volume += amt;
-    if (RESOLVED_STATES.has(status)) cur.resolved++;
-    txByUser.set(uid, cur);
-  }
-}
-```
-
-No UI, no other-file, no schema changes.
-
-## Verification
-
-Re-open Tunde's drawer → Activity shows `5 Transactions` and a real ₦ volume; Angelo's shows `2 / ₦33,660`; Chioma's seller numbers populate; disputes `1/3` unchanged.
+### Out of scope
+- Persisting last-seen timestamps to the DB.
+- Presence on non-admin screens.
+- "Idle" tri-state — just online/offline.

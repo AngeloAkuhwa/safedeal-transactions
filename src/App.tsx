@@ -65,8 +65,14 @@ import AdminUsers from "./pages/AdminUsers";
 import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import { usePresenceHeartbeat } from "./hooks/usePresenceHeartbeat";
 
 const queryClient = new QueryClient();
+
+const AppShell = ({ children }: { children: React.ReactNode }) => {
+  usePresenceHeartbeat();
+  return <>{children}</>;
+};
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -75,6 +81,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <AppShell>
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Index />} />
@@ -158,6 +165,7 @@ const App = () => (
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </AppShell>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

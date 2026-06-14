@@ -1,13 +1,17 @@
 import { Download, UserPlus, Users as UsersIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { exportUsersDirectory, type UserDirectoryQuery } from "@/services/admin-users-directory.service";
+import { PresenceCountChip } from "./PresenceDot";
 
 interface Props {
   totalUsers: number;
   query: UserDirectoryQuery;
+  onlineCount?: number;
+  offlineCount?: number;
+  globalOnline?: number;
 }
 
-export function UsersHeaderBar({ totalUsers, query }: Props) {
+export function UsersHeaderBar({ totalUsers, query, onlineCount = 0, offlineCount = 0 }: Props) {
   const onExport = async () => {
     try {
       const blob = await exportUsersDirectory(query);
@@ -39,6 +43,11 @@ export function UsersHeaderBar({ totalUsers, query }: Props) {
               <UsersIcon className="h-3 w-3 text-slate-400" />
               <span className="text-slate-300 text-sm">{totalUsers.toLocaleString()} total users</span>
             </div>
+            <PresenceCountChip
+              online={onlineCount}
+              offline={offlineCount}
+              className="hidden md:inline-flex"
+            />
           </div>
         </div>
         <div className="flex items-center gap-3">

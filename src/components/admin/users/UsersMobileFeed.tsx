@@ -9,6 +9,7 @@ import type { UserDirectoryRow } from "@/services/admin-users-directory.service"
 import { formatMoneyCompact } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { PresenceDot } from "./PresenceDot";
 
 interface Props {
   rows: UserDirectoryRow[];
@@ -17,6 +18,7 @@ interface Props {
   onPage: (p: number) => void;
   onFlagToggle: (row: UserDirectoryRow) => void;
   onSuspend: (row: UserDirectoryRow) => void;
+  isOnline?: (userId: string) => boolean;
 }
 
 function relative(iso: string | null): string {
@@ -58,7 +60,7 @@ function cornerBadge(r: UserDirectoryRow) {
   return null;
 }
 
-export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, onFlagToggle, onSuspend }: Props) {
+export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, onFlagToggle, onSuspend, isOnline }: Props) {
   const navigate = useNavigate();
   const [overflowRow, setOverflowRow] = useState<UserDirectoryRow | null>(null);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -95,6 +97,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                       {badge.icon}
                     </div>
                   )}
+                  {!badge && <PresenceDot online={!!isOnline?.(r.user_id)} ringClass="ring-slate-900" size="md" />}
                 </button>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
