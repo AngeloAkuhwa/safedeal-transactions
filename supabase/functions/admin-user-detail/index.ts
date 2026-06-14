@@ -122,6 +122,24 @@ Deno.serve(async (req) => {
     .limit(1)
     .maybeSingle();
 
+  // Address (best-effort from identity_submissions)
+  const { data: idSub } = await admin
+    .from("identity_submissions")
+    .select("address_line, city, state, country")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Identity level + provider
+  const { data: idVerified } = await admin
+    .from("identity_submissions")
+    .select("status, provider, reviewed_at, rejection_reason")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   // Admin notes (notes/flags) — derived from admin_actions
   const adminNotes = (actions ?? [])
     .filter((a) => {
@@ -137,8 +155,29 @@ Deno.serve(async (req) => {
       priority: String(a.action_type ?? "").includes("flag") ? "high" : "normal",
     }));
 
+  // Verification progress (server-computed)
+  const isSeller = (row.roles as string[]).some((r) => r === "seller" || r === "business");
+  const emailOk = row.verification.email ? 1 : 0;
+  const phoneOk = row.verification.phone ? 1 : 0;
+  const idOk = row.verification.id ? 1 : 0;
+  const amlOk = 0; // aml_screenings table not present → always 0
+  const payoutOk = payout && String((payout as Record<string, unknown>).verification_status ?? "") === "verified" ? 1 : 0;
+  const numerator = emailOk * 20 + phoneOk * 20 + idOk * 30 + amlOk * 20 + (isSeller ? payoutOk * 10 : 0);
+  const denominator = isSeller ? 100 : 90;
+  const progress_percent = Math.round((numerator / denominator) * 100);
+
+  const available_actions = {
+    can_flag: !row.is_flagged,
+    can_unflag: !!row.is_flagged,
+    can_suspend: !row.is_suspended,
+    can_unsuspend: !!row.is_suspended,
+    can_impersonate: false,
+    can_review_payout: !!payout,
+  };
+
   return json(200, {
     user: row,
+    available_actions,
     recent_transactions: (txs ?? []).map((t) => {
       const pricing = (t as Record<string, unknown>).transaction_pricing as
         | { buyer_total_amount?: number | string | null }
@@ -195,9 +234,23 @@ Deno.serve(async (req) => {
       email: row.verification.email,
       phone: row.verification.phone,
       identity_level: row.verification.id ? 2 : row.verification.id_status === "pending" ? 1 : 0,
+      identity_provider: (idVerified as Record<string, unknown> | null)?.provider ?? null,
+      identity_reviewed_at: (idVerified as Record<string, unknown> | null)?.reviewed_at ?? null,
+      identity_rejection_reason: (idVerified as Record<string, unknown> | null)?.rejection_reason ?? null,
       bank_status: payout
         ? String((payout as Record<string, unknown>).verification_status ?? "pending")
         : "not_added",
+      aml_status: "not_screened",
+      aml_provider: null,
+      aml_last_screened_at: null,
+      address_status: idSub
+        ? "provided"
+        : "not_provided",
+      address_line: (idSub as Record<string, unknown> | null)?.address_line ?? null,
+      address_city: (idSub as Record<string, unknown> | null)?.city ?? null,
+      address_state: (idSub as Record<string, unknown> | null)?.state ?? null,
+      address_country: (idSub as Record<string, unknown> | null)?.country ?? null,
+      progress_percent,
     },
     admin_notes: adminNotes,
   });
