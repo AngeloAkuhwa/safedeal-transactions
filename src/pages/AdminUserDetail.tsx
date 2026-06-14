@@ -48,7 +48,49 @@ function maskPhone(phone: string | null | undefined): string {
   return phone.slice(0, 2) + "•".repeat(phone.length - 6) + phone.slice(-4);
 }
 
-type PendingAction = { kind: "flag" | "clear_flag" | "suspend" } | null;
+type PendingAction = { kind: "flag" | "clear_flag" | "suspend" | "add_note" } | null;
+
+function csvEscape(v: unknown): string {
+  const s = v == null ? "" : String(v);
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function buildSanitizedCsv(d: UserDirectoryDetail): string {
+  const lines: string[] = [];
+  lines.push(["Field", "Value"].join(","));
+  const rows: [string, unknown][] = [
+    ["User ID", d.user.display_id],
+    ["Full Name", d.user.full_name],
+    ["Handle", d.user.handle],
+    ["Email (masked)", maskEmail(d.user.email)],
+    ["Phone (masked)", maskPhone(d.user.phone)],
+    ["Roles", d.user.roles.join("|")],
+    ["Status", d.user.is_suspended ? "Suspended" : d.user.is_flagged ? "Flagged" : "Active"],
+    ["Joined", d.user.joined_at ?? ""],
+    ["Email Verified", d.user.verification.email],
+    ["Phone Verified", d.user.verification.phone],
+    ["Identity Verified", d.user.verification.id],
+    ["Buyer Volume (NGN)", d.stats?.as_buyer.volume ?? 0],
+    ["Buyer Transactions", d.stats?.as_buyer.count ?? 0],
+    ["Seller Volume (NGN)", d.stats?.as_seller.volume ?? 0],
+    ["Seller Transactions", d.stats?.as_seller.count ?? 0],
+    ["Disputes Total", d.stats?.disputes.total ?? 0],
+    ["Disputes Active", d.stats?.disputes.active ?? 0],
+    ["Payout Bank", d.payout_account?.bank_name ?? ""],
+    ["Payout Account (masked)", d.payout_account?.masked_account_number ?? ""],
+    ["Payout Status", d.payout_account?.status ?? "none"],
+    ["Exported At", new Date().toISOString()],
+  ];
+  for (const [k, v] of rows) lines.push([csvEscape(k), csvEscape(v)].join(","));
+  lines.push("");
+  lines.push(["Recent Transactions"].join(","));
+  lines.push(["Code", "Role", "Amount (NGN)", "Status", "Created"].map(csvEscape).join(","));
+  for (const t of d.recent_transactions ?? []) {
+    lines.push([t.transaction_code, t.counterparty, t.amount, t.status, t.created_at].map(csvEscape).join(","));
+  }
+  return lines.join("\n");
+}
 
 export default function AdminUserDetail() {
   const { id: userId = "" } = useParams<{ id: string }>();
@@ -69,9 +111,15 @@ export default function AdminUserDetail() {
     if (!pendingAction || !data) return;
     const action = pendingAction.kind === "flag" ? "flag_user"
       : pendingAction.kind === "clear_flag" ? "clear_flag"
+      : pendingAction.kind === "add_note" ? "add_note"
       : "suspend_user";
-    await performFlaggedAction({ action, user_id: data.user.user_id, note: reason });
-    toast({ title: "Action recorded", description: `${pendingAction.kind.replace("_", " ")} on ${data.user.full_name}` });
+    try {
+      await performFlaggedAction({ action, user_id: data.user.user_id, note: reason });
+      toast({ title: "Action recorded", description: `${pendingAction.kind.replace(/_/g, " ")} on ${data.user.full_name}` });
+    } catch (e) {
+      toast({ title: "Action failed", description: (e as Error).message, variant: "destructive" });
+      return;
+    }
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["admin-user-detail", userId] }),
       qc.invalidateQueries({ queryKey: ["admin-users-directory"] }),
@@ -81,6 +129,25 @@ export default function AdminUserDetail() {
   };
 
   const stub = (label: string) => () => toast({ title: `${label} — coming soon` });
+
+  const onExport = () => {
+    if (!data) return;
+    try {
+      const csv = buildSanitizedCsv(data);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `user-${data.user.display_id}-sanitized.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast({ title: "Sanitized export ready", description: "CSV downloaded with masked fields only." });
+    } catch (e) {
+      toast({ title: "Export failed", description: (e as Error).message, variant: "destructive" });
+    }
+  };
 
   const stats = data?.stats;
   const payout = data?.payout_account ?? null;
