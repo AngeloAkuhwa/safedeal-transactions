@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
   // Recent transactions (top 5)
   const { data: txs } = await admin
     .from("transactions")
-    .select("id, transaction_code, total_amount, status, money_status, created_at, buyer_id, seller_id")
+    .select("id, transaction_code, status, money_status, created_at, buyer_id, seller_id, transaction_pricing(buyer_total_amount)")
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
     .order("created_at", { ascending: false })
     .limit(5);
@@ -72,12 +72,20 @@ Deno.serve(async (req) => {
 
   return json(200, {
     user: row,
-    recent_transactions: (txs ?? []).map((t) => ({
-      transaction_id: t.id, transaction_code: t.transaction_code,
-      amount: Number(t.total_amount ?? 0), status: t.status, money_status: t.money_status,
-      created_at: t.created_at,
-      counterparty: t.buyer_id === userId ? "as_buyer" : "as_seller",
-    })),
+    recent_transactions: (txs ?? []).map((t) => {
+      const pricing = (t as Record<string, unknown>).transaction_pricing as
+        | { buyer_total_amount?: number | string | null }
+        | Array<{ buyer_total_amount?: number | string | null }>
+        | null;
+      const pricingRow = Array.isArray(pricing) ? pricing[0] : pricing;
+      return {
+        transaction_id: t.id, transaction_code: t.transaction_code,
+        amount: Number(pricingRow?.buyer_total_amount ?? 0),
+        status: t.status, money_status: t.money_status,
+        created_at: t.created_at,
+        counterparty: t.buyer_id === userId ? "as_buyer" : "as_seller",
+      };
+    }),
     recent_disputes: (disp ?? []).map((d) => ({
       dispute_id: d.id, transaction_id: d.transaction_id, status: d.status,
       reason: d.reason, created_at: d.opened_at,
