@@ -9,7 +9,7 @@ import {
   Building2, MapPin, Plus, Loader2,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { fetchUserDirectoryDetail } from "@/services/admin-users-directory.service";
+import { fetchUserDirectoryDetail, type UserDirectoryDetail } from "@/services/admin-users-directory.service";
 import { performFlaggedAction } from "@/services/admin-flagged-users.service";
 import { formatMoney, formatMoneyCompact } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
