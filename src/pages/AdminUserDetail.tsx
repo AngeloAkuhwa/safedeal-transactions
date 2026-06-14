@@ -608,9 +608,14 @@ export default function AdminUserDetail() {
                   <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                     <StickyNote className="h-5 w-5 text-yellow-400" /> Admin Notes &amp; Flags
                   </h3>
-                  <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
-                    <Plus className="h-4 w-4" /> Add Note
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => navigate(`/admin/flagged-users?user_id=${userId}`)} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700">
+                      Open in Flagged Users
+                    </button>
+                    <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
+                      <Plus className="h-4 w-4" /> Add Note
+                    </button>
+                  </div>
                 </div>
                 <div className="p-5 space-y-4">
                   {notes.length === 0 && <p className="text-slate-500 text-sm text-center py-6">No notes or flags recorded.</p>}
