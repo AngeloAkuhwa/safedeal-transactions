@@ -135,6 +135,12 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
             </div>
 
             <div className="sticky bottom-0 bg-slate-950 pt-3 -mx-5 px-5 border-t border-slate-800">
+              <button
+                onClick={() => { onClose(); navigate(`/admin/users/${data.user.user_id}/profile`); }}
+                className="w-full mb-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs flex items-center justify-center gap-1 font-medium"
+              >
+                <ExternalLink className="h-3 w-3" /> Open Full Investigation Hub
+              </button>
               <div className="grid grid-cols-3 gap-2">
                 <button onClick={() => navigate(`/admin/flagged-users?u=${data.user.user_id}`)} className="py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs flex items-center justify-center gap-1">
                   <ExternalLink className="h-3 w-3" /> Fraud workspace
