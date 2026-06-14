@@ -32,26 +32,35 @@ Deno.serve(async (req) => {
   }
 
   const url = new URL(req.url);
-  const overviewUrl = new URL(req.url);
-  overviewUrl.pathname = overviewUrl.pathname.replace(/admin-users-directory-export$/, "admin-users-directory");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const overviewUrl = new URL(`${supabaseUrl}/functions/v1/admin-users-directory`);
   overviewUrl.searchParams.set("page", "1");
   overviewUrl.searchParams.set("page_size", "2000");
   for (const k of ["q", "role", "status", "verification", "range", "sort"]) {
     const v = url.searchParams.get(k);
     if (v) overviewUrl.searchParams.set(k, v);
   }
-  const res = await fetch(overviewUrl.toString(), {
-    headers: {
-      Authorization: req.headers.get("Authorization") ?? "",
-      apikey: req.headers.get("apikey") ?? "",
-    },
-  });
-  if (!res.ok) {
-    return new Response(JSON.stringify({ error: "overview_fetch_failed" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  const auth = req.headers.get("Authorization") ?? "";
+  const apikey = req.headers.get("apikey") ?? Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  let body: { rows: Array<Record<string, unknown>> };
+  try {
+    const res = await fetch(overviewUrl.toString(), {
+      headers: { Authorization: auth, apikey },
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      console.error("[admin-users-directory-export] overview fetch failed", res.status, text);
+      return new Response(JSON.stringify({ error: "overview_fetch_failed", status: res.status, detail: text.slice(0, 500) }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    body = JSON.parse(text) as { rows: Array<Record<string, unknown>> };
+  } catch (e) {
+    console.error("[admin-users-directory-export] fetch error", e);
+    return new Response(JSON.stringify({ error: "overview_fetch_failed", detail: (e as Error).message }), {
+      status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-  const body = await res.json() as { rows: Array<Record<string, unknown>> };
 
   const header = [
     "user_id", "display_id", "full_name", "handle", "email", "phone",
