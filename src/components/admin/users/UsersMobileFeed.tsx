@@ -90,8 +90,8 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
               <div
                 role="button"
                 tabIndex={0}
-                onClick={() => navigate(`/admin/users/${r.user_id}/profile`)}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/admin/users/${r.user_id}/profile`); } }}
+                onClick={() => navigate(`/admin/users/${r.user_id}`)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/admin/users/${r.user_id}`); } }}
                 className="cursor-pointer active:bg-slate-800/40 transition-colors"
               >
               <div className="p-4 border-b border-slate-800 flex items-center gap-4">
