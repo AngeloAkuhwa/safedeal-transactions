@@ -70,6 +70,73 @@ Deno.serve(async (req) => {
     for (const p of aprofs ?? []) adminNames.set(p.id as string, (p.full_name as string) ?? "Admin");
   }
 
+  // --- Additive blocks for the full-screen user detail page ---
+
+  // Aggregate stats per role (buyer/seller volumes and counts)
+  const { data: allTxAgg } = await admin
+    .from("transactions")
+    .select("id, buyer_id, seller_id, status, transaction_pricing(buyer_total_amount)")
+    .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
+
+  let buyerCount = 0, sellerCount = 0, buyerVolume = 0, sellerVolume = 0;
+  for (const t of allTxAgg ?? []) {
+    const pricing = (t as Record<string, unknown>).transaction_pricing as
+      | { buyer_total_amount?: number | string | null }
+      | Array<{ buyer_total_amount?: number | string | null }>
+      | null;
+    const pricingRow = Array.isArray(pricing) ? pricing[0] : pricing;
+    const amt = Number(pricingRow?.buyer_total_amount ?? 0);
+    if (t.buyer_id === userId) { buyerCount += 1; buyerVolume += amt; }
+    if (t.seller_id === userId) { sellerCount += 1; sellerVolume += amt; }
+  }
+
+  // Disputes split: filed (by user) vs received (against user)
+  const txIds = (allTxAgg ?? []).map((t) => t.id as string);
+  let disputesFiled = 0, disputesReceived = 0;
+  if (txIds.length > 0) {
+    const { data: allDisp } = await admin
+      .from("disputes")
+      .select("id, transaction_id, status, opened_by_user_id")
+      .in("transaction_id", txIds);
+    for (const d of allDisp ?? []) {
+      if (d.opened_by_user_id === userId) disputesFiled += 1;
+      else disputesReceived += 1;
+    }
+  }
+
+  // Payout account
+  const { data: payout } = await admin
+    .from("payout_accounts")
+    .select("bank_name, account_name, masked_account_number, verification_status, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Last login + IP from user_sessions
+  const { data: lastSession } = await admin
+    .from("user_sessions")
+    .select("last_seen_at, ip_address, city_name, state_name, country_code")
+    .eq("user_id", userId)
+    .order("last_seen_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Admin notes (notes/flags) — derived from admin_actions
+  const adminNotes = (actions ?? [])
+    .filter((a) => {
+      const t = String(a.action_type ?? "");
+      return t.includes("note") || t.includes("flag");
+    })
+    .map((a) => ({
+      id: a.id,
+      type: a.action_type,
+      note: a.action_notes,
+      admin_name: adminNames.get(a.admin_user_id as string) ?? "System",
+      created_at: a.created_at,
+      priority: String(a.action_type ?? "").includes("flag") ? "high" : "normal",
+    }));
+
   return json(200, {
     user: row,
     recent_transactions: (txs ?? []).map((t) => {
@@ -96,5 +163,42 @@ Deno.serve(async (req) => {
       created_at: a.created_at,
       transaction_id: a.transaction_id, dispute_id: a.dispute_id,
     })),
+    stats: {
+      as_buyer: { count: buyerCount, volume: buyerVolume },
+      as_seller: { count: sellerCount, volume: sellerVolume },
+      disputes: {
+        total: row.disputes.total,
+        active: row.disputes.active,
+        filed: disputesFiled,
+        received: disputesReceived,
+      },
+    },
+    payout_account: payout
+      ? {
+          bank_name: (payout as Record<string, unknown>).bank_name ?? null,
+          account_name: (payout as Record<string, unknown>).account_name ?? null,
+          masked_account_number: (payout as Record<string, unknown>).masked_account_number ?? null,
+          status: (payout as Record<string, unknown>).verification_status ?? null,
+          added_on: (payout as Record<string, unknown>).created_at ?? null,
+        }
+      : null,
+    profile_extra: lastSession
+      ? {
+          last_login_at: (lastSession as Record<string, unknown>).last_seen_at ?? null,
+          last_login_ip: (lastSession as Record<string, unknown>).ip_address ?? null,
+          last_login_city: (lastSession as Record<string, unknown>).city_name ?? null,
+          last_login_state: (lastSession as Record<string, unknown>).state_name ?? null,
+          last_login_country: (lastSession as Record<string, unknown>).country_code ?? null,
+        }
+      : null,
+    verification_detail: {
+      email: row.verification.email,
+      phone: row.verification.phone,
+      identity_level: row.verification.id ? 2 : row.verification.id_status === "pending" ? 1 : 0,
+      bank_status: payout
+        ? String((payout as Record<string, unknown>).verification_status ?? "pending")
+        : "not_added",
+    },
+    admin_notes: adminNotes,
   });
 });

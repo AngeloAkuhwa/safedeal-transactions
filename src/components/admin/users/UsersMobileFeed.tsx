@@ -86,9 +86,16 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
 
           return (
             <div key={r.user_id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl shadow-black/20">
-              {/* Header */}
+              {/* Card body — opens full detail page */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/admin/users/${r.user_id}/profile`)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/admin/users/${r.user_id}/profile`); } }}
+                className="cursor-pointer active:bg-slate-800/40 transition-colors"
+              >
               <div className="p-4 border-b border-slate-800 flex items-center gap-4">
-                <button onClick={() => onOpen(r.user_id)} className="relative">
+                <button onClick={(e) => { e.stopPropagation(); onOpen(r.user_id); }} className="relative">
                   {r.avatar_url
                     ? <img src={r.avatar_url} className={`w-14 h-14 rounded-full ring-2 ${ring}`} alt={r.full_name} />
                     : <span className={`w-14 h-14 rounded-full ring-2 ${ring} bg-slate-700 text-white font-semibold inline-flex items-center justify-center`}>{init}</span>}
@@ -101,7 +108,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                 </button>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => onOpen(r.user_id)} className="text-white font-bold truncate">{r.full_name || "Unnamed"}</button>
+                    <button onClick={(e) => { e.stopPropagation(); onOpen(r.user_id); }} className="text-white font-bold truncate">{r.full_name || "Unnamed"}</button>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-tight ${chip.cls}`}>{chip.label}</span>
                   </div>
                   <p className="text-slate-500 text-xs truncate">
@@ -164,32 +171,33 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                   </>
                 )}
               </div>
+              </div>
 
               {/* Action row */}
-              <div className="p-4 flex gap-2">
+              <div className="p-4 flex gap-2" onClick={(e) => e.stopPropagation()}>
                 <button
-                  onClick={() => onOpen(r.user_id)}
+                  onClick={(e) => { e.stopPropagation(); onOpen(r.user_id); }}
                   className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-xs font-bold active:scale-95 transition-transform inline-flex items-center justify-center gap-2"
                 >
                   <UserIcon className="h-3.5 w-3.5" /> Profile
                 </button>
                 {isFlaggedish ? (
                   <button
-                    onClick={() => navigate(`/admin/flagged-users?u=${r.user_id}`)}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/admin/flagged-users?u=${r.user_id}`); }}
                     className="flex-1 py-3 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold active:scale-95 transition-transform inline-flex items-center justify-center gap-2"
                   >
                     <ShieldHalf className="h-3.5 w-3.5" /> Review
                   </button>
                 ) : isTrustedSeller ? (
                   <button
-                    onClick={() => navigate(`/admin/transactions?user=${r.user_id}`)}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/admin/transactions?user=${r.user_id}`); }}
                     className="flex-1 py-3 bg-emerald-600/10 text-emerald-400 rounded-xl text-xs font-bold border border-emerald-600/20 active:scale-95 inline-flex items-center justify-center gap-2"
                   >
                     <ArrowLeftRight className="h-3.5 w-3.5" /> Transactions
                   </button>
                 ) : (
                   <button
-                    onClick={() => navigate(`/admin/disputes?user=${r.user_id}`)}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes?user=${r.user_id}`); }}
                     disabled={r.disputes.total === 0}
                     className={`flex-1 py-3 rounded-xl text-xs font-bold active:scale-95 inline-flex items-center justify-center gap-2 ${
                       r.disputes.total === 0 ? "bg-slate-800/60 text-slate-500" : "bg-slate-800 text-slate-300"
@@ -199,7 +207,7 @@ export function UsersMobileFeed({ rows, total, page, pageSize, onOpen, onPage, o
                   </button>
                 )}
                 <button
-                  onClick={() => setOverflowRow(r)}
+                  onClick={(e) => { e.stopPropagation(); setOverflowRow(r); }}
                   className="w-12 h-12 bg-slate-800 text-slate-300 rounded-xl flex items-center justify-center active:scale-95"
                   aria-label="More actions"
                 >
