@@ -9,7 +9,7 @@ import {
   Building2, MapPin, Plus, Loader2,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { fetchUserDirectoryDetail } from "@/services/admin-users-directory.service";
+import { fetchUserDirectoryDetail, type UserDirectoryDetail } from "@/services/admin-users-directory.service";
 import { performFlaggedAction } from "@/services/admin-flagged-users.service";
 import { formatMoney, formatMoneyCompact } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
@@ -48,7 +48,49 @@ function maskPhone(phone: string | null | undefined): string {
   return phone.slice(0, 2) + "•".repeat(phone.length - 6) + phone.slice(-4);
 }
 
-type PendingAction = { kind: "flag" | "clear_flag" | "suspend" } | null;
+type PendingAction = { kind: "flag" | "clear_flag" | "suspend" | "add_note" } | null;
+
+function csvEscape(v: unknown): string {
+  const s = v == null ? "" : String(v);
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function buildSanitizedCsv(d: UserDirectoryDetail): string {
+  const lines: string[] = [];
+  lines.push(["Field", "Value"].join(","));
+  const rows: [string, unknown][] = [
+    ["User ID", d.user.display_id],
+    ["Full Name", d.user.full_name],
+    ["Handle", d.user.handle],
+    ["Email (masked)", maskEmail(d.user.email)],
+    ["Phone (masked)", maskPhone(d.user.phone)],
+    ["Roles", d.user.roles.join("|")],
+    ["Status", d.user.is_suspended ? "Suspended" : d.user.is_flagged ? "Flagged" : "Active"],
+    ["Joined", d.user.joined_at ?? ""],
+    ["Email Verified", d.user.verification.email],
+    ["Phone Verified", d.user.verification.phone],
+    ["Identity Verified", d.user.verification.id],
+    ["Buyer Volume (NGN)", d.stats?.as_buyer.volume ?? 0],
+    ["Buyer Transactions", d.stats?.as_buyer.count ?? 0],
+    ["Seller Volume (NGN)", d.stats?.as_seller.volume ?? 0],
+    ["Seller Transactions", d.stats?.as_seller.count ?? 0],
+    ["Disputes Total", d.stats?.disputes.total ?? 0],
+    ["Disputes Active", d.stats?.disputes.active ?? 0],
+    ["Payout Bank", d.payout_account?.bank_name ?? ""],
+    ["Payout Account (masked)", d.payout_account?.masked_account_number ?? ""],
+    ["Payout Status", d.payout_account?.status ?? "none"],
+    ["Exported At", new Date().toISOString()],
+  ];
+  for (const [k, v] of rows) lines.push([csvEscape(k), csvEscape(v)].join(","));
+  lines.push("");
+  lines.push(["Recent Transactions"].join(","));
+  lines.push(["Code", "Role", "Amount (NGN)", "Status", "Created"].map(csvEscape).join(","));
+  for (const t of d.recent_transactions ?? []) {
+    lines.push([t.transaction_code, t.counterparty, t.amount, t.status, t.created_at].map(csvEscape).join(","));
+  }
+  return lines.join("\n");
+}
 
 export default function AdminUserDetail() {
   const { id: userId = "" } = useParams<{ id: string }>();
@@ -69,9 +111,15 @@ export default function AdminUserDetail() {
     if (!pendingAction || !data) return;
     const action = pendingAction.kind === "flag" ? "flag_user"
       : pendingAction.kind === "clear_flag" ? "clear_flag"
+      : pendingAction.kind === "add_note" ? "add_note"
       : "suspend_user";
-    await performFlaggedAction({ action, user_id: data.user.user_id, note: reason });
-    toast({ title: "Action recorded", description: `${pendingAction.kind.replace("_", " ")} on ${data.user.full_name}` });
+    try {
+      await performFlaggedAction({ action, user_id: data.user.user_id, note: reason });
+      toast({ title: "Action recorded", description: `${pendingAction.kind.replace(/_/g, " ")} on ${data.user.full_name}` });
+    } catch (e) {
+      toast({ title: "Action failed", description: (e as Error).message, variant: "destructive" });
+      return;
+    }
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["admin-user-detail", userId] }),
       qc.invalidateQueries({ queryKey: ["admin-users-directory"] }),
@@ -81,6 +129,25 @@ export default function AdminUserDetail() {
   };
 
   const stub = (label: string) => () => toast({ title: `${label} — coming soon` });
+
+  const onExport = () => {
+    if (!data) return;
+    try {
+      const csv = buildSanitizedCsv(data);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `user-${data.user.display_id}-sanitized.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast({ title: "Sanitized export ready", description: "CSV downloaded with masked fields only." });
+    } catch (e) {
+      toast({ title: "Export failed", description: (e as Error).message, variant: "destructive" });
+    }
+  };
 
   const stats = data?.stats;
   const payout = data?.payout_account ?? null;
@@ -101,9 +168,9 @@ export default function AdminUserDetail() {
 
   return (
     <AdminLayout title="User Investigation Hub" hideDefaultHeaders fullBleed>
-      <div className="bg-slate-950 min-h-screen text-slate-200">
-        {/* Sticky page header */}
-        <header className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-20">
+      <div className="bg-slate-950 text-slate-200">
+        {/* Sticky page header — pins to viewport while body scrolls under it */}
+        <header className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-40 shadow-md shadow-black/20">
           <div className="flex items-start lg:items-center justify-between mb-4 flex-col lg:flex-row gap-3">
             <div className="flex items-center gap-3 lg:gap-4">
               <button
@@ -119,10 +186,10 @@ export default function AdminUserDetail() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={stub("Sanitized Export")} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-all flex items-center gap-2 text-xs sm:text-sm font-medium border border-slate-700">
+              <button onClick={onExport} disabled={!data} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-all flex items-center gap-2 text-xs sm:text-sm font-medium border border-slate-700 disabled:opacity-50">
                 <Download className="h-4 w-4" /> Sanitized Export
               </button>
-              <button onClick={stub("Add Note")} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-orange-600/20">
+              <button onClick={() => data && setPendingAction({ kind: "add_note" })} disabled={!data} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-orange-600/20 disabled:opacity-50">
                 <StickyNote className="h-4 w-4" /> Add Note
               </button>
               <button onClick={stub("Impersonate")} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-purple-600/20">
@@ -205,7 +272,7 @@ export default function AdminUserDetail() {
                       <Flag className="h-4 w-4" /> Flag User
                     </button>
                   )}
-                  <button onClick={stub("Add Note")} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
+                  <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
                     <StickyNote className="h-4 w-4" /> Add Note
                   </button>
                 </div>
@@ -376,12 +443,13 @@ export default function AdminUserDetail() {
                   value={stats ? `${stats.disputes.total} Total` : "—"}
                   sub={stats ? `${stats.disputes.filed} filed, ${stats.disputes.received} received` : ""}
                   pill={stats && stats.disputes.active > 0 ? { text: `${stats.disputes.active} Active`, tone: "red" } : undefined}
+                  onClick={() => userId && navigate(`/admin/disputes?user=${userId}`)}
                 />
                 <StatCard
                   icon={<Star className="h-6 w-6 text-yellow-400" />}
                   label="Trust Score"
                   value="—"
-                  sub="Reviews coming soon"
+                  sub="Trust score not available"
                 />
               </div>
 
@@ -470,7 +538,7 @@ export default function AdminUserDetail() {
                   <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                     <StickyNote className="h-5 w-5 text-yellow-400" /> Admin Notes &amp; Flags
                   </h3>
-                  <button onClick={stub("Add Note")} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
+                  <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
                     <Plus className="h-4 w-4" /> Add Note
                   </button>
                 </div>
@@ -507,13 +575,19 @@ export default function AdminUserDetail() {
         title={
           pendingAction?.kind === "flag" ? `Flag ${data?.user.full_name ?? "user"} for fraud review`
             : pendingAction?.kind === "clear_flag" ? `Clear flag on ${data?.user.full_name ?? "user"}`
+            : pendingAction?.kind === "add_note" ? `Add note for ${data?.user.full_name ?? "user"}`
             : pendingAction ? `Suspend ${data?.user.full_name ?? "user"}` : ""
         }
         description="A note is required and will appear in the audit timeline."
         reasonLabel="Note"
         reasonPlaceholder="Explain why this action is being taken…"
-        confirmLabel={pendingAction?.kind === "clear_flag" ? "Clear flag" : pendingAction?.kind === "suspend" ? "Suspend user" : "Flag user"}
-        confirmTone={pendingAction?.kind === "clear_flag" ? "primary" : "danger"}
+        confirmLabel={
+          pendingAction?.kind === "clear_flag" ? "Clear flag"
+          : pendingAction?.kind === "suspend" ? "Suspend user"
+          : pendingAction?.kind === "add_note" ? "Save note"
+          : "Flag user"
+        }
+        confirmTone={pendingAction?.kind === "clear_flag" || pendingAction?.kind === "add_note" ? "primary" : "danger"}
         onConfirm={onConfirmAction}
       />
     </AdminLayout>
@@ -546,13 +620,15 @@ function VerifRow({
 }
 
 function StatCard({
-  icon, label, value, sub, pill,
+  icon, label, value, sub, pill, onClick,
 }: {
   icon: React.ReactNode; label: string; value: string; sub?: string;
   pill?: { text: string; tone: "red" | "emerald" };
+  onClick?: () => void;
 }) {
+  const Comp: any = onClick ? "button" : "div";
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+    <Comp onClick={onClick} className={`text-left bg-slate-900 border border-slate-800 rounded-xl p-5 ${onClick ? "hover:border-slate-700 hover:bg-slate-800/40 transition-all w-full" : ""}`}>
       <div className="flex items-center justify-between mb-2">
         {icon}
         {pill && (
@@ -562,6 +638,6 @@ function StatCard({
       <h3 className="text-slate-400 text-sm font-medium mb-1">{label}</h3>
       <p className="text-white text-2xl font-bold">{value}</p>
       {sub && <p className="text-slate-500 text-xs mt-1">{sub}</p>}
-    </div>
+    </Comp>
   );
 }
