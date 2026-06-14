@@ -1,47 +1,112 @@
-## Root cause
+## Goal
 
-The "Activity Log" on the user investigation page is always empty because the data isn't linked to users the way the page filters it.
+Replace the raw, system-y rows in the Activity Log (`delivered`, `freeze_transaction`, etc.) with the kind of human-readable entries shown in the design — title + one-line context + relative time — and include sensible non-admin signals (logins, payout updates, KYC, transactions, disputes).
 
-- The page calls the `admin-user-detail` endpoint, which builds the activity timeline by selecting only `admin_actions` rows where `target_user_id = <this user>`.
-- In the database today, **0 of 12** `admin_actions` rows and **0 of 8** `audit_logs` rows have a `target_user_id` set. Every row is linked only to a `transaction_id` (or `dispute_id`).
-- So the filter always returns nothing — for every user, no matter what.
+## What the user will see
 
-This is consistent with how rows get created: most admin/transaction edge functions and SQL triggers insert into `admin_actions`/`audit_logs` with `transaction_id` but never populate `target_user_id`. Only a few flows (flag/clear/suspend on the flagged-users action, identity review, and the user export/reveal helpers) currently set `target_user_id`.
+Each row becomes:
 
-## What I'll change
+- A **bold title** in plain English.
+- A **context line** with the most useful detail (related transaction code, location/IP, bank name, etc.).
+- A small **source pill** (`Admin`, `System`, `Security`, `Account`).
+- **Relative time** ("2 hours ago", "3 days ago").
 
-### 1. Backfill existing rows so old activity shows up
-One-time data fix:
-- For every `admin_actions` row with `target_user_id IS NULL` and a `transaction_id`, set `target_user_id` to the related transaction's `seller_id` (sellers are the most relevant party for admin freeze/release/note/escalate actions).
-- Same backfill on `audit_logs`.
-- Where the row is linked only to a `dispute_id`, derive the transaction via the dispute and use the same seller-based rule.
+Examples mapped from real data we already store:
 
-### 2. Auto-link future rows at the database layer
-Add a `BEFORE INSERT` trigger on `admin_actions` and `audit_logs` that, if `target_user_id` is null, derives it from `transaction_id` → `seller_id` (or from `dispute_id` → transaction → seller). This is a safety net so we never silently lose the user link again, even if a future edge function forgets to set it.
+```text
+Login from new device           [Security]
+IP: 102.89.x.x  Lagos, NG
+2 hours ago
 
-### 3. Widen the timeline query
-Update `supabase/functions/admin-user-detail/index.ts` so the activity feed for a user merges three sources and returns the most recent 30 entries:
-- `admin_actions` where target user matches OR where the transaction/dispute belongs to this user (covers buyer side too).
-- `audit_logs` with the same widened filter.
-- `transaction_events` for any transaction where the user is buyer or seller (gives state-change context like "payment secured", "funds released").
+Updated payout account          [Account]
+Added GTBank ••••4521
+3 days ago
 
-Each entry is normalized into the existing timeline shape with an extra `source` tag (`admin_action | audit | transaction_event`) so the UI can keep its existing dot/colour logic and just render a small source label.
+Dispute filed                   [System]
+SD-2026-000024 - Item not as described
+5 days ago
 
-### 4. Light UI polish on the Activity Log card
-- Add a small grey "source" pill on each timeline row.
-- Keep the existing empty state, dot colours, and "Add note" affordances unchanged.
-- No design or layout changes.
+Transaction completed           [System]
+SD-2026-000023 - N12,880 released
+6 days ago
 
-### 5. Going forward
-No application code changes are required at the existing insert sites, because the new DB trigger fills in `target_user_id` automatically. We can tighten individual edge functions later if needed, but this plan keeps the surface area small.
+KYC verification submitted      [Account]
+NIN  pending review
+8 days ago
+
+Admin froze transaction         [Admin]
+SD-2026-000024 - reason: suspicious activity
+10 days ago
+```
+
+## Data sources to merge (all already exist)
+
+1. `transaction_events` for the user's transactions - covers payment, dispatch, delivery, refund, payout release, dispute open/resolve, admin freeze/unfreeze, agreement lock, auto-cancel, etc.
+2. `admin_actions` where the user is the target - covers admin freeze, release funds, internal note, escalate case, open/update investigation, resolve dispute.
+3. `audit_logs` - same surface as admin_actions but second-source; deduped by (type + transaction_id + minute).
+4. `user_sessions` recent rows - "Login from new device" with IP/city/country.
+5. `payout_accounts` - "Added <bank> ••••<last4>" on `created_at`, "Updated payout account" on `updated_at > created_at`.
+6. `identity_submissions` - "KYC verification submitted/approved/rejected" using `status`, `created_at`, `reviewed_at`.
+
+## Server changes (single file)
+
+`supabase/functions/admin-user-detail/index.ts`:
+
+- Add the four extra fetches above, scoped to this user, each capped at 20 rows.
+- New `humanize()` mapper that converts each raw row to `{ title, context, source, severity, created_at, transaction_code?, transaction_id?, dispute_id? }`. Severity drives the dot colour (red/yellow/emerald/blue/slate).
+- Merge → sort by `created_at` desc → return the **30 most recent**.
+- Backwards-compatible: keep existing fields (`id, type, note, admin_name, created_at, transaction_id, dispute_id, source`) and add `title`, `context`, `severity`, `transaction_code` as optional.
+
+Title mapping (high level):
+
+```text
+transaction_events.payment_received        - "Payment received into escrow"
+transaction_events.funds_held              - "Funds held in escrow"
+transaction_events.seller_dispatched       - "Seller marked as dispatched"
+transaction_events.delivered               - "Delivery confirmed"
+transaction_events.buyer_confirmed         - "Buyer confirmed receipt"
+transaction_events.payout_released         - "Funds released to seller"
+transaction_events.refund_issued           - "Refund issued"
+transaction_events.dispute_opened          - "Dispute filed"
+transaction_events.dispute_resolved        - "Dispute resolved"
+transaction_events.admin_funds_frozen      - "Admin froze transaction funds"
+transaction_events.admin_funds_unfrozen    - "Admin unfroze transaction funds"
+transaction_events.admin_note_added        - "Admin added internal note"
+transaction_events.admin_investigation_*   - "Investigation opened/updated"
+transaction_events.agreement_locked        - "Agreement locked"
+transaction_events.auto_cancelled          - "Transaction auto-cancelled"
+transaction_events.transaction_created     - "Transaction created"
+admin_actions.freeze_transaction           - "Admin froze transaction"  (severity high)
+admin_actions.release_funds                - "Admin released funds"
+admin_actions.escalate_case                - "Admin escalated case"     (severity high)
+admin_actions.add_internal_note            - "Admin added note"
+admin_actions.resolve_dispute              - "Admin resolved dispute"
+admin_actions.open_investigation/update_*  - "Admin opened/updated investigation"
+user_sessions (new row)                    - "Login from new device" + IP/city
+payout_accounts insert                     - "Payout account added" + bank + last4
+payout_accounts update                     - "Payout account updated"
+identity_submissions pending_review        - "KYC verification submitted"
+identity_submissions approved/rejected     - "KYC verification approved/rejected"
+```
+
+Context line builds from the row's data (transaction code when available, IP/city for sessions, bank name + masked last 4 for payouts, status reason for KYC).
+
+## Client changes
+
+`src/pages/AdminUserDetail.tsx` Activity Log card:
+
+- Render `title` as the bold line, `context` (when present) as the muted line under it, then relative time.
+- Source pill colour by source: Admin = purple, Security = red, Account = blue, System = slate.
+- Dot colour driven by `severity` (high = red, warning = yellow, success = emerald, info = blue, neutral = slate).
+- Keep existing empty state.
+
+`src/services/admin-users-directory.service.ts`:
+
+- Extend the `timeline` item type with optional `title`, `context`, `severity`, `transaction_code`.
 
 ## Out of scope
-- No change to the user-detail export endpoints or the compliance flow.
-- No change to admin notes/flags card data source.
-- No RLS changes (existing admin-only policies on both tables remain).
-- No new tables.
 
-## Technical notes
-- Files touched: one new migration (backfill + trigger + helper function), `supabase/functions/admin-user-detail/index.ts`, `src/pages/AdminUserDetail.tsx` (source pill only), and the timeline type in `src/services/admin-users-directory.service.ts` (add optional `source` field).
-- Backfill uses `UPDATE … FROM transactions/disputes` and is idempotent (only touches rows where `target_user_id IS NULL`).
-- Trigger is `SECURITY DEFINER` with a pinned `search_path` and only fires when `target_user_id IS NULL` so it never overrides an explicit value.
+- No DB schema changes; no migration.
+- No changes to `admin_actions`/`audit_logs`/`transaction_events` write paths - we already auto-link `target_user_id` from the previous fix, so the humanizer can rely on it.
+- No changes to admin notes & flags card, recent transactions card, exports, or headers.
+- No real-time subscriptions (existing 15-second staleTime on the query is enough).

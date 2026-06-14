@@ -536,25 +536,37 @@ export default function AdminUserDetail() {
                     {timeline.length === 0 && <p className="text-slate-500 text-sm text-center py-6">No admin activity recorded.</p>}
                     {timeline.map((a) => {
                       const t = String(a.type ?? "");
-                      const dot = t.includes("flag") ? "bg-red-400"
-                        : t.includes("suspend") ? "bg-purple-400"
-                        : t.includes("clear") ? "bg-emerald-400"
-                        : t.includes("note") ? "bg-yellow-400"
-                        : "bg-blue-400";
-                      const src = (a as { source?: string }).source;
-                      const srcLabel = src === "audit" ? "Audit" : src === "transaction_event" ? "Event" : src === "admin_action" ? "Admin" : null;
+                      const item = a as typeof a & { title?: string; context?: string | null; source?: string; severity?: string };
+                      const title = item.title || t.replace(/_/g, " ");
+                      const sev = item.severity ?? "neutral";
+                      const dot = sev === "high" ? "bg-red-400"
+                        : sev === "warning" ? "bg-yellow-400"
+                        : sev === "success" ? "bg-emerald-400"
+                        : sev === "info" ? "bg-blue-400"
+                        : "bg-slate-500";
+                      const src = item.source;
+                      const srcMeta: Record<string, { label: string; cls: string }> = {
+                        admin_action: { label: "Admin", cls: "bg-purple-500/15 text-purple-300 border-purple-500/30" },
+                        audit: { label: "Audit", cls: "bg-slate-700 text-slate-300 border-slate-600" },
+                        transaction_event: { label: "System", cls: "bg-slate-700 text-slate-300 border-slate-600" },
+                        session: { label: "Security", cls: "bg-red-500/15 text-red-300 border-red-500/30" },
+                        payout: { label: "Account", cls: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
+                        identity: { label: "Account", cls: "bg-blue-500/15 text-blue-300 border-blue-500/30" },
+                      };
+                      const srcInfo = src ? srcMeta[src] : null;
                       return (
                         <div key={a.id} className="flex gap-3">
                           <div className={`w-2 h-2 ${dot} rounded-full mt-1.5 shrink-0`} />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-white text-sm font-medium capitalize">{t.replace(/_/g, " ")}</p>
-                              {srcLabel && (
-                                <span className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400 text-[10px] font-semibold uppercase tracking-wide">
-                                  {srcLabel}
+                              <p className="text-white text-sm font-medium">{title}</p>
+                              {srcInfo && (
+                                <span className={`px-1.5 py-0.5 rounded border text-[10px] font-semibold uppercase tracking-wide ${srcInfo.cls}`}>
+                                  {srcInfo.label}
                                 </span>
                               )}
                             </div>
+                            {item.context && <p className="text-slate-400 text-xs mt-0.5">{item.context}</p>}
                             {a.note && <p className="text-slate-400 text-xs mt-0.5">{a.note}</p>}
                             <p className="text-slate-500 text-xs mt-1">{relative(a.created_at)}</p>
                           </div>
