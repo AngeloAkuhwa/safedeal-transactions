@@ -136,7 +136,7 @@ export function UserDetailDrawer({ userId, open, onClose, onFlag, onSuspend, onC
 
             <div className="sticky bottom-0 bg-slate-950 pt-3 -mx-5 px-5 border-t border-slate-800">
               <button
-                onClick={() => { onClose(); navigate(`/admin/users/${data.user.user_id}/profile`); }}
+                onClick={() => { onClose(); navigate(`/admin/users/${data.user.user_id}`); }}
                 className="w-full mb-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs flex items-center justify-center gap-1 font-medium"
               >
                 <ExternalLink className="h-3 w-3" /> Open Full Investigation Hub

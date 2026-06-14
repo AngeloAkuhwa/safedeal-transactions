@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -6,14 +6,17 @@ import {
   Flag, FlagOff, ShieldCheck, Mail, Phone, IdCard, Calendar,
   UserCircle, Wallet, ShoppingCart, Store, Scale, Star,
   History, ListChecks, Eye, EyeOff, Clock, CheckCircle2,
-  Building2, MapPin, Plus, Loader2,
+  Building2, MapPin, Plus, Loader2, ChevronDown, ShieldAlert, Home, Ban,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { fetchUserDirectoryDetail, type UserDirectoryDetail } from "@/services/admin-users-directory.service";
+import { fetchUserDirectoryDetail, exportUserDetail, revealUserSensitiveField, type UserExportType } from "@/services/admin-users-directory.service";
 import { performFlaggedAction } from "@/services/admin-flagged-users.service";
-import { formatMoney, formatMoneyCompact } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -48,57 +51,22 @@ function maskPhone(phone: string | null | undefined): string {
   return phone.slice(0, 2) + "•".repeat(phone.length - 6) + phone.slice(-4);
 }
 
-type PendingAction = { kind: "flag" | "clear_flag" | "suspend" | "add_note" } | null;
-
-function csvEscape(v: unknown): string {
-  const s = v == null ? "" : String(v);
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
-
-function buildSanitizedCsv(d: UserDirectoryDetail): string {
-  const lines: string[] = [];
-  lines.push(["Field", "Value"].join(","));
-  const rows: [string, unknown][] = [
-    ["User ID", d.user.display_id],
-    ["Full Name", d.user.full_name],
-    ["Handle", d.user.handle],
-    ["Email (masked)", maskEmail(d.user.email)],
-    ["Phone (masked)", maskPhone(d.user.phone)],
-    ["Roles", d.user.roles.join("|")],
-    ["Status", d.user.is_suspended ? "Suspended" : d.user.is_flagged ? "Flagged" : "Active"],
-    ["Joined", d.user.joined_at ?? ""],
-    ["Email Verified", d.user.verification.email],
-    ["Phone Verified", d.user.verification.phone],
-    ["Identity Verified", d.user.verification.id],
-    ["Buyer Volume (NGN)", d.stats?.as_buyer.volume ?? 0],
-    ["Buyer Transactions", d.stats?.as_buyer.count ?? 0],
-    ["Seller Volume (NGN)", d.stats?.as_seller.volume ?? 0],
-    ["Seller Transactions", d.stats?.as_seller.count ?? 0],
-    ["Disputes Total", d.stats?.disputes.total ?? 0],
-    ["Disputes Active", d.stats?.disputes.active ?? 0],
-    ["Payout Bank", d.payout_account?.bank_name ?? ""],
-    ["Payout Account (masked)", d.payout_account?.masked_account_number ?? ""],
-    ["Payout Status", d.payout_account?.status ?? "none"],
-    ["Exported At", new Date().toISOString()],
-  ];
-  for (const [k, v] of rows) lines.push([csvEscape(k), csvEscape(v)].join(","));
-  lines.push("");
-  lines.push(["Recent Transactions"].join(","));
-  lines.push(["Code", "Role", "Amount (NGN)", "Status", "Created"].map(csvEscape).join(","));
-  for (const t of d.recent_transactions ?? []) {
-    lines.push([t.transaction_code, t.counterparty, t.amount, t.status, t.created_at].map(csvEscape).join(","));
-  }
-  return lines.join("\n");
-}
+type PendingAction = { kind: "flag" | "clear_flag" | "suspend" | "unsuspend" | "add_note" } | null;
+type ComplianceExportPrompt = { open: boolean };
 
 export default function AdminUserDetail() {
   const { id: userId = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [revealEmail, setRevealEmail] = useState(false);
-  const [revealPhone, setRevealPhone] = useState(false);
+  const [revealedEmail, setRevealedEmail] = useState<string | null>(null);
+  const [revealedPhone, setRevealedPhone] = useState<string | null>(null);
+  const [revealingEmail, setRevealingEmail] = useState(false);
+  const [revealingPhone, setRevealingPhone] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [impersonateOpen, setImpersonateOpen] = useState(false);
+  const [complianceExport, setComplianceExport] = useState<ComplianceExportPrompt>({ open: false });
+  const [complianceReason, setComplianceReason] = useState("");
+  const [exporting, setExporting] = useState<UserExportType | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-user-detail", userId],
@@ -112,6 +80,7 @@ export default function AdminUserDetail() {
     const action = pendingAction.kind === "flag" ? "flag_user"
       : pendingAction.kind === "clear_flag" ? "clear_flag"
       : pendingAction.kind === "add_note" ? "add_note"
+      : pendingAction.kind === "unsuspend" ? "unsuspend_user"
       : "suspend_user";
     try {
       await performFlaggedAction({ action, user_id: data.user.user_id, note: reason });
@@ -128,24 +97,52 @@ export default function AdminUserDetail() {
     setPendingAction(null);
   };
 
-  const stub = (label: string) => () => toast({ title: `${label} — coming soon` });
-
-  const onExport = () => {
+  const runExport = async (kind: UserExportType, reason?: string) => {
     if (!data) return;
+    setExporting(kind);
     try {
-      const csv = buildSanitizedCsv(data);
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const blob = await exportUserDetail(data.user.user_id, kind, reason);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `user-${data.user.display_id}-sanitized.csv`;
+      a.download = `user-${data.user.display_id}-${kind}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast({ title: "Sanitized export ready", description: "CSV downloaded with masked fields only." });
+      toast({ title: `${kind} export ready`, description: "CSV downloaded." });
     } catch (e) {
       toast({ title: "Export failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const toggleRevealEmail = async () => {
+    if (revealedEmail !== null) { setRevealedEmail(null); return; }
+    if (!data) return;
+    setRevealingEmail(true);
+    try {
+      const { value } = await revealUserSensitiveField(data.user.user_id, "email");
+      setRevealedEmail(value ?? "—");
+    } catch (e) {
+      toast({ title: "Reveal failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setRevealingEmail(false);
+    }
+  };
+
+  const toggleRevealPhone = async () => {
+    if (revealedPhone !== null) { setRevealedPhone(null); return; }
+    if (!data) return;
+    setRevealingPhone(true);
+    try {
+      const { value } = await revealUserSensitiveField(data.user.user_id, "phone");
+      setRevealedPhone(value ?? "—");
+    } catch (e) {
+      toast({ title: "Reveal failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setRevealingPhone(false);
     }
   };
 
@@ -156,15 +153,8 @@ export default function AdminUserDetail() {
   const notes = data?.admin_notes ?? [];
   const recent = data?.recent_transactions ?? [];
   const timeline = data?.timeline ?? [];
-  const verifPct = useMemo(() => {
-    if (!verif) return 0;
-    let n = 0;
-    if (verif.email) n += 1;
-    if (verif.phone) n += 1;
-    if (verif.identity_level >= 2) n += 1;
-    if (verif.bank_status === "verified") n += 1;
-    return Math.round((n / 4) * 100);
-  }, [verif]);
+  const verifPct = verif?.progress_percent ?? 0;
+  const actions = data?.available_actions;
 
   return (
     <AdminLayout title="User Investigation Hub" hideDefaultHeaders fullBleed>
@@ -186,13 +176,28 @@ export default function AdminUserDetail() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={onExport} disabled={!data} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-all flex items-center gap-2 text-xs sm:text-sm font-medium border border-slate-700 disabled:opacity-50">
-                <Download className="h-4 w-4" /> Sanitized Export
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button disabled={!data || !!exporting} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-all flex items-center gap-2 text-xs sm:text-sm font-medium border border-slate-700 disabled:opacity-50">
+                    {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    Export <ChevronDown className="h-3.5 w-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => runExport("sanitized")}>Sanitized User Export</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => runExport("activity")}>Activity Timeline Export</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => runExport("transactions")}>Transactions Export</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => runExport("disputes")}>Disputes Export</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => { setComplianceReason(""); setComplianceExport({ open: true }); }}>
+                    Compliance Export…
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <button onClick={() => data && setPendingAction({ kind: "add_note" })} disabled={!data} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-orange-600/20 disabled:opacity-50">
                 <StickyNote className="h-4 w-4" /> Add Note
               </button>
-              <button onClick={stub("Impersonate")} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-purple-600/20">
+              <button onClick={() => setImpersonateOpen(true)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-purple-600/20">
                 <UserCog className="h-4 w-4" /> Impersonate
               </button>
               <button onClick={() => userId && navigate(`/admin/transactions?user=${userId}`)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-blue-600/20">
@@ -229,19 +234,19 @@ export default function AdminUserDetail() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 mb-3">
                       <div className="flex items-center gap-2 text-sm min-w-0">
                         <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        <span className="text-slate-300 truncate">{revealEmail ? (data.user.email || "—") : maskEmail(data.user.email)}</span>
+                        <span className="text-slate-300 truncate">{revealedEmail !== null ? revealedEmail : maskEmail(data.user.email)}</span>
                         {data.user.email && (
-                          <button onClick={() => setRevealEmail(v => !v)} className="text-blue-400 hover:text-blue-300 text-xs" aria-label="Toggle email">
-                            {revealEmail ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          <button onClick={toggleRevealEmail} disabled={revealingEmail} className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50" aria-label="Toggle email">
+                            {revealingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : revealedEmail !== null ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        <span className="text-slate-300">{revealPhone ? (data.user.phone ?? "—") : maskPhone(data.user.phone)}</span>
+                        <span className="text-slate-300">{revealedPhone !== null ? revealedPhone : maskPhone(data.user.phone)}</span>
                         {data.user.phone && (
-                          <button onClick={() => setRevealPhone(v => !v)} className="text-blue-400 hover:text-blue-300 text-xs" aria-label="Toggle phone">
-                            {revealPhone ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          <button onClick={toggleRevealPhone} disabled={revealingPhone} className="text-blue-400 hover:text-blue-300 text-xs disabled:opacity-50" aria-label="Toggle phone">
+                            {revealingPhone ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : revealedPhone !== null ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         )}
                       </div>
@@ -275,6 +280,15 @@ export default function AdminUserDetail() {
                   <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
                     <StickyNote className="h-4 w-4" /> Add Note
                   </button>
+                  {data.user.is_suspended ? (
+                    <button onClick={() => setPendingAction({ kind: "unsuspend" })} className="px-4 py-2 bg-purple-500/20 border border-purple-500/40 text-purple-300 rounded-lg hover:bg-purple-500/30 transition-all text-sm font-medium inline-flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4" /> Unsuspend
+                    </button>
+                  ) : (
+                    <button onClick={() => setPendingAction({ kind: "suspend" })} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
+                      <Ban className="h-4 w-4" /> Suspend
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -366,6 +380,20 @@ export default function AdminUserDetail() {
                       okLabel="Verified"
                       pending={verif?.bank_status === "pending"}
                       pendingLabel="Pending"
+                    />
+                    <VerifRow
+                      icon={<ShieldAlert className="h-4 w-4" />}
+                      label="AML Screening"
+                      ok={verif?.aml_status === "clear"}
+                      okLabel="Clear"
+                      pending={verif?.aml_status === "review"}
+                      pendingLabel="In Review"
+                    />
+                    <VerifRow
+                      icon={<Home className="h-4 w-4" />}
+                      label="Address"
+                      ok={verif?.address_status === "provided"}
+                      okLabel="Provided"
                     />
                     <div className="pt-3 border-t border-slate-800">
                       <p className="text-slate-400 text-xs mb-2">Verification Coverage</p>
@@ -538,9 +566,14 @@ export default function AdminUserDetail() {
                   <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                     <StickyNote className="h-5 w-5 text-yellow-400" /> Admin Notes &amp; Flags
                   </h3>
-                  <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
-                    <Plus className="h-4 w-4" /> Add Note
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => navigate(`/admin/flagged-users?user_id=${userId}`)} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700">
+                      Open in Flagged Users
+                    </button>
+                    <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
+                      <Plus className="h-4 w-4" /> Add Note
+                    </button>
+                  </div>
                 </div>
                 <div className="p-5 space-y-4">
                   {notes.length === 0 && <p className="text-slate-500 text-sm text-center py-6">No notes or flags recorded.</p>}
@@ -576,6 +609,7 @@ export default function AdminUserDetail() {
           pendingAction?.kind === "flag" ? `Flag ${data?.user.full_name ?? "user"} for fraud review`
             : pendingAction?.kind === "clear_flag" ? `Clear flag on ${data?.user.full_name ?? "user"}`
             : pendingAction?.kind === "add_note" ? `Add note for ${data?.user.full_name ?? "user"}`
+            : pendingAction?.kind === "unsuspend" ? `Unsuspend ${data?.user.full_name ?? "user"}`
             : pendingAction ? `Suspend ${data?.user.full_name ?? "user"}` : ""
         }
         description="A note is required and will appear in the audit timeline."
@@ -584,12 +618,59 @@ export default function AdminUserDetail() {
         confirmLabel={
           pendingAction?.kind === "clear_flag" ? "Clear flag"
           : pendingAction?.kind === "suspend" ? "Suspend user"
+          : pendingAction?.kind === "unsuspend" ? "Unsuspend user"
           : pendingAction?.kind === "add_note" ? "Save note"
           : "Flag user"
         }
-        confirmTone={pendingAction?.kind === "clear_flag" || pendingAction?.kind === "add_note" ? "primary" : "danger"}
+        confirmTone={pendingAction?.kind === "clear_flag" || pendingAction?.kind === "add_note" || pendingAction?.kind === "unsuspend" ? "primary" : "danger"}
         onConfirm={onConfirmAction}
       />
+
+      {/* Impersonate informational modal */}
+      <Dialog open={impersonateOpen} onOpenChange={setImpersonateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Impersonation not available</DialogTitle>
+            <DialogDescription>
+              Impersonation is not enabled yet. Once configured, admins will be able to assume this user's session for limited troubleshooting, fully audited.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setImpersonateOpen(false)}>Got it</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Compliance export reason modal */}
+      <Dialog open={complianceExport.open} onOpenChange={(o) => setComplianceExport({ open: o })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Compliance export</DialogTitle>
+            <DialogDescription>
+              A reason is required. The export and reason will be recorded in the audit log. This export includes unmasked compliance-sensitive fields and is restricted to compliance or super-admin roles.
+            </DialogDescription>
+          </DialogHeader>
+          <textarea
+            value={complianceReason}
+            onChange={(e) => setComplianceReason(e.target.value)}
+            placeholder="Reason for compliance export…"
+            className="w-full min-h-24 rounded-md border bg-background p-3 text-sm"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setComplianceExport({ open: false })}>Cancel</Button>
+            <Button
+              disabled={!complianceReason.trim() || exporting === "compliance"}
+              onClick={async () => {
+                const r = complianceReason.trim();
+                setComplianceExport({ open: false });
+                await runExport("compliance", r);
+              }}
+            >
+              {exporting === "compliance" ? "Exporting…" : "Download"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

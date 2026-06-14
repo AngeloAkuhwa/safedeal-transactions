@@ -98,7 +98,7 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                 <tr
                   key={r.user_id}
                   className="hover:bg-slate-800/50 transition-all cursor-pointer"
-                  onClick={() => navigate(`/admin/users/${r.user_id}/profile`)}
+                  onClick={() => navigate(`/admin/users/${r.user_id}`)}
                 >
                   <td className="p-4">
                     <div className="flex items-center gap-3">

@@ -106,12 +106,32 @@ export interface UserDirectoryDetail {
     email: boolean;
     phone: boolean;
     identity_level: number;
+    identity_provider?: string | null;
+    identity_reviewed_at?: string | null;
+    identity_rejection_reason?: string | null;
     bank_status: string;
+    aml_status?: "not_screened" | "clear" | "review" | "hit";
+    aml_provider?: string | null;
+    aml_last_screened_at?: string | null;
+    address_status?: "provided" | "not_provided";
+    address_line?: string | null;
+    address_city?: string | null;
+    address_state?: string | null;
+    address_country?: string | null;
+    progress_percent?: number;
   };
   admin_notes?: Array<{
     id: string; type: string; note: string | null;
     admin_name: string; created_at: string; priority: string;
   }>;
+  available_actions?: {
+    can_flag: boolean;
+    can_unflag: boolean;
+    can_suspend: boolean;
+    can_unsuspend: boolean;
+    can_impersonate: boolean;
+    can_review_payout: boolean;
+  };
 }
 
 function toParams(q: UserDirectoryQuery): URLSearchParams {
@@ -160,4 +180,32 @@ export async function exportUsersDirectory(query: UserDirectoryQuery = {}): Prom
     throw new Error((body as { error?: string })?.error ?? `HTTP ${res.status}`);
   }
   return await res.blob();
+}
+
+export type UserExportType = "sanitized" | "activity" | "transactions" | "disputes" | "compliance";
+
+export async function exportUserDetail(userId: string, exportType: UserExportType, reason?: string): Promise<Blob> {
+  const headers = await authHeaders();
+  const p = new URLSearchParams({ user_id: userId, export_type: exportType });
+  if (reason) p.set("reason", reason);
+  const res = await fetch(`${FN_BASE}/admin-user-detail-export?${p.toString()}`, { headers });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string })?.error ?? `HTTP ${res.status}`);
+  }
+  return await res.blob();
+}
+
+export type RevealField = "email" | "phone" | "account_number";
+
+export async function revealUserSensitiveField(userId: string, field: RevealField, reason?: string): Promise<{ value: string | null }> {
+  const headers = await authHeaders();
+  const res = await fetch(`${FN_BASE}/admin-reveal-user-field`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ user_id: userId, field, reason }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((body as { error?: string })?.error ?? `HTTP ${res.status}`);
+  return body as { value: string | null };
 }

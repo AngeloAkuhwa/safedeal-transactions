@@ -1,0 +1,91 @@
+/**
+ * Admin reveal of a single sensitive user field.
+ * POST { user_id, field: "email"|"phone"|"account_number", reason? } → { value }
+ * Admin-only. account_number additionally requires compliance/super_admin and a reason.
+ * Writes admin_actions audit row per reveal.
+ */
+import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function json(status: number, body: Record<string, unknown>): Response {
+  return new Response(JSON.stringify(body), {
+    status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+type Field = "email" | "phone" | "account_number";
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
+
+  let ctx;
+  try { ctx = await requireAdmin(req); }
+  catch (err) {
+    const r = authErrorResponse(err, corsHeaders);
+    if (r) return r;
+    return json(500, { error: "auth_failed" });
+  }
+  const admin = ctx.adminClient;
+
+  let body: { user_id?: string; field?: Field; reason?: string };
+  try { body = await req.json(); }
+  catch { return json(400, { error: "invalid_json" }); }
+
+  const user_id = body.user_id;
+  const field = body.field;
+  const reason = (body.reason ?? "").trim();
+  if (!user_id || !field) return json(400, { error: "missing_params" });
+  if (!["email", "phone", "account_number"].includes(field)) {
+    return json(400, { error: "invalid_field" });
+  }
+
+  // Compliance gate for account_number
+  if (field === "account_number") {
+    if (!reason) return json(400, { error: "reason_required" });
+    const [{ data: isCompliance }, { data: isSuper }] = await Promise.all([
+      admin.rpc("has_role", { _user_id: ctx.userId, _role: "compliance" }),
+      admin.rpc("has_role", { _user_id: ctx.userId, _role: "super_admin" }),
+    ]);
+    if (!isCompliance && !isSuper) return json(403, { error: "compliance_required" });
+  }
+
+  let value: string | null = null;
+  try {
+    if (field === "email") {
+      const { data, error } = await admin.auth.admin.getUserById(user_id);
+      if (error) throw error;
+      value = data?.user?.email ?? null;
+    } else if (field === "phone") {
+      const { data } = await admin.from("profiles").select("phone").eq("id", user_id).maybeSingle();
+      value = (data as { phone?: string | null } | null)?.phone ?? null;
+    } else if (field === "account_number") {
+      const { data } = await admin
+        .from("payout_accounts")
+        .select("account_number")
+        .eq("user_id", user_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      value = (data as { account_number?: string | null } | null)?.account_number ?? null;
+    }
+  } catch (e) {
+    return json(500, { error: "lookup_failed", detail: (e as Error).message });
+  }
+
+  // Audit
+  await admin.from("admin_actions").insert({
+    action_type: "reveal_user_field",
+    admin_user_id: ctx.userId,
+    target_user_id: user_id,
+    action_notes: reason || null,
+    metadata: { field },
+  });
+
+  return json(200, { value });
+});
