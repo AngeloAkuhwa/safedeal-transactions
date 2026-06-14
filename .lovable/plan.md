@@ -1,112 +1,251 @@
-# User Detail — Full Page (new) + Right-Side Drawer (kept as-is)
 
-We are adding a brand-new, full-screen User Detail page that mirrors the attached `User Detail View.html` 1:1. The existing right-side quick-peek drawer is **NOT** being removed, refactored, or visually changed in any way. Both surfaces will coexist and serve different purposes.
+# User Investigation Hub — Backend Wiring & Cross-Screen Connectivity
 
----
+This plan keeps the **approved HTML design** intact, keeps the **right-side Quick Peek drawer** intact, and focuses on making `/admin/users/:userId/profile` a fully wired, real-data investigation hub.
 
-## A. What stays exactly as it is (the right-side drawer)
-
-The current quick-peek drawer is a small, fast preview. We are keeping every part of it untouched:
-
-- File **`src/components/admin/users/UserDetailDrawer.tsx`** — no edits. Same component, same layout, same icons, same content (header, profile chips, Activity 3-stat block, Recent transactions list, Admin actions timeline, sticky bottom flag/suspend/fraud-workspace buttons).
-- Mounted in **`src/pages/AdminUsers.tsx`** exactly where it is today (`<UserDetailDrawer userId={drawerUser} ... />`).
-- All existing triggers for opening it keep working:
-  - The drawer-mode route `/admin/users/:id` continues to open the drawer (driven by `useParams().id`).
-  - The `?u=<id>` query param continues to open the drawer.
-  - The current "open detail" handlers in the rows (`onOpenDetail` / `onOpen`) still call `setDrawerUser(id)` and open the drawer.
-- Data source (`fetchUserDirectoryDetail` → `admin-user-detail` edge function) is unchanged. The drawer keeps reading the same fields it reads today; any new fields we add to the response are optional and ignored by the drawer.
-- Flag / Suspend / Clear-flag flows from inside the drawer (`onFlag`, `onSuspend`, `onClearFlag` props feeding `ActionConfirmDialog`) — unchanged.
-- Presence dots, animations, sticky internal header, and the bottom action bar inside the drawer — unchanged.
-
-Net effect: a user clicking whatever opens the drawer today will see the exact same drawer they see today.
+No redesign. No fabricated data. Every field either renders real data or shows the documented empty/dash state.
 
 ---
 
-## B. What is new (the full-screen detail page)
+## 1. Route alignment
 
-A separate, deep, exhaustive page that lives at its own URL and is opened by clicking the **body of a row** in the users table.
+Current:
+- `/admin/users` → directory + drawer via `?u=`
+- `/admin/users/:id` → drawer route
+- `/admin/users/:id/profile` → new full page (built last turn)
 
-### B1. Route
+Change in `src/App.tsx`:
+- Keep `/admin/users` (list + `?u=` drawer).
+- Add `/admin/users/:userId` → `AdminUserDetail` (full page).
+- Keep `/admin/users/:id/profile` as a permanent redirect to `/admin/users/:id` so old links still work.
 
-- New route in `src/App.tsx`: `path="/admin/users/:id/profile"` → `<AdminUserDetail />`.
-- We deliberately use `:id/profile` (not `:id`) so it does NOT collide with the existing `/admin/users/:id` drawer-mode route.
-
-### B2. Row click behavior (the only change on the list page)
-
-In `src/components/admin/users/UsersTable.tsx` and `src/components/admin/users/UsersMobileFeed.tsx`:
-
-- The **row body** (the avatar + name + identity area — the main content of each row/card) becomes a clickable target that calls `navigate(\`/admin/users/${row.user_id}/profile\`)` and opens the new full page.
-- Every existing per-row control keeps its current behavior unchanged and calls `e.stopPropagation()` so it doesn't bubble up to the row click:
-  - Flag / Unflag button → still triggers `onFlagToggle`.
-  - Suspend button → still triggers `onSuspend`.
-  - Any kebab/quick-view affordance that currently opens the drawer (`onOpenDetail` / `onOpen`) → still opens the drawer.
-- We do not remove or rename any existing prop or handler. We only attach a new click handler to the row body container.
-
-Result:
-- Click row **body** → new full-screen page.
-- Click row **quick-view / kebab / drawer trigger** → existing drawer (unchanged).
-- Click row **action buttons** → existing flag/suspend dialogs (unchanged).
-
-### B3. New page — `src/pages/AdminUserDetail.tsx`
-
-Built with `AdminLayout` using `hideDefaultHeaders` + `fullBleed` so the admin sidebar is reused and this page owns its own header. Data via TanStack Query with the same key as the drawer (`["admin-user-detail", userId]`), so cache is shared — no duplicate network calls when navigating between drawer and page.
-
-Structure matches the attached HTML exactly:
-
-1. **Sticky page header** (`sticky top-0 z-20 bg-slate-900 border-b border-slate-800 px-8 py-6`) — content scrolls beneath it:
-   - Back arrow → `navigate(-1)` (fallback `/admin/users`).
-   - Title "User Investigation Hub" + subtitle "Complete user investigation and support center".
-   - Right action buttons: Sanitized Export · Add Note · Impersonate · View Transactions. Wired to existing handlers where they exist; otherwise stubbed with a "Coming soon" toast and visibly labelled as such.
-   - Embedded user summary card: avatar, full name, FLAGGED / VERIFIED chips, masked email & phone with eye-toggle reveal, User ID, joined date, role pills (Buyer / Seller / Premium when applicable), and inline Unflag/Flag + Add Note buttons (reusing the existing `performFlaggedAction` + `ActionConfirmDialog` flow already on the list page).
-
-2. **Scrolling content** (`p-8 space-y-6`), in this exact order:
-   - **3-column grid**: Profile Information · Verification Status (with the level progress bar) · Payout Account.
-   - **4-column stat row**: Total as Buyer · Total as Seller · Disputes · Trust Score (Trust Score renders "—" until a reviews source exists; we never fabricate it).
-   - **2-column grid**: Recent Transactions · Activity Log.
-   - **Full-width**: Admin Notes & Flags.
-
-3. **New presentational sub-components** under `src/components/admin/users/detail/` (page-only, do not touch the drawer):
-   - `UserDetailHeader.tsx`
-   - `ProfileInfoCard.tsx`
-   - `VerificationStatusCard.tsx`
-   - `PayoutAccountCard.tsx`
-   - `UserStatCards.tsx`
-   - `RecentTransactionsCard.tsx`
-   - `ActivityLogCard.tsx`
-   - `AdminNotesCard.tsx`
-
-4. **Icon mapping**: FontAwesome icons from the reference HTML are swapped for the closest `lucide-react` equivalents while preserving the exact color tokens (`text-blue-400`, `text-emerald-400`, `text-purple-400`, `text-orange-400`, `text-yellow-400`, `text-red-400`).
-
-5. **Mobile**: cards stack into a single column; the sticky header keeps the back arrow and condenses the action buttons into a "More" menu. No separate mobile mock was supplied, so we keep parity with desktop.
-
-### B4. Backend — additive extension of `admin-user-detail`
-
-The drawer keeps reading the same response it reads today. We only **add** optional fields so the new page has the data it needs from the same call (no new edge function, no schema changes, no migrations):
-
-- `stats`: `{ as_buyer: { count, volume }, as_seller: { count, volume }, disputes: { total, active, filed, received } }` — derived from `transactions` and `disputes`.
-- `payout_account`: `{ bank_name, account_type, masked_account_number, status, added_on } | null` — from `payout_accounts`.
-- `profile_extra`: `{ last_login_at, last_login_ip } | null` — from `user_sessions` (most recent) or `auth.users.last_sign_in_at`. Fields we don't store (DOB, address) are simply omitted, never invented.
-- `verification_detail`: `{ email, phone, identity_level, bank_status }` — derived from existing verification + `payout_account.status`.
-- `admin_notes`: list of `admin_actions` of note/flag type for this user (`id, type, note, admin_name, created_at, priority`).
-
-CORS unchanged. Reads only, service-role. The drawer continues to ignore these new fields.
-
-### B5. Service layer
-
-Extend the `UserDirectoryDetail` type in `src/services/admin-users-directory.service.ts` with the new optional fields. Existing callers (the drawer) are unaffected because the new fields are optional.
+This matches the spec's URL rule:
+- list: `/admin/users`
+- list + drawer: `/admin/users?u=<id>`
+- full hub: `/admin/users/:userId`
 
 ---
 
-## C. Out of scope (explicit non-goals)
+## 2. Sticky header fix
 
-- The right-side drawer is **not** being removed, replaced, moved, or restyled.
-- No changes to filters, presence dots, pagination, summary cards, bulk actions, or the existing list-page layout beyond attaching the new row-body click handler.
-- No new tables, migrations, RLS, or grants.
-- No fabricated data — fields the backend doesn't have (DOB, full address, trust score reviews) render "—" or are hidden.
+Root issue: the page uses `AdminLayout` with `fullBleed`, and the hub header sits inside the scrolling `<main>`, so it scrolls away.
 
-## D. How to verify after build
+Fix in `AdminUserDetail.tsx`:
+- Wrap the hub header in `<div class="sticky top-0 z-30 bg-slate-900 border-b border-slate-800">` containing both the title row and the user summary card.
+- Ensure no ancestor sets `overflow-hidden` on the scroll container. `AdminLayout` (non-`fullHeight` mode) lets the page scroll on `<main>`, so `position: sticky` will pin to the viewport top.
+- On mobile, the same sticky block; the back button + title row collapse into a single line with overflow menu for the right-side action buttons.
 
-- Drawer: open the users page, click whatever opens the drawer today → identical drawer appears, identical content, identical actions.
-- New page: click the body of any row → navigates to `/admin/users/:id/profile` and shows the full investigation hub page from the HTML reference, with sticky header and content scrolling beneath.
-- Row action buttons (flag, suspend, drawer trigger) still work and do NOT navigate to the new page.
-- Refreshing `/admin/users/:id/profile` loads the page directly (deep-linkable).
+---
+
+## 3. Edge function: `admin-user-detail`
+
+Expand the response to the contract in the brief. All new fields are additive; the existing drawer ignores unknown fields.
+
+Sources:
+- `profiles`, `auth.users` → identity, masked email/phone, created_at, last_sign_in_at.
+- `user_sessions` → last_login_at, ip, city/state/country (already wired).
+- `identity_submissions` / `user_verifications` → KYC status, provider, reviewed_at, rejection_reason.
+- `aml_screenings` if table exists; otherwise return `status: "not_screened"` with label `Not Screened` (no fake data).
+- `payout_accounts` → bank_name, masked acct, name match, recipient code/status, verification_status.
+- `transactions` + `transaction_pricing` → buyer/seller volumes, counts, recent 5.
+- `disputes` → totals, active, filed vs received.
+- `admin_actions` → activity log + notes/flags split by `action_type`.
+- `reviews` (if present) → trust score, else `null`.
+
+Add `available_actions` flags computed from the caller's admin role + target user state (flagged/suspended booleans).
+
+Add `verification.progress_percent` using the documented formula (email 20, phone 20, identity 30, aml 20, payout 10 for sellers/vendors).
+
+Return `403` with `{ error: "admin_required" }` when not admin; the frontend renders a permission state.
+
+---
+
+## 4. Sanitized export function
+
+New edge function: `admin-user-detail-export`.
+
+- `GET ?user_id=<id>&export_type=sanitized|activity|transactions|disputes|compliance`
+- Requires admin; `compliance` requires `compliance` or `super_admin` role + a `reason` query param.
+- Returns CSV (`text/csv`) with masked fields only (no full account number, NIN, BVN, raw doc URLs, raw AML payloads).
+- After success, inserts `admin_actions` row: `action_type='export_user_detail'`, metadata `{ export_type, exported_by, user_id }`.
+- `transactions` / `disputes` export types delegate by 302 to existing list export endpoints with `?user=<id>` (no duplicate logic).
+
+---
+
+## 5. Sensitive-field reveal
+
+New edge function: `admin-reveal-user-field` (`POST { user_id, field: "email"|"phone"|"account_number", reason }`).
+- Permission gate (admin role; `account_number` requires compliance).
+- Inserts an `admin_actions` audit row per reveal.
+- Returns only the one requested field.
+
+Frontend eye-toggle next to each masked field calls this on click, then displays the value until the user toggles back off (no persistence).
+
+---
+
+## 6. Service layer (`src/services/admin-users-directory.service.ts`)
+
+Add (no Supabase imports in components):
+- `fetchUserDirectoryDetail(userId)` — already exists, expand return type to `AdminUserDetail`.
+- `exportUserDetail(userId, exportType, reason?)` → `Blob`.
+- `addUserNote(userId, { note, type, priority, linked_transaction_id?, linked_dispute_id? })`.
+- `revealUserSensitiveField(userId, field, reason?)` → `{ value }`.
+- `reviewPayoutAccount(userId, { decision: 'approve_override'|'reject'|'request_new'|'rerun_resolution', note })`.
+- `flagUser` / `clearFlag` / `suspendUser` / `unsuspendUser` — thin wrappers over the existing `admin-flagged-users-action` function with `source_type: 'user_detail'`.
+
+---
+
+## 7. Component breakdown
+
+Refactor `src/pages/AdminUserDetail.tsx` into the structure in the brief:
+
+```
+src/pages/AdminUserDetail.tsx                  (route + data + state)
+src/components/admin/users/detail/
+  UserDetailHeader.tsx                         (sticky header + action buttons)
+  UserSummaryPanel.tsx                         (avatar, masked contact, badges, Flag/Add Note)
+  ProfileInfoCard.tsx                          (Full Name, DOB, Location, Status, Last Login, IP)
+  VerificationStatusCard.tsx                   (Email, Phone, Identity, AML, Bank, Address + progress)
+  PayoutAccountCard.tsx                        (Nigerian fields, Recipient Code, match status)
+  UserStatsCards.tsx                           (4 stat cards in NGN)
+  RecentTransactionsCard.tsx                   (list + View All)
+  UserActivityLogCard.tsx                      (timeline w/ linked navigation)
+  AdminNotesFlagsCard.tsx                      (notes + Add Note)
+  UserActionModals.tsx                         (Flag / Unflag / Suspend / Add Note / Impersonate)
+  UserExportMenu.tsx                           (dropdown: 5 export options)
+  PayoutAccountReviewModal.tsx                 (approve override / reject / request new / re-run)
+  UserDetailSkeleton.tsx
+  UserDetailErrorState.tsx
+```
+
+All components are presentational and receive typed data from the page.
+
+---
+
+## 8. Data wiring per section
+
+| Section | Source field |
+|---|---|
+| Header title/subtitle | static "User Investigation Hub" / "Complete user investigation and support center" |
+| User summary | `user.*`, `roles`, `badges` |
+| Profile Info | `user.full_name`, `date_of_birth`, `location_label`, `account_status_label`, `last_login_label`, `last_login_ip_masked` |
+| Verification | `verification.email/phone/identity/aml/address` + `progress_percent` |
+| Payout Account | `payout_account.*` (Nigerian schema, no routing numbers) |
+| Stats — Buyer | `stats.buyer.total_amount` (₦) + `transaction_count` |
+| Stats — Seller | `stats.seller.total_amount` (₦) + `transaction_count` |
+| Stats — Disputes | `stats.disputes.total_count` / `active_count` / `filed_count`,`received_count` |
+| Stats — Trust | `stats.trust_score.score` or `—` + `review_count` |
+| Recent Transactions | `recent_transactions[]` |
+| Activity Log | `activity_log[]` |
+| Admin Notes & Flags | `admin_notes[]` |
+
+Missing data renders `—` or the documented empty-state copy. No hardcoded values, no Chase Bank, no US locations, no `$`, no 4.8/5.0.
+
+---
+
+## 9. Navigation in (entry points)
+
+Wire row/button handlers in these files (one-line nav additions, no other change):
+
+| From | File | Action |
+|---|---|---|
+| User Directory row → Profile button | `UsersTable.tsx`, `UsersMobileFeed.tsx` | nav `/admin/users/:id` |
+| User Directory drawer | `UserDetailDrawer.tsx` | Add "Open Full Investigation Hub" footer link |
+| Flagged Users | `AdminFlaggedUsers.tsx` | "View Profile" → `/admin/users/:id` |
+| Transaction Detail | `AdminTransactionDetail.tsx` | Buyer/Seller name → `/admin/users/:id`; secondary "Open in Directory" → `/admin/users?u=:id` |
+| Dispute Detail | `AdminDisputeDetail.tsx` | Buyer/Seller card → `/admin/users/:id` |
+| Payouts | `AdminPayouts.tsx` | Seller name → `/admin/users/:sellerId` |
+| Escrow | `AdminEscrow.tsx` | Buyer/seller names → user detail |
+| Identity Verification (if page exists) | applicant link → user detail |
+| Refunds (if page exists) | user link → user detail |
+
+For pages that don't currently exist (AML dashboard, refunds page), the hub gracefully degrades — links show a toast "Coming soon" instead of breaking.
+
+---
+
+## 10. Navigation out (buttons on the hub)
+
+| Button | Behavior |
+|---|---|
+| Back arrow | `navigate(-1)` if `history.length > 1`, else `/admin/users` |
+| View Transactions (header) | `/admin/transactions?user=<id>` |
+| Recent Transactions → View All | same |
+| Transaction row | `/admin/transactions/:transactionId` |
+| Disputes stat card | `/admin/disputes?user=<id>` |
+| Activity item (linked) | route by type (tx/dispute/payout/refund/verification) |
+| Payout Account → View Payouts | `/admin/payouts?seller=<id>` |
+| Payout Account → Review | opens `PayoutAccountReviewModal` |
+| Verification → View KYC Details | `/admin/identity-verification?user=<id>` (toast fallback if route missing) |
+| Verification → Review AML | `/admin/compliance/aml?user=<id>` or toast fallback |
+| Flag badge / Notes → Open in Flagged Users | `/admin/flagged-users?user_id=<id>` |
+
+Transaction monitor and disputes pages must accept `?user=<id>` filter — small additive change in their existing query parsing.
+
+---
+
+## 11. Action modals
+
+`UserActionModals.tsx` hosts five modals reused from existing `ActionConfirmDialog` pattern:
+
+1. **Flag User** — reason select, severity, note → `flagUser(...)`.
+2. **Unflag User** — required note → `clearFlag(...)`. Toast warns if active risk signals remain.
+3. **Suspend / Unsuspend** — confirmation + note → `suspendUser/unsuspendUser`.
+4. **Add Note** — note text, type (info/warning/flag), priority, optional linked transaction/dispute → `addUserNote(...)`.
+5. **Impersonate** — informational modal: "Impersonation is not enabled yet." (No real impersonation route in the codebase.)
+
+After every mutation: invalidate `admin-user-detail`, `admin-users-directory`, `admin-flagged-users`, plus `admin-payouts` / `admin-identity-verification` when relevant.
+
+---
+
+## 12. Export menu
+
+`UserExportMenu.tsx` is a `DropdownMenu` triggered by the header "Sanitized Export" button:
+- Sanitized User Export (default download)
+- Activity Timeline Export
+- Transactions Export (delegates)
+- Disputes Export (delegates)
+- Compliance Export (role-gated, requires reason modal)
+
+All downloads call `exportUserDetail(...)` then `URL.createObjectURL` + click; audit row written server-side.
+
+---
+
+## 13. States
+
+- **Loading**: `UserDetailSkeleton` mirrors the full layout.
+- **403**: `UserDetailErrorState` with copy "You do not have permission to view this user."
+- **Not found (404)**: dedicated copy + back link.
+- **Generic error**: copy + Retry button.
+- **Empty per-card copy**: as specified in §27 of the brief.
+
+---
+
+## 14. Privacy & masking
+
+- Email/phone/account number masked by default in all renders.
+- Reveal flow requires explicit click → audited via `admin-reveal-user-field`.
+- IP renders masked (first 2 octets) or `—` if missing.
+- Compliance-only data (raw NIN/BVN, raw doc URLs, raw AML payload) is never returned by the standard endpoint.
+
+---
+
+## 15. Out of scope / preserved
+
+- Right-side **Quick Peek drawer** (`UserDetailDrawer.tsx`) — untouched.
+- Directory filters, presence dots, summary cards, pagination, bulk actions — untouched.
+- No schema migrations required; all new server logic reads existing tables and writes only to `admin_actions`.
+- AML table / compliance dashboard / refunds page — not created here; the hub gracefully degrades when those routes are absent.
+
+---
+
+## 16. Acceptance check (will verify after build)
+
+- Header stays pinned while body scrolls under it.
+- Every stat card displays NGN values or the documented empty state.
+- Recent Transactions populate from `recent_transactions[]` with rows clickable.
+- Activity Log populates from `admin_actions`; "No activity recorded" otherwise.
+- Admin Notes & Flags populate from filtered `admin_actions`; Add Note round-trips and refreshes.
+- All header buttons function (export downloads, add note opens modal, impersonate shows informational modal, view transactions navigates).
+- Flag/Unflag/Suspend persist and invalidate related queries.
+- Entry-point pages route to `/admin/users/:id` correctly.
+- No `$`, no Chase Bank, no 4.8/5.0, no hardcoded sample user data anywhere on the hub.
