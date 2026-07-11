@@ -12,7 +12,7 @@ import {
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { fetchUserDirectoryDetail, exportUserDetail, revealUserSensitiveField, type UserExportType } from "@/services/admin-users-directory.service";
 import { performFlaggedAction } from "@/services/admin-flagged-users.service";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, maskEmail, maskPhone } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -38,19 +38,6 @@ function relative(iso: string | null | undefined): string {
   const d = Math.floor(h / 24);
   return `${d}d ago`;
 }
-function maskEmail(email: string | null | undefined): string {
-  if (!email) return "—";
-  const [name, domain] = email.split("@");
-  if (!domain) return email;
-  const m = (s: string) => s.length <= 2 ? s[0] + "•" : s[0] + "•".repeat(Math.max(1, s.length - 2)) + s[s.length - 1];
-  const [dName, ...dRest] = domain.split(".");
-  return `${m(name)}@${m(dName)}.${dRest.join(".")}`;
-}
-function maskPhone(phone: string | null | undefined): string {
-  if (!phone) return "—";
-  if (phone.length < 4) return phone;
-  return phone.slice(0, 2) + "•".repeat(phone.length - 6) + phone.slice(-4);
-}
 
 type PendingAction = { kind: "flag" | "clear_flag" | "suspend" | "unsuspend" | "add_note" } | null;
 type ComplianceExportPrompt = { open: boolean };
@@ -64,7 +51,6 @@ export default function AdminUserDetail() {
   const [revealingEmail, setRevealingEmail] = useState(false);
   const [revealingPhone, setRevealingPhone] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [impersonateOpen, setImpersonateOpen] = useState(false);
   const [complianceExport, setComplianceExport] = useState<ComplianceExportPrompt>({ open: false });
   const [complianceReason, setComplianceReason] = useState("");
   const [exporting, setExporting] = useState<UserExportType | null>(null);
@@ -198,9 +184,11 @@ export default function AdminUserDetail() {
               <button onClick={() => data && setPendingAction({ kind: "add_note" })} disabled={!data} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-orange-600/20 disabled:opacity-50">
                 <StickyNote className="h-4 w-4" /> Add Note
               </button>
-              <button onClick={() => setImpersonateOpen(true)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-purple-600/20">
-                <UserCog className="h-4 w-4" /> Impersonate
-              </button>
+              {actions?.can_impersonate && (
+                <button onClick={() => userId && navigate(`/admin/users/${userId}/impersonate`)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-purple-600/20">
+                  <UserCog className="h-4 w-4" /> Impersonate
+                </button>
+              )}
               <button onClick={() => userId && navigate(`/admin/transactions?user=${userId}`)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-blue-600/20">
                 <Search className="h-4 w-4" /> View Transactions
               </button>
@@ -447,7 +435,7 @@ export default function AdminUserDetail() {
               </div>
 
               {/* Row 2 — 4 stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard
                   icon={<ShoppingCart className="h-6 w-6 text-blue-400" />}
                   label="Total as Buyer"
@@ -467,12 +455,6 @@ export default function AdminUserDetail() {
                   sub={stats ? `${stats.disputes.filed} filed, ${stats.disputes.received} received` : ""}
                   pill={stats && stats.disputes.active > 0 ? { text: `${stats.disputes.active} Active`, tone: "red" } : undefined}
                   onClick={() => userId && navigate(`/admin/disputes?user=${userId}`)}
-                />
-                <StatCard
-                  icon={<Star className="h-6 w-6 text-yellow-400" />}
-                  label="Trust Score"
-                  value="—"
-                  sub="Trust score not available"
                 />
               </div>
 
@@ -643,28 +625,13 @@ export default function AdminUserDetail() {
         onConfirm={onConfirmAction}
       />
 
-      {/* Impersonate informational modal */}
-      <Dialog open={impersonateOpen} onOpenChange={setImpersonateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Impersonation not available</DialogTitle>
-            <DialogDescription>
-              Impersonation is not enabled yet. Once configured, admins will be able to assume this user's session for limited troubleshooting, fully audited.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setImpersonateOpen(false)}>Got it</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Compliance export reason modal */}
       <Dialog open={complianceExport.open} onOpenChange={(o) => setComplianceExport({ open: o })}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Compliance export</DialogTitle>
             <DialogDescription>
-              A reason is required. The export and reason will be recorded in the audit log. This export includes unmasked compliance-sensitive fields and is restricted to compliance or super-admin roles.
+              A reason is required. The export and reason will be recorded in the audit log. This export includes unmasked compliance-sensitive fields and is restricted to admins.
             </DialogDescription>
           </DialogHeader>
           <textarea
