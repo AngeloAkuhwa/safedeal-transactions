@@ -435,7 +435,7 @@ export default function AdminUserDetail() {
               </div>
 
               {/* Row 2 — 4 stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard
                   icon={<ShoppingCart className="h-6 w-6 text-blue-400" />}
                   label="Total as Buyer"
@@ -455,12 +455,6 @@ export default function AdminUserDetail() {
                   sub={stats ? `${stats.disputes.filed} filed, ${stats.disputes.received} received` : ""}
                   pill={stats && stats.disputes.active > 0 ? { text: `${stats.disputes.active} Active`, tone: "red" } : undefined}
                   onClick={() => userId && navigate(`/admin/disputes?user=${userId}`)}
-                />
-                <StatCard
-                  icon={<Star className="h-6 w-6 text-yellow-400" />}
-                  label="Trust Score"
-                  value="—"
-                  sub="Trust score not available"
                 />
               </div>
 
