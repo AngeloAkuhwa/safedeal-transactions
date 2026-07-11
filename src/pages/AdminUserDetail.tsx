@@ -631,28 +631,13 @@ export default function AdminUserDetail() {
         onConfirm={onConfirmAction}
       />
 
-      {/* Impersonate informational modal */}
-      <Dialog open={impersonateOpen} onOpenChange={setImpersonateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Impersonation not available</DialogTitle>
-            <DialogDescription>
-              Impersonation is not enabled yet. Once configured, admins will be able to assume this user's session for limited troubleshooting, fully audited.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setImpersonateOpen(false)}>Got it</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Compliance export reason modal */}
       <Dialog open={complianceExport.open} onOpenChange={(o) => setComplianceExport({ open: o })}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Compliance export</DialogTitle>
             <DialogDescription>
-              A reason is required. The export and reason will be recorded in the audit log. This export includes unmasked compliance-sensitive fields and is restricted to compliance or super-admin roles.
+              A reason is required. The export and reason will be recorded in the audit log. This export includes unmasked compliance-sensitive fields and is restricted to admins.
             </DialogDescription>
           </DialogHeader>
           <textarea
