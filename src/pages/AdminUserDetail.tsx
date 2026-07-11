@@ -12,7 +12,7 @@ import {
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { fetchUserDirectoryDetail, exportUserDetail, revealUserSensitiveField, type UserExportType } from "@/services/admin-users-directory.service";
 import { performFlaggedAction } from "@/services/admin-flagged-users.service";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, maskEmail, maskPhone } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -37,19 +37,6 @@ function relative(iso: string | null | undefined): string {
   if (h < 24) return `${h}h ago`;
   const d = Math.floor(h / 24);
   return `${d}d ago`;
-}
-function maskEmail(email: string | null | undefined): string {
-  if (!email) return "—";
-  const [name, domain] = email.split("@");
-  if (!domain) return email;
-  const m = (s: string) => s.length <= 2 ? s[0] + "•" : s[0] + "•".repeat(Math.max(1, s.length - 2)) + s[s.length - 1];
-  const [dName, ...dRest] = domain.split(".");
-  return `${m(name)}@${m(dName)}.${dRest.join(".")}`;
-}
-function maskPhone(phone: string | null | undefined): string {
-  if (!phone) return "—";
-  if (phone.length < 4) return phone;
-  return phone.slice(0, 2) + "•".repeat(phone.length - 6) + phone.slice(-4);
 }
 
 type PendingAction = { kind: "flag" | "clear_flag" | "suspend" | "unsuspend" | "add_note" } | null;
