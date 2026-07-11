@@ -93,3 +93,21 @@ export function formatMoneyDelta(
   const sign = value > 0 ? "+" : "−";
   return `${sign}${formatMoney(Math.abs(value), currency)}`;
 }
+
+/** Mask an email like `jo•@g•••l.com`. Returns "—" when empty. */
+export function maskEmail(email: string | null | undefined): string {
+  if (!email) return "—";
+  const [name, domain] = email.split("@");
+  if (!domain) return email;
+  const m = (s: string) =>
+    s.length <= 2 ? s[0] + "•" : s[0] + "•".repeat(Math.max(1, s.length - 2)) + s[s.length - 1];
+  const [dName, ...dRest] = domain.split(".");
+  return `${m(name)}@${m(dName)}${dRest.length ? "." + dRest.join(".") : ""}`;
+}
+
+/** Mask a phone number, keeping the first 2 and last 4 digits. */
+export function maskPhone(phone: string | null | undefined): string {
+  if (!phone) return "—";
+  if (phone.length < 7) return phone;
+  return phone.slice(0, 2) + "•".repeat(phone.length - 6) + phone.slice(-4);
+}
