@@ -51,7 +51,6 @@ export default function AdminUserDetail() {
   const [revealingEmail, setRevealingEmail] = useState(false);
   const [revealingPhone, setRevealingPhone] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [impersonateOpen, setImpersonateOpen] = useState(false);
   const [complianceExport, setComplianceExport] = useState<ComplianceExportPrompt>({ open: false });
   const [complianceReason, setComplianceReason] = useState("");
   const [exporting, setExporting] = useState<UserExportType | null>(null);
@@ -185,9 +184,11 @@ export default function AdminUserDetail() {
               <button onClick={() => data && setPendingAction({ kind: "add_note" })} disabled={!data} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-orange-600/20 disabled:opacity-50">
                 <StickyNote className="h-4 w-4" /> Add Note
               </button>
-              <button onClick={() => setImpersonateOpen(true)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-purple-600/20">
-                <UserCog className="h-4 w-4" /> Impersonate
-              </button>
+              {actions?.can_impersonate && (
+                <button onClick={() => userId && navigate(`/admin/users/${userId}/impersonate`)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-purple-600/20">
+                  <UserCog className="h-4 w-4" /> Impersonate
+                </button>
+              )}
               <button onClick={() => userId && navigate(`/admin/transactions?user=${userId}`)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-blue-600/20">
                 <Search className="h-4 w-4" /> View Transactions
               </button>
