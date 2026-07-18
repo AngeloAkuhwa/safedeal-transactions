@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
+import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -181,8 +182,9 @@ Deno.serve(async (req) => {
 
     // Calculate pricing
     const itemAmount = product.unit_price * quantity;
-    const pricing = computePricing(itemAmount, product.currency_code);
-    const snapshot = buildPricingSnapshot(itemAmount, product.currency_code);
+    const vendorConfig = await loadPricingConfig(product.seller_id);
+    const pricing = computePricing(itemAmount, product.currency_code, "local", vendorConfig);
+    const snapshot = buildPricingSnapshot(itemAmount, product.currency_code, vendorConfig);
 
     // Resolve buyer's delivery selection (also used by the reuse path below)
     let enabledMethods: string[] = [];
