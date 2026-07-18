@@ -8,6 +8,7 @@ export interface SellerTrustSummary {
 }
 
 export interface MarketplaceSeller {
+  id: string;
   full_name: string;
   store_slug: string | null;
   avatar_url: string | null;
