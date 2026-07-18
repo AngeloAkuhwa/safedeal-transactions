@@ -32,23 +32,28 @@ Deno.serve(async (req) => {
 
   const now = Date.now();
   const dayAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+  const twoDaysAgo = new Date(now - 48 * 60 * 60 * 1000).toISOString();
 
-  // Pull last-24h notifications + deliveries.
-  const [{ data: notifs24 }, { data: dels24 }] = await Promise.all([
+  // Pull last-48h so we can compare current 24h to the prior 24h window.
+  const [{ data: notifs48 }, { data: dels48 }] = await Promise.all([
     admin.from("notifications")
       .select("id, user_id, type, channel, title, message, status, is_read, created_at, related_transaction_id, related_dispute_id")
-      .gte("created_at", dayAgo)
-      .order("created_at", { ascending: false })
-      .limit(1000),
-    admin.from("notification_deliveries")
-      .select("id, notification_id, channel, delivery_status, provider_response, attempt_count, sent_at, created_at")
-      .gte("created_at", dayAgo)
+      .gte("created_at", twoDaysAgo)
       .order("created_at", { ascending: false })
       .limit(2000),
+    admin.from("notification_deliveries")
+      .select("id, notification_id, channel, delivery_status, provider_response, attempt_count, sent_at, created_at")
+      .gte("created_at", twoDaysAgo)
+      .order("created_at", { ascending: false })
+      .limit(4000),
   ]);
 
-  const notifs = notifs24 ?? [];
-  const dels = dels24 ?? [];
+  const notifsAll = notifs48 ?? [];
+  const delsAll = dels48 ?? [];
+  const notifs = notifsAll.filter((n) => n.created_at >= dayAgo);
+  const dels = delsAll.filter((d) => d.created_at >= dayAgo);
+  const notifsPrev = notifsAll.filter((n) => n.created_at < dayAgo);
+  const delsPrev = delsAll.filter((d) => d.created_at < dayAgo);
 
   // Latest delivery per notification.
   const latestByNotif = new Map<string, typeof dels[number]>();
@@ -60,6 +65,16 @@ Deno.serve(async (req) => {
   }
   const latestDels = Array.from(latestByNotif.values());
 
+  // Same reduction for the previous 24h window.
+  const latestByNotifPrev = new Map<string, typeof dels[number]>();
+  for (const d of delsPrev) {
+    const prev = latestByNotifPrev.get(d.notification_id);
+    if (!prev || new Date(d.created_at) > new Date(prev.created_at)) {
+      latestByNotifPrev.set(d.notification_id, d);
+    }
+  }
+  const latestDelsPrev = Array.from(latestByNotifPrev.values());
+
   // KPIs
   const sentToday = notifs.filter((n) => n.status === "sent" || n.status === "read").length;
   const failedToday = latestDels.filter((d) => d.delivery_status === "failed").length;
@@ -69,6 +84,22 @@ Deno.serve(async (req) => {
   const inAppTotal = notifs.filter((n) => n.channel === "in_app").length;
   const inAppDelivered = notifs.filter((n) => n.channel === "in_app" && (n.status === "sent" || n.status === "read")).length;
   const inAppRate = inAppTotal ? Math.round((inAppDelivered / inAppTotal) * 1000) / 10 : 0;
+
+  // Prior-window KPIs for deltas.
+  const sentPrev = notifsPrev.filter((n) => n.status === "sent" || n.status === "read").length;
+  const failedPrev = latestDelsPrev.filter((d) => d.delivery_status === "failed").length;
+  const smsPrev = latestDelsPrev.filter((d) => d.channel === "sms" && d.delivery_status === "failed").length;
+  const emailPrev = latestDelsPrev.filter((d) => d.channel === "email" && d.delivery_status === "failed").length;
+  const retryPrev = latestDelsPrev.filter((d) => d.delivery_status === "failed" && (d.attempt_count ?? 0) < 3).length;
+  const inAppTotalPrev = notifsPrev.filter((n) => n.channel === "in_app").length;
+  const inAppDeliveredPrev = notifsPrev.filter((n) => n.channel === "in_app" && (n.status === "sent" || n.status === "read")).length;
+  const inAppRatePrev = inAppTotalPrev ? Math.round((inAppDeliveredPrev / inAppTotalPrev) * 1000) / 10 : 0;
+
+  const pctDelta = (curr: number, prev: number): number => {
+    if (prev === 0) return curr > 0 ? 100 : 0;
+    return Math.round(((curr - prev) / prev) * 1000) / 10;
+  };
+  const ppDelta = (curr: number, prev: number): number => Math.round((curr - prev) * 10) / 10;
 
   // Delivery performance per channel
   const perChannel = (ch: "in_app" | "email" | "sms") => {
@@ -158,6 +189,13 @@ Deno.serve(async (req) => {
       email_failures: emailFailures,
       in_app_rate: inAppRate,
       retry_queue: retryQueue,
+      sent_delta: pctDelta(sentToday, sentPrev),
+      failed_delta: pctDelta(failedToday, failedPrev),
+      sms_delta: pctDelta(smsFailures, smsPrev),
+      email_delta: pctDelta(emailFailures, emailPrev),
+      retry_delta: pctDelta(retryQueue, retryPrev),
+      in_app_delta: ppDelta(inAppRate, inAppRatePrev),
+      compared_to: "yesterday",
     },
     delivery_performance: deliveryPerformance,
     failed,
