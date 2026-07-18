@@ -56,6 +56,43 @@ export default function AdminUserDetail() {
   const [complianceExport, setComplianceExport] = useState<ComplianceExportPrompt>({ open: false });
   const [complianceReason, setComplianceReason] = useState("");
   const [exporting, setExporting] = useState<UserExportType | null>(null);
+  const [vendorStatusModal, setVendorStatusModal] = useState<{ open: boolean; target: "active" | "disabled" | "suspended" }>({ open: false, target: "active" });
+  const [vendorStatusReason, setVendorStatusReason] = useState("");
+  const [vendorStatusSaving, setVendorStatusSaving] = useState(false);
+
+  const vendorStatusQuery = useQuery({
+    queryKey: ["admin-vendor-status", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("vendor_status, vendor_status_reason, vendor_status_changed_at")
+        .eq("id", userId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: Boolean(userId),
+  });
+
+  async function submitVendorStatus() {
+    const target = vendorStatusModal.target;
+    if (target !== "active" && vendorStatusReason.trim().length < 3) {
+      toast({ title: "Reason required", description: "Enter at least 3 characters." });
+      return;
+    }
+    setVendorStatusSaving(true);
+    try {
+      await setVendorStatus({ vendor_id: userId, status: target, reason: vendorStatusReason.trim() });
+      toast({ title: `Vendor set to ${target}` });
+      setVendorStatusModal({ open: false, target: "active" });
+      setVendorStatusReason("");
+      qc.invalidateQueries({ queryKey: ["admin-vendor-status", userId] });
+    } catch (e: any) {
+      toast({ title: "Update failed", description: e?.message ?? String(e) });
+    } finally {
+      setVendorStatusSaving(false);
+    }
+  }
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-user-detail", userId],
