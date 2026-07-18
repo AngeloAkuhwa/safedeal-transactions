@@ -24,6 +24,7 @@ import {
   getCartItems, removeFromCart, updateCartQuantity, checkoutSelected,
   CartItem, CartDeliverySelection, CartDeliveryAddress,
 } from "@/services/cart.service";
+import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfigs } from "@/hooks/useEffectivePricingConfig";
 import { supabase } from "@/integrations/supabase/client";
