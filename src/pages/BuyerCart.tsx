@@ -106,6 +106,8 @@ const BuyerCart = () => {
 
   const items: CartItem[] = data?.items || [];
   const activeSessionId = data?.active_checkout_session_id || null;
+  const gate = useCommerceGate(); // platform-scope gate
+  const gateBlocked = !gate.loading && !gate.checkoutEnabled;
 
   // Auto-initialize delivery drafts: pre-select when only one method is offered.
   useEffect(() => {
