@@ -131,6 +131,7 @@ Deno.serve(async (req) => {
         category,
       },
       seller: {
+        id: seller.id,
         full_name: seller.full_name,
         avatar_url: seller.avatar_url,
         store_slug: seller.store_slug,
