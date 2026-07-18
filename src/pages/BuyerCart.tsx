@@ -25,6 +25,7 @@ import {
   CartItem, CartDeliverySelection, CartDeliveryAddress,
 } from "@/services/cart.service";
 import { computePricing } from "@/lib/pricing";
+import { useEffectivePricingConfigs } from "@/hooks/useEffectivePricingConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { formatMoney } from "@/lib/format";
 import { resolveDeliveryMethod } from "@/lib/status-labels";
