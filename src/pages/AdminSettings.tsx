@@ -712,10 +712,6 @@ export default function AdminSettings() {
             </section>
           )}
 
-          {/* placeholder for closing of old section (already closed above) */}
-          <div className="hidden">
-          </section>
-
         </div>
       </div>
     </AdminLayout>
