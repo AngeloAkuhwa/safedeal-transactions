@@ -424,8 +424,8 @@ export default function AdminSettings() {
                 </h4>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
                   <FeeField label="Platform Fee Rate" suffix="%" value={platformRate} onChange={setStr(setPlatformRate)} help="Applied to all standard transactions" />
-                  <FeeField label="Minimum Platform Fee" prefix="₦" value={minFee} onChange={setStr(setMinFee)} help="Floor charged even on small orders" />
-                  <FeeField label="Total Service Fee Cap" prefix="₦" value={feeCap} onChange={setStr(setFeeCap)} help="Buyer-friendly ceiling on service fees" />
+                  <FeeField label="Minimum Platform Fee" prefix="₦" value={minFee} onChange={setStr(setMinFee)} help="Floor charged even on small orders" locked={isLocked("pricing.min_platform_fee_ngn")} />
+                  <FeeField label="Total Service Fee Cap" prefix="₦" value={feeCap} onChange={setStr(setFeeCap)} help="Buyer-friendly ceiling on service fees" locked={isLocked("pricing.max_total_service_fee_ngn")} />
                 </div>
               </div>
 
@@ -436,13 +436,19 @@ export default function AdminSettings() {
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   <FeeField label="High-Value Tier Rate" suffix="%" value={hvRate} onChange={setStr(setHvRate)} help="Rate for transactions above ₦2,000,000" />
-                  <div className="p-3 bg-muted/30 border border-border rounded-lg">
-                    <label className="text-xs font-medium text-foreground">Refund Policy</label>
+                  <div className={`p-3 bg-muted/30 border border-border rounded-lg ${isLocked("fees.refund_policy") ? "opacity-60" : ""}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="text-xs font-medium text-foreground">Refund Policy</label>
+                      {isLocked("fees.refund_policy") && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Platform-only</span>
+                      )}
+                    </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">Whether service fees are refundable</p>
                     <select
                       value={refundPolicy}
+                      disabled={isLocked("fees.refund_policy")}
                       onChange={(e) => setStr(setRefundPolicy)(e.target.value)}
-                      className="w-full h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                      className={`w-full h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${isLocked("fees.refund_policy") ? "cursor-not-allowed" : ""}`}
                     >
                       <option>Non-refundable</option>
                       <option>Refundable on cancellation</option>
