@@ -9,16 +9,17 @@ export function useOnlinePresence() {
   const [onlineIds, setOnlineIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
-    const channel = supabase.channel("presence:users:observer", {
-      config: { presence: { key: "observer" } },
+    const observerKey = `observer-${Math.random().toString(36).slice(2)}`;
+    const channel = supabase.channel(`presence:users:observer:${observerKey}`, {
+      config: { presence: { key: observerKey } },
     });
 
     const rebuild = () => {
       const state = channel.presenceState() as Record<string, Array<{ user_id?: string }>>;
       const ids = new Set<string>();
       for (const key of Object.keys(state)) {
-        // Presence key is the user_id (from heartbeat); also fall back to payload.
-        if (key && key !== "observer") ids.add(key);
+        // Presence key is the user_id (from heartbeat); skip observer keys.
+        if (key && !key.startsWith("observer")) ids.add(key);
         for (const entry of state[key] ?? []) {
           if (entry?.user_id) ids.add(entry.user_id);
         }
