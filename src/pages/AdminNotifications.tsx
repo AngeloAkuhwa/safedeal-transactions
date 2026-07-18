@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from "@/components/ui/sonner";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import {
-  fetchAdminNotifications, retryNotificationDelivery, sendBroadcast,
+  fetchAdminNotifications, retryNotificationDelivery, retryAllFailedNotifications, sendBroadcast,
   type AdminNotifFailedRow, type AdminNotifRecentRow, type BroadcastPayload,
 } from "@/services/admin-notifications.service";
 import { useRealtimeAdminNotifications } from "@/hooks/useRealtimeAdminNotifications";
