@@ -16,6 +16,7 @@ import { getPublicProductDetail } from "@/services/public-storefront.service";
 import { createStorefrontTransaction } from "@/services/storefront-checkout.service";
 import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfig } from "@/hooks/useEffectivePricingConfig";
+import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { formatMoney } from "@/lib/format";
 import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
 import { viewFromRow } from "@/services/payment-flow.service";
@@ -86,6 +87,8 @@ const StorefrontCheckout = () => {
   // Pricing
   const itemSubtotal = product.unit_price * quantity;
   const vendorPricingConfig = useEffectivePricingConfig(product.seller_id);
+  const gate = useCommerceGate(product.seller_id);
+  const gateBlocked = !gate.loading && !gate.checkoutEnabled;
   const pricing = computePricing(itemSubtotal, product.currency_code, vendorPricingConfig);
   const isCapped = pricing.is_capped;
   const isFloored = pricing.is_floored;
