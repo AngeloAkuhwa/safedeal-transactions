@@ -63,6 +63,7 @@ import AdminEscrow from "./pages/AdminEscrow";
 import AdminFlaggedUsers from "./pages/AdminFlaggedUsers";
 import AdminUsers from "./pages/AdminUsers";
 import AdminUserDetail from "./pages/AdminUserDetail";
+import AdminNotifications from "./pages/AdminNotifications";
 import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -140,6 +141,7 @@ const App = () => (
               <Route path="/admin/users/:id" element={<AdminUserDetail />} />
               <Route path="/admin/users/:id/profile" element={<Navigate to=".." replace relative="path" />} />
               <Route path="/admin/users/:id/hub" element={<Navigate to=".." replace relative="path" />} />
+              <Route path="/admin/notifications" element={<AdminNotifications />} />
             </Route>
 
             {/* Protected: requires session + seller role */}

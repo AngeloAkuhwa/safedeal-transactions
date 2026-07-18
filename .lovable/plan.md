@@ -1,112 +1,91 @@
-## Goal
+# Admin Notification Center — Full Plan (v2)
 
-Replace the raw, system-y rows in the Activity Log (`delivered`, `freeze_transaction`, etc.) with the kind of human-readable entries shown in the design — title + one-line context + relative time — and include sensible non-admin signals (logins, payout updates, KYC, transactions, disputes).
+Port the uploaded HTML into a new admin page `/admin/notifications`, matching the reference 1:1 (dark slate cards, colored icon chips, KPI grid, filters, failed-deliveries table, delivery-performance bars, broadcast composer, recent activity log), wrapped in the existing `AdminLayout` (the sidebar already has a "Notifications" nav item).
 
-## What the user will see
+---
 
-Each row becomes:
+## 1. Source-of-truth tables (read side)
 
-- A **bold title** in plain English.
-- A **context line** with the most useful detail (related transaction code, location/IP, bank name, etc.).
-- A small **source pill** (`Admin`, `System`, `Security`, `Account`).
-- **Relative time** ("2 hours ago", "3 days ago").
+Everything the screen displays is derived from tables that already exist. No schema changes required for v1.
 
-Examples mapped from real data we already store:
+| Screen area | Primary table(s) | Fields used | Join / derivation |
+|---|---|---|---|
+| **KPI: Sent Today** | `notifications` | `created_at`, `status` | `count(*) where created_at >= today AND status IN ('sent','read')` |
+| **KPI: Failed Deliveries** | `notification_deliveries` | `delivery_status`, `created_at` | `count(*) where delivery_status='failed' AND created_at >= today` |
+| **KPI: SMS Failures / Email Failures** | `notification_deliveries` | `channel`, `delivery_status` | grouped by `channel` where `delivery_status='failed'` (24h) |
+| **KPI: In-App Delivery Rate** | `notifications` | `channel='in_app'`, `status` | `sent+read / total` for `channel='in_app'` (24h) |
+| **KPI: Retry Queue** | `notification_deliveries` | `delivery_status='failed'`, `attempt_count < 3` | count of open retries |
+| **Delivery Performance bars** | `notification_deliveries` | `channel`, `delivery_status` | success rate per channel (in_app/email/sms) last 24h |
+| **Failed Deliveries table** | `notification_deliveries` ⨝ `notifications` ⨝ `profiles` ⨝ `transactions`/`disputes` | delivery: `channel, delivery_status, provider_response, attempt_count, sent_at`; notif: `title, type, related_transaction_id, related_dispute_id`; profile: `full_name, email, avatar_url`; txn: `code`; dispute: `id` | latest delivery row per notification where `delivery_status='failed'` |
+| **Recent Activity log** | `notifications` ⨝ latest `notification_deliveries` ⨝ `profiles` | title, type, channel, status, created_at, recipient | last 20 |
+| **Header "Live" + last sync** | client clock | — | polls every 30s |
 
-```text
-Login from new device           [Security]
-IP: 102.89.x.x  Lagos, NG
-2 hours ago
+Enums already in place: `notification_type` (transaction_update, payment_update, delivery_update, dispute_update, verification_update, security_alert, system_message, direct_message), `notification_channel` (in_app, email, sms, push), `notification_status` (pending, sent, failed, read), `delivery_status` (same shape).
 
-Updated payout account          [Account]
-Added GTBank ••••4521
-3 days ago
+---
 
-Dispute filed                   [System]
-SD-2026-000024 - Item not as described
-5 days ago
+## 2. Write side — how admin actions affect user-facing tables
 
-Transaction completed           [System]
-SD-2026-000023 - N12,880 released
-6 days ago
+Every button on the screen is scoped so we know exactly which user-side table it touches. v1 wires the read-only surface + audit trail; the two write actions (Retry, Broadcast) are behind the same edge function and produce concrete user-visible effects.
 
-KYC verification submitted      [Account]
-NIN  pending review
-8 days ago
+### 2a. Retry (per-row in Failed Deliveries table)
+- **Writes to** `notification_deliveries`: bumps `attempt_count`, sets `delivery_status='pending'` then `'sent'`/`'failed'`, updates `sent_at`, `provider_response`.
+- **Writes to** `notifications`: if final attempt succeeds, sets `status='sent'` (so the user's bell icon / `/dashboard/notifications` list starts showing it as delivered).
+- **Writes to** `audit_logs`: `action='notification_retried'`, `actor_user_id=admin`, `target_user_id=recipient`, `metadata={notification_id, channel, attempt}`.
+- **User-side effect**: the recipient's `SellerNotifications` / `BuyerNotifications` page reflects the new `status`; unread badge (from `notifications.is_read`) is untouched.
 
-Admin froze transaction         [Admin]
-SD-2026-000024 - reason: suspicious activity
-10 days ago
-```
+### 2b. Broadcast Message (composer)
+- **Writes to** `notifications`: one row per targeted user (`user_id`, `type='system_message'`, `channel`, `title`, `message`, `metadata={broadcast_id, priority, audience}`).
+- **Writes to** `notification_deliveries`: one row per (notification × selected channel) starting at `delivery_status='pending'`.
+- **Respects** `notification_preferences`: skips users whose relevant flag is off (e.g. `system_alerts=false` for system_message; `marketing_messages=false` for marketing broadcasts).
+- **Audience filtering** uses existing tables:
+  - "All users" → `profiles`
+  - "Buyers only" / "Sellers only" → `user_roles` where `role IN ('buyer','seller')`
+  - "Verified users only" → `profiles` where verification flag is set
+  - "Custom segment" → deferred (UI shows disabled option in v1)
+- **Writes to** `admin_actions`: `action_type='broadcast_sent'`, `admin_user_id`, `action_notes=title`.
+- **User-side effect**: recipients see the new item in their notifications list immediately (row exists in `notifications`); email/SMS delivery follows via `notification_deliveries`.
 
-## Data sources to merge (all already exist)
+### 2c. "View User / View Transaction / View Dispute" quick links
+- Read-only navigation to existing admin routes (`/admin/users/:id`, `/admin/transactions/:id`, `/admin/disputes/:id`). No writes.
 
-1. `transaction_events` for the user's transactions - covers payment, dispatch, delivery, refund, payout release, dispute open/resolve, admin freeze/unfreeze, agreement lock, auto-cancel, etc.
-2. `admin_actions` where the user is the target - covers admin freeze, release funds, internal note, escalate case, open/update investigation, resolve dispute.
-3. `audit_logs` - same surface as admin_actions but second-source; deduped by (type + transaction_id + minute).
-4. `user_sessions` recent rows - "Login from new device" with IP/city/country.
-5. `payout_accounts` - "Added <bank> ••••<last4>" on `created_at`, "Updated payout account" on `updated_at > created_at`.
-6. `identity_submissions` - "KYC verification submitted/approved/rejected" using `status`, `created_at`, `reviewed_at`.
+### 2d. Export Report
+- Client-side CSV of the current filtered rows. No writes. (Optional follow-up: log to `audit_logs` as `notifications_exported`.)
 
-## Server changes (single file)
+---
 
-`supabase/functions/admin-user-detail/index.ts`:
+## 3. Files
 
-- Add the four extra fetches above, scoped to this user, each capped at 20 rows.
-- New `humanize()` mapper that converts each raw row to `{ title, context, source, severity, created_at, transaction_code?, transaction_id?, dispute_id? }`. Severity drives the dot colour (red/yellow/emerald/blue/slate).
-- Merge → sort by `created_at` desc → return the **30 most recent**.
-- Backwards-compatible: keep existing fields (`id, type, note, admin_name, created_at, transaction_id, dispute_id, source`) and add `title`, `context`, `severity`, `transaction_code` as optional.
+**New**
+- `src/pages/AdminNotifications.tsx`
+- `src/components/admin/notifications/NotificationKpiCards.tsx` — 6 KPI cards.
+- `src/components/admin/notifications/NotificationFiltersBar.tsx` — search + Channel/Status/Type selects + Failed-Only toggle.
+- `src/components/admin/notifications/FailedDeliveriesTable.tsx` — retry-status pill, User/Dispute/Txn quick links, Retry + Details actions.
+- `src/components/admin/notifications/DeliveryPerformance.tsx` — per-channel progress bars.
+- `src/components/admin/notifications/BroadcastComposer.tsx` — title, body, priority, audience, channel checkboxes + amber warning banner.
+- `src/components/admin/notifications/RecentActivityTable.tsx`
+- `src/services/admin-notifications.service.ts` — typed wrappers for the two edge functions.
+- `supabase/functions/admin-notifications/index.ts` — read aggregator (KPIs, performance, failed list, recent).
+- `supabase/functions/admin-notifications-action/index.ts` — `retry` and `broadcast` writes (admin-role gated; writes to `notifications`, `notification_deliveries`, `admin_actions`, `audit_logs`).
 
-Title mapping (high level):
+**Edit**
+- `src/App.tsx` — add `<Route path="/admin/notifications" element={<AdminNotifications />} />`.
 
-```text
-transaction_events.payment_received        - "Payment received into escrow"
-transaction_events.funds_held              - "Funds held in escrow"
-transaction_events.seller_dispatched       - "Seller marked as dispatched"
-transaction_events.delivered               - "Delivery confirmed"
-transaction_events.buyer_confirmed         - "Buyer confirmed receipt"
-transaction_events.payout_released         - "Funds released to seller"
-transaction_events.refund_issued           - "Refund issued"
-transaction_events.dispute_opened          - "Dispute filed"
-transaction_events.dispute_resolved        - "Dispute resolved"
-transaction_events.admin_funds_frozen      - "Admin froze transaction funds"
-transaction_events.admin_funds_unfrozen    - "Admin unfroze transaction funds"
-transaction_events.admin_note_added        - "Admin added internal note"
-transaction_events.admin_investigation_*   - "Investigation opened/updated"
-transaction_events.agreement_locked        - "Agreement locked"
-transaction_events.auto_cancelled          - "Transaction auto-cancelled"
-transaction_events.transaction_created     - "Transaction created"
-admin_actions.freeze_transaction           - "Admin froze transaction"  (severity high)
-admin_actions.release_funds                - "Admin released funds"
-admin_actions.escalate_case                - "Admin escalated case"     (severity high)
-admin_actions.add_internal_note            - "Admin added note"
-admin_actions.resolve_dispute              - "Admin resolved dispute"
-admin_actions.open_investigation/update_*  - "Admin opened/updated investigation"
-user_sessions (new row)                    - "Login from new device" + IP/city
-payout_accounts insert                     - "Payout account added" + bank + last4
-payout_accounts update                     - "Payout account updated"
-identity_submissions pending_review        - "KYC verification submitted"
-identity_submissions approved/rejected     - "KYC verification approved/rejected"
-```
+**No migrations.** All required tables already exist (`notifications`, `notification_deliveries`, `notification_preferences`, `profiles`, `user_roles`, `admin_actions`, `audit_logs`). If we later want to track broadcast campaigns as first-class objects, we'd add a `broadcasts` table then — out of scope now.
 
-Context line builds from the row's data (transaction code when available, IP/city for sessions, bank name + masked last 4 for payouts, status reason for KYC).
+---
 
-## Client changes
+## 4. Design fidelity
+- `AdminLayout` `fullBleed` with a custom `headerSlot` mirroring the reference: title "Notification Center", subtitle, green "Live" pill, "Last sync: X min ago", right-aligned "Export Report" + "Broadcast Message" buttons.
+- Existing semantic tokens + tailwind color families used elsewhere in admin (blue/red/orange/purple/amber/emerald with `/10` bg + `/20` border) to match the HTML palette.
+- Icons via `lucide-react`: Send, AlertTriangle, Smartphone, Mail, Bell, RefreshCw, Search, Filter, Megaphone, Eye, Receipt, Scale, User, CheckCircle2, XCircle, Info.
 
-`src/pages/AdminUserDetail.tsx` Activity Log card:
+## 5. Security
+- Both edge functions call `requireAdmin` (same helper used by `admin-user-detail`).
+- Broadcast enforces `notification_preferences` server-side so an admin can't override a user's opt-out for marketing.
+- All writes leave an `audit_logs` row.
 
-- Render `title` as the bold line, `context` (when present) as the muted line under it, then relative time.
-- Source pill colour by source: Admin = purple, Security = red, Account = blue, System = slate.
-- Dot colour driven by `severity` (high = red, warning = yellow, success = emerald, info = blue, neutral = slate).
-- Keep existing empty state.
-
-`src/services/admin-users-directory.service.ts`:
-
-- Extend the `timeline` item type with optional `title`, `context`, `severity`, `transaction_code`.
-
-## Out of scope
-
-- No DB schema changes; no migration.
-- No changes to `admin_actions`/`audit_logs`/`transaction_events` write paths - we already auto-link `target_user_id` from the previous fix, so the humanizer can rely on it.
-- No changes to admin notes & flags card, recent transactions card, exports, or headers.
-- No real-time subscriptions (existing 15-second staleTime on the query is enough).
+## 6. Out of scope (v1)
+- Realtime subscriptions (poll every 30s instead).
+- First-class `broadcasts` table / scheduled sends.
+- "Custom segment" audience builder.
