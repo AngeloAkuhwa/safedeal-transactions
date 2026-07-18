@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
 import { notifyUser, notifyOpsTeam } from "../_shared/notify.ts";
 import { koboToNaira } from "../_shared/money.ts";
+import { emitHighValueFlagIfNeeded } from "../_shared/security-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -295,6 +296,16 @@ Deno.serve(async (req) => {
           message: `The buyer has completed payment of ${pricing.currency_code} ${pricing.total_amount.toLocaleString()}. Please begin preparing the item for delivery.`,
           related_transaction_id: txId,
           status: "pending",
+        });
+
+        // Emit high-value flag if the settled total crosses the vendor/platform threshold.
+        await emitHighValueFlagIfNeeded({
+          transactionId: txId,
+          buyerId: tx.buyer_id,
+          sellerId: tx.seller_id,
+          vendorId: tx.seller_id,
+          amount: pricing.total_amount,
+          currencyCode: pricing.currency_code,
         });
 
         // Convert reserved stock → sold (idempotent)

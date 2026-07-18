@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
 import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
+import { checkIdVerificationRequirement } from "../_shared/security-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -239,7 +240,10 @@ Deno.serve(async (req) => {
       transaction_id: txId,
       redirect_to: `/dashboard/transactions/${txId}/agreement`,
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.__httpStatus && err?.__httpBody) {
+      return jsonResponse(err.__httpBody, err.__httpStatus);
+    }
     console.error("claim-offer error:", err);
     return jsonResponse({ error: "Internal server error" }, 500);
   }
@@ -312,6 +316,21 @@ async function createTransactionFromOffer(adminClient: any, offer: any, buyerId:
   const vendorConfig = await loadPricingConfig(offer.seller_id);
   const pricing = computePricing(totalAmount, currencyCode, "local", vendorConfig);
   const snapshot = buildPricingSnapshot(totalAmount, currencyCode, vendorConfig);
+
+  // Gate: identity verification required above vendor/platform threshold
+  const kyc = await checkIdVerificationRequirement(
+    buyerId,
+    offer.seller_id,
+    currencyCode,
+    pricing.total_amount,
+  );
+  if (kyc) {
+    // Signal caller (claim-offer HTTP handler) — throw to bubble up as 403 JSON.
+    const err: any = new Error("identity_verification_required");
+    err.__httpStatus = kyc.status;
+    err.__httpBody = kyc.body;
+    throw err;
+  }
 
   const { data: codeData } = await adminClient.rpc("generate_transaction_code");
   const transactionCode = codeData ?? `SD-${Date.now()}`;

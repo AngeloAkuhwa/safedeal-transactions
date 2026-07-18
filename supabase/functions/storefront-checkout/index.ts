@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
 import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
+import { checkIdVerificationRequirement } from "../_shared/security-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -187,6 +188,15 @@ Deno.serve(async (req) => {
     const snapshot = buildPricingSnapshot(itemAmount, product.currency_code, vendorConfig);
     const verificationWindowHours = product.verification_window_hours
       || await loadEffectiveTimeoutHours(product.seller_id, "buyer_verification_timeout", 48);
+
+    // Gate: identity verification required above vendor/platform threshold
+    const kyc = await checkIdVerificationRequirement(
+      buyerId,
+      product.seller_id,
+      product.currency_code,
+      pricing.total_amount,
+    );
+    if (kyc) return jsonResponse(kyc.body, kyc.status);
 
     // Resolve buyer's delivery selection (also used by the reuse path below)
     let enabledMethods: string[] = [];
