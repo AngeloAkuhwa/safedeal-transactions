@@ -753,6 +753,37 @@ export default function AdminUserDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Vendor status change modal */}
+      <Dialog open={vendorStatusModal.open} onOpenChange={(o) => setVendorStatusModal({ open: o, target: vendorStatusModal.target })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {vendorStatusModal.target === "active" ? "Re-enable vendor" : vendorStatusModal.target === "disabled" ? "Disable vendor" : "Suspend vendor"}
+            </DialogTitle>
+            <DialogDescription>
+              {vendorStatusModal.target === "active"
+                ? "The vendor's storefront and checkout will be available again."
+                : "The vendor's storefront will be hidden. Buyers cannot add products to cart or check out. The reason will be recorded in the audit log."}
+            </DialogDescription>
+          </DialogHeader>
+          <textarea
+            value={vendorStatusReason}
+            onChange={(e) => setVendorStatusReason(e.target.value)}
+            placeholder={vendorStatusModal.target === "active" ? "Optional note…" : "Reason (required)…"}
+            className="w-full min-h-24 rounded-md border bg-background p-3 text-sm"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVendorStatusModal({ open: false, target: "active" })}>Cancel</Button>
+            <Button
+              disabled={vendorStatusSaving || (vendorStatusModal.target !== "active" && vendorStatusReason.trim().length < 3)}
+              onClick={submitVendorStatus}
+            >
+              {vendorStatusSaving ? "Saving…" : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
