@@ -669,6 +669,51 @@ export default function AdminSettings() {
             </section>
           </div>
 
+          {/* ============ COMMERCE (KILL SWITCHES) ============ */}
+          <section className="sd-card">
+            <div className="sd-card-pad border-b border-border">
+              <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
+                <div className="w-8 h-8 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-center">
+                  <ShoppingCart className="h-4 w-4 text-amber-400" />
+                </div>
+                Commerce Availability
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1 ml-10">
+                Master kill switches for transactions. When checkout is OFF, buyers can still browse and onboard —
+                they just cannot pay. Vendor overrides apply to that vendor's storefront and cart flows only.
+              </p>
+            </div>
+            <div className="sd-card-pad space-y-4">
+              <ToggleRow
+                title="Checkout Enabled"
+                desc="Master switch for full checkout & payments. Turn OFF to block payments platform-wide."
+                on={checkoutEnabled}
+                onChange={setBool(setCheckoutEnabled)}
+                overridden={isOverridden("commerce.checkout_enabled")}
+              />
+              <ToggleRow
+                title="Add-to-Cart Enabled"
+                desc="When OFF, products cannot be added to cart. Useful when preparing to fully close commerce."
+                on={addToCartEnabled}
+                onChange={setBool(setAddToCartEnabled)}
+                overridden={isOverridden("commerce.add_to_cart_enabled")}
+              />
+              <div>
+                <label className="text-xs text-foreground flex items-center gap-1.5 mb-1.5">
+                  <Power className="h-3.5 w-3.5 text-muted-foreground" />
+                  Shown to shoppers when checkout / cart-add is OFF
+                </label>
+                <textarea
+                  value={disabledReason}
+                  onChange={(e) => { setDisabledReason(e.target.value); mark(); }}
+                  rows={2}
+                  className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  placeholder="e.g. Checkout is temporarily paused for maintenance."
+                />
+              </div>
+            </div>
+          </section>
+
           {/* ============ AUDIT HISTORY ============ */}
           <section className="sd-card">
             <div className="sd-card-pad border-b border-border">
