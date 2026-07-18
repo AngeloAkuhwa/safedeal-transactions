@@ -1,46 +1,29 @@
-## Problem
-Manual retry from the admin UI is blocked once a delivery hits 3 attempts. All rows in the Failed table show `Failed 3/3`, so:
-- The `Retry` button hits `admin-notifications-action` which returns `409 max_attempts_reached` and does nothing.
-- Even if status flipped to `pending`, the worker query filters `attempt_count < 3` and would skip the row.
-Result: no way for an admin to re-send a failed email/notification.
+# Fix Delivery Performance on Admin Notifications
 
-## Fix (small, backend-only + tiny UI toast wording)
+## Root cause (verified)
 
-### 1. `admin-notifications-action` — allow admin-initiated retry regardless of attempt count
-File: `supabase/functions/admin-notifications-action/index.ts`, `action === "retry"` branch.
-- Remove the `>= 3` block.
-- Reset the row for a fresh worker pickup:
-  - `delivery_status = 'pending'`
-  - `attempt_count = 0` (admin override — audit log still records that a human forced it)
-  - `sent_at = null`
-  - `provider_response = null`
-- Also reset the parent notification row so the UI status matches:
-  - `notifications.status = 'pending'` where `id = del.notification_id` and current status is `failed` or `sent`.
-- Keep the existing `audit_logs` entry, and add `manual_admin_retry: true` + previous `attempt_count` to the metadata so we can prove it wasn't an automatic retry.
+The Delivery Performance panel reads all three channels (`in_app`, `email`, `sms`) from the `notification_deliveries` table. Confirmed with a live query on the last 24h:
 
-### 2. Add `action === "retry_all_failed"` (bulk)
-Same file, new branch. Admin-only.
-- Accepts optional `{ channel?: 'email'|'sms', notification_type?: string }` for scoping; defaults to all failed email rows in the last 24h (matches the visible Failed table window).
-- Selects `notification_deliveries` where `delivery_status = 'failed'` (and the optional filters).
-- Batches the same reset as (1) in chunks of 200.
-- Returns `{ success: true, retried: N }`.
-- Writes one summarized `audit_logs` row (`notifications_bulk_retried`, count, filters) instead of one per delivery.
+- `notification_deliveries`: only 5 rows, all `email` / `failed`. Zero rows for `in_app` or `sms`.
+- `notifications`: 77 `in_app` rows (5 `sent`, 72 `pending`) and 5 `email` rows (`pending`).
 
-### 3. UI wiring — `AdminNotifications.tsx` + `admin-notifications.service.ts`
-- `retryNotificationDelivery` already exists and will now succeed on 3/3 rows without code changes (backend allows it).
-- `handleRetryAll` currently loops the single-row endpoint and skips `!retriable` rows. Replace it with a single call to a new service function `retryAllFailedNotifications({ channel: 'email' })` that hits the new bulk action.
-- Remove the `retriable` gating on the row-level Retry button (`r.retriable && …` and `disabled={!r.retriable …}`). Every failed row is retriable now; keep the spinner while `retrying === r.delivery_id`.
-- On success, toast `Queued N deliveries for retry` and invalidate the `admin-notifications` query so the badge/table refresh via existing realtime hook.
+In-app notifications never write to `notification_deliveries` — they are delivered the instant a row lands in `notifications` (that's what the bell + realtime hook consume). So the panel is structurally incapable of showing anything for in_app, and the KPI "In-App delivery rate" is stuck at 0%.
 
-### 4. Worker — no change needed
-`process-notification-deliveries` already picks up `delivery_status = 'pending' AND attempt_count < 3`. Because step 1 resets `attempt_count` to 0, the next cron tick (≤1 min) sends the email through the Resend gateway using the just-configured `RESEND_FROM_EMAIL`.
+Email shows 0% delivered because every attempt in the last 24h genuinely failed (Resend 401 — the `RESEND_API_KEY` connector key on the worker is unauthorized). That's a separate credentials issue, not a metrics bug — but the panel should still reflect it truthfully once in-app is fixed.
 
-## Not touched
-- Retry cap for automatic worker retries stays at 3 (unchanged).
-- Broadcast composer, KPI cards, filters, presence dots, realtime hooks, cron schedule.
-- No schema changes; `notification_deliveries` already has `attempt_count`, `provider_response`, `sent_at`.
+## Fix (backend only, one file)
 
-## Verification after build
-1. Click Retry on a `Failed 3/3` row → toast "Retry queued", row flips to `Pending 0/3` within a second (realtime), then to `Sent` after the next cron tick if Resend accepts (or back to `Failed 1/3` with the new provider error, which is now visible for debugging).
-2. Click "Retry All Failed" → toast reports the count, all failed email rows flip to pending in one round trip.
-3. `audit_logs` shows `notification_retried` (single) or `notifications_bulk_retried` (bulk) rows attributed to the current admin.
+Edit `supabase/functions/admin-notifications/index.ts`:
+
+1. Compute `in_app` performance from the `notifications` table (already loaded as `notifs` / `notifsPrev`), not from `notification_deliveries`:
+   - `total` = count of `notifs.channel === 'in_app'`
+   - `sent`  = count where `status IN ('sent','read')` OR `is_read = true` OR `status = 'pending'` (in-app is delivered on insert; only `failed` counts as not-delivered)
+   - `failed` = count where `status = 'failed'`
+   - `rate` = `sent / total` when `total > 0`
+2. Keep `email` and `sms` sourced from `latestDels` (unchanged).
+3. Apply the same in-app-from-notifications logic to the KPI `in_app_rate` (and its `in_app_delta` prev-window twin) so the top KPI and the panel stay consistent.
+4. No schema change, no frontend change, no new query — the data is already fetched in the same function.
+
+## Note on the failing emails
+
+The 5 email deliveries failing with `401 unauthorized` are unrelated to this metrics fix — they're the Resend gateway rejecting the connector key. Fixing metrics will correctly show `email: 0% delivered (0/5)` until the Resend connection is re-linked. Happy to address that separately if you want.

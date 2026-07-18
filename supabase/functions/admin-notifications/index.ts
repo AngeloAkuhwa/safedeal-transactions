@@ -102,7 +102,19 @@ Deno.serve(async (req) => {
   const ppDelta = (curr: number, prev: number): number => Math.round((curr - prev) * 10) / 10;
 
   // Delivery performance per channel
-  const perChannel = (ch: "in_app" | "email" | "sms") => {
+  // In-app notifications are delivered on insert into `notifications` (no row in
+  // notification_deliveries). Source in_app from notifications; email/sms from deliveries.
+  const inAppScope = notifs.filter((n) => n.channel === "in_app");
+  const inAppFailed = inAppScope.filter((n) => n.status === "failed").length;
+  const inAppSent = inAppScope.length - inAppFailed; // pending/sent/read all count as delivered
+  const inAppPerf = {
+    channel: "in_app" as const,
+    total: inAppScope.length,
+    sent: inAppSent,
+    failed: inAppFailed,
+    rate: inAppScope.length ? Math.round((inAppSent / inAppScope.length) * 1000) / 10 : 0,
+  };
+  const perDeliveryChannel = (ch: "email" | "sms") => {
     const scope = latestDels.filter((d) => d.channel === ch);
     const ok = scope.filter((d) => d.delivery_status === "sent").length;
     const total = scope.length;
@@ -114,7 +126,16 @@ Deno.serve(async (req) => {
       rate: total ? Math.round((ok / total) * 1000) / 10 : 0,
     };
   };
-  const deliveryPerformance = [perChannel("in_app"), perChannel("email"), perChannel("sms")];
+  const deliveryPerformance = [inAppPerf, perDeliveryChannel("email"), perDeliveryChannel("sms")];
+
+  // Recompute in_app KPI rate consistent with the panel above.
+  const inAppRateConsistent = inAppPerf.rate;
+  const inAppScopePrev = notifsPrev.filter((n) => n.channel === "in_app");
+  const inAppFailedPrev = inAppScopePrev.filter((n) => n.status === "failed").length;
+  const inAppSentPrev = inAppScopePrev.length - inAppFailedPrev;
+  const inAppRatePrevConsistent = inAppScopePrev.length
+    ? Math.round((inAppSentPrev / inAppScopePrev.length) * 1000) / 10
+    : 0;
 
   // Failed deliveries (join notification + profile)
   const failedDels = latestDels
