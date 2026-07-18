@@ -190,13 +190,13 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
               placeholder="User email, notification ID, TXN-xxx..."
               value={f.q}
               onChange={(e) => setF({ ...f, q: e.target.value })}
-              className="h-11"
+              className="h-8 text-xs"
             />
           </div>
           <div>
             <Label className="text-muted-foreground text-sm font-medium mb-2 block">Channel</Label>
             <Select value={f.channel} onValueChange={(v) => setF({ ...f, channel: v })}>
-              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Channels</SelectItem>
                 <SelectItem value="in_app">In-App</SelectItem>
@@ -209,7 +209,7 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
           <div>
             <Label className="text-muted-foreground text-sm font-medium mb-2 block">Status</Label>
             <Select value={f.status} onValueChange={(v) => setF({ ...f, status: v })}>
-              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="sent">Delivered</SelectItem>
@@ -222,7 +222,7 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
           <div>
             <Label className="text-muted-foreground text-sm font-medium mb-2 block">Type</Label>
             <Select value={f.type} onValueChange={(v) => setF({ ...f, type: v })}>
-              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="payment_update">Payment</SelectItem>
@@ -238,20 +238,20 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
         <div className="flex flex-col sm:flex-row gap-3">
           <Button
             onClick={onSearch}
-            className="px-6 h-11 bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+            className="px-4 h-8 text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold"
           >
             <Search className="h-4 w-4" /> Search Notifications
           </Button>
           <Button
             variant="secondary"
             onClick={onClear}
-            className="px-6 h-11 font-semibold"
+            className="px-4 h-8 text-xs font-semibold"
           >
             Clear Filters
           </Button>
           <Button
             onClick={() => setF({ ...f, failedOnly: !f.failedOnly })}
-            className={`px-6 h-11 font-semibold text-white ${f.failedOnly ? "bg-amber-700 hover:bg-amber-800" : "bg-amber-600 hover:bg-amber-700"}`}
+            className={`px-4 h-8 text-xs font-semibold text-white ${f.failedOnly ? "bg-amber-700 hover:bg-amber-800" : "bg-amber-600 hover:bg-amber-700"}`}
           >
             <Filter className="h-4 w-4" /> Failed Only
           </Button>
@@ -284,11 +284,11 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
           <Button
             onClick={onRetryAll}
             disabled={!rows.some((r) => r.retriable)}
-            className="px-4 h-10 bg-amber-600 hover:bg-amber-700 text-white font-medium"
+            className="px-3 h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium"
           >
             <RotateCw className="h-4 w-4" /> Retry All Failed
           </Button>
-          <Button variant="secondary" onClick={onExport} className="px-4 h-10 font-medium">
+          <Button variant="secondary" onClick={onExport} className="px-3 h-8 text-xs font-medium">
             <Download className="h-4 w-4" /> Export Log
           </Button>
         </div>
@@ -304,13 +304,13 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
           <table className="w-full">
             <thead className="bg-muted/40">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Failure Reason</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Retry Status</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quick Actions</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Failure Reason</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Retry Status</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quick Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -318,7 +318,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                 const exhausted = r.attempt_count >= 3 || !r.retriable;
                 return (
                   <tr key={r.delivery_id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2.5 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
                           {r.user?.avatar_url
@@ -340,9 +340,9 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
-                    <td className="px-6 py-4 whitespace-nowrap"><TypePill type={r.type} /></td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-2.5 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
+                    <td className="px-3 py-2.5 whitespace-nowrap"><TypePill type={r.type} /></td>
+                    <td className="px-3 py-2.5">
                       <div className="flex items-start gap-1.5">
                         <AlertCircle className="h-3.5 w-3.5 text-red-400 mt-0.5 shrink-0" />
                         <div className="min-w-0">
@@ -351,7 +351,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2.5 whitespace-nowrap">
                       {exhausted ? (
                         <span className="px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold rounded flex items-center gap-1.5 w-fit">
                           <XCircle className="h-3 w-3" /> Failed {r.attempt_count}/3
@@ -362,8 +362,8 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{formatRelative(r.failed_at)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2.5 whitespace-nowrap text-sm text-muted-foreground">{formatRelative(r.failed_at)}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
                       <div className="flex items-center gap-2 flex-wrap">
                         {r.user && (
                           <button
@@ -519,7 +519,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
             maxLength={60}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Scheduled Maintenance Notice"
-            className="h-11"
+            className="h-8 text-xs"
           />
           <p className="text-muted-foreground/70 text-xs mt-1.5">Keep it clear and actionable (max 60 characters)</p>
         </div>
@@ -538,7 +538,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
         <div>
           <Label className="text-muted-foreground text-sm font-medium mb-2 block">Priority Level</Label>
           <Select value={priority} onValueChange={(v) => setPriority(v as any)}>
-            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="low">Low Priority</SelectItem>
               <SelectItem value="normal">Medium Priority</SelectItem>
@@ -551,7 +551,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
         <div>
           <Label className="text-muted-foreground text-sm font-medium mb-2 block">Target Audience</Label>
           <Select value={audience} onValueChange={(v) => setAudience(v as any)}>
-            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Users</SelectItem>
               <SelectItem value="buyers">Active Transactions Only</SelectItem>
@@ -600,10 +600,10 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
           <p className="text-muted-foreground text-sm mt-1">Real-time delivery log with status tracking</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={onRefresh} className="h-10 font-medium">
+          <Button variant="secondary" size="sm" onClick={onRefresh} className="h-8 text-xs font-medium">
             <RefreshCw className="h-4 w-4" /> Refresh
           </Button>
-          <Button variant="secondary" size="sm" onClick={onFilter} className="h-10 font-medium">
+          <Button variant="secondary" size="sm" onClick={onFilter} className="h-8 text-xs font-medium">
             <Filter className="h-4 w-4" /> Filter
           </Button>
         </div>
@@ -612,20 +612,20 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
         <table className="w-full">
           <thead className="bg-muted/40">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Message</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
+              <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
+              <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
+              <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
+              <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
+              <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Message</th>
+              <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+              <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((r) => (
               <tr key={r.notification_id} className="hover:bg-muted/30 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{formatRelative(r.created_at)}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-2.5 whitespace-nowrap text-sm text-muted-foreground">{formatRelative(r.created_at)}</td>
+                <td className="px-3 py-2.5 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
                       {r.user?.avatar_url
@@ -638,16 +638,16 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap"><TypePill type={r.type} /></td>
-                <td className="px-6 py-4 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
-                <td className="px-6 py-4 text-sm text-foreground max-w-xs truncate">{r.title}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-2.5 whitespace-nowrap"><TypePill type={r.type} /></td>
+                <td className="px-3 py-2.5 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
+                <td className="px-3 py-2.5 text-sm text-foreground max-w-xs truncate">{r.title}</td>
+                <td className="px-3 py-2.5 whitespace-nowrap">
                   <span className={`px-2 py-1 border text-xs font-semibold rounded flex items-center gap-1.5 w-fit ${statusPill(r.status)}`}>
                     {r.status === "failed" ? <XCircle className="h-3 w-3" /> : (r.status === "pending" || r.status === "retrying") ? <Clock className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
                     {statusLabel(r.status)}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                <td className="px-3 py-2.5 whitespace-nowrap text-sm">
                   <button className="text-blue-400 hover:text-blue-300" title="View">
                     <Eye className="h-4 w-4" />
                   </button>
