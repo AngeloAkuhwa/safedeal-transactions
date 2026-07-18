@@ -3073,6 +3073,9 @@ export type Database = {
       }
       system_settings: {
         Row: {
+          auto_release_enabled_at: string | null
+          auto_release_enabled_by: string | null
+          auto_release_previous_value: string | null
           created_at: string
           id: string
           is_overridable: boolean
@@ -3084,6 +3087,9 @@ export type Database = {
           vendor_id: string | null
         }
         Insert: {
+          auto_release_enabled_at?: string | null
+          auto_release_enabled_by?: string | null
+          auto_release_previous_value?: string | null
           created_at?: string
           id?: string
           is_overridable?: boolean
@@ -3095,6 +3101,9 @@ export type Database = {
           vendor_id?: string | null
         }
         Update: {
+          auto_release_enabled_at?: string | null
+          auto_release_enabled_by?: string | null
+          auto_release_previous_value?: string | null
           created_at?: string
           id?: string
           is_overridable?: boolean
