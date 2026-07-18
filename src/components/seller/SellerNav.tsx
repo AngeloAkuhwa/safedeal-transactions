@@ -11,6 +11,8 @@ import { signOut, getSession } from "@/services/auth.service";
 import { invalidateOldSessions } from "@/services/session.service";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useSellerUnreadCounts } from "@/hooks/useSellerUnreadCounts";
+import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
+import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 
 interface SellerNavProps {
   sellerName: string;
@@ -34,6 +36,8 @@ export function SellerNav({ sellerName, avatarUrl }: SellerNavProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { total: unreadTotal } = useSellerUnreadCounts();
   const badgeText = unreadTotal > 9 ? "9+" : String(unreadTotal);
+  const userId = useCurrentUserId();
+  useRealtimeNotifications(userId);
 
   const handleLogout = async () => {
     try {

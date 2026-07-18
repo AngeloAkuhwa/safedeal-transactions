@@ -10,6 +10,8 @@ import { toast } from "@/components/ui/sonner";
 import { signOut, getSession } from "@/services/auth.service";
 import { invalidateOldSessions } from "@/services/session.service";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
+import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 
 interface BuyerNavProps {
   buyerName: string;
@@ -30,6 +32,8 @@ export function BuyerNav({ buyerName, avatarUrl }: BuyerNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const userId = useCurrentUserId();
+  useRealtimeNotifications(userId);
 
   const handleLogout = async () => {
     try {
