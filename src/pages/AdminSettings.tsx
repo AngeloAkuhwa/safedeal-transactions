@@ -322,10 +322,17 @@ export default function AdminSettings() {
       "escrow.auto_release_enabled": autoReleaseOn,
       "fees.refund_policy": refundPolicy,
     };
-    // In vendor scope, strip keys the platform marked non-overridable
+    // In vendor scope, strip keys the platform marked non-overridable AND
+    // any key the catalog declares as not writable at the vendor scope
+    // (e.g. platform-only controls like session timeout, 2FA-admin).
     if (scope === "vendor") {
+      const { SETTINGS_CATALOG } = await import("@/lib/settings-catalog");
+      const vendorWritable = new Set(
+        SETTINGS_CATALOG.filter((e) => e.writable.includes("vendor")).map((e) => e.key),
+      );
       for (const k of Object.keys(updates)) {
-        if (overridable[k] === false) delete updates[k];
+        if (overridable[k] === false) { delete updates[k]; continue; }
+        if (!vendorWritable.has(k)) delete updates[k];
       }
     }
     const timeouts = [
