@@ -12,6 +12,7 @@ import {
   type VendorLite, type SettingsAuditRow,
 } from "@/services/admin-settings.service";
 import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 
 /* ------------------------------ primitives ------------------------------ */
 
@@ -774,17 +775,23 @@ export default function AdminSettings() {
 /* ------------------------------ sub-components ------------------------------ */
 
 function TimeoutRow({
-  label, desc, value, onChange, unit, overridden,
-}: { label: string; desc: string; value: string; onChange: (v: string) => void; unit: string; overridden?: boolean }) {
+  label, desc, value, onChange, unit, overridden, disabled, disabledHint,
+}: { label: string; desc: string; value: string; onChange: (v: string) => void; unit: string; overridden?: boolean; disabled?: boolean; disabledHint?: string }) {
   return (
-    <div className="p-3 bg-muted/30 border border-border rounded-lg">
+    <div className={`p-3 bg-muted/30 border border-border rounded-lg ${disabled ? "opacity-60" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <label className="text-xs font-medium text-foreground">{label}</label>
         {overridden && <OverrideBadge />}
       </div>
-      <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">{desc}</p>
+      <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">{disabled && disabledHint ? disabledHint : desc}</p>
       <div className="flex items-center gap-1.5">
-        <NumInput value={value} onChange={onChange} className="w-20" />
+        <input
+          type="number"
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={`w-20 h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/40 ${disabled ? "cursor-not-allowed" : ""}`}
+        />
         <span className="text-muted-foreground text-xs">{unit}</span>
       </div>
     </div>
