@@ -1,29 +1,57 @@
-## Fix Plan — Admin System Settings
+# Multi-Tenant Settings — Implementation Audit & Finish Plan
 
-### Issue 1: "Failed to fetch" when selecting a vendor
-The `admin-system-settings` edge function file exists at `supabase/functions/admin-system-settings/index.ts` but is not registered/deployed, so every `GET /functions/v1/admin-system-settings` from the page fails with a network error (visible in the network log). Same for `pricing-config`.
+## What is DONE
 
-**Fix:**
-- Deploy the two missing edge functions (`admin-system-settings`, `pricing-config`) so the endpoints resolve.
-- Verify with a follow-up GET that the payload returns `settings`, `timeouts`, `override_counts`, `vendor_id`.
+- **Schema (1a, 1b, 1d partial)**: `system_settings` and `timeout_rules` have `scope`, `vendor_id`, `is_overridable`, `updated_by`, scoped uniqueness. Defaults seeded for pricing/security/timeouts.
+- **Resolver (1c)**: `get_effective_settings(_vendor_id, _keys[])` exists and is used server-side.
+- **Edge functions (new)**: `admin-system-settings` (GET/PUT + bulk apply + audit log) and `pricing-config` (public read) — both deployed.
+- **Server pricing plumbing (2)**: `_shared/pricing.ts` accepts `PricingConfigOverride`; `_shared/settings-resolver.ts` loads it; `create-transaction`, `cart-checkout`, `storefront-checkout`, `claim-offer` all pass vendor config.
+- **Admin UI (3a)**: Scope selector, vendor picker, "apply to all vendors" checkbox, mandatory reason, platform-only lock badges on non-overridable fields (base fee, cap, refund policy). Wired to real service.
 
-### Issue 2: Non-overridable keys must be read-only in Vendor scope
-The DB already marks these keys `is_overridable = false` (platform-only, cannot be varied per vendor):
-- `pricing.min_platform_fee_ngn` (base protection floor)
-- `pricing.max_total_service_fee_ngn` (buyer-friendly cap)
-- `fees.refund_policy`
+## What is NOT done (gaps vs the plan)
 
-The GET response already returns `is_overridable` per row, but `AdminSettings.tsx` currently renders every input the same in both scopes.
+### High-impact gaps
+1. **Client pricing mirror (`src/lib/pricing.ts`)** still uses hardcoded `MIN_PLATFORM_FEE=250` / `MAX_TOTAL_FEE=2500`. Any UI preview (cart, storefront checkout, seller create transaction, buyer payment summary) shows stale numbers if a vendor overrides.
+2. **`initiate-paystack-payment`** still calls `computePricing(itemAmount, currency)` with no config — will recompute at pay time using constants and can disagree with the persisted snapshot for overridden vendors.
+3. **`_shared/safedeal-money-policy.ts`** not refactored — `MAX_TOTAL_SERVICE_FEE` and version stamp still hardcoded.
+4. **Auto-release / timeout consumers** (`_shared/release-core.ts`, `retry-payout`, cron auto-release) still read unscoped `timeout_rules` — vendor overrides for auto-release window are ignored.
+5. **`admin-escrow-alert-settings`** not extended for `?vendor_id=` scoping.
 
-**Fix in `src/pages/AdminSettings.tsx`:**
-1. Build an `overridableMap: Record<string, boolean>` from the loaded platform settings and pass it into the section components.
-2. Add a small helper `isLocked(key) = scope === "vendor" && overridableMap[key] === false`.
-3. For each field bound to a non-overridable key (base protection fee, service-fee cap, refund policy dropdown, and any timeout rule marked non-overridable):
-   - Apply `disabled` / `readOnly` on the input and dim styling (`opacity-60 cursor-not-allowed`).
-   - Show a small "Platform-only" chip next to the label so it's clear why.
-   - Skip these keys from the "dirty" diff and from the PUT payload while in vendor scope.
-4. Keep the same fields fully editable when `scope === "platform"`.
-5. Client-side guard mirrors the server: `admin-system-settings` already rejects vendor writes to non-overridable keys with `403 key_not_overridable` — the UI change just prevents users from ever hitting that error.
+### Medium-impact gaps
+6. **`useEffectivePricingConfig` hook** not created; no client-side consumer of `pricing-config` yet.
+7. **Settings catalog** (`src/lib/settings-catalog.ts`) never created — no single manifest of keys/types/bounds; UI hardcodes the list of fields.
+8. **Bounds enforcement in resolver** — vendor writes are not clamped to platform min/max; only the `is_overridable=false` gate exists.
+9. **"Vendor overrides" admin tab** — override_counts is returned by the function but no UI tab lists which vendors override which keys with jump-to-vendor links.
+10. **Seller "Your effective settings" panel** on `SellerProfileSettings.tsx` not added.
 
-### Out of scope
-No schema changes, no changes to the resolver/pricing engine, no changes to write paths.
+### Low-impact / cosmetic
+11. **Field scope badges** only present for the three locked keys; other overridable fields lack an "Overridden by vendor" indicator when viewing vendor scope.
+12. **Audit history card** in `AdminSettings.tsx` still renders hardcoded example rows instead of `admin_actions` where `action_type='update_setting'`.
+13. **Feature flag** (`settings.resolver_enabled`) not implemented.
+14. **Tests** for `computePricing` with override configs not added.
+
+### Confirmed unchanged (correct per plan)
+- `verify-paystack-payment`, `paystack-webhook`, `AdminTransactionDetail`, `AdminTransactions` — read persisted snapshot only.
+
+## Suggested finish order (if you approve)
+
+**Phase A — Correctness (must-fix so overrides actually take effect):**
+- Refactor `src/lib/pricing.ts` to accept optional config; add `useEffectivePricingConfig(vendorId)` calling `pricing-config`; thread through cart, checkout, storefront, seller create-tx previews.
+- Patch `initiate-paystack-payment` to `loadPricingConfig(sellerId)` before recompute (or better: reuse persisted snapshot).
+- Refactor `_shared/safedeal-money-policy.ts` to accept config.
+- Wire auto-release / release-core to `get_effective_timeout(vendor)`.
+
+**Phase B — Admin completeness:**
+- Build `src/lib/settings-catalog.ts` manifest and render `AdminSettings.tsx` from it (drops hardcoded field list, adds bounds).
+- Add bounds clamping in `admin-system-settings` PUT.
+- Add "Vendor overrides" tab using `override_counts` + a drilldown query.
+- Replace mock audit rows with real `admin_actions` fetch.
+
+**Phase C — Vendor visibility:**
+- Extend `admin-escrow-alert-settings` for vendor scope.
+- Add read-only "Your effective settings" panel on `SellerProfileSettings.tsx`.
+
+**Phase D — Safety net:**
+- Feature flag + unit/integration tests for pricing under all three scope modes.
+
+Confirm and I'll execute Phase A first (the only phase that changes user-observable behavior); B–D can follow independently.

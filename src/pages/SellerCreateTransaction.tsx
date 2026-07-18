@@ -37,6 +37,8 @@ import {
 } from "@/services/create-transaction.service";
 import { useToast } from "@/hooks/use-toast";
 import { computePricing } from "@/lib/pricing";
+import { useEffectivePricingConfig } from "@/hooks/useEffectivePricingConfig";
+import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 
 
 const STEP_LABELS = ["Buyer Info", "Item Details", "Payment", "Delivery", "Notes"];
@@ -342,7 +344,9 @@ const SellerCreateTransaction = () => {
     }
   };
 
-  const pricing = form.price > 0 ? computePricing(form.price, form.currency_code) : null;
+  const currentUserId = useCurrentUserId();
+  const vendorPricingConfig = useEffectivePricingConfig(currentUserId);
+  const pricing = form.price > 0 ? computePricing(form.price, form.currency_code, vendorPricingConfig) : null;
   const currSymbol = CURRENCY_OPTIONS.find((c) => c.value === form.currency_code)?.symbol ?? "₦";
   const progressPct = (currentStep / 5) * 100;
 
