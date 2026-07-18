@@ -7,6 +7,13 @@ export interface AdminNotifKpis {
   email_failures: number;
   in_app_rate: number;
   retry_queue: number;
+  sent_delta?: number;
+  failed_delta?: number;
+  sms_delta?: number;
+  email_delta?: number;
+  retry_delta?: number;
+  in_app_delta?: number;
+  compared_to?: string;
 }
 
 export interface AdminNotifPerformance {
