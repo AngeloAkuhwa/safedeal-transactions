@@ -12,6 +12,7 @@ import { PayoutDestinationSection } from "@/components/profile/PayoutDestination
 import { DangerZoneSection } from "@/components/profile/DangerZoneSection";
 import { TrustSafetyPanel } from "@/components/profile/TrustSafetyPanel";
 import { AccountStatusCard } from "@/components/profile/AccountStatusCard";
+import { EffectiveSettingsPanel } from "@/components/profile/EffectiveSettingsPanel";
 import {
   getSellerProfile,
   updateSellerProfile,
@@ -153,6 +154,7 @@ const SellerProfileSettings = () => {
               payoutAccount={data.payout_account}
               onSaved={() => queryClient.invalidateQueries({ queryKey: ["seller-profile"] })}
             />
+            {data.profile?.id && <EffectiveSettingsPanel vendorId={data.profile.id} />}
             <DangerZoneSection />
 
             {/* Save / Cancel */}
