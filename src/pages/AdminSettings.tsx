@@ -3,6 +3,7 @@ import {
   Clock, Percent, ShieldCheck, ShieldAlert, History as HistoryIcon,
   TriangleAlert, Layers, DollarSign, Coins, Crown, Sliders, ShieldHalf,
   ToggleRight, Bell, Download, ArrowRight, RotateCcw, AlertTriangle, Building2,
+  ShoppingCart, Power,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { toast } from "@/components/ui/sonner";
@@ -229,6 +230,13 @@ export default function AdminSettings() {
   const [sessionTimeout, setSessionTimeout] = useState("30");
   const [twoFA, setTwoFA] = useState(true);
 
+  // Commerce (kill switches)
+  const [checkoutEnabled, setCheckoutEnabled] = useState(false);
+  const [addToCartEnabled, setAddToCartEnabled] = useState(true);
+  const [disabledReason, setDisabledReason] = useState(
+    "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
+  );
+
   // Meta for the auto-release toggle: who flipped it and when (stamped by DB trigger).
   const [autoReleaseMeta, setAutoReleaseMeta] = useState<{ enabled_by: string | null; enabled_at: string | null } | null>(null);
 
@@ -269,6 +277,9 @@ export default function AdminSettings() {
         if (byKey["notifications.email_enabled"] != null) setEmailOn(Boolean(byKey["notifications.email_enabled"]));
         if (byKey["notifications.sms_enabled"] != null) setSmsOn(Boolean(byKey["notifications.sms_enabled"]));
         if (byKey["escrow.auto_release_enabled"] != null) setAutoReleaseOn(Boolean(byKey["escrow.auto_release_enabled"]));
+        if (byKey["commerce.checkout_enabled"] != null) setCheckoutEnabled(Boolean(byKey["commerce.checkout_enabled"]));
+        if (byKey["commerce.add_to_cart_enabled"] != null) setAddToCartEnabled(Boolean(byKey["commerce.add_to_cart_enabled"]));
+        if (typeof byKey["commerce.disabled_reason"] === "string") setDisabledReason(String(byKey["commerce.disabled_reason"]));
         // Capture audit meta for the effective auto-release row.
         const arRow = (payload.settings ?? []).find((r) => {
           if (r.setting_key !== "escrow.auto_release_enabled") return false;
@@ -334,6 +345,9 @@ export default function AdminSettings() {
       "escrow.auto_release_enabled": autoReleaseOn,
       "fees.refund_policy": refundPolicy,
       "risk.high_value_alert_ngn": Number(hvAlert),
+      "commerce.checkout_enabled": checkoutEnabled,
+      "commerce.add_to_cart_enabled": addToCartEnabled,
+      "commerce.disabled_reason": disabledReason,
     };
     // In vendor scope, strip keys the platform marked non-overridable AND
     // any key the catalog declares as not writable at the vendor scope
