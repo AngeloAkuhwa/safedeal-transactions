@@ -783,11 +783,17 @@ export default function AdminNotifications() {
     a.click(); URL.revokeObjectURL(url);
   };
 
+  const bulkRetryMut = useMutation({
+    mutationFn: () => retryAllFailedNotifications({ channel: "email" }),
+    onSuccess: (res) => {
+      toast.success(`Queued ${res.retried} deliveries for retry`);
+      qc.invalidateQueries({ queryKey: ["admin-notifications"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const handleRetryAll = () => {
-    const retriable = failedFiltered.filter((r) => r.retriable);
-    if (!retriable.length) return;
-    toast.info(`Queuing ${retriable.length} retries…`);
-    retriable.forEach((r) => retryMut.mutate(r.delivery_id));
+    if (!failedFiltered.length) return;
+    bulkRetryMut.mutate();
   };
 
   const scrollToBroadcast = () => {
