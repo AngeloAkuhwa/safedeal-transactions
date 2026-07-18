@@ -157,6 +157,18 @@ Deno.serve(async (req) => {
       return jsonErr("Only the buyer can initiate payment", 403);
     }
 
+    // Commerce gate: platform kill switch + vendor active check
+    {
+      const { checkCheckoutAllowed } = await import("../_shared/commerce-gate.ts");
+      const gate = await checkCheckoutAllowed(tx.seller_id);
+      if (gate) {
+        return new Response(JSON.stringify(gate.body), {
+          status: gate.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     if (tx.status !== "awaiting_payment") {
       return jsonErr(`Invalid state: status=${tx.status}`, 409);
     }
