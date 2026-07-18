@@ -41,14 +41,16 @@ Deno.serve(async (req) => {
     const { data: del } = await admin.from("notification_deliveries")
       .select("id, notification_id, attempt_count, channel").eq("id", deliveryId).maybeSingle();
     if (!del) return json(404, { error: "delivery_not_found" });
-    if ((del.attempt_count ?? 0) >= 3) return json(409, { error: "max_attempts_reached" });
 
-    // Mark as pending (retry). Actual send is handled by the delivery worker downstream.
-    const nextAttempt = (del.attempt_count ?? 0) + 1;
+    // Admin manual retry: reset attempts so the worker (which filters attempt_count<3) picks it up.
+    const previousAttempts = del.attempt_count ?? 0;
     const { error: upErr } = await admin.from("notification_deliveries")
-      .update({ delivery_status: "pending", attempt_count: nextAttempt, sent_at: null })
+      .update({ delivery_status: "pending", attempt_count: 0, sent_at: null, provider_response: null })
       .eq("id", deliveryId);
     if (upErr) return json(500, { error: "retry_update_failed", details: upErr.message });
+    // Reset parent notification so UI reflects "pending" again.
+    await admin.from("notifications").update({ status: "pending" })
+      .eq("id", del.notification_id).in("status", ["failed", "sent"]);
 
     const { data: n } = await admin.from("notifications").select("user_id").eq("id", del.notification_id).maybeSingle();
     await admin.from("audit_logs").insert({
@@ -56,9 +58,51 @@ Deno.serve(async (req) => {
       actor_user_id: ctx.userId,
       target_user_id: n?.user_id ?? null,
       description: "notification_retried",
-      metadata: { delivery_id: deliveryId, notification_id: del.notification_id, channel: del.channel, attempt: nextAttempt },
+      metadata: { delivery_id: deliveryId, notification_id: del.notification_id, channel: del.channel, manual_admin_retry: true, previous_attempts: previousAttempts },
     });
-    return json(200, { success: true, attempt: nextAttempt });
+    return json(200, { success: true, attempt: 0 });
+  }
+
+  if (action === "retry_all_failed") {
+    const channel = body?.channel ? String(body.channel) : null;
+    const notificationType = body?.notification_type ? String(body.notification_type) : null;
+    let q = admin.from("notification_deliveries")
+      .select("id, notification_id, channel, attempt_count")
+      .eq("delivery_status", "failed");
+    if (channel) q = q.eq("channel", channel);
+    const { data: failed, error: fErr } = await q.limit(1000);
+    if (fErr) return json(500, { error: "list_failed_failed", details: fErr.message });
+    let rows = failed ?? [];
+    if (notificationType && rows.length) {
+      const { data: notifs } = await admin.from("notifications")
+        .select("id").in("id", rows.map((r: any) => r.notification_id)).eq("type", notificationType);
+      const keep = new Set((notifs ?? []).map((n: any) => n.id));
+      rows = rows.filter((r: any) => keep.has(r.notification_id));
+    }
+    if (!rows.length) return json(200, { success: true, retried: 0 });
+
+    const deliveryIds = rows.map((r: any) => r.id);
+    const notificationIds = Array.from(new Set(rows.map((r: any) => r.notification_id)));
+    const chunk = <T,>(arr: T[], n: number) => { const out: T[][] = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
+
+    for (const ids of chunk(deliveryIds, 200)) {
+      const { error } = await admin.from("notification_deliveries")
+        .update({ delivery_status: "pending", attempt_count: 0, sent_at: null, provider_response: null })
+        .in("id", ids);
+      if (error) return json(500, { error: "bulk_retry_update_failed", details: error.message });
+    }
+    for (const ids of chunk(notificationIds, 200)) {
+      await admin.from("notifications").update({ status: "pending" })
+        .in("id", ids).in("status", ["failed", "sent"]);
+    }
+    await admin.from("audit_logs").insert({
+      action: "admin_action",
+      actor_user_id: ctx.userId,
+      target_user_id: null,
+      description: "notifications_bulk_retried",
+      metadata: { count: deliveryIds.length, channel, notification_type: notificationType, manual_admin_retry: true },
+    });
+    return json(200, { success: true, retried: deliveryIds.length });
   }
 
   if (action === "broadcast") {

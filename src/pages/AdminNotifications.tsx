@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from "@/components/ui/sonner";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import {
-  fetchAdminNotifications, retryNotificationDelivery, sendBroadcast,
+  fetchAdminNotifications, retryNotificationDelivery, retryAllFailedNotifications, sendBroadcast,
   type AdminNotifFailedRow, type AdminNotifRecentRow, type BroadcastPayload,
 } from "@/services/admin-notifications.service";
 import { useRealtimeAdminNotifications } from "@/hooks/useRealtimeAdminNotifications";
@@ -309,7 +309,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
         <div className="flex items-center gap-2">
           <Button
             onClick={onRetryAll}
-            disabled={!rows.some((r) => r.retriable)}
+            disabled={!rows.length}
             className="px-3 h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium"
           >
             <RotateCw className="h-3.5 w-3.5" /> Retry All Failed
@@ -341,7 +341,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
             </thead>
             <tbody className="divide-y divide-border">
               {rows.map((r) => {
-                const exhausted = r.attempt_count >= 3 || !r.retriable;
+                const exhausted = false;
                 return (
                   <tr key={r.delivery_id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-3 py-2 whitespace-nowrap">
@@ -422,8 +422,8 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           </button>
                         )}
                         <button
-                          onClick={() => r.retriable && onRetry(r.delivery_id)}
-                          disabled={!r.retriable || retrying === r.delivery_id}
+                          onClick={() => onRetry(r.delivery_id)}
+                          disabled={retrying === r.delivery_id}
                           title="Retry Delivery"
                           className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 rounded text-[11px] font-semibold transition-all flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
@@ -783,11 +783,17 @@ export default function AdminNotifications() {
     a.click(); URL.revokeObjectURL(url);
   };
 
+  const bulkRetryMut = useMutation({
+    mutationFn: () => retryAllFailedNotifications({ channel: "email" }),
+    onSuccess: (res) => {
+      toast.success(`Queued ${res.retried} deliveries for retry`);
+      qc.invalidateQueries({ queryKey: ["admin-notifications"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const handleRetryAll = () => {
-    const retriable = failedFiltered.filter((r) => r.retriable);
-    if (!retriable.length) return;
-    toast.info(`Queuing ${retriable.length} retries…`);
-    retriable.forEach((r) => retryMut.mutate(r.delivery_id));
+    if (!failedFiltered.length) return;
+    bulkRetryMut.mutate();
   };
 
   const scrollToBroadcast = () => {

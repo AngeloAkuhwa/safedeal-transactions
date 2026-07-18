@@ -89,6 +89,18 @@ export async function retryNotificationDelivery(deliveryId: string): Promise<{ s
   return data as any;
 }
 
+export async function retryAllFailedNotifications(opts?: { channel?: "email" | "sms"; notification_type?: string }): Promise<{ success: boolean; retried: number }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
+  const { data, error } = await supabase.functions.invoke("admin-notifications-action", {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+    body: { action: "retry_all_failed", ...(opts ?? {}) },
+  });
+  if (error) throw new Error(error.message || "Bulk retry failed");
+  if (!data || (data as any).error) throw new Error((data as any)?.error || "Bulk retry failed");
+  return data as any;
+}
+
 export interface BroadcastPayload {
   title: string;
   message: string;
