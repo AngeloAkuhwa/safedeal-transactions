@@ -6,7 +6,12 @@ import {
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { toast } from "@/components/ui/sonner";
-import { fetchAdminSettings, saveAdminSettings, searchVendors, type VendorLite } from "@/services/admin-settings.service";
+import {
+  fetchAdminSettings, saveAdminSettings, searchVendors,
+  fetchSettingsAudit,
+  type VendorLite, type SettingsAuditRow,
+} from "@/services/admin-settings.service";
+import { formatDistanceToNow } from "date-fns";
 
 /* ------------------------------ primitives ------------------------------ */
 
@@ -182,6 +187,16 @@ export default function AdminSettings() {
   // Which platform keys are overridable per-vendor
   const [overridable, setOverridable] = useState<Record<string, boolean>>({});
   const isLocked = (key: string) => scope === "vendor" && overridable[key] === false;
+  // Which keys currently have a vendor-scoped override for the selected vendor
+  const [overriddenKeys, setOverriddenKeys] = useState<Set<string>>(new Set());
+  const isOverridden = (key: string) => scope === "vendor" && overriddenKeys.has(key);
+  // Aggregate vendor overrides across all vendors (platform tab)
+  const [vendorOverrides, setVendorOverrides] = useState<
+    Array<{ setting_key: string; vendor_id: string; setting_value: unknown; updated_at: string | null }>
+  >([]);
+  const [overrideCounts, setOverrideCounts] = useState<Record<string, number>>({});
+  // Audit history
+  const [auditRows, setAuditRows] = useState<SettingsAuditRow[]>([]);
 
   // Timeouts
   const [sellerFulfil, setSellerFulfil] = useState("7");
