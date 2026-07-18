@@ -145,11 +145,25 @@ export async function initiatePayment(args: {
   email: string;
   amount: number;
 }> {
-  const { data, error } = await supabase.functions.invoke("initiate-paystack-payment", {
-    body: args,
+  const { data: { session } } = await supabase.auth.getSession();
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/initiate-paystack-payment`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+    },
+    body: JSON.stringify(args),
   });
-  if (error) throw error;
-  return data;
+  let json: any = null;
+  try { json = await res.json(); } catch { /* ignore */ }
+  if (!res.ok) {
+    // Surface commerce-gate `reason` (checkout_disabled/vendor_disabled/etc.) verbatim.
+    const reason = typeof json?.reason === "string" ? json.reason : null;
+    const errCode = typeof json?.error === "string" ? json.error : null;
+    throw new Error(reason || errCode || `Payment could not be initiated (${res.status})`);
+  }
+  return json;
 }
 
 /** Verify a Paystack payment via the existing edge function. */
