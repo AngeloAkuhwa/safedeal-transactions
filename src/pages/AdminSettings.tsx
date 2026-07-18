@@ -14,6 +14,10 @@ import {
 } from "@/services/admin-settings.service";
 import { formatDistanceToNow } from "date-fns";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 /* ------------------------------ primitives ------------------------------ */
 
