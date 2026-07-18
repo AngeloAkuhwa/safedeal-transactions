@@ -431,34 +431,34 @@ function DeliveryPerf({ perf }: { perf: any[] }) {
   const rateColor = (rate: number) => (rate >= 95 ? "text-emerald-400" : rate >= 90 ? "text-orange-400" : "text-red-400");
   return (
     <Card className="overflow-hidden">
-      <div className="p-6 border-b border-border">
-        <h3 className="text-foreground text-lg font-semibold">Delivery Performance</h3>
-        <p className="text-muted-foreground text-sm mt-1">Last 24 hours breakdown by channel</p>
+      <div className="p-3 border-b border-border">
+        <h3 className="text-foreground text-sm font-semibold">Delivery Performance</h3>
+        <p className="text-muted-foreground text-xs mt-0.5">Last 24 hours breakdown by channel</p>
       </div>
-      <div className="p-6">
-        <div className="space-y-6">
+      <div className="p-3">
+        <div className="space-y-4">
           {perf.map((p) => {
             const m = meta[p.channel] ?? meta.in_app;
             const Icon = channelIcon(p.channel);
             return (
               <div key={p.channel}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 border rounded-lg flex items-center justify-center ${m.iconBg}`}>
-                      <Icon className={`h-5 w-5 ${m.iconColor}`} />
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-8 h-8 border rounded-lg flex items-center justify-center ${m.iconBg}`}>
+                      <Icon className={`h-4 w-4 ${m.iconColor}`} />
                     </div>
                     <div>
-                      <h4 className="text-foreground font-semibold">{m.name}</h4>
-                      <p className="text-muted-foreground text-sm">{m.sub}</p>
+                      <h4 className="text-foreground text-xs font-semibold">{m.name}</h4>
+                      <p className="text-muted-foreground text-[11px]">{m.sub}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className={`text-2xl font-bold ${m.numberColor}`}>{p.sent.toLocaleString()}</div>
-                    <div className={`text-sm font-semibold ${rateColor(p.rate)}`}>{p.rate}% delivered</div>
+                    <div className={`text-lg font-bold ${m.numberColor}`}>{p.sent.toLocaleString()}</div>
+                    <div className={`text-[11px] font-semibold ${rateColor(p.rate)}`}>{p.rate}% delivered</div>
                   </div>
                 </div>
-                <div className="w-full bg-muted rounded-full h-2 mt-3">
-                  <div className={`${m.barBg} h-2 rounded-full transition-all`} style={{ width: `${p.rate}%` }} />
+                <div className="w-full bg-muted rounded-full h-1.5 mt-2">
+                  <div className={`${m.barBg} h-1.5 rounded-full transition-all`} style={{ width: `${p.rate}%` }} />
                 </div>
               </div>
             );
