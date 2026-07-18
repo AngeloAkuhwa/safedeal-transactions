@@ -3,7 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
-import { loadPricingConfig } from "../_shared/settings-resolver.ts";
+import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -304,7 +304,8 @@ async function createTransactionFromOffer(adminClient: any, offer: any, buyerId:
     if (Array.isArray(parsed) && parsed[0]) deliveryMethod = parsed[0];
   } catch { /* keep default */ }
 
-  const verificationWindow = firstProduct?.verification_window_hours || 72;
+  const verificationWindow = firstProduct?.verification_window_hours
+    || await loadEffectiveTimeoutHours(offer.seller_id, "buyer_verification_timeout", 72);
   const currencyCode = items[0].currency_code || firstProduct?.currency_code || "NGN";
 
   const totalAmount = items.reduce((sum, it) => sum + (Number(it.unit_price_snapshot) * (it.quantity || 1)), 0);
