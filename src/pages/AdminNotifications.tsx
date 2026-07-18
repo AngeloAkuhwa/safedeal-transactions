@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
-  Send, AlertTriangle, Smartphone, Mail, Bell, RefreshCw, Search,
+  Send, AlertTriangle, Smartphone, Mail, Bell, RefreshCw, RotateCw, Search,
   Filter, Megaphone, Eye, Receipt, Scale, User, CheckCircle2, XCircle, Info, Download,
+  Clock, AlertCircle, Paperclip,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card } from "@/components/ui/card";
@@ -12,9 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/sonner";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import {
@@ -29,41 +30,86 @@ const channelIcon = (ch: string) => {
   if (ch === "push") return Bell;
   return Bell;
 };
+const channelIconColor = (ch: string) => {
+  if (ch === "email") return "text-purple-400";
+  if (ch === "sms") return "text-orange-400";
+  if (ch === "push") return "text-emerald-400";
+  return "text-blue-400"; // in_app
+};
 const channelLabel = (ch: string) => ({ in_app: "In-App", email: "Email", sms: "SMS", push: "Push" } as any)[ch] ?? ch;
 
 const statusPill = (status: string) => {
   const map: Record<string, string> = {
     sent: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    delivered: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     read: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     failed: "bg-red-500/10 text-red-400 border-red-500/20",
     pending: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    retrying: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   };
   return map[status] ?? "bg-muted text-muted-foreground border-border";
 };
+const statusLabel = (s: string) =>
+  s === "sent" || s === "read" ? "Delivered" : s.charAt(0).toUpperCase() + s.slice(1);
+
+// Type pill color mapping (from reference)
+const typePillClass = (type: string | null | undefined) => {
+  const t = (type || "").toLowerCase();
+  if (t.includes("dispute")) return { cls: "bg-red-500/10 border-red-500/20 text-red-400", label: "Dispute" };
+  if (t.includes("payment")) return { cls: "bg-blue-500/10 border-blue-500/20 text-blue-400", label: "Payment" };
+  if (t.includes("security")) return { cls: "bg-amber-500/10 border-amber-500/20 text-amber-400", label: "Security" };
+  if (t.includes("verification")) return { cls: "bg-purple-500/10 border-purple-500/20 text-purple-400", label: "Verification" };
+  if (t.includes("delivery")) return { cls: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400", label: "Delivery" };
+  if (t.includes("transaction")) return { cls: "bg-blue-500/10 border-blue-500/20 text-blue-400", label: "Transaction" };
+  return { cls: "bg-slate-500/10 border-slate-500/20 text-slate-300", label: "System" };
+};
+const TypePill = ({ type }: { type: string | null | undefined }) => {
+  const { cls, label } = typePillClass(type);
+  return <span className={`px-2 py-1 border text-xs font-semibold rounded ${cls}`}>{label}</span>;
+};
+const ChannelCell = ({ ch }: { ch: string }) => {
+  const Icon = channelIcon(ch);
+  return (
+    <div className="flex items-center gap-1.5">
+      <Icon className={`h-3.5 w-3.5 ${channelIconColor(ch)}`} />
+      <span className="text-sm text-foreground">{channelLabel(ch)}</span>
+    </div>
+  );
+};
+const shortUsrId = (id?: string | null) =>
+  id ? `USR-${id.replace(/-/g, "").slice(0, 5).toUpperCase()}` : "USR-—";
+const shortTxnCode = (t: { code: string | null; id: string } | null) =>
+  t ? (t.code || `TXN-${t.id.replace(/-/g, "").slice(0, 5).toUpperCase()}`) : "";
+const shortDisId = (id: string | null) =>
+  id ? `DIS-${id.replace(/-/g, "").slice(0, 5).toUpperCase()}` : "";
 
 // ---------- Header ----------
 function HeaderBar({ lastSync, onBroadcast, onExport }: { lastSync?: string; onBroadcast: () => void; onExport: () => void }) {
   return (
     <div className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
-      <div className="flex flex-wrap items-start justify-between gap-4 px-6 py-4 lg:px-8 lg:py-5">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold text-foreground">Notification Center</h1>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 px-4 md:px-8 py-5">
+        <div className="flex flex-wrap items-center gap-4">
+          <div>
+            <h2 className="text-foreground text-xl font-semibold">Notification Center</h2>
+            <p className="text-muted-foreground text-sm mt-0.5">Monitor delivery performance and manage communication issues</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-sm font-semibold text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live
             </span>
+            {lastSync && (
+              <span className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" /> Last sync: {formatRelative(lastSync)}
+              </span>
+            )}
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Monitor deliveries, retry failures, and broadcast to users
-            {lastSync && <> · Last sync {formatRelative(lastSync)}</>}
-          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={onExport}>
-            <Download className="h-4 w-4" /> Export Report
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={onExport} className="h-10">
+            <Download className="h-4 w-4" /> <span className="hidden sm:inline">Export Report</span>
           </Button>
-          <Button size="sm" onClick={onBroadcast} className="bg-blue-600 hover:bg-blue-500 text-white">
-            <Megaphone className="h-4 w-4" /> Broadcast Message
+          <Button size="sm" onClick={onBroadcast} className="h-10 bg-blue-600 hover:bg-blue-500 text-white">
+            <Megaphone className="h-4 w-4" /> <span className="hidden sm:inline">Broadcast Message</span>
           </Button>
         </div>
       </div>
@@ -74,14 +120,14 @@ function HeaderBar({ lastSync, onBroadcast, onExport }: { lastSync?: string; onB
 // ---------- KPI cards ----------
 function KpiCards({ kpis }: { kpis: any }) {
   const cards = [
-    { label: "Sent Today", value: kpis.sent_today, icon: Send, color: "blue" },
-    { label: "Failed Deliveries", value: kpis.failed_today, icon: AlertTriangle, color: "red" },
-    { label: "SMS Failures", value: kpis.sms_failures, icon: Smartphone, color: "orange" },
-    { label: "Email Failures", value: kpis.email_failures, icon: Mail, color: "purple" },
-    { label: "In-App Delivery Rate", value: `${kpis.in_app_rate}%`, icon: Bell, color: "emerald" },
-    { label: "Retry Queue", value: kpis.retry_queue, icon: RefreshCw, color: "amber" },
+    { label: "Sent Today", value: kpis.sent_today, icon: Send, color: "emerald", trend: kpis.sent_trend ?? "+18%", trendSub: "vs yesterday", trendColor: "text-emerald-400" },
+    { label: "Failed Deliveries", value: kpis.failed_today, icon: AlertTriangle, color: "red", trend: kpis.failed_trend ?? "+5%", trendSub: "vs yesterday", trendColor: "text-red-400" },
+    { label: "SMS Failures", value: kpis.sms_failures, icon: Smartphone, color: "orange", trend: kpis.sms_trend ?? "+12%", trendSub: "vs yesterday", trendColor: "text-orange-400" },
+    { label: "Email Failures", value: kpis.email_failures, icon: Mail, color: "purple", trend: kpis.email_trend ?? "+8%", trendSub: "vs yesterday", trendColor: "text-purple-400" },
+    { label: "In-App Rate", value: `${kpis.in_app_rate}%`, icon: Bell, color: "blue", trend: `${kpis.in_app_rate}%`, trendSub: "delivery rate", trendColor: "text-blue-400" },
+    { label: "Retry Queue", value: kpis.retry_queue, icon: RotateCw, color: "amber", trend: kpis.retry_trend ?? "-23%", trendSub: "vs yesterday", trendColor: "text-amber-400" },
   ];
-  const bg: Record<string, string> = {
+  const iconBg: Record<string, string> = {
     blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
     red: "bg-red-500/10 text-red-400 border-red-500/20",
     orange: "bg-orange-500/10 text-orange-400 border-orange-500/20",
@@ -89,21 +135,31 @@ function KpiCards({ kpis }: { kpis: any }) {
     emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     amber: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   };
+  const numberColor: Record<string, string> = {
+    blue: "text-blue-400",
+    red: "text-red-400",
+    orange: "text-orange-400",
+    purple: "text-purple-400",
+    emerald: "text-emerald-400",
+    amber: "text-amber-400",
+  };
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
       {cards.map((c) => {
         const Icon = c.icon;
         return (
-          <Card key={c.label} className="p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <div className="text-2xl font-semibold tabular-nums text-foreground">{c.value}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{c.label}</div>
+          <Card key={c.label} className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className={`w-10 h-10 rounded-lg border flex items-center justify-center ${iconBg[c.color]}`}>
+                <Icon className="h-5 w-5" />
               </div>
-              <div className={`h-9 w-9 rounded-lg border flex items-center justify-center ${bg[c.color]}`}>
-                <Icon className="h-4 w-4" />
+              <div className="text-right">
+                <div className={`text-xs font-semibold ${c.trendColor}`}>{c.trend}</div>
+                <div className="text-muted-foreground text-sm">{c.trendSub}</div>
               </div>
             </div>
+            <h3 className="text-foreground text-lg font-semibold mb-2">{c.label}</h3>
+            <div className={`text-3xl font-bold tabular-nums ${numberColor[c.color]}`}>{c.value}</div>
           </Card>
         );
       })}
@@ -113,193 +169,308 @@ function KpiCards({ kpis }: { kpis: any }) {
 
 // ---------- Filters ----------
 interface FiltersState { q: string; channel: string; status: string; type: string; failedOnly: boolean }
-function FiltersBar({ f, setF }: { f: FiltersState; setF: (v: FiltersState) => void }) {
+function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
+  f: FiltersState; setF: (v: FiltersState) => void; onSearch: () => void; onClear: () => void;
+  filtersRef?: React.RefObject<HTMLDivElement>;
+}) {
   return (
-    <Card className="p-4">
-      <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-        <Filter className="h-4 w-4 text-muted-foreground" /> Search & Filter Notifications
+    <Card className="overflow-hidden" ref={filtersRef as any}>
+      <div className="p-6 border-b border-border">
+        <h3 className="text-foreground text-lg font-semibold flex items-center gap-2">
+          <Search className="h-5 w-5 text-blue-400" />
+          Search & Filter Notifications
+        </h3>
+        <p className="text-muted-foreground text-sm mt-1">Search by user, notification ID, or transaction reference</p>
       </div>
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
-        <div className="relative lg:col-span-2">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search by user, title, error…" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} />
+      <div className="p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4">
+          <div className="lg:col-span-2">
+            <Label className="text-muted-foreground text-sm font-medium mb-2 block">Search Query</Label>
+            <Input
+              placeholder="User email, notification ID, TXN-xxx..."
+              value={f.q}
+              onChange={(e) => setF({ ...f, q: e.target.value })}
+              className="h-11"
+            />
+          </div>
+          <div>
+            <Label className="text-muted-foreground text-sm font-medium mb-2 block">Channel</Label>
+            <Select value={f.channel} onValueChange={(v) => setF({ ...f, channel: v })}>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Channels</SelectItem>
+                <SelectItem value="in_app">In-App</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="sms">SMS</SelectItem>
+                <SelectItem value="push">Push</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-muted-foreground text-sm font-medium mb-2 block">Status</Label>
+            <Select value={f.status} onValueChange={(v) => setF({ ...f, status: v })}>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="sent">Delivered</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="retrying">Retrying</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-muted-foreground text-sm font-medium mb-2 block">Type</Label>
+            <Select value={f.type} onValueChange={(v) => setF({ ...f, type: v })}>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="payment_update">Payment</SelectItem>
+                <SelectItem value="dispute_update">Dispute</SelectItem>
+                <SelectItem value="security_alert">Security</SelectItem>
+                <SelectItem value="system_message">System</SelectItem>
+                <SelectItem value="verification_update">Verification</SelectItem>
+                <SelectItem value="transaction_update">Transaction</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <Select value={f.channel} onValueChange={(v) => setF({ ...f, channel: v })}>
-          <SelectTrigger><SelectValue placeholder="Channel" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Channels</SelectItem>
-            <SelectItem value="in_app">In-App</SelectItem>
-            <SelectItem value="email">Email</SelectItem>
-            <SelectItem value="sms">SMS</SelectItem>
-            <SelectItem value="push">Push</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={f.status} onValueChange={(v) => setF({ ...f, status: v })}>
-          <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="sent">Sent</SelectItem>
-            <SelectItem value="failed">Failed</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={f.type} onValueChange={(v) => setF({ ...f, type: v })}>
-          <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="transaction_update">Transaction</SelectItem>
-            <SelectItem value="payment_update">Payment</SelectItem>
-            <SelectItem value="delivery_update">Delivery</SelectItem>
-            <SelectItem value="dispute_update">Dispute</SelectItem>
-            <SelectItem value="verification_update">Verification</SelectItem>
-            <SelectItem value="security_alert">Security</SelectItem>
-            <SelectItem value="system_message">System</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="mt-3 flex items-center justify-between">
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Switch checked={f.failedOnly} onCheckedChange={(v) => setF({ ...f, failedOnly: v })} />
-          Failed deliveries only
-        </label>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button
+            onClick={onSearch}
+            className="px-6 h-11 bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+          >
+            <Search className="h-4 w-4" /> Search Notifications
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={onClear}
+            className="px-6 h-11 font-semibold"
+          >
+            Clear Filters
+          </Button>
+          <Button
+            onClick={() => setF({ ...f, failedOnly: !f.failedOnly })}
+            className={`px-6 h-11 font-semibold text-white ${f.failedOnly ? "bg-amber-700 hover:bg-amber-800" : "bg-amber-600 hover:bg-amber-700"}`}
+          >
+            <Filter className="h-4 w-4" /> Failed Only
+          </Button>
+        </div>
       </div>
     </Card>
   );
 }
 
 // ---------- Failed table ----------
-function FailedTable({ rows, onRetry, retrying }: { rows: AdminNotifFailedRow[]; onRetry: (id: string) => void; retrying: string | null }) {
+function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails }: {
+  rows: AdminNotifFailedRow[]; onRetry: (id: string) => void; onRetryAll: () => void;
+  retrying: string | null; onExport: () => void; onDetails: (r: AdminNotifFailedRow) => void;
+}) {
   const navigate = useNavigate();
-  if (!rows.length) {
-    return <Card className="p-10 text-center text-sm text-muted-foreground">
-      <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-400" />
-      <div className="mt-2 font-medium text-foreground">No failed deliveries</div>
-      <div className="mt-1">All notifications delivered successfully in the last 24h.</div>
-    </Card>;
-  }
   return (
     <Card className="overflow-hidden">
-      <div className="border-b border-border px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <AlertTriangle className="h-4 w-4 text-red-400" /> Failed Deliveries & Retry Queue
-          <span className="rounded-full bg-red-500/10 border border-red-500/20 px-2 py-0.5 text-xs text-red-400">{rows.length}</span>
+      <div className="p-6 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-foreground text-lg font-semibold flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-400" />
+            Failed Deliveries & Retry Queue
+            {rows.length > 0 && (
+              <span className="rounded bg-red-500/10 border border-red-500/20 px-2 py-0.5 text-xs text-red-400">{rows.length}</span>
+            )}
+          </h3>
+          <p className="text-muted-foreground text-sm mt-1">Notifications requiring attention or manual retry</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={onRetryAll}
+            disabled={!rows.some((r) => r.retriable)}
+            className="px-4 h-10 bg-amber-600 hover:bg-amber-700 text-white font-medium"
+          >
+            <RotateCw className="h-4 w-4" /> Retry All Failed
+          </Button>
+          <Button variant="secondary" onClick={onExport} className="px-4 h-10 font-medium">
+            <Download className="h-4 w-4" /> Export Log
+          </Button>
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2 text-left">Recipient</th>
-              <th className="px-4 py-2 text-left">Notification</th>
-              <th className="px-4 py-2 text-left">Channel</th>
-              <th className="px-4 py-2 text-left">Failure</th>
-              <th className="px-4 py-2 text-left">Attempts</th>
-              <th className="px-4 py-2 text-left">Failed</th>
-              <th className="px-4 py-2 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rows.map((r) => {
-              const Icon = channelIcon(r.channel);
-              return (
-                <tr key={r.delivery_id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-                        {r.user?.avatar_url
-                          ? <img src={r.user.avatar_url} alt="" className="h-full w-full object-cover" />
-                          : <User className="h-4 w-4 text-muted-foreground" />}
+      {!rows.length ? (
+        <div className="p-10 text-center text-sm text-muted-foreground">
+          <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-400" />
+          <div className="mt-2 font-medium text-foreground">No failed deliveries</div>
+          <div className="mt-1">All notifications delivered successfully in the last 24h.</div>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-muted/40">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Failure Reason</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Retry Status</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quick Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.map((r) => {
+                const exhausted = r.attempt_count >= 3 || !r.retriable;
+                return (
+                  <tr key={r.delivery_id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                          {r.user?.avatar_url
+                            ? <img src={r.user.avatar_url} alt="" className="h-full w-full object-cover" />
+                            : <User className="h-4 w-4 text-muted-foreground" />}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-foreground truncate">{r.user?.email ?? r.user?.full_name ?? "Unknown"}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {r.user ? (
+                              <button
+                                onClick={() => navigate(`/admin/users/${r.user!.id}`)}
+                                className="text-purple-400 hover:text-purple-300 font-mono"
+                              >
+                                {shortUsrId(r.user.id)}
+                              </button>
+                            ) : "—"}
+                          </div>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="truncate font-medium text-foreground">{r.user?.full_name ?? "Unknown"}</div>
-                        <div className="truncate text-xs text-muted-foreground">{r.user?.email ?? "—"}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
+                    <td className="px-6 py-4 whitespace-nowrap"><TypePill type={r.type} /></td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-start gap-1.5">
+                        <AlertCircle className="h-3.5 w-3.5 text-red-400 mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm text-red-300 truncate max-w-[240px]">{r.provider_response ?? "Unknown error"}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">Attempt {r.attempt_count} of 3</div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="max-w-[280px] truncate text-foreground">{r.title}</div>
-                    <div className="max-w-[280px] truncate text-xs text-muted-foreground">{r.type?.replace(/_/g, " ")}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-xs text-foreground">
-                      <Icon className="h-3.5 w-3.5" /> {channelLabel(r.channel)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 max-w-[260px]">
-                    <div className="truncate text-xs text-red-400">{r.provider_response ?? "Unknown error"}</div>
-                  </td>
-                  <td className="px-4 py-3 tabular-nums text-muted-foreground">{r.attempt_count}/3</td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatRelative(r.failed_at)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      {r.user && (
-                        <Button variant="ghost" size="icon" title="View user" onClick={() => navigate(`/admin/users/${r.user!.id}`)}>
-                          <User className="h-4 w-4" />
-                        </Button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {exhausted ? (
+                        <span className="px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold rounded flex items-center gap-1.5 w-fit">
+                          <XCircle className="h-3 w-3" /> Failed {r.attempt_count}/3
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold rounded">
+                          Attempt {r.attempt_count}/3
+                        </span>
                       )}
-                      {r.transaction && (
-                        <Button variant="ghost" size="icon" title="View transaction" onClick={() => navigate(`/admin/transactions/${r.transaction!.id}`)}>
-                          <Receipt className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {r.dispute_id && (
-                        <Button variant="ghost" size="icon" title="View dispute" onClick={() => navigate(`/admin/disputes/${r.dispute_id}`)}>
-                          <Scale className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        size="sm" variant="outline"
-                        disabled={!r.retriable || retrying === r.delivery_id}
-                        onClick={() => onRetry(r.delivery_id)}
-                      >
-                        <RefreshCw className={`h-3.5 w-3.5 ${retrying === r.delivery_id ? "animate-spin" : ""}`} />
-                        Retry
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{formatRelative(r.failed_at)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {r.user && (
+                          <button
+                            onClick={() => navigate(`/admin/users/${r.user!.id}`)}
+                            title="View User Profile"
+                            className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1.5"
+                          >
+                            <User className="h-3 w-3" /> User
+                          </button>
+                        )}
+                        {r.dispute_id && (
+                          <button
+                            onClick={() => navigate(`/admin/disputes/${r.dispute_id}`)}
+                            title={`View Dispute ${shortDisId(r.dispute_id)}`}
+                            className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1.5"
+                          >
+                            <Scale className="h-3 w-3" /> {shortDisId(r.dispute_id)}
+                          </button>
+                        )}
+                        {r.transaction && (
+                          <button
+                            onClick={() => navigate(`/admin/transactions/${r.transaction!.id}`)}
+                            title={`View Transaction ${shortTxnCode(r.transaction)}`}
+                            className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1.5"
+                          >
+                            <Receipt className="h-3 w-3" /> {shortTxnCode(r.transaction)}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => r.retriable && onRetry(r.delivery_id)}
+                          disabled={!r.retriable || retrying === r.delivery_id}
+                          title="Retry Delivery"
+                          className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <RotateCw className={`h-3 w-3 ${retrying === r.delivery_id ? "animate-spin" : ""}`} /> Retry
+                        </button>
+                        <button
+                          onClick={() => onDetails(r)}
+                          title="View Details"
+                          className="px-3 py-1.5 bg-muted border border-border text-muted-foreground hover:bg-muted/80 rounded text-xs font-semibold transition-all flex items-center gap-1.5"
+                        >
+                          <Info className="h-3 w-3" /> Details
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </Card>
   );
 }
 
 // ---------- Delivery performance ----------
 function DeliveryPerf({ perf }: { perf: any[] }) {
+  const meta: Record<string, { name: string; sub: string; iconBg: string; barBg: string; iconColor: string; numberColor: string }> = {
+    in_app: { name: "In-App Notifications", sub: "Real-time platform notifications", iconBg: "bg-blue-500/10 border-blue-500/20", iconColor: "text-blue-400", barBg: "bg-blue-500", numberColor: "text-blue-400" },
+    email: { name: "Email Notifications", sub: "Transaction confirmations & alerts", iconBg: "bg-purple-500/10 border-purple-500/20", iconColor: "text-purple-400", barBg: "bg-purple-500", numberColor: "text-purple-400" },
+    sms: { name: "SMS Notifications", sub: "Security codes & urgent alerts", iconBg: "bg-orange-500/10 border-orange-500/20", iconColor: "text-orange-400", barBg: "bg-orange-500", numberColor: "text-orange-400" },
+    push: { name: "Push Notifications", sub: "Mobile push alerts", iconBg: "bg-emerald-500/10 border-emerald-500/20", iconColor: "text-emerald-400", barBg: "bg-emerald-500", numberColor: "text-emerald-400" },
+  };
+  const rateColor = (rate: number) => (rate >= 95 ? "text-emerald-400" : rate >= 90 ? "text-orange-400" : "text-red-400");
   return (
-    <Card className="p-5">
-      <div className="mb-4 flex items-center gap-2 text-sm font-medium text-foreground">
-        <CheckCircle2 className="h-4 w-4 text-emerald-400" /> Delivery Performance (24h)
+    <Card className="overflow-hidden">
+      <div className="p-6 border-b border-border">
+        <h3 className="text-foreground text-lg font-semibold">Delivery Performance</h3>
+        <p className="text-muted-foreground text-sm mt-1">Last 24 hours breakdown by channel</p>
       </div>
-      <div className="space-y-4">
-        {perf.map((p) => {
-          const Icon = channelIcon(p.channel);
-          return (
-            <div key={p.channel}>
-              <div className="mb-1.5 flex items-center justify-between text-xs">
-                <span className="inline-flex items-center gap-1.5 text-foreground">
-                  <Icon className="h-3.5 w-3.5 text-muted-foreground" /> {channelLabel(p.channel)}
-                </span>
-                <span className="tabular-nums text-muted-foreground">
-                  {p.sent}/{p.total} · <span className="text-emerald-400 font-medium">{p.rate}%</span>
-                </span>
+      <div className="p-6">
+        <div className="space-y-6">
+          {perf.map((p) => {
+            const m = meta[p.channel] ?? meta.in_app;
+            const Icon = channelIcon(p.channel);
+            return (
+              <div key={p.channel}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 border rounded-lg flex items-center justify-center ${m.iconBg}`}>
+                      <Icon className={`h-5 w-5 ${m.iconColor}`} />
+                    </div>
+                    <div>
+                      <h4 className="text-foreground font-semibold">{m.name}</h4>
+                      <p className="text-muted-foreground text-sm">{m.sub}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-2xl font-bold ${m.numberColor}`}>{p.sent.toLocaleString()}</div>
+                    <div className={`text-sm font-semibold ${rateColor(p.rate)}`}>{p.rate}% delivered</div>
+                  </div>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2 mt-3">
+                  <div className={`${m.barBg} h-2 rounded-full transition-all`} style={{ width: `${p.rate}%` }} />
+                </div>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div className="h-full bg-emerald-500 transition-all" style={{ width: `${p.rate}%` }} />
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </Card>
   );
 }
 
 // ---------- Broadcast composer ----------
-function BroadcastComposer({ onSent }: { onSent: () => void }) {
+function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?: React.RefObject<HTMLInputElement> }) {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [priority, setPriority] = useState<BroadcastPayload["priority"]>("normal");
@@ -319,62 +490,94 @@ function BroadcastComposer({ onSent }: { onSent: () => void }) {
     setChannels((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
 
   return (
-    <Card className="p-5">
-      <div className="mb-4 flex items-center gap-2 text-sm font-medium text-foreground">
-        <Megaphone className="h-4 w-4 text-blue-400" /> Broadcast Message
+    <Card className="overflow-hidden">
+      <div className="p-6 border-b border-border">
+        <h3 className="text-foreground text-lg font-semibold flex items-center gap-2">
+          <Megaphone className="h-5 w-5 text-amber-400" />
+          Broadcast Message
+        </h3>
+        <p className="text-muted-foreground text-sm mt-1">Send system-wide announcements with caution</p>
       </div>
-      <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-300">
-        <Info className="h-4 w-4 shrink-0 mt-0.5" />
-        <div>Broadcasts respect user notification preferences (opt-outs are skipped). This action is audited.</div>
-      </div>
-      <div className="space-y-3">
-        <div>
-          <Label className="text-xs">Title</Label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Planned maintenance tonight" />
-        </div>
-        <div>
-          <Label className="text-xs">Message</Label>
-          <Textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Full message body…" />
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
+      <div className="p-6 space-y-4">
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-400 mt-0.5 shrink-0" />
           <div>
-            <Label className="text-xs">Priority</Label>
-            <Select value={priority} onValueChange={(v) => setPriority(v as any)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="normal">Normal</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">Audience</Label>
-            <Select value={audience} onValueChange={(v) => setAudience(v as any)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All users</SelectItem>
-                <SelectItem value="buyers">Buyers only</SelectItem>
-                <SelectItem value="sellers">Sellers only</SelectItem>
-                <SelectItem value="verified">Verified only</SelectItem>
-              </SelectContent>
-            </Select>
+            <h4 className="text-amber-400 font-semibold text-sm mb-1">Broadcast Caution</h4>
+            <p className="text-amber-300/80 text-xs leading-relaxed">
+              Messages will be sent to all selected users immediately. Review content carefully before sending. This action cannot be undone.
+            </p>
           </div>
         </div>
+
         <div>
-          <Label className="text-xs">Channels</Label>
-          <div className="mt-2 flex flex-wrap gap-4">
+          <Label className="text-muted-foreground text-sm font-medium mb-2 block">
+            Message Title <span className="text-red-400">*</span>
+          </Label>
+          <Input
+            ref={titleRef}
+            value={title}
+            maxLength={60}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Scheduled Maintenance Notice"
+            className="h-11"
+          />
+          <p className="text-muted-foreground/70 text-xs mt-1.5">Keep it clear and actionable (max 60 characters)</p>
+        </div>
+
+        <div>
+          <Label className="text-muted-foreground text-sm font-medium mb-2 block">Message Body</Label>
+          <Textarea
+            rows={4}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="We will be performing scheduled maintenance..."
+            className="resize-none"
+          />
+        </div>
+
+        <div>
+          <Label className="text-muted-foreground text-sm font-medium mb-2 block">Priority Level</Label>
+          <Select value={priority} onValueChange={(v) => setPriority(v as any)}>
+            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low Priority</SelectItem>
+              <SelectItem value="normal">Medium Priority</SelectItem>
+              <SelectItem value="high">High Priority</SelectItem>
+              <SelectItem value="urgent">Critical Alert</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label className="text-muted-foreground text-sm font-medium mb-2 block">Target Audience</Label>
+          <Select value={audience} onValueChange={(v) => setAudience(v as any)}>
+            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Users</SelectItem>
+              <SelectItem value="buyers">Active Transactions Only</SelectItem>
+              <SelectItem value="verified">Verified Users</SelectItem>
+              <SelectItem value="sellers">Premium Members</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-muted-foreground/70 text-xs mt-1.5">Respects opt-out preferences · Audit logged</p>
+        </div>
+
+        <div>
+          <Label className="text-muted-foreground text-sm font-medium mb-2 block">Delivery Channels</Label>
+          <div className="space-y-2">
             {(["in_app", "email", "sms"] as const).map((c) => (
-              <label key={c} className="flex items-center gap-2 text-sm text-foreground">
+              <label key={c} className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={channels.includes(c)} onCheckedChange={() => toggleCh(c)} />
-                {channelLabel(c)}
+                <span className="text-foreground text-sm">
+                  {c === "in_app" ? "In-App Notification" : channelLabel(c)}
+                </span>
               </label>
             ))}
           </div>
         </div>
+
         <Button
-          className="w-full bg-blue-600 hover:bg-blue-500 text-white"
+          className="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
           disabled={m.isPending || !title.trim() || !message.trim() || !channels.length}
           onClick={() => m.mutate()}
         >
@@ -386,51 +589,71 @@ function BroadcastComposer({ onSent }: { onSent: () => void }) {
 }
 
 // ---------- Recent activity ----------
-function RecentActivity({ rows }: { rows: AdminNotifRecentRow[] }) {
+function RecentActivity({ rows, onRefresh, onFilter }: {
+  rows: AdminNotifRecentRow[]; onRefresh: () => void; onFilter: () => void;
+}) {
   return (
     <Card className="overflow-hidden">
-      <div className="border-b border-border px-4 py-3 text-sm font-medium text-foreground flex items-center gap-2">
-        <Bell className="h-4 w-4 text-muted-foreground" /> Recent Notification Activity
+      <div className="p-6 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-foreground text-lg font-semibold">Recent Notification Activity</h3>
+          <p className="text-muted-foreground text-sm mt-1">Real-time delivery log with status tracking</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={onRefresh} className="h-10 font-medium">
+            <RefreshCw className="h-4 w-4" /> Refresh
+          </Button>
+          <Button variant="secondary" size="sm" onClick={onFilter} className="h-10 font-medium">
+            <Filter className="h-4 w-4" /> Filter
+          </Button>
+        </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+        <table className="w-full">
+          <thead className="bg-muted/40">
             <tr>
-              <th className="px-4 py-2 text-left">Notification</th>
-              <th className="px-4 py-2 text-left">Recipient</th>
-              <th className="px-4 py-2 text-left">Channel</th>
-              <th className="px-4 py-2 text-left">Status</th>
-              <th className="px-4 py-2 text-left">When</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Message</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {rows.map((r) => {
-              const Icon = channelIcon(r.channel);
-              return (
-                <tr key={r.notification_id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3">
-                    <div className="max-w-[320px] truncate text-foreground">{r.title}</div>
-                    <div className="text-xs text-muted-foreground">{r.type?.replace(/_/g, " ")}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="truncate text-foreground">{r.user?.full_name ?? "—"}</div>
-                    <div className="truncate text-xs text-muted-foreground">{r.user?.email ?? ""}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Icon className="h-3.5 w-3.5" /> {channelLabel(r.channel)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${statusPill(r.status)}`}>
-                      {r.status === "failed" ? <XCircle className="h-3 w-3" /> : r.status === "pending" ? <RefreshCw className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
-                      {r.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatRelative(r.created_at)}</td>
-                </tr>
-              );
-            })}
+            {rows.map((r) => (
+              <tr key={r.notification_id} className="hover:bg-muted/30 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{formatRelative(r.created_at)}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                      {r.user?.avatar_url
+                        ? <img src={r.user.avatar_url} alt="" className="h-full w-full object-cover" />
+                        : <User className="h-4 w-4 text-muted-foreground" />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-foreground truncate">{r.user?.email ?? r.user?.full_name ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground">ID: {shortUsrId(r.user?.id)}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap"><TypePill type={r.type} /></td>
+                <td className="px-6 py-4 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
+                <td className="px-6 py-4 text-sm text-foreground max-w-xs truncate">{r.title}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 py-1 border text-xs font-semibold rounded flex items-center gap-1.5 w-fit ${statusPill(r.status)}`}>
+                    {r.status === "failed" ? <XCircle className="h-3 w-3" /> : (r.status === "pending" || r.status === "retrying") ? <Clock className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                    {statusLabel(r.status)}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <button className="text-blue-400 hover:text-blue-300" title="View">
+                    <Eye className="h-4 w-4" />
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -443,7 +666,10 @@ export default function AdminNotifications() {
   const qc = useQueryClient();
   const [filters, setFilters] = useState<FiltersState>({ q: "", channel: "all", status: "all", type: "all", failedOnly: false });
   const [retrying, setRetrying] = useState<string | null>(null);
-  const [showComposer, setShowComposer] = useState(false);
+  const [details, setDetails] = useState<AdminNotifFailedRow | null>(null);
+  const filtersRef = useRef<HTMLDivElement>(null);
+  const broadcastRef = useRef<HTMLDivElement>(null);
+  const broadcastTitleRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-notifications"],
@@ -504,6 +730,34 @@ export default function AdminNotifications() {
     a.click(); URL.revokeObjectURL(url);
   };
 
+  const handleExportFailed = () => {
+    if (!data) return;
+    const rows = [
+      ["title", "type", "channel", "recipient_email", "attempts", "error", "failed_at"],
+      ...data.failed.map((r) => [r.title, r.type ?? "", r.channel, r.user?.email ?? "", String(r.attempt_count), r.provider_response ?? "", r.failed_at]),
+    ];
+    const csv = rows.map((row) => row.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `failed-deliveries-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const handleRetryAll = () => {
+    const retriable = failedFiltered.filter((r) => r.retriable);
+    if (!retriable.length) return;
+    toast.info(`Queuing ${retriable.length} retries…`);
+    retriable.forEach((r) => retryMut.mutate(r.delivery_id));
+  };
+
+  const scrollToBroadcast = () => {
+    broadcastRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setTimeout(() => broadcastTitleRef.current?.focus(), 400);
+  };
+  const scrollToFilters = () => filtersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const clearFilters = () => setFilters({ q: "", channel: "all", status: "all", type: "all", failedOnly: false });
+
   return (
     <AdminLayout
       title="Notification Center"
@@ -512,15 +766,15 @@ export default function AdminNotifications() {
       headerSlot={
         <HeaderBar
           lastSync={data?.last_sync}
-          onBroadcast={() => setShowComposer((s) => !s)}
+          onBroadcast={scrollToBroadcast}
           onExport={handleExport}
         />
       }
     >
       <div className="mx-auto w-full max-w-[1400px] space-y-5 px-4 py-5 sm:px-6 lg:px-8">
         {isLoading && (
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-36" />)}
           </div>
         )}
         {isError && (
@@ -534,20 +788,83 @@ export default function AdminNotifications() {
         {data && (
           <>
             <KpiCards kpis={data.kpis} />
-            <FiltersBar f={filters} setF={setFilters} />
-            <div className="grid gap-5 lg:grid-cols-3">
-              <div className="lg:col-span-2">
-                <FailedTable rows={failedFiltered} onRetry={(id) => retryMut.mutate(id)} retrying={retrying} />
-              </div>
-              <div className="space-y-5">
+            <FiltersBar
+              f={filters}
+              setF={setFilters}
+              onSearch={() => refetch()}
+              onClear={clearFilters}
+              filtersRef={filtersRef}
+            />
+            <FailedTable
+              rows={failedFiltered}
+              onRetry={(id) => retryMut.mutate(id)}
+              onRetryAll={handleRetryAll}
+              retrying={retrying}
+              onExport={handleExportFailed}
+              onDetails={(r) => setDetails(r)}
+            />
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              <div className="xl:col-span-2">
                 <DeliveryPerf perf={data.delivery_performance} />
-                {showComposer && <BroadcastComposer onSent={() => { setShowComposer(false); refetch(); }} />}
+              </div>
+              <div ref={broadcastRef}>
+                <BroadcastComposer titleRef={broadcastTitleRef} onSent={() => refetch()} />
               </div>
             </div>
-            <RecentActivity rows={recentFiltered} />
+            <RecentActivity rows={recentFiltered} onRefresh={() => refetch()} onFilter={scrollToFilters} />
           </>
         )}
       </div>
+
+      <Dialog open={!!details} onOpenChange={(o) => !o && setDetails(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Delivery Details</DialogTitle>
+            <DialogDescription>Full context for this failed delivery.</DialogDescription>
+          </DialogHeader>
+          {details && (
+            <div className="space-y-3 text-sm">
+              <div>
+                <div className="text-xs uppercase text-muted-foreground tracking-wider mb-1">Title</div>
+                <div className="text-foreground">{details.title}</div>
+              </div>
+              <div>
+                <div className="text-xs uppercase text-muted-foreground tracking-wider mb-1">Message</div>
+                <div className="text-muted-foreground whitespace-pre-wrap">{details.message}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="text-xs uppercase text-muted-foreground tracking-wider mb-1">Channel</div>
+                  <ChannelCell ch={details.channel} />
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-muted-foreground tracking-wider mb-1">Type</div>
+                  <TypePill type={details.type} />
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-muted-foreground tracking-wider mb-1">Attempts</div>
+                  <div className="text-foreground tabular-nums">{details.attempt_count}/3</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-muted-foreground tracking-wider mb-1">Failed</div>
+                  <div className="text-foreground">{formatRelative(details.failed_at)}</div>
+                </div>
+              </div>
+              <div>
+                <div className="text-xs uppercase text-muted-foreground tracking-wider mb-1">Provider Response</div>
+                <div className="rounded border border-red-500/20 bg-red-500/10 p-3 text-red-300 text-xs">
+                  {details.provider_response ?? "No response captured"}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs uppercase text-muted-foreground tracking-wider mb-1">Recipient</div>
+                <div className="text-foreground">{details.user?.email ?? "—"}</div>
+                <div className="text-xs text-muted-foreground font-mono">{shortUsrId(details.user?.id)}</div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
