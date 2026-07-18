@@ -474,6 +474,65 @@ export default function AdminUserDetail() {
               </div>
 
               {/* Row 2 — 4 stats */}
+              {data.user.roles.includes("seller") && (() => {
+                const vs = (vendorStatusQuery.data?.vendor_status as string | undefined) ?? "active";
+                const reason = vendorStatusQuery.data?.vendor_status_reason as string | null | undefined;
+                const changedAt = vendorStatusQuery.data?.vendor_status_changed_at as string | null | undefined;
+                const tone =
+                  vs === "active" ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                  : vs === "disabled" ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                  : "bg-red-500/10 border-red-500/30 text-red-300";
+                return (
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl">
+                    <div className="p-5 border-b border-slate-800 flex items-center justify-between flex-wrap gap-3">
+                      <div>
+                        <h3 className="text-white text-base font-semibold flex items-center gap-2">
+                          <Store className="h-5 w-5 text-purple-400" /> Vendor Commerce Status
+                        </h3>
+                        <p className="text-slate-400 text-xs mt-1">
+                          Controls whether this vendor's storefront, cart, and checkout are available to buyers.
+                        </p>
+                      </div>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border capitalize ${tone}`}>
+                        {vs === "active" ? <CheckCircle2 className="h-3.5 w-3.5" /> : vs === "disabled" ? <Ban className="h-3.5 w-3.5" /> : <ShieldAlertIconStub />}
+                        {vs}
+                      </span>
+                    </div>
+                    <div className="p-5 space-y-3">
+                      {(reason || changedAt) && (
+                        <div className="text-xs text-slate-400">
+                          {reason && <p className="italic">"{reason}"</p>}
+                          {changedAt && <p className="mt-1">Changed {relative(changedAt)}</p>}
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          disabled={vs === "active"}
+                          onClick={() => { setVendorStatusReason(""); setVendorStatusModal({ open: true, target: "active" }); }}
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Set Active
+                        </button>
+                        <button
+                          disabled={vs === "disabled"}
+                          onClick={() => { setVendorStatusReason(""); setVendorStatusModal({ open: true, target: "disabled" }); }}
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                        >
+                          <Ban className="h-3.5 w-3.5" /> Disable Vendor
+                        </button>
+                        <button
+                          disabled={vs === "suspended"}
+                          onClick={() => { setVendorStatusReason(""); setVendorStatusModal({ open: true, target: "suspended" }); }}
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                        >
+                          <AlertCircle className="h-3.5 w-3.5" /> Suspend Vendor
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard
                   icon={<ShoppingCart className="h-6 w-6 text-blue-400" />}
