@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import {
   Clock, Percent, ShieldCheck, ShieldAlert, History as HistoryIcon,
   TriangleAlert, Layers, DollarSign, Coins, Crown, Sliders, ShieldHalf,
-  ToggleRight, Bell, Download, ArrowRight, AlertTriangle, Building2,
+  ToggleRight, Bell, Download, ArrowRight, RotateCcw, AlertTriangle, Building2,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { toast } from "@/components/ui/sonner";
