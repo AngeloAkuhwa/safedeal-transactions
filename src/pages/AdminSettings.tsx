@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Clock, Percent, ShieldCheck, ShieldAlert, History as HistoryIcon,
   TriangleAlert, Layers, DollarSign, Coins, Crown, Sliders, ShieldHalf,
@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { toast } from "@/components/ui/sonner";
+import { fetchAdminSettings, saveAdminSettings, searchVendors, type VendorLite } from "@/services/admin-settings.service";
 
 /* ------------------------------ primitives ------------------------------ */
 
@@ -111,6 +112,13 @@ export default function AdminSettings() {
   const [dirty, setDirty] = useState(false);
   const mark = () => setDirty(true);
 
+  // Scope
+  const [scope, setScope] = useState<"platform" | "vendor">("platform");
+  const [vendorId, setVendorId] = useState<string | null>(null);
+  const [vendorQuery, setVendorQuery] = useState("");
+  const [vendorResults, setVendorResults] = useState<VendorLite[]>([]);
+  const [applyToAll, setApplyToAll] = useState(false);
+
   // Timeouts
   const [sellerFulfil, setSellerFulfil] = useState("7");
   const [buyerVerify, setBuyerVerify] = useState("72");
@@ -140,12 +148,116 @@ export default function AdminSettings() {
   const setStr = (fn: (v: string) => void) => (v: string) => { fn(v); mark(); };
   const setBool = (fn: (v: boolean) => void) => (v: boolean) => { fn(v); mark(); };
 
+  // Load from backend when scope/vendor changes
+  useEffect(() => {
+    (async () => {
+      try {
+        const payload = await fetchAdminSettings(scope === "vendor" ? vendorId : null);
+        const byKey: Record<string, any> = {};
+        (payload.settings ?? []).forEach((r) => {
+          // vendor row wins when present
+          const isMatch = scope === "vendor"
+            ? (r.scope === "vendor" && r.vendor_id === vendorId) || (r.scope === "platform" && !byKey[r.setting_key])
+            : r.scope === "platform";
+          if (isMatch) byKey[r.setting_key] = r.setting_value;
+        });
+        const num = (v: unknown, d: string) => (v == null ? d : String(v));
+        if (byKey["pricing.min_platform_fee_ngn"] != null) setMinFee(num(byKey["pricing.min_platform_fee_ngn"], "250"));
+        if (byKey["pricing.max_total_service_fee_ngn"] != null) setFeeCap(num(byKey["pricing.max_total_service_fee_ngn"], "2500"));
+        if (byKey["security.id_verification_threshold"] != null) setIdThreshold(num(byKey["security.id_verification_threshold"], "5000"));
+        if (byKey["security.require_id_verification"] != null) setIdRequired(Boolean(byKey["security.require_id_verification"]));
+        if (byKey["security.session_timeout_minutes"] != null) setSessionTimeout(num(byKey["security.session_timeout_minutes"], "30"));
+        if (byKey["security.two_factor_admin"] != null) setTwoFA(Boolean(byKey["security.two_factor_admin"]));
+        if (byKey["notifications.email_enabled"] != null) setEmailOn(Boolean(byKey["notifications.email_enabled"]));
+        if (byKey["notifications.sms_enabled"] != null) setSmsOn(Boolean(byKey["notifications.sms_enabled"]));
+        if (byKey["escrow.auto_release_enabled"] != null) setAutoReleaseOn(Boolean(byKey["escrow.auto_release_enabled"]));
+        // Timeouts (hours)
+        (payload.timeouts ?? []).forEach((t) => {
+          const match = scope === "vendor"
+            ? (t.scope === "vendor" && t.vendor_id === vendorId) || t.scope === "platform"
+            : t.scope === "platform";
+          if (!match) return;
+          if (t.rule_type === "seller_fulfillment_timeout") setSellerFulfil(String(Math.round(t.hours_until_trigger / 24)));
+          if (t.rule_type === "buyer_verification_timeout") setBuyerVerify(String(t.hours_until_trigger));
+        });
+        setDirty(false);
+      } catch (e: any) {
+        toast.error(e?.message ?? "Failed to load settings");
+      }
+    })();
+  }, [scope, vendorId]);
+
+  // Vendor typeahead
+  useEffect(() => {
+    if (scope !== "vendor") return;
+    const t = setTimeout(async () => {
+      try { setVendorResults(await searchVendors(vendorQuery)); } catch { /* ignore */ }
+    }, 200);
+    return () => clearTimeout(t);
+  }, [vendorQuery, scope]);
+
+  async function handleSave() {
+    if (scope === "vendor" && !vendorId) {
+      toast.error("Pick a vendor first");
+      return;
+    }
+    const reason = window.prompt("Reason for this change (audit log):", "");
+    if (!reason || reason.trim().length < 3) {
+      toast.error("A reason is required");
+      return;
+    }
+    const updates: Record<string, unknown> = {
+      "pricing.min_platform_fee_ngn": Number(minFee),
+      "pricing.max_total_service_fee_ngn": Number(feeCap),
+      "security.require_id_verification": idRequired,
+      "security.id_verification_threshold": Number(idThreshold),
+      "security.session_timeout_minutes": Number(sessionTimeout),
+      "security.two_factor_admin": twoFA,
+      "notifications.email_enabled": emailOn,
+      "notifications.sms_enabled": smsOn,
+      "escrow.auto_release_enabled": autoReleaseOn,
+    };
+    const timeouts = [
+      { rule_type: "seller_fulfillment_timeout", hours: Number(sellerFulfil) * 24 },
+      { rule_type: "buyer_verification_timeout", hours: Number(buyerVerify) },
+    ];
+    try {
+      await saveAdminSettings({
+        scope,
+        vendor_id: scope === "vendor" ? vendorId : null,
+        updates,
+        timeouts,
+        reason: reason.trim(),
+        apply_to_all_vendors: scope === "platform" && applyToAll,
+      });
+      toast.success(scope === "vendor" ? "Vendor overrides saved" : applyToAll ? "Saved and applied to all vendors" : "Platform defaults saved");
+      setDirty(false);
+      setApplyToAll(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Save failed");
+    }
+  }
+
   return (
     <AdminLayout
       title="System Settings"
       hideDefaultHeaders
       fullBleed
-      headerSlot={<HeaderBar dirty={dirty} onSave={() => { toast.success("Changes saved locally (wiring pending)"); setDirty(false); }} />}
+      headerSlot={
+        <HeaderBar
+          dirty={dirty}
+          onSave={handleSave}
+          scope={scope}
+          setScope={(s) => { setScope(s); if (s === "platform") setVendorId(null); }}
+          vendorId={vendorId}
+          setVendorId={setVendorId}
+          vendorQuery={vendorQuery}
+          setVendorQuery={setVendorQuery}
+          vendorResults={vendorResults}
+          applyToAll={applyToAll}
+          setApplyToAll={setApplyToAll}
+        />
+      }
     >
       <div className="bg-background min-h-full">
         <div className="sd-page sd-page-y sd-section-y">
