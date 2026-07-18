@@ -318,7 +318,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                 const exhausted = r.attempt_count >= 3 || !r.retriable;
                 return (
                   <tr key={r.delivery_id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-3 py-2.5 whitespace-nowrap">
+                    <td className="px-3 py-2 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
                           {r.user?.avatar_url
@@ -340,9 +340,9 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
-                    <td className="px-3 py-2.5 whitespace-nowrap"><TypePill type={r.type} /></td>
-                    <td className="px-3 py-2.5">
+                    <td className="px-3 py-2 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
+                    <td className="px-3 py-2 whitespace-nowrap"><TypePill type={r.type} /></td>
+                    <td className="px-3 py-2">
                       <div className="flex items-start gap-1.5">
                         <AlertCircle className="h-3.5 w-3.5 text-red-400 mt-0.5 shrink-0" />
                         <div className="min-w-0">
@@ -351,7 +351,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap">
+                    <td className="px-3 py-2 whitespace-nowrap">
                       {exhausted ? (
                         <span className="px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold rounded flex items-center gap-1.5 w-fit">
                           <XCircle className="h-3 w-3" /> Failed {r.attempt_count}/3
@@ -362,8 +362,8 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-sm text-muted-foreground">{formatRelative(r.failed_at)}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap">
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-muted-foreground">{formatRelative(r.failed_at)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">
                       <div className="flex items-center gap-2 flex-wrap">
                         {r.user && (
                           <button
@@ -612,20 +612,20 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
         <table className="w-full">
           <thead className="bg-muted/40">
             <tr>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Message</th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Message</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((r) => (
               <tr key={r.notification_id} className="hover:bg-muted/30 transition-colors">
-                <td className="px-3 py-2.5 whitespace-nowrap text-sm text-muted-foreground">{formatRelative(r.created_at)}</td>
-                <td className="px-3 py-2.5 whitespace-nowrap">
+                <td className="px-3 py-2 whitespace-nowrap text-sm text-muted-foreground">{formatRelative(r.created_at)}</td>
+                <td className="px-3 py-2 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
                       {r.user?.avatar_url
@@ -638,16 +638,16 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-2.5 whitespace-nowrap"><TypePill type={r.type} /></td>
-                <td className="px-3 py-2.5 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
-                <td className="px-3 py-2.5 text-sm text-foreground max-w-xs truncate">{r.title}</td>
-                <td className="px-3 py-2.5 whitespace-nowrap">
+                <td className="px-3 py-2 whitespace-nowrap"><TypePill type={r.type} /></td>
+                <td className="px-3 py-2 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
+                <td className="px-3 py-2 text-sm text-foreground max-w-xs truncate">{r.title}</td>
+                <td className="px-3 py-2 whitespace-nowrap">
                   <span className={`px-2 py-1 border text-xs font-semibold rounded flex items-center gap-1.5 w-fit ${statusPill(r.status)}`}>
                     {r.status === "failed" ? <XCircle className="h-3 w-3" /> : (r.status === "pending" || r.status === "retrying") ? <Clock className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
                     {statusLabel(r.status)}
                   </span>
                 </td>
-                <td className="px-3 py-2.5 whitespace-nowrap text-sm">
+                <td className="px-3 py-2 whitespace-nowrap text-sm">
                   <button className="text-blue-400 hover:text-blue-300" title="View">
                     <Eye className="h-4 w-4" />
                   </button>
