@@ -14,6 +14,10 @@ import {
 } from "@/services/admin-settings.service";
 import { formatDistanceToNow } from "date-fns";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 /* ------------------------------ primitives ------------------------------ */
 
@@ -240,6 +244,11 @@ export default function AdminSettings() {
   // Meta for the auto-release toggle: who flipped it and when (stamped by DB trigger).
   const [autoReleaseMeta, setAutoReleaseMeta] = useState<{ enabled_by: string | null; enabled_at: string | null } | null>(null);
 
+  // Save-reason modal (replaces window.prompt for audit-log entry)
+  const [reasonModalOpen, setReasonModalOpen] = useState(false);
+  const [reasonText, setReasonText] = useState("");
+  const [savingWithReason, setSavingWithReason] = useState(false);
+
   const setStr = (fn: (v: string) => void) => (v: string) => { fn(v); mark(); };
   const setBool = (fn: (v: boolean) => void) => (v: boolean) => { fn(v); mark(); };
 
@@ -323,16 +332,16 @@ export default function AdminSettings() {
   };
   useEffect(() => { loadAudit(); }, []);
 
-  async function handleSave() {
+  function handleSave() {
     if (scope === "vendor" && !vendorId) {
       toast.error("Pick a vendor first");
       return;
     }
-    const reason = window.prompt("Reason for this change (audit log):", "");
-    if (!reason || reason.trim().length < 3) {
-      toast.error("A reason is required");
-      return;
-    }
+    setReasonText("");
+    setReasonModalOpen(true);
+  }
+
+  async function doSaveWithReason(reason: string) {
     const updates: Record<string, unknown> = {
       "pricing.min_platform_fee_ngn": Number(minFee),
       "pricing.max_total_service_fee_ngn": Number(feeCap),
@@ -366,6 +375,7 @@ export default function AdminSettings() {
       { rule_type: "seller_fulfillment_timeout", hours: Number(sellerFulfil) * 24 },
       { rule_type: "buyer_verification_timeout", hours: Number(buyerVerify) },
     ];
+    setSavingWithReason(true);
     try {
       await saveAdminSettings({
         scope,
@@ -379,8 +389,11 @@ export default function AdminSettings() {
       setDirty(false);
       setApplyToAll(false);
       loadAudit();
+      setReasonModalOpen(false);
     } catch (e: any) {
       toast.error(e?.message ?? "Save failed");
+    } finally {
+      setSavingWithReason(false);
     }
   }
 
@@ -847,6 +860,33 @@ export default function AdminSettings() {
 
         </div>
       </div>
+      <Dialog open={reasonModalOpen} onOpenChange={(o) => { if (!savingWithReason) setReasonModalOpen(o); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm changes</DialogTitle>
+            <DialogDescription>
+              Provide a brief reason for this change. It will be recorded in the audit log.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={reasonText}
+            onChange={(e) => setReasonText(e.target.value)}
+            placeholder="e.g. Raising fee cap for Q4 promo"
+            rows={4}
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReasonModalOpen(false)} disabled={savingWithReason}>Cancel</Button>
+            <Button
+              onClick={() => doSaveWithReason(reasonText)}
+              disabled={savingWithReason || reasonText.trim().length < 3}
+            >
+              {savingWithReason && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Confirm & Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

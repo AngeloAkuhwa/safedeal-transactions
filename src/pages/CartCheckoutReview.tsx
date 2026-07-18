@@ -14,6 +14,7 @@ import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfigs } from "@/hooks/useEffectivePricingConfig";
+import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatMoney } from "@/lib/format";
 import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
@@ -106,6 +107,9 @@ const CartCheckoutReview = () => {
   const toggleBreakdown = (sellerId: string) => {
     setOpenBreakdowns((prev) => ({ ...prev, [sellerId]: !prev[sellerId] }));
   };
+
+  const gate = useCommerceGate();
+  const gateBlocked = !gate.loading && !gate.checkoutEnabled;
 
   if (!sessionId) {
     return (
@@ -455,11 +459,18 @@ const CartCheckoutReview = () => {
                   size="lg"
                   className="w-full gap-2 rounded-xl h-12 text-base font-semibold bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground shadow-lg shadow-primary/20"
                   onClick={handleConfirmPay}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || gateBlocked}
+                  title={gateBlocked ? gate.disabledReason : undefined}
                 >
                   {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Lock className="h-5 w-5" />}
-                  {isSubmitting ? "Processing..." : `Confirm & Pay ${formatPrice(Number(session.total_amount))}`}
+                  {isSubmitting ? "Processing..." : gateBlocked ? "Checkout unavailable" : `Confirm & Pay ${formatPrice(Number(session.total_amount))}`}
                 </Button>
+                {gateBlocked && (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 flex items-start gap-2">
+                    <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>{gate.disabledReason}</span>
+                  </div>
+                )}
 
                 <p className="text-xs text-muted-foreground text-center">
                   By confirming, you agree to SafeDeal's{" "}

@@ -24,6 +24,7 @@ import {
   getCartItems, removeFromCart, updateCartQuantity, checkoutSelected,
   CartItem, CartDeliverySelection, CartDeliveryAddress,
 } from "@/services/cart.service";
+import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfigs } from "@/hooks/useEffectivePricingConfig";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,6 +106,8 @@ const BuyerCart = () => {
 
   const items: CartItem[] = data?.items || [];
   const activeSessionId = data?.active_checkout_session_id || null;
+  const gate = useCommerceGate(); // platform-scope gate
+  const gateBlocked = !gate.loading && !gate.checkoutEnabled;
 
   // Auto-initialize delivery drafts: pre-select when only one method is offered.
   useEffect(() => {
@@ -716,16 +719,23 @@ const BuyerCart = () => {
 
                       <Button
                         className="w-full gap-2 rounded-xl h-12 text-base font-semibold"
-                        disabled={selected.size === 0 || checkingOut}
+                        disabled={selected.size === 0 || checkingOut || gateBlocked}
                         onClick={handleCheckout}
+                        title={gateBlocked ? gate.disabledReason : undefined}
                       >
                         {checkingOut ? (
                           <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
                           <ShieldCheck className="h-5 w-5" />
                         )}
-                        {checkingOut ? "Processing..." : `Checkout Selected Items`}
+                        {checkingOut ? "Processing..." : gateBlocked ? "Checkout unavailable" : `Checkout Selected Items`}
                       </Button>
+                      {gateBlocked && (
+                        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                          <AlertTriangle className="h-3.5 w-3.5 inline mr-1.5" />
+                          {gate.disabledReason}
+                        </div>
+                      )}
                     </div>
 
                     {/* Trust indicators */}
