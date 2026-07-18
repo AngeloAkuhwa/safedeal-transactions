@@ -234,8 +234,12 @@ export default function AdminSettings() {
         const payload = await fetchAdminSettings(scope === "vendor" ? vendorId : null);
         const byKey: Record<string, any> = {};
         const overrideMap: Record<string, boolean> = {};
+        const overriddenSet = new Set<string>();
         (payload.settings ?? []).forEach((r) => {
           if (r.scope === "platform") overrideMap[r.setting_key] = r.is_overridable !== false;
+          if (scope === "vendor" && r.scope === "vendor" && r.vendor_id === vendorId) {
+            overriddenSet.add(r.setting_key);
+          }
           // vendor row wins when present
           const isMatch = scope === "vendor"
             ? (r.scope === "vendor" && r.vendor_id === vendorId) || (r.scope === "platform" && !byKey[r.setting_key])
@@ -243,6 +247,9 @@ export default function AdminSettings() {
           if (isMatch) byKey[r.setting_key] = r.setting_value;
         });
         setOverridable(overrideMap);
+        setOverriddenKeys(overriddenSet);
+        setVendorOverrides(payload.vendor_overrides ?? []);
+        setOverrideCounts(payload.override_counts ?? {});
         const num = (v: unknown, d: string) => (v == null ? d : String(v));
         if (byKey["pricing.min_platform_fee_ngn"] != null) setMinFee(num(byKey["pricing.min_platform_fee_ngn"], "250"));
         if (byKey["pricing.max_total_service_fee_ngn"] != null) setFeeCap(num(byKey["pricing.max_total_service_fee_ngn"], "2500"));
@@ -277,6 +284,12 @@ export default function AdminSettings() {
     }, 200);
     return () => clearTimeout(t);
   }, [vendorQuery, scope]);
+
+  // Audit history — refresh on load and after successful save
+  const loadAudit = async () => {
+    try { setAuditRows(await fetchSettingsAudit(15)); } catch { /* ignore */ }
+  };
+  useEffect(() => { loadAudit(); }, []);
 
   async function handleSave() {
     if (scope === "vendor" && !vendorId) {
@@ -322,6 +335,7 @@ export default function AdminSettings() {
       toast.success(scope === "vendor" ? "Vendor overrides saved" : applyToAll ? "Saved and applied to all vendors" : "Platform defaults saved");
       setDirty(false);
       setApplyToAll(false);
+      loadAudit();
     } catch (e: any) {
       toast.error(e?.message ?? "Save failed");
     }
