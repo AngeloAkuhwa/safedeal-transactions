@@ -3075,25 +3075,52 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_overridable: boolean
+          scope: string
           setting_key: string
           setting_value: Json
           updated_at: string
+          updated_by: string | null
+          vendor_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
+          is_overridable?: boolean
+          scope?: string
           setting_key: string
           setting_value: Json
           updated_at?: string
+          updated_by?: string | null
+          vendor_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
+          is_overridable?: boolean
+          scope?: string
           setting_key?: string
           setting_value?: Json
           updated_at?: string
+          updated_by?: string | null
+          vendor_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "system_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_settings_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       timeout_rules: {
         Row: {
@@ -3102,7 +3129,10 @@ export type Database = {
           id: string
           is_active: boolean
           rule_type: Database["public"]["Enums"]["timeout_rule_type"]
+          scope: string
           updated_at: string
+          updated_by: string | null
+          vendor_id: string | null
         }
         Insert: {
           created_at?: string
@@ -3110,7 +3140,10 @@ export type Database = {
           id?: string
           is_active?: boolean
           rule_type: Database["public"]["Enums"]["timeout_rule_type"]
+          scope?: string
           updated_at?: string
+          updated_by?: string | null
+          vendor_id?: string | null
         }
         Update: {
           created_at?: string
@@ -3118,9 +3151,27 @@ export type Database = {
           id?: string
           is_active?: boolean
           rule_type?: Database["public"]["Enums"]["timeout_rule_type"]
+          scope?: string
           updated_at?: string
+          updated_by?: string | null
+          vendor_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "timeout_rules_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeout_rules_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transaction_agreement_snapshots: {
         Row: {
@@ -4409,6 +4460,25 @@ export type Database = {
         Returns: Database["public"]["Enums"]["money_status"]
       }
       generate_transaction_code: { Args: never; Returns: string }
+      get_effective_setting: {
+        Args: { _key: string; _vendor_id: string }
+        Returns: Json
+      }
+      get_effective_settings: {
+        Args: { _keys: string[]; _vendor_id: string }
+        Returns: {
+          resolved_scope: string
+          setting_key: string
+          setting_value: Json
+        }[]
+      }
+      get_effective_timeout: {
+        Args: {
+          _rule: Database["public"]["Enums"]["timeout_rule_type"]
+          _vendor_id: string
+        }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role_type"]
