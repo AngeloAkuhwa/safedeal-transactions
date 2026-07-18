@@ -1,63 +1,51 @@
-# Answer first
+# Port System Settings page — UI 1:1
 
-The settings currently shown in your reference UI (Timeout Rules, Fee Configuration, Platform Settings, Security, Audit History) cover maybe **30%** of what this system actually needs to be configurable at the **platform / super-admin** level. Because SafeDeal is a multi-tenant escrow marketplace with money movement, disputes, KYC, delivery, notifications, and vendor onboarding, the admin needs a much broader control surface. The current UI is missing entire domains: Payments/Payouts, Escrow & Ledger, Disputes/SLA, KYC & Trust Tiers, Notifications/Resend, Marketplace Rules, Vendor Governance, Regional Rollout, Integrations, Feature Flags, Legal, and Observability.
+Build `/admin/settings` as a pixel-faithful port of the attached `System_Settings-2.html` reference. UI-only in this pass (local state, no DB wiring) — matches the same "port first, wire later" flow we used for Notifications.
 
-Below is a copy-paste prompt for UX Pilot to rebuild the design with the complete set. It is UI-only — it does not touch vendor-scoped settings (those live on the seller side).
+## Scope
 
----
+- Route: `/admin/settings` → new `src/pages/AdminSettings.tsx`.
+- Rendered inside the existing admin shell (`AdminSidebar` + `AdminMobileHeader`) — same pattern as every other admin page. The reference HTML's own sidebar is not re-implemented; the app's sidebar already contains the same nav (Dashboard, Analytics, Reports, Transactions, Disputes 47, Identity Verification 8, Users, Investigations, Fraud Detection, Escrow, Payouts 3, Payment Audit, Funds Tracking, Refunds, Settings, Audit Logs, Notifications), so we align the sidebar item icons/labels/badges/active-state to match the reference and keep one sidebar in the app.
+- Allowlist `/admin/settings` in `src/components/admin/useAdminNav.ts` so the sidebar link stops showing "Coming soon".
 
-# Prompt to paste into UX Pilot
+## Sections built (in order, 1:1 with the HTML)
 
-> **Redesign the "System Settings" screen for a multi-tenant escrow marketplace admin (SafeDeal).**
->
-> Keep the existing dark, dense, card-based aesthetic from the reference screenshot (sticky top header, left sidebar nav, main content = grouped setting cards with inline inputs + Save-per-card, right rail for Audit History + "Danger Zone"). Match the current typography scale and card density — do not invent a new visual language.
->
-> **Layout**
-> - Sticky top bar: title "System Settings", environment pill (Production/Staging), "Search settings" input, "Save all changed" button, last-updated timestamp.
-> - Left sidebar with grouped nav (see sections below). Sticky. Shows a small dot when a section has unsaved changes.
-> - Main pane: one section at a time, rendered as stacked cards. Each card = one logical setting group with: title, one-line description, inputs, "Reason for change" textarea (required), Save button, and a "View history" link that opens a side drawer.
-> - Right rail (collapsible): live Audit History feed + Danger Zone shortcuts.
-> - Every editable value shows: current value, default value, who last changed it, when.
->
-> **Sections to design (in this order in the sidebar)**
->
-> 1. **General** — platform name, support email, support phone, default locale, default currency (NGN), default timezone (Africa/Lagos), business hours, maintenance-mode toggle with scheduled window.
-> 2. **Timeout Rules** — seller fulfillment timeout (hrs), buyer verification/inspection window (hrs), auto-release after delivery (hrs), payment session expiry (min), cart reservation expiry (min), dispute response SLA (hrs), admin escalation SLA (hrs). Each row: number input + unit + active toggle.
-> 3. **Fee Configuration** — tiered service fee table (tier bands + rate), platform fee floor (₦), total service fee cap (₦), Paystack local fee formula (read-only, sourced from provider), international fee formula (toggle + rate), refundability policy, currency rounding rule. Show a live "example calculation" preview card.
-> 4. **Payments & Gateways** — active gateway (Paystack), test-mode toggle, webhook secret (masked, reveal), retry policy (attempts, backoff), payment methods enabled (card, transfer, USSD), min/max transaction amount, high-value review threshold.
-> 5. **Escrow & Ledger** — auto-release enabled, hold-longer-for-high-risk toggle + threshold, ledger reconciliation cadence, variance alert threshold (₦ and %), unreconciled-entry SLA, freeze-on-variance toggle.
-> 6. **Payouts** — payout schedule (instant / daily / weekly), payout cutoff time, min payout amount, payout provider, payout retry policy, payout hold on new sellers (days), payout hold on flagged sellers toggle, bank verification required toggle.
-> 7. **KYC, Identity & Trust Tiers** — required documents per tier (Basic/Standard/Enhanced), NIN verification provider + retention window, selfie/liveness required toggle, per-tier transaction volume caps (daily/monthly), auto-upgrade rules, manual review queue SLA, data-minimization masking rules.
-> 8. **Security** — session policy (single active session toggle, idle timeout, absolute timeout), 2FA required for admins, admin IP allowlist, password policy, OTP length + expiry + rate limit, brute-force lockout thresholds, secret rotation reminder cadence.
-> 9. **Disputes & Resolution** — dispute response window, evidence upload limits (count, size, types), auto-refund threshold (₦), auto-release-to-seller conditions, escalation ladder (L1→L2→L3 SLAs), refund method preference, dispute reason taxonomy editor.
-> 10. **Notifications & Delivery** — channels enabled (in-app, email, SMS, push), Resend from-address + from-name, SMS provider (placeholder), retry attempts + backoff, quiet hours, per-event channel matrix (event × channel toggle grid), broadcast throttle, user-preference override policy.
-> 11. **Marketplace Rules** — categories editor (fixed 8), max media per listing, max price, min price, allowed delivery methods, listing visibility defaults, prohibited-items list, auto-moderation keywords, listing approval mode (auto/manual).
-> 12. **Vendor Governance (multi-tenant controls)** — vendor onboarding mode (open / invite / approval), required vendor KYB documents, vendor tier definitions (Bronze/Silver/Gold), per-tier limits (# listings, GMV cap, payout speed), vendor suspension rules, storefront slug policy, custom-domain allowlist, allowed override keys (which settings vendors may override in `/seller/settings`) and hard ceilings for each.
-> 13. **Regional Rollout** — serviceable regions (multi-select states), waitlist mode toggle for non-serviced regions, per-region delivery method availability, per-region fee overrides, launch schedule.
-> 14. **Integrations & Connectors** — Paystack (status, last webhook), Resend (status, domain verified), Cloudinary (status, quota), analytics providers, AI gateway toggle, webhook subscriber list.
-> 15. **Feature Flags** — table of flags with description, rollout % slider, audience targeting (all / buyers / sellers / verified / tier), kill-switch button, created-by, last-toggled.
-> 16. **Legal & Compliance** — terms version, privacy version, dispute policy version, publish workflow (draft → live), consent record retention window, data export SLA, right-to-erasure workflow toggle, cookie-banner config.
-> 17. **Observability** — error alert threshold, slow-query threshold, edge-function timeout, background-job retry policy, on-call email/phone rotation, incident status-page toggle.
-> 18. **Audit History** — full-height table view: timestamp, admin, section, key, old→new, reason, IP. Filters: section, admin, date range. Export CSV. Never editable.
-> 19. **Danger Zone** — freeze all payouts, freeze all new signups, freeze all new transactions, force logout all sessions, invalidate all API keys, wipe test data (staging only). Every action requires typed confirmation + reason + 2FA challenge.
->
-> **Interaction & states to show in the mocks**
-> - Card with unsaved changes → highlighted border + "Discard / Save" footer, sidebar dot.
-> - Reason field empty → Save disabled with tooltip "Reason required for audit trail".
-> - Save success → inline toast + audit rail updates in real time.
-> - Setting with a platform ceiling that a vendor can override → show "Vendor-overridable ✓ (ceiling: X)" badge.
-> - Read-only setting (provider-owned) → show a lock icon + "Managed by provider".
-> - Danger-zone confirmation modal → typed phrase + reason + 2FA code.
->
-> **Deliverables**
-> - Desktop (1440) primary, plus a responsive collapse for tablet.
-> - Empty state, filled state, unsaved state, success state, error state, and danger-confirmation modal for at least the Fee Configuration and Danger Zone sections.
-> - Keep colors, spacing, and typography aligned with the current dark admin theme in the reference screenshot.
+1. **Sticky page header** — "System Settings" title, subtitle, `Production` amber pill, `All changes audited` chip, `View History` button, `Approve & Save Changes` amber gradient button. Below it the red-left-border banner: "⚠️ Production Environment — Changes Affect Live Transactions".
+2. **Timeout Rules card** — blue-tinted header block with clock icon, "4 Business Rules" chip. Grid of 4 inputs: Seller Fulfillment Timeout (days), Buyer Verification Window (hours), Auto-Release After Delivery (hours), Payment Session Expiry (minutes). Amber "Production Change Impact" callout. Footer: "Last modified" line + blue `Update Timeout Rules` button.
+3. **Fee Configuration card** — emerald header, "Active Rules" chip.
+   - **Base Fee Structure** (3 inputs): Platform Fee Rate (%), Minimum Platform Fee (₦), Total Service Fee Cap (₦).
+   - **Special Category Fee Caps** (2 inputs): High-value tier rate, Refund policy toggle text.
+   - Red "Critical: Fee Structure Update" callout, footer with emerald `Update Fee Structure` button.
+4. **Two-column row**:
+   - **Platform Settings** (purple sliders icon): Feature Toggles — Auto-Release Payments (on), Email Notifications (on), SMS Alerts (off). Risk Thresholds — High-Value Transaction Alert ($10000), Fraud Risk Score Threshold (75/100).
+   - **Security & Compliance** (red shield icon): KYC Requirements — Require ID Verification (on) + ID Verification Threshold ($5000). Session Security — Session Timeout (30 min) + Two-Factor Authentication (on).
+5. **Recent Changes & Audit History card** — blue header with clock-rotate-left icon, `Export Full Log` button. Four activity rows exactly as HTML: Base Protection Fee Updated (2.5% → 2.9%), Seller Fulfillment Timeout Modified (5 → 7 days), SMS Alerts Feature Disabled (Enabled → Disabled), Notification Settings Updated (All → Critical only). Each row: colored icon disk, title, subtitle, timestamp, Previous/New value tiles, admin avatar + "View Details →".
 
----
+## Visual fidelity
 
-# Notes for you (not part of the prompt)
+- Dark palette from the HTML: `bg-slate-950`, cards `bg-slate-900` with `border-slate-800`/`border-slate-700/50`, gradient card headers `bg-slate-800/30`, muted text `text-slate-400`, inputs `bg-slate-700 border-slate-600`. This screen is dark-only (matches admin dark theme); no light-mode tokens needed since the reference itself is dark. Same approach we used on `AdminNotifications` — hardcoded dark slate palette scoped to this admin page.
+- Icons via `lucide-react` equivalents of the Font Awesome ones (Clock, Percent, Sliders, ShieldCheck, ShieldHalf, Crown, Coins, ClockRotateLeft → History, Download, ArrowRight, TriangleAlert, ToggleRight, Bell). No new icon library.
+- Toggles built as small purely-visual pill components with local `useState`.
+- Density and font sizes match the `sd-*` scale already used on `AdminNotifications` for consistency with the rest of the admin.
+- Sticky header uses `sticky top-0 z-20` inside the admin main scroll container so the body scrolls under it — same technique as `AdminUserDetail`.
 
-- Sections **12 (Vendor Governance)** and the "vendor-overridable + ceiling" badge are the two multi-tenant-specific additions — they are what make platform settings coexist with `/seller/settings` without vendors escaping platform limits.
-- Sections **4, 5, 6, 7, 10, 14, 15, 16, 17, 19** are the big gaps vs. your current reference — all of them already have code paths in this project that today read from constants or env vars.
-- Once UX Pilot returns the design, the implementation plan on our side stays the one we already agreed: `system_settings` (JSONB, scoped) + `timeout_rules` + `get_effective_setting(vendor_id, key)` RPC + audit to `admin_actions`.
+## Interactions (UI-only)
+
+- All inputs, toggles, and buttons are wired to local component state; changing them flips the top-right `Approve & Save Changes` button into an "enabled/dirty" state (amber glow) but no network calls.
+- `View History` and `Export Full Log` show a `toast` "Coming soon — will hook to admin_actions in the wiring pass".
+- `Update Timeout Rules` / `Update Fee Structure` also toast "Saved locally (wiring pass pending)".
+
+## Files touched
+
+- **New**: `src/pages/AdminSettings.tsx` (single file, sections split into small local components in the same file for readability).
+- **Edit**: `src/App.tsx` — add `<Route path="/admin/settings" element={<AdminSettings />} />`.
+- **Edit**: `src/components/admin/useAdminNav.ts` — add `/admin/settings` to `BUILT_ROUTES`.
+- **Edit** (small): `src/components/admin/AdminSidebar.tsx` — verify the "Platform Settings" entry label/icon matches the reference ("Settings" with gear); adjust label if needed.
+
+## Explicitly out of scope for this pass
+
+- No new tables, no edge functions, no migration.
+- No `get_effective_setting` RPC, no vendor-scope switching, no audit-log writes.
+- No data fetch — page renders with the exact default values shown in the HTML/screenshot.
+
+Once you approve and I ship this UI, the follow-up wiring pass (already-drafted multi-tenant plan) plugs it into `system_settings` + `timeout_rules` + audit trail.
