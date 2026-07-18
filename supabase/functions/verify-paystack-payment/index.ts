@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
+import { emitHighValueFlagIfNeeded } from "../_shared/security-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -190,6 +191,16 @@ export async function processPaystackVerification(
   ];
 
   await supabase.from("escrow_ledger_entries").insert(ledgerEntries);
+
+  // High-value flag emission (idempotent per transaction)
+  await emitHighValueFlagIfNeeded({
+    transactionId: txId,
+    buyerId: tx.buyer_id,
+    sellerId: tx.seller_id,
+    vendorId: tx.seller_id,
+    amount: pricing.total_amount,
+    currencyCode: pricing.currency_code,
+  });
 
   // 6e. Transaction status history
   await supabase.from("transaction_status_history").insert({
