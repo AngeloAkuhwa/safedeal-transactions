@@ -494,7 +494,7 @@ export default function AdminUserDetail() {
                         </p>
                       </div>
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border capitalize ${tone}`}>
-                        {vs === "active" ? <CheckCircle2 className="h-3.5 w-3.5" /> : vs === "disabled" ? <Ban className="h-3.5 w-3.5" /> : <ShieldAlertIconStub />}
+                        {vs === "active" ? <CheckCircle2 className="h-3.5 w-3.5" /> : vs === "disabled" ? <Ban className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
                         {vs}
                       </span>
                     </div>
