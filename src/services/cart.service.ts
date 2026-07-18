@@ -20,7 +20,12 @@ async function cartRequest(method: string, body?: any) {
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || "Cart request failed");
+  if (!res.ok) {
+    const msg = json.reason || json.error || "Cart request failed";
+    const err = new Error(msg);
+    (err as any).code = json.error;
+    throw err;
+  }
   return json;
 }
 
@@ -111,6 +116,11 @@ export async function checkoutSelected(
     }),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || "Checkout failed");
+  if (!res.ok) {
+    const msg = json.reason || json.error || "Checkout failed";
+    const err = new Error(msg);
+    (err as any).code = json.error;
+    throw err;
+  }
   return json;
 }
