@@ -1,57 +1,20 @@
-# Status: ~80% done. Here's exactly what's left.
+Short answer: **~95% done.** Everything you flagged in section A and most of B is shipped. A few small items remain — none block use.
 
-## ✅ Already shipped (verified)
+## Verified done
+- **A. Reason modal** — `AdminSettings.tsx` uses a shadcn `Dialog` (`reasonModalOpen`, `savingWithReason`), no `window.prompt` remains.
+- **B1. `useCommerceGate`** — hook exists, accepts optional `vendorId`, exposes `checkoutEnabled / addToCartEnabled / disabledReason / scope / sources / loading`.
+- **B2. Buyer-side gating** wired in: `PublicProductDetail`, `MarketplaceProductCard`, `BuyerCart`, `CartCheckoutReview`, `StorefrontCheckout`.
+- **B3. `EffectiveSettingsPanel`** — Commerce rows with "Vendor override / Platform default" badges.
+- **B4. Vendor status banner** — `VendorStatusBanner` mounted in `SellerNav`, which every `Seller*.tsx` page renders, so coverage is universal.
+- **C. Sanity sweep** — email kill switch wired into delivery worker; session-timeout hook + `security-config` endpoint added; unused settings called out (only `fees.refund_policy` still has no runtime consumer).
 
-- **A. Reason modal** — `window.prompt` in `AdminSettings.handleSave` replaced with a shadcn `Dialog` + `Textarea` (min 3 chars, spinner, Cancel/Confirm). Done.
-- **B1. `useCommerceGate` hook** — exists at `src/hooks/useCommerceGate.ts`, hits `commerce-config`, caches, falls back to safe defaults.
-- **B2 (partial). Buyer-side gating** — wired in:
-  - `PublicProductDetail` (banner + disabled CTA)
-  - `BuyerCart` (disabled "Checkout Selected Items" + inline banner)
-  - `CartCheckoutReview` (disabled "Confirm & Pay" + banner)
-  - `StorefrontCheckout` (banner + disabled pay CTA)
-  - Error propagation: `cart.service` and `storefront-checkout.service` now surface the server's `reason` string on 403.
-- **B3 (partial). `EffectiveSettingsPanel`** — Commerce rows added (Checkout enabled / Add-to-cart enabled). Missing: the "platform default vs vendor override" badge — currently just Yes/No.
-- All backend gating from the original plan.
+## Remaining gaps to close
 
-## ❌ Still missing — this is what this plan will finish
-
-### 1. Extend buyer gating to remaining product-list surfaces
-The three checkout entry points are gated, but listing cards still show a live "Add to Cart"/"Buy" affordance when checkout is off. Add gating to:
-- `src/components/marketplace/MarketplaceProductCard.tsx` — consumed by `BuyerMarketplace`.
-- `src/components/storefront/ProductCard.tsx` — consumed by `PublicStorefront`.
-- `src/pages/PublicStorefront.tsx` and `src/pages/BuyerMarketplace.tsx` — any inline CTA on the page shell itself.
-
-Behavior: when `!addToCartEnabled` (or `!checkoutEnabled` for buy-now CTAs), render the button as disabled with `title={disabledReason}`. Card body still clickable to product detail so users can browse.
-
-Use `useCommerceGate(product.seller_id)` per card (hook is cached per key, so no request storm).
-
-### 2. Vendor status banner in seller layout
-New component `src/components/seller/VendorStatusBanner.tsx`:
-- Queries `profiles.vendor_status`, `vendor_status_reason`, `vendor_status_changed_at` for the current user (via existing profile service or a small query).
-- If status is `disabled` or `suspended`, renders a prominent banner at the top: status label, reason, contact-support hint.
-- Mounted once in the seller shell — `SellerNav.tsx` is the shared header, so render it just below the nav in each seller page's layout, or (cleaner) inside `SellerNav` itself so all seller pages get it automatically.
-
-### 3. Upgrade the `EffectiveSettingsPanel` Commerce rows with the override badge
-Match the pattern already used by the other rows in that panel: when the vendor has an explicit override for `commerce.checkout_enabled` / `commerce.add_to_cart_enabled`, show a small "Vendor override" badge; otherwise show "Platform default". Requires the `pricing-config` (or `commerce-config`) response to indicate source; extend `commerce-config` to include a per-key source map (`{ checkout_enabled: "vendor" | "platform" | "default" }`).
-
-### 4. Marketplace parity check (read-only verification)
-Grep-verify `BuyerMarketplace` and `PublicStorefront` go through the `marketplace` / `public-storefront` edge functions (which already filter disabled vendors) and do NOT hit `products` directly from the client. Note anything that bypasses — no code changes unless a gap is found.
-
-### 5. Config-usage sanity sweep (C section)
-Grep-verify each admin-writable key has at least one runtime reader. Report unused keys back to you; no code changes unless something admin-writable is silently ignored:
-- `security.session_timeout_minutes`, `security.two_factor_admin`
-- `notifications.email_enabled`, `notifications.sms_enabled`
-- `fees.refund_policy`
-- `escrow.auto_release_enabled` (already surfaced in `AdminPayouts` banner; execution intentionally out of scope)
+1. **`storefront/ProductCard.tsx`** listed in the plan has no add-to-cart CTA (display-only card that navigates). Nothing to gate — mark as N/A in the plan.
+2. **`useCommerceGate` uses an in-memory `Map` cache, not React Query.** Functional but deviates from the plan. Refactor to `useQuery(["commerce-gate", vendorId ?? "platform"], …, { staleTime: 60_000 })` so cache invalidation and devtools work uniformly.
+3. **403 reason propagation coverage** — done in `cart.service.ts` and `storefront-checkout.service.ts`. Still to verify/patch: `services/offer.service.ts` (claim-offer) and `services/payment.service.ts` / `initiate-paystack-payment` caller so the three codes (`checkout_disabled`, `add_to_cart_disabled`, `vendor_disabled`) surface the server `reason` string instead of a generic toast.
+4. **B5 parity check** — grep every product-list surface (`BuyerMarketplace`, `PublicStorefront`, saved-products, search results) to confirm they consume the `marketplace` / `public-storefront` endpoints (which already filter disabled vendors) and don't read `products` directly, then document the finding. No code change expected unless a bypass is found.
+5. **Vendor-scope commerce gate on `MarketplaceProductCard`** — currently uses platform-scope only because `MarketplaceProduct` doesn't expose `seller.id`. Server 403 still enforces the vendor rule, but the UI won't proactively disable per-vendor. Fix by adding `seller_id: string` to the `MarketplaceSeller`/`MarketplaceProduct` type + the `marketplace` edge-function projection, then pass it into `useCommerceGate(product.seller_id)`.
 
 ## Out of scope (unchanged)
-- Auto-release execution.
-- `AdminPayouts` uses `window.confirm` for bulk release — separate concern, not this plan.
-- New settings keys or DB migrations (except: `commerce-config` may need to return a source map — that's an edge-function tweak, no schema change).
-
-## Technical notes
-- `useCommerceGate` already caches per vendor id — safe to call once per card.
-- Vendor status banner should degrade silently if `vendor_status` is null/`active`.
-- Source-map addition to `commerce-config`: check whether `system_settings` has a row at vendor scope for the key; if yes → "vendor", else if platform row → "platform", else → "default".
-
-Confirm and I'll implement.
+Auto-release execution, new setting keys, `AdminSettings` redesign, `fees.refund_policy` enforcement (needs product decision on partial/full/window semantics).
