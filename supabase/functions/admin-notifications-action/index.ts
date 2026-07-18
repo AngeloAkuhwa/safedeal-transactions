@@ -76,8 +76,8 @@ Deno.serve(async (req) => {
       const { data } = await admin.from("user_roles").select("user_id").eq("role", audience === "buyers" ? "buyer" : "seller");
       userIds = Array.from(new Set((data ?? []).map((r: any) => r.user_id)));
     } else if (audience === "verified") {
-      const { data } = await admin.from("profiles").select("id").eq("verification_status", "verified");
-      userIds = (data ?? []).map((r: any) => r.id);
+      const { data } = await admin.from("identity_submissions").select("user_id").eq("status", "approved");
+      userIds = Array.from(new Set((data ?? []).map((r: any) => r.user_id)));
     } else {
       const { data } = await admin.from("profiles").select("id");
       userIds = (data ?? []).map((r: any) => r.id);
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
 
     await admin.from("admin_actions").insert({
       admin_user_id: ctx.userId,
-      action_type: "note_added",
+      action_type: "add_note",
       action_notes: `Broadcast: ${title} (audience=${audience}, channels=${channels.join(",")}, recipients=${userIds.length})`,
     });
 
