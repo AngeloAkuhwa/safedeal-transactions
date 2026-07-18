@@ -1,56 +1,42 @@
-# Multi-Tenant Settings — Implementation Audit & Finish Plan
+# Multi-Tenant Settings — Current Status & Finish Plan
 
-**Auto-release out of scope this phase** — admin manually triggers payouts, so
-release-core / retry-payout / cron auto-release timeout wiring is skipped.
+## Honest status: **~85% complete**, not 100%
 
-## What is DONE
+### ✅ Newly completed this turn (Correctness gaps closed)
 
-- **Schema (1a, 1b, 1d partial)**: `system_settings` and `timeout_rules` have `scope`, `vendor_id`, `is_overridable`, `updated_by`, scoped uniqueness. Defaults seeded for pricing/security/timeouts.
-- **Resolver (1c)**: `get_effective_settings(_vendor_id, _keys[])` exists and is used server-side.
-- **Edge functions (new)**: `admin-system-settings` (GET/PUT + bulk apply + audit log) and `pricing-config` (public read) — both deployed.
-- **Server pricing plumbing (2)**: `_shared/pricing.ts` and `_shared/safedeal-money-policy.ts` accept `PricingConfigOverride`; `_shared/settings-resolver.ts` loads it; `create-transaction`, `cart-checkout`, `storefront-checkout`, `claim-offer`, `initiate-paystack-payment` all pass vendor config.
-- **Client pricing mirror (3b)**: `src/lib/pricing.ts` accepts overrides; `useEffectivePricingConfig` hook fetches from `pricing-config`; wired into `StorefrontCheckout`, `BuyerCart`, `CartCheckoutReview`, `SellerCreateTransaction`.
-- **Verification timeout wiring**: `loadEffectiveTimeoutHours(vendor, 'buyer_verification_timeout', fallback)` resolves per-vendor overrides at term-creation time in `create-transaction`, `storefront-checkout`, `cart-checkout`, `claim-offer` (falls back to product value → platform default).
-- **Escrow alert vendor scope**: `admin-escrow-alert-settings` accepts `?vendor_id=<uuid>` for GET/PUT/DELETE, returning platform baseline + effective vendor value, and writes audit rows.
-- **Admin UI (3a)**: Scope selector, vendor picker, "apply to all vendors" checkbox, mandatory reason, platform-only lock badges on non-overridable fields (base fee, cap, refund policy). Wired to real service.
+1. **`_shared/safedeal-money-policy.ts`** — cap re-derivation removed. `snapshotFromPersisted` now trusts the persisted `is_total_service_fee_capped` flag written at snapshot time (so vendors with custom caps aren't wrongly re-evaluated against the global constant).
+2. **`admin-escrow-alert-settings`** — extended to accept `?vendor_id=<uuid>` on GET/PUT plus a new DELETE to clear a vendor override. Returns platform baseline + effective vendor value, writes `admin_actions` audit rows, CORS updated for DELETE.
+3. **Verification/fulfillment timeouts** — new `loadEffectiveTimeoutHours(vendorId, ruleType, fallback)` helper in `_shared/settings-resolver.ts` (uses `get_effective_timeout` RPC). Wired into `create-transaction`, `storefront-checkout`, `cart-checkout`, `claim-offer` as the fallback when the product/body doesn't override.
 
-## What is NOT done (gaps vs the plan)
+Everything from the earlier "Fully done" list still stands.
 
-### Medium-impact gaps
-1. **Settings catalog** (`src/lib/settings-catalog.ts`) never created — no single manifest of keys/types/bounds; UI hardcodes the list of fields.
-2. **Bounds enforcement in resolver** — vendor writes are not clamped to platform min/max; only the `is_overridable=false` gate exists.
-3. **"Vendor overrides" admin tab** — override_counts is returned by the function but no UI tab lists which vendors override which keys with jump-to-vendor links.
-4. **Seller "Your effective settings" panel** on `SellerProfileSettings.tsx` not added.
+### ❌ Still outstanding (Phases B, C, D)
 
-### Low-impact / cosmetic
-5. **Field scope badges** only present for the three locked keys; other overridable fields lack an "Overridden by vendor" indicator when viewing vendor scope.
-6. **Audit history card** in `AdminSettings.tsx` still renders hardcoded example rows instead of `admin_actions` where `action_type='update_setting'`.
-7. **Feature flag** (`settings.resolver_enabled`) not implemented.
-8. **Tests** for `computePricing` with override configs not added.
+**Phase B — Admin completeness**
+4. `src/lib/settings-catalog.ts` manifest (keys, types, min/max, help text) — not created.
+5. Bounds clamping in `admin-system-settings` PUT — only `is_overridable=false` gate exists; no min/max enforcement.
+6. "Vendor overrides" admin tab listing which vendors override which keys (backend already returns `override_counts`).
+7. Real audit history card in `AdminSettings.tsx` (currently example rows) → read `admin_actions` where `action_type IN ('update_setting','update_escrow_alerts','clear_escrow_alerts_override')`.
+8. "Overridden by vendor" badge on all overridable fields when viewing a vendor scope (currently only base fee / cap / refund policy).
 
-### Confirmed unchanged (correct per plan)
-- `verify-paystack-payment`, `paystack-webhook`, `AdminTransactionDetail`, `AdminTransactions` — read persisted snapshot only.
-- Auto-release consumers — intentionally skipped (admin-triggered payouts).
+**Phase C — Vendor visibility**
+9. "Your effective settings" read-only panel on `SellerProfileSettings.tsx`.
 
-## Suggested finish order (if you approve)
+**Phase D — Safety net**
+10. Feature flag `settings.resolver_enabled` for one-flip rollback to constants.
+11. Unit tests for `computePricing` under platform-only / vendor-override / clamped-override configs.
+12. Snapshot parity test proving `create-transaction` produces identical output when no overrides exist.
 
-**Phase A — Correctness (must-fix so overrides actually take effect):**
-- Refactor `src/lib/pricing.ts` to accept optional config; add `useEffectivePricingConfig(vendorId)` calling `pricing-config`; thread through cart, checkout, storefront, seller create-tx previews.
-- Patch `initiate-paystack-payment` to `loadPricingConfig(sellerId)` before recompute (or better: reuse persisted snapshot).
-- Refactor `_shared/safedeal-money-policy.ts` to accept config.
-- Wire auto-release / release-core to `get_effective_timeout(vendor)`.
+### Out of scope (this phase)
+Auto-release / cron release-core / retry-payout — payouts are admin-triggered.
 
-**Phase B — Admin completeness:**
-- Build `src/lib/settings-catalog.ts` manifest and render `AdminSettings.tsx` from it (drops hardcoded field list, adds bounds).
-- Add bounds clamping in `admin-system-settings` PUT.
-- Add "Vendor overrides" tab using `override_counts` + a drilldown query.
-- Replace mock audit rows with real `admin_actions` fetch.
+## Proposed next step
 
-**Phase C — Vendor visibility:**
-- Extend `admin-escrow-alert-settings` for vendor scope.
-- Add read-only "Your effective settings" panel on `SellerProfileSettings.tsx`.
+Pick one — I'll execute:
 
-**Phase D — Safety net:**
-- Feature flag + unit/integration tests for pricing under all three scope modes.
+- **B — Admin polish** (items 4–8): catalog manifest + clamping + overrides tab + real audit history + full badges. Highest daily-use value.
+- **C — Vendor visibility** (item 9): sellers see effective settings.
+- **D — Safety net** (items 10–12): flag + tests.
+- **All of B+C+D**: finish to 100%.
 
-Confirm and I'll execute Phase A first (the only phase that changes user-observable behavior); B–D can follow independently.
+Which do you want next?
