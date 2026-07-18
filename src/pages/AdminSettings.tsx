@@ -179,6 +179,9 @@ export default function AdminSettings() {
   const [vendorQuery, setVendorQuery] = useState("");
   const [vendorResults, setVendorResults] = useState<VendorLite[]>([]);
   const [applyToAll, setApplyToAll] = useState(false);
+  // Which platform keys are overridable per-vendor
+  const [overridable, setOverridable] = useState<Record<string, boolean>>({});
+  const isLocked = (key: string) => scope === "vendor" && overridable[key] === false;
 
   // Timeouts
   const [sellerFulfil, setSellerFulfil] = useState("7");
@@ -215,13 +218,16 @@ export default function AdminSettings() {
       try {
         const payload = await fetchAdminSettings(scope === "vendor" ? vendorId : null);
         const byKey: Record<string, any> = {};
+        const overrideMap: Record<string, boolean> = {};
         (payload.settings ?? []).forEach((r) => {
+          if (r.scope === "platform") overrideMap[r.setting_key] = r.is_overridable !== false;
           // vendor row wins when present
           const isMatch = scope === "vendor"
             ? (r.scope === "vendor" && r.vendor_id === vendorId) || (r.scope === "platform" && !byKey[r.setting_key])
             : r.scope === "platform";
           if (isMatch) byKey[r.setting_key] = r.setting_value;
         });
+        setOverridable(overrideMap);
         const num = (v: unknown, d: string) => (v == null ? d : String(v));
         if (byKey["pricing.min_platform_fee_ngn"] != null) setMinFee(num(byKey["pricing.min_platform_fee_ngn"], "250"));
         if (byKey["pricing.max_total_service_fee_ngn"] != null) setFeeCap(num(byKey["pricing.max_total_service_fee_ngn"], "2500"));
@@ -277,7 +283,14 @@ export default function AdminSettings() {
       "notifications.email_enabled": emailOn,
       "notifications.sms_enabled": smsOn,
       "escrow.auto_release_enabled": autoReleaseOn,
+      "fees.refund_policy": refundPolicy,
     };
+    // In vendor scope, strip keys the platform marked non-overridable
+    if (scope === "vendor") {
+      for (const k of Object.keys(updates)) {
+        if (overridable[k] === false) delete updates[k];
+      }
+    }
     const timeouts = [
       { rule_type: "seller_fulfillment_timeout", hours: Number(sellerFulfil) * 24 },
       { rule_type: "buyer_verification_timeout", hours: Number(buyerVerify) },
@@ -411,8 +424,8 @@ export default function AdminSettings() {
                 </h4>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
                   <FeeField label="Platform Fee Rate" suffix="%" value={platformRate} onChange={setStr(setPlatformRate)} help="Applied to all standard transactions" />
-                  <FeeField label="Minimum Platform Fee" prefix="₦" value={minFee} onChange={setStr(setMinFee)} help="Floor charged even on small orders" />
-                  <FeeField label="Total Service Fee Cap" prefix="₦" value={feeCap} onChange={setStr(setFeeCap)} help="Buyer-friendly ceiling on service fees" />
+                  <FeeField label="Minimum Platform Fee" prefix="₦" value={minFee} onChange={setStr(setMinFee)} help="Floor charged even on small orders" locked={isLocked("pricing.min_platform_fee_ngn")} />
+                  <FeeField label="Total Service Fee Cap" prefix="₦" value={feeCap} onChange={setStr(setFeeCap)} help="Buyer-friendly ceiling on service fees" locked={isLocked("pricing.max_total_service_fee_ngn")} />
                 </div>
               </div>
 
@@ -423,13 +436,19 @@ export default function AdminSettings() {
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   <FeeField label="High-Value Tier Rate" suffix="%" value={hvRate} onChange={setStr(setHvRate)} help="Rate for transactions above ₦2,000,000" />
-                  <div className="p-3 bg-muted/30 border border-border rounded-lg">
-                    <label className="text-xs font-medium text-foreground">Refund Policy</label>
+                  <div className={`p-3 bg-muted/30 border border-border rounded-lg ${isLocked("fees.refund_policy") ? "opacity-60" : ""}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="text-xs font-medium text-foreground">Refund Policy</label>
+                      {isLocked("fees.refund_policy") && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Platform-only</span>
+                      )}
+                    </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">Whether service fees are refundable</p>
                     <select
                       value={refundPolicy}
+                      disabled={isLocked("fees.refund_policy")}
                       onChange={(e) => setStr(setRefundPolicy)(e.target.value)}
-                      className="w-full h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                      className={`w-full h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${isLocked("fees.refund_policy") ? "cursor-not-allowed" : ""}`}
                     >
                       <option>Non-refundable</option>
                       <option>Refundable on cancellation</option>
@@ -648,15 +667,27 @@ function TimeoutRow({
 }
 
 function FeeField({
-  label, value, onChange, help, prefix, suffix,
-}: { label: string; value: string; onChange: (v: string) => void; help?: string; prefix?: string; suffix?: string }) {
+  label, value, onChange, help, prefix, suffix, locked,
+}: { label: string; value: string; onChange: (v: string) => void; help?: string; prefix?: string; suffix?: string; locked?: boolean }) {
   return (
-    <div className="p-3 bg-muted/30 border border-border rounded-lg">
-      <label className="text-xs font-medium text-foreground">{label}</label>
+    <div className={`p-3 bg-muted/30 border border-border rounded-lg ${locked ? "opacity-60" : ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <label className="text-xs font-medium text-foreground">{label}</label>
+        {locked && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Platform-only</span>
+        )}
+      </div>
       {help && <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">{help}</p>}
       <div className="flex items-center gap-1.5">
         {prefix && <span className="text-muted-foreground text-xs">{prefix}</span>}
-        <NumInput value={value} onChange={onChange} className="flex-1" />
+        <input
+          type="number"
+          value={value}
+          readOnly={locked}
+          disabled={locked}
+          onChange={(e) => onChange(e.target.value)}
+          className={`flex-1 h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/40 ${locked ? "cursor-not-allowed" : ""}`}
+        />
         {suffix && <span className="text-muted-foreground text-xs">{suffix}</span>}
       </div>
     </div>
