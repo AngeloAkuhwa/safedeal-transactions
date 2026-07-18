@@ -1,64 +1,57 @@
-# Fixes: Reason modal + Complete Checkout Gating rollout
+# Status: ~80% done. Here's exactly what's left.
 
-## A. Replace `window.prompt` audit-reason with a proper Dialog
+## ✅ Already shipped (verified)
 
-**Where:** `src/pages/AdminSettings.tsx` (line ~331, `handleSave`).
+- **A. Reason modal** — `window.prompt` in `AdminSettings.handleSave` replaced with a shadcn `Dialog` + `Textarea` (min 3 chars, spinner, Cancel/Confirm). Done.
+- **B1. `useCommerceGate` hook** — exists at `src/hooks/useCommerceGate.ts`, hits `commerce-config`, caches, falls back to safe defaults.
+- **B2 (partial). Buyer-side gating** — wired in:
+  - `PublicProductDetail` (banner + disabled CTA)
+  - `BuyerCart` (disabled "Checkout Selected Items" + inline banner)
+  - `CartCheckoutReview` (disabled "Confirm & Pay" + banner)
+  - `StorefrontCheckout` (banner + disabled pay CTA)
+  - Error propagation: `cart.service` and `storefront-checkout.service` now surface the server's `reason` string on 403.
+- **B3 (partial). `EffectiveSettingsPanel`** — Commerce rows added (Checkout enabled / Add-to-cart enabled). Missing: the "platform default vs vendor override" badge — currently just Yes/No.
+- All backend gating from the original plan.
 
-Today, clicking **Approve & Save Changes** triggers the browser's native JS alert (`window.prompt`) to collect the audit reason. Replace it with a small shadcn `Dialog` matching the app's design language.
+## ❌ Still missing — this is what this plan will finish
 
-- Add local state: `reasonModal: { open, pendingSave }` + `reasonText`.
-- `handleSave` opens the modal instead of prompting; on confirm it runs the existing save pipeline (`saveSettingsWithAudit`) with `reasonText`.
-- Modal contents: title "Confirm changes", short description ("This reason is recorded in the audit log"), `Textarea` (min 3 chars, required), Cancel + Confirm buttons. Confirm is disabled until the textarea has content; shows a spinner while saving.
-- Reuse the same modal for the Auto-Release toggle audit if any other call sites still use `window.prompt`.
+### 1. Extend buyer gating to remaining product-list surfaces
+The three checkout entry points are gated, but listing cards still show a live "Add to Cart"/"Buy" affordance when checkout is off. Add gating to:
+- `src/components/marketplace/MarketplaceProductCard.tsx` — consumed by `BuyerMarketplace`.
+- `src/components/storefront/ProductCard.tsx` — consumed by `PublicStorefront`.
+- `src/pages/PublicStorefront.tsx` and `src/pages/BuyerMarketplace.tsx` — any inline CTA on the page shell itself.
 
-## B. Plan implementation audit — what's done vs still missing
+Behavior: when `!addToCartEnabled` (or `!checkoutEnabled` for buy-now CTAs), render the button as disabled with `title={disabledReason}`. Card body still clickable to product detail so users can browse.
 
-Backend gating is fully wired. The remaining gaps are all on the frontend/UX layer.
+Use `useCommerceGate(product.seller_id)` per card (hook is cached per key, so no request storm).
 
-**Done (verified in code):**
-- Migration: `commerce.*` keys seeded, `profiles.vendor_status` columns, `set_vendor_status` enum value.
-- `_shared/commerce-gate.ts` with `loadCommerceConfig`, `checkVendorActive`, `checkAddToCartAllowed`, `checkCheckoutAllowed`.
-- Gates wired into `buyer-cart`, `cart-checkout`, `storefront-checkout`, `claim-offer`, `initiate-paystack-payment`.
-- `marketplace` and `public-storefront` filter/block disabled vendors.
-- Public `commerce-config` edge function exists.
-- `admin-vendor-status` edge function + `AdminUserDetail` Vendor Commerce Status card with reason dialog.
-- `AdminSettings` Commerce Availability section with the three keys.
-- Settings catalog (FE + BE) updated.
+### 2. Vendor status banner in seller layout
+New component `src/components/seller/VendorStatusBanner.tsx`:
+- Queries `profiles.vendor_status`, `vendor_status_reason`, `vendor_status_changed_at` for the current user (via existing profile service or a small query).
+- If status is `disabled` or `suspended`, renders a prominent banner at the top: status label, reason, contact-support hint.
+- Mounted once in the seller shell — `SellerNav.tsx` is the shared header, so render it just below the nav in each seller page's layout, or (cleaner) inside `SellerNav` itself so all seller pages get it automatically.
 
-**Missing / to build now:**
+### 3. Upgrade the `EffectiveSettingsPanel` Commerce rows with the override badge
+Match the pattern already used by the other rows in that panel: when the vendor has an explicit override for `commerce.checkout_enabled` / `commerce.add_to_cart_enabled`, show a small "Vendor override" badge; otherwise show "Platform default". Requires the `pricing-config` (or `commerce-config`) response to indicate source; extend `commerce-config` to include a per-key source map (`{ checkout_enabled: "vendor" | "platform" | "default" }`).
 
-1. **`src/hooks/useCommerceGate.ts`** — new hook that hits `commerce-config?vendor_id=…` (falls back to platform when omitted) and returns `{ checkoutEnabled, addToCartEnabled, disabledReason, vendorStatus, loading }`. Cached with React Query.
+### 4. Marketplace parity check (read-only verification)
+Grep-verify `BuyerMarketplace` and `PublicStorefront` go through the `marketplace` / `public-storefront` edge functions (which already filter disabled vendors) and do NOT hit `products` directly from the client. Note anything that bypasses — no code changes unless a gap is found.
 
-2. **Buyer-side button gating** (proactive UX; server-side 403 already exists as backstop):
-   - `PublicProductDetail`, `PublicStorefront` product cards, `BuyerMarketplace` cards, `src/components/storefront/ProductCard.tsx` / `MarketplaceProductCard.tsx`: when `!addToCartEnabled` or `!checkoutEnabled`, replace "Buy now"/"Add to cart" with a disabled button + tooltip showing `disabledReason`.
-   - `BuyerCart` and `CartCheckoutReview`: keep items visible, disable "Proceed to checkout" with the same message shown as an inline banner.
-   - `StorefrontCheckout`: on load, if gate is off, render the banner and hide the pay CTA.
-   - Handle new 403 error codes (`checkout_disabled`, `add_to_cart_disabled`, `vendor_disabled`) in the existing toast/error paths so users get the reason string, not a generic error.
+### 5. Config-usage sanity sweep (C section)
+Grep-verify each admin-writable key has at least one runtime reader. Report unused keys back to you; no code changes unless something admin-writable is silently ignored:
+- `security.session_timeout_minutes`, `security.two_factor_admin`
+- `notifications.email_enabled`, `notifications.sms_enabled`
+- `fees.refund_policy`
+- `escrow.auto_release_enabled` (already surfaced in `AdminPayouts` banner; execution intentionally out of scope)
 
-3. **Seller-side visibility** (`src/components/profile/EffectiveSettingsPanel.tsx`): add a "Commerce" row showing `checkout_enabled` + `add_to_cart_enabled` effective values with the standard override badge (platform default vs vendor override).
-
-4. **Vendor status banner:** small component rendered at the top of every seller page (mount inside the seller layout — likely `src/pages/Seller*` shared shell or `SellerStorefrontSidebar` host) when `profiles.vendor_status !== 'active'`, showing status + reason. Reads from a lightweight query on the current user's profile.
-
-5. **Marketplace/product listing hide-when-disabled parity check:** confirm `BuyerMarketplace` and any other product-list surfaces respect the `vendor_status` filter that `marketplace` already applies (should be automatic since it consumes that endpoint — verify no direct-to-DB reads bypass it).
-
-## C. Config-usage sanity sweep (answer to "are the config settings all used where needed?")
-
-Not covered by the checkout gating plan but worth confirming while we're in this area — I will grep-verify these once in build mode and note anything unused; no code changes proposed here unless a gap is found:
-
-- `pricing.min_platform_fee_ngn`, `pricing.max_total_service_fee_ngn`, `pricing.tier_rates` → consumed by `_shared/pricing.ts` (verified previously).
-- `security.id_verification_threshold`, `security.require_id_verification` → wired via `_shared/security-resolver.ts` in checkout paths.
-- `risk.high_value_alert_ngn` → wired in Paystack webhook + verify.
-- `escrow.auto_release_enabled` → surfaced in `AdminPayouts` banner (auto-release execution itself is out of scope per prior decision).
-- `security.session_timeout_minutes`, `security.two_factor_admin`, `notifications.email_enabled`, `notifications.sms_enabled`, `fees.refund_policy` → confirm each has at least one runtime reader; flag any that are admin-writable but not enforced anywhere.
+## Out of scope (unchanged)
+- Auto-release execution.
+- `AdminPayouts` uses `window.confirm` for bulk release — separate concern, not this plan.
+- New settings keys or DB migrations (except: `commerce-config` may need to return a source map — that's an edge-function tweak, no schema change).
 
 ## Technical notes
+- `useCommerceGate` already caches per vendor id — safe to call once per card.
+- Vendor status banner should degrade silently if `vendor_status` is null/`active`.
+- Source-map addition to `commerce-config`: check whether `system_settings` has a row at vendor scope for the key; if yes → "vendor", else if platform row → "platform", else → "default".
 
-- Reason modal uses the existing `Dialog`/`Textarea`/`Button` primitives already imported in `AdminSettings.tsx`.
-- `useCommerceGate` accepts optional `vendorId` so buyer surfaces can resolve per-vendor state; when unknown, it uses platform defaults.
-- Error handling: extend the shared fetch helper in the affected pages to detect the three 403 error codes and surface the returned `reason` string directly (no generic "Something went wrong").
-- No DB migrations. No new edge functions. No changes to admin gating logic.
-
-## Out of scope
-- Auto-release execution logic.
-- Any new setting keys.
-- Redesign of AdminSettings layout beyond swapping the prompt for a modal.
+Confirm and I'll implement.

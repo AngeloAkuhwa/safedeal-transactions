@@ -94,13 +94,27 @@ export function EffectiveSettingsPanel({ vendorId }: Props) {
               </div>
             ))}
             <div className="p-2.5 bg-muted/30 border border-border rounded-lg">
-              <p className="text-[11px] text-muted-foreground">Checkout enabled</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] text-muted-foreground">Checkout enabled</p>
+                {gate.sources["commerce.checkout_enabled"] === "vendor" ? (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">Vendor override</span>
+                ) : (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Platform default</span>
+                )}
+              </div>
               <p className="text-sm font-medium text-foreground mt-0.5">
                 {gate.loading ? "—" : gate.checkoutEnabled ? "Yes" : "No"}
               </p>
             </div>
             <div className="p-2.5 bg-muted/30 border border-border rounded-lg">
-              <p className="text-[11px] text-muted-foreground">Add-to-cart enabled</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] text-muted-foreground">Add-to-cart enabled</p>
+                {gate.sources["commerce.add_to_cart_enabled"] === "vendor" ? (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">Vendor override</span>
+                ) : (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Platform default</span>
+                )}
+              </div>
               <p className="text-sm font-medium text-foreground mt-0.5">
                 {gate.loading ? "—" : gate.addToCartEnabled ? "Yes" : "No"}
               </p>

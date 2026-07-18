@@ -12,6 +12,7 @@ import { addToCart } from "@/services/cart.service";
 import { useQueryClient } from "@tanstack/react-query";
 import type { MarketplaceProduct } from "@/services/marketplace.service";
 import { getAvailableQuantity } from "@/lib/inventory";
+import { useCommerceGate } from "@/hooks/useCommerceGate";
 
 interface Props {
   product: MarketplaceProduct;
@@ -51,6 +52,10 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
   const lowStock = available > 0 && available <= 5;
   const seller = product.seller;
   const sellerInitial = (seller.full_name || "S")[0].toUpperCase();
+  // Vendor id not present on MarketplaceProduct — use platform-scope gate.
+  // Server-side checks still enforce vendor-specific overrides on add-to-cart.
+  const gate = useCommerceGate();
+  const cartBlocked = !gate.loading && !gate.addToCartEnabled;
 
   const handleHeartClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -176,7 +181,8 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
               size="icon"
               variant={outOfStock ? "outline" : "default"}
               className="h-8 w-8 rounded-lg shrink-0"
-              disabled={outOfStock || addingToCart}
+              disabled={outOfStock || addingToCart || cartBlocked}
+              title={cartBlocked ? gate.disabledReason : undefined}
               onClick={async (e) => {
                 e.stopPropagation();
                 if (!isAuthenticated) { setShowAuthModal(true); return; }
