@@ -277,9 +277,10 @@ const BuyerCart = () => {
     const sid = item.product!.seller_id;
     sellerGroups.set(sid, (sellerGroups.get(sid) || 0) + item.product!.unit_price * item.quantity);
   }
+  const vendorConfigs = useEffectivePricingConfigs(Array.from(sellerGroups.keys()));
   let selectedFees = 0;
-  for (const [, amount] of sellerGroups) {
-    selectedFees += computePricing(amount).service_fee_amount;
+  for (const [sellerId, amount] of sellerGroups) {
+    selectedFees += computePricing(amount, "NGN", vendorConfigs[sellerId]).service_fee_amount;
   }
   const selectedTotal = selectedSubtotal + selectedFees;
 
