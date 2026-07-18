@@ -1,127 +1,51 @@
-## Goal
-Make notifications real-time across the app, and wire real email delivery via Resend using the saved `RESEND_API_KEY`. SMS stays queued/pending until a provider is chosen. No web push.
+## Audit result
 
-## Confirmed inputs
-- `RESEND_API_KEY` already saved as project secret.
-- Sender: `SafeDeal <onboarding@resend.dev>` (Resend restricts this to the account owner's own verified email; noted as a limitation in the admin banner).
-- Resend called **directly** at `https://api.resend.com/emails` with `Authorization: Bearer $RESEND_API_KEY` — no connector gateway wiring needed since the key is already in env.
+Executed:
+- A1 Realtime migration (`REPLICA IDENTITY FULL` + publication on `notifications` / `notification_deliveries`).
+- A2 `useRealtimeNotifications.ts` (per-user toasts + query invalidation).
+- A3 Mounted in `BuyerNav.tsx` and `SellerNav.tsx`.
+- A4 `useRealtimeAdminNotifications.ts` mounted in `AdminNotifications.tsx` (debounced invalidation).
+- A5 Broadcast writes rows — untouched, works via A1.
+- B2 `process-notification-deliveries` edge function exists, cron scheduled, respects `notification_preferences`, retry/attempt logic in place.
+- B3 Inline-styled HTML with brand header + CTA + preferences link.
+- B5 SMS rows left pending.
+- C `useTypingIndicator.ts` wired into `MessageThread.tsx`.
 
-## Part A — Realtime fan-out
+Pending (real gaps found):
+1. **B1 gateway wiring** — worker calls `https://api.resend.com/emails` directly with `Authorization: Bearer ${RESEND_API_KEY}`. Plan says route via Lovable connector gateway (`https://connector-gateway.lovable.dev/resend/emails` with `Authorization: Bearer ${LOVABLE_API_KEY}` + `X-Connection-Api-Key: ${RESEND_API_KEY}`). Also needs `RESEND_FROM_EMAIL` env var so we don't hardcode the sender.
+2. **C presence dots** — `AdminNotifications.tsx` does not import `useOnlinePresence`; Failed / Recent Activity tables have no green dot next to recipient.
+3. **C "online now" hint** — Broadcast composer has no `≈ X recipients online now` line under the audience selector.
+4. **SMS-pending banner** — no visible "SMS provider not configured — rows queued" banner in `AdminNotifications.tsx` (only a generic worker status banner exists).
 
-### A1. Migration — enable realtime
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notification_deliveries;
-ALTER TABLE public.notifications REPLICA IDENTITY FULL;
-ALTER TABLE public.notification_deliveries REPLICA IDENTITY FULL;
-```
-`notifications` RLS already scopes per user, so subscribers only see their own rows.
+## Plan to close the gaps (small, additive, no redesign)
 
-### A2. `src/hooks/useRealtimeNotifications.ts`
-- Subscribes to `postgres_changes` on `notifications` filtered by `user_id=eq.<uid>` (INSERT + UPDATE).
-- On INSERT: invalidates `["buyer-notifications"]`, `["seller-notifications"]`, `["notification-summary"]`, `["dashboard"]`; shows toast unless tab is hidden.
-- Cleans up channel on unmount.
+### 1. Switch worker to connector gateway
+File: `supabase/functions/process-notification-deliveries/index.ts`
+- Replace the `fetch("https://api.resend.com/emails", …)` call with:
+  ```
+  POST https://connector-gateway.lovable.dev/resend/emails
+  Authorization: Bearer ${LOVABLE_API_KEY}
+  X-Connection-Api-Key: ${RESEND_API_KEY}
+  ```
+- Read `LOVABLE_API_KEY` from env; keep the existing `RESEND_API_KEY` check.
+- Read `from` from `RESEND_FROM_EMAIL` env (fallback `SafeDeal <onboarding@resend.dev>` with a warning log).
+- Keep existing retry / `attempt_count` / `provider_response` logic.
+- Keep `response.ok` check + error body capture (already there).
 
-### A3. Mount points (no UI redesign)
-`BuyerNav.tsx`, seller nav shell, `BuyerNotifications.tsx`, `SellerNotifications.tsx`, `Dashboard.tsx`, `SellerDashboard.tsx` (dashboards: invalidation only).
+### 2. Presence dots in `AdminNotifications.tsx`
+- Import `useOnlinePresence` and call `const { isOnline } = useOnlinePresence();` at the top of the page.
+- In the Failed deliveries table row and Recent Activity table row, render `<PresenceDot online={isOnline(row.user_id)} />` (existing component) next to recipient name/email — same visual pattern used in `AdminUsers.tsx`.
 
-### A4. Admin Notification Center realtime
-`useRealtimeAdminNotifications` in `AdminNotifications.tsx`:
-- Subscribes to `notifications` + `notification_deliveries` (INSERT + UPDATE, no user filter — admin scope).
-- Debounced (~750 ms) invalidation of `["admin-notifications"]` to absorb broadcast bursts.
-- "Last sync" reflects live events.
+### 3. "Online now" hint in Broadcast composer
+- In `BroadcastComposer` (inside `AdminNotifications.tsx`), after resolving the currently selected audience list (already fetched for the recipient count), compute `onlineCount = audienceIds.filter(id => isOnline(id)).length`.
+- Render a small muted line under the audience selector: `≈ {onlineCount} recipients online now` (hidden when audience is empty).
 
-Existing `admin-notifications-action` broadcast already inserts one `notifications` row per recipient — A1 makes those live automatically.
+### 4. SMS-pending banner
+- In `AdminNotifications.tsx`, add a lightweight yellow banner above the tables when the KPI payload reports any queued SMS rows: `SMS provider not configured — SMS notifications are queued and will send once a provider is wired.`
+- No backend change needed — the existing KPI query already returns per-channel counts; if not, add `sms_pending` to the `admin-notifications` KPI response (small addition).
 
-## Part B — Real email delivery via Resend
+### 5. Secret to add
+`RESEND_FROM_EMAIL` — will request via `add_secret` after you confirm the exact verified sender address (e.g. `notifications@safedeal.ng`), or I default to `SafeDeal <onboarding@resend.dev>` (test-only) if you want to defer.
 
-### B1. Edge function `supabase/functions/process-notification-deliveries/index.ts`
-Runs on `pg_cron` every 1 minute (see B2).
-
-Per run:
-1. Uses service-role client.
-2. Selects up to 50 `notification_deliveries` where `channel='email'` AND `delivery_status='pending'` AND `attempt_count < 3`, oldest first.
-3. Joins `notifications` (title, message, user_id, related_transaction_id, metadata) and `profiles` (email, full_name).
-4. Checks `notification_preferences.email_notifications` for that user + type. If opt-out, mark `delivery_status='suppressed'` and skip.
-5. Sends via Resend directly:
-   ```ts
-   fetch("https://api.resend.com/emails", {
-     method: "POST",
-     headers: {
-       "Content-Type": "application/json",
-       Authorization: `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
-     },
-     body: JSON.stringify({
-       from: "SafeDeal <onboarding@resend.dev>",
-       to: [profile.email],
-       subject: notification.title,
-       html: renderEmail(notification, profile),
-     }),
-   });
-   ```
-6. On 200: `delivery_status='sent'`, `sent_at=now()`, `provider_response=<resend id>`.
-7. On non-2xx: increment `attempt_count`, store body in `provider_response`; stays `pending` until 3 attempts, then `failed`.
-8. SMS rows (`channel='sms'`) are skipped entirely — left pending, no attempt bump.
-
-Response captured via `response.ok` check + `await response.text()` on failure (per gateway error-surfacing rules, same pattern for direct API).
-
-### B2. Cron schedule (insert tool, not migration)
-Enable `pg_cron` + `pg_net`, then:
-```sql
-select cron.schedule(
-  'process-notification-deliveries',
-  '* * * * *',
-  $$
-  select net.http_post(
-    url:='https://cfkdasmhlqswpunugbkf.supabase.co/functions/v1/process-notification-deliveries',
-    headers:='{"Content-Type":"application/json","apikey":"<anon>","Authorization":"Bearer <anon>"}'::jsonb,
-    body:='{}'::jsonb
-  );
-  $$
-);
-```
-
-### B3. Email HTML
-Simple inline-styled template built in the edge function:
-- White background, sky-blue accent (brand identity), Inter-ish system font stack.
-- Header: "SafeDeal".
-- Body: notification `title` (H2) + `message` (P).
-- CTA button when `metadata.route` is present → `${APP_URL}${route}` (APP_URL from env, fallback to project preview URL).
-- Footer: "You're receiving this because SafeDeal email notifications are enabled. Manage preferences: <link to /dashboard/profile#notifications>".
-- No React Email scaffolding for this iteration (kept lean, single function file).
-
-### B4. Admin banners
-- Small note in `AdminNotifications.tsx` header: "Email sender: onboarding@resend.dev (owner-only until custom domain configured)".
-- Small note: "SMS provider not configured — SMS rows are queued and not sent".
-
-### B5. Realtime tie-in
-Because A1 enables realtime on `notification_deliveries`, worker status flips (`pending → sent | failed`) surface live in admin Failed table + KPI cards with no extra plumbing.
-
-## Part C — Presence / typing
-
-- **Online dot** on admin Failed + Recent Activity tables via existing `useOnlinePresence().isOnline(userId)`.
-- **Broadcast composer hint**: "≈ X recipients online now" under the audience selector, computed from resolved audience ∩ presence set.
-- **Typing indicator** — added ONLY in `src/components/transactions/MessageThread.tsx` via a new `useTypingIndicator(threadId)` using Supabase channel `broadcast` events (no DB writes). Not added to notifications.
-
-## Part D — Out of scope
-- Web push / service worker / VAPID.
-- Marketing / bulk email.
-- SMS sends (queued, not delivered).
-- Auth email delivery (unchanged).
-- Custom Resend sender domain (using `onboarding@resend.dev` until you provide a verified domain).
-
-## Files touched
-- Migration: realtime + REPLICA IDENTITY on 2 tables.
-- Cron schedule (via insert tool).
-- New edge function: `supabase/functions/process-notification-deliveries/index.ts`.
-- New hooks: `useRealtimeNotifications.ts`, `useRealtimeAdminNotifications.ts`, `useTypingIndicator.ts`.
-- Small edits: `BuyerNav.tsx`, seller nav shell, `BuyerNotifications.tsx`, `SellerNotifications.tsx`, `Dashboard.tsx`, `SellerDashboard.tsx`, `AdminNotifications.tsx`, `MessageThread.tsx`.
-- No changes to: existing notification UI design, KPI card design, drawer, business logic, or `admin-notifications-action`.
-
-## Build order
-1. Realtime migration.
-2. `process-notification-deliveries` edge function.
-3. pg_cron schedule via insert tool.
-4. Realtime hooks + mount points.
-5. Admin presence dots + "online now" hint + banners.
-6. Typing indicator in `MessageThread.tsx`.
+## Not touched
+Notification list design, KPI card design, drawer, `admin-notifications-action`, in-app notification path, existing worker retry logic. All changes are additive.
