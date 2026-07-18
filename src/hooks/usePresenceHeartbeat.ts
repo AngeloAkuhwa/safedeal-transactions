@@ -13,6 +13,12 @@ export function usePresenceHeartbeat() {
 
     const join = async (userId: string) => {
       if (cancelled) return;
+      // Remove any stale channel with the same topic (StrictMode double-mount).
+      for (const ch of supabase.getChannels()) {
+        if (ch.topic === "realtime:presence:users") {
+          supabase.removeChannel(ch);
+        }
+      }
       const ch = supabase.channel("presence:users", {
         config: { presence: { key: userId } },
       });
