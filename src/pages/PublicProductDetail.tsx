@@ -354,14 +354,21 @@ const PublicProductDetail = () => {
           </div>
 
           {/* CTA Button */}
+          {gateBlocked && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+              <AlertCircle className="h-3.5 w-3.5 inline mr-1.5" />
+              {gate.disabledReason}
+            </div>
+          )}
           <Button
             size="lg"
             className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
             onClick={handleBuyCTA}
-            disabled={availableQty === 0 || addingToCart}
+            disabled={availableQty === 0 || addingToCart || gateBlocked}
+            title={gateBlocked ? gate.disabledReason : undefined}
           >
             {addingToCart ? <Loader2 className="h-5 w-5 animate-spin" /> : inCart ? <ShoppingCart className="h-5 w-5" /> : <ShieldCheck className="h-5 w-5" />}
-            {addingToCart ? "Adding..." : inCart ? "View in Cart" : "Add to Cart"}
+            {addingToCart ? "Adding..." : gateBlocked ? "Currently unavailable" : inCart ? "View in Cart" : "Add to Cart"}
           </Button>
 
           <div className="grid grid-cols-2 gap-3">
