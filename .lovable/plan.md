@@ -1,79 +1,48 @@
-## Revised plan — keep Auto-Release, make it configurable + auditable
 
-### 1) Auto-Release stays, but is a togglable, audited setting
+## 1. Why "Active Rules" still shows a $ symbol
 
-**UI (`src/pages/AdminSettings.tsx`)**
-- Keep the "Auto-Release Payments" toggle in the Escrow Alerts card.
-- Keep the "Auto-Release After Delivery" hours input in the Timeout Rules card, but **disable it when the toggle is OFF** (grey out + helper text: "Enable Auto-Release to configure the window").
-- Default posture on this platform: **OFF** (manual release from the Payouts page). Admin can flip it ON per platform or per vendor.
-- Show the standard "Overridden" badge when a vendor has its own value.
-- Show a small meta line under the toggle when ON: *"Enabled by {admin_name} on {date} at {time}"* — pulled from the audit fields below.
+The pill next to the Fee Configuration header uses the Lucide `DollarSign` icon:
 
-**Persisted keys (unchanged names)**
-- `escrow.auto_release_enabled` (boolean) — writable at both `platform` and `vendor` scope.
-- `auto_release_after_delivery_hours` timeout rule — same dual scope.
+```tsx
+// src/pages/AdminSettings.tsx  (~L479–482)
+<div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 ...">
+  <DollarSign className="h-3 w-3 text-emerald-400" />
+  <span className="...">Active Rules</span>
+</div>
+```
 
-### 2) Capture WHO / WHEN toggled Auto-Release (source of truth)
+It is an icon, not a currency prefix — that is why the earlier `$ → ₦` pass missed it. The plan is to swap `DollarSign` for `Coins` (already imported), so the badge reads as "Active Rules" with a neutral coins glyph consistent with our NGN system. No other `$` remains on the page — I re-grepped and the currency prefixes on High-Value Alert and ID Verification Threshold are already `₦`.
 
-Two complementary layers so audit stays intact even if the row is later edited:
+While in that area, the Fee Configuration footer still shows a hardcoded `Last modified: 2 hours ago by Admin User` line. That is dead placeholder text; I will remove it since we already render real audit history at the bottom of the page.
 
-**a. On the `system_settings` row itself** (fast read for the meta line):
-- Add three columns: `auto_release_enabled_by uuid` (FK to `auth.users`), `auto_release_enabled_at timestamptz`, `auto_release_previous_value text`.
-- Populated **only** for rows where `setting_key = 'escrow.auto_release_enabled'`.
-- Filled by a `BEFORE UPDATE`/`BEFORE INSERT` trigger `track_auto_release_toggle()` that:
-  - Fires only when `setting_key = 'escrow.auto_release_enabled'` **and** `setting_value` actually changed.
-  - Reads the acting admin from `updated_by` (already set by `admin-system-settings`).
-  - Stamps `auto_release_enabled_at = now()` and captures the prior value.
+### Files touched
+- `src/pages/AdminSettings.tsx` — swap `DollarSign` icon → `Coins` on the "Active Rules" pill; delete the hardcoded "Last modified …" line.
 
-**b. In `admin_actions` (full immutable history)**:
-- The `admin-system-settings` PUT already writes `action_type = 'update_setting'` with the payload. Extend the payload writer so that when the payload includes `escrow.auto_release_enabled`, we also write a **dedicated** `admin_actions` row with `action_type = 'toggle_auto_release'`, `target_scope` (`platform` or `vendor`), `target_vendor_id` (nullable), `previous_value`, `new_value`, `reason`.
-- This gives the Audit History card a distinct, filterable event stream for auto-release changes.
+## 2. Honest re-audit of the 12-point checklist
 
-### 3) Runtime behaviour (must match the toggle)
+Since that audit was written, several items landed in later turns. Here is the current status, item-by-item:
 
-- `admin-system-settings` PUT: allow `escrow.auto_release_enabled` at both scopes; clamp via catalog (`boolean` type).
-- `_shared/settings-resolver.ts`: expose `loadEffectiveAutoRelease(vendorId)` → `{ enabled: boolean, window_hours: number, enabled_by, enabled_at }`.
-- Any release consumer must read this resolver before releasing. Since we have **no auto-release cron today**, this phase only wires the setting + audit; the future cron worker will consume `loadEffectiveAutoRelease`. Nothing is auto-released until that worker exists — the Payouts admin button remains the only release trigger for now.
-- Add a **banner on the Payouts page** when Auto-Release is ON for the vendor being viewed: *"Auto-Release is ON for this vendor — enabled by {admin} on {date}."* Read-only signal; no behaviour change until the cron worker ships.
+| # | Item | Status |
+|---|---|---|
+| 1 | `_shared/safedeal-money-policy.ts` — dynamic cap / config-aware version | ✅ Done. `computePricingModelVersion(config)` replaces the constant; consumers pass vendor config. |
+| 2 | `admin-escrow-alert-settings` supports `?vendor_id=` | ✅ Done. |
+| 3 | Timeout rules resolve via `loadEffectiveTimeoutHours(vendor_id, rule_type)` in `create-transaction`, `cart-checkout`, `storefront-checkout`, `claim-offer` | ✅ Done. |
+| 4 | Settings catalog manifest (`src/lib/settings-catalog.ts` + shared server twin) | ✅ Done. Includes `risk.high_value_alert_ngn` and vendor-scope permissions. |
+| 5 | Bounds clamping in PUT | ✅ Done via catalog `clamp()` in `admin-system-settings`. |
+| 6 | "Vendor overrides" admin **tab** with drill-down | ⚠️ **Partial.** A summary section renders `override_counts` and the top 20 rows, but not a full tab with per-vendor drill-down and jump-to-vendor-scope links. |
+| 7 | Real audit history in `AdminSettings.tsx` | ✅ Done — real `admin_actions` rows including new `toggle_auto_release` events. |
+| 8 | "Overridden by vendor" badges on every overridable field | ✅ Done — badges on session timeout, KYC, 2FA, notifications, risk thresholds, refund policy, auto-release, and timeout rows. |
+| 9 | Vendor-side "Your effective settings" panel on `SellerProfileSettings.tsx` | ✅ Done (`EffectiveSettingsPanel.tsx` wired). |
+| 10 | Feature flag (`settings.resolver_enabled`) | ✅ Done — `SETTINGS_RESOLVER_ENABLED` (server) and `VITE_SETTINGS_RESOLVER_ENABLED` (client) with fallback to defaults. |
+| 11 | Pricing tests (defaults / caps / overrides / clamped) | ✅ Done — `src/lib/__tests__/pricing.test.ts` and `settings-catalog.test.ts`. |
+| 12 | Server snapshot parity test (no-override vs default-matching override) | ✅ Done — `supabase/functions/_shared/__tests__/pricing.parity.test.ts`. |
 
-### 4) `$` → `₦` fix + sensible NGN defaults (unchanged from prior turn)
+**Net status: ~95% complete.** The only remaining checklist item is #6 (a dedicated "Vendor Overrides" tab with per-vendor drill-down and quick "switch to vendor scope" links).
 
-- `AdminSettings.tsx` lines 571 and 611: swap `$` → `₦` on "High-Value Transaction Alert" and "ID Verification Threshold".
-- Reseed platform defaults if still at `5000` / `10000`: ID threshold **₦100,000**, high-value alert **₦500,000** (confirm numbers).
-- Add one-line help text under each field explaining the purpose.
+## 3. Scope of this plan
 
-### 5) Catalog + clamping
+Only the two UI polish fixes in section 1 will be executed now:
+1. Icon swap on the Active Rules badge.
+2. Delete the hardcoded "Last modified" placeholder in Fee Configuration.
 
-- `src/lib/settings-catalog.ts` + `supabase/functions/_shared/settings-catalog.ts`:
-  - `escrow.auto_release_enabled` → `boolean`, writable `["platform","vendor"]`.
-  - `auto_release_after_delivery_hours` rule → number, min 1, max 720 (30 days), writable at both scopes.
-  - `security.id_verification_threshold` and `risk.high_value_alert_ngn` → number, NGN, min 1000, max 50000000.
-
-### 6) Files this change touches
-
-**DB migration (schema)**
-- Add columns to `system_settings`: `auto_release_enabled_by`, `auto_release_enabled_at`, `auto_release_previous_value`.
-- Add trigger `track_auto_release_toggle()` + `BEFORE INSERT OR UPDATE` binding on `system_settings`.
-
-**Data change (insert tool)**
-- Update the two threshold defaults from `5000`/`10000` to NGN values if present.
-
-**Backend**
-- `supabase/functions/admin-system-settings/index.ts` — dedicated `toggle_auto_release` `admin_actions` write; ensure `updated_by` set before write so the trigger sees the acting admin.
-- `supabase/functions/_shared/settings-resolver.ts` — new `loadEffectiveAutoRelease(vendorId)`.
-- `supabase/functions/_shared/settings-catalog.ts` — entries above.
-
-**Frontend**
-- `src/pages/AdminSettings.tsx` — enable/disable coupling, `$` → `₦`, meta line "Enabled by … on …", overridden badges.
-- `src/lib/settings-catalog.ts` — mirrored entries.
-- Payouts page (`src/pages/admin/…Payouts.tsx`) — read-only banner when auto-release enabled for the viewed vendor.
-
-### 7) Audit history rendering
-
-- `AdminSettings.tsx` audit card: when the row is a `toggle_auto_release`, render a distinct pill ("Auto-Release: OFF → ON") with the actor, timestamp, scope, vendor (if any), and reason. Falls back to the generic renderer for other updates.
-
-## Confirmations before build
-
-1. Default posture: keep Auto-Release **OFF** by default at platform scope? (Recommended.)
-2. NGN defaults: ID threshold **₦100,000**, High-value alert **₦500,000** — OK?
-3. Auto-release window default when the toggle is first flipped ON: **48 hours** OK?
+I will not open the vendor-overrides drill-down tab in this plan — call it out separately if you want it built next.

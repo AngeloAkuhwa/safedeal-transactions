@@ -477,7 +477,7 @@ export default function AdminSettings() {
                   <p className="text-xs text-muted-foreground mt-1 ml-10">Protection fee structure and limits</p>
                 </div>
                 <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                  <DollarSign className="h-3 w-3 text-emerald-400" />
+                  <Coins className="h-3 w-3 text-emerald-400" />
                   <span className="text-emerald-300 text-[11px] font-medium">Active Rules</span>
                 </div>
               </div>
@@ -539,14 +539,7 @@ export default function AdminSettings() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    <span>
-                      Last modified: <span className="text-foreground font-medium">2 hours ago</span> by{" "}
-                      <span className="text-foreground font-medium">Admin User</span>
-                    </span>
-                  </div>
+                <div className="flex items-center justify-end flex-wrap gap-2">
                   <button
                     onClick={() => { toast.success("Fee structure saved locally"); setDirty(false); }}
                     className="h-9 px-3 bg-emerald-600 hover:bg-emerald-500 text-foreground rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5"
