@@ -19,12 +19,13 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
   { key: "pricing.tier_rates", writable: ["platform"], spec: { type: "tiers" } },
   { key: "fees.refund_policy", writable: ["platform"], spec: { type: "enum", options: ["Non-refundable", "Refundable on cancellation", "Refundable within 24h"] } },
   { key: "security.require_id_verification", writable: ["platform", "vendor"], spec: { type: "boolean" } },
-  { key: "security.id_verification_threshold", writable: ["platform", "vendor"], spec: { type: "number", min: 0, max: 10_000_000 } },
+  { key: "security.id_verification_threshold", writable: ["platform", "vendor"], spec: { type: "number", min: 1000, max: 50_000_000 } },
   { key: "security.session_timeout_minutes", writable: ["platform"], spec: { type: "number", min: 5, max: 240 } },
   { key: "security.two_factor_admin", writable: ["platform"], spec: { type: "boolean" } },
   { key: "notifications.email_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
   { key: "notifications.sms_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
-  { key: "escrow.auto_release_enabled", writable: ["platform"], spec: { type: "boolean" } },
+  { key: "escrow.auto_release_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
+  { key: "risk.high_value_alert_ngn", writable: ["platform", "vendor"], spec: { type: "number", min: 1000, max: 50_000_000 } },
 ];
 
 const BY_KEY = new Map(SETTINGS_CATALOG.map((e) => [e.key, e]));

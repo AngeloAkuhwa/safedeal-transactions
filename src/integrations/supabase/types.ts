@@ -3073,6 +3073,9 @@ export type Database = {
       }
       system_settings: {
         Row: {
+          auto_release_enabled_at: string | null
+          auto_release_enabled_by: string | null
+          auto_release_previous_value: string | null
           created_at: string
           id: string
           is_overridable: boolean
@@ -3084,6 +3087,9 @@ export type Database = {
           vendor_id: string | null
         }
         Insert: {
+          auto_release_enabled_at?: string | null
+          auto_release_enabled_by?: string | null
+          auto_release_previous_value?: string | null
           created_at?: string
           id?: string
           is_overridable?: boolean
@@ -3095,6 +3101,9 @@ export type Database = {
           vendor_id?: string | null
         }
         Update: {
+          auto_release_enabled_at?: string | null
+          auto_release_enabled_by?: string | null
+          auto_release_previous_value?: string | null
           created_at?: string
           id?: string
           is_overridable?: boolean
@@ -4623,6 +4632,7 @@ export type Database = {
         | "unsuspend_user"
         | "clear_flag"
         | "add_note"
+        | "toggle_auto_release"
       admin_investigation_priority: "low" | "medium" | "high" | "critical"
       admin_investigation_status:
         | "open"
@@ -5020,6 +5030,7 @@ export const Constants = {
         "unsuspend_user",
         "clear_flag",
         "add_note",
+        "toggle_auto_release",
       ],
       admin_investigation_priority: ["low", "medium", "high", "critical"],
       admin_investigation_status: [

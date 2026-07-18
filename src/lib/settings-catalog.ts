@@ -108,9 +108,16 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
   {
     key: "escrow.auto_release_enabled",
     label: "Auto-release payments",
-    help: "Release funds automatically when conditions are met.",
+    help: "Release funds automatically when the buyer verification window elapses. When OFF, admin must trigger release from the Payouts page.",
     spec: { type: "boolean" },
-    writable: ["platform"],
+    writable: ["platform", "vendor"],
+  },
+  {
+    key: "risk.high_value_alert_ngn",
+    label: "High-value transaction alert",
+    help: "Flag transactions above this amount for admin review (NGN).",
+    spec: { type: "number", min: 1000, max: 50_000_000, step: 1000, unit: "NGN" },
+    writable: ["platform", "vendor"],
   },
 ];
 

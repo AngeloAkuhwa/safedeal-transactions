@@ -12,6 +12,7 @@ import {
   type VendorLite, type SettingsAuditRow,
 } from "@/services/admin-settings.service";
 import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 
 /* ------------------------------ primitives ------------------------------ */
 
@@ -219,14 +220,17 @@ export default function AdminSettings() {
   const [autoReleaseOn, setAutoReleaseOn] = useState(true);
   const [emailOn, setEmailOn] = useState(true);
   const [smsOn, setSmsOn] = useState(false);
-  const [hvAlert, setHvAlert] = useState("10000");
+  const [hvAlert, setHvAlert] = useState("500000");
   const [fraudScore, setFraudScore] = useState("75");
 
   // Security
   const [idRequired, setIdRequired] = useState(true);
-  const [idThreshold, setIdThreshold] = useState("5000");
+  const [idThreshold, setIdThreshold] = useState("100000");
   const [sessionTimeout, setSessionTimeout] = useState("30");
   const [twoFA, setTwoFA] = useState(true);
+
+  // Meta for the auto-release toggle: who flipped it and when (stamped by DB trigger).
+  const [autoReleaseMeta, setAutoReleaseMeta] = useState<{ enabled_by: string | null; enabled_at: string | null } | null>(null);
 
   const setStr = (fn: (v: string) => void) => (v: string) => { fn(v); mark(); };
   const setBool = (fn: (v: boolean) => void) => (v: boolean) => { fn(v); mark(); };
@@ -257,13 +261,21 @@ export default function AdminSettings() {
         const num = (v: unknown, d: string) => (v == null ? d : String(v));
         if (byKey["pricing.min_platform_fee_ngn"] != null) setMinFee(num(byKey["pricing.min_platform_fee_ngn"], "250"));
         if (byKey["pricing.max_total_service_fee_ngn"] != null) setFeeCap(num(byKey["pricing.max_total_service_fee_ngn"], "2500"));
-        if (byKey["security.id_verification_threshold"] != null) setIdThreshold(num(byKey["security.id_verification_threshold"], "5000"));
+        if (byKey["security.id_verification_threshold"] != null) setIdThreshold(num(byKey["security.id_verification_threshold"], "100000"));
+        if (byKey["risk.high_value_alert_ngn"] != null) setHvAlert(num(byKey["risk.high_value_alert_ngn"], "500000"));
         if (byKey["security.require_id_verification"] != null) setIdRequired(Boolean(byKey["security.require_id_verification"]));
         if (byKey["security.session_timeout_minutes"] != null) setSessionTimeout(num(byKey["security.session_timeout_minutes"], "30"));
         if (byKey["security.two_factor_admin"] != null) setTwoFA(Boolean(byKey["security.two_factor_admin"]));
         if (byKey["notifications.email_enabled"] != null) setEmailOn(Boolean(byKey["notifications.email_enabled"]));
         if (byKey["notifications.sms_enabled"] != null) setSmsOn(Boolean(byKey["notifications.sms_enabled"]));
         if (byKey["escrow.auto_release_enabled"] != null) setAutoReleaseOn(Boolean(byKey["escrow.auto_release_enabled"]));
+        // Capture audit meta for the effective auto-release row.
+        const arRow = (payload.settings ?? []).find((r) => {
+          if (r.setting_key !== "escrow.auto_release_enabled") return false;
+          if (scope === "vendor") return r.scope === "vendor" && r.vendor_id === vendorId;
+          return r.scope === "platform";
+        });
+        setAutoReleaseMeta(arRow ? { enabled_by: (arRow as any).auto_release_enabled_by ?? null, enabled_at: (arRow as any).auto_release_enabled_at ?? null } : null);
         // Timeouts (hours)
         (payload.timeouts ?? []).forEach((t) => {
           const match = scope === "vendor"
@@ -321,6 +333,7 @@ export default function AdminSettings() {
       "notifications.sms_enabled": smsOn,
       "escrow.auto_release_enabled": autoReleaseOn,
       "fees.refund_policy": refundPolicy,
+      "risk.high_value_alert_ngn": Number(hvAlert),
     };
     // In vendor scope, strip keys the platform marked non-overridable AND
     // any key the catalog declares as not writable at the vendor scope
@@ -406,7 +419,15 @@ export default function AdminSettings() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                 <TimeoutRow label="Seller Fulfillment Timeout" desc="Time given to sellers to fulfill orders after payment" value={sellerFulfil} onChange={setStr(setSellerFulfil)} unit="days" overridden={isTimeoutOverridden("seller_fulfillment_timeout")} />
                 <TimeoutRow label="Buyer Verification Window" desc="Time buyer has to verify item after delivery" value={buyerVerify} onChange={setStr(setBuyerVerify)} unit="hours" overridden={isTimeoutOverridden("buyer_verification_timeout")} />
-                <TimeoutRow label="Auto-Release After Delivery" desc="Auto-release escrow if buyer takes no action" value={autoRelease} onChange={setStr(setAutoRelease)} unit="hours" />
+                <TimeoutRow
+                  label="Auto-Release After Delivery"
+                  desc="Auto-release escrow if buyer takes no action"
+                  value={autoRelease}
+                  onChange={setStr(setAutoRelease)}
+                  unit="hours"
+                  disabled={!autoReleaseOn}
+                  disabledHint="Auto-Release is OFF — payouts require manual admin release."
+                />
                 <TimeoutRow label="Payment Session Expiry" desc="How long a Paystack payment session stays open" value={paymentExpiry} onChange={setStr(setPaymentExpiry)} unit="minutes" />
               </div>
               <div className="mt-4 pt-4 border-t border-border">
@@ -555,6 +576,13 @@ export default function AdminSettings() {
                   <h4 className="sd-eyebrow mb-2">Feature Toggles</h4>
                   <div className="space-y-2">
                     <ToggleRow title="Auto-Release Payments" desc="Release funds automatically when conditions are met" on={autoReleaseOn} onChange={setBool(setAutoReleaseOn)} overridden={isOverridden("escrow.auto_release_enabled")} />
+                    {autoReleaseOn && (autoReleaseMeta?.enabled_by || autoReleaseMeta?.enabled_at) && (
+                      <p className="text-[11px] text-muted-foreground pl-2.5">
+                        Enabled
+                        {autoReleaseMeta?.enabled_by ? <> by <span className="text-foreground/80 font-mono">{autoReleaseMeta.enabled_by.slice(0, 8)}…</span></> : null}
+                        {autoReleaseMeta?.enabled_at ? <> on <span className="text-foreground/80">{format(new Date(autoReleaseMeta.enabled_at), "MMM d, yyyy · p")}</span></> : null}
+                      </p>
+                    )}
                     <ToggleRow title="Email Notifications" desc="Send email updates for transaction events" on={emailOn} onChange={setBool(setEmailOn)} overridden={isOverridden("notifications.email_enabled")} />
                     <ToggleRow title="SMS Alerts" desc="Send SMS for critical transaction updates" on={smsOn} onChange={setBool(setSmsOn)} overridden={isOverridden("notifications.sms_enabled")} />
                   </div>
@@ -568,7 +596,7 @@ export default function AdminSettings() {
                         {isOverridden("risk.high_value_alert_ngn") && <OverrideBadge />}
                       </label>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-muted-foreground text-xs">$</span>
+                        <span className="text-muted-foreground text-xs">₦</span>
                         <NumInput value={hvAlert} onChange={setStr(setHvAlert)} />
                       </div>
                     </div>
@@ -608,7 +636,7 @@ export default function AdminSettings() {
                         {isOverridden("security.id_verification_threshold") && <OverrideBadge />}
                       </label>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-muted-foreground text-xs">$</span>
+                        <span className="text-muted-foreground text-xs">₦</span>
                         <NumInput value={idThreshold} onChange={setStr(setIdThreshold)} />
                       </div>
                     </div>
@@ -774,17 +802,23 @@ export default function AdminSettings() {
 /* ------------------------------ sub-components ------------------------------ */
 
 function TimeoutRow({
-  label, desc, value, onChange, unit, overridden,
-}: { label: string; desc: string; value: string; onChange: (v: string) => void; unit: string; overridden?: boolean }) {
+  label, desc, value, onChange, unit, overridden, disabled, disabledHint,
+}: { label: string; desc: string; value: string; onChange: (v: string) => void; unit: string; overridden?: boolean; disabled?: boolean; disabledHint?: string }) {
   return (
-    <div className="p-3 bg-muted/30 border border-border rounded-lg">
+    <div className={`p-3 bg-muted/30 border border-border rounded-lg ${disabled ? "opacity-60" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <label className="text-xs font-medium text-foreground">{label}</label>
         {overridden && <OverrideBadge />}
       </div>
-      <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">{desc}</p>
+      <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">{disabled && disabledHint ? disabledHint : desc}</p>
       <div className="flex items-center gap-1.5">
-        <NumInput value={value} onChange={onChange} className="w-20" />
+        <input
+          type="number"
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          className={`w-20 h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/40 ${disabled ? "cursor-not-allowed" : ""}`}
+        />
         <span className="text-muted-foreground text-xs">{unit}</span>
       </div>
     </div>
