@@ -505,6 +505,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
   const [priority, setPriority] = useState<BroadcastPayload["priority"]>("normal");
   const [audience, setAudience] = useState<BroadcastPayload["audience"]>("all");
   const [channels, setChannels] = useState<BroadcastPayload["channels"]>(["in_app"]);
+  const { onlineCount } = useOnlinePresence();
 
   const m = useMutation({
     mutationFn: () => sendBroadcast({ title: title.trim(), message: message.trim(), priority, audience, channels }),
@@ -589,6 +590,10 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
             </SelectContent>
           </Select>
           <p className="text-muted-foreground/70 text-[10px] mt-1">Respects opt-out preferences · Audit logged</p>
+          <p className="text-emerald-400/90 text-[10px] mt-1 flex items-center gap-1.5">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            ≈ {onlineCount} recipient{onlineCount === 1 ? "" : "s"} online right now
+          </p>
         </div>
 
         <div>
