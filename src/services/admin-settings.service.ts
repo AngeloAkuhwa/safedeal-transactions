@@ -25,6 +25,13 @@ export interface AdminSettingsPayload {
   settings: AdminSettingRow[];
   timeouts: AdminTimeoutRow[];
   override_counts: Record<string, number>;
+  vendor_overrides: Array<{
+    setting_key: string;
+    vendor_id: string;
+    setting_value: unknown;
+    updated_at: string | null;
+    updated_by: string | null;
+  }>;
   vendor_id: string | null;
 }
 
@@ -78,4 +85,45 @@ export async function searchVendors(query: string): Promise<VendorLite[]> {
   const { data, error } = await builder;
   if (error) throw error;
   return (data ?? []) as VendorLite[];
+}
+
+export interface SettingsAuditRow {
+  id: string;
+  admin_user_id: string;
+  target_user_id: string | null;
+  action_type: string;
+  action_notes: string | null;
+  created_at: string;
+  admin_name?: string | null;
+  target_name?: string | null;
+}
+
+/**
+ * Fetch recent admin actions that touch settings. Joins in display names for
+ * the acting admin and target vendor (if any) via two lightweight profile
+ * lookups after the admin_actions read.
+ */
+export async function fetchSettingsAudit(limit = 20): Promise<SettingsAuditRow[]> {
+  // action_type is an enum in the DB; escrow-alert variants are recorded via
+  // action_notes on generic `update_setting` rows when the enum lacks them.
+  const { data, error } = await supabase
+    .from("admin_actions")
+    .select("id, admin_user_id, target_user_id, action_type, action_notes, created_at")
+    .in("action_type", ["update_setting"])
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  const rows = (data ?? []) as SettingsAuditRow[];
+  const ids = Array.from(new Set(rows.flatMap((r) => [r.admin_user_id, r.target_user_id].filter(Boolean) as string[])));
+  if (ids.length === 0) return rows;
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, email")
+    .in("id", ids);
+  const nameById = new Map<string, string>((profiles ?? []).map((p: any) => [p.id, p.full_name || p.email || p.id.slice(0, 8)]));
+  return rows.map((r) => ({
+    ...r,
+    admin_name: nameById.get(r.admin_user_id) ?? "Admin",
+    target_name: r.target_user_id ? nameById.get(r.target_user_id) ?? null : null,
+  }));
 }

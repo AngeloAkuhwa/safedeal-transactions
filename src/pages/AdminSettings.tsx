@@ -2,11 +2,16 @@ import { useState, useEffect } from "react";
 import {
   Clock, Percent, ShieldCheck, ShieldAlert, History as HistoryIcon,
   TriangleAlert, Layers, DollarSign, Coins, Crown, Sliders, ShieldHalf,
-  ToggleRight, Bell, Download, ArrowRight, RotateCcw, AlertTriangle,
+  ToggleRight, Bell, Download, ArrowRight, RotateCcw, AlertTriangle, Building2,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { toast } from "@/components/ui/sonner";
-import { fetchAdminSettings, saveAdminSettings, searchVendors, type VendorLite } from "@/services/admin-settings.service";
+import {
+  fetchAdminSettings, saveAdminSettings, searchVendors,
+  fetchSettingsAudit,
+  type VendorLite, type SettingsAuditRow,
+} from "@/services/admin-settings.service";
+import { formatDistanceToNow } from "date-fns";
 
 /* ------------------------------ primitives ------------------------------ */
 
@@ -182,6 +187,16 @@ export default function AdminSettings() {
   // Which platform keys are overridable per-vendor
   const [overridable, setOverridable] = useState<Record<string, boolean>>({});
   const isLocked = (key: string) => scope === "vendor" && overridable[key] === false;
+  // Which keys currently have a vendor-scoped override for the selected vendor
+  const [overriddenKeys, setOverriddenKeys] = useState<Set<string>>(new Set());
+  const isOverridden = (key: string) => scope === "vendor" && overriddenKeys.has(key);
+  // Aggregate vendor overrides across all vendors (platform tab)
+  const [vendorOverrides, setVendorOverrides] = useState<
+    Array<{ setting_key: string; vendor_id: string; setting_value: unknown; updated_at: string | null }>
+  >([]);
+  const [overrideCounts, setOverrideCounts] = useState<Record<string, number>>({});
+  // Audit history
+  const [auditRows, setAuditRows] = useState<SettingsAuditRow[]>([]);
 
   // Timeouts
   const [sellerFulfil, setSellerFulfil] = useState("7");
@@ -219,8 +234,12 @@ export default function AdminSettings() {
         const payload = await fetchAdminSettings(scope === "vendor" ? vendorId : null);
         const byKey: Record<string, any> = {};
         const overrideMap: Record<string, boolean> = {};
+        const overriddenSet = new Set<string>();
         (payload.settings ?? []).forEach((r) => {
           if (r.scope === "platform") overrideMap[r.setting_key] = r.is_overridable !== false;
+          if (scope === "vendor" && r.scope === "vendor" && r.vendor_id === vendorId) {
+            overriddenSet.add(r.setting_key);
+          }
           // vendor row wins when present
           const isMatch = scope === "vendor"
             ? (r.scope === "vendor" && r.vendor_id === vendorId) || (r.scope === "platform" && !byKey[r.setting_key])
@@ -228,6 +247,9 @@ export default function AdminSettings() {
           if (isMatch) byKey[r.setting_key] = r.setting_value;
         });
         setOverridable(overrideMap);
+        setOverriddenKeys(overriddenSet);
+        setVendorOverrides(payload.vendor_overrides ?? []);
+        setOverrideCounts(payload.override_counts ?? {});
         const num = (v: unknown, d: string) => (v == null ? d : String(v));
         if (byKey["pricing.min_platform_fee_ngn"] != null) setMinFee(num(byKey["pricing.min_platform_fee_ngn"], "250"));
         if (byKey["pricing.max_total_service_fee_ngn"] != null) setFeeCap(num(byKey["pricing.max_total_service_fee_ngn"], "2500"));
@@ -262,6 +284,12 @@ export default function AdminSettings() {
     }, 200);
     return () => clearTimeout(t);
   }, [vendorQuery, scope]);
+
+  // Audit history — refresh on load and after successful save
+  const loadAudit = async () => {
+    try { setAuditRows(await fetchSettingsAudit(15)); } catch { /* ignore */ }
+  };
+  useEffect(() => { loadAudit(); }, []);
 
   async function handleSave() {
     if (scope === "vendor" && !vendorId) {
@@ -307,6 +335,7 @@ export default function AdminSettings() {
       toast.success(scope === "vendor" ? "Vendor overrides saved" : applyToAll ? "Saved and applied to all vendors" : "Platform defaults saved");
       setDirty(false);
       setApplyToAll(false);
+      loadAudit();
     } catch (e: any) {
       toast.error(e?.message ?? "Save failed");
     }
@@ -424,8 +453,8 @@ export default function AdminSettings() {
                 </h4>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
                   <FeeField label="Platform Fee Rate" suffix="%" value={platformRate} onChange={setStr(setPlatformRate)} help="Applied to all standard transactions" />
-                  <FeeField label="Minimum Platform Fee" prefix="₦" value={minFee} onChange={setStr(setMinFee)} help="Floor charged even on small orders" locked={isLocked("pricing.min_platform_fee_ngn")} />
-                  <FeeField label="Total Service Fee Cap" prefix="₦" value={feeCap} onChange={setStr(setFeeCap)} help="Buyer-friendly ceiling on service fees" locked={isLocked("pricing.max_total_service_fee_ngn")} />
+                  <FeeField label="Minimum Platform Fee" prefix="₦" value={minFee} onChange={setStr(setMinFee)} help="Floor charged even on small orders" locked={isLocked("pricing.min_platform_fee_ngn")} overridden={isOverridden("pricing.min_platform_fee_ngn")} />
+                  <FeeField label="Total Service Fee Cap" prefix="₦" value={feeCap} onChange={setStr(setFeeCap)} help="Buyer-friendly ceiling on service fees" locked={isLocked("pricing.max_total_service_fee_ngn")} overridden={isOverridden("pricing.max_total_service_fee_ngn")} />
                 </div>
               </div>
 
@@ -598,50 +627,113 @@ export default function AdminSettings() {
               </div>
             </div>
             <div className="sd-card-pad">
-              <div className="space-y-2">
-                <AuditRow
-                  icon={<Percent className="h-4 w-4 text-emerald-400" />}
-                  iconBg="bg-emerald-500/10 border-emerald-500/20"
-                  accent="border-emerald-500/30"
-                  accentText="text-emerald-400"
-                  title="Base Protection Fee Updated"
-                  subtitle="Fee configuration modified"
-                  when="2 hours ago"
-                  prev="2.5%" next="2.9%" by="Admin User"
-                />
-                <AuditRow
-                  icon={<Clock className="h-4 w-4 text-blue-400" />}
-                  iconBg="bg-blue-500/10 border-blue-500/20"
-                  accent="border-blue-500/30"
-                  accentText="text-blue-400"
-                  title="Seller Fulfillment Timeout Modified"
-                  subtitle="Timeout rules adjusted"
-                  when="1 day ago"
-                  prev="5 days" next="7 days" by="Operations Admin"
-                />
-                <AuditRow
-                  icon={<ToggleRight className="h-4 w-4 text-purple-400" />}
-                  iconBg="bg-purple-500/10 border-purple-500/20"
-                  accent="border-purple-500/30"
-                  accentText="text-purple-400"
-                  title="SMS Alerts Feature Disabled"
-                  subtitle="Platform settings changed"
-                  when="3 days ago"
-                  prev="Enabled" next="Disabled" by="Admin User"
-                />
-                <AuditRow
-                  icon={<Bell className="h-4 w-4 text-amber-400" />}
-                  iconBg="bg-amber-500/10 border-amber-500/20"
-                  accent="border-amber-500/30"
-                  accentText="text-amber-400"
-                  title="Notification Settings Updated"
-                  subtitle="Email and SMS preferences modified"
-                  when="5 days ago"
-                  prev="All notifications enabled" next="Critical only" by="System Admin"
-                />
-              </div>
+              {auditRows.length === 0 ? (
+                <div className="text-xs text-muted-foreground p-3 bg-muted/20 border border-border rounded-lg">
+                  No configuration changes recorded yet.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {auditRows.map((row) => {
+                    // action_notes is JSON stringified by the backend; parse if possible.
+                    let parsed: any = null;
+                    try { parsed = JSON.parse(row.action_notes ?? ""); } catch { /* raw text */ }
+                    const scopeLabel: "platform" | "vendor" = parsed?.scope === "vendor" ? "vendor" : "platform";
+                    const keys = parsed?.updates ? Object.keys(parsed.updates) : [];
+                    const timeoutCount = Array.isArray(parsed?.timeouts) ? parsed.timeouts.length : 0;
+                    const reason: string | undefined = parsed?.reason;
+                    const summary =
+                      keys.length || timeoutCount
+                        ? `Updated ${keys.length ? `${keys.length} setting${keys.length === 1 ? "" : "s"}` : ""}${keys.length && timeoutCount ? " · " : ""}${timeoutCount ? `${timeoutCount} timeout${timeoutCount === 1 ? "" : "s"}` : ""}`
+                        : row.action_notes ?? "Settings updated";
+                    const isVendor = scopeLabel === "vendor";
+                    return (
+                      <div key={row.id} className="p-2.5 bg-muted/30 border border-border rounded-lg flex items-start gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                          <HistoryIcon className="h-3.5 w-3.5 text-blue-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-medium text-foreground truncate">{summary}</p>
+                            {isVendor ? (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Vendor</span>
+                            ) : (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">Platform</span>
+                            )}
+                            {parsed?.apply_to_all_vendors && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300">Applied to all</span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {row.admin_name ?? "Admin"}
+                            {row.target_name ? <> · target <span className="text-foreground/80">{row.target_name}</span></> : null}
+                            {" · "}
+                            {formatDistanceToNow(new Date(row.created_at), { addSuffix: true })}
+                          </p>
+                          {reason && (
+                            <p className="text-[11px] text-muted-foreground mt-0.5 italic truncate">"{reason}"</p>
+                          )}
+                          {keys.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {keys.slice(0, 4).map((k) => (
+                                <span key={k} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted/60 border border-border text-muted-foreground truncate max-w-[180px]">{k}</span>
+                              ))}
+                              {keys.length > 4 && <span className="text-[10px] text-muted-foreground">+{keys.length - 4}</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </section>
+
+          {/* ============ VENDOR OVERRIDES SUMMARY (platform scope only) ============ */}
+          {scope === "platform" && (
+            <section className="sd-card">
+              <div className="sd-card-pad border-b border-border">
+                <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
+                  <div className="w-8 h-8 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-center">
+                    <Building2 className="h-4 w-4 text-purple-400" />
+                  </div>
+                  Vendor Overrides
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1 ml-10">
+                  Settings currently overridden by individual vendors. Platform defaults apply to everyone else.
+                </p>
+              </div>
+              <div className="sd-card-pad">
+                {vendorOverrides.length === 0 ? (
+                  <div className="text-xs text-muted-foreground p-3 bg-muted/20 border border-border rounded-lg">
+                    No vendor-specific overrides are active.
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                      {Object.entries(overrideCounts).slice(0, 4).map(([k, n]) => (
+                        <div key={k} className="p-2 bg-muted/30 border border-border rounded-lg">
+                          <p className="text-[11px] text-muted-foreground truncate">{k}</p>
+                          <p className="text-sm font-semibold text-foreground">{n} vendor{n === 1 ? "" : "s"}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-1.5 max-h-60 overflow-auto">
+                      {vendorOverrides.slice(0, 20).map((o) => (
+                        <div key={`${o.setting_key}-${o.vendor_id}`} className="p-2 bg-muted/20 border border-border rounded flex items-center justify-between gap-2 text-xs">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-foreground truncate font-mono">{o.setting_key}</p>
+                            <p className="text-muted-foreground text-[10px] truncate">vendor: {o.vendor_id.slice(0, 8)}…</p>
+                          </div>
+                          <span className="text-foreground font-medium shrink-0">{JSON.stringify(o.setting_value).slice(0, 40)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </section>
+          )}
 
         </div>
       </div>
@@ -667,15 +759,17 @@ function TimeoutRow({
 }
 
 function FeeField({
-  label, value, onChange, help, prefix, suffix, locked,
-}: { label: string; value: string; onChange: (v: string) => void; help?: string; prefix?: string; suffix?: string; locked?: boolean }) {
+  label, value, onChange, help, prefix, suffix, locked, overridden,
+}: { label: string; value: string; onChange: (v: string) => void; help?: string; prefix?: string; suffix?: string; locked?: boolean; overridden?: boolean }) {
   return (
     <div className={`p-3 bg-muted/30 border border-border rounded-lg ${locked ? "opacity-60" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <label className="text-xs font-medium text-foreground">{label}</label>
-        {locked && (
+        {locked ? (
           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Platform-only</span>
-        )}
+        ) : overridden ? (
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Overridden</span>
+        ) : null}
       </div>
       {help && <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">{help}</p>}
       <div className="flex items-center gap-1.5">

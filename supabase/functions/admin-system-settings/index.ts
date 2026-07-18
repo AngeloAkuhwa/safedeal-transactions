@@ -2,6 +2,7 @@
 // GET  ?vendor_id=... → returns platform + optional vendor overrides
 // PUT  { scope, vendor_id?, updates: {key: value}, timeouts?: [{rule_type, hours}], reason, apply_to_all_vendors? }
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { clampSetting } from "../_shared/settings-catalog.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,14 +46,20 @@ Deno.serve(async (req) => {
       // Aggregate vendor-override count per key (platform view)
       const { data: overrides } = await adminClient
         .from("system_settings")
-        .select("setting_key")
+        .select("setting_key, vendor_id, setting_value, updated_at, updated_by")
         .eq("scope", "vendor");
       const overrideCounts: Record<string, number> = {};
       (overrides ?? []).forEach((r: { setting_key: string }) => {
         overrideCounts[r.setting_key] = (overrideCounts[r.setting_key] ?? 0) + 1;
       });
 
-      return json(200, { settings, timeouts, override_counts: overrideCounts, vendor_id: vendorId });
+      return json(200, {
+        settings,
+        timeouts,
+        override_counts: overrideCounts,
+        vendor_overrides: overrides ?? [],
+        vendor_id: vendorId,
+      });
     }
 
     if (req.method === "PUT") {
@@ -82,9 +89,12 @@ Deno.serve(async (req) => {
         if (scope === "vendor" && overridable.has(key) && overridable.get(key) === false) {
           return json(403, { error: "key_not_overridable", key });
         }
+        // Catalog-based clamp + type check
+        const c = clampSetting(key, value, scope);
+        if (!c.ok) return json(400, { error: c.error, key });
         rows.push({
           setting_key: key,
-          setting_value: value,
+          setting_value: c.value,
           scope,
           vendor_id: vendorId,
           updated_by: userId,

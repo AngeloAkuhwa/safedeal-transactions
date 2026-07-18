@@ -27,6 +27,10 @@ function admin(): SupabaseClient {
 
 export async function loadPricingConfig(vendorId: string | null | undefined): Promise<EffectivePricingConfig> {
   if (!vendorId) return DEFAULT_PRICING_CONFIG;
+  // Feature flag: one-flip rollback to constants without redeploy.
+  if ((Deno.env.get("SETTINGS_RESOLVER_ENABLED") ?? "true").toLowerCase() === "false") {
+    return DEFAULT_PRICING_CONFIG;
+  }
   try {
     const { data, error } = await admin().rpc("get_effective_settings", {
       _vendor_id: vendorId,
@@ -64,6 +68,9 @@ export async function loadEffectiveTimeoutHours(
   fallbackHours: number,
 ): Promise<number> {
   if (!vendorId) return fallbackHours;
+  if ((Deno.env.get("SETTINGS_RESOLVER_ENABLED") ?? "true").toLowerCase() === "false") {
+    return fallbackHours;
+  }
   try {
     const { data, error } = await admin().rpc("get_effective_timeout", {
       _vendor_id: vendorId,
