@@ -298,6 +298,16 @@ Deno.serve(async (req) => {
           status: "pending",
         });
 
+        // Emit high-value flag if the settled total crosses the vendor/platform threshold.
+        await emitHighValueFlagIfNeeded({
+          transactionId: txId,
+          buyerId: tx.buyer_id,
+          sellerId: tx.seller_id,
+          vendorId: tx.seller_id,
+          amount: pricing.total_amount,
+          currencyCode: pricing.currency_code,
+        });
+
         // Convert reserved stock → sold (idempotent)
         try {
           // Resolve authoritative per-product paid quantities.
