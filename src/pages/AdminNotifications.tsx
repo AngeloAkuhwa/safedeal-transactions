@@ -72,7 +72,7 @@ const ChannelCell = ({ ch }: { ch: string }) => {
   return (
     <div className="flex items-center gap-1.5">
       <Icon className={`h-3.5 w-3.5 ${channelIconColor(ch)}`} />
-      <span className="text-sm text-foreground">{channelLabel(ch)}</span>
+      <span className="text-xs text-foreground">{channelLabel(ch)}</span>
     </div>
   );
 };
@@ -87,29 +87,29 @@ const shortDisId = (id: string | null) =>
 function HeaderBar({ lastSync, onBroadcast, onExport }: { lastSync?: string; onBroadcast: () => void; onExport: () => void }) {
   return (
     <div className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 px-4 md:px-8 py-5">
-        <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div className="flex flex-wrap items-center gap-3">
           <div>
-            <h2 className="text-foreground text-xl font-semibold">Notification Center</h2>
-            <p className="text-muted-foreground text-sm mt-0.5">Monitor delivery performance and manage communication issues</p>
+            <h2 className="sd-page-title">Notification Center</h2>
+            <p className="sd-page-sub">Monitor delivery performance and manage communication issues</p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-sm font-semibold text-emerald-400">
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live
             </span>
             {lastSync && (
-              <span className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground">
-                <Clock className="h-3.5 w-3.5" /> Last sync: {formatRelative(lastSync)}
+              <span className="hidden lg:inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" /> Last sync: {formatRelative(lastSync)}
               </span>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={onExport} className="h-10">
-            <Download className="h-4 w-4" /> <span className="hidden sm:inline">Export Report</span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onExport} className="h-8 text-xs">
+            <Download className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Export Report</span>
           </Button>
-          <Button size="sm" onClick={onBroadcast} className="h-10 bg-blue-600 hover:bg-blue-500 text-white">
-            <Megaphone className="h-4 w-4" /> <span className="hidden sm:inline">Broadcast Message</span>
+          <Button size="sm" onClick={onBroadcast} className="h-8 text-xs bg-blue-600 hover:bg-blue-500 text-white">
+            <Megaphone className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Broadcast Message</span>
           </Button>
         </div>
       </div>
@@ -144,22 +144,22 @@ function KpiCards({ kpis }: { kpis: any }) {
     amber: "text-amber-400",
   };
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {cards.map((c) => {
         const Icon = c.icon;
         return (
-          <Card key={c.label} className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-10 h-10 rounded-lg border flex items-center justify-center ${iconBg[c.color]}`}>
-                <Icon className="h-5 w-5" />
+          <Card key={c.label} className="sd-card sd-card-pad sd-metric">
+            <div className="flex items-center justify-between mb-2">
+              <div className={`w-9 h-9 rounded-lg border flex items-center justify-center ${iconBg[c.color]}`}>
+                <Icon className="h-4 w-4" />
               </div>
               <div className="text-right">
-                <div className={`text-xs font-semibold ${c.trendColor}`}>{c.trend}</div>
-                <div className="text-muted-foreground text-sm">{c.trendSub}</div>
+                <div className={`text-[10px] font-semibold ${c.trendColor}`}>{c.trend}</div>
+                <div className="text-muted-foreground text-[10px]">{c.trendSub}</div>
               </div>
             </div>
-            <h3 className="text-foreground text-lg font-semibold mb-2">{c.label}</h3>
-            <div className={`text-3xl font-bold tabular-nums ${numberColor[c.color]}`}>{c.value}</div>
+            <h3 className="sd-eyebrow mb-1">{c.label}</h3>
+            <div className={`sd-kpi-value tabular-nums ${numberColor[c.color]}`}>{c.value}</div>
           </Card>
         );
       })}
@@ -175,28 +175,28 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
 }) {
   return (
     <Card className="overflow-hidden" ref={filtersRef as any}>
-      <div className="p-6 border-b border-border">
-        <h3 className="text-foreground text-lg font-semibold flex items-center gap-2">
-          <Search className="h-5 w-5 text-blue-400" />
+      <div className="p-3 border-b border-border">
+        <h3 className="text-foreground text-sm font-semibold flex items-center gap-2">
+          <Search className="h-4 w-4 text-blue-400" />
           Search & Filter Notifications
         </h3>
-        <p className="text-muted-foreground text-sm mt-1">Search by user, notification ID, or transaction reference</p>
+        <p className="text-muted-foreground text-xs mt-0.5">Search by user, notification ID, or transaction reference</p>
       </div>
-      <div className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4">
+      <div className="p-3">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 mb-3">
           <div className="lg:col-span-2">
-            <Label className="text-muted-foreground text-sm font-medium mb-2 block">Search Query</Label>
+            <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Search Query</Label>
             <Input
               placeholder="User email, notification ID, TXN-xxx..."
               value={f.q}
               onChange={(e) => setF({ ...f, q: e.target.value })}
-              className="h-11"
+              className="h-8 text-xs"
             />
           </div>
           <div>
-            <Label className="text-muted-foreground text-sm font-medium mb-2 block">Channel</Label>
+            <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Channel</Label>
             <Select value={f.channel} onValueChange={(v) => setF({ ...f, channel: v })}>
-              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Channels</SelectItem>
                 <SelectItem value="in_app">In-App</SelectItem>
@@ -207,9 +207,9 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
             </Select>
           </div>
           <div>
-            <Label className="text-muted-foreground text-sm font-medium mb-2 block">Status</Label>
+            <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Status</Label>
             <Select value={f.status} onValueChange={(v) => setF({ ...f, status: v })}>
-              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="sent">Delivered</SelectItem>
@@ -220,9 +220,9 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
             </Select>
           </div>
           <div>
-            <Label className="text-muted-foreground text-sm font-medium mb-2 block">Type</Label>
+            <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Type</Label>
             <Select value={f.type} onValueChange={(v) => setF({ ...f, type: v })}>
-              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="payment_update">Payment</SelectItem>
@@ -235,25 +235,25 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
             </Select>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Button
             onClick={onSearch}
-            className="px-6 h-11 bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+            className="px-4 h-8 text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold"
           >
-            <Search className="h-4 w-4" /> Search Notifications
+            <Search className="h-3.5 w-3.5" /> Search Notifications
           </Button>
           <Button
             variant="secondary"
             onClick={onClear}
-            className="px-6 h-11 font-semibold"
+            className="px-4 h-8 text-xs font-semibold"
           >
             Clear Filters
           </Button>
           <Button
             onClick={() => setF({ ...f, failedOnly: !f.failedOnly })}
-            className={`px-6 h-11 font-semibold text-white ${f.failedOnly ? "bg-amber-700 hover:bg-amber-800" : "bg-amber-600 hover:bg-amber-700"}`}
+            className={`px-4 h-8 text-xs font-semibold text-white ${f.failedOnly ? "bg-amber-700 hover:bg-amber-800" : "bg-amber-600 hover:bg-amber-700"}`}
           >
-            <Filter className="h-4 w-4" /> Failed Only
+            <Filter className="h-3.5 w-3.5" /> Failed Only
           </Button>
         </div>
       </div>
@@ -269,34 +269,34 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
   const navigate = useNavigate();
   return (
     <Card className="overflow-hidden">
-      <div className="p-6 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-3 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
         <div>
-          <h3 className="text-foreground text-lg font-semibold flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-red-400" />
+          <h3 className="text-foreground text-sm font-semibold flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-red-400" />
             Failed Deliveries & Retry Queue
             {rows.length > 0 && (
-              <span className="rounded bg-red-500/10 border border-red-500/20 px-2 py-0.5 text-xs text-red-400">{rows.length}</span>
+              <span className="rounded bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 text-[10px] text-red-400">{rows.length}</span>
             )}
           </h3>
-          <p className="text-muted-foreground text-sm mt-1">Notifications requiring attention or manual retry</p>
+          <p className="text-muted-foreground text-xs mt-0.5">Notifications requiring attention or manual retry</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
             onClick={onRetryAll}
             disabled={!rows.some((r) => r.retriable)}
-            className="px-4 h-10 bg-amber-600 hover:bg-amber-700 text-white font-medium"
+            className="px-3 h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium"
           >
-            <RotateCw className="h-4 w-4" /> Retry All Failed
+            <RotateCw className="h-3.5 w-3.5" /> Retry All Failed
           </Button>
-          <Button variant="secondary" onClick={onExport} className="px-4 h-10 font-medium">
-            <Download className="h-4 w-4" /> Export Log
+          <Button variant="secondary" onClick={onExport} className="px-3 h-8 text-xs font-medium">
+            <Download className="h-3.5 w-3.5" /> Export Log
           </Button>
         </div>
       </div>
       {!rows.length ? (
-        <div className="p-10 text-center text-sm text-muted-foreground">
-          <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-400" />
-          <div className="mt-2 font-medium text-foreground">No failed deliveries</div>
+        <div className="p-8 text-center text-xs text-muted-foreground">
+          <CheckCircle2 className="mx-auto h-7 w-7 text-emerald-400" />
+          <div className="mt-2 font-medium text-foreground text-sm">No failed deliveries</div>
           <div className="mt-1">All notifications delivered successfully in the last 24h.</div>
         </div>
       ) : (
@@ -304,13 +304,13 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
           <table className="w-full">
             <thead className="bg-muted/40">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Failure Reason</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Retry Status</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quick Actions</th>
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">User</th>
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Failure Reason</th>
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Retry Status</th>
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Quick Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -318,7 +318,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                 const exhausted = r.attempt_count >= 3 || !r.retriable;
                 return (
                   <tr key={r.delivery_id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
                           {r.user?.avatar_url
@@ -326,7 +326,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                             : <User className="h-4 w-4 text-muted-foreground" />}
                         </div>
                         <div className="min-w-0">
-                          <div className="text-sm font-medium text-foreground truncate">{r.user?.email ?? r.user?.full_name ?? "Unknown"}</div>
+                          <div className="text-xs font-medium text-foreground truncate">{r.user?.email ?? r.user?.full_name ?? "Unknown"}</div>
                           <div className="text-xs text-muted-foreground">
                             {r.user ? (
                               <button
@@ -340,18 +340,18 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
-                    <td className="px-6 py-4 whitespace-nowrap"><TypePill type={r.type} /></td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-2 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
+                    <td className="px-3 py-2 whitespace-nowrap"><TypePill type={r.type} /></td>
+                    <td className="px-3 py-2">
                       <div className="flex items-start gap-1.5">
                         <AlertCircle className="h-3.5 w-3.5 text-red-400 mt-0.5 shrink-0" />
                         <div className="min-w-0">
-                          <div className="text-sm text-red-300 truncate max-w-[240px]">{r.provider_response ?? "Unknown error"}</div>
+                          <div className="text-xs text-red-300 truncate max-w-[240px]">{r.provider_response ?? "Unknown error"}</div>
                           <div className="text-xs text-muted-foreground mt-0.5">Attempt {r.attempt_count} of 3</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2 whitespace-nowrap">
                       {exhausted ? (
                         <span className="px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold rounded flex items-center gap-1.5 w-fit">
                           <XCircle className="h-3 w-3" /> Failed {r.attempt_count}/3
@@ -362,14 +362,14 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{formatRelative(r.failed_at)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">{formatRelative(r.failed_at)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">
                       <div className="flex items-center gap-2 flex-wrap">
                         {r.user && (
                           <button
                             onClick={() => navigate(`/admin/users/${r.user!.id}`)}
                             title="View User Profile"
-                            className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1.5"
+                            className="px-2 py-1 bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 rounded text-[11px] font-semibold transition-all flex items-center gap-1"
                           >
                             <User className="h-3 w-3" /> User
                           </button>
@@ -378,7 +378,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           <button
                             onClick={() => navigate(`/admin/disputes/${r.dispute_id}`)}
                             title={`View Dispute ${shortDisId(r.dispute_id)}`}
-                            className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1.5"
+                            className="px-2 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 rounded text-[11px] font-semibold transition-all flex items-center gap-1"
                           >
                             <Scale className="h-3 w-3" /> {shortDisId(r.dispute_id)}
                           </button>
@@ -387,7 +387,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           <button
                             onClick={() => navigate(`/admin/transactions/${r.transaction!.id}`)}
                             title={`View Transaction ${shortTxnCode(r.transaction)}`}
-                            className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1.5"
+                            className="px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded text-[11px] font-semibold transition-all flex items-center gap-1"
                           >
                             <Receipt className="h-3 w-3" /> {shortTxnCode(r.transaction)}
                           </button>
@@ -396,14 +396,14 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           onClick={() => r.retriable && onRetry(r.delivery_id)}
                           disabled={!r.retriable || retrying === r.delivery_id}
                           title="Retry Delivery"
-                          className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 rounded text-[11px] font-semibold transition-all flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <RotateCw className={`h-3 w-3 ${retrying === r.delivery_id ? "animate-spin" : ""}`} /> Retry
                         </button>
                         <button
                           onClick={() => onDetails(r)}
                           title="View Details"
-                          className="px-3 py-1.5 bg-muted border border-border text-muted-foreground hover:bg-muted/80 rounded text-xs font-semibold transition-all flex items-center gap-1.5"
+                          className="px-2 py-1 bg-muted border border-border text-muted-foreground hover:bg-muted/80 rounded text-[11px] font-semibold transition-all flex items-center gap-1"
                         >
                           <Info className="h-3 w-3" /> Details
                         </button>
@@ -431,34 +431,34 @@ function DeliveryPerf({ perf }: { perf: any[] }) {
   const rateColor = (rate: number) => (rate >= 95 ? "text-emerald-400" : rate >= 90 ? "text-orange-400" : "text-red-400");
   return (
     <Card className="overflow-hidden">
-      <div className="p-6 border-b border-border">
-        <h3 className="text-foreground text-lg font-semibold">Delivery Performance</h3>
-        <p className="text-muted-foreground text-sm mt-1">Last 24 hours breakdown by channel</p>
+      <div className="p-3 border-b border-border">
+        <h3 className="text-foreground text-sm font-semibold">Delivery Performance</h3>
+        <p className="text-muted-foreground text-xs mt-0.5">Last 24 hours breakdown by channel</p>
       </div>
-      <div className="p-6">
-        <div className="space-y-6">
+      <div className="p-3">
+        <div className="space-y-4">
           {perf.map((p) => {
             const m = meta[p.channel] ?? meta.in_app;
             const Icon = channelIcon(p.channel);
             return (
               <div key={p.channel}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 border rounded-lg flex items-center justify-center ${m.iconBg}`}>
-                      <Icon className={`h-5 w-5 ${m.iconColor}`} />
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-8 h-8 border rounded-lg flex items-center justify-center ${m.iconBg}`}>
+                      <Icon className={`h-4 w-4 ${m.iconColor}`} />
                     </div>
                     <div>
-                      <h4 className="text-foreground font-semibold">{m.name}</h4>
-                      <p className="text-muted-foreground text-sm">{m.sub}</p>
+                      <h4 className="text-foreground text-xs font-semibold">{m.name}</h4>
+                      <p className="text-muted-foreground text-[11px]">{m.sub}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className={`text-2xl font-bold ${m.numberColor}`}>{p.sent.toLocaleString()}</div>
-                    <div className={`text-sm font-semibold ${rateColor(p.rate)}`}>{p.rate}% delivered</div>
+                    <div className={`text-lg font-bold ${m.numberColor}`}>{p.sent.toLocaleString()}</div>
+                    <div className={`text-[11px] font-semibold ${rateColor(p.rate)}`}>{p.rate}% delivered</div>
                   </div>
                 </div>
-                <div className="w-full bg-muted rounded-full h-2 mt-3">
-                  <div className={`${m.barBg} h-2 rounded-full transition-all`} style={{ width: `${p.rate}%` }} />
+                <div className="w-full bg-muted rounded-full h-1.5 mt-2">
+                  <div className={`${m.barBg} h-1.5 rounded-full transition-all`} style={{ width: `${p.rate}%` }} />
                 </div>
               </div>
             );
@@ -491,26 +491,26 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
 
   return (
     <Card className="overflow-hidden">
-      <div className="p-6 border-b border-border">
-        <h3 className="text-foreground text-lg font-semibold flex items-center gap-2">
-          <Megaphone className="h-5 w-5 text-amber-400" />
+      <div className="p-3 border-b border-border">
+        <h3 className="text-foreground text-sm font-semibold flex items-center gap-2">
+          <Megaphone className="h-4 w-4 text-amber-400" />
           Broadcast Message
         </h3>
-        <p className="text-muted-foreground text-sm mt-1">Send system-wide announcements with caution</p>
+        <p className="text-muted-foreground text-xs mt-0.5">Send system-wide announcements with caution</p>
       </div>
-      <div className="p-6 space-y-4">
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-amber-400 mt-0.5 shrink-0" />
+      <div className="p-3 space-y-3">
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 flex items-start gap-2">
+          <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
           <div>
-            <h4 className="text-amber-400 font-semibold text-sm mb-1">Broadcast Caution</h4>
-            <p className="text-amber-300/80 text-xs leading-relaxed">
+            <h4 className="text-amber-400 font-semibold text-xs mb-0.5">Broadcast Caution</h4>
+            <p className="text-amber-300/80 text-[11px] leading-relaxed">
               Messages will be sent to all selected users immediately. Review content carefully before sending. This action cannot be undone.
             </p>
           </div>
         </div>
 
         <div>
-          <Label className="text-muted-foreground text-sm font-medium mb-2 block">
+          <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">
             Message Title <span className="text-red-400">*</span>
           </Label>
           <Input
@@ -519,26 +519,26 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
             maxLength={60}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Scheduled Maintenance Notice"
-            className="h-11"
+            className="h-8 text-xs"
           />
-          <p className="text-muted-foreground/70 text-xs mt-1.5">Keep it clear and actionable (max 60 characters)</p>
+          <p className="text-muted-foreground/70 text-[10px] mt-1">Keep it clear and actionable (max 60 characters)</p>
         </div>
 
         <div>
-          <Label className="text-muted-foreground text-sm font-medium mb-2 block">Message Body</Label>
+          <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Message Body</Label>
           <Textarea
-            rows={4}
+            rows={3}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="We will be performing scheduled maintenance..."
-            className="resize-none"
+            className="resize-none text-xs"
           />
         </div>
 
         <div>
-          <Label className="text-muted-foreground text-sm font-medium mb-2 block">Priority Level</Label>
+          <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Priority Level</Label>
           <Select value={priority} onValueChange={(v) => setPriority(v as any)}>
-            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="low">Low Priority</SelectItem>
               <SelectItem value="normal">Medium Priority</SelectItem>
@@ -549,9 +549,9 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
         </div>
 
         <div>
-          <Label className="text-muted-foreground text-sm font-medium mb-2 block">Target Audience</Label>
+          <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Target Audience</Label>
           <Select value={audience} onValueChange={(v) => setAudience(v as any)}>
-            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Users</SelectItem>
               <SelectItem value="buyers">Active Transactions Only</SelectItem>
@@ -559,16 +559,16 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
               <SelectItem value="sellers">Premium Members</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-muted-foreground/70 text-xs mt-1.5">Respects opt-out preferences · Audit logged</p>
+          <p className="text-muted-foreground/70 text-[10px] mt-1">Respects opt-out preferences · Audit logged</p>
         </div>
 
         <div>
-          <Label className="text-muted-foreground text-sm font-medium mb-2 block">Delivery Channels</Label>
-          <div className="space-y-2">
+          <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Delivery Channels</Label>
+          <div className="space-y-1.5">
             {(["in_app", "email", "sms"] as const).map((c) => (
               <label key={c} className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={channels.includes(c)} onCheckedChange={() => toggleCh(c)} />
-                <span className="text-foreground text-sm">
+                <span className="text-foreground text-xs">
                   {c === "in_app" ? "In-App Notification" : channelLabel(c)}
                 </span>
               </label>
@@ -577,11 +577,11 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
         </div>
 
         <Button
-          className="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+          className="w-full h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold"
           disabled={m.isPending || !title.trim() || !message.trim() || !channels.length}
           onClick={() => m.mutate()}
         >
-          <Send className="h-4 w-4" /> {m.isPending ? "Sending…" : "Send Broadcast"}
+          <Send className="h-3.5 w-3.5" /> {m.isPending ? "Sending…" : "Send Broadcast"}
         </Button>
       </div>
     </Card>
@@ -594,17 +594,17 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
 }) {
   return (
     <Card className="overflow-hidden">
-      <div className="p-6 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-3 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
         <div>
-          <h3 className="text-foreground text-lg font-semibold">Recent Notification Activity</h3>
-          <p className="text-muted-foreground text-sm mt-1">Real-time delivery log with status tracking</p>
+          <h3 className="text-foreground text-sm font-semibold">Recent Notification Activity</h3>
+          <p className="text-muted-foreground text-xs mt-0.5">Real-time delivery log with status tracking</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={onRefresh} className="h-10 font-medium">
-            <RefreshCw className="h-4 w-4" /> Refresh
+          <Button variant="secondary" size="sm" onClick={onRefresh} className="h-8 text-xs font-medium">
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
           </Button>
-          <Button variant="secondary" size="sm" onClick={onFilter} className="h-10 font-medium">
-            <Filter className="h-4 w-4" /> Filter
+          <Button variant="secondary" size="sm" onClick={onFilter} className="h-8 text-xs font-medium">
+            <Filter className="h-3.5 w-3.5" /> Filter
           </Button>
         </div>
       </div>
@@ -612,20 +612,20 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
         <table className="w-full">
           <thead className="bg-muted/40">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Message</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">User</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Message</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((r) => (
               <tr key={r.notification_id} className="hover:bg-muted/30 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{formatRelative(r.created_at)}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">{formatRelative(r.created_at)}</td>
+                <td className="px-3 py-2 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
                       {r.user?.avatar_url
@@ -633,21 +633,21 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
                         : <User className="h-4 w-4 text-muted-foreground" />}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-foreground truncate">{r.user?.email ?? r.user?.full_name ?? "—"}</div>
+                      <div className="text-xs font-medium text-foreground truncate">{r.user?.email ?? r.user?.full_name ?? "—"}</div>
                       <div className="text-xs text-muted-foreground">ID: {shortUsrId(r.user?.id)}</div>
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap"><TypePill type={r.type} /></td>
-                <td className="px-6 py-4 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
-                <td className="px-6 py-4 text-sm text-foreground max-w-xs truncate">{r.title}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-2 whitespace-nowrap"><TypePill type={r.type} /></td>
+                <td className="px-3 py-2 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
+                <td className="px-3 py-2 text-xs text-foreground max-w-xs truncate">{r.title}</td>
+                <td className="px-3 py-2 whitespace-nowrap">
                   <span className={`px-2 py-1 border text-xs font-semibold rounded flex items-center gap-1.5 w-fit ${statusPill(r.status)}`}>
                     {r.status === "failed" ? <XCircle className="h-3 w-3" /> : (r.status === "pending" || r.status === "retrying") ? <Clock className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
                     {statusLabel(r.status)}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                <td className="px-3 py-2 whitespace-nowrap text-sm">
                   <button className="text-blue-400 hover:text-blue-300" title="View">
                     <Eye className="h-4 w-4" />
                   </button>
@@ -771,17 +771,17 @@ export default function AdminNotifications() {
         />
       }
     >
-      <div className="mx-auto w-full max-w-[1400px] space-y-5 px-4 py-5 sm:px-6 lg:px-8">
+      <div className="sd-page sd-page-y sd-section-y">
         {isLoading && (
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
-            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-36" />)}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
           </div>
         )}
         {isError && (
-          <Card className="p-6 text-center">
-            <p className="text-sm text-muted-foreground">Failed to load notifications.</p>
-            <Button variant="outline" size="sm" className="mt-3" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4" /> Retry
+          <Card className="p-4 text-center">
+            <p className="text-xs text-muted-foreground">Failed to load notifications.</p>
+            <Button variant="outline" size="sm" className="mt-3 h-8 text-xs" onClick={() => refetch()}>
+              <RefreshCw className="h-3.5 w-3.5" /> Retry
             </Button>
           </Card>
         )}
@@ -803,7 +803,7 @@ export default function AdminNotifications() {
               onExport={handleExportFailed}
               onDetails={(r) => setDetails(r)}
             />
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
               <div className="xl:col-span-2">
                 <DeliveryPerf perf={data.delivery_performance} />
               </div>
