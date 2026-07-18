@@ -363,7 +363,7 @@ Deno.serve(async (req) => {
         transaction_id: transactionId,
         delivery_method: primaryDeliveryMethod,
         expected_delivery_date: expectedDeliveryDate,
-        verification_window_hours: product.verification_window_hours || 48,
+        verification_window_hours: verificationWindowHours,
         delivery_address_line1: needsAddress ? (buyerAddress?.line1 ?? null) : null,
         delivery_address_line2: needsAddress ? (buyerAddress?.line2 ?? null) : null,
         delivery_city: needsAddress ? (buyerAddress?.city ?? null) : null,
