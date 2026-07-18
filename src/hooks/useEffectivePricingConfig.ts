@@ -22,6 +22,10 @@ function parseConfig(raw: Record<string, unknown>): PricingConfigOverride {
 }
 
 async function fetchOne(vendorId: string): Promise<PricingConfigOverride> {
+  // Feature flag: one-flip rollback to platform defaults without redeploy.
+  if (String(import.meta.env.VITE_SETTINGS_RESOLVER_ENABLED ?? "true").toLowerCase() === "false") {
+    return {};
+  }
   if (cache.has(vendorId)) return cache.get(vendorId)!;
   if (inflight.has(vendorId)) return inflight.get(vendorId)!;
   const p = (async () => {
