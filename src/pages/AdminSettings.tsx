@@ -667,15 +667,27 @@ function TimeoutRow({
 }
 
 function FeeField({
-  label, value, onChange, help, prefix, suffix,
-}: { label: string; value: string; onChange: (v: string) => void; help?: string; prefix?: string; suffix?: string }) {
+  label, value, onChange, help, prefix, suffix, locked,
+}: { label: string; value: string; onChange: (v: string) => void; help?: string; prefix?: string; suffix?: string; locked?: boolean }) {
   return (
-    <div className="p-3 bg-muted/30 border border-border rounded-lg">
-      <label className="text-xs font-medium text-foreground">{label}</label>
+    <div className={`p-3 bg-muted/30 border border-border rounded-lg ${locked ? "opacity-60" : ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <label className="text-xs font-medium text-foreground">{label}</label>
+        {locked && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Platform-only</span>
+        )}
+      </div>
       {help && <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">{help}</p>}
       <div className="flex items-center gap-1.5">
         {prefix && <span className="text-muted-foreground text-xs">{prefix}</span>}
-        <NumInput value={value} onChange={onChange} className="flex-1" />
+        <input
+          type="number"
+          value={value}
+          readOnly={locked}
+          disabled={locked}
+          onChange={(e) => onChange(e.target.value)}
+          className={`flex-1 h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/40 ${locked ? "cursor-not-allowed" : ""}`}
+        />
         {suffix && <span className="text-muted-foreground text-xs">{suffix}</span>}
       </div>
     </div>
