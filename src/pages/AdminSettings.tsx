@@ -220,14 +220,17 @@ export default function AdminSettings() {
   const [autoReleaseOn, setAutoReleaseOn] = useState(true);
   const [emailOn, setEmailOn] = useState(true);
   const [smsOn, setSmsOn] = useState(false);
-  const [hvAlert, setHvAlert] = useState("10000");
+  const [hvAlert, setHvAlert] = useState("500000");
   const [fraudScore, setFraudScore] = useState("75");
 
   // Security
   const [idRequired, setIdRequired] = useState(true);
-  const [idThreshold, setIdThreshold] = useState("5000");
+  const [idThreshold, setIdThreshold] = useState("100000");
   const [sessionTimeout, setSessionTimeout] = useState("30");
   const [twoFA, setTwoFA] = useState(true);
+
+  // Meta for the auto-release toggle: who flipped it and when (stamped by DB trigger).
+  const [autoReleaseMeta, setAutoReleaseMeta] = useState<{ enabled_by: string | null; enabled_at: string | null } | null>(null);
 
   const setStr = (fn: (v: string) => void) => (v: string) => { fn(v); mark(); };
   const setBool = (fn: (v: boolean) => void) => (v: boolean) => { fn(v); mark(); };
@@ -258,13 +261,21 @@ export default function AdminSettings() {
         const num = (v: unknown, d: string) => (v == null ? d : String(v));
         if (byKey["pricing.min_platform_fee_ngn"] != null) setMinFee(num(byKey["pricing.min_platform_fee_ngn"], "250"));
         if (byKey["pricing.max_total_service_fee_ngn"] != null) setFeeCap(num(byKey["pricing.max_total_service_fee_ngn"], "2500"));
-        if (byKey["security.id_verification_threshold"] != null) setIdThreshold(num(byKey["security.id_verification_threshold"], "5000"));
+        if (byKey["security.id_verification_threshold"] != null) setIdThreshold(num(byKey["security.id_verification_threshold"], "100000"));
+        if (byKey["risk.high_value_alert_ngn"] != null) setHvAlert(num(byKey["risk.high_value_alert_ngn"], "500000"));
         if (byKey["security.require_id_verification"] != null) setIdRequired(Boolean(byKey["security.require_id_verification"]));
         if (byKey["security.session_timeout_minutes"] != null) setSessionTimeout(num(byKey["security.session_timeout_minutes"], "30"));
         if (byKey["security.two_factor_admin"] != null) setTwoFA(Boolean(byKey["security.two_factor_admin"]));
         if (byKey["notifications.email_enabled"] != null) setEmailOn(Boolean(byKey["notifications.email_enabled"]));
         if (byKey["notifications.sms_enabled"] != null) setSmsOn(Boolean(byKey["notifications.sms_enabled"]));
         if (byKey["escrow.auto_release_enabled"] != null) setAutoReleaseOn(Boolean(byKey["escrow.auto_release_enabled"]));
+        // Capture audit meta for the effective auto-release row.
+        const arRow = (payload.settings ?? []).find((r) => {
+          if (r.setting_key !== "escrow.auto_release_enabled") return false;
+          if (scope === "vendor") return r.scope === "vendor" && r.vendor_id === vendorId;
+          return r.scope === "platform";
+        });
+        setAutoReleaseMeta(arRow ? { enabled_by: (arRow as any).auto_release_enabled_by ?? null, enabled_at: (arRow as any).auto_release_enabled_at ?? null } : null);
         // Timeouts (hours)
         (payload.timeouts ?? []).forEach((t) => {
           const match = scope === "vendor"
@@ -322,6 +333,7 @@ export default function AdminSettings() {
       "notifications.sms_enabled": smsOn,
       "escrow.auto_release_enabled": autoReleaseOn,
       "fees.refund_policy": refundPolicy,
+      "risk.high_value_alert_ngn": Number(hvAlert),
     };
     // In vendor scope, strip keys the platform marked non-overridable AND
     // any key the catalog declares as not writable at the vendor scope
