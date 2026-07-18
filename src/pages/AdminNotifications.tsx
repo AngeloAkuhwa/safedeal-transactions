@@ -23,6 +23,7 @@ import {
   type AdminNotifFailedRow, type AdminNotifRecentRow, type BroadcastPayload,
 } from "@/services/admin-notifications.service";
 import { useRealtimeAdminNotifications } from "@/hooks/useRealtimeAdminNotifications";
+import { useOnlinePresence } from "@/hooks/useOnlinePresence";
 
 // ---------- helpers ----------
 const channelIcon = (ch: string) => {
@@ -77,6 +78,14 @@ const ChannelCell = ({ ch }: { ch: string }) => {
     </div>
   );
 };
+/** Small inline online/offline dot for table rows (no absolute positioning). */
+const InlineDot = ({ online }: { online: boolean }) => (
+  <span
+    title={online ? "Online now" : "Offline"}
+    aria-label={online ? "Online now" : "Offline"}
+    className={`inline-block h-2 w-2 rounded-full shrink-0 ${online ? "bg-emerald-500" : "bg-slate-500/60"}`}
+  />
+);
 const shortUsrId = (id?: string | null) =>
   id ? `USR-${id.replace(/-/g, "").slice(0, 5).toUpperCase()}` : "USR-—";
 const shortTxnCode = (t: { code: string | null; id: string } | null) =>
@@ -283,6 +292,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
   retrying: string | null; onExport: () => void; onDetails: (r: AdminNotifFailedRow) => void;
 }) {
   const navigate = useNavigate();
+  const { isOnline } = useOnlinePresence();
   return (
     <Card className="overflow-hidden">
       <div className="p-3 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
@@ -342,7 +352,10 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                             : <User className="h-4 w-4 text-muted-foreground" />}
                         </div>
                         <div className="min-w-0">
-                          <div className="text-xs font-medium text-foreground truncate">{r.user?.email ?? r.user?.full_name ?? "Unknown"}</div>
+                          <div className="text-xs font-medium text-foreground truncate flex items-center gap-1.5">
+                            {r.user?.id && <InlineDot online={isOnline(r.user.id)} />}
+                            <span className="truncate">{r.user?.email ?? r.user?.full_name ?? "Unknown"}</span>
+                          </div>
                           <div className="text-xs text-muted-foreground">
                             {r.user ? (
                               <button
