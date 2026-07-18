@@ -36,12 +36,21 @@ Deno.serve(async (req) => {
     // Get seller profile
     const { data: seller, error: sellerError } = await adminClient
       .from("profiles")
-      .select("id, full_name, avatar_url, store_slug")
+      .select("id, full_name, avatar_url, store_slug, vendor_status, vendor_status_reason")
       .eq("store_slug", sellerSlug)
       .single();
 
     if (sellerError || !seller) {
       return jsonResponse({ error: "Store not found" }, 404);
+    }
+
+    // Hide storefronts of disabled/suspended vendors
+    if ((seller as any).vendor_status && (seller as any).vendor_status !== "active") {
+      return jsonResponse({
+        error: "vendor_unavailable",
+        vendor_status: (seller as any).vendor_status,
+        reason: (seller as any).vendor_status_reason ?? "This store is currently unavailable.",
+      }, 403);
     }
 
     // Get seller verification level
