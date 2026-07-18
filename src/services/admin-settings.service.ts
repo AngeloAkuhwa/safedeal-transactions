@@ -131,3 +131,21 @@ export async function fetchSettingsAudit(limit = 20): Promise<SettingsAuditRow[]
     target_name: r.target_user_id ? nameById.get(r.target_user_id) ?? null : null,
   }));
 }
+
+/**
+ * Update a vendor's active/disabled/suspended status. Recorded to
+ * admin_actions with a `set_vendor_status` audit row.
+ */
+export async function setVendorStatus(input: {
+  vendor_id: string;
+  status: "active" | "disabled" | "suspended";
+  reason: string;
+}): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-vendor-status`, {
+    method: "POST",
+    headers: await authHeader(),
+    body: JSON.stringify(input),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "vendor_status_update_failed");
+}

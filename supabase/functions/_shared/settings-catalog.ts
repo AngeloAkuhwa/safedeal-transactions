@@ -26,6 +26,10 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
   { key: "notifications.sms_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
   { key: "escrow.auto_release_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
   { key: "risk.high_value_alert_ngn", writable: ["platform", "vendor"], spec: { type: "number", min: 1000, max: 50_000_000 } },
+  { key: "commerce.checkout_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
+  { key: "commerce.add_to_cart_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
+  // commerce.disabled_reason is a free-text string; it intentionally has no
+  // catalog entry so writes at any scope pass through unclamped.
 ];
 
 const BY_KEY = new Map(SETTINGS_CATALOG.map((e) => [e.key, e]));

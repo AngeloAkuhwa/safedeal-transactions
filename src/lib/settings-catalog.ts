@@ -119,6 +119,20 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
     spec: { type: "number", min: 1000, max: 50_000_000, step: 1000, unit: "NGN" },
     writable: ["platform", "vendor"],
   },
+  {
+    key: "commerce.checkout_enabled",
+    label: "Checkout enabled",
+    help: "Master kill switch for payments and full checkout. When OFF, buyers can browse and set up accounts but cannot pay.",
+    spec: { type: "boolean" },
+    writable: ["platform", "vendor"],
+  },
+  {
+    key: "commerce.add_to_cart_enabled",
+    label: "Add-to-cart enabled",
+    help: "When OFF, products cannot be added to cart. Useful when preparing to fully close commerce.",
+    spec: { type: "boolean" },
+    writable: ["platform", "vendor"],
+  },
 ];
 
 export const CATALOG_BY_KEY: Record<string, CatalogEntry> = Object.fromEntries(

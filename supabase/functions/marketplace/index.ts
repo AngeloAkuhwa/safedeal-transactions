@@ -98,18 +98,34 @@ Deno.serve(async (req) => {
     // Collect unique seller IDs
     const sellerIds = [...new Set((products || []).map((p: any) => p.seller_id))];
 
+    // Filter out products whose seller is disabled/suspended
+    let activeSellerIdSet = new Set<string>(sellerIds as string[]);
+    if (sellerIds.length > 0) {
+      const { data: statusRows } = await adminClient
+        .from("profiles")
+        .select("id, vendor_status")
+        .in("id", sellerIds);
+      activeSellerIdSet = new Set(
+        (statusRows || [])
+          .filter((r: any) => (r.vendor_status ?? "active") === "active")
+          .map((r: any) => r.id),
+      );
+    }
+    const filteredProducts = (products || []).filter((p: any) => activeSellerIdSet.has(p.seller_id));
+
     // Fetch seller profiles + verification in one go
     let sellerMap: Record<string, any> = {};
-    if (sellerIds.length > 0) {
+    const activeSellerIds = Array.from(activeSellerIdSet);
+    if (activeSellerIds.length > 0) {
       const { data: sellers } = await adminClient
         .from("profiles")
         .select("id, full_name, store_slug, avatar_url")
-        .in("id", sellerIds);
+        .in("id", activeSellerIds);
 
       const { data: verifications } = await adminClient
         .from("account_verifications")
         .select("user_id, verification_level, email_verified, phone_verified, identity_verified")
-        .in("user_id", sellerIds);
+        .in("user_id", activeSellerIds);
 
       const verificationMap: Record<string, any> = {};
       (verifications || []).forEach((v: any) => {
@@ -164,7 +180,7 @@ Deno.serve(async (req) => {
     }
 
     // Shape response — public-safe data only
-    const shaped = (products || []).map((p: any) => {
+    const shaped = filteredProducts.map((p: any) => {
       const primaryMedia = (p.product_media || []).find((m: any) => m.is_primary);
       const firstMedia = primaryMedia || (p.product_media || [])[0];
       const primaryImageUrl = firstMedia?.files?.file_url || null;

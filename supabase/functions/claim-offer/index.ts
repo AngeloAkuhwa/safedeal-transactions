@@ -5,6 +5,7 @@ import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
 import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
 import { checkIdVerificationRequirement } from "../_shared/security-resolver.ts";
+import { checkCheckoutAllowed } from "../_shared/commerce-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -311,6 +312,17 @@ async function createTransactionFromOffer(adminClient: any, offer: any, buyerId:
   const verificationWindow = firstProduct?.verification_window_hours
     || await loadEffectiveTimeoutHours(offer.seller_id, "buyer_verification_timeout", 72);
   const currencyCode = items[0].currency_code || firstProduct?.currency_code || "NGN";
+
+  // Commerce gate: platform kill switch + vendor active check
+  {
+    const gate = await checkCheckoutAllowed(offer.seller_id);
+    if (gate) {
+      const err: any = new Error("checkout_not_allowed");
+      err.__httpStatus = gate.status;
+      err.__httpBody = gate.body;
+      throw err;
+    }
+  }
 
   const totalAmount = items.reduce((sum, it) => sum + (Number(it.unit_price_snapshot) * (it.quantity || 1)), 0);
   const vendorConfig = await loadPricingConfig(offer.seller_id);

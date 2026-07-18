@@ -177,6 +177,12 @@ Deno.serve(async (req) => {
         return json({ error: "Cannot add your own product to cart" }, 400);
       }
 
+      // Commerce gate: platform + vendor add-to-cart kill switch,
+      // and disabled/suspended vendors are blocked.
+      const { checkAddToCartAllowed } = await import("../_shared/commerce-gate.ts");
+      const gate = await checkAddToCartAllowed(product.seller_id);
+      if (gate) return json(gate.body, gate.status);
+
       const available = product.stock_quantity - product.reserved_quantity;
       if (quantity > available) {
         return json({ error: `Only ${available} units available` }, 400);

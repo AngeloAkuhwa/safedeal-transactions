@@ -3,6 +3,7 @@ import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
 import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
 import { checkIdVerificationRequirement } from "../_shared/security-resolver.ts";
+import { checkCheckoutAllowed } from "../_shared/commerce-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -158,6 +159,10 @@ Deno.serve(async (req) => {
     if (product.seller_id === buyerId) {
       return jsonResponse({ error: "You cannot purchase your own product" }, 400);
     }
+
+    // Commerce gate: platform kill switch + vendor active check
+    const gate = await checkCheckoutAllowed(product.seller_id);
+    if (gate) return jsonResponse(gate.body, gate.status);
 
     // Fetch seller profile
     const { data: sellerProfile } = await adminClient

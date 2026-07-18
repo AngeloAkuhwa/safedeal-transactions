@@ -3,6 +3,7 @@ import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
 import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
 import { checkIdVerificationRequirement } from "../_shared/security-resolver.ts";
+import { checkCheckoutAllowed } from "../_shared/commerce-gate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -111,6 +112,13 @@ Deno.serve(async (req) => {
       const available = product.stock_quantity - product.reserved_quantity;
       if (ci.quantity > available) {
         errors.push({ product_id: ci.product_id, error: available > 0 ? `Only ${available} available` : "Sold out" }); continue;
+      }
+
+      // Commerce gate: platform kill switch + vendor active check (per item / seller)
+      const gate = await checkCheckoutAllowed(product.seller_id);
+      if (gate) {
+        errors.push({ product_id: ci.product_id, error: String(gate.body.reason ?? "Checkout not available") });
+        continue;
       }
 
       // Validate delivery selection per item
