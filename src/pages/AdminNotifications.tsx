@@ -491,26 +491,26 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
 
   return (
     <Card className="overflow-hidden">
-      <div className="p-6 border-b border-border">
-        <h3 className="text-foreground text-lg font-semibold flex items-center gap-2">
-          <Megaphone className="h-5 w-5 text-amber-400" />
+      <div className="p-3 border-b border-border">
+        <h3 className="text-foreground text-sm font-semibold flex items-center gap-2">
+          <Megaphone className="h-4 w-4 text-amber-400" />
           Broadcast Message
         </h3>
-        <p className="text-muted-foreground text-sm mt-1">Send system-wide announcements with caution</p>
+        <p className="text-muted-foreground text-xs mt-0.5">Send system-wide announcements with caution</p>
       </div>
-      <div className="p-6 space-y-4">
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-amber-400 mt-0.5 shrink-0" />
+      <div className="p-3 space-y-3">
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 flex items-start gap-2">
+          <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
           <div>
-            <h4 className="text-amber-400 font-semibold text-sm mb-1">Broadcast Caution</h4>
-            <p className="text-amber-300/80 text-xs leading-relaxed">
+            <h4 className="text-amber-400 font-semibold text-xs mb-0.5">Broadcast Caution</h4>
+            <p className="text-amber-300/80 text-[11px] leading-relaxed">
               Messages will be sent to all selected users immediately. Review content carefully before sending. This action cannot be undone.
             </p>
           </div>
         </div>
 
         <div>
-          <Label className="text-muted-foreground text-sm font-medium mb-2 block">
+          <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">
             Message Title <span className="text-red-400">*</span>
           </Label>
           <Input
@@ -521,22 +521,22 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
             placeholder="e.g. Scheduled Maintenance Notice"
             className="h-8 text-xs"
           />
-          <p className="text-muted-foreground/70 text-xs mt-1.5">Keep it clear and actionable (max 60 characters)</p>
+          <p className="text-muted-foreground/70 text-[10px] mt-1">Keep it clear and actionable (max 60 characters)</p>
         </div>
 
         <div>
-          <Label className="text-muted-foreground text-sm font-medium mb-2 block">Message Body</Label>
+          <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Message Body</Label>
           <Textarea
-            rows={4}
+            rows={3}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="We will be performing scheduled maintenance..."
-            className="resize-none"
+            className="resize-none text-xs"
           />
         </div>
 
         <div>
-          <Label className="text-muted-foreground text-sm font-medium mb-2 block">Priority Level</Label>
+          <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Priority Level</Label>
           <Select value={priority} onValueChange={(v) => setPriority(v as any)}>
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -549,7 +549,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
         </div>
 
         <div>
-          <Label className="text-muted-foreground text-sm font-medium mb-2 block">Target Audience</Label>
+          <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Target Audience</Label>
           <Select value={audience} onValueChange={(v) => setAudience(v as any)}>
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -559,16 +559,16 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
               <SelectItem value="sellers">Premium Members</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-muted-foreground/70 text-xs mt-1.5">Respects opt-out preferences · Audit logged</p>
+          <p className="text-muted-foreground/70 text-[10px] mt-1">Respects opt-out preferences · Audit logged</p>
         </div>
 
         <div>
-          <Label className="text-muted-foreground text-sm font-medium mb-2 block">Delivery Channels</Label>
-          <div className="space-y-2">
+          <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Delivery Channels</Label>
+          <div className="space-y-1.5">
             {(["in_app", "email", "sms"] as const).map((c) => (
               <label key={c} className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={channels.includes(c)} onCheckedChange={() => toggleCh(c)} />
-                <span className="text-foreground text-sm">
+                <span className="text-foreground text-xs">
                   {c === "in_app" ? "In-App Notification" : channelLabel(c)}
                 </span>
               </label>
@@ -577,11 +577,11 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
         </div>
 
         <Button
-          className="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+          className="w-full h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold"
           disabled={m.isPending || !title.trim() || !message.trim() || !channels.length}
           onClick={() => m.mutate()}
         >
-          <Send className="h-4 w-4" /> {m.isPending ? "Sending…" : "Send Broadcast"}
+          <Send className="h-3.5 w-3.5" /> {m.isPending ? "Sending…" : "Send Broadcast"}
         </Button>
       </div>
     </Card>
