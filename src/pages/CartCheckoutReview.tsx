@@ -14,6 +14,7 @@ import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfigs } from "@/hooks/useEffectivePricingConfig";
+import { useCommerceGate } from "@/hooks/useCommerceGate";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatMoney } from "@/lib/format";
 import { PricingBreakdown } from "@/components/payment/PricingBreakdown";
@@ -106,6 +107,9 @@ const CartCheckoutReview = () => {
   const toggleBreakdown = (sellerId: string) => {
     setOpenBreakdowns((prev) => ({ ...prev, [sellerId]: !prev[sellerId] }));
   };
+
+  const gate = useCommerceGate();
+  const gateBlocked = !gate.loading && !gate.checkoutEnabled;
 
   if (!sessionId) {
     return (
