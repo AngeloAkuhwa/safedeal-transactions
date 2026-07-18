@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 
 interface ThreadMessage {
   id: string;
@@ -55,6 +57,8 @@ export function MessageThread({ transactionId, counterpartyName }: MessageThread
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const currentUserId = useCurrentUserId();
+  const { typingUsers, notifyTyping } = useTypingIndicator(transactionId, currentUserId, "You");
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["transaction-messages", transactionId],
@@ -188,10 +192,15 @@ export function MessageThread({ transactionId, counterpartyName }: MessageThread
       </div>
 
       <div className="border-t border-border p-4 bg-card">
+        {typingUsers.length > 0 && (
+          <div className="mb-2 text-xs text-muted-foreground italic">
+            {counterpartyName} is typing…
+          </div>
+        )}
         <Textarea
           placeholder={`Reply to ${counterpartyName}… (min. 10 characters)`}
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => { setDraft(e.target.value); notifyTyping(); }}
           className="min-h-[80px] resize-none text-sm mb-3"
           disabled={sending}
         />
