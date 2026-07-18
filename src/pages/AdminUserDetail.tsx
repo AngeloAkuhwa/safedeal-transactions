@@ -12,6 +12,8 @@ import {
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { fetchUserDirectoryDetail, exportUserDetail, revealUserSensitiveField, type UserExportType } from "@/services/admin-users-directory.service";
 import { performFlaggedAction } from "@/services/admin-flagged-users.service";
+import { setVendorStatus } from "@/services/admin-settings.service";
+import { supabase } from "@/integrations/supabase/client";
 import { formatMoney, maskEmail, maskPhone } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
