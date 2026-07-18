@@ -90,7 +90,7 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
   const currencyCode = (body.currency_code as string) ?? "NGN";
   const deliveryMethod = (body.delivery_method as string) ?? "courier";
   const expectedDeliveryDate = (body.expected_delivery_date as string) ?? "";
-  const verificationWindowHours = (body.verification_window_hours as number) ?? 72;
+  const verificationWindowHoursRaw = body.verification_window_hours as number | undefined;
   const sellerNotes = (body.seller_notes as string) ?? "";
 
   const isEmail = buyerContact.includes("@");
@@ -146,6 +146,8 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
   const vendorConfig = await loadPricingConfig(userId);
   const pricing = computePricing(price, currencyCode, "local", vendorConfig);
   const snapshot = buildPricingSnapshot(price, currencyCode, vendorConfig);
+  const verificationWindowHours = verificationWindowHoursRaw
+    ?? await loadEffectiveTimeoutHours(userId, "buyer_verification_timeout", 72);
   const fileIds = (body.file_ids as string[]) ?? [];
 
   await Promise.all([
