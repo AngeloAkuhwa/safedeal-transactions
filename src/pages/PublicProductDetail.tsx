@@ -22,6 +22,7 @@ import { useLocation } from "react-router-dom";
 import { useIsProductSaved, useToggleSave } from "@/hooks/useSavedProducts";
 import { formatMoney } from "@/lib/format";
 import { resolveDeliveryMethod, resolveItemCondition } from "@/lib/status-labels";
+import { useCommerceGate } from "@/hooks/useCommerceGate";
 
 const formatPrice = (amount: number, currency: string) => formatMoney(amount, currency);
 
@@ -109,6 +110,8 @@ const PublicProductDetail = () => {
   }
 
   const { product, seller } = data;
+  const gate = useCommerceGate(seller?.id);
+  const gateBlocked = !gate.loading && (!gate.addToCartEnabled || !gate.checkoutEnabled);
   const allMedia = product.media || [];
   const images = allMedia.filter((m: any) => m.media_type === "image");
   const videos = allMedia.filter((m: any) => m.media_type === "video");
