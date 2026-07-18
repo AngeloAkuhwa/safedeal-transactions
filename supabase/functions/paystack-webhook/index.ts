@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
 import { notifyUser, notifyOpsTeam } from "../_shared/notify.ts";
 import { koboToNaira } from "../_shared/money.ts";
+import { emitHighValueFlagIfNeeded } from "../_shared/security-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
