@@ -421,18 +421,25 @@ const StorefrontCheckout = () => {
             </div>
 
             {/* CTA */}
+            {gateBlocked && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{gate.disabledReason}</span>
+              </div>
+            )}
             <Button
               size="lg"
               className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-primary-foreground gap-2 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20"
               onClick={handleConfirm}
-              disabled={isSubmitting}
+              disabled={isSubmitting || gateBlocked}
+              title={gateBlocked ? gate.disabledReason : undefined}
             >
               {isSubmitting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <Lock className="h-5 w-5" />
               )}
-              {isSubmitting ? "Creating Order..." : "Confirm & Continue to Payment"}
+              {isSubmitting ? "Creating Order..." : gateBlocked ? "Checkout unavailable" : "Confirm & Continue to Payment"}
             </Button>
 
             <p className="text-xs text-muted-foreground text-center">
