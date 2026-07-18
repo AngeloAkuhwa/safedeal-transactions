@@ -10,6 +10,10 @@ export interface AdminSettingRow {
   is_overridable: boolean;
   updated_at: string | null;
   updated_by: string | null;
+  /** Populated by DB trigger only for `escrow.auto_release_enabled` rows. */
+  auto_release_enabled_by?: string | null;
+  auto_release_enabled_at?: string | null;
+  auto_release_previous_value?: string | null;
 }
 
 export interface AdminTimeoutRow {
@@ -109,7 +113,7 @@ export async function fetchSettingsAudit(limit = 20): Promise<SettingsAuditRow[]
   const { data, error } = await supabase
     .from("admin_actions")
     .select("id, admin_user_id, target_user_id, action_type, action_notes, created_at")
-    .in("action_type", ["update_setting"])
+    .in("action_type", ["update_setting", "toggle_auto_release"])
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
