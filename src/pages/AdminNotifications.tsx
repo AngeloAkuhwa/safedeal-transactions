@@ -175,17 +175,17 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
 }) {
   return (
     <Card className="overflow-hidden" ref={filtersRef as any}>
-      <div className="p-6 border-b border-border">
-        <h3 className="text-foreground text-lg font-semibold flex items-center gap-2">
-          <Search className="h-5 w-5 text-blue-400" />
+      <div className="p-3 border-b border-border">
+        <h3 className="text-foreground text-sm font-semibold flex items-center gap-2">
+          <Search className="h-4 w-4 text-blue-400" />
           Search & Filter Notifications
         </h3>
-        <p className="text-muted-foreground text-sm mt-1">Search by user, notification ID, or transaction reference</p>
+        <p className="text-muted-foreground text-xs mt-0.5">Search by user, notification ID, or transaction reference</p>
       </div>
-      <div className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4">
+      <div className="p-3">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 mb-3">
           <div className="lg:col-span-2">
-            <Label className="text-muted-foreground text-sm font-medium mb-2 block">Search Query</Label>
+            <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Search Query</Label>
             <Input
               placeholder="User email, notification ID, TXN-xxx..."
               value={f.q}
@@ -194,7 +194,7 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
             />
           </div>
           <div>
-            <Label className="text-muted-foreground text-sm font-medium mb-2 block">Channel</Label>
+            <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Channel</Label>
             <Select value={f.channel} onValueChange={(v) => setF({ ...f, channel: v })}>
               <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -207,7 +207,7 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
             </Select>
           </div>
           <div>
-            <Label className="text-muted-foreground text-sm font-medium mb-2 block">Status</Label>
+            <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Status</Label>
             <Select value={f.status} onValueChange={(v) => setF({ ...f, status: v })}>
               <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -220,7 +220,7 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
             </Select>
           </div>
           <div>
-            <Label className="text-muted-foreground text-sm font-medium mb-2 block">Type</Label>
+            <Label className="text-muted-foreground text-xs font-medium mb-1.5 block">Type</Label>
             <Select value={f.type} onValueChange={(v) => setF({ ...f, type: v })}>
               <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -235,12 +235,12 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
             </Select>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Button
             onClick={onSearch}
             className="px-4 h-8 text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold"
           >
-            <Search className="h-4 w-4" /> Search Notifications
+            <Search className="h-3.5 w-3.5" /> Search Notifications
           </Button>
           <Button
             variant="secondary"
@@ -253,7 +253,7 @@ function FiltersBar({ f, setF, onSearch, onClear, filtersRef }: {
             onClick={() => setF({ ...f, failedOnly: !f.failedOnly })}
             className={`px-4 h-8 text-xs font-semibold text-white ${f.failedOnly ? "bg-amber-700 hover:bg-amber-800" : "bg-amber-600 hover:bg-amber-700"}`}
           >
-            <Filter className="h-4 w-4" /> Failed Only
+            <Filter className="h-3.5 w-3.5" /> Failed Only
           </Button>
         </div>
       </div>
