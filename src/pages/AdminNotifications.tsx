@@ -771,17 +771,17 @@ export default function AdminNotifications() {
         />
       }
     >
-      <div className="mx-auto w-full max-w-[1400px] space-y-5 px-4 py-5 sm:px-6 lg:px-8">
+      <div className="sd-page sd-page-y sd-section-y">
         {isLoading && (
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
-            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-36" />)}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
           </div>
         )}
         {isError && (
-          <Card className="p-6 text-center">
-            <p className="text-sm text-muted-foreground">Failed to load notifications.</p>
-            <Button variant="outline" size="sm" className="mt-3" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4" /> Retry
+          <Card className="p-4 text-center">
+            <p className="text-xs text-muted-foreground">Failed to load notifications.</p>
+            <Button variant="outline" size="sm" className="mt-3 h-8 text-xs" onClick={() => refetch()}>
+              <RefreshCw className="h-3.5 w-3.5" /> Retry
             </Button>
           </Card>
         )}
@@ -803,7 +803,7 @@ export default function AdminNotifications() {
               onExport={handleExportFailed}
               onDetails={(r) => setDetails(r)}
             />
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
               <div className="xl:col-span-2">
                 <DeliveryPerf perf={data.delivery_performance} />
               </div>
