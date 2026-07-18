@@ -13,7 +13,14 @@
 import { computePricing as computeRawPricing, type PricingResult as RawPricing, type PricingConfigOverride } from "./pricing.ts";
 
 export const PRICING_MODEL_VERSION = "NG_MVP_TOTAL_SERVICE_FEE_CAP_2500_V1" as const;
-export const MAX_TOTAL_SERVICE_FEE = 2500;
+/**
+ * Legacy fallback ceiling used only for consumers that lack a persisted
+ * snapshot boolean. Runtime pricing math reads the effective cap from
+ * `PricingConfigOverride` (see `_shared/pricing.ts`), not this constant.
+ */
+export const MAX_TOTAL_SERVICE_FEE_FALLBACK = 2500;
+/** @deprecated Prefer PricingConfigOverride.max_total_service_fee. */
+export const MAX_TOTAL_SERVICE_FEE = MAX_TOTAL_SERVICE_FEE_FALLBACK;
 
 export interface PricingSnapshot {
   /** Item / listing price (₦). */
@@ -108,7 +115,10 @@ export function snapshotFromPersisted(row: {
     total_amount: total,
     seller_payout_amount: sellerPayout,
     currency: row.currency_code ?? "NGN",
-    is_total_service_fee_capped: Boolean(row.is_total_service_fee_capped) || service >= MAX_TOTAL_SERVICE_FEE,
+    // Trust the persisted flag — it was computed against the effective cap
+    // for the vendor at write time. Avoid re-evaluating against a global
+    // constant, which would be wrong for vendors with custom caps.
+    is_total_service_fee_capped: Boolean(row.is_total_service_fee_capped),
     pricing_model_version: (row.pricing_model_version as typeof PRICING_MODEL_VERSION) ?? PRICING_MODEL_VERSION,
   };
 }
