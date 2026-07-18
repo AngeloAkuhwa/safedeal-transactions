@@ -13,6 +13,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useSellerUnreadCounts } from "@/hooks/useSellerUnreadCounts";
 import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
+import { VendorStatusBanner } from "./VendorStatusBanner";
 
 interface SellerNavProps {
   sellerName: string;
@@ -155,6 +156,7 @@ export function SellerNav({ sellerName, avatarUrl }: SellerNavProps) {
           </button>
         </div>
       )}
+      <VendorStatusBanner />
     </header>
   );
 }
