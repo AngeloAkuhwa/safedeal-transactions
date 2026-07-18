@@ -309,7 +309,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
         <div className="flex items-center gap-2">
           <Button
             onClick={onRetryAll}
-            disabled={!rows.some((r) => r.retriable)}
+            disabled={!rows.length}
             className="px-3 h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium"
           >
             <RotateCw className="h-3.5 w-3.5" /> Retry All Failed
@@ -341,7 +341,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
             </thead>
             <tbody className="divide-y divide-border">
               {rows.map((r) => {
-                const exhausted = r.attempt_count >= 3 || !r.retriable;
+                const exhausted = false;
                 return (
                   <tr key={r.delivery_id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-3 py-2 whitespace-nowrap">
