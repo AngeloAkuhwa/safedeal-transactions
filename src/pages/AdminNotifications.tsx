@@ -422,8 +422,8 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           </button>
                         )}
                         <button
-                          onClick={() => r.retriable && onRetry(r.delivery_id)}
-                          disabled={!r.retriable || retrying === r.delivery_id}
+                          onClick={() => onRetry(r.delivery_id)}
+                          disabled={retrying === r.delivery_id}
                           title="Retry Delivery"
                           className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 rounded text-[11px] font-semibold transition-all flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
