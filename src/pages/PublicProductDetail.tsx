@@ -78,6 +78,8 @@ const PublicProductDetail = () => {
   const productId = data?.product?.id;
   const { data: isSaved } = useIsProductSaved(productId);
   const toggleSave = useToggleSave();
+  const gate = useCommerceGate(data?.seller?.id);
+  const gateBlocked = !gate.loading && (!gate.addToCartEnabled || !gate.checkoutEnabled);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: sessData }) => {
@@ -110,8 +112,6 @@ const PublicProductDetail = () => {
   }
 
   const { product, seller } = data;
-  const gate = useCommerceGate(seller?.id);
-  const gateBlocked = !gate.loading && (!gate.addToCartEnabled || !gate.checkoutEnabled);
   const allMedia = product.media || [];
   const images = allMedia.filter((m: any) => m.media_type === "image");
   const videos = allMedia.filter((m: any) => m.media_type === "video");
