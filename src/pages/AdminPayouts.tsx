@@ -16,6 +16,8 @@ import { PayoutPromptDialog } from "@/components/admin/payouts/PayoutPromptDialo
 import * as payoutsApi from "@/services/admin-payouts.service";
 import type { PayoutRow, PayoutDetail, PayoutSummary, PayoutTab, PayoutListResponse } from "@/services/admin-payouts.service";
 import { exportPayoutsCsv } from "@/lib/payout-export";
+import { fetchAdminSettings } from "@/services/admin-settings.service";
+import { Info } from "lucide-react";
 
 const SIDEBAR_BADGES = { disputes: 0, identity: 0, payouts: 0, flagged_users: 0, exports: 0 } as const;
 
@@ -57,6 +59,19 @@ export default function AdminPayouts() {
   const [noteFor, setNoteFor] = useState<PayoutRow | null>(null);
   const [blockFor, setBlockFor] = useState<{ row: PayoutRow; pause: boolean } | null>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [autoReleaseOn, setAutoReleaseOn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const payload = await fetchAdminSettings(null);
+        const row = (payload.settings ?? []).find(
+          (r) => r.setting_key === "escrow.auto_release_enabled" && r.scope === "platform",
+        );
+        setAutoReleaseOn(row ? Boolean(row.setting_value) : false);
+      } catch { /* non-fatal */ }
+    })();
+  }, []);
 
   const loadSummary = useCallback(async () => {
     setSummaryLoading(true);
@@ -255,6 +270,22 @@ export default function AdminPayouts() {
       headerSlot={headerSlot}
     >
       <PayoutSummaryCards summary={summary} loading={summaryLoading} />
+
+      {autoReleaseOn !== null && (
+        <div className={`mb-4 rounded-lg border px-3 py-2 flex items-center gap-2 text-xs ${
+          autoReleaseOn
+            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
+            : "bg-amber-500/10 border-amber-500/30 text-amber-200"
+        }`}>
+          <Info className="h-3.5 w-3.5 shrink-0" />
+          <span>
+            <strong className="font-semibold">Auto-Release is {autoReleaseOn ? "ON" : "OFF"}.</strong>{" "}
+            {autoReleaseOn
+              ? "Eligible escrow will release automatically after the configured window."
+              : "Payouts require manual admin release. Use the Release action on each row."}
+          </span>
+        </div>
+      )}
 
       {/* Desktop: original slate panel with all filters visible */}
       <div className="hidden lg:block bg-slate-900 border border-slate-800 rounded-xl p-6">
