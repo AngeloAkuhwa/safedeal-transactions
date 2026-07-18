@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
-import { loadPricingConfig } from "../_shared/settings-resolver.ts";
+import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -185,6 +185,8 @@ Deno.serve(async (req) => {
     const vendorConfig = await loadPricingConfig(product.seller_id);
     const pricing = computePricing(itemAmount, product.currency_code, "local", vendorConfig);
     const snapshot = buildPricingSnapshot(itemAmount, product.currency_code, vendorConfig);
+    const verificationWindowHours = product.verification_window_hours
+      || await loadEffectiveTimeoutHours(product.seller_id, "buyer_verification_timeout", 48);
 
     // Resolve buyer's delivery selection (also used by the reuse path below)
     let enabledMethods: string[] = [];
@@ -263,7 +265,7 @@ Deno.serve(async (req) => {
         transaction_id: existingTx.id,
         delivery_method: primaryDeliveryMethod,
         expected_delivery_date: expectedDeliveryDate,
-        verification_window_hours: product.verification_window_hours || 48,
+        verification_window_hours: verificationWindowHours,
         delivery_address_line1: needsAddress ? (buyerAddress?.line1 ?? null) : null,
         delivery_address_line2: needsAddress ? (buyerAddress?.line2 ?? null) : null,
         delivery_city: needsAddress ? (buyerAddress?.city ?? null) : null,
