@@ -104,10 +104,12 @@ export interface SettingsAuditRow {
  * lookups after the admin_actions read.
  */
 export async function fetchSettingsAudit(limit = 20): Promise<SettingsAuditRow[]> {
+  // action_type is an enum in the DB; escrow-alert variants are recorded via
+  // action_notes on generic `update_setting` rows when the enum lacks them.
   const { data, error } = await supabase
     .from("admin_actions")
     .select("id, admin_user_id, target_user_id, action_type, action_notes, created_at")
-    .in("action_type", ["update_setting", "update_escrow_alerts", "clear_escrow_alerts_override"])
+    .in("action_type", ["update_setting"])
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
