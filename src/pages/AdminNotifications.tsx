@@ -87,29 +87,29 @@ const shortDisId = (id: string | null) =>
 function HeaderBar({ lastSync, onBroadcast, onExport }: { lastSync?: string; onBroadcast: () => void; onExport: () => void }) {
   return (
     <div className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 px-4 md:px-8 py-5">
-        <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div className="flex flex-wrap items-center gap-3">
           <div>
-            <h2 className="text-foreground text-xl font-semibold">Notification Center</h2>
-            <p className="text-muted-foreground text-sm mt-0.5">Monitor delivery performance and manage communication issues</p>
+            <h2 className="sd-page-title">Notification Center</h2>
+            <p className="sd-page-sub">Monitor delivery performance and manage communication issues</p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-sm font-semibold text-emerald-400">
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live
             </span>
             {lastSync && (
-              <span className="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground">
-                <Clock className="h-3.5 w-3.5" /> Last sync: {formatRelative(lastSync)}
+              <span className="hidden lg:inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" /> Last sync: {formatRelative(lastSync)}
               </span>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={onExport} className="h-10">
-            <Download className="h-4 w-4" /> <span className="hidden sm:inline">Export Report</span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onExport} className="h-8 text-xs">
+            <Download className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Export Report</span>
           </Button>
-          <Button size="sm" onClick={onBroadcast} className="h-10 bg-blue-600 hover:bg-blue-500 text-white">
-            <Megaphone className="h-4 w-4" /> <span className="hidden sm:inline">Broadcast Message</span>
+          <Button size="sm" onClick={onBroadcast} className="h-8 text-xs bg-blue-600 hover:bg-blue-500 text-white">
+            <Megaphone className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Broadcast Message</span>
           </Button>
         </div>
       </div>
@@ -144,22 +144,22 @@ function KpiCards({ kpis }: { kpis: any }) {
     amber: "text-amber-400",
   };
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {cards.map((c) => {
         const Icon = c.icon;
         return (
-          <Card key={c.label} className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-10 h-10 rounded-lg border flex items-center justify-center ${iconBg[c.color]}`}>
-                <Icon className="h-5 w-5" />
+          <Card key={c.label} className="sd-card sd-card-pad sd-metric">
+            <div className="flex items-center justify-between mb-2">
+              <div className={`w-9 h-9 rounded-lg border flex items-center justify-center ${iconBg[c.color]}`}>
+                <Icon className="h-4 w-4" />
               </div>
               <div className="text-right">
-                <div className={`text-xs font-semibold ${c.trendColor}`}>{c.trend}</div>
-                <div className="text-muted-foreground text-sm">{c.trendSub}</div>
+                <div className={`text-[10px] font-semibold ${c.trendColor}`}>{c.trend}</div>
+                <div className="text-muted-foreground text-[10px]">{c.trendSub}</div>
               </div>
             </div>
-            <h3 className="text-foreground text-lg font-semibold mb-2">{c.label}</h3>
-            <div className={`text-3xl font-bold tabular-nums ${numberColor[c.color]}`}>{c.value}</div>
+            <h3 className="sd-eyebrow mb-1">{c.label}</h3>
+            <div className={`sd-kpi-value tabular-nums ${numberColor[c.color]}`}>{c.value}</div>
           </Card>
         );
       })}
