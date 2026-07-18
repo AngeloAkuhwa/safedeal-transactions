@@ -453,8 +453,8 @@ export default function AdminSettings() {
                 </h4>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
                   <FeeField label="Platform Fee Rate" suffix="%" value={platformRate} onChange={setStr(setPlatformRate)} help="Applied to all standard transactions" />
-                  <FeeField label="Minimum Platform Fee" prefix="₦" value={minFee} onChange={setStr(setMinFee)} help="Floor charged even on small orders" locked={isLocked("pricing.min_platform_fee_ngn")} />
-                  <FeeField label="Total Service Fee Cap" prefix="₦" value={feeCap} onChange={setStr(setFeeCap)} help="Buyer-friendly ceiling on service fees" locked={isLocked("pricing.max_total_service_fee_ngn")} />
+                  <FeeField label="Minimum Platform Fee" prefix="₦" value={minFee} onChange={setStr(setMinFee)} help="Floor charged even on small orders" locked={isLocked("pricing.min_platform_fee_ngn")} overridden={isOverridden("pricing.min_platform_fee_ngn")} />
+                  <FeeField label="Total Service Fee Cap" prefix="₦" value={feeCap} onChange={setStr(setFeeCap)} help="Buyer-friendly ceiling on service fees" locked={isLocked("pricing.max_total_service_fee_ngn")} overridden={isOverridden("pricing.max_total_service_fee_ngn")} />
                 </div>
               </div>
 
@@ -696,15 +696,17 @@ function TimeoutRow({
 }
 
 function FeeField({
-  label, value, onChange, help, prefix, suffix, locked,
-}: { label: string; value: string; onChange: (v: string) => void; help?: string; prefix?: string; suffix?: string; locked?: boolean }) {
+  label, value, onChange, help, prefix, suffix, locked, overridden,
+}: { label: string; value: string; onChange: (v: string) => void; help?: string; prefix?: string; suffix?: string; locked?: boolean; overridden?: boolean }) {
   return (
     <div className={`p-3 bg-muted/30 border border-border rounded-lg ${locked ? "opacity-60" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <label className="text-xs font-medium text-foreground">{label}</label>
-        {locked && (
+        {locked ? (
           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Platform-only</span>
-        )}
+        ) : overridden ? (
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Overridden</span>
+        ) : null}
       </div>
       {help && <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">{help}</p>}
       <div className="flex items-center gap-1.5">
