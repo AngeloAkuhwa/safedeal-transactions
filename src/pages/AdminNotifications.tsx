@@ -594,17 +594,17 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
 }) {
   return (
     <Card className="overflow-hidden">
-      <div className="p-6 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-3 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
         <div>
-          <h3 className="text-foreground text-lg font-semibold">Recent Notification Activity</h3>
-          <p className="text-muted-foreground text-sm mt-1">Real-time delivery log with status tracking</p>
+          <h3 className="text-foreground text-sm font-semibold">Recent Notification Activity</h3>
+          <p className="text-muted-foreground text-xs mt-0.5">Real-time delivery log with status tracking</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={onRefresh} className="h-8 text-xs font-medium">
-            <RefreshCw className="h-4 w-4" /> Refresh
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
           </Button>
           <Button variant="secondary" size="sm" onClick={onFilter} className="h-8 text-xs font-medium">
-            <Filter className="h-4 w-4" /> Filter
+            <Filter className="h-3.5 w-3.5" /> Filter
           </Button>
         </div>
       </div>
@@ -612,13 +612,13 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
         <table className="w-full">
           <thead className="bg-muted/40">
             <tr>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Message</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">User</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Message</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
