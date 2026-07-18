@@ -179,6 +179,9 @@ export default function AdminSettings() {
   const [vendorQuery, setVendorQuery] = useState("");
   const [vendorResults, setVendorResults] = useState<VendorLite[]>([]);
   const [applyToAll, setApplyToAll] = useState(false);
+  // Which platform keys are overridable per-vendor
+  const [overridable, setOverridable] = useState<Record<string, boolean>>({});
+  const isLocked = (key: string) => scope === "vendor" && overridable[key] === false;
 
   // Timeouts
   const [sellerFulfil, setSellerFulfil] = useState("7");
@@ -215,13 +218,16 @@ export default function AdminSettings() {
       try {
         const payload = await fetchAdminSettings(scope === "vendor" ? vendorId : null);
         const byKey: Record<string, any> = {};
+        const overrideMap: Record<string, boolean> = {};
         (payload.settings ?? []).forEach((r) => {
+          if (r.scope === "platform") overrideMap[r.setting_key] = r.is_overridable !== false;
           // vendor row wins when present
           const isMatch = scope === "vendor"
             ? (r.scope === "vendor" && r.vendor_id === vendorId) || (r.scope === "platform" && !byKey[r.setting_key])
             : r.scope === "platform";
           if (isMatch) byKey[r.setting_key] = r.setting_value;
         });
+        setOverridable(overrideMap);
         const num = (v: unknown, d: string) => (v == null ? d : String(v));
         if (byKey["pricing.min_platform_fee_ngn"] != null) setMinFee(num(byKey["pricing.min_platform_fee_ngn"], "250"));
         if (byKey["pricing.max_total_service_fee_ngn"] != null) setFeeCap(num(byKey["pricing.max_total_service_fee_ngn"], "2500"));
