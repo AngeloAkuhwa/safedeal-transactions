@@ -66,6 +66,19 @@ Deno.serve(async (req) => {
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+  // Platform-level channel kill switches. Admins can pause outbound email/SMS
+  // from System Settings > Notifications without redeploying the worker.
+  const { data: switches } = await admin
+    .from("system_settings")
+    .select("setting_key, setting_value")
+    .eq("scope", "platform")
+    .in("setting_key", ["notifications.email_enabled", "notifications.sms_enabled"]);
+  const switchMap = new Map<string, unknown>((switches ?? []).map((r: any) => [r.setting_key, r.setting_value]));
+  const emailEnabled = switchMap.get("notifications.email_enabled") !== false; // default ON
+  if (!emailEnabled) {
+    return json(200, { ok: true, processed: 0, sent: 0, failed: 0, suppressed: 0, skipped: 0, note: "email channel disabled by platform settings" });
+  }
+
   const { data: pending, error } = await admin
     .from("notification_deliveries")
     .select("id, notification_id, channel, attempt_count")
