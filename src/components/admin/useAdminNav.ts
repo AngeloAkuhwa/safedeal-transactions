@@ -13,6 +13,7 @@ const BUILT_ROUTES = new Set<string>([
   "/admin/flagged-users",
   "/admin/users",
   "/admin/notifications",
+  "/admin/settings",
 ]);
 
 export function isBuiltAdminRoute(href: string | null | undefined): boolean {
