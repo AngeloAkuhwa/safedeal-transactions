@@ -419,7 +419,15 @@ export default function AdminSettings() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                 <TimeoutRow label="Seller Fulfillment Timeout" desc="Time given to sellers to fulfill orders after payment" value={sellerFulfil} onChange={setStr(setSellerFulfil)} unit="days" overridden={isTimeoutOverridden("seller_fulfillment_timeout")} />
                 <TimeoutRow label="Buyer Verification Window" desc="Time buyer has to verify item after delivery" value={buyerVerify} onChange={setStr(setBuyerVerify)} unit="hours" overridden={isTimeoutOverridden("buyer_verification_timeout")} />
-                <TimeoutRow label="Auto-Release After Delivery" desc="Auto-release escrow if buyer takes no action" value={autoRelease} onChange={setStr(setAutoRelease)} unit="hours" />
+                <TimeoutRow
+                  label="Auto-Release After Delivery"
+                  desc="Auto-release escrow if buyer takes no action"
+                  value={autoRelease}
+                  onChange={setStr(setAutoRelease)}
+                  unit="hours"
+                  disabled={!autoReleaseOn}
+                  disabledHint="Auto-Release is OFF — payouts require manual admin release."
+                />
                 <TimeoutRow label="Payment Session Expiry" desc="How long a Paystack payment session stays open" value={paymentExpiry} onChange={setStr(setPaymentExpiry)} unit="minutes" />
               </div>
               <div className="mt-4 pt-4 border-t border-border">
@@ -568,6 +576,13 @@ export default function AdminSettings() {
                   <h4 className="sd-eyebrow mb-2">Feature Toggles</h4>
                   <div className="space-y-2">
                     <ToggleRow title="Auto-Release Payments" desc="Release funds automatically when conditions are met" on={autoReleaseOn} onChange={setBool(setAutoReleaseOn)} overridden={isOverridden("escrow.auto_release_enabled")} />
+                    {autoReleaseOn && (autoReleaseMeta?.enabled_by || autoReleaseMeta?.enabled_at) && (
+                      <p className="text-[11px] text-muted-foreground pl-2.5">
+                        Enabled
+                        {autoReleaseMeta?.enabled_by ? <> by <span className="text-foreground/80 font-mono">{autoReleaseMeta.enabled_by.slice(0, 8)}…</span></> : null}
+                        {autoReleaseMeta?.enabled_at ? <> on <span className="text-foreground/80">{format(new Date(autoReleaseMeta.enabled_at), "MMM d, yyyy · p")}</span></> : null}
+                      </p>
+                    )}
                     <ToggleRow title="Email Notifications" desc="Send email updates for transaction events" on={emailOn} onChange={setBool(setEmailOn)} overridden={isOverridden("notifications.email_enabled")} />
                     <ToggleRow title="SMS Alerts" desc="Send SMS for critical transaction updates" on={smsOn} onChange={setBool(setSmsOn)} overridden={isOverridden("notifications.sms_enabled")} />
                   </div>
@@ -581,7 +596,7 @@ export default function AdminSettings() {
                         {isOverridden("risk.high_value_alert_ngn") && <OverrideBadge />}
                       </label>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-muted-foreground text-xs">$</span>
+                        <span className="text-muted-foreground text-xs">₦</span>
                         <NumInput value={hvAlert} onChange={setStr(setHvAlert)} />
                       </div>
                     </div>
@@ -621,7 +636,7 @@ export default function AdminSettings() {
                         {isOverridden("security.id_verification_threshold") && <OverrideBadge />}
                       </label>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-muted-foreground text-xs">$</span>
+                        <span className="text-muted-foreground text-xs">₦</span>
                         <NumInput value={idThreshold} onChange={setStr(setIdThreshold)} />
                       </div>
                     </div>
