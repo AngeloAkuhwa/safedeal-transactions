@@ -52,7 +52,9 @@ export function MarketplaceProductCard({ product, categoryName, onClick }: Props
   const lowStock = available > 0 && available <= 5;
   const seller = product.seller;
   const sellerInitial = (seller.full_name || "S")[0].toUpperCase();
-  const gate = useCommerceGate(product.seller_id);
+  // Vendor id not present on MarketplaceProduct — use platform-scope gate.
+  // Server-side checks still enforce vendor-specific overrides on add-to-cart.
+  const gate = useCommerceGate();
   const cartBlocked = !gate.loading && !gate.addToCartEnabled;
 
   const handleHeartClick = (e: React.MouseEvent) => {
