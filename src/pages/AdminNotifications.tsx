@@ -119,13 +119,28 @@ function HeaderBar({ lastSync, onBroadcast, onExport }: { lastSync?: string; onB
 
 // ---------- KPI cards ----------
 function KpiCards({ kpis }: { kpis: any }) {
+  // Favorable direction per metric: true = "up is good", false = "up is bad".
+  const fmtPct = (n: number | undefined, suffix = "%") =>
+    n === undefined || n === null || Number.isNaN(n) ? "—" : `${n > 0 ? "+" : ""}${n}${suffix}`;
+  const trendColorFor = (delta: number | undefined, upIsGood: boolean) => {
+    if (delta === undefined || delta === null || Number.isNaN(delta) || delta === 0) return "text-muted-foreground";
+    const good = upIsGood ? delta > 0 : delta < 0;
+    return good ? "text-emerald-400" : "text-red-400";
+  };
+  const compared = kpis.compared_to ? `vs ${kpis.compared_to}` : "vs yesterday";
   const cards = [
-    { label: "Sent Today", value: kpis.sent_today, icon: Send, color: "emerald", trend: kpis.sent_trend ?? "+18%", trendSub: "vs yesterday", trendColor: "text-emerald-400" },
-    { label: "Failed Deliveries", value: kpis.failed_today, icon: AlertTriangle, color: "red", trend: kpis.failed_trend ?? "+5%", trendSub: "vs yesterday", trendColor: "text-red-400" },
-    { label: "SMS Failures", value: kpis.sms_failures, icon: Smartphone, color: "orange", trend: kpis.sms_trend ?? "+12%", trendSub: "vs yesterday", trendColor: "text-orange-400" },
-    { label: "Email Failures", value: kpis.email_failures, icon: Mail, color: "purple", trend: kpis.email_trend ?? "+8%", trendSub: "vs yesterday", trendColor: "text-purple-400" },
-    { label: "In-App Rate", value: `${kpis.in_app_rate}%`, icon: Bell, color: "blue", trend: `${kpis.in_app_rate}%`, trendSub: "delivery rate", trendColor: "text-blue-400" },
-    { label: "Retry Queue", value: kpis.retry_queue, icon: RotateCw, color: "amber", trend: kpis.retry_trend ?? "-23%", trendSub: "vs yesterday", trendColor: "text-amber-400" },
+    { label: "Sent Today", value: kpis.sent_today, icon: Send, color: "emerald",
+      trend: fmtPct(kpis.sent_delta), trendSub: compared, trendColor: trendColorFor(kpis.sent_delta, true) },
+    { label: "Failed Deliveries", value: kpis.failed_today, icon: AlertTriangle, color: "red",
+      trend: fmtPct(kpis.failed_delta), trendSub: compared, trendColor: trendColorFor(kpis.failed_delta, false) },
+    { label: "SMS Failures", value: kpis.sms_failures, icon: Smartphone, color: "orange",
+      trend: fmtPct(kpis.sms_delta), trendSub: compared, trendColor: trendColorFor(kpis.sms_delta, false) },
+    { label: "Email Failures", value: kpis.email_failures, icon: Mail, color: "purple",
+      trend: fmtPct(kpis.email_delta), trendSub: compared, trendColor: trendColorFor(kpis.email_delta, false) },
+    { label: "In-App Rate", value: `${kpis.in_app_rate}%`, icon: Bell, color: "blue",
+      trend: fmtPct(kpis.in_app_delta, "pp"), trendSub: compared, trendColor: trendColorFor(kpis.in_app_delta, true) },
+    { label: "Retry Queue", value: kpis.retry_queue, icon: RotateCw, color: "amber",
+      trend: fmtPct(kpis.retry_delta), trendSub: compared, trendColor: trendColorFor(kpis.retry_delta, false) },
   ];
   const iconBg: Record<string, string> = {
     blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -554,9 +569,9 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Users</SelectItem>
-              <SelectItem value="buyers">Active Transactions Only</SelectItem>
-              <SelectItem value="verified">Verified Users</SelectItem>
-              <SelectItem value="sellers">Premium Members</SelectItem>
+              <SelectItem value="buyers">Buyers (users with buyer role)</SelectItem>
+              <SelectItem value="sellers">Sellers (users with seller role)</SelectItem>
+              <SelectItem value="verified">Verified Users (identity approved)</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-muted-foreground/70 text-[10px] mt-1">Respects opt-out preferences · Audit logged</p>
