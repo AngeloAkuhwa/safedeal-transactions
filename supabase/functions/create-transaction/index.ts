@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
-import { loadPricingConfig } from "../_shared/settings-resolver.ts";
+import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
