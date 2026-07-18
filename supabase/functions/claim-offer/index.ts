@@ -240,7 +240,10 @@ Deno.serve(async (req) => {
       transaction_id: txId,
       redirect_to: `/dashboard/transactions/${txId}/agreement`,
     });
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.__httpStatus && err?.__httpBody) {
+      return jsonResponse(err.__httpBody, err.__httpStatus);
+    }
     console.error("claim-offer error:", err);
     return jsonResponse({ error: "Internal server error" }, 500);
   }
