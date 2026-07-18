@@ -19,6 +19,12 @@
 const MIN_PLATFORM_FEE = 250;
 const MAX_TOTAL_FEE = 2500;
 
+export interface PricingConfigOverride {
+  min_platform_fee?: number;
+  max_total_service_fee?: number;
+  tier_rates?: Array<{ upto: number | null; rate: number }>;
+}
+
 export interface PricingResult {
   currency_code: string;
   item_amount: number;
@@ -67,14 +73,24 @@ function getSafeDealLocalTierRate(itemAmount: number): number {
   return 0.025;
 }
 
+function tierRateFromConfig(itemAmount: number, tiers: Array<{ upto: number | null; rate: number }>): number {
+  for (const t of tiers) {
+    if (t.upto == null || itemAmount <= t.upto) return t.rate;
+  }
+  return tiers[tiers.length - 1]?.rate ?? 0.025;
+}
+
 /**
  * Compute full pricing breakdown for a transaction.
  */
 export function computePricing(
   itemAmount: number,
   currencyCode: string = "NGN",
-  mode: PricingMode = "local"
+  mode: PricingMode = "local",
+  config?: PricingConfigOverride,
 ): PricingResult {
+  const minPlatformFee = config?.min_platform_fee ?? MIN_PLATFORM_FEE;
+  const maxTotalFee = config?.max_total_service_fee ?? MAX_TOTAL_FEE;
   if (itemAmount <= 0) {
     return {
       currency_code: currencyCode,
@@ -96,24 +112,24 @@ export function computePricing(
       ? computePaystackInternationalFee(itemAmount)
       : computePaystackLocalFee(itemAmount);
 
-  // Step 2: Determine SafeDeal target service rate
-  const tierRate =
-    mode === "international"
-      ? Math.max(getSafeDealLocalTierRate(itemAmount), 0.039)
-      : getSafeDealLocalTierRate(itemAmount);
+  // Step 2: Determine SafeDeal target service rate (config-aware)
+  const baseTierRate = config?.tier_rates
+    ? tierRateFromConfig(itemAmount, config.tier_rates)
+    : getSafeDealLocalTierRate(itemAmount);
+  const tierRate = mode === "international" ? Math.max(baseTierRate, 0.039) : baseTierRate;
 
-  // Step 3: Platform fee = max(₦250, tierRate × item - paystackFee)
-  const rawPlatformFee = Math.max(MIN_PLATFORM_FEE, Math.round(itemAmount * tierRate) - paystackFee);
+  // Step 3: Platform fee = max(minPlatformFee, tierRate × item - paystackFee)
+  const rawPlatformFee = Math.max(minPlatformFee, Math.round(itemAmount * tierRate) - paystackFee);
 
-  // Step 4: Total service fee = min(₦2,500, paystackFee + platformFee)
+  // Step 4: Total service fee = min(maxTotalFee, paystackFee + platformFee)
   const rawServiceFee = paystackFee + rawPlatformFee;
-  const serviceFeeAmount = Math.min(rawServiceFee, MAX_TOTAL_FEE);
+  const serviceFeeAmount = Math.min(rawServiceFee, maxTotalFee);
 
   // Step 5: Recalculate platform fee after cap
   const platformFee = Math.max(serviceFeeAmount - paystackFee, 0);
 
-  const is_floored = rawPlatformFee === MIN_PLATFORM_FEE;
-  const is_capped = rawServiceFee > MAX_TOTAL_FEE;
+  const is_floored = rawPlatformFee === minPlatformFee;
+  const is_capped = rawServiceFee > maxTotalFee;
 
   // Step 6: Effective rate
   const serviceFeeRate = serviceFeeAmount / itemAmount;

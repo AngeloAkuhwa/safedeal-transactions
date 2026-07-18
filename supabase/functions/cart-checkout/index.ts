@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
+import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -194,8 +195,9 @@ Deno.serve(async (req) => {
       for (const { cartItem, product } of items) {
         groupItemAmount += product.unit_price * cartItem.quantity;
       }
-      const pricing = computePricing(groupItemAmount, items[0].product.currency_code);
-      const snapshot = buildPricingSnapshot(groupItemAmount, items[0].product.currency_code);
+      const vendorConfig = await loadPricingConfig(sellerId);
+      const pricing = computePricing(groupItemAmount, items[0].product.currency_code, "local", vendorConfig);
+      const snapshot = buildPricingSnapshot(groupItemAmount, items[0].product.currency_code, vendorConfig);
       sellerGroupPricings.set(sellerId, pricing);
       sellerGroupSnapshots.set(sellerId, snapshot);
       totalProtectionFee += pricing.service_fee_amount;

@@ -3,6 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
+import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -307,8 +308,9 @@ async function createTransactionFromOffer(adminClient: any, offer: any, buyerId:
   const currencyCode = items[0].currency_code || firstProduct?.currency_code || "NGN";
 
   const totalAmount = items.reduce((sum, it) => sum + (Number(it.unit_price_snapshot) * (it.quantity || 1)), 0);
-  const pricing = computePricing(totalAmount, currencyCode);
-  const snapshot = buildPricingSnapshot(totalAmount, currencyCode);
+  const vendorConfig = await loadPricingConfig(offer.seller_id);
+  const pricing = computePricing(totalAmount, currencyCode, "local", vendorConfig);
+  const snapshot = buildPricingSnapshot(totalAmount, currencyCode, vendorConfig);
 
   const { data: codeData } = await adminClient.rpc("generate_transaction_code");
   const transactionCode = codeData ?? `SD-${Date.now()}`;

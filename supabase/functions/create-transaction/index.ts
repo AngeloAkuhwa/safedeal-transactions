@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
+import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -142,8 +143,9 @@ async function handleSaveDraft(adminClient: any, userId: string, body: any) {
     transactionId = newTx.id;
   }
 
-  const pricing = computePricing(price, currencyCode);
-  const snapshot = buildPricingSnapshot(price, currencyCode);
+  const vendorConfig = await loadPricingConfig(userId);
+  const pricing = computePricing(price, currencyCode, "local", vendorConfig);
+  const snapshot = buildPricingSnapshot(price, currencyCode, vendorConfig);
   const fileIds = (body.file_ids as string[]) ?? [];
 
   await Promise.all([
