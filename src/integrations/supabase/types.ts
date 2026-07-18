@@ -4632,6 +4632,7 @@ export type Database = {
         | "unsuspend_user"
         | "clear_flag"
         | "add_note"
+        | "toggle_auto_release"
       admin_investigation_priority: "low" | "medium" | "high" | "critical"
       admin_investigation_status:
         | "open"
@@ -5029,6 +5030,7 @@ export const Constants = {
         "unsuspend_user",
         "clear_flag",
         "add_note",
+        "toggle_auto_release",
       ],
       admin_investigation_priority: ["low", "medium", "high", "critical"],
       admin_investigation_status: [
