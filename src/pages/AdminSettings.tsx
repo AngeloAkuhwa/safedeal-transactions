@@ -283,7 +283,14 @@ export default function AdminSettings() {
       "notifications.email_enabled": emailOn,
       "notifications.sms_enabled": smsOn,
       "escrow.auto_release_enabled": autoReleaseOn,
+      "fees.refund_policy": refundPolicy,
     };
+    // In vendor scope, strip keys the platform marked non-overridable
+    if (scope === "vendor") {
+      for (const k of Object.keys(updates)) {
+        if (overridable[k] === false) delete updates[k];
+      }
+    }
     const timeouts = [
       { rule_type: "seller_fulfillment_timeout", hours: Number(sellerFulfil) * 24 },
       { rule_type: "buyer_verification_timeout", hours: Number(buyerVerify) },
