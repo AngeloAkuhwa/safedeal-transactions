@@ -44,7 +44,21 @@ function NumInput({
 
 /* ------------------------------ header slot ------------------------------ */
 
-function HeaderBar({ dirty, onSave }: { dirty: boolean; onSave: () => void }) {
+function HeaderBar({
+  dirty, onSave, scope, setScope, vendorId, setVendorId,
+  vendorQuery, setVendorQuery, vendorResults, applyToAll, setApplyToAll,
+}: {
+  dirty: boolean; onSave: () => void;
+  scope: "platform" | "vendor";
+  setScope: (s: "platform" | "vendor") => void;
+  vendorId: string | null;
+  setVendorId: (id: string | null) => void;
+  vendorQuery: string;
+  setVendorQuery: (v: string) => void;
+  vendorResults: VendorLite[];
+  applyToAll: boolean;
+  setApplyToAll: (v: boolean) => void;
+}) {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
       <div className="sd-page py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -52,7 +66,9 @@ function HeaderBar({ dirty, onSave }: { dirty: boolean; onSave: () => void }) {
           <div>
             <h1 className="sd-page-title">System Settings</h1>
             <p className="sd-page-sub">
-              Configure platform-wide business rules and operational parameters
+              {scope === "platform"
+                ? "Configure platform-wide defaults. Vendor overrides fall back here."
+                : "Configure overrides for the selected vendor only."}
             </p>
           </div>
           <div className="flex items-center gap-1.5">
@@ -67,6 +83,16 @@ function HeaderBar({ dirty, onSave }: { dirty: boolean; onSave: () => void }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-lg border border-border overflow-hidden">
+            <button
+              onClick={() => setScope("platform")}
+              className={`h-9 px-3 text-xs font-medium transition-colors ${scope === "platform" ? "bg-primary/20 text-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"}`}
+            >Platform</button>
+            <button
+              onClick={() => setScope("vendor")}
+              className={`h-9 px-3 text-xs font-medium transition-colors border-l border-border ${scope === "vendor" ? "bg-primary/20 text-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"}`}
+            >Vendor</button>
+          </div>
           <button
             onClick={() => toast.info("Audit history will open when wired to admin_actions")}
             className="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/60 text-foreground text-xs font-medium hover:bg-muted transition-colors"
@@ -88,6 +114,41 @@ function HeaderBar({ dirty, onSave }: { dirty: boolean; onSave: () => void }) {
           </button>
         </div>
       </div>
+      {scope === "vendor" && (
+        <div className="sd-page pb-2">
+          <div className="p-2 bg-muted/30 border border-border rounded-lg flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <input
+              value={vendorQuery}
+              onChange={(e) => setVendorQuery(e.target.value)}
+              placeholder="Search vendors by name or email"
+              className="flex-1 h-9 px-2 bg-background border border-border rounded-md text-sm text-foreground"
+            />
+            <select
+              value={vendorId ?? ""}
+              onChange={(e) => setVendorId(e.target.value || null)}
+              className="h-9 px-2 bg-background border border-border rounded-md text-sm text-foreground min-w-[220px]"
+            >
+              <option value="">— Select vendor —</option>
+              {vendorResults.map((v) => (
+                <option key={v.id} value={v.id}>{v.full_name ?? v.email ?? v.id.slice(0, 8)}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+      {scope === "platform" && (
+        <div className="sd-page pb-2">
+          <label className="inline-flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              checked={applyToAll}
+              onChange={(e) => setApplyToAll(e.target.checked)}
+              className="accent-primary"
+            />
+            Apply to all vendors (clears existing vendor overrides for saved keys)
+          </label>
+        </div>
+      )}
       <div className="sd-page pb-3">
         <div className="p-3 bg-red-500/10 border-l-4 border-red-500 rounded-lg flex items-start gap-2 sd-alert">
           <TriangleAlert className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
