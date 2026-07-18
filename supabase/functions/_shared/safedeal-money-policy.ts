@@ -10,7 +10,7 @@
  *  - Frontend NEVER recomputes seller payout or final refund amount.
  */
 
-import { computePricing as computeRawPricing, type PricingResult as RawPricing } from "./pricing.ts";
+import { computePricing as computeRawPricing, type PricingResult as RawPricing, type PricingConfigOverride } from "./pricing.ts";
 
 export const PRICING_MODEL_VERSION = "NG_MVP_TOTAL_SERVICE_FEE_CAP_2500_V1" as const;
 export const MAX_TOTAL_SERVICE_FEE = 2500;
@@ -45,8 +45,12 @@ export interface PricingSnapshot {
  * combined fee and `paystack_fee_amount` = the provider fee BEFORE the cap.
  * The cap-split rule (provider first) is applied here so every caller agrees.
  */
-export function buildPricingSnapshot(itemAmount: number, currency: string = "NGN"): PricingSnapshot {
-  const raw: RawPricing = computeRawPricing(itemAmount, currency);
+export function buildPricingSnapshot(
+  itemAmount: number,
+  currency: string = "NGN",
+  config?: PricingConfigOverride,
+): PricingSnapshot {
+  const raw: RawPricing = computeRawPricing(itemAmount, currency, "local", config);
 
   const provider_fee_estimate = raw.paystack_fee_amount;
   const service_fee_amount = raw.service_fee_amount;
