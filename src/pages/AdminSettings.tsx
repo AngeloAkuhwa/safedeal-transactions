@@ -627,49 +627,93 @@ export default function AdminSettings() {
               </div>
             </div>
             <div className="sd-card-pad">
-              <div className="space-y-2">
-                <AuditRow
-                  icon={<Percent className="h-4 w-4 text-emerald-400" />}
-                  iconBg="bg-emerald-500/10 border-emerald-500/20"
-                  accent="border-emerald-500/30"
-                  accentText="text-emerald-400"
-                  title="Base Protection Fee Updated"
-                  subtitle="Fee configuration modified"
-                  when="2 hours ago"
-                  prev="2.5%" next="2.9%" by="Admin User"
-                />
-                <AuditRow
-                  icon={<Clock className="h-4 w-4 text-blue-400" />}
-                  iconBg="bg-blue-500/10 border-blue-500/20"
-                  accent="border-blue-500/30"
-                  accentText="text-blue-400"
-                  title="Seller Fulfillment Timeout Modified"
-                  subtitle="Timeout rules adjusted"
-                  when="1 day ago"
-                  prev="5 days" next="7 days" by="Operations Admin"
-                />
-                <AuditRow
-                  icon={<ToggleRight className="h-4 w-4 text-purple-400" />}
-                  iconBg="bg-purple-500/10 border-purple-500/20"
-                  accent="border-purple-500/30"
-                  accentText="text-purple-400"
-                  title="SMS Alerts Feature Disabled"
-                  subtitle="Platform settings changed"
-                  when="3 days ago"
-                  prev="Enabled" next="Disabled" by="Admin User"
-                />
-                <AuditRow
-                  icon={<Bell className="h-4 w-4 text-amber-400" />}
-                  iconBg="bg-amber-500/10 border-amber-500/20"
-                  accent="border-amber-500/30"
-                  accentText="text-amber-400"
-                  title="Notification Settings Updated"
-                  subtitle="Email and SMS preferences modified"
-                  when="5 days ago"
-                  prev="All notifications enabled" next="Critical only" by="System Admin"
-                />
-              </div>
+              {auditRows.length === 0 ? (
+                <div className="text-xs text-muted-foreground p-3 bg-muted/20 border border-border rounded-lg">
+                  No configuration changes recorded yet.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {auditRows.map((row) => {
+                    const notes = row.action_notes ?? "Settings updated";
+                    // Notes are freeform; extract vendor scope hint if present
+                    const isVendor = notes.toLowerCase().includes("vendor");
+                    return (
+                      <div key={row.id} className="p-2.5 bg-muted/30 border border-border rounded-lg flex items-start gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                          <HistoryIcon className="h-3.5 w-3.5 text-blue-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-medium text-foreground truncate">{notes}</p>
+                            {isVendor ? (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Vendor</span>
+                            ) : (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">Platform</span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {row.admin_name ?? "Admin"}
+                            {row.target_name ? <> · target <span className="text-foreground/80">{row.target_name}</span></> : null}
+                            {" · "}
+                            {formatDistanceToNow(new Date(row.created_at), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
+          </section>
+
+          {/* ============ VENDOR OVERRIDES SUMMARY (platform scope only) ============ */}
+          {scope === "platform" && (
+            <section className="sd-card">
+              <div className="sd-card-pad border-b border-border">
+                <h3 className="h-card font-semibold text-foreground flex items-center gap-2">
+                  <div className="w-8 h-8 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-center">
+                    <Building2 className="h-4 w-4 text-purple-400" />
+                  </div>
+                  Vendor Overrides
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1 ml-10">
+                  Settings currently overridden by individual vendors. Platform defaults apply to everyone else.
+                </p>
+              </div>
+              <div className="sd-card-pad">
+                {vendorOverrides.length === 0 ? (
+                  <div className="text-xs text-muted-foreground p-3 bg-muted/20 border border-border rounded-lg">
+                    No vendor-specific overrides are active.
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                      {Object.entries(overrideCounts).slice(0, 4).map(([k, n]) => (
+                        <div key={k} className="p-2 bg-muted/30 border border-border rounded-lg">
+                          <p className="text-[11px] text-muted-foreground truncate">{k}</p>
+                          <p className="text-sm font-semibold text-foreground">{n} vendor{n === 1 ? "" : "s"}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-1.5 max-h-60 overflow-auto">
+                      {vendorOverrides.slice(0, 20).map((o) => (
+                        <div key={`${o.setting_key}-${o.vendor_id}`} className="p-2 bg-muted/20 border border-border rounded flex items-center justify-between gap-2 text-xs">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-foreground truncate font-mono">{o.setting_key}</p>
+                            <p className="text-muted-foreground text-[10px] truncate">vendor: {o.vendor_id.slice(0, 8)}…</p>
+                          </div>
+                          <span className="text-foreground font-medium shrink-0">{JSON.stringify(o.setting_value).slice(0, 40)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* placeholder for closing of old section (already closed above) */}
+          <div className="hidden">
           </section>
 
         </div>
