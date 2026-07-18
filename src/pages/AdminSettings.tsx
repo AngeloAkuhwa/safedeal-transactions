@@ -197,6 +197,10 @@ export default function AdminSettings() {
   const [overrideCounts, setOverrideCounts] = useState<Record<string, number>>({});
   // Audit history
   const [auditRows, setAuditRows] = useState<SettingsAuditRow[]>([]);
+  // Which timeout rules have a vendor-scoped override for the selected vendor
+  const [overriddenTimeouts, setOverriddenTimeouts] = useState<Set<string>>(new Set());
+  const isTimeoutOverridden = (ruleType: string) =>
+    scope === "vendor" && overriddenTimeouts.has(ruleType);
 
   // Timeouts
   const [sellerFulfil, setSellerFulfil] = useState("7");
@@ -269,6 +273,11 @@ export default function AdminSettings() {
           if (t.rule_type === "seller_fulfillment_timeout") setSellerFulfil(String(Math.round(t.hours_until_trigger / 24)));
           if (t.rule_type === "buyer_verification_timeout") setBuyerVerify(String(t.hours_until_trigger));
         });
+        const tSet = new Set<string>();
+        (payload.timeouts ?? []).forEach((t) => {
+          if (scope === "vendor" && t.scope === "vendor" && t.vendor_id === vendorId) tSet.add(t.rule_type);
+        });
+        setOverriddenTimeouts(tSet);
         setDirty(false);
       } catch (e: any) {
         toast.error(e?.message ?? "Failed to load settings");
@@ -388,8 +397,8 @@ export default function AdminSettings() {
             </div>
             <div className="sd-card-pad">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-                <TimeoutRow label="Seller Fulfillment Timeout" desc="Time given to sellers to fulfill orders after payment" value={sellerFulfil} onChange={setStr(setSellerFulfil)} unit="days" />
-                <TimeoutRow label="Buyer Verification Window" desc="Time buyer has to verify item after delivery" value={buyerVerify} onChange={setStr(setBuyerVerify)} unit="hours" />
+                <TimeoutRow label="Seller Fulfillment Timeout" desc="Time given to sellers to fulfill orders after payment" value={sellerFulfil} onChange={setStr(setSellerFulfil)} unit="days" overridden={isTimeoutOverridden("seller_fulfillment_timeout")} />
+                <TimeoutRow label="Buyer Verification Window" desc="Time buyer has to verify item after delivery" value={buyerVerify} onChange={setStr(setBuyerVerify)} unit="hours" overridden={isTimeoutOverridden("buyer_verification_timeout")} />
                 <TimeoutRow label="Auto-Release After Delivery" desc="Auto-release escrow if buyer takes no action" value={autoRelease} onChange={setStr(setAutoRelease)} unit="hours" />
                 <TimeoutRow label="Payment Session Expiry" desc="How long a Paystack payment session stays open" value={paymentExpiry} onChange={setStr(setPaymentExpiry)} unit="minutes" />
               </div>
@@ -464,13 +473,15 @@ export default function AdminSettings() {
                   Special Category Fee Caps
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                  <FeeField label="High-Value Tier Rate" suffix="%" value={hvRate} onChange={setStr(setHvRate)} help="Rate for transactions above ₦2,000,000" />
+                  <FeeField label="High-Value Tier Rate" suffix="%" value={hvRate} onChange={setStr(setHvRate)} help="Rate for transactions above ₦2,000,000" overridden={isOverridden("pricing.tier_rates")} />
                   <div className={`p-3 bg-muted/30 border border-border rounded-lg ${isLocked("fees.refund_policy") ? "opacity-60" : ""}`}>
                     <div className="flex items-center justify-between gap-2">
                       <label className="text-xs font-medium text-foreground">Refund Policy</label>
-                      {isLocked("fees.refund_policy") && (
+                      {isLocked("fees.refund_policy") ? (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Platform-only</span>
-                      )}
+                      ) : isOverridden("fees.refund_policy") ? (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Overridden</span>
+                      ) : null}
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">Whether service fees are refundable</p>
                     <select
@@ -536,23 +547,29 @@ export default function AdminSettings() {
                 <div>
                   <h4 className="sd-eyebrow mb-2">Feature Toggles</h4>
                   <div className="space-y-2">
-                    <ToggleRow title="Auto-Release Payments" desc="Release funds automatically when conditions are met" on={autoReleaseOn} onChange={setBool(setAutoReleaseOn)} />
-                    <ToggleRow title="Email Notifications" desc="Send email updates for transaction events" on={emailOn} onChange={setBool(setEmailOn)} />
-                    <ToggleRow title="SMS Alerts" desc="Send SMS for critical transaction updates" on={smsOn} onChange={setBool(setSmsOn)} />
+                    <ToggleRow title="Auto-Release Payments" desc="Release funds automatically when conditions are met" on={autoReleaseOn} onChange={setBool(setAutoReleaseOn)} overridden={isOverridden("escrow.auto_release_enabled")} />
+                    <ToggleRow title="Email Notifications" desc="Send email updates for transaction events" on={emailOn} onChange={setBool(setEmailOn)} overridden={isOverridden("notifications.email_enabled")} />
+                    <ToggleRow title="SMS Alerts" desc="Send SMS for critical transaction updates" on={smsOn} onChange={setBool(setSmsOn)} overridden={isOverridden("notifications.sms_enabled")} />
                   </div>
                 </div>
                 <div>
                   <h4 className="sd-eyebrow mb-2">Risk Thresholds</h4>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <label className="text-xs text-foreground">High-Value Transaction Alert</label>
+                      <label className="text-xs text-foreground flex items-center gap-1.5">
+                        High-Value Transaction Alert
+                        {isOverridden("risk.high_value_alert_ngn") && <OverrideBadge />}
+                      </label>
                       <div className="flex items-center gap-1.5">
                         <span className="text-muted-foreground text-xs">$</span>
                         <NumInput value={hvAlert} onChange={setStr(setHvAlert)} />
                       </div>
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <label className="text-xs text-foreground">Fraud Risk Score Threshold</label>
+                      <label className="text-xs text-foreground flex items-center gap-1.5">
+                        Fraud Risk Score Threshold
+                        {isOverridden("risk.fraud_score_threshold") && <OverrideBadge />}
+                      </label>
                       <div className="flex items-center gap-1.5">
                         <NumInput value={fraudScore} onChange={setStr(setFraudScore)} className="w-16" />
                         <span className="text-muted-foreground text-xs">/ 100</span>
@@ -577,9 +594,12 @@ export default function AdminSettings() {
                 <div>
                   <h4 className="sd-eyebrow mb-2">KYC Requirements</h4>
                   <div className="space-y-2">
-                    <ToggleRow title="Require ID Verification" desc="Mandatory for transactions over threshold" on={idRequired} onChange={setBool(setIdRequired)} />
+                    <ToggleRow title="Require ID Verification" desc="Mandatory for transactions over threshold" on={idRequired} onChange={setBool(setIdRequired)} overridden={isOverridden("security.require_id_verification")} />
                     <div className="flex items-center justify-between gap-2">
-                      <label className="text-xs text-foreground">ID Verification Threshold</label>
+                      <label className="text-xs text-foreground flex items-center gap-1.5">
+                        ID Verification Threshold
+                        {isOverridden("security.id_verification_threshold") && <OverrideBadge />}
+                      </label>
                       <div className="flex items-center gap-1.5">
                         <span className="text-muted-foreground text-xs">$</span>
                         <NumInput value={idThreshold} onChange={setStr(setIdThreshold)} />
@@ -591,13 +611,16 @@ export default function AdminSettings() {
                   <h4 className="sd-eyebrow mb-2">Session Security</h4>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <label className="text-xs text-foreground">Session Timeout</label>
+                      <label className="text-xs text-foreground flex items-center gap-1.5">
+                        Session Timeout
+                        {isOverridden("security.session_timeout_minutes") && <OverrideBadge />}
+                      </label>
                       <div className="flex items-center gap-1.5">
                         <NumInput value={sessionTimeout} onChange={setStr(setSessionTimeout)} className="w-16" />
                         <span className="text-muted-foreground text-xs">minutes</span>
                       </div>
                     </div>
-                    <ToggleRow title="Two-Factor Authentication" desc="Require 2FA for admin accounts" on={twoFA} onChange={setBool(setTwoFA)} />
+                    <ToggleRow title="Two-Factor Authentication" desc="Require 2FA for admin accounts" on={twoFA} onChange={setBool(setTwoFA)} overridden={isOverridden("security.two_factor_admin")} />
                   </div>
                 </div>
               </div>
@@ -744,11 +767,14 @@ export default function AdminSettings() {
 /* ------------------------------ sub-components ------------------------------ */
 
 function TimeoutRow({
-  label, desc, value, onChange, unit,
-}: { label: string; desc: string; value: string; onChange: (v: string) => void; unit: string }) {
+  label, desc, value, onChange, unit, overridden,
+}: { label: string; desc: string; value: string; onChange: (v: string) => void; unit: string; overridden?: boolean }) {
   return (
     <div className="p-3 bg-muted/30 border border-border rounded-lg">
-      <label className="text-xs font-medium text-foreground">{label}</label>
+      <div className="flex items-center justify-between gap-2">
+        <label className="text-xs font-medium text-foreground">{label}</label>
+        {overridden && <OverrideBadge />}
+      </div>
       <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">{desc}</p>
       <div className="flex items-center gap-1.5">
         <NumInput value={value} onChange={onChange} className="w-20" />
@@ -789,16 +815,28 @@ function FeeField({
 }
 
 function ToggleRow({
-  title, desc, on, onChange,
-}: { title: string; desc: string; on: boolean; onChange: (v: boolean) => void }) {
+  title, desc, on, onChange, overridden,
+}: { title: string; desc: string; on: boolean; onChange: (v: boolean) => void; overridden?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3 p-2.5 bg-muted/30 border border-border rounded-lg">
       <div className="min-w-0">
-        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+          {title}
+          {overridden && <OverrideBadge />}
+        </p>
         <p className="text-[11px] text-muted-foreground">{desc}</p>
       </div>
       <Toggle on={on} onChange={onChange} />
     </div>
+  );
+}
+
+/** Small "Overridden" pill shown when a vendor row exists for a setting key. */
+function OverrideBadge() {
+  return (
+    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">
+      Overridden
+    </span>
   );
 }
 
