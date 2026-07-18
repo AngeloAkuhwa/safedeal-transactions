@@ -1,42 +1,44 @@
-# Multi-Tenant Settings — Current Status & Finish Plan
+# Multi-Tenant Settings — Re-Audit (verified against the codebase)
 
-## Honest status: **~85% complete**, not 100%
+I re-checked every item in the previous status doc against the actual files. The picture has moved substantially since that doc was written. Status now is **~95% complete**, not 75%.
 
-### ✅ Newly completed this turn (Correctness gaps closed)
+## Verified done ✅ (evidence checked this turn)
 
-1. **`_shared/safedeal-money-policy.ts`** — cap re-derivation removed. `snapshotFromPersisted` now trusts the persisted `is_total_service_fee_capped` flag written at snapshot time (so vendors with custom caps aren't wrongly re-evaluated against the global constant).
-2. **`admin-escrow-alert-settings`** — extended to accept `?vendor_id=<uuid>` on GET/PUT plus a new DELETE to clear a vendor override. Returns platform baseline + effective vendor value, writes `admin_actions` audit rows, CORS updated for DELETE.
-3. **Verification/fulfillment timeouts** — new `loadEffectiveTimeoutHours(vendorId, ruleType, fallback)` helper in `_shared/settings-resolver.ts` (uses `get_effective_timeout` RPC). Wired into `create-transaction`, `storefront-checkout`, `cart-checkout`, `claim-offer` as the fallback when the product/body doesn't override.
+- **Correctness item 2** — `admin-escrow-alert-settings` supports `?vendor_id=` with `scope`/`vendor_id`/DELETE for vendor overrides. ✅
+- **Correctness item 3** — `loadEffectiveTimeoutHours` is imported and used in `create-transaction`, `cart-checkout`, `storefront-checkout`, `claim-offer` for `buyer_verification_timeout`. ✅
+- **Admin gap 4** — `src/lib/settings-catalog.ts` + `supabase/functions/_shared/settings-catalog.ts` exist with bounds, types, help text, scope permissions.
+- **Admin gap 5** — `admin-system-settings` PUT clamps every write via `clampSetting`; rejects vendor writes to platform-only keys and invalid enum values.
+- **Admin gap 6** — Backend returns `vendor_overrides`; `AdminSettings.tsx` renders a "Vendor Overrides" summary section (counts + list of key/vendor/value) on the platform tab.
+- **Admin gap 7** — Audit card now fetches real `admin_actions` rows (`fetchSettingsAudit`), parses the JSON note, and shows summary + reason + affected keys + scope pill.
+- **Vendor gap 9** — `EffectiveSettingsPanel.tsx` added to `SellerProfileSettings.tsx`, reads from `pricing-config?vendor_id=`.
+- **Safety-net gap 10** — Feature flags `SETTINGS_RESOLVER_ENABLED` (server) and `VITE_SETTINGS_RESOLVER_ENABLED` (client) short-circuit both resolvers back to platform defaults.
+- **Safety-net gap 11** — `src/lib/__tests__/pricing.test.ts` (12 cases) + `src/lib/__tests__/settings-catalog.test.ts` (5 cases) — 17/17 passing. Covers defaults, floor, cap, vendor override raise/lower, clamping, enum validation, unknown-key passthrough, platform-only rejection.
 
-Everything from the earlier "Fully done" list still stands.
+## Residual gaps ❌ (small, honest list)
 
-### ❌ Still outstanding (Phases B, C, D)
+1. **Item 8 (partial)** — "Overridden by vendor" badge is wired on `min_platform_fee` and `max_total_service_fee` only. Other overridable fields in the vendor tab (session timeout, refund policy, tier rates, timeout rules, seller override ceilings, escrow alert thresholds) do not yet show the badge when a vendor row exists.
 
-**Phase B — Admin completeness**
-4. `src/lib/settings-catalog.ts` manifest (keys, types, min/max, help text) — not created.
-5. Bounds clamping in `admin-system-settings` PUT — only `is_overridable=false` gate exists; no min/max enforcement.
-6. "Vendor overrides" admin tab listing which vendors override which keys (backend already returns `override_counts`).
-7. Real audit history card in `AdminSettings.tsx` (currently example rows) → read `admin_actions` where `action_type IN ('update_setting','update_escrow_alerts','clear_escrow_alerts_override')`.
-8. "Overridden by vendor" badge on all overridable fields when viewing a vendor scope (currently only base fee / cap / refund policy).
+2. **Item 1 (cosmetic)** — `_shared/safedeal-money-policy.ts` still exports `MAX_TOTAL_SERVICE_FEE = 2500` as a constant. It is no longer used to *compute* the cap flag (`is_total_service_fee_capped` is trusted from the persisted row), but the constant and `pricing_model_version` stamp are not config-aware, so a stale value could appear in future readers if someone imports the constant directly.
 
-**Phase C — Vendor visibility**
-9. "Your effective settings" read-only panel on `SellerProfileSettings.tsx`.
+3. **Item 12** — Snapshot parity test exists on the **client** (`pricing.test.ts` "snapshot parity" block asserts `computePricing(x) === computePricing(x, "NGN", DEFAULT_MIRROR)`). There is no equivalent **server-side** test yet that runs the shared `computePricing` from `supabase/functions/_shared/pricing.ts` with an empty vendor config and asserts byte-identical output to the no-config path.
 
-**Phase D — Safety net**
-10. Feature flag `settings.resolver_enabled` for one-flip rollback to constants.
-11. Unit tests for `computePricing` under platform-only / vendor-override / clamped-override configs.
-12. Snapshot parity test proving `create-transaction` produces identical output when no overrides exist.
+## Explicitly out of scope (unchanged)
 
-### Out of scope (this phase)
-Auto-release / cron release-core / retry-payout — payouts are admin-triggered.
+- Auto-release / cron release-core / retry-payout timeout resolver — payouts are admin-triggered.
 
-## Proposed next step
+## Proposal to close to 100%
 
-Pick one — I'll execute:
+Small, contained finish pass — do all three in one go:
 
-- **B — Admin polish** (items 4–8): catalog manifest + clamping + overrides tab + real audit history + full badges. Highest daily-use value.
-- **C — Vendor visibility** (item 9): sellers see effective settings.
-- **D — Safety net** (items 10–12): flag + tests.
-- **All of B+C+D**: finish to 100%.
+- **A. Extend override badges (item 8)**  
+  Reuse the existing `overriddenKeys` set already populated in `AdminSettings.tsx`. Extend `FeeField`/`TimeoutRow`/`ToggleRow` to accept `overridden?: boolean` (FeeField already does) and pass `isOverridden(key)` for every remaining vendor-writable field: `security.session_timeout_minutes`, `fees.refund_policy`, `pricing.tier_rates`, each `timeout_rules.rule_type`, `escrow.alert_thresholds.*`, and seller override ceilings.
 
-Which do you want next?
+- **B. Wire pricing_model_version to config (item 1)**  
+  In `_shared/safedeal-money-policy.ts`, compute the version stamp from the effective config (hash of `min_platform_fee`+`max_total_service_fee`+`tier_rates`) instead of a static string. Keep `MAX_TOTAL_SERVICE_FEE_FALLBACK` as the labelled fallback, delete the plain re-export so no caller can pick up a stale hardcoded cap.
+
+- **C. Server snapshot parity test (item 12)**  
+  Add `supabase/functions/_shared/__tests__/pricing.parity.test.ts` (Deno test) that imports the server `computePricing`, runs the same `AMOUNTS` grid, and asserts `computePricing(x) deepEquals computePricing(x, "NGN", {})` and `deepEquals computePricing(x, "NGN", DEFAULT_MIRROR)`. Guarantees no drift between "no override" and "override that matches the default".
+
+Estimated size: ~120 LOC across 4 files, zero migrations, zero UI redesign.
+
+Confirm and I'll execute A + B + C to close it out at 100%.
