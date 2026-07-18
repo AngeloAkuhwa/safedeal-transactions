@@ -185,6 +185,7 @@ const CartCheckoutReview = () => {
 
   const totalItems = items.reduce((sum: number, i: any) => sum + i.quantity, 0);
   const sellerCount = sellerGroups.size;
+  const vendorConfigs = useEffectivePricingConfigs(Array.from(sellerGroups.keys()));
 
   const handleConfirmPay = async () => {
     setIsSubmitting(true);
@@ -288,7 +289,7 @@ const CartCheckoutReview = () => {
                 const gradient = GRADIENT_COLORS[idx % GRADIENT_COLORS.length];
 
                 const sellerSubtotal = sellerItems.reduce((sum: number, i: any) => sum + Number(i.line_total), 0);
-                const sellerPricing = computePricing(sellerSubtotal);
+                const sellerPricing = computePricing(sellerSubtotal, "NGN", vendorConfigs[sellerId]);
                 const groupItemCount = sellerItems.reduce((sum: number, i: any) => sum + i.quantity, 0);
                 const isOpen = openBreakdowns[sellerId] ?? false;
 
