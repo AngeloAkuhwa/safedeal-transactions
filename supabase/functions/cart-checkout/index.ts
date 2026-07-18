@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
 import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
+import { checkIdVerificationRequirement } from "../_shared/security-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -204,6 +205,20 @@ Deno.serve(async (req) => {
     }
 
     const totalAmount = subtotalAmount + totalProtectionFee;
+
+    // Gate: identity verification required if cart total crosses ANY vendor's
+    // effective threshold. We take the min threshold across seller groups so
+    // the strictest vendor rule wins.
+    for (const [sellerId, pricing] of sellerGroupPricings) {
+      const currency = sellerGroups.get(sellerId)?.[0]?.product.currency_code ?? "NGN";
+      const kyc = await checkIdVerificationRequirement(
+        buyerId,
+        sellerId,
+        currency,
+        pricing.total_amount,
+      );
+      if (kyc) return json(kyc.body, kyc.status);
+    }
 
     const { data: checkoutSession, error: csErr } = await admin
       .from("checkout_sessions")
