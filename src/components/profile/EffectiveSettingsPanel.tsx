@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { Settings2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCommerceGate } from "@/hooks/useCommerceGate";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -29,6 +30,7 @@ function fmtNgn(v: unknown) {
 export function EffectiveSettingsPanel({ vendorId }: Props) {
   const [rows, setRows] = useState<EffectiveRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const gate = useCommerceGate(vendorId);
 
   useEffect(() => {
     let alive = true;
@@ -91,6 +93,18 @@ export function EffectiveSettingsPanel({ vendorId }: Props) {
                 <p className="text-sm font-medium text-foreground mt-0.5">{r.value}</p>
               </div>
             ))}
+            <div className="p-2.5 bg-muted/30 border border-border rounded-lg">
+              <p className="text-[11px] text-muted-foreground">Checkout enabled</p>
+              <p className="text-sm font-medium text-foreground mt-0.5">
+                {gate.loading ? "—" : gate.checkoutEnabled ? "Yes" : "No"}
+              </p>
+            </div>
+            <div className="p-2.5 bg-muted/30 border border-border rounded-lg">
+              <p className="text-[11px] text-muted-foreground">Add-to-cart enabled</p>
+              <p className="text-sm font-medium text-foreground mt-0.5">
+                {gate.loading ? "—" : gate.addToCartEnabled ? "Yes" : "No"}
+              </p>
+            </div>
           </div>
         )}
         <div className="mt-3 flex items-start gap-1.5 text-[11px] text-muted-foreground">
