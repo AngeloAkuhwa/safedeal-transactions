@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -20,61 +20,39 @@ const DEFAULTS: Omit<CommerceGateState, "loading"> = {
   sources: {},
 };
 
-const cache = new Map<string, Omit<CommerceGateState, "loading">>();
-const inflight = new Map<string, Promise<Omit<CommerceGateState, "loading">>>();
-
 async function fetchGate(vendorId: string | null | undefined): Promise<Omit<CommerceGateState, "loading">> {
-  const key = vendorId ?? "__platform__";
-  if (cache.has(key)) return cache.get(key)!;
-  if (inflight.has(key)) return inflight.get(key)!;
-  const p = (async () => {
-    try {
-      const url = vendorId
-        ? `${SUPABASE_URL}/functions/v1/commerce-config?vendor_id=${encodeURIComponent(vendorId)}`
-        : `${SUPABASE_URL}/functions/v1/commerce-config`;
-      const res = await fetch(url);
-      if (!res.ok) return DEFAULTS;
-      const json = await res.json();
-      const parsed = {
-        checkoutEnabled: Boolean(json?.checkout_enabled),
-        addToCartEnabled: json?.add_to_cart_enabled != null ? Boolean(json.add_to_cart_enabled) : true,
-        disabledReason: typeof json?.disabled_reason === "string" ? json.disabled_reason : DEFAULTS.disabledReason,
-        scope: (json?.scope as "platform" | "vendor") ?? "platform",
-        sources: (json?.sources && typeof json.sources === "object") ? json.sources : {},
-      };
-      cache.set(key, parsed);
-      return parsed;
-    } catch {
-      return DEFAULTS;
-    } finally {
-      inflight.delete(key);
-    }
-  })();
-  inflight.set(key, p);
-  return p;
+  try {
+    const url = vendorId
+      ? `${SUPABASE_URL}/functions/v1/commerce-config?vendor_id=${encodeURIComponent(vendorId)}`
+      : `${SUPABASE_URL}/functions/v1/commerce-config`;
+    const res = await fetch(url);
+    if (!res.ok) return DEFAULTS;
+    const json = await res.json();
+    return {
+      checkoutEnabled: Boolean(json?.checkout_enabled),
+      addToCartEnabled: json?.add_to_cart_enabled != null ? Boolean(json.add_to_cart_enabled) : true,
+      disabledReason: typeof json?.disabled_reason === "string" ? json.disabled_reason : DEFAULTS.disabledReason,
+      scope: (json?.scope as "platform" | "vendor") ?? "platform",
+      sources: (json?.sources && typeof json.sources === "object") ? json.sources : {},
+    };
+  } catch {
+    return DEFAULTS;
+  }
 }
 
 /**
  * Resolve the effective commerce gate for a vendor (or platform-wide when no vendor id).
+ * Uses React Query so results are cached across the app and refreshed on window focus.
  * Returns loading=true on first fetch; falls back to safe defaults on error.
  */
 export function useCommerceGate(vendorId?: string | null): CommerceGateState {
   const key = vendorId ?? "__platform__";
-  const [state, setState] = useState<CommerceGateState>(() => {
-    if (cache.has(key)) return { ...cache.get(key)!, loading: false };
-    return { ...DEFAULTS, loading: true };
+  const query = useQuery({
+    queryKey: ["commerce-gate", key],
+    queryFn: () => fetchGate(vendorId ?? null),
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
   });
-  useEffect(() => {
-    let cancelled = false;
-    if (cache.has(key)) {
-      setState({ ...cache.get(key)!, loading: false });
-      return;
-    }
-    setState((s) => ({ ...s, loading: true }));
-    fetchGate(vendorId ?? null).then((v) => {
-      if (!cancelled) setState({ ...v, loading: false });
-    });
-    return () => { cancelled = true; };
-  }, [key, vendorId]);
-  return state;
+  return { ...(query.data ?? DEFAULTS), loading: query.isLoading };
 }
