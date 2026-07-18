@@ -53,6 +53,30 @@ export async function loadPricingConfig(vendorId: string | null | undefined): Pr
   }
 }
 
+/**
+ * Resolve the effective timeout (hours) for a vendor and rule type.
+ * Falls back to the provided default when no scoped or platform row exists.
+ * Rule types: 'seller_fulfillment_timeout' | 'buyer_verification_timeout'.
+ */
+export async function loadEffectiveTimeoutHours(
+  vendorId: string | null | undefined,
+  ruleType: "seller_fulfillment_timeout" | "buyer_verification_timeout",
+  fallbackHours: number,
+): Promise<number> {
+  if (!vendorId) return fallbackHours;
+  try {
+    const { data, error } = await admin().rpc("get_effective_timeout", {
+      _vendor_id: vendorId,
+      _rule: ruleType,
+    });
+    if (error || data == null) return fallbackHours;
+    const n = typeof data === "string" ? Number(data) : (data as number);
+    return Number.isFinite(n) && n > 0 ? n : fallbackHours;
+  } catch (_e) {
+    return fallbackHours;
+  }
+}
+
 function numOr(v: unknown, fallback: number): number {
   const n = typeof v === "string" ? Number(v) : (v as number);
   return Number.isFinite(n) ? n : fallback;

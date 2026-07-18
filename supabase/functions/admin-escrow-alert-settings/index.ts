@@ -1,14 +1,14 @@
 /**
  * Admin-only CRUD for the dynamic escrow alert thresholds.
- * Reads/writes the single `system_settings` row keyed by
- * `escrow_alert_thresholds`. Future permission tightening should
- * happen inside `requireAdmin` / a dedicated clearance helper.
+ * Reads/writes `system_settings` rows keyed by `escrow_alert_thresholds`.
+ * Supports platform (default) and vendor scope via `?vendor_id=<uuid>`.
+ * Vendor rows fall back to the platform value when missing.
  */
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -63,16 +63,51 @@ Deno.serve(async (req) => {
   try {
     const { userId, adminClient } = await requireAdmin(req);
 
+    const url = new URL(req.url);
+    const vendorIdParam = url.searchParams.get("vendor_id");
+    const vendorId = vendorIdParam && vendorIdParam.trim() !== "" ? vendorIdParam.trim() : null;
+    const scope: "platform" | "vendor" = vendorId ? "vendor" : "platform";
+
     if (req.method === "GET") {
-      const { data, error } = await adminClient
+      // Always load platform for baseline
+      const { data: platformRow, error: platformErr } = await adminClient
         .from("system_settings")
         .select("setting_value, updated_at")
         .eq("setting_key", SETTING_KEY)
+        .eq("scope", "platform")
+        .is("vendor_id", null)
         .maybeSingle();
-      if (error) return json(500, { error: "fetch_failed", detail: error.message });
+      if (platformErr) return json(500, { error: "fetch_failed", detail: platformErr.message });
+      const platformValue = { ...DEFAULTS, ...((platformRow?.setting_value as Record<string, unknown>) ?? {}) };
+
+      if (scope === "vendor") {
+        const { data: vendorRow, error: vendorErr } = await adminClient
+          .from("system_settings")
+          .select("setting_value, updated_at")
+          .eq("setting_key", SETTING_KEY)
+          .eq("scope", "vendor")
+          .eq("vendor_id", vendorId)
+          .maybeSingle();
+        if (vendorErr) return json(500, { error: "fetch_failed", detail: vendorErr.message });
+        const hasOverride = !!vendorRow;
+        const effective = hasOverride
+          ? { ...platformValue, ...((vendorRow.setting_value as Record<string, unknown>) ?? {}) }
+          : platformValue;
+        return json(200, {
+          scope: "vendor",
+          vendor_id: vendorId,
+          thresholds: effective,
+          platform_thresholds: platformValue,
+          has_vendor_override: hasOverride,
+          updated_at: vendorRow?.updated_at ?? platformRow?.updated_at ?? null,
+        });
+      }
+
       return json(200, {
-        thresholds: { ...DEFAULTS, ...((data?.setting_value as Record<string, unknown>) ?? {}) },
-        updated_at: data?.updated_at ?? null,
+        scope: "platform",
+        vendor_id: null,
+        thresholds: platformValue,
+        updated_at: platformRow?.updated_at ?? null,
       });
     }
 
@@ -88,23 +123,52 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString(),
       };
 
+      const row = {
+        setting_key: SETTING_KEY,
+        setting_value: value,
+        scope,
+        vendor_id: vendorId,
+        updated_by: userId,
+      };
+      const conflictTarget = "setting_key,scope,vendor_id";
       const { data, error } = await adminClient
         .from("system_settings")
-        .upsert({ setting_key: SETTING_KEY, setting_value: value }, { onConflict: "setting_key" })
+        .upsert(row, { onConflict: conflictTarget })
         .select("setting_value, updated_at")
         .single();
       if (error) return json(500, { error: "save_failed", detail: error.message });
 
       await adminClient.from("admin_actions").insert({
         admin_user_id: userId,
-        action_type: "settings_update",
-        action_notes: `Updated escrow alert thresholds: ${JSON.stringify(parsed.value)}`,
+        action_type: "update_setting",
+        target_user_id: vendorId,
+        action_notes: `Updated escrow alert thresholds (scope=${scope}${vendorId ? `, vendor=${vendorId}` : ""}): ${JSON.stringify(parsed.value)}`,
       });
 
       return json(200, {
+        scope,
+        vendor_id: vendorId,
         thresholds: { ...DEFAULTS, ...((data?.setting_value as Record<string, unknown>) ?? {}) },
         updated_at: data?.updated_at ?? null,
       });
+    }
+
+    if (req.method === "DELETE" && scope === "vendor") {
+      // Remove a vendor override so the vendor falls back to platform.
+      const { error } = await adminClient
+        .from("system_settings")
+        .delete()
+        .eq("setting_key", SETTING_KEY)
+        .eq("scope", "vendor")
+        .eq("vendor_id", vendorId);
+      if (error) return json(500, { error: "delete_failed", detail: error.message });
+      await adminClient.from("admin_actions").insert({
+        admin_user_id: userId,
+        action_type: "update_setting",
+        target_user_id: vendorId,
+        action_notes: `Cleared vendor escrow alert override (vendor=${vendorId})`,
+      });
+      return json(200, { ok: true, scope: "vendor", vendor_id: vendorId });
     }
 
     return json(405, { error: "method_not_allowed" });

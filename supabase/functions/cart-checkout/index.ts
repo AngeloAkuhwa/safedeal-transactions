@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
 import { buildPricingSnapshot } from "../_shared/safedeal-money-policy.ts";
-import { loadPricingConfig } from "../_shared/settings-resolver.ts";
+import { loadPricingConfig, loadEffectiveTimeoutHours } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -396,7 +396,8 @@ Deno.serve(async (req) => {
             transaction_id: transactionId,
             delivery_method: primaryDeliveryMethod,
             expected_delivery_date: expectedDate.toISOString().split("T")[0],
-            verification_window_hours: firstProduct.verification_window_hours || 48,
+            verification_window_hours: firstProduct.verification_window_hours
+              || await loadEffectiveTimeoutHours(sellerId, "buyer_verification_timeout", 48),
             delivery_address_line1: needsAddress ? (addr.line1 ?? null) : null,
             delivery_address_line2: needsAddress ? (addr.line2 ?? null) : null,
             delivery_city: needsAddress ? (addr.city ?? null) : null,
