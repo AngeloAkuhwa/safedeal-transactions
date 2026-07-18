@@ -8,6 +8,7 @@ export interface CommerceGateState {
   disabledReason: string;
   loading: boolean;
   scope: "platform" | "vendor";
+  sources: Record<string, "vendor" | "platform" | "default">;
 }
 
 const DEFAULTS: Omit<CommerceGateState, "loading"> = {
@@ -16,6 +17,7 @@ const DEFAULTS: Omit<CommerceGateState, "loading"> = {
   disabledReason:
     "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
   scope: "platform",
+  sources: {},
 };
 
 const cache = new Map<string, Omit<CommerceGateState, "loading">>();
@@ -38,6 +40,7 @@ async function fetchGate(vendorId: string | null | undefined): Promise<Omit<Comm
         addToCartEnabled: json?.add_to_cart_enabled != null ? Boolean(json.add_to_cart_enabled) : true,
         disabledReason: typeof json?.disabled_reason === "string" ? json.disabled_reason : DEFAULTS.disabledReason,
         scope: (json?.scope as "platform" | "vendor") ?? "platform",
+        sources: (json?.sources && typeof json.sources === "object") ? json.sources : {},
       };
       cache.set(key, parsed);
       return parsed;
