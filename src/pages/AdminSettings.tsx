@@ -634,9 +634,18 @@ export default function AdminSettings() {
               ) : (
                 <div className="space-y-2">
                   {auditRows.map((row) => {
-                    const notes = row.action_notes ?? "Settings updated";
-                    // Notes are freeform; extract vendor scope hint if present
-                    const isVendor = notes.toLowerCase().includes("vendor");
+                    // action_notes is JSON stringified by the backend; parse if possible.
+                    let parsed: any = null;
+                    try { parsed = JSON.parse(row.action_notes ?? ""); } catch { /* raw text */ }
+                    const scopeLabel: "platform" | "vendor" = parsed?.scope === "vendor" ? "vendor" : "platform";
+                    const keys = parsed?.updates ? Object.keys(parsed.updates) : [];
+                    const timeoutCount = Array.isArray(parsed?.timeouts) ? parsed.timeouts.length : 0;
+                    const reason: string | undefined = parsed?.reason;
+                    const summary =
+                      keys.length || timeoutCount
+                        ? `Updated ${keys.length ? `${keys.length} setting${keys.length === 1 ? "" : "s"}` : ""}${keys.length && timeoutCount ? " · " : ""}${timeoutCount ? `${timeoutCount} timeout${timeoutCount === 1 ? "" : "s"}` : ""}`
+                        : row.action_notes ?? "Settings updated";
+                    const isVendor = scopeLabel === "vendor";
                     return (
                       <div key={row.id} className="p-2.5 bg-muted/30 border border-border rounded-lg flex items-start gap-2.5">
                         <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
@@ -644,11 +653,14 @@ export default function AdminSettings() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-medium text-foreground truncate">{notes}</p>
+                            <p className="text-sm font-medium text-foreground truncate">{summary}</p>
                             {isVendor ? (
                               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Vendor</span>
                             ) : (
                               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">Platform</span>
+                            )}
+                            {parsed?.apply_to_all_vendors && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300">Applied to all</span>
                             )}
                           </div>
                           <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -657,6 +669,17 @@ export default function AdminSettings() {
                             {" · "}
                             {formatDistanceToNow(new Date(row.created_at), { addSuffix: true })}
                           </p>
+                          {reason && (
+                            <p className="text-[11px] text-muted-foreground mt-0.5 italic truncate">"{reason}"</p>
+                          )}
+                          {keys.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {keys.slice(0, 4).map((k) => (
+                                <span key={k} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted/60 border border-border text-muted-foreground truncate max-w-[180px]">{k}</span>
+                              ))}
+                              {keys.length > 4 && <span className="text-[10px] text-muted-foreground">+{keys.length - 4}</span>}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
