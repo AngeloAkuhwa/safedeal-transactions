@@ -40,6 +40,11 @@ export async function createStorefrontTransaction(
   });
 
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || "Failed to create transaction");
+  if (!res.ok) {
+    const msg = json.reason || json.error || "Failed to create transaction";
+    const err = new Error(msg);
+    (err as any).code = json.error;
+    throw err;
+  }
   return json;
 }
