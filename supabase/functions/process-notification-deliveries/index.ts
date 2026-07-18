@@ -11,10 +11,11 @@ const json = (s: number, b: unknown) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const APP_URL =
   Deno.env.get("APP_PUBLIC_URL") ??
   "https://id-preview--6eccf2c7-b5a8-43bb-bf23-ab5ade5853d4.lovable.app";
-const FROM = "SafeDeal <onboarding@resend.dev>";
+const FROM = Deno.env.get("RESEND_FROM_EMAIL") ?? "SafeDeal <onboarding@resend.dev>";
 
 // Map notification type -> preference column (opt-out check).
 const prefFor = (t: string): string | null => {
@@ -58,6 +59,10 @@ function renderEmail(title: string, message: string, ctaUrl?: string, ctaLabel =
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   if (!RESEND_API_KEY) return json(500, { error: "RESEND_API_KEY not configured" });
+  if (!LOVABLE_API_KEY) return json(500, { error: "LOVABLE_API_KEY not configured" });
+  if (FROM.includes("onboarding@resend.dev")) {
+    console.warn("Using onboarding@resend.dev — Resend restricts this to the account owner. Set RESEND_FROM_EMAIL to a verified sender.");
+  }
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
@@ -110,9 +115,13 @@ Deno.serve(async (req) => {
     let ok = false;
     let providerResponse = "";
     try {
-      const resp = await fetch("https://api.resend.com/emails", {
+      const resp = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "X-Connection-Api-Key": RESEND_API_KEY,
+        },
         body: JSON.stringify({
           from: FROM,
           to: [profile.email],
