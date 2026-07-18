@@ -342,7 +342,8 @@ const SellerCreateTransaction = () => {
     }
   };
 
-  const vendorPricingConfig = useEffectivePricingConfig(navData?.seller?.id ?? null);
+  const currentUserId = useCurrentUserId();
+  const vendorPricingConfig = useEffectivePricingConfig(currentUserId);
   const pricing = form.price > 0 ? computePricing(form.price, form.currency_code, vendorPricingConfig) : null;
   const currSymbol = CURRENCY_OPTIONS.find((c) => c.value === form.currency_code)?.symbol ?? "₦";
   const progressPct = (currentStep / 5) * 100;
