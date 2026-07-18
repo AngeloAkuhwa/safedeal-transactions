@@ -2716,6 +2716,10 @@ export type Database = {
           status: Database["public"]["Enums"]["profile_status"]
           store_slug: string | null
           updated_at: string
+          vendor_status: Database["public"]["Enums"]["vendor_status_type"]
+          vendor_status_changed_at: string | null
+          vendor_status_changed_by: string | null
+          vendor_status_reason: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -2734,6 +2738,10 @@ export type Database = {
           status?: Database["public"]["Enums"]["profile_status"]
           store_slug?: string | null
           updated_at?: string
+          vendor_status?: Database["public"]["Enums"]["vendor_status_type"]
+          vendor_status_changed_at?: string | null
+          vendor_status_changed_by?: string | null
+          vendor_status_reason?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -2752,6 +2760,10 @@ export type Database = {
           status?: Database["public"]["Enums"]["profile_status"]
           store_slug?: string | null
           updated_at?: string
+          vendor_status?: Database["public"]["Enums"]["vendor_status_type"]
+          vendor_status_changed_at?: string | null
+          vendor_status_changed_by?: string | null
+          vendor_status_reason?: string | null
         }
         Relationships: [
           {
@@ -2759,6 +2771,13 @@ export type Database = {
             columns: ["default_region_id"]
             isOneToOne: false
             referencedRelation: "serviceable_regions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_vendor_status_changed_by_fkey"
+            columns: ["vendor_status_changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -4634,6 +4653,7 @@ export type Database = {
         | "add_note"
         | "toggle_auto_release"
         | "high_value_flag"
+        | "set_vendor_status"
       admin_investigation_priority: "low" | "medium" | "high" | "critical"
       admin_investigation_status:
         | "open"
@@ -4877,6 +4897,7 @@ export type Database = {
         | "resolved"
         | "refunded"
       user_role_type: "buyer" | "seller" | "admin"
+      vendor_status_type: "active" | "disabled" | "suspended"
       verification_level_type:
         | "unverified"
         | "basic_verified"
@@ -5033,6 +5054,7 @@ export const Constants = {
         "add_note",
         "toggle_auto_release",
         "high_value_flag",
+        "set_vendor_status",
       ],
       admin_investigation_priority: ["low", "medium", "high", "critical"],
       admin_investigation_status: [
@@ -5303,6 +5325,7 @@ export const Constants = {
         "refunded",
       ],
       user_role_type: ["buyer", "seller", "admin"],
+      vendor_status_type: ["active", "disabled", "suspended"],
       verification_level_type: [
         "unverified",
         "basic_verified",
