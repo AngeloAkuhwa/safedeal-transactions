@@ -369,7 +369,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           <button
                             onClick={() => navigate(`/admin/users/${r.user!.id}`)}
                             title="View User Profile"
-                            className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1.5"
+                            className="px-2 py-1 bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 rounded text-[11px] font-semibold transition-all flex items-center gap-1"
                           >
                             <User className="h-3 w-3" /> User
                           </button>
@@ -378,7 +378,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           <button
                             onClick={() => navigate(`/admin/disputes/${r.dispute_id}`)}
                             title={`View Dispute ${shortDisId(r.dispute_id)}`}
-                            className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1.5"
+                            className="px-2 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 rounded text-[11px] font-semibold transition-all flex items-center gap-1"
                           >
                             <Scale className="h-3 w-3" /> {shortDisId(r.dispute_id)}
                           </button>
@@ -387,7 +387,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           <button
                             onClick={() => navigate(`/admin/transactions/${r.transaction!.id}`)}
                             title={`View Transaction ${shortTxnCode(r.transaction)}`}
-                            className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1.5"
+                            className="px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 rounded text-[11px] font-semibold transition-all flex items-center gap-1"
                           >
                             <Receipt className="h-3 w-3" /> {shortTxnCode(r.transaction)}
                           </button>
@@ -396,14 +396,14 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                           onClick={() => r.retriable && onRetry(r.delivery_id)}
                           disabled={!r.retriable || retrying === r.delivery_id}
                           title="Retry Delivery"
-                          className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 rounded text-xs font-semibold transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 rounded text-[11px] font-semibold transition-all flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <RotateCw className={`h-3 w-3 ${retrying === r.delivery_id ? "animate-spin" : ""}`} /> Retry
                         </button>
                         <button
                           onClick={() => onDetails(r)}
                           title="View Details"
-                          className="px-3 py-1.5 bg-muted border border-border text-muted-foreground hover:bg-muted/80 rounded text-xs font-semibold transition-all flex items-center gap-1.5"
+                          className="px-2 py-1 bg-muted border border-border text-muted-foreground hover:bg-muted/80 rounded text-[11px] font-semibold transition-all flex items-center gap-1"
                         >
                           <Info className="h-3 w-3" /> Details
                         </button>
