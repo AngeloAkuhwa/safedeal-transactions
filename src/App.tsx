@@ -69,11 +69,13 @@ import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { usePresenceHeartbeat } from "./hooks/usePresenceHeartbeat";
+import { useSessionIdleTimeout } from "./hooks/useSessionIdleTimeout";
 
 const queryClient = new QueryClient();
 
 const AppShell = ({ children }: { children: React.ReactNode }) => {
   usePresenceHeartbeat();
+  useSessionIdleTimeout();
   return <>{children}</>;
 };
 
