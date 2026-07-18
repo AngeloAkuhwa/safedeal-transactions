@@ -71,20 +71,35 @@ export async function viewOffer(offerToken: string): Promise<OfferClaimResult> {
   const headers: Record<string, string> = {};
   if (session) headers.Authorization = `Bearer ${session.access_token}`;
 
-  const { data, error } = await supabase.functions.invoke("claim-offer", {
-    headers,
-    body: { action: "view", offer_token: offerToken },
-  });
-  if (error) throw new Error(error.message || "Failed to load offer");
-  return data as OfferClaimResult;
+  return invokeClaimOffer({ action: "view", offer_token: offerToken }, headers);
 }
 
 export async function claimOffer(offerToken: string): Promise<OfferClaimResult> {
   const headers = await authHeaders();
-  const { data, error } = await supabase.functions.invoke("claim-offer", {
-    headers,
-    body: { action: "claim", offer_token: offerToken },
+  return invokeClaimOffer({ action: "claim", offer_token: offerToken }, headers);
+}
+
+/**
+ * Raw-fetch wrapper so 403 commerce-gate responses surface the server `reason`
+ * (checkout_disabled / add_to_cart_disabled / vendor_disabled) instead of a
+ * generic "Non-2xx response" from supabase.functions.invoke.
+ */
+async function invokeClaimOffer(
+  body: Record<string, unknown>,
+  headers: Record<string, string>,
+): Promise<OfferClaimResult> {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claim-offer`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
+    body: JSON.stringify(body),
   });
-  if (error) throw new Error(error.message || "Failed to claim offer");
-  return data as OfferClaimResult;
+  let json: any = null;
+  try { json = await res.json(); } catch { /* ignore */ }
+  if (!res.ok) {
+    const reason = typeof json?.reason === "string" ? json.reason : null;
+    const errCode = typeof json?.error === "string" ? json.error : null;
+    throw new Error(reason || errCode || `Request failed (${res.status})`);
+  }
+  return json as OfferClaimResult;
 }

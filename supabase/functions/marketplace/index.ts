@@ -135,6 +135,7 @@ Deno.serve(async (req) => {
       (sellers || []).forEach((s: any) => {
         const v = verificationMap[s.id] || {};
         sellerMap[s.id] = {
+          id: s.id,
           full_name: s.full_name,
           store_slug: s.store_slug,
           avatar_url: s.avatar_url,
@@ -198,6 +199,7 @@ Deno.serve(async (req) => {
         category_id: p.category_id || null,
         primary_image_url: primaryImageUrl,
         seller: sellerMap[p.seller_id] || {
+          id: p.seller_id,
           full_name: "Unknown Seller",
           store_slug: null,
           avatar_url: null,
