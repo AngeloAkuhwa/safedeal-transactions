@@ -12,15 +12,41 @@
 
 import { computePricing as computeRawPricing, type PricingResult as RawPricing, type PricingConfigOverride } from "./pricing.ts";
 
-export const PRICING_MODEL_VERSION = "NG_MVP_TOTAL_SERVICE_FEE_CAP_2500_V1" as const;
+/**
+ * Default version stamp used when there is no vendor-scoped config override.
+ * Config-aware callers should prefer {@link computePricingModelVersion}, which
+ * derives a version tag from the effective config so persisted rows remain
+ * distinguishable across cap / floor / tier changes.
+ */
+export const PRICING_MODEL_VERSION_DEFAULT = "NG_MVP_TOTAL_SERVICE_FEE_CAP_2500_V1" as const;
+/** @deprecated Prefer {@link PRICING_MODEL_VERSION_DEFAULT}. Kept for source compat. */
+export const PRICING_MODEL_VERSION = PRICING_MODEL_VERSION_DEFAULT;
 /**
  * Legacy fallback ceiling used only for consumers that lack a persisted
  * snapshot boolean. Runtime pricing math reads the effective cap from
  * `PricingConfigOverride` (see `_shared/pricing.ts`), not this constant.
  */
 export const MAX_TOTAL_SERVICE_FEE_FALLBACK = 2500;
-/** @deprecated Prefer PricingConfigOverride.max_total_service_fee. */
-export const MAX_TOTAL_SERVICE_FEE = MAX_TOTAL_SERVICE_FEE_FALLBACK;
+
+/**
+ * Compute a config-aware version stamp. Format:
+ *   `NG_MVP_TSFCAP_<cap>_MIN_<floor>_T<tierHash>`
+ * where `tierHash` is a short deterministic digest of the effective tier
+ * rates. Persisted alongside snapshots so audit tooling can detect the exact
+ * pricing rules that produced any historical row.
+ */
+export function computePricingModelVersion(config?: PricingConfigOverride): string {
+  if (!config) return PRICING_MODEL_VERSION_DEFAULT;
+  const cap = config.max_total_service_fee ?? MAX_TOTAL_SERVICE_FEE_FALLBACK;
+  const min = config.min_platform_fee ?? 250;
+  const tiersJson = JSON.stringify(config.tier_rates ?? []);
+  let hash = 0;
+  for (let i = 0; i < tiersJson.length; i++) {
+    hash = ((hash << 5) - hash + tiersJson.charCodeAt(i)) | 0;
+  }
+  const tierHash = (hash >>> 0).toString(36).padStart(6, "0").slice(0, 6);
+  return `NG_MVP_TSFCAP_${cap}_MIN_${min}_T${tierHash}`;
+}
 
 export interface PricingSnapshot {
   /** Item / listing price (₦). */
@@ -40,7 +66,7 @@ export interface PricingSnapshot {
   /** True when raw_total_service_fee was clipped by MAX_TOTAL_SERVICE_FEE. */
   is_total_service_fee_capped: boolean;
   /** Stamp the model version so we can evolve pricing without rewriting history. */
-  pricing_model_version: typeof PRICING_MODEL_VERSION;
+  pricing_model_version: string;
 }
 
 /**
@@ -73,7 +99,7 @@ export function buildPricingSnapshot(
     seller_payout_amount: raw.item_amount, // MVP rule
     currency: raw.currency_code,
     is_total_service_fee_capped: raw.is_capped,
-    pricing_model_version: PRICING_MODEL_VERSION,
+    pricing_model_version: computePricingModelVersion(config),
   };
 }
 
@@ -119,7 +145,7 @@ export function snapshotFromPersisted(row: {
     // for the vendor at write time. Avoid re-evaluating against a global
     // constant, which would be wrong for vendors with custom caps.
     is_total_service_fee_capped: Boolean(row.is_total_service_fee_capped),
-    pricing_model_version: (row.pricing_model_version as typeof PRICING_MODEL_VERSION) ?? PRICING_MODEL_VERSION,
+    pricing_model_version: row.pricing_model_version ?? PRICING_MODEL_VERSION_DEFAULT,
   };
 }
 

@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
-import { buildPricingSnapshot, MAX_TOTAL_SERVICE_FEE } from "../_shared/safedeal-money-policy.ts";
+import { buildPricingSnapshot, MAX_TOTAL_SERVICE_FEE_FALLBACK } from "../_shared/safedeal-money-policy.ts";
 import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
@@ -182,10 +182,12 @@ Deno.serve(async (req) => {
     const pricing = computePricing(itemAmount, pricingRow.currency_code || "NGN", "local", vendorPricingConfig);
     const snapshot = buildPricingSnapshot(itemAmount, pricingRow.currency_code || "NGN", vendorPricingConfig);
 
-    // SafeDeal central gate: the combined service fee is capped at ₦2,500 and the
-    // provider (Paystack) fee is covered first inside the cap. If the provider
-    // estimate alone would exceed the cap, the payment method is blocked.
-    if (snapshot.payment_processing_fee_amount > MAX_TOTAL_SERVICE_FEE) {
+    // SafeDeal central gate: provider (Paystack) fee is covered first inside
+    // the effective cap for this vendor. If the provider estimate alone would
+    // exceed the effective cap, the payment method is blocked. We use the
+    // vendor-scoped cap when present, falling back to the platform default.
+    const effectiveCap = vendorPricingConfig?.max_total_service_fee ?? MAX_TOTAL_SERVICE_FEE_FALLBACK;
+    if (snapshot.payment_processing_fee_amount > effectiveCap) {
       return jsonErr("payment_method_blocked", 409);
     }
 
