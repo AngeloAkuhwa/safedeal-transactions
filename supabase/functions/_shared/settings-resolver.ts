@@ -84,6 +84,58 @@ export async function loadEffectiveTimeoutHours(
   }
 }
 
+/**
+ * Resolve the effective Auto-Release configuration for a vendor.
+ * Returns `{ enabled, window_hours, enabled_by, enabled_at }`.
+ *
+ * `enabled` is `false` by default (manual release from the Payouts page is
+ * the platform's default posture). `window_hours` falls back to 48h.
+ * `enabled_by` / `enabled_at` are stamped by the DB trigger
+ * `track_auto_release_toggle()` and reflect the admin who last flipped
+ * the toggle at whichever scope (vendor > platform) is active.
+ */
+export interface EffectiveAutoRelease {
+  enabled: boolean;
+  window_hours: number;
+  enabled_by: string | null;
+  enabled_at: string | null;
+  scope: "platform" | "vendor";
+}
+
+export async function loadEffectiveAutoRelease(
+  vendorId: string | null | undefined,
+): Promise<EffectiveAutoRelease> {
+  const fallback: EffectiveAutoRelease = {
+    enabled: false, window_hours: 48, enabled_by: null, enabled_at: null, scope: "platform",
+  };
+  try {
+    const client = admin();
+    // Prefer vendor row, fall back to platform
+    const orExpr = vendorId
+      ? `scope.eq.platform,and(scope.eq.vendor,vendor_id.eq.${vendorId})`
+      : `scope.eq.platform`;
+    const { data: rows } = await client
+      .from("system_settings")
+      .select("scope, vendor_id, setting_value, auto_release_enabled_by, auto_release_enabled_at")
+      .eq("setting_key", "escrow.auto_release_enabled")
+      .or(orExpr);
+    const vendor = (rows ?? []).find((r: any) => r.scope === "vendor" && r.vendor_id === vendorId);
+    const platform = (rows ?? []).find((r: any) => r.scope === "platform");
+    const effective = vendor ?? platform;
+    if (!effective) return fallback;
+    const window = await loadEffectiveTimeoutHours(vendorId ?? null, "buyer_verification_timeout", 48);
+    return {
+      enabled: Boolean(effective.setting_value),
+      window_hours: window,
+      enabled_by: effective.auto_release_enabled_by ?? null,
+      enabled_at: effective.auto_release_enabled_at ?? null,
+      scope: vendor ? "vendor" : "platform",
+    };
+  } catch (_e) {
+    return fallback;
+  }
+}
+
 function numOr(v: unknown, fallback: number): number {
   const n = typeof v === "string" ? Number(v) : (v as number);
   return Number.isFinite(n) ? n : fallback;

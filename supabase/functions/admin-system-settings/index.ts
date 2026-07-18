@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
 
       const { data: settings, error: sErr } = await adminClient
         .from("system_settings")
-        .select("setting_key, setting_value, scope, vendor_id, is_overridable, updated_at, updated_by")
+        .select("setting_key, setting_value, scope, vendor_id, is_overridable, updated_at, updated_by, auto_release_enabled_by, auto_release_enabled_at, auto_release_previous_value")
         .or(vendorId
           ? `scope.eq.platform,and(scope.eq.vendor,vendor_id.eq.${vendorId})`
           : `scope.eq.platform`);
@@ -145,6 +145,33 @@ Deno.serve(async (req) => {
           updates, timeouts, apply_to_all_vendors: applyToAll,
         }),
       });
+
+      // Dedicated toggle_auto_release event — one row per flip so audit
+      // history renders a distinct, filterable stream regardless of what
+      // else was saved in the same PUT.
+      if (Object.prototype.hasOwnProperty.call(updates, "escrow.auto_release_enabled")) {
+        const newValue = Boolean(updates["escrow.auto_release_enabled"]);
+        // Read the prior value so the event captures both sides of the flip.
+        const { data: prior } = await adminClient
+          .from("system_settings")
+          .select("auto_release_previous_value, setting_value")
+          .eq("setting_key", "escrow.auto_release_enabled")
+          .eq("scope", scope)
+          .is("vendor_id", vendorId as any)
+          .maybeSingle();
+        await adminClient.from("admin_actions").insert({
+          admin_user_id: userId,
+          target_user_id: vendorId,
+          action_type: "toggle_auto_release",
+          action_notes: JSON.stringify({
+            scope,
+            vendor_id: vendorId,
+            new_value: newValue,
+            previous_value: prior?.auto_release_previous_value ?? null,
+            reason,
+          }),
+        });
+      }
 
       return json(200, { ok: true });
     }
