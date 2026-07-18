@@ -26,6 +26,13 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
   { key: "notifications.sms_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
   { key: "escrow.auto_release_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
   { key: "risk.high_value_alert_ngn", writable: ["platform", "vendor"], spec: { type: "number", min: 1000, max: 50_000_000 } },
+  { key: "commerce.checkout_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
+  { key: "commerce.add_to_cart_enabled", writable: ["platform", "vendor"], spec: { type: "boolean" } },
+  { key: "commerce.disabled_reason", writable: ["platform", "vendor"], spec: { type: "enum", options: [
+    "Checkout is not yet available. We're preparing the platform — you can browse and set up your account in the meantime.",
+    "Checkout is temporarily paused for maintenance. Please try again shortly.",
+    "Payments are currently disabled for this vendor. Please check back later.",
+  ] } },
 ];
 
 const BY_KEY = new Map(SETTINGS_CATALOG.map((e) => [e.key, e]));
