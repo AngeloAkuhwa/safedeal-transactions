@@ -1,89 +1,80 @@
-# Settings Rollout — Final Audit & Fix Plan
+# Checkout Gating & Vendor Enable/Disable — Plan
 
-I scanned the repo end-to-end. Most of the 12 items are actually done (catalog+clamp exists, badges on all fields, timeout consumers wired, escrow alerts accept `?vendor_id=`, pricing cap/version are config-aware, tests exist, `EffectiveSettingsPanel` is mounted). **The important remaining problem is not the plan checklist — it's that several settings the admin can save are never read by the running system.**
+Goal: Ship a config-controlled kill switch so we can deploy live in "browse/onboard only" mode, then flip checkout on when ready — globally, or per vendor. Also add an explicit vendor active/disabled flag so we can suspend a single vendor without touching pricing.
 
-## What I verified as DONE
+## 1. New settings (added to the manifest)
 
-- `_shared/safedeal-money-policy.ts` cap and `pricing_model_version` are config-aware (`computePricingModelVersion(config)`, `config.max_total_service_fee ?? FALLBACK`).
-- `admin-escrow-alert-settings` supports `?vendor_id=` (platform + vendor scope).
-- All 4 timeout consumers (`create-transaction`, `cart-checkout`, `storefront-checkout`, `claim-offer`) call `loadEffectiveTimeoutHours`.
-- Settings catalog exists on both client and server; `admin-system-settings` PUT calls `clampSetting`.
-- `AdminSettings.tsx` shows "Overridden by vendor" badges on every overridable field + locked badges on platform-only fields.
-- `EffectiveSettingsPanel` is created and mounted on `SellerProfileSettings.tsx`.
-- Tests: `pricing.test.ts`, `settings-catalog.test.ts`, `pricing.parity.test.ts`.
+Both scoped `platform | vendor`, resolved via existing `get_effective_settings` (vendor > platform > default).
 
-## Real gaps (in priority order)
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `commerce.checkout_enabled` | boolean | `false` (safe default at launch) | Master switch. When false: no cart-add, no checkout, no payment initiation. |
+| `commerce.add_to_cart_enabled` | boolean | `true` | Lets us allow browsing + cart building even while checkout is off. |
+| `commerce.disabled_reason` | string (enum-ish) | `"launch_pending"` | Shown to users in the blocked-state banner/modal. |
 
-### 1. Settings written but never read at runtime (biggest gap)
+Vendor overrides let a specific vendor be turned off (or on early during pilot) independent of the platform default.
 
-`rg` across the codebase confirms zero runtime consumers for these keys — the admin UI writes them, they clamp correctly, but nothing enforces them:
+## 2. Vendor active/disabled flag
 
-| Key | Should gate | Currently |
-|---|---|---|
-| `security.id_verification_threshold` | Block/require KYC on transactions above the NGN threshold | Not read anywhere |
-| `risk.high_value_alert_ngn` | Fire admin alert / flag transaction on high-value orders | Not read anywhere |
-| `security.session_timeout_minutes` | Force sign-out / refresh after idle period (admin sessions) | Not read anywhere |
-| `security.two_factor_admin` | Require 2FA challenge for admin sign-in | Not read anywhere |
+Separate from the setting above — this is a hard admin action, not a config preference.
 
-**Fix per key** (all use the existing `get_effective_settings` RPC + `loadEffectiveSettings` helper — no new plumbing):
+- Add `profiles.vendor_status` enum (`active | disabled | suspended`) with `active` default, plus `vendor_status_reason` and `vendor_status_changed_at/by`.
+- Admin action `set_vendor_status` (added to `admin_action_type` enum) writes to `admin_actions` for audit.
+- A disabled vendor: products hidden from marketplace/storefront listings, existing product pages show "Currently unavailable", all checkout/cart-add for that vendor blocked regardless of `commerce.checkout_enabled`.
+- Existing in-flight transactions for that vendor are NOT cancelled — they continue through fulfillment/release.
 
-- **`security.id_verification_threshold`**: in `create-transaction`, `cart-checkout`, `storefront-checkout`, `claim-offer`, after computing pricing, check `total_amount >= threshold`. If buyer lacks a verified `identity_submissions` row (status `approved`), return `identity_verification_required`. Client checkout screens surface a friendly gate + link to `/verify-identity`.
-- **`risk.high_value_alert_ngn`**: after a transaction is created and paid, in `paystack-webhook`/`initiate-paystack-payment` verification path, if `total_amount >= threshold` insert an `admin_actions` row (`action_type='high_value_flag'`) and a `notifications` row targeted at admins. Admin dashboard already surfaces admin notifications.
-- **`security.session_timeout_minutes`**: read once at app bootstrap via `pricing-config`-style public endpoint (extend it to expose non-secret security keys, or add a small `public-security-config` fn). Wire into an idle-timer hook (`useIdleTimeout`) mounted inside `AdminLayout` only. On idle → `supabase.auth.signOut()` + toast.
-- **`security.two_factor_admin`**: read at admin sign-in success in `AdminAuthGate` (or new hook). If `true` and the user has `admin` role, require the existing phone OTP flow (`phone_otp_codes`) before granting admin access; store a per-session flag in `sessionStorage` so it's not asked again mid-session.
+## 3. Runtime enforcement (where the gate actually fires)
 
-### 2. Real audit history in `AdminSettings.tsx` (item 7)
+New shared helper `supabase/functions/_shared/commerce-gate.ts` with:
+- `loadCommerceConfig(vendorId)` — reads the three keys via resolver.
+- `assertCheckoutAllowed(vendorId)` → 403 `{ error: "checkout_disabled", reason }` when off.
+- `assertAddToCartAllowed(vendorId)` → 403 `{ error: "add_to_cart_disabled" }`.
+- `assertVendorActive(vendorId)` → 403 `{ error: "vendor_disabled" }`.
 
-Currently a button that toasts "Audit history will open when wired to admin_actions". Replace with a Sheet/Dialog that fetches:
+Wired into these edge functions (all existing):
+- `cart-add` / cart mutation endpoints → `assertAddToCartAllowed` + `assertVendorActive`.
+- `storefront-checkout`, `cart-checkout`, `create-transaction`, `claim-offer` → both gates.
+- `initiate-paystack-payment` → both gates (last line of defence against stale client state).
+- `marketplace` and `public-storefront` list endpoints → filter out products whose seller is `disabled`/`suspended`.
 
-```sql
-select * from admin_actions
-where action_type in ('update_setting','toggle_auto_release','update_timeout_rule')
-order by created_at desc limit 100
-```
+## 4. Admin UI (`/admin/settings`)
 
-Render rows with actor, key, old→new, scope, vendor (if any), reason. Add a small filter by key.
+New "Commerce" section on the platform settings page:
+- Toggle: **Enable checkout platform-wide** (`commerce.checkout_enabled`).
+- Toggle: **Allow adding to cart while checkout is disabled**.
+- Text field: **Message shown to users when checkout is off**.
+- Scope selector already handles vendor overrides — same three fields render under Vendor scope with the standard "Overridden by vendor" badges.
 
-### 3. Vendor Overrides tab (item 6)
+Vendor status lives on the User Investigation Hub (`/admin/users/:id/profile`) for vendors:
+- New "Vendor status" card with `Active | Disabled | Suspended` control, mandatory reason, writes to `admin_actions`.
 
-Add a third tab next to Platform/Vendor called **Overrides**. Backend already returns `override_counts` and `vendor_overrides`. Render:
+## 5. Vendor-side visibility (`/seller/settings`)
 
-- One row per `(vendor, key)` with current value, platform baseline, "Reset to platform" action (calls existing PUT with `null` value / DELETE row via new small backend action).
-- Group by vendor with a search box.
+- `EffectiveSettingsPanel` gains a "Commerce" row showing whether checkout is on for this vendor and where the value comes from (platform default vs vendor override).
+- If the vendor is `disabled`/`suspended`, show a prominent banner explaining status + reason at the top of every seller page.
 
-### 4. Feature flag `settings.resolver_enabled` (item 10)
+## 6. Buyer-side UX
 
-Add a boolean to `system_settings` (platform-only). In `_shared/settings-resolver.ts`, if the flag is `false`, `loadPricingConfig` / `loadEffectiveTimeoutHours` short-circuit to constants (`MAX_TOTAL_SERVICE_FEE_FALLBACK`, hardcoded 48h/72h). Provides an instant kill-switch without redeploy. Mirror on client for `useEffectivePricingConfig` (falls back to static `defaultPricingConfig`).
+- Product cards / product detail: when the effective gate is off (or vendor disabled), the "Buy now"/"Add to cart" button is replaced with a disabled state + tooltip carrying `commerce.disabled_reason`.
+- Cart page: keep items visible but disable "Proceed to checkout" with the same message.
+- A small `useCommerceGate(vendorId?)` hook in `src/hooks/` reads a new public `commerce-config` edge function (mirrors `pricing-config`) so the UI reflects live values without leaking admin endpoints.
 
-## Out of scope (confirmed)
+## 7. Migration + seeding
 
-- Auto-release automation — admin still triggers payouts manually via the payout button. `escrow.auto_release_enabled` remains an audited toggle + banner on `AdminPayouts.tsx` (already implemented); no runtime timer.
+- Migration: add the three keys to `system_settings` at platform scope with the defaults above; extend the settings catalog (both `src/lib/settings-catalog.ts` and `supabase/functions/_shared/settings-catalog.ts`); add `vendor_status` columns to `profiles`; add `set_vendor_status` to `admin_action_type`.
+- At deploy time, `commerce.checkout_enabled=false` — the system ships in "onboard only" mode by default. We flip it on when we're ready.
 
-## Files touched
+## 8. Impacted files (audit-ready list)
 
-**Backend**
-- `supabase/functions/create-transaction/index.ts`, `cart-checkout/index.ts`, `storefront-checkout/index.ts`, `claim-offer/index.ts` — enforce `id_verification_threshold`.
-- `supabase/functions/initiate-paystack-payment/index.ts` (or `paystack-webhook`) — emit high-value flag/notification.
-- `supabase/functions/_shared/settings-resolver.ts` — honor `settings.resolver_enabled`; add `loadSecurityConfig()` helper.
-- `supabase/functions/pricing-config/index.ts` — extend to expose non-secret security keys (or new `public-config` fn).
-- `supabase/functions/admin-system-settings/index.ts` — add "reset vendor override" action.
+- Migrations: new file for the three settings keys, `profiles.vendor_status` columns, enum extension.
+- Backend shared: `_shared/settings-catalog.ts`, new `_shared/commerce-gate.ts`.
+- Edge functions edited: `cart-add`, `cart-checkout`, `storefront-checkout`, `create-transaction`, `claim-offer`, `initiate-paystack-payment`, `marketplace`, `public-storefront`, `admin-system-settings` (accept new keys), new `commerce-config` (public read), `admin-user-actions` (or equivalent) for `set_vendor_status`.
+- Frontend: `src/lib/settings-catalog.ts`, `src/pages/AdminSettings.tsx` (new Commerce section), `src/pages/AdminUserDetail.tsx` (vendor status card), `src/components/profile/EffectiveSettingsPanel.tsx`, new `src/hooks/useCommerceGate.ts`, buy/cart buttons in `PublicProductDetail`, `PublicStorefront`, `BuyerMarketplace`, `BuyerCart`, `CartCheckoutReview`, `StorefrontCheckout`.
 
-**Frontend**
-- `src/pages/AdminSettings.tsx` — real audit history sheet, Overrides tab.
-- `src/components/admin/AdminLayout.tsx` (or equivalent) — mount `useIdleTimeout` + 2FA gate.
-- New `src/hooks/useIdleTimeout.ts`, `src/hooks/useAdmin2FAGate.ts`.
-- `src/pages/StorefrontCheckout.tsx`, `src/pages/BuyerCart.tsx`, `src/pages/CartCheckoutReview.tsx`, `src/pages/SellerCreateTransaction.tsx` — surface `identity_verification_required` errors with CTA.
-- `src/lib/pricing.ts` / `useEffectivePricingConfig` — respect resolver flag.
+## 9. Out of scope for this phase
 
-**Migration**
-- Add `settings.resolver_enabled` seed row (platform scope, default `true`).
+- Scheduled auto-flip ("enable checkout on date X") — manual toggle only for now.
+- Region-scoped gating (already handled by `serviceable_regions`).
+- Refunding or auto-cancelling in-flight transactions when a vendor is disabled.
 
-## Acceptance checks
-
-- Setting ID threshold to ₦50,000 blocks a ₦60,000 checkout for an unverified buyer with a clear error.
-- Setting high-value alert to ₦100,000 causes a ₦150,000 paid transaction to appear as an admin notification + `admin_actions` row.
-- Setting admin session timeout to 5 min signs out an idle admin.
-- Toggling `two_factor_admin=true` requires OTP on next admin sign-in.
-- Toggling `settings.resolver_enabled=false` makes pricing/timeouts fall back to constants (verified by parity test).
-- Audit history sheet shows real `admin_actions` rows.
-- Overrides tab lists all vendor overrides with reset action.
+Confirm and I'll implement.
