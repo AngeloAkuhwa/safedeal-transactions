@@ -626,6 +626,7 @@ function BroadcastComposer({ onSent, titleRef }: { onSent: () => void; titleRef?
 function RecentActivity({ rows, onRefresh, onFilter }: {
   rows: AdminNotifRecentRow[]; onRefresh: () => void; onFilter: () => void;
 }) {
+  const { isOnline } = useOnlinePresence();
   return (
     <Card className="overflow-hidden">
       <div className="p-3 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
@@ -667,7 +668,10 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
                         : <User className="h-4 w-4 text-muted-foreground" />}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-xs font-medium text-foreground truncate">{r.user?.email ?? r.user?.full_name ?? "—"}</div>
+                      <div className="text-xs font-medium text-foreground truncate flex items-center gap-1.5">
+                        {r.user?.id && <InlineDot online={isOnline(r.user.id)} />}
+                        <span className="truncate">{r.user?.email ?? r.user?.full_name ?? "—"}</span>
+                      </div>
                       <div className="text-xs text-muted-foreground">ID: {shortUsrId(r.user?.id)}</div>
                     </div>
                   </div>
