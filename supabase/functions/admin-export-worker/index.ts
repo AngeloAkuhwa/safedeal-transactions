@@ -326,12 +326,121 @@ const buildTransactionsMonitorCsv: Builder = async (admin, params) => {
   return { csv: lines.join("\n"), rowCount: rows.length };
 };
 
+/* -------- Audit logs (admin_actions) -------- */
+
+type AuditSev = "critical" | "high" | "medium" | "low" | "info";
+const AUDIT_SEV_REGEX: Record<Exclude<AuditSev, "low">, string> = {
+  critical: "suspend|freeze|block|impersonat|reveal|delete|force|purge",
+  high: "role|setting|dispute_resolve|refund|override|policy|escrow_alert",
+  medium: "retry|broadcast|notification|review|approve|reject",
+  info: "view|export|list|search",
+};
+function auditSeverity(action: string): AuditSev {
+  const a = (action || "").toLowerCase();
+  if (new RegExp(AUDIT_SEV_REGEX.critical).test(a)) return "critical";
+  if (new RegExp(AUDIT_SEV_REGEX.high).test(a)) return "high";
+  if (new RegExp(AUDIT_SEV_REGEX.medium).test(a)) return "medium";
+  if (new RegExp(AUDIT_SEV_REGEX.info).test(a)) return "info";
+  return "low";
+}
+function parseAuditNotes(raw: string | null): Record<string, unknown> {
+  if (!raw) return {};
+  try { const v = JSON.parse(raw); return v && typeof v === "object" ? v as Record<string, unknown> : {}; }
+  catch { return { legacy_notes: raw }; }
+}
+
+const buildAuditLogsCsv: Builder = async (admin, params) => {
+  const q = String(params.q ?? "").trim();
+  const actionType = String(params.action_type ?? "all");
+  const actorId = String(params.actor_id ?? "all");
+  const severity = String(params.severity ?? "all") as AuditSev | "all";
+  const from = params.from ? String(params.from) : null;
+  const to = params.to ? String(params.to) : null;
+  const compliance = Boolean(params.compliance);
+
+  let query = admin.from("admin_actions").select(
+    "id, admin_user_id, target_user_id, transaction_id, dispute_id, action_type, action_notes, created_at",
+  );
+  if (actionType !== "all") query = query.eq("action_type", actionType);
+  if (actorId !== "all") query = query.eq("admin_user_id", actorId);
+  if (from) query = query.gte("created_at", from);
+  if (to) query = query.lte("created_at", to);
+  if (severity && severity !== "all") {
+    if (severity === "low") {
+      for (const rx of Object.values(AUDIT_SEV_REGEX)) query = query.not("action_type", "imatch", rx);
+    } else if (AUDIT_SEV_REGEX[severity as Exclude<AuditSev, "low">]) {
+      query = query.filter("action_type", "imatch", AUDIT_SEV_REGEX[severity as Exclude<AuditSev, "low">]);
+    }
+  }
+  if (q) {
+    const uuid = /^[0-9a-f-]{36}$/i.test(q);
+    if (uuid) {
+      query = query.or(
+        `id.eq.${q},target_user_id.eq.${q},transaction_id.eq.${q},dispute_id.eq.${q},admin_user_id.eq.${q}`,
+      );
+    } else {
+      const like = `%${q.replace(/[,()]/g, " ")}%`;
+      query = query.or(`action_type.ilike.${like},action_notes.ilike.${like}`);
+    }
+  }
+  query = query.order("created_at", { ascending: false }).limit(100_000);
+  const { data: rows, error } = await query;
+  if (error) throw new Error(`audit_logs_select_failed: ${error.message}`);
+
+  const list = rows ?? [];
+  const userIds = Array.from(new Set(
+    list.flatMap((r: any) => [r.admin_user_id, r.target_user_id]).filter(Boolean),
+  )) as string[];
+  const chunk = <T,>(arr: T[], n: number) => {
+    const out: T[][] = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out;
+  };
+  const pmap = new Map<string, { name: string; email: string }>();
+  const rmap = new Map<string, string>();
+  for (const c of chunk(userIds, 500)) {
+    const { data: profs } = await admin.from("profiles").select("id, full_name, email").in("id", c);
+    for (const p of profs ?? []) pmap.set(p.id as string, { name: (p.full_name as string) ?? "Admin", email: (p.email as string) ?? "" });
+    const { data: roles } = await admin.from("user_roles").select("user_id, role").in("user_id", c);
+    for (const r of roles ?? []) if (!rmap.has(r.user_id as string)) rmap.set(r.user_id as string, r.role as string);
+  }
+
+  const header = [
+    "id", "created_at", "action_type", "severity",
+    "actor_id", "actor_name", "actor_email", "actor_role",
+    "target_user_id", "target_user_email",
+    "transaction_id", "dispute_id",
+    "ip", "user_agent", "reason", "changed_keys", "description",
+  ];
+  const lines: string[] = [];
+  if (compliance) {
+    lines.push(csvEscape(`# Compliance report — generated ${new Date().toISOString()}, range ${from ?? "*"}\u2192${to ?? "*"}, severity=${severity}`));
+    lines.push(csvEscape(`# Rows: ${list.length}`));
+  }
+  lines.push(header.join(","));
+  for (const r of list as any[]) {
+    const notes = parseAuditNotes(r.action_notes);
+    const actor = pmap.get(r.admin_user_id) ?? { name: "Admin", email: "" };
+    const target = r.target_user_id ? pmap.get(r.target_user_id) : null;
+    const changed = Array.isArray(notes.changed_keys) ? (notes.changed_keys as string[]).join("; ") : "";
+    const desc = (notes.reason as string) ?? r.action_type;
+    lines.push([
+      r.id, r.created_at, r.action_type, auditSeverity(r.action_type),
+      r.admin_user_id, actor.name, actor.email, rmap.get(r.admin_user_id) ?? "admin",
+      r.target_user_id ?? "", target?.email ?? "",
+      r.transaction_id ?? "", r.dispute_id ?? "",
+      (notes.ip as string) ?? "", (notes.user_agent as string) ?? "",
+      (notes.reason as string) ?? "", changed, desc,
+    ].map(csvEscape).join(","));
+  }
+  return { csv: lines.join("\n"), rowCount: list.length };
+};
+
 const BUILDERS: Record<string, Builder> = {
   escrow: buildEscrowCsv,
   users_directory: buildUsersDirectoryCsv,
   flagged_users: buildFlaggedUsersCsv,
   transactions_monitor: buildTransactionsMonitorCsv,
   user_detail: buildStubCsv("user_detail"),
+  audit_logs: buildAuditLogsCsv,
 };
 
 /* ---------------- Handler ---------------- */
