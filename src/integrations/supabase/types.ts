@@ -4472,6 +4472,19 @@ export type Database = {
           tx_count: number
         }[]
       }
+      admin_distinct_active_users: {
+        Args: { _since: string; _until?: string }
+        Returns: number
+      }
+      admin_escrow_ledger_daily_trend: {
+        Args: { _days: number }
+        Returns: {
+          bucket_date: string
+          primary_amount: number
+          secondary_amount: number
+          tertiary_amount: number
+        }[]
+      }
       admin_search_transaction_ids: {
         Args: { _limit?: number; _query: string }
         Returns: {

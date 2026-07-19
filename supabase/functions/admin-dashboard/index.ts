@@ -63,17 +63,14 @@ async function distinctActiveUsers(
   untilIso?: string,
 ): Promise<number> {
   try {
-    let q = client
-      .from("user_sessions")
-      .select("user_id")
-      .gte("last_seen_at", sinceIso)
-      .limit(10000);
-    if (untilIso) q = q.lt("last_seen_at", untilIso);
-    const { data, error } = await q;
-    if (error || !data) return 0;
-    const set = new Set<string>();
-    for (const r of data as any[]) if (r?.user_id) set.add(r.user_id);
-    return set.size;
+    // P1: replaced 10k-row `Set<string>` scan with SQL-side count(distinct).
+    // Removes silent data loss when active users exceed the previous cap.
+    const { data, error } = await client.rpc("admin_distinct_active_users", {
+      _since: sinceIso,
+      _until: untilIso ?? null,
+    });
+    if (error) return 0;
+    return Number(data ?? 0);
   } catch {
     return 0;
   }
@@ -402,39 +399,19 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
   // ---------- Escrow / Releases / Refunds 30-day trend ----------
   const escrowTrendPoints: Array<{ label: string; primary: number; secondary: number; tertiary: number }> = [];
   try {
-    const { data: ledger30 } = await client
-      .from("escrow_ledger_entries")
-      .select("created_at, entry_type, amount")
-      .gte("created_at", since30d)
-      .limit(20000);
-    const map = new Map<string, { primary: number; secondary: number; tertiary: number }>();
-    const today0 = new Date(startOfToday).getTime();
-    // seed 30 days
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(today0 - i * 24 * 60 * 60 * 1000);
-      const key = `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      map.set(key, { primary: 0, secondary: 0, tertiary: 0 });
-    }
-    for (const r of (ledger30 ?? []) as any[]) {
-      const d = new Date(r.created_at);
-      const key = `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      const bucket = map.get(key);
-      if (!bucket) continue;
-      const amt = Math.abs(Number(r.amount ?? 0));
-      if (r.entry_type === "escrow_hold" || r.entry_type === "payment_credit") {
-        bucket.primary += amt;
-      } else if (r.entry_type === "payout_debit") {
-        bucket.secondary += amt;
-      } else if (r.entry_type === "refund_debit") {
-        bucket.tertiary += amt;
-      }
-    }
-    for (const [label, v] of map.entries()) {
+    // P1: replaced 20k-row scan + JS bucketing with a SQL-side daily aggregate.
+    // Deterministic bucket count (30) regardless of ledger volume.
+    const { data: rows } = await client.rpc("admin_escrow_ledger_daily_trend", {
+      _days: 30,
+    });
+    for (const r of ((rows ?? []) as Array<{ bucket_date: string; primary_amount: number; secondary_amount: number; tertiary_amount: number }>)) {
+      const d = new Date(r.bucket_date);
+      const label = `${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
       escrowTrendPoints.push({
         label,
-        primary: Number(v.primary.toFixed(2)),
-        secondary: Number(v.secondary.toFixed(2)),
-        tertiary: Number(v.tertiary.toFixed(2)),
+        primary: Number(Number(r.primary_amount ?? 0).toFixed(2)),
+        secondary: Number(Number(r.secondary_amount ?? 0).toFixed(2)),
+        tertiary: Number(Number(r.tertiary_amount ?? 0).toFixed(2)),
       });
     }
   } catch (e) {
