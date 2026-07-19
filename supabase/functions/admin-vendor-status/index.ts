@@ -1,6 +1,7 @@
 // Admin endpoint: set vendor active/disabled/suspended flag with audit trail.
 // POST { vendor_id, status: 'active'|'disabled'|'suspended', reason }
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,15 +55,18 @@ Deno.serve(async (req) => {
       .eq("id", vendorId);
     if (upErr) return json(500, { error: "save_failed", detail: upErr.message });
 
-    await adminClient.from("admin_actions").insert({
-      admin_user_id: userId,
-      target_user_id: vendorId,
-      action_type: "set_vendor_status",
-      action_notes: JSON.stringify({
-        previous_status: existing.vendor_status,
-        new_status: status,
-        reason,
-      }),
+    const meta = extractRequestMeta(req);
+    await logAdminAction(adminClient, {
+      actorId: userId,
+      action: "set_vendor_status",
+      targetType: "vendor",
+      targetId: vendorId,
+      before: { vendor_status: existing.vendor_status },
+      after: { vendor_status: status },
+      reason,
+      mirrorToAuditLogs: true,
+      ip: meta.ip,
+      userAgent: meta.userAgent,
     });
 
     return json(200, { ok: true, vendor_status: status });
