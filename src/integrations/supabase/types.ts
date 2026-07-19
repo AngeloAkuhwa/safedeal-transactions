@@ -4464,6 +4464,20 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_daily_activity_counts: {
+        Args: { _days: number }
+        Returns: {
+          bucket_date: string
+          dispute_count: number
+          tx_count: number
+        }[]
+      }
+      admin_search_transaction_ids: {
+        Args: { _limit?: number; _query: string }
+        Returns: {
+          transaction_id: string
+        }[]
+      }
       check_admin_rate_limit: {
         Args: { _action_key: string; _admin_id: string; _max_per_hour: number }
         Returns: {
@@ -4615,6 +4629,8 @@ export type Database = {
         Args: { p_amount: number; p_payout_id: string; p_reason: string }
         Returns: Json
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       start_refund_atomic: {
         Args: {
           p_actor_user_id: string
