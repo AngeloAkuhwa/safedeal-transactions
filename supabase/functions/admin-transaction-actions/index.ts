@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { notifyUser } from "../_shared/notify.ts";
+import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,6 +16,40 @@ const json = (body: unknown, status = 200) =>
   });
 
 const ACTIVE_DISPUTE = ["open", "seller_response_pending", "under_review"];
+
+// Small helper to consolidate the legacy `admin_actions` + `audit_logs` double-insert
+// pattern into a single unified audit call via logAdminAction (Batch D).
+type AuditOpts = {
+  admin: any;
+  actorId: string;
+  action: string;
+  transactionId?: string | null;
+  disputeId?: string | null;
+  targetUserId?: string | null;
+  reason?: string;
+  before?: unknown;
+  after?: unknown;
+  metadata?: Record<string, unknown>;
+  ip?: string | null;
+  userAgent?: string | null;
+};
+async function recordAdmin(o: AuditOpts) {
+  await logAdminAction(o.admin, {
+    actorId: o.actorId,
+    action: o.action,
+    targetType: o.targetUserId ? "user" : (o.disputeId ? "dispute" : "transaction"),
+    targetId: o.targetUserId ?? o.disputeId ?? o.transactionId ?? null,
+    transactionId: o.transactionId ?? null,
+    disputeId: o.disputeId ?? null,
+    reason: o.reason,
+    before: o.before,
+    after: o.after,
+    metadata: o.metadata,
+    mirrorToAuditLogs: true,
+    ip: o.ip,
+    userAgent: o.userAgent,
+  });
+}
 
 type ActionName =
   | "add_internal_note"
@@ -85,6 +120,7 @@ Deno.serve(async (req) => {
   const { admin, userId } = gated;
   const txId = body.transactionId;
   const payload = (body.payload ?? {}) as Record<string, any>;
+  const _meta = extractRequestMeta(req);
 
   // Load transaction snapshot
   const { data: tx, error: txErr } = await admin
@@ -115,19 +151,10 @@ Deno.serve(async (req) => {
           note,
         });
         if (error) throw error;
-        await admin.from("admin_actions").insert({
-          admin_user_id: userId,
-          transaction_id: txId,
-          action_type: "add_internal_note",
-          action_notes: note.slice(0, 500),
-        });
-        await admin.from("audit_logs").insert({
-          action: "admin_internal_note",
-          actor_user_id: userId,
-          transaction_id: txId,
-          description: `Admin added internal note to ${tx.transaction_code}`,
-          metadata: { category, follow_up_required: followUp, follow_up_priority: followUpPriority },
-        });
+        await recordAdmin({ admin, actorId: userId, action: "add_internal_note", transactionId: txId,
+          reason: note.slice(0, 500),
+          metadata: { category, follow_up_required: followUp, follow_up_priority: followUpPriority, transaction_code: tx.transaction_code },
+          ip: _meta.ip, userAgent: _meta.userAgent });
         await admin.from("transaction_events").insert({
           transaction_id: txId,
           event_type: "admin_note_added",
@@ -178,19 +205,12 @@ Deno.serve(async (req) => {
           p_reason: reason,
         });
         if (rpcErr) throw rpcErr;
-        await admin.from("admin_actions").insert({
-          admin_user_id: userId,
-          transaction_id: txId,
-          action_type: "freeze_transaction",
-          action_notes: `[${category}/${severity}] ${reason}`,
-        });
-        await admin.from("audit_logs").insert({
-          action: "admin_freeze",
-          actor_user_id: userId,
-          transaction_id: txId,
-          description: `Admin froze ${tx.transaction_code}: ${reason}`,
-          metadata: { category, severity, reason, note: payload.note ?? null },
-        });
+        await recordAdmin({ admin, actorId: userId, action: "freeze_transaction", transactionId: txId,
+          reason,
+          before: { money_status: tx.money_status },
+          after: { money_status: "funds_frozen" },
+          metadata: { category, severity, note: payload.note ?? null, transaction_code: tx.transaction_code },
+          ip: _meta.ip, userAgent: _meta.userAgent });
         await admin.from("transaction_events").insert({
           transaction_id: txId,
           event_type: "admin_funds_frozen",
@@ -237,19 +257,12 @@ Deno.serve(async (req) => {
           p_reason: reason,
         });
         if (rpcErr) throw rpcErr;
-        await admin.from("admin_actions").insert({
-          admin_user_id: userId,
-          transaction_id: txId,
-          action_type: "unfreeze_transaction",
-          action_notes: `[target=${target}] ${reason}`,
-        });
-        await admin.from("audit_logs").insert({
-          action: "admin_unfreeze",
-          actor_user_id: userId,
-          transaction_id: txId,
-          description: `Admin unfroze ${tx.transaction_code}: ${reason}`,
-          metadata: { target_money_status: target, reason, note: payload.note ?? null, moved_amount: movedAmount },
-        });
+        await recordAdmin({ admin, actorId: userId, action: "unfreeze_transaction", transactionId: txId,
+          reason,
+          before: { money_status: "funds_frozen" },
+          after: { money_status: target },
+          metadata: { target_money_status: target, note: payload.note ?? null, moved_amount: movedAmount, transaction_code: tx.transaction_code },
+          ip: _meta.ip, userAgent: _meta.userAgent });
         await admin.from("transaction_events").insert({
           transaction_id: txId,
           event_type: "admin_funds_unfrozen",
@@ -294,18 +307,10 @@ Deno.serve(async (req) => {
           p_notes: reason,
         });
         if (rpcErr) throw rpcErr;
-        await admin.from("admin_actions").insert({
-          admin_user_id: userId,
-          transaction_id: txId,
-          action_type: "flag_for_review",
-          action_notes: reason,
-        });
-        await admin.from("audit_logs").insert({
-          action: "admin_flag_review",
-          actor_user_id: userId,
-          transaction_id: txId,
-          description: `Admin flagged ${tx.transaction_code} for review: ${reason}`,
-        });
+        await recordAdmin({ admin, actorId: userId, action: "flag_for_review", transactionId: txId,
+          reason,
+          metadata: { transaction_code: tx.transaction_code },
+          ip: _meta.ip, userAgent: _meta.userAgent });
         await admin.from("transaction_events").insert({
           transaction_id: txId,
           event_type: "admin_flagged_for_review",
@@ -347,19 +352,13 @@ Deno.serve(async (req) => {
           });
         }
 
-        await admin.from("admin_actions").insert({
-          admin_user_id: userId,
-          transaction_id: txId,
-          dispute_id: active?.id ?? null,
-          action_type: "escalate_case",
-          action_notes: reason,
-        });
-        await admin.from("audit_logs").insert({
-          action: "admin_escalate_dispute",
-          actor_user_id: userId,
-          transaction_id: txId,
-          description: `Admin escalated ${tx.transaction_code}: ${reason}`,
-        });
+        await recordAdmin({ admin, actorId: userId, action: "escalate_case", transactionId: txId,
+          disputeId: active?.id ?? null,
+          reason,
+          before: active ? { status: active.status } : undefined,
+          after: active ? { status: "under_review" } : undefined,
+          metadata: { transaction_code: tx.transaction_code },
+          ip: _meta.ip, userAgent: _meta.userAgent });
         return json({ ok: true });
       }
 
@@ -536,12 +535,6 @@ Deno.serve(async (req) => {
           .update({ release_blocked: true, payout_blocked_reason: reason.slice(0, 240), updated_at: new Date().toISOString() })
           .eq("id", target.id);
         if (updErr) throw updErr;
-        await admin.from("admin_actions").insert({
-          admin_user_id: userId,
-          transaction_id: txId,
-          action_type: "block_payout",
-          action_notes: reason.slice(0, 500),
-        });
         await admin.from("transaction_events").insert({
           transaction_id: txId,
           event_type: "payout_blocked",
@@ -549,13 +542,12 @@ Deno.serve(async (req) => {
           actor_role: "admin",
           event_data: { payout_id: target.id, reason },
         });
-        await admin.from("audit_logs").insert({
-          action: "admin_block_payout",
-          actor_user_id: userId,
-          transaction_id: txId,
-          description: `Admin blocked payout on ${tx.transaction_code}: ${reason}`,
-          metadata: { payout_id: target.id, reason },
-        });
+        await recordAdmin({ admin, actorId: userId, action: "block_payout", transactionId: txId,
+          reason,
+          before: { release_blocked: false },
+          after: { release_blocked: true, payout_blocked_reason: reason.slice(0, 240) },
+          metadata: { payout_id: target.id, transaction_code: tx.transaction_code },
+          ip: _meta.ip, userAgent: _meta.userAgent });
         return json({ ok: true, payout_id: target.id });
       }
 
@@ -576,12 +568,6 @@ Deno.serve(async (req) => {
           .update({ release_blocked: false, payout_blocked_reason: null, updated_at: new Date().toISOString() })
           .eq("id", target.id);
         if (updErr) throw updErr;
-        await admin.from("admin_actions").insert({
-          admin_user_id: userId,
-          transaction_id: txId,
-          action_type: "unblock_payout",
-          action_notes: reason.slice(0, 500),
-        });
         await admin.from("transaction_events").insert({
           transaction_id: txId,
           event_type: "payout_unblocked",
@@ -589,13 +575,12 @@ Deno.serve(async (req) => {
           actor_role: "admin",
           event_data: { payout_id: target.id, reason, previous_reason: previousReason },
         });
-        await admin.from("audit_logs").insert({
-          action: "admin_unblock_payout",
-          actor_user_id: userId,
-          transaction_id: txId,
-          description: `Admin unblocked payout on ${tx.transaction_code}: ${reason}`,
-          metadata: { payout_id: target.id, reason, previous_reason: previousReason },
-        });
+        await recordAdmin({ admin, actorId: userId, action: "unblock_payout", transactionId: txId,
+          reason,
+          before: { release_blocked: true, payout_blocked_reason: previousReason },
+          after: { release_blocked: false, payout_blocked_reason: null },
+          metadata: { payout_id: target.id, transaction_code: tx.transaction_code },
+          ip: _meta.ip, userAgent: _meta.userAgent });
         return json({ ok: true, payout_id: target.id });
       }
 
@@ -664,24 +649,20 @@ async function handleUpsertInvestigation(admin: any, userId: string, txId: strin
   }
 
   const actionType = isNew ? "open_investigation" : "update_investigation";
-  await admin.from("admin_actions").insert({
-    admin_user_id: userId,
-    transaction_id: txId,
-    action_type: actionType,
-    action_notes: `${status}/${priority}${note ? ` :: ${note.slice(0, 240)}` : ""}`,
-  });
-  await admin.from("audit_logs").insert({
-    action: isNew ? "admin_investigation_open" : "admin_investigation_update",
-    actor_user_id: userId,
-    transaction_id: txId,
-    description: `${isNew ? "Opened" : "Updated"} investigation on ${tx.transaction_code}`,
-    metadata: {
-      status, priority, assigned_admin_id: assignee, tags,
-      previous: existing ? {
-        status: existing.status, priority: existing.priority,
-        assigned_admin_id: existing.assigned_admin_id, tags: existing.tags,
-      } : null,
-    },
+  await logAdminAction(admin, {
+    actorId: userId,
+    action: actionType,
+    targetType: "transaction",
+    targetId: txId,
+    transactionId: txId,
+    reason: note ? note.slice(0, 240) : undefined,
+    before: existing ? {
+      status: existing.status, priority: existing.priority,
+      assigned_admin_id: existing.assigned_admin_id, tags: existing.tags,
+    } : undefined,
+    after: { status, priority, assigned_admin_id: assignee, tags },
+    metadata: { transaction_code: tx.transaction_code },
+    mirrorToAuditLogs: true,
   });
   await admin.from("transaction_events").insert({
     transaction_id: txId,
