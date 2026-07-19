@@ -16,7 +16,7 @@
  * Admin-only.
  */
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
-import { buildRows, summarize, applyFilters, sortRows } from "../_shared/flagged-users-engine.ts";
+import { getFlaggedPage, getFlaggedSummary } from "../_shared/flagged-users-sql.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,20 +48,16 @@ Deno.serve(async (req) => {
 
   const risk = url.searchParams.get("risk") ?? "all";
   const reasonFilter = url.searchParams.get("reason") ?? "all";
-  const range = url.searchParams.get("range") ?? "30d";
   const statusFilter = url.searchParams.get("status") ?? "active";
   const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
   const sort = url.searchParams.get("sort") ?? "risk";
   const page = Math.max(1, Number(url.searchParams.get("page") ?? "1") || 1);
   const pageSize = Math.min(100, Math.max(5, Number(url.searchParams.get("page_size") ?? "15") || 15));
 
-  const allRows = await buildRows(admin, range);
-  const summary = summarize(allRows);
-  const filtered = applyFilters(allRows, { risk, reason: reasonFilter, status: statusFilter, q });
-  sortRows(filtered, sort);
+  const [{ rows, total }, summary] = await Promise.all([
+    getFlaggedPage(admin, { q, risk, reason: reasonFilter, status: statusFilter, sort, page, pageSize }),
+    getFlaggedSummary(admin),
+  ]);
 
-  const total = filtered.length;
-  const sliced = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  return json(200, { summary, rows: sliced, total, page, page_size: pageSize });
+  return json(200, { summary, rows, total, page, page_size: pageSize });
 });
