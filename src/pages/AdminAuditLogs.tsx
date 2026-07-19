@@ -74,9 +74,9 @@ function rowTint(sev: AuditSeverity) {
   return "";
 }
 
-/* ---------------- Toolbar ---------------- */
-function Toolbar({
-  lastEntryAt, onExport, onCompliance, exporting, complianceLoading, onRefresh, refreshing, live,
+/* ---------------- Sticky header ---------------- */
+function AuditHeader({
+  lastEntryAt, onExport, onCompliance, exporting, complianceLoading, onRefresh, refreshing, live, onOpenMenu,
 }: {
   lastEntryAt: string | null;
   onExport: () => void;
@@ -86,40 +86,63 @@ function Toolbar({
   onRefresh: () => void;
   refreshing: boolean;
   live: boolean;
+  onOpenMenu: () => void;
 }) {
   return (
-    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-md">
-          <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-          <span className="text-emerald-400 font-medium text-xs">Immutable</span>
-        </div>
-        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs ${live ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-muted border-border text-muted-foreground"}`}>
-          <span className={`inline-block h-1.5 w-1.5 rounded-full ${live ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground"}`} />
-          {live ? "Live" : "Offline"}
-        </div>
-        {lastEntryAt && (
-          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-muted border border-border rounded-md">
-            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground text-xs">Last entry: {fmtRelative(lastEntryAt)}</span>
+    <header className="sticky top-0 z-20 border-b border-border bg-card px-4 py-5 md:px-8">
+      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={onOpenMenu}
+            aria-label="Open menu"
+            className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:text-foreground"
+          >
+            <Menu className="h-4 w-4" />
+          </button>
+          <div>
+            <h1 className="text-xl font-semibold leading-tight text-foreground">Audit Logs</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">Immutable compliance and forensic audit trail</p>
           </div>
-        )}
+          <div className="ml-0 flex flex-wrap items-center gap-2 md:ml-4">
+            <div className="flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+              <span className="text-sm font-semibold text-emerald-400">Immutable</span>
+            </div>
+            {lastEntryAt && (
+              <div className="hidden items-center gap-1.5 rounded-lg border border-border bg-muted px-3 py-1.5 lg:flex">
+                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Last entry: {fmtRelative(lastEntryAt)}</span>
+              </div>
+            )}
+            <div className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm ${live ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border-border bg-muted text-muted-foreground"}`}>
+              <span className={`inline-block h-1.5 w-1.5 rounded-full ${live ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground"}`} />
+              {live ? "Live" : "Offline"}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onRefresh}
+            disabled={refreshing}
+            aria-label="Refresh"
+            title="Refresh"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+          </Button>
+          <Button variant="outline" size="sm" onClick={onExport} disabled={exporting} className="gap-2 text-sm font-medium">
+            {exporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            <span className="hidden sm:inline">Export Logs</span>
+          </Button>
+          <Button size="sm" onClick={onCompliance} disabled={complianceLoading} className="gap-2 bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500">
+            {complianceLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+            <span className="hidden sm:inline">Compliance Report</span>
+          </Button>
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={onRefresh} disabled={refreshing}>
-          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          <span className="hidden sm:inline ml-2">Refresh</span>
-        </Button>
-        <Button variant="outline" size="sm" onClick={onExport} disabled={exporting}>
-          {exporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-          <span className="hidden sm:inline ml-2">Export Logs</span>
-        </Button>
-        <Button size="sm" onClick={onCompliance} disabled={complianceLoading} className="bg-emerald-600 hover:bg-emerald-500 text-white">
-          {complianceLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-          <span className="hidden sm:inline ml-2">Compliance Report</span>
-        </Button>
-      </div>
-    </div>
+    </header>
   );
 }
 
