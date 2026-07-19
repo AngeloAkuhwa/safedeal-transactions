@@ -4554,6 +4554,25 @@ export type Database = {
           transaction_id: string
         }[]
       }
+      admin_flagged_users_count: { Args: { _since: string }; Returns: number }
+      admin_identity_review_health: {
+        Args: { _since_avg: string; _since_spark: string }
+        Returns: {
+          avg_hours: number
+          spark: number[]
+        }[]
+      }
+      admin_payout_health: {
+        Args: { _since_avg: string; _since_spark: string }
+        Returns: {
+          avg_hours: number
+          spark: number[]
+        }[]
+      }
+      admin_reconciliation_mismatches: {
+        Args: { _since: string }
+        Returns: number
+      }
       admin_search_transaction_ids: {
         Args: { _limit?: number; _query: string }
         Returns: {
