@@ -4959,6 +4959,23 @@ export type Database = {
         Args: { _since: string; _until?: string }
         Returns: number
       }
+      admin_escrow_kpis: {
+        Args: never
+        Returns: {
+          pending_release: number
+          pending_release_count: number
+          released_today: number
+          released_today_count: number
+          released_week: number
+          released_week_count: number
+          total_frozen: number
+          total_frozen_count: number
+          total_held: number
+          total_held_count: number
+          total_refunded: number
+          total_refunded_count: number
+        }[]
+      }
       admin_escrow_ledger_daily_trend: {
         Args: { _days: number }
         Returns: {
@@ -4972,8 +4989,10 @@ export type Database = {
         Args: {
           _amount_bucket?: string
           _date_range?: string
+          _flag?: string
           _page?: number
           _page_size?: number
+          _search?: string
           _state?: string
         }
         Returns: {

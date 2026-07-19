@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.admin_escrow_records_page(text, text, text, integer, integer);
