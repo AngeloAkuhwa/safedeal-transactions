@@ -3,6 +3,7 @@
 // PUT  { scope, vendor_id?, updates: {key: value}, timeouts?: [{rule_type, hours}], reason, apply_to_all_vendors? }
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
 import { clampSetting } from "../_shared/settings-catalog.ts";
+import { logAdminAction } from "../_shared/audit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -75,6 +76,36 @@ Deno.serve(async (req) => {
 
       if (!reason || reason.length < 3) return json(400, { error: "reason_required" });
       if (scope === "vendor" && !vendorId) return json(400, { error: "vendor_id_required" });
+
+      // Capture BEFORE snapshot for diff — only for the exact (key, scope, vendor) rows we're about to touch.
+      const beforeSnapshot: Record<string, unknown> = {};
+      const updateKeys = Object.keys(updates);
+      if (updateKeys.length) {
+        let priorQ = adminClient
+          .from("system_settings")
+          .select("setting_key, setting_value, vendor_id")
+          .in("setting_key", updateKeys)
+          .eq("scope", scope);
+        priorQ = vendorId ? priorQ.eq("vendor_id", vendorId) : priorQ.is("vendor_id", null);
+        const { data: prior } = await priorQ;
+        for (const r of prior ?? []) {
+          beforeSnapshot[(r as any).setting_key] = (r as any).setting_value;
+        }
+        for (const k of updateKeys) if (!(k in beforeSnapshot)) beforeSnapshot[k] = null;
+      }
+      const timeoutBefore: Record<string, unknown> = {};
+      if (timeouts.length) {
+        let tq = adminClient
+          .from("timeout_rules")
+          .select("rule_type, hours_until_trigger, is_active, vendor_id")
+          .in("rule_type", timeouts.map(t => t.rule_type))
+          .eq("scope", scope);
+        tq = vendorId ? tq.eq("vendor_id", vendorId) : tq.is("vendor_id", null);
+        const { data: prior } = await tq;
+        for (const r of prior ?? []) {
+          timeoutBefore[(r as any).rule_type] = { hours: (r as any).hours_until_trigger, is_active: (r as any).is_active };
+        }
+      }
 
       // Enforce non-overridable keys can't be written at vendor scope
       const { data: catalog } = await adminClient
@@ -164,14 +195,25 @@ Deno.serve(async (req) => {
       }
 
       // Audit
-      await adminClient.from("admin_actions").insert({
-        admin_user_id: userId,
-        target_user_id: vendorId,
-        action_type: "update_setting",
-        action_notes: JSON.stringify({
-          scope, vendor_id: vendorId, reason,
-          updates, timeouts, apply_to_all_vendors: applyToAll,
-        }),
+      const afterSettings: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(updates)) {
+        const c = clampSetting(k, v, scope);
+        afterSettings[k] = c.ok ? c.value : v;
+      }
+      const timeoutAfter: Record<string, unknown> = {};
+      for (const t of timeouts) {
+        timeoutAfter[t.rule_type] = { hours: t.hours, is_active: t.is_active ?? true };
+      }
+      await logAdminAction(adminClient, {
+        actorId: userId,
+        action: "update_setting",
+        targetType: vendorId ? "vendor" : "setting",
+        targetId: vendorId,
+        reason,
+        before: { settings: beforeSnapshot, timeouts: timeoutBefore },
+        after: { settings: afterSettings, timeouts: timeoutAfter },
+        metadata: { scope, vendor_id: vendorId, apply_to_all_vendors: applyToAll },
+        mirrorToAuditLogs: true,
       });
 
       // Dedicated toggle_auto_release event — one row per flip so audit
