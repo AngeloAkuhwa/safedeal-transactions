@@ -5,7 +5,7 @@ import {
   ShieldCheck, Clock, Download, FileCheck2, ListChecks, TriangleAlert, UserCog,
   Database, Filter, Search, Bookmark, CalendarDays, FileText, Code2, Eye, User,
   Copy, X, UserX, Banknote, Scale, Bot, Info, CircleAlert, Settings as SettingsIcon,
-  ArrowRight, RefreshCw,
+  ArrowRight, RefreshCw, LogIn, LogOut, Receipt, Undo2, Gavel,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -42,8 +42,13 @@ function fmtBytes(n: number) {
 function actionIconFor(action: string) {
   const a = (action || "").toLowerCase();
   if (/suspend|block/.test(a)) return { Icon: UserX, cls: "bg-red-500/20 border-red-500/40 text-red-400" };
-  if (/payment|payout|refund/.test(a)) return { Icon: Banknote, cls: "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" };
+  if (/refund/.test(a)) return { Icon: Undo2, cls: "bg-orange-500/20 border-orange-500/40 text-orange-400" };
+  if (/payment|payout/.test(a)) return { Icon: Banknote, cls: "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" };
+  if (/dispute_resolve|resolve_dispute/.test(a)) return { Icon: Gavel, cls: "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" };
   if (/dispute/.test(a)) return { Icon: Scale, cls: "bg-yellow-500/20 border-yellow-500/40 text-yellow-400" };
+  if (/transaction/.test(a)) return { Icon: Receipt, cls: "bg-blue-500/20 border-blue-500/40 text-blue-400" };
+  if (/logout|sign_out/.test(a)) return { Icon: LogOut, cls: "bg-slate-500/20 border-slate-500/40 text-slate-300" };
+  if (/login|sign_in/.test(a)) return { Icon: LogIn, cls: "bg-slate-500/20 border-slate-500/40 text-slate-300" };
   if (/system|automated|cron/.test(a)) return { Icon: Bot, cls: "bg-blue-500/20 border-blue-500/40 text-blue-400" };
   if (/setting|config/.test(a)) return { Icon: SettingsIcon, cls: "bg-purple-500/20 border-purple-500/40 text-purple-400" };
   if (/export|download/.test(a)) return { Icon: Download, cls: "bg-slate-500/20 border-slate-500/40 text-slate-300" };
@@ -73,7 +78,7 @@ function HeaderBar({
   lastEntryAt, onExport, onCompliance, exporting,
 }: { lastEntryAt: string | null; onExport: () => void; onCompliance: () => void; exporting: boolean }) {
   return (
-    <div className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 px-4 md:px-8 py-5">
+    <header className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 px-4 md:px-8 py-5">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div>
@@ -106,12 +111,12 @@ function HeaderBar({
             onClick={onCompliance}
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-sm font-medium"
           >
-            <FileCheck2 className="h-4 w-4" />
+            <ShieldCheck className="h-4 w-4" />
             <span className="hidden sm:inline">Compliance Report</span>
           </button>
         </div>
       </div>
-    </div>
+    </header>
   );
 }
 
@@ -263,16 +268,14 @@ export default function AdminAuditLogs() {
       title="Audit Logs"
       hideDefaultHeaders
       fullBleed
-      headerSlot={
+    >
+      <div className="bg-slate-950 min-h-full">
         <HeaderBar
           lastEntryAt={stats?.latest_entry_at ?? null}
           onExport={handleExport}
           onCompliance={() => toast("Compliance report coming soon")}
           exporting={exporting}
         />
-      }
-    >
-      <div className="bg-slate-950 min-h-full">
         <div className="p-4 md:p-8 space-y-8">
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -397,7 +400,7 @@ export default function AdminAuditLogs() {
                 <div>
                   <h3 className="text-white text-lg font-semibold">Audit Log Entries</h3>
                   <p className="text-slate-400 text-sm mt-1">
-                    {total.toLocaleString()} entries • Showing page {applied.page ?? 1} of {Math.max(1, Math.ceil(total / (applied.page_size ?? PAGE_SIZE)))} • Immutable records
+                    {total.toLocaleString()} entries • Showing {rows.length} • Immutable records
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -416,7 +419,7 @@ export default function AdminAuditLogs() {
 
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-slate-800 border-b border-slate-700 sticky top-[88px] z-10">
+                <thead className="bg-slate-800 border-b border-slate-700 sticky top-[73px] z-10">
                   <tr>
                     {["Timestamp","Action","Actor","Target","Description","Metadata","IP Address","Actions"].map((h, i) => (
                       <th key={h} className={`p-4 text-slate-300 font-semibold text-sm whitespace-nowrap ${i === 7 ? "text-center" : "text-left"}`}>{h}</th>
@@ -434,6 +437,7 @@ export default function AdminAuditLogs() {
                     const { date, time } = fmtDate(r.created_at);
                     const { Icon, cls } = actionIconFor(r.action_type);
                     const sev = severityPill(r.severity);
+                    const isSystemActor = /system|automated|cron|bot/i.test(r.actor.name) || r.actor.role === "system";
                     return (
                       <tr key={r.id} className={`hover:bg-slate-800/50 transition-all ${rowTint(r.severity)}`}>
                         <td className="p-4 align-top">
@@ -457,16 +461,22 @@ export default function AdminAuditLogs() {
                         </td>
                         <td className="p-4 align-top">
                           <div className="flex items-center gap-2">
-                            {r.actor.avatar_url ? (
-                              <img src={r.actor.avatar_url} className={`w-8 h-8 rounded-full border-2 ${r.severity === "critical" ? "border-red-500/40" : "border-slate-700"}`} alt="" />
-                            ) : (
+                            {isSystemActor ? (
                               <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center">
+                                <Bot className="h-4 w-4 text-blue-400" />
+                              </div>
+                            ) : r.actor.avatar_url ? (
+                              <img src={r.actor.avatar_url} className={`w-8 h-8 rounded-full ${r.severity === "critical" ? "border-2 border-red-500/40" : ""}`} alt="" />
+                            ) : (
+                              <div className={`w-8 h-8 rounded-full bg-blue-500/20 border ${r.severity === "critical" ? "border-red-500/40" : "border-blue-500/40"} flex items-center justify-center`}>
                                 <User className="h-4 w-4 text-blue-400" />
                               </div>
                             )}
                             <div>
-                              <p className="text-white text-sm font-medium">{r.actor.name}</p>
-                              <p className={`text-xs font-semibold ${r.severity === "critical" ? "text-red-400" : "text-slate-400"}`}>{r.actor.role.replace(/_/g, " ")}</p>
+                              <p className="text-white text-sm font-medium">{isSystemActor ? "System" : r.actor.name}</p>
+                              <p className={`text-xs font-semibold ${r.severity === "critical" ? "text-red-400" : "text-slate-400"}`}>
+                                {isSystemActor ? "Automated" : r.actor.role.replace(/_/g, " ")}
+                              </p>
                             </div>
                           </div>
                         </td>
@@ -479,12 +489,12 @@ export default function AdminAuditLogs() {
                           ) : r.target.transaction_id ? (
                             <div>
                               <p className="text-emerald-400 text-sm font-medium">TXN #{r.target.transaction_id.slice(0, 8)}</p>
-                              <p className="text-slate-400 text-xs">Transaction</p>
+                              <p className="text-slate-400 text-xs">Transaction ID</p>
                             </div>
                           ) : r.target.dispute_id ? (
                             <div>
-                              <p className="text-emerald-400 text-sm font-medium">Dispute #{r.target.dispute_id.slice(0, 8)}</p>
-                              <p className="text-slate-400 text-xs">Dispute</p>
+                              <p className="text-emerald-400 text-sm font-medium">Case #{r.target.dispute_id.slice(0, 8)}</p>
+                              <p className="text-slate-400 text-xs">Dispute Case</p>
                             </div>
                           ) : (
                             <p className="text-slate-500 text-sm">—</p>
@@ -501,7 +511,6 @@ export default function AdminAuditLogs() {
                         </td>
                         <td className="p-4 align-top">
                           <p className="text-slate-300 text-sm font-mono">{r.ip ?? "—"}</p>
-                          <p className="text-slate-500 text-xs">{r.ip ? "Recorded" : "Not captured"}</p>
                         </td>
                         <td className="p-4 align-top">
                           <div className="flex items-center justify-center gap-1.5 flex-wrap">
@@ -523,6 +532,12 @@ export default function AdminAuditLogs() {
                               <button onClick={() => navigate(`/admin/transactions/${r.target.transaction_id}`)} title="View Transaction"
                                 className="px-2.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg flex items-center gap-1.5 text-xs font-medium">
                                 <ArrowRight className="h-3 w-3" /><span className="hidden xl:inline">TXN</span>
+                              </button>
+                            )}
+                            {r.target.dispute_id && (
+                              <button onClick={() => navigate(`/admin/disputes/${r.target.dispute_id}`)} title="View Dispute"
+                                className="px-2.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg flex items-center gap-1.5 text-xs font-medium">
+                                <Scale className="h-3 w-3" /><span className="hidden xl:inline">Dispute</span>
                               </button>
                             )}
                             <button onClick={handleExport} title="Export"
