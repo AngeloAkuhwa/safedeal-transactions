@@ -656,36 +656,19 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
     ]),
   );
 
-  // Pre-seed 7-day Transactions vs Disputes trend so the chart's first paint
-  // matches the 7D view served by `admin-dashboard-trend`.
+  // Pre-seed 7-day trend via SQL RPC (P1 fix — was scanning up to 100k rows into JS).
   const txDisputeTrendPoints: Array<{ label: string; date: string; primary: number; secondary: number }> = [];
   try {
-    const today0 = new Date(startOfToday).getTime();
-    const since7dStartIso = new Date(today0 - 6 * 24 * 60 * 60 * 1000).toISOString();
-    const [{ data: tx7 }, { data: dp7 }] = await Promise.all([
-      client.from("transactions").select("created_at").gte("created_at", since7dStartIso).limit(50000),
-      client.from("disputes").select("created_at").gte("created_at", since7dStartIso).limit(50000),
-    ]);
-    const map = new Map<string, { primary: number; secondary: number }>();
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(today0 - i * 24 * 60 * 60 * 1000);
-      const key = d.toISOString().slice(0, 10);
-      map.set(key, { primary: 0, secondary: 0 });
-    }
-    for (const r of (tx7 ?? []) as any[]) {
-      const d = new Date(r.created_at);
-      const key = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString().slice(0, 10);
-      const b = map.get(key);
-      if (b) b.primary++;
-    }
-    for (const r of (dp7 ?? []) as any[]) {
-      const d = new Date(r.created_at);
-      const key = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString().slice(0, 10);
-      const b = map.get(key);
-      if (b) b.secondary++;
-    }
-    for (const [date, v] of map.entries()) {
-      txDisputeTrendPoints.push({ label: date.slice(5), date, primary: v.primary, secondary: v.secondary });
+    const { data: rows, error: trendErr } = await client.rpc("admin_daily_activity_counts", { _days: 7 });
+    if (trendErr) throw trendErr;
+    for (const r of (rows ?? []) as Array<{ bucket_date: string; tx_count: number; dispute_count: number }>) {
+      const date = String(r.bucket_date);
+      txDisputeTrendPoints.push({
+        label: date.slice(5),
+        date,
+        primary: Number(r.tx_count ?? 0),
+        secondary: Number(r.dispute_count ?? 0),
+      });
     }
   } catch (e) {
     await logEdgeError(client, `tx_dispute_trend_failed: ${(e as Error).message}`, userId);

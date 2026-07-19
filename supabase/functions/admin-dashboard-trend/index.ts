@@ -41,40 +41,16 @@ Deno.serve(async (req) => {
     });
     if (roleErr || !hasRole) return jsonResp({ error: "Admin role required" }, 403);
 
-    const now = new Date();
-    const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const sinceIso = new Date(today0 - (days - 1) * 86_400_000).toISOString();
-
-    const [{ data: tx }, { data: dp }] = await Promise.all([
-      client.from("transactions").select("created_at").gte("created_at", sinceIso).limit(50000),
-      client.from("disputes").select("created_at").gte("created_at", sinceIso).limit(50000),
-    ]);
-
-    const map = new Map<string, { date: string; primary: number; secondary: number }>();
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(today0 - i * 86_400_000);
-      const date = d.toISOString().slice(0, 10);
-      map.set(date, { date, primary: 0, secondary: 0 });
-    }
-    const bucket = (d: Date) => {
-      const key = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString().slice(0, 10);
-      return map.get(key);
-    };
-    for (const r of (tx ?? []) as any[]) {
-      const b = bucket(new Date(r.created_at));
-      if (b) b.primary++;
-    }
-    for (const r of (dp ?? []) as any[]) {
-      const b = bucket(new Date(r.created_at));
-      if (b) b.secondary++;
-    }
-
-    const points = Array.from(map.values()).map((p) => ({
-      label: p.date.slice(5), // MM-DD
-      date: p.date,
-      primary: p.primary,
-      secondary: p.secondary,
-    }));
+    // SQL-side date bucketing (P1 scalability fix — replaces .limit(50000) scans).
+    const { data: rows, error: rpcErr } = await client.rpc("admin_daily_activity_counts", { _days: days });
+    if (rpcErr) return jsonResp({ error: `Trend query failed: ${rpcErr.message}` }, 500);
+    const points = ((rows ?? []) as Array<{ bucket_date: string; tx_count: number; dispute_count: number }>)
+      .map((r) => ({
+        label: String(r.bucket_date).slice(5), // MM-DD
+        date: String(r.bucket_date),
+        primary: Number(r.tx_count ?? 0),
+        secondary: Number(r.dispute_count ?? 0),
+      }));
 
     return jsonResp({
       primary_label: "Transactions",
