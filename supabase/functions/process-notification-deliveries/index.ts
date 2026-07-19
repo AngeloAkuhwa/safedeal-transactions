@@ -72,12 +72,21 @@ Deno.serve(async (req) => {
     .from("system_settings")
     .select("setting_key, setting_value")
     .eq("scope", "platform")
-    .in("setting_key", ["notifications.email_enabled", "notifications.sms_enabled"]);
+    .in("setting_key", [
+      "notifications.email_enabled",
+      "notifications.sms_enabled",
+      "notifications.email_batch_size",
+    ]);
   const switchMap = new Map<string, unknown>((switches ?? []).map((r: any) => [r.setting_key, r.setting_value]));
   const emailEnabled = switchMap.get("notifications.email_enabled") !== false; // default ON
   if (!emailEnabled) {
     return json(200, { ok: true, processed: 0, sent: 0, failed: 0, suppressed: 0, skipped: 0, note: "email channel disabled by platform settings" });
   }
+
+  // Broadcast throttling: cap batch size per cron tick so a massive broadcast
+  // (millions of deliveries) drains gradually rather than stampeding Resend.
+  const rawBatch = Number(switchMap.get("notifications.email_batch_size") ?? 50);
+  const batchSize = Math.max(1, Math.min(500, Number.isFinite(rawBatch) ? rawBatch : 50));
 
   const { data: pending, error } = await admin
     .from("notification_deliveries")
@@ -86,7 +95,7 @@ Deno.serve(async (req) => {
     .eq("delivery_status", "pending")
     .lt("attempt_count", 3)
     .order("created_at", { ascending: true })
-    .limit(50);
+    .limit(batchSize);
   if (error) return json(500, { error: error.message });
 
   const results = { sent: 0, failed: 0, suppressed: 0, skipped: 0 };
