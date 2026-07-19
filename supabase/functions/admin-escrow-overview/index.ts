@@ -73,56 +73,38 @@ Deno.serve(async (req) => {
     ...((thresholdRow?.setting_value as Record<string, unknown>) ?? {}),
   };
 
-  // ---- KPIs from escrow_states (cheap & accurate) ----
-  const { data: states, error: statesErr } = await admin
-    .from("escrow_states")
-    .select("transaction_id, state, held_amount, frozen_amount, released_amount, refunded_amount, last_changed_at");
-  if (statesErr) {
-    console.error("[admin-escrow-overview] states", statesErr);
-    return json(500, { error: "states_fetch_failed" });
+  // ---- KPIs (SQL-side aggregate, no in-memory scan) ----
+  const { data: kpiRows, error: kpiErr } = await admin.rpc("admin_escrow_kpis");
+  if (kpiErr) {
+    console.error("[admin-escrow-overview] kpis rpc", kpiErr);
+    return json(500, { error: "kpis_fetch_failed" });
   }
-
-  let totalHeld = 0, heldCount = 0;
-  let totalFrozen = 0, frozenCount = 0;
-  let totalRefunded = 0, refundedCount = 0;
-  for (const s of states ?? []) {
-    const held = Number(s.held_amount ?? 0);
-    const frz = Number(s.frozen_amount ?? 0);
-    const ref = Number(s.refunded_amount ?? 0);
-    if (held > 0) { totalHeld += held; heldCount++; }
-    if (frz > 0)  { totalFrozen += frz; frozenCount++; }
-    if (ref > 0)  { totalRefunded += ref; refundedCount++; }
-  }
-
-  // Pending release = tx in funds_releasing
-  const { data: pendingTx } = await admin
-    .from("transactions")
-    .select("id, money_status")
-    .eq("money_status", "funds_releasing");
-  const pendingIds = (pendingTx ?? []).map((t) => t.id as string);
-  let pendingRelease = 0;
-  if (pendingIds.length) {
-    const { data: ps } = await admin
-      .from("escrow_states")
-      .select("held_amount, frozen_amount")
-      .in("transaction_id", pendingIds);
-    pendingRelease = (ps ?? []).reduce((a, r) => a + Number(r.held_amount ?? 0) + Number(r.frozen_amount ?? 0), 0);
-  }
-
-  // Released today / this week via payouts (status completed)
-  const sumPayouts = async (from: string) => {
-    const { data } = await admin
-      .from("payouts")
-      .select("amount, completed_at, status")
-      .eq("status", "completed")
-      .gte("completed_at", from);
-    return {
-      total: (data ?? []).reduce((a, r) => a + Number(r.amount ?? 0), 0),
-      count: (data ?? []).length,
-    };
+  const k = (kpiRows?.[0] ?? {}) as Record<string, number | string | null>;
+  const totalHeld = Number(k.total_held ?? 0);
+  const heldCount = Number(k.total_held_count ?? 0);
+  const totalFrozen = Number(k.total_frozen ?? 0);
+  const frozenCount = Number(k.total_frozen_count ?? 0);
+  const totalRefunded = Number(k.total_refunded ?? 0);
+  const refundedCount = Number(k.total_refunded_count ?? 0);
+  const pendingRelease = Number(k.pending_release ?? 0);
+  const pendingReleaseCount = Number(k.pending_release_count ?? 0);
+  const releasedToday = {
+    total: Number(k.released_today ?? 0),
+    count: Number(k.released_today_count ?? 0),
   };
-  const releasedToday = await sumPayouts(todayStart);
-  const releasedWeek = await sumPayouts(weekStart);
+  const releasedWeek = {
+    total: Number(k.released_week ?? 0),
+    count: Number(k.released_week_count ?? 0),
+  };
+
+  // Alerts still need row-level detail, but scoped to the alert window and
+  // rows that could actually trigger any alert (bounded scan, not full table).
+  const alertWindowIso = new Date(now - Math.max(60, thresholds.frozen_days + 30) * DAY_MS).toISOString();
+  const { data: states } = await admin
+    .from("escrow_states")
+    .select("transaction_id, held_amount, frozen_amount, refunded_amount, last_changed_at")
+    .or(`frozen_amount.gt.0,held_amount.gte.${thresholds.high_value_amount}`)
+    .gte("last_changed_at", alertWindowIso);
 
   // ---- Deltas (period-over-period %) ----
   const yesterdayStart = new Date(new Date(todayStart).getTime() - DAY_MS).toISOString();
@@ -175,7 +157,7 @@ Deno.serve(async (req) => {
   // Frozen / pending: we don't snapshot historical balances, so derive from
   // count change vs total count as a proxy (small but non-zero signal).
   const frozenDelta = totalFrozen > 0 ? pct(frozenCount, Math.max(1, frozenCount - 1)) : 0;
-  const pendingDelta = pendingIds.length > 0 ? pct(pendingIds.length, Math.max(1, pendingIds.length - 1)) : 0;
+  const pendingDelta = pendingReleaseCount > 0 ? pct(pendingReleaseCount, Math.max(1, pendingReleaseCount - 1)) : 0;
 
   // ---- Trends ----
   // Balance trend = cumulative net ledger balance per day for the last 30d.
@@ -235,7 +217,7 @@ Deno.serve(async (req) => {
   const stateDistribution = [
     { state: "Held", value: heldCount },
     { state: "Frozen", value: frozenCount },
-    { state: "Pending Release", value: pendingIds.length },
+    { state: "Pending Release", value: pendingReleaseCount },
     { state: "Refunded", value: refundedCount },
     { state: "Released", value: releasedWeek.count },
   ];
@@ -341,6 +323,8 @@ Deno.serve(async (req) => {
     _amount_bucket: amountBucket,
     _page: page,
     _page_size: pageSize,
+    _search: q,
+    _flag: flag,
   });
   if (pageErr) {
     console.error("[admin-escrow-overview] page rpc", pageErr);
@@ -431,24 +415,14 @@ Deno.serve(async (req) => {
       .filter(Boolean) as Array<Record<string, unknown>>;
   }
 
-  // Search & flag filter applied after hydration (small page size)
-  if (q) {
-    const needle = q.toLowerCase();
-    records = records.filter((r) =>
-      String(r.transaction_code ?? "").toLowerCase().includes(needle) ||
-      String((r.buyer as { name: string }).name).toLowerCase().includes(needle) ||
-      String((r.seller as { name: string }).name).toLowerCase().includes(needle),
-    );
-  }
-  if (flag === "disputed" || flag === "flagged") records = records.filter((r) => r.flagged === true);
-  if (flag === "high_value") records = records.filter((r) => Number(r.total_held) >= 1_000_000);
-  if (flag === "state_mismatch") records = records.filter((r) => r.state_mismatch === true);
+  // Search + flag filters are now applied inside admin_escrow_records_page
+  // (SQL-side) so pagination reflects filtered totals correctly.
 
   return json(200, {
     kpis: {
       total_held: totalHeld, total_held_count: heldCount, total_held_delta_pct: heldDelta,
       total_frozen: totalFrozen, total_frozen_count: frozenCount, total_frozen_delta_pct: frozenDelta,
-      pending_release: pendingRelease, pending_release_count: pendingIds.length, pending_release_delta_pct: pendingDelta,
+      pending_release: pendingRelease, pending_release_count: pendingReleaseCount, pending_release_delta_pct: pendingDelta,
       total_refunded: totalRefunded, total_refunded_count: refundedCount, total_refunded_delta_pct: refundedDelta,
       released_today: releasedToday.total, released_today_count: releasedToday.count, released_today_delta_pct: releasedTodayDelta,
       released_week: releasedWeek.total, released_week_count: releasedWeek.count, released_week_delta_pct: releasedWeekDelta,
