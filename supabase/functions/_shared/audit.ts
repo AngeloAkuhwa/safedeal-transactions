@@ -21,6 +21,17 @@ export type AdminAuditInput = {
   userAgent?: string | null;
 };
 
+// Small utility so callers don't repeat request-header parsing.
+export function extractRequestMeta(req: Request): { ip: string | null; userAgent: string | null } {
+  const ip =
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-real-ip") ||
+    (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() ||
+    null;
+  const userAgent = req.headers.get("user-agent") || null;
+  return { ip, userAgent };
+}
+
 function computeDiff(before: unknown, after: unknown): {
   changed_keys: string[];
   before_diff: Record<string, unknown>;
@@ -74,20 +85,25 @@ export async function logAdminAction(
       action_notes: JSON.stringify(notesPayload),
     }).select("id").maybeSingle();
 
-    if (error) return { ok: false, error: error.message };
+    if (error) {
+      console.warn("[logAdminAction] insert admin_actions failed:", error.message);
+      return { ok: false, error: error.message };
+    }
 
     if (input.mirrorToAuditLogs) {
-      await admin.from("audit_logs").insert({
+      const { error: mirrorErr } = await admin.from("audit_logs").insert({
         action: input.action,
         actor_user_id: input.actorId,
         transaction_id: input.transactionId ?? null,
         description: `admin:${input.action}${input.reason ? ` — ${String(input.reason).slice(0, 240)}` : ""}`,
         metadata: notesPayload,
       });
+      if (mirrorErr) console.warn("[logAdminAction] mirror to audit_logs failed:", mirrorErr.message);
     }
 
     return { ok: true, id: data?.id };
   } catch (e) {
+    console.warn("[logAdminAction] unexpected error:", (e as Error).message);
     return { ok: false, error: (e as Error).message };
   }
 }

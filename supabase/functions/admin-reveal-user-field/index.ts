@@ -6,6 +6,7 @@
  */
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
 import { enforceAdminRateLimit } from "../_shared/rate-limit.ts";
+import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -82,13 +83,18 @@ Deno.serve(async (req) => {
     return json(500, { error: "lookup_failed", detail: (e as Error).message });
   }
 
-  // Audit
-  await admin.from("admin_actions").insert({
-    action_type: "reveal_user_field",
-    admin_user_id: ctx.userId,
-    target_user_id: user_id,
-    action_notes: reason || null,
+  // Audit — security-sensitive, mirror to audit_logs
+  const meta = extractRequestMeta(req);
+  await logAdminAction(admin, {
+    actorId: ctx.userId,
+    action: "reveal_user_field",
+    targetType: "user",
+    targetId: user_id,
+    reason: reason || undefined,
     metadata: { field },
+    mirrorToAuditLogs: true,
+    ip: meta.ip,
+    userAgent: meta.userAgent,
   });
 
   return json(200, { value });

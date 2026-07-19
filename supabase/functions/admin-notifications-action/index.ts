@@ -3,6 +3,7 @@
  * POST { action: "retry", delivery_id } | { action: "broadcast", title, message, priority, audience, channels[] }
  */
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,6 +35,7 @@ Deno.serve(async (req) => {
   const admin = ctx.adminClient;
   const body = await req.json().catch(() => ({}));
   const action = String(body?.action ?? "");
+  const meta = extractRequestMeta(req);
 
   if (action === "retry") {
     const deliveryId = String(body.delivery_id ?? "");
@@ -53,12 +55,17 @@ Deno.serve(async (req) => {
       .eq("id", del.notification_id).in("status", ["failed", "sent"]);
 
     const { data: n } = await admin.from("notifications").select("user_id").eq("id", del.notification_id).maybeSingle();
-    await admin.from("audit_logs").insert({
-      action: "admin_action",
-      actor_user_id: ctx.userId,
-      target_user_id: n?.user_id ?? null,
-      description: "notification_retried",
-      metadata: { delivery_id: deliveryId, notification_id: del.notification_id, channel: del.channel, manual_admin_retry: true, previous_attempts: previousAttempts },
+    await logAdminAction(admin, {
+      actorId: ctx.userId,
+      action: "notification_retried",
+      targetType: "notification",
+      targetId: del.notification_id,
+      before: { delivery_status: "failed", attempt_count: previousAttempts },
+      after: { delivery_status: "pending", attempt_count: 0 },
+      metadata: { delivery_id: deliveryId, channel: del.channel, manual_admin_retry: true, target_user_id: n?.user_id ?? null },
+      mirrorToAuditLogs: true,
+      ip: meta.ip,
+      userAgent: meta.userAgent,
     });
     return json(200, { success: true, attempt: 0 });
   }
@@ -95,12 +102,14 @@ Deno.serve(async (req) => {
       await admin.from("notifications").update({ status: "pending" })
         .in("id", ids).in("status", ["failed", "sent"]);
     }
-    await admin.from("audit_logs").insert({
-      action: "admin_action",
-      actor_user_id: ctx.userId,
-      target_user_id: null,
-      description: "notifications_bulk_retried",
+    await logAdminAction(admin, {
+      actorId: ctx.userId,
+      action: "notifications_bulk_retried",
+      targetType: "notification",
       metadata: { count: deliveryIds.length, channel, notification_type: notificationType, manual_admin_retry: true },
+      mirrorToAuditLogs: true,
+      ip: meta.ip,
+      userAgent: meta.userAgent,
     });
     return json(200, { success: true, retried: deliveryIds.length });
   }
@@ -176,10 +185,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    await admin.from("admin_actions").insert({
-      admin_user_id: ctx.userId,
-      action_type: "add_note",
-      action_notes: `Broadcast: ${title} (audience=${audience}, channels=${channels.join(",")}, recipients=${userIds.length})`,
+    await logAdminAction(admin, {
+      actorId: ctx.userId,
+      action: "broadcast_notification",
+      targetType: "notification",
+      targetId: broadcastId,
+      reason: title,
+      metadata: { broadcast_id: broadcastId, audience, channels, priority, recipients: userIds.length, deliveries: notifRows.length, message },
+      mirrorToAuditLogs: true,
+      ip: meta.ip,
+      userAgent: meta.userAgent,
     });
 
     return json(200, { success: true, broadcast_id: broadcastId, recipients: userIds.length, deliveries: notifRows.length });

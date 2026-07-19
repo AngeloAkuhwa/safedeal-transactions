@@ -4,6 +4,7 @@
  * Admin-only.
  */
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,6 +55,7 @@ Deno.serve(async (req) => {
   const mappedAction = ACTION_MAP[action];
   const succeeded: string[] = [];
   const failed: { user_id: string; error: string }[] = [];
+  const meta = extractRequestMeta(req);
 
   for (const uid of user_ids) {
     try {
@@ -61,13 +63,18 @@ Deno.serve(async (req) => {
         const { error: upErr } = await admin.from("profiles").update({ status: "suspended" }).eq("id", uid);
         if (upErr) throw upErr;
       }
-      const { error: insErr } = await admin.from("admin_actions").insert({
-        admin_user_id: ctx.userId,
-        target_user_id: uid,
-        action_type: mappedAction,
-        action_notes: `[bulk] ${note}`.slice(0, 1000),
+      const audit = await logAdminAction(admin, {
+        actorId: ctx.userId,
+        action: mappedAction,
+        targetType: "user",
+        targetId: uid,
+        reason: `[bulk] ${note}`.slice(0, 1000),
+        metadata: { bulk: true, batch_size: user_ids.length },
+        mirrorToAuditLogs: mappedAction === "suspend_user" || mappedAction === "escalate_case",
+        ip: meta.ip,
+        userAgent: meta.userAgent,
       });
-      if (insErr) throw insErr;
+      if (!audit.ok) throw new Error(audit.error);
       succeeded.push(uid);
     } catch (e) {
       failed.push({ user_id: uid, error: (e as Error).message ?? "unknown_error" });

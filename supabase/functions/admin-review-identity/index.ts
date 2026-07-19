@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -170,12 +171,19 @@ Deno.serve(async (req) => {
           .eq("user_id", submission.user_id);
       }
 
-      await adminClient.from("audit_logs").insert({
+      const meta = extractRequestMeta(req);
+      await logAdminAction(adminClient, {
+        actorId: adminUserId,
         action: "identity_verified",
-        actor_user_id: adminUserId,
-        target_user_id: submission.user_id,
-        description: `Identity submission ${submissionId} approved`,
+        targetType: "user",
+        targetId: submission.user_id,
+        before: { status: submission.status },
+        after: { status: "verified", verification_level: newLevel },
+        reason: reviewNotes ?? undefined,
         metadata: { submission_id: submissionId, new_level: newLevel },
+        mirrorToAuditLogs: true,
+        ip: meta.ip,
+        userAgent: meta.userAgent,
       });
 
       return jsonResponse({ success: true, new_level: newLevel });
@@ -196,12 +204,19 @@ Deno.serve(async (req) => {
         })
         .eq("id", submissionId);
 
-      await adminClient.from("audit_logs").insert({
+      const meta = extractRequestMeta(req);
+      await logAdminAction(adminClient, {
+        actorId: adminUserId,
         action: "identity_rejected",
-        actor_user_id: adminUserId,
-        target_user_id: submission.user_id,
-        description: `Identity submission ${submissionId} rejected`,
-        metadata: { submission_id: submissionId, reason: rejectionReason },
+        targetType: "user",
+        targetId: submission.user_id,
+        before: { status: submission.status },
+        after: { status: "rejected" },
+        reason: rejectionReason,
+        metadata: { submission_id: submissionId, review_notes: reviewNotes },
+        mirrorToAuditLogs: true,
+        ip: meta.ip,
+        userAgent: meta.userAgent,
       });
 
       return jsonResponse({ success: true, status: "rejected" });
@@ -221,12 +236,19 @@ Deno.serve(async (req) => {
       })
       .eq("id", submissionId);
 
-    await adminClient.from("audit_logs").insert({
+    const meta = extractRequestMeta(req);
+    await logAdminAction(adminClient, {
+      actorId: adminUserId,
       action: "identity_more_info",
-      actor_user_id: adminUserId,
-      target_user_id: submission.user_id,
-      description: `Identity submission ${submissionId} needs more info`,
-      metadata: { submission_id: submissionId },
+      targetType: "user",
+      targetId: submission.user_id,
+      before: { status: submission.status },
+      after: { status: "more_info_needed" },
+      reason: rejectionReason,
+      metadata: { submission_id: submissionId, review_notes: reviewNotes },
+      mirrorToAuditLogs: true,
+      ip: meta.ip,
+      userAgent: meta.userAgent,
     });
 
     return jsonResponse({ success: true, status: "more_info_needed" });

@@ -1,36 +1,51 @@
-## Next action: Item #7 — tsvector search for Transactions Monitor
+## Next action: Batch D — Audit integrity (Items #10 & #11)
 
-With Items #5 (dashboard aggregates), #6a (Users Directory SQL pagination), #6b (Flagged Users MV), and #6c (Escrow Overview SQL pagination) complete, the remaining P1 scalability item is the Transactions Monitor search. Today `admin-transactions-monitor` runs 4 separate capped `ilike` queries (limit 1000/2000) and intersects them in JS — past the caps, matches are silently dropped, and CPU/memory scale linearly with row count.
+Item #7 (tsvector search) shipped last turn. The last remaining P1/P2 correctness gap in the approved order is the patchy admin audit trail. The shared helper `supabase/functions/_shared/audit.ts::logAdminAction` already exists and already computes a JSONB diff (`changed_keys` / `before` / `after`) — but only 2 of ~14 admin mutation functions actually call it. The rest still hand-roll `admin_actions` and/or `audit_logs` inserts with inconsistent field shapes, no diff, and (in a few cases) an audit row on only one of the two tables.
+
+This batch adopts the helper everywhere and surfaces the diff in the Settings UI.
 
 ### What to build
 
-1. **Schema — `transactions.search_tsv`**
-   - Add `search_tsv tsvector` column on `public.transactions`.
-   - Populate from: transaction `code`, joined `transaction_items.title`, buyer & seller `full_name` + `email` (via `profiles`).
-   - Maintain with a `BEFORE INSERT/UPDATE` trigger on `transactions` plus lightweight sync triggers on `transaction_items` and `profiles` (recompute the parent row's tsv).
-   - Backfill existing rows in the same migration.
-   - Create `GIN (search_tsv)` index.
+1. **Refactor every admin mutation edge function to `logAdminAction`.** Replace hand-rolled inserts in:
+   - `admin-export-transaction-data`
+   - `admin-notifications-action` (retry + broadcast-create)
+   - `admin-user-detail-export`
+   - `admin-escrow-alert-settings`
+   - `admin-flagged-users-bulk`
+   - `admin-vendor-status`
+   - `admin-review-identity` (3 sites; approve/reject/note)
+   - `admin-flagged-users-action`
+   - `admin-transaction-actions` (all 10 action sites — freeze/unfreeze/refund/release/etc.)
+   - `admin-reveal-user-field`
+   - `admin-system-settings` (keep the dedicated `toggle_auto_release` event but route it through `logAdminAction` so the diff column is populated)
+   - `_shared/security-resolver.ts` insert
+   
+   Every call passes `actorId`, `action`, `targetType`/`targetId`, `before`/`after` where applicable, `reason` from the request body, and `mirrorToAuditLogs: true` for security-sensitive events (identity reveal, freeze/unfreeze funds, dispute resolution, refund, impersonation stubs, role change).
 
-2. **RPC — `admin_transactions_page(_search, _status, _money_status, _from, _to, _sort, _dir, _limit, _offset)`**
-   - When `_search` is present, filter with `search_tsv @@ websearch_to_tsquery('simple', _search)` and rank with `ts_rank_cd`.
-   - Apply status / money_status / date filters in SQL.
-   - Return `{ rows jsonb, total bigint }` (single round-trip, `count(*) OVER ()`).
-   - `SECURITY DEFINER`, `search_path = public`, grants to `service_role` only.
+2. **Small helper hardening in `_shared/audit.ts`.**
+   - Add `disputeId` mapping into the `admin_actions.dispute_id` column (already accepted in the type; ensure it's written).
+   - Add an `ip`/`userAgent` extraction utility `extractRequestMeta(req)` so callers don't repeat header parsing.
+   - Never throw from `logAdminAction` — audit failures must not fail the underlying admin operation (already the case; add a `console.warn` on failure so it surfaces in edge logs).
 
-3. **Edge function — `supabase/functions/admin-transactions-monitor/index.ts`**
-   - Replace the 4 `ilike` queries + JS intersect with one call to `admin_transactions_page`.
-   - Extract SQL wiring into `supabase/functions/_shared/transactions-monitor-sql.ts` for consistency with the users/flagged/escrow refactors.
-   - Preserve existing response shape so `AdminTransactions.tsx` needs no UI changes.
+3. **Surface the diff in `AdminSettings.tsx` Audit History (Item #11).**
+   - Parse the new `changed_keys` / `before` / `after` fields from `action_notes` in the audit row renderer.
+   - Under the existing summary line, render a compact key → "old → new" table (max 6 rows, "+N more" for the rest). Reuse existing card styling; no new design tokens.
+   - Wire the placeholder "Full audit log export" button to the existing async export pipeline (out of scope if it requires new infrastructure — otherwise reuse `runExport` with a new `admin_audit_log` job type; only add the job type if it fits in this batch, otherwise leave the toast).
 
 4. **Verification**
-   - `curl` the function with a search term that previously exceeded the 1000-row cap; confirm the match is returned.
-   - Compare KPI/list totals against the current implementation on a known dataset.
-   - Confirm search latency is flat as row count grows (single indexed query).
+   - Trigger one action per refactored function via the UI or `curl` and confirm the resulting `admin_actions` row contains the expected `changed_keys` / `before` / `after` JSON in `action_notes`.
+   - Save a setting change in AdminSettings; verify the Audit History card shows the key-level diff.
+   - Confirm no admin mutation returns a 500 due to audit failures (kill-switch test: temporarily point the helper at a bad table name locally to prove the operation still succeeds).
+
+### Technical notes
+- `admin_actions.action_notes` is `text` — we keep JSON-stringifying the notes payload (existing convention). No schema change needed.
+- The helper already mirrors to `audit_logs` when `mirrorToAuditLogs: true`; per-function decisions on whether to mirror are captured in the refactor above.
+- No migration needed for Batch D.
 
 ### Out of scope for this batch
-- Async export for transactions (already shipped in earlier batch).
-- Any UI change to `AdminTransactions.tsx` beyond removing dead client-side filtering if present.
-- Items #8–#16 (next batches in the approved plan).
+- Item #12 (scoped realtime), Item #13 (impersonation TTL) — next batch.
+- The design-token sweep (#14).
+- Any AdminSettings UI redesign beyond adding the diff rows to the existing card.
 
 ### After this ships
-Batch D — Audit integrity: unified `_shared/audit.ts::logAdminAction` with before/after JSONB diff (#10, #11), then Batch E security hardening (#12 scoped realtime, #3 AAL2 enforcement follow-through), with Impersonation (#13) intentionally deferred to the end as a separate feature workstream.
+Batch E — Security hardening: #12 scoped realtime channels for `useRealtimeAdminNotifications`, #3 AAL2 enforcement follow-through (helper + admin header enrollment CTA). Impersonation (#13) still deferred to the end as a separate feature workstream per your instruction.
