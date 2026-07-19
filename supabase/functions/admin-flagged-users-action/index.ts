@@ -4,6 +4,7 @@
  * Admin-only.
  */
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,15 +85,32 @@ Deno.serve(async (req) => {
     if (upErr) return json(500, { error: "unsuspend_failed", detail: upErr.message });
   }
 
-  const { data: inserted, error: insErr } = await admin.from("admin_actions").insert({
-    admin_user_id: ctx.userId,
-    target_user_id: user_id,
-    action_type: action,
-    action_notes: fullNote,
-    transaction_id: transaction_id || null,
-    dispute_id: dispute_id || null,
-  }).select("id, created_at").single();
-  if (insErr) return json(500, { error: "audit_write_failed", detail: insErr.message });
+  const meta = extractRequestMeta(req);
+  const before = (action === "suspend_user" || action === "unsuspend_user")
+    ? { status: target.status }
+    : undefined;
+  const after = action === "suspend_user"
+    ? { status: "suspended" }
+    : action === "unsuspend_user"
+      ? { status: "active" }
+      : undefined;
+  const audit = await logAdminAction(admin, {
+    actorId: ctx.userId,
+    action,
+    targetType: "user",
+    targetId: user_id,
+    transactionId: transaction_id || null,
+    disputeId: dispute_id || null,
+    reason: fullNote || undefined,
+    before,
+    after,
+    metadata: { reason_key, severity, source_type, source_id, note },
+    mirrorToAuditLogs: action === "suspend_user" || action === "unsuspend_user" || action === "escalate_case",
+    ip: meta.ip,
+    userAgent: meta.userAgent,
+  });
+  if (!audit.ok) return json(500, { error: "audit_write_failed", detail: audit.error });
+  const inserted = { id: audit.id, created_at: new Date().toISOString() };
 
   if (transaction_id) {
     await admin.from("transaction_events").insert({
