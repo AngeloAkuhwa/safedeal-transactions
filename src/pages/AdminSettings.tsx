@@ -1017,3 +1017,84 @@ function AuditRow({
     </div>
   );
 }
+
+/* ---- Unified diff row for admin_actions audit ---- */
+function AuditDiffRow({ row }: { row: SettingsAuditRow }) {
+  const [expanded, setExpanded] = useState(false);
+  const meta = row.metadata ?? {};
+  const scope = (meta as any).scope === "vendor" || row.target_user_id ? "vendor" : "platform";
+  const applyAll = Boolean((meta as any).apply_to_all_vendors);
+  const keys = row.changed_keys;
+  const isToggle = row.action_type === "toggle_auto_release";
+  const summary = keys.length
+    ? (isToggle ? "Auto-release toggled" : `Updated ${keys.length} setting${keys.length === 1 ? "" : "s"}`)
+    : (isToggle ? "Auto-release event" : "Settings updated");
+  const shownKeys = expanded ? keys : keys.slice(0, 6);
+  const overflow = keys.length - shownKeys.length;
+
+  return (
+    <div className="p-3 bg-muted/30 border border-border rounded-lg flex items-start gap-2.5">
+      <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+        <HistoryIcon className="h-3.5 w-3.5 text-blue-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-sm font-medium text-foreground truncate">{summary}</p>
+          {scope === "vendor" ? (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Vendor</span>
+          ) : (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">Platform</span>
+          )}
+          {applyAll && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300">Applied to all</span>
+          )}
+          {isToggle && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Auto-release</span>
+          )}
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
+          {row.admin_name ?? "Admin"}
+          {row.target_name ? <> · target <span className="text-foreground/80">{row.target_name}</span></> : null}
+          {" · "}
+          {formatDistanceToNow(new Date(row.created_at), { addSuffix: true })}
+          {row.ip ? <> · <span className="font-mono">{row.ip}</span></> : null}
+        </p>
+        {row.reason && (
+          <p className="text-[11px] text-muted-foreground mt-0.5 italic">"{row.reason}"</p>
+        )}
+        {keys.length > 0 && (
+          <div className="mt-2 border border-border rounded-md overflow-hidden">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 px-2 py-1 border-b border-border">
+              <span>Key</span><span>Previous</span><span>New</span>
+            </div>
+            {shownKeys.map((k) => (
+              <div key={k} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] text-[11px] px-2 py-1 border-b border-border last:border-b-0">
+                <span className="font-mono text-foreground/90 truncate">{k}</span>
+                <span className="font-mono text-muted-foreground truncate">{formatSettingValue(row.before[k])}</span>
+                <span className="font-mono text-foreground font-semibold truncate">{formatSettingValue(row.after[k])}</span>
+              </div>
+            ))}
+            {overflow > 0 && (
+              <button
+                type="button"
+                onClick={() => setExpanded(true)}
+                className="w-full text-[11px] text-blue-400 hover:text-blue-300 px-2 py-1 bg-muted/40 text-left"
+              >
+                +{overflow} more
+              </button>
+            )}
+            {expanded && keys.length > 6 && (
+              <button
+                type="button"
+                onClick={() => setExpanded(false)}
+                className="w-full text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 bg-muted/40 text-left"
+              >
+                Show less
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
