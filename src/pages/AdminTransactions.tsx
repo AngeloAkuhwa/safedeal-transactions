@@ -466,10 +466,12 @@ export default function AdminTransactions() {
     if (accessDenied) return;
     setLiveSync("connecting");
     const channel = supabase.channel("admin-tx-monitor");
-    for (const table of REALTIME_TABLES) {
+    for (const sub of REALTIME_SUBS) {
+      const cfg: Record<string, string> = { event: "*", schema: "public", table: sub.table };
+      if (sub.filter) cfg.filter = sub.filter;
       channel.on(
         "postgres_changes" as any,
-        { event: "*", schema: "public", table },
+        cfg as any,
         () => {
           if (realtimeDebounceRef.current) window.clearTimeout(realtimeDebounceRef.current);
           realtimeDebounceRef.current = window.setTimeout(() => {
