@@ -4962,6 +4962,10 @@ export type Database = {
         Args: { _since: string; _until?: string }
         Returns: number
       }
+      admin_duplicate_ledger_entries: {
+        Args: { _since: string }
+        Returns: number
+      }
       admin_escrow_kpis: {
         Args: never
         Returns: {
@@ -5069,6 +5073,10 @@ export type Database = {
           avg_hours: number
           spark: number[]
         }[]
+      }
+      admin_orphan_completed_payouts: {
+        Args: { _since: string }
+        Returns: number
       }
       admin_payout_health: {
         Args: { _since_avg: string; _since_spark: string }
