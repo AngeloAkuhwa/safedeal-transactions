@@ -329,49 +329,35 @@ Deno.serve(async (req) => {
   };
 
   // ---- Records (paginated) ----
-  // Filter base set of escrow_states by state buckets
-  let candidate = (states ?? []).filter((s) => Number(s.held_amount ?? 0) + Number(s.frozen_amount ?? 0) + Number(s.released_amount ?? 0) + Number(s.refunded_amount ?? 0) > 0);
-
-  if (state !== "all") {
-    const stateMap: Record<string, (s: typeof candidate[number]) => boolean> = {
-      held: (s) => Number(s.held_amount ?? 0) > 0,
-      frozen: (s) => Number(s.frozen_amount ?? 0) > 0,
-      pending_release: (s) => pendingIds.includes(s.transaction_id as string),
-      released: (s) => Number(s.released_amount ?? 0) > 0,
-      refunded: (s) => Number(s.refunded_amount ?? 0) > 0,
-    };
-    const fn = stateMap[state];
-    if (fn) candidate = candidate.filter(fn);
+  // P1: pagination + filtering pushed fully into SQL via
+  // admin_escrow_records_page. Previously this block filtered/sorted/sliced
+  // the entire escrow_states set in JS — an OOM/silent-truncation risk once
+  // the table grows past ~100k rows.
+  // The KPI scan above still walks escrow_states, but record pagination no
+  // longer materializes the full set in JS before slicing.
+  const { data: pageRows, error: pageErr } = await admin.rpc("admin_escrow_records_page", {
+    _state: state,
+    _date_range: dateRange,
+    _amount_bucket: amountBucket,
+    _page: page,
+    _page_size: pageSize,
+  });
+  if (pageErr) {
+    console.error("[admin-escrow-overview] page rpc", pageErr);
+    return json(500, { error: "records_page_failed" });
   }
-
-  // Date filter on last_changed_at
-  const dateCutoff = dateRange === "today" ? new Date(todayStart).getTime()
-    : dateRange === "7d" ? now - 7 * DAY_MS
-    : dateRange === "30d" ? now - 30 * DAY_MS
-    : 0;
-  if (dateCutoff > 0) {
-    candidate = candidate.filter((s) => new Date(s.last_changed_at as string).getTime() >= dateCutoff);
-  }
-
-  // Amount bucket on (held+frozen)
-  if (amountBucket !== "any") {
-    const bands: Record<string, [number, number]> = {
-      "lt_100k": [0, 100_000],
-      "100k_1m": [100_000, 1_000_000],
-      "gt_1m": [1_000_000, Number.POSITIVE_INFINITY],
-    };
-    const [lo, hi] = bands[amountBucket] ?? [0, Number.POSITIVE_INFINITY];
-    candidate = candidate.filter((s) => {
-      const v = Number(s.held_amount ?? 0) + Number(s.frozen_amount ?? 0);
-      return v >= lo && v < hi;
-    });
-  }
-
-  candidate.sort((a, b) => new Date(b.last_changed_at as string).getTime() - new Date(a.last_changed_at as string).getTime());
-
-  const total = candidate.length;
-  const sliced = candidate.slice((page - 1) * pageSize, page * pageSize);
-  const sliceTxIds = sliced.map((s) => s.transaction_id as string);
+  type PageRow = {
+    transaction_id: string;
+    held_amount: number | string | null;
+    frozen_amount: number | string | null;
+    released_amount: number | string | null;
+    refunded_amount: number | string | null;
+    last_changed_at: string;
+    total_count: number | string;
+  };
+  const sliced = (pageRows ?? []) as PageRow[];
+  const total = sliced.length > 0 ? Number(sliced[0].total_count) : 0;
+  const sliceTxIds = sliced.map((s) => s.transaction_id);
 
   let records: Array<Record<string, unknown>> = [];
   if (sliceTxIds.length) {
@@ -379,9 +365,21 @@ Deno.serve(async (req) => {
       .from("transactions")
       .select("id, transaction_code, money_status, created_at, buyer_id, seller_id")
       .in("id", sliceTxIds);
-    const { data: profiles } = await admin
-      .from("profiles")
-      .select("id, full_name, avatar_url");
+    // P1: only hydrate profiles for participants on this page (was: full
+    // `profiles` scan, which OOMs past ~50k users).
+    const participantIds = Array.from(
+      new Set(
+        ((txs ?? []) as Array<{ buyer_id: string | null; seller_id: string | null }>)
+          .flatMap((t) => [t.buyer_id, t.seller_id])
+          .filter((v): v is string => !!v),
+      ),
+    );
+    const { data: profiles } = participantIds.length
+      ? await admin
+          .from("profiles")
+          .select("id, full_name, avatar_url")
+          .in("id", participantIds)
+      : { data: [] as Array<{ id: string; full_name: string | null; avatar_url: string | null }> };
     const profileMap = new Map((profiles ?? []).map((p) => [p.id as string, p]));
     const { data: disputesData } = await admin
       .from("disputes")
