@@ -30,19 +30,17 @@ function severityFor(action: string): Severity {
 // action_type is a Postgres enum, so severity filtering can't use `ilike` or
 // `imatch`. We resolve enum values once per request and filter with `.in()`.
 const UUID_RE = /^[0-9a-f-]{36}$/i;
-let ENUM_CACHE: string[] | null = null;
-async function listActionTypes(admin: any): Promise<string[]> {
-  if (ENUM_CACHE) return ENUM_CACHE;
-  const { data } = await admin.rpc("audit_action_types_list").maybeSingle();
-  if (Array.isArray(data)) { ENUM_CACHE = data as string[]; return ENUM_CACHE; }
-  // Fallback: sample the last 90d of distinct values.
-  const { data: rows } = await admin.from("admin_actions")
-    .select("action_type").gte("created_at", new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString()).limit(5000);
-  const set = new Set<string>();
-  for (const r of rows ?? []) if (r.action_type) set.add(r.action_type as string);
-  ENUM_CACHE = Array.from(set);
-  return ENUM_CACHE;
-}
+// Full enum snapshot for admin_action_type — kept in sync with the DB enum so
+// severity filtering can map into `.in()` clauses (Postgres enums don't support
+// ilike/imatch operators via PostgREST).
+const ACTION_TYPES: string[] = [
+  "add_internal_note","add_note","clear_flag","close_case","escalate_case",
+  "export_data","extend_deadline","flag_for_review","flag_user","freeze_transaction",
+  "high_value_flag","open_investigation","refund_buyer","release_funds","request_evidence",
+  "resolve_dispute","set_vendor_status","suspend_user","toggle_auto_release","unflag_user",
+  "unfreeze_transaction","unsuspend_user","update_investigation","update_setting",
+];
+async function listActionTypes(_admin: unknown): Promise<string[]> { return ACTION_TYPES; }
 function actionsForSeverity(all: string[], sev: Severity): string[] {
   return all.filter((a) => severityFor(a) === sev);
 }
