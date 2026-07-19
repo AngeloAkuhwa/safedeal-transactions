@@ -1,42 +1,42 @@
-## Next action item: Item #16 — Lock in server-side role enforcement with integration tests
+## Port Audit Logs screen (attached HTML) into the admin app
 
-Everything above #16 is now either shipped or explicitly deferred:
+Build a new **Audit Logs** page at `/admin/audit-logs` that matches the attached HTML 1:1 (copy, cards, icons, colors, table shape, severity treatments, action buttons), wired to the real `audit_logs` / `admin_actions` data.
 
-- **#13 Impersonation** — deferred at your request (new dedicated screen coming).
-- **#14 Design-token sweep** — the audit itself marks this out of scope for the fix pass.
+### Scope
+- New route only. Do not touch sidebar/layout structure (sidebar link already exists at `/admin/audit-logs`).
+- Uses the existing app chrome (`AdminLayout` / `AdminSidebar`) — we do NOT rebuild the sidebar from the HTML. The HTML sidebar is already represented by our React sidebar; we port only the page body.
+- Reuse the current dark admin palette. Keep the HTML's slate/emerald/red/purple/blue/yellow accents as-is for parity (this page follows the existing admin dark theme like other admin pages).
 
-That leaves **Item #16** as the only remaining actionable item from the audit.
+### Files
+1. `src/pages/AdminAuditLogs.tsx` — new page. Sticky header, 4 stat cards, Advanced Filters card, Audit Log Entries table, right-side JSON drawer.
+2. `src/services/admin-audit-logs.service.ts` — new. Wraps a new `admin-audit-logs` edge function.
+3. `supabase/functions/admin-audit-logs/index.ts` — new. SQL-first list + aggregate stats endpoint (`requireAdmin`, `logAdminAction` for exports, respects existing rate limits).
+4. `src/App.tsx` — register `/admin/audit-logs` route inside the existing admin protected block.
 
-### Why it matters
+### Page layout (ported from HTML)
+- **Sticky header**: "Audit Logs" + "Immutable compliance and forensic audit trail", pills for **Immutable** (emerald) and **Last entry: Xm ago** (live from data), buttons **Export Logs** (slate) and **Compliance Report** (emerald).
+- **Stats overview** — 4 cards, exact icons/colors/labels:
+  - Total Audit Entries (blue `list-check`) — count last 30d
+  - High Severity (red `triangle-exclamation`) — high+critical count
+  - Active Admins (purple `user-shield`) — distinct actors last 24h
+  - Storage Used (emerald `database`) — estimated table size
+- **Advanced Filters & Search** card: search input, Action Type / Actor / Severity selects, Date Range Start/End, buttons Search / Clear All Filters / Save Filter Preset.
+- **Audit Log Entries** table with sticky-under-header thead, columns: Timestamp, Action, Actor, Target, Description, Metadata (View JSON pill), IP Address, Actions (Details / JSON / User|TXN / Export / Copy).
+  - Row severity styling: critical = red-tinted row + red left border + pulsing badge; high = yellow-tinted row + yellow border; info/low = plain.
+  - Action-type icon tile colors match HTML (user-slash red, money-bill-wave emerald, scale-balanced yellow, etc.).
+- **JSON drawer** (right-side slide-in, matches `.audit-drawer` behavior) — shows full JSON payload of the selected audit row + Copy JSON button.
 
-`useAdminNav.ts` gates sidebar visibility client-side. The spot check said edge functions re-derive role from the JWT via `has_role`, but nothing prevents a future function from accidentally trusting a client-supplied `role` field. An integration test locks that guarantee in.
+### Data wiring
+Backend endpoint `admin-audit-logs`:
+- `GET ?action=list` with filters `{ q, action_type, actor_id, severity, from, to, page, page_size }` — pushes filtering/pagination into SQL against `admin_actions` unioned with `audit_logs` (security events). Returns `{ rows, total, latest_entry_at }`.
+- `GET ?action=stats` — returns 4 KPI values from SQL aggregates.
+- `POST ?action=export` — uses async export pipeline (existing `runExport` / `admin_export_jobs`) — no in-memory CSV. Respects existing per-admin export rate limits.
+- Severity mapping: derive from `action` string (suspend/freeze/reveal/impersonation → critical; role/settings change → high; retry/broadcast → medium; view/export → info) — implemented in SQL CASE so it filters correctly.
 
-### What to build
+### Design tokens
+- HTML uses `bg-slate-900/800/700`, `text-white/slate-300/400`, and accent colors `emerald/red/purple/blue/yellow/orange`. Per project rule these should be semantic tokens, but the rest of the admin surface (item #14 in the audit) also uses raw slate/emerald classes, and that sweep is explicitly deferred/out-of-scope. **This page follows the same convention as the existing admin pages** — raw Tailwind color classes — so it visually matches the reference and the rest of `/admin/*`. It will be included in the future design-token sweep.
 
-1. **Shared server-role assertion audit**
-   - Grep every `supabase/functions/admin-*` handler and confirm it goes through `requireAdmin()` (or an equivalent `has_role(auth.uid(), 'admin')` check) before any DB work.
-   - Any function missing the guard gets it added in the same pass.
-
-2. **Vitest integration suite: `src/__tests__/admin-auth.contract.test.ts`**
-   Runs against the deployed edge functions using `supabase.functions.invoke`. Covers every admin endpoint enumerated from `supabase/functions/admin-*/`:
-   - **Anonymous call** (no Authorization header) → expect `401`.
-   - **Authenticated non-admin call** (fresh test user, buyer role only) → expect `403`.
-   - **Spoofed role in body/headers** (e.g. `{ role: 'admin' }` in payload, `x-role: admin` header) while authed as buyer → still expect `403`. Proves no function trusts client-supplied role hints.
-   - **Admin call** with a seeded admin user → expect `200` (or method-appropriate success) for read-only endpoints; skip mutation endpoints in this suite.
-
-3. **Test harness**
-   - `src/__tests__/helpers/adminAuth.ts` with `signInAsBuyer()` and `signInAsAdmin()` using dedicated test accounts (emails + passwords sourced from `VITE_TEST_ADMIN_EMAIL`, `VITE_TEST_ADMIN_PASSWORD`, `VITE_TEST_BUYER_EMAIL`, `VITE_TEST_BUYER_PASSWORD` env vars so no credentials are committed).
-   - Endpoint list generated at test time by reading `supabase/functions/` directory names matching `admin-*`, so newly added admin functions are automatically covered — failing the suite until they have the guard.
-
-4. **CI wiring note**
-   - Add an `npm run test:admin-auth` script and document that it requires the four env vars above. Do not add it to the default `test` script (needs a live backend), but leave it available for pre-release runs.
-
-### Out of scope for this item
-
-- Testing mutation semantics (that's a separate suite).
-- Rate-limit / 2FA behavioral tests (covered by #3 and #4 already shipped; not part of #16).
-- Any UI or design-token changes.
-
-### After this item
-
-The full audit — P0 through P3 minus the explicitly deferred #13 and the explicitly out-of-scope #14 — is 100% closed.
+### Out of scope
+- Saving filter presets to DB (button is present but stubbed — will wire in a follow-up).
+- Real geo-IP lookup ("San Francisco, US") — display raw IP; geo is a follow-up.
+- Sidebar refactor.
