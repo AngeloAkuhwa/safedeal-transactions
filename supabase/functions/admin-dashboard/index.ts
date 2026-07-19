@@ -304,17 +304,23 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
   }
 
   // ---------- Reconciliation Mismatches ----------
-  // Successful payments in the last 30d that lack a matching escrow_ledger_entries
-  // payment_credit/escrow_hold deposit for the same transaction.
-  // TODO: extend reconciliation rules — duplicate webhook ledger entries,
-  // held_amount vs payment_amount drift on escrow_states.
+  // Rolls up three independent reconciliation checks over the last 30 days into
+  // a single count surfaced on the dashboard reconciliation card:
+  //   1. Successful payments without a matching payment_credit/escrow_hold ledger deposit.
+  //   2. Duplicate ledger entries for the same (transaction, reference, entry_type).
+  //   3. Completed payouts without a matching payout_debit ledger entry.
   let reconMismatchCount = 0;
   try {
-    // P1 #5: SQL-side left-join count (replaces 2k + N-row JS scan).
-    const { data: cnt } = await client.rpc("admin_reconciliation_mismatches", {
-      _since: since30d,
-    });
-    reconMismatchCount = Number(cnt ?? 0) || 0;
+    // P1 #5: SQL-side counts (replaces prior JS-side scans).
+    const [mismatches, duplicates, orphans] = await Promise.all([
+      client.rpc("admin_reconciliation_mismatches", { _since: since30d }),
+      client.rpc("admin_duplicate_ledger_entries", { _since: since30d }),
+      client.rpc("admin_orphan_completed_payouts", { _since: since30d }),
+    ]);
+    reconMismatchCount =
+      (Number(mismatches.data ?? 0) || 0) +
+      (Number(duplicates.data ?? 0) || 0) +
+      (Number(orphans.data ?? 0) || 0);
   } catch (e) {
     await logEdgeError(client, `recon_failed: ${(e as Error).message}`, userId);
   }
