@@ -329,20 +329,21 @@ const buildTransactionsMonitorCsv: Builder = async (admin, params) => {
 /* -------- Audit logs (admin_actions) -------- */
 
 type AuditSev = "critical" | "high" | "medium" | "low" | "info";
-const AUDIT_SEV_REGEX: Record<Exclude<AuditSev, "low">, string> = {
-  critical: "suspend|freeze|block|impersonat|reveal|delete|force|purge",
-  high: "role|setting|dispute_resolve|refund|override|policy|escrow_alert",
-  medium: "retry|broadcast|notification|review|approve|reject",
-  info: "view|export|list|search",
-};
 function auditSeverity(action: string): AuditSev {
   const a = (action || "").toLowerCase();
-  if (new RegExp(AUDIT_SEV_REGEX.critical).test(a)) return "critical";
-  if (new RegExp(AUDIT_SEV_REGEX.high).test(a)) return "high";
-  if (new RegExp(AUDIT_SEV_REGEX.medium).test(a)) return "medium";
-  if (new RegExp(AUDIT_SEV_REGEX.info).test(a)) return "info";
+  if (/suspend|freeze|block|impersonat|reveal|delete|force|purge/.test(a)) return "critical";
+  if (/role|setting|dispute_resolve|refund|override|policy|escrow_alert/.test(a)) return "high";
+  if (/retry|broadcast|notification|review|approve|reject/.test(a)) return "medium";
+  if (/view|export|list|search/.test(a)) return "info";
   return "low";
 }
+const AUDIT_ACTION_TYPES: string[] = [
+  "add_internal_note","add_note","clear_flag","close_case","escalate_case",
+  "export_data","extend_deadline","flag_for_review","flag_user","freeze_transaction",
+  "high_value_flag","open_investigation","refund_buyer","release_funds","request_evidence",
+  "resolve_dispute","set_vendor_status","suspend_user","toggle_auto_release","unflag_user",
+  "unfreeze_transaction","unsuspend_user","update_investigation","update_setting",
+];
 function parseAuditNotes(raw: string | null): Record<string, unknown> {
   if (!raw) return {};
   try { const v = JSON.parse(raw); return v && typeof v === "object" ? v as Record<string, unknown> : {}; }
@@ -366,11 +367,9 @@ const buildAuditLogsCsv: Builder = async (admin, params) => {
   if (from) query = query.gte("created_at", from);
   if (to) query = query.lte("created_at", to);
   if (severity && severity !== "all") {
-    if (severity === "low") {
-      for (const rx of Object.values(AUDIT_SEV_REGEX)) query = query.not("action_type", "imatch", rx);
-    } else if (AUDIT_SEV_REGEX[severity as Exclude<AuditSev, "low">]) {
-      query = query.filter("action_type", "imatch", AUDIT_SEV_REGEX[severity as Exclude<AuditSev, "low">]);
-    }
+    const wanted = AUDIT_ACTION_TYPES.filter((a) => auditSeverity(a) === severity);
+    if (wanted.length === 0) return { csv: "", rowCount: 0 };
+    query = query.in("action_type", wanted);
   }
   if (q) {
     const uuid = /^[0-9a-f-]{36}$/i.test(q);
@@ -380,7 +379,11 @@ const buildAuditLogsCsv: Builder = async (admin, params) => {
       );
     } else {
       const like = `%${q.replace(/[,()]/g, " ")}%`;
-      query = query.or(`action_type.ilike.${like},action_notes.ilike.${like}`);
+      const qLower = q.toLowerCase();
+      const matchedTypes = AUDIT_ACTION_TYPES.filter((t) => t.toLowerCase().includes(qLower));
+      const parts = [`action_notes.ilike.${like}`];
+      if (matchedTypes.length) parts.push(`action_type.in.(${matchedTypes.join(",")})`);
+      query = query.or(parts.join(","));
     }
   }
   query = query.order("created_at", { ascending: false }).limit(100_000);
