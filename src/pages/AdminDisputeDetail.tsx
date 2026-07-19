@@ -30,6 +30,7 @@ import {
   escalateDispute,
   flagForReview,
   addInternalNoteDetailed,
+  transitionDisputeStatus,
   type DisputeOutcomeType,
 } from "@/services/admin-transaction-actions.service";
 import { ResolveDisputeDialog } from "@/components/admin/transactions/ResolveDisputeDialog";
@@ -397,14 +398,13 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
   };
   const handleMoveReview = async (reason: string) => {
     try {
-      // No dedicated "move to under review" backend action exists yet; record
-      // as an internal note tagged as dispute so the audit trail is preserved.
-      // TODO: replace with a dedicated dispute state transition endpoint when available.
-      await addInternalNoteDetailed(txId, { note: `[Move to Under Review] ${reason}`, category: "dispute", follow_up_required: true, follow_up_priority: "high" });
-      toast.success("Logged — moved to under review");
+      const did = dispute?.id;
+      if (!did) throw new Error("dispute not loaded");
+      await transitionDisputeStatus(did, "under_review", reason);
+      toast.success("Dispute moved to Under Review");
       refresh();
     } catch (e) {
-      toast.error((e as Error).message ?? "Failed to log");
+      toast.error((e as Error).message ?? "Failed to transition dispute");
     }
   };
   const handleHighRisk = async (reason: string) => {
