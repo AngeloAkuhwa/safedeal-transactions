@@ -5,7 +5,7 @@ import {
   ShieldCheck, Clock, Download, FileCheck2, ListChecks, TriangleAlert, UserCog,
   Database, Filter, Search, FileText, Code2, Eye, User,
   Copy, X, UserX, Banknote, Scale, Bot, Info, CircleAlert, Settings as SettingsIcon,
-  ArrowRight, RefreshCw, LogIn, LogOut, Receipt, Undo2, Gavel,
+  ArrowRight, RefreshCw, LogIn, LogOut, Receipt, Undo2, Gavel, Menu,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
