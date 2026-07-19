@@ -1,44 +1,33 @@
-## Next up: Item #12 — Scope admin realtime channels
+## Next action item: Item #15 — Stale TODOs & dispute state transition endpoint
 
-Batches A–D are complete end to end (P0 security, dashboard/list/search SQL pagination, unified audit + diff UI). The next unfinished item in the audit list is **#12 — Realtime admin channels have no row-level scoping**.
+With Batch D (#10, #11) and Item #12 (scoped realtime) complete, and Item #13 (impersonation) deferred per your instruction until the dedicated screen is ready, the next unfinished item in the audit list is **#15 — Stale TODOs**.
 
-(#13 Impersonation is deferred per your instruction — it belongs to the new dedicated screen. #14 token sweep and #16 tests are P3 backlog. So #12 is the last non-deferred item before we're 100% done.)
+### Current state (verified this turn)
 
-### Problem (verified)
-`src/hooks/useRealtimeAdminNotifications.ts` and the sibling admin realtime hooks subscribe to entire tables (`notifications`, `disputes`, `transactions`, `admin_actions`) with no server-side filter. At platform scale every admin browser receives every insert/update — thousands per minute — which:
-- drowns the browser event loop and React state,
-- pushes noisy low-severity events into toasts/badges,
-- makes the "unread" counters lag or spike.
+- `src/pages/AdminDisputeDetail.tsx` — the earlier TODO ("replace with a dedicated dispute state transition endpoint") is already gone; the page routes through the `admin-dispute-transition` edge function created during the P0/P1 pass. Nothing left to do here beyond a spot-check.
+- `supabase/functions/admin-dashboard/index.ts:309` — one TODO still ships in production: `// TODO: extend reconciliation rules — duplicate webhook ledger entries, ...`. This is the only remaining stale TODO from the audit.
 
-### Fix
+### What to build
 
-1. **Server-side filters on every admin channel.** Change each `postgres_changes` subscription to pass a `filter:` clause so Postgres only forwards rows the admin actually cares about:
-   - `notifications`: `severity=in.(high,critical)` OR `audience=eq.admin`.
-   - `disputes`: `status=in.(open,escalated,under_review)`.
-   - `admin_actions`: `action_type=in.(reveal_field,export_data,impersonate_start,impersonate_end,vendor_status_change,identity_review)`.
-   - `transactions` (monitor): only `status=in.(flagged,frozen,disputed)` — routine status flips don't need to page every admin.
+1. **Confirm dispute transitions are fully server-gated**
+   - Grep `AdminDisputeDetail.tsx` and any sibling admin dispute components for direct `supabase.from('disputes').update(...)` / `.insert(...)` calls that bypass `admin-dispute-transition`.
+   - If any remain, route them through the edge function so state changes always pass through the audited state machine.
 
-2. **"Load older" for the long tail.** The realtime stream now only carries high-signal events. For the full list the UI already paginates via the SQL endpoints from Batch B/C — add an explicit "Load older activity" button in `AdminNotifications` and the dashboard activity feed instead of streaming everything.
+2. **Resolve the `admin-dashboard` reconciliation TODO**
+   - Decide: implement or delete. Recommend **implement two lightweight rules** since the surrounding block already surfaces reconciliation findings on the dashboard:
+     - Duplicate webhook ledger entries: group `escrow_ledger_entries` by `(transaction_id, source_reference)` where `source = 'paystack_webhook'` and flag `count > 1`.
+     - Orphan payouts: `payouts` in `completed` state with no matching `escrow_ledger_entries` debit row for the same transaction.
+   - Add both as additional entries in the existing `reconciliation.findings[]` array returned by `admin-dashboard`, each shaped like the current findings (`{ code, severity, count, sample_ids }`) so the dashboard renders them without UI changes.
+   - Remove the TODO comment.
 
-3. **One shared channel factory.** Introduce `src/hooks/useAdminRealtimeChannel.ts` that wraps `supabase.channel()` with:
-   - a stable channel name per (table, filter),
-   - automatic teardown on unmount,
-   - a small in-memory de-dupe (last 200 event ids) so retries don't double-fire toasts.
-   Refactor `useRealtimeAdminNotifications`, the dispute list hook, and the transactions-monitor hook to use it.
+3. **Sweep for any other `TODO`/`FIXME` inside `supabase/functions/admin-*` and `src/pages/Admin*` / `src/components/admin/`**
+   - Anything stale gets either implemented in this pass or deleted with a one-line justification.
 
-4. **Toast throttling.** Even with filters, bursts happen. Cap toast surfacing to ≤ 1 per second per channel (collapse the rest into an aggregated "+N new" badge).
+### After this item
 
-5. **Backend: broadcast for cross-admin signals.** For events that don't map cleanly to a filter (e.g. "another admin just took this dispute"), add a lightweight Postgres `pg_notify` → Supabase Broadcast channel `admin:events` published from the unified `logAdminAction` helper. Admin clients subscribe once; payload contains `{action, target_type, target_id, actor}` only — no row data.
+Remaining audit items after #15:
+- **#13 Impersonation** — deferred, waiting on the new impersonation screen.
+- **#14 Design-token sweep** — P3, out of scope for this fix pass per the original audit.
+- **#16 Integration tests** — P3 backlog.
 
-### Files touched
-- `src/hooks/useRealtimeAdminNotifications.ts` (rewrite subscription with filter)
-- `src/hooks/useAdminRealtimeChannel.ts` (new shared factory)
-- `src/hooks/useAdminDisputeRealtime.ts`, `src/pages/AdminTransactions.tsx` realtime block (refactor to factory + filters)
-- `src/pages/AdminNotifications.tsx` (add "Load older", wire throttled toasts)
-- `supabase/functions/_shared/audit.ts` (optional broadcast emit on `logAdminAction`)
-
-### Out of scope
-- Impersonation (#13) — deferred to the new impersonation screen.
-- Design-token sweep (#14) and integration tests (#16) — P3 backlog.
-
-After #12 lands, the P0 + P1 + P2 audit list is 100% complete and only the explicitly-deferred P3 items remain.
+So once #15 lands, the P0 + P1 + P2 scope you approved is fully closed and only the explicitly-deferred / explicitly-backlog items remain.
