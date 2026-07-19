@@ -1,38 +1,66 @@
-# Audit Logs — 1:1 fidelity pass
+## Goal
+Bring `AdminAuditLogs` visual language in line with `AdminDashboard` (and the rest of the admin surface) so cards, typography, spacing, and header treatment feel like one system — without changing any data flow, filters, drawer behaviour, or export logic.
 
-Scope: only `src/pages/AdminAuditLogs.tsx`. No backend, service, route, or sidebar changes. Column set, filters, drawer, and pagination logic stay as-is — this pass is purely visual parity with the attached HTML + screenshot.
+## What's off today (verified against `AdminDashboard.tsx` + `KpiCards.tsx`)
+- Uses hardcoded `bg-slate-950 / bg-slate-900 / text-white / text-slate-400` instead of semantic tokens (`bg-background`, `bg-card`, `border-border`, `text-foreground`, `text-muted-foreground`). Breaks the shared dark/light theming.
+- KPI cards are `p-5`, `h-36`, value `text-3xl font-bold`, label `text-sm` — dashboard KPIs use `p-4`, ~`h-[110px]`, value `text-2xl font-semibold tracking-tight`, label `text-xs`, icon tile `h-10 w-10 rounded-lg bg-{color}-500/15 text-{color}-400` (no border ring), grid gap `gap-3`.
+- Custom sticky `HeaderBar` duplicates what `AdminLayout` already renders. Title is `text-xl`, dashboard standard is the layout's built-in header (`text-base`-ish, subtitle `text-sm text-muted-foreground`). Export/Compliance buttons use raw slate/emerald classes instead of the shared `Button` component variants.
+- Filters card is `p-6` with `text-lg` heading and emerald focus rings — inconsistent with dashboard cards (`p-4`, `text-sm` headings, primary/ring tokens).
+- Table container, row hover, chips, and drawer all use `slate-*` literals; row severity tints are fine conceptually but should read from tokens where possible.
+- Outer wrapper forces `bg-slate-950 min-h-full` and `fullBleed` + `hideDefaultHeaders`, bypassing the standard `AdminLayout` chrome used by every other admin page.
 
-## Gaps identified vs the reference
+## Plan (UI-only, no behaviour changes)
 
-1. **Header shell** — HTML puts the header *inside* the scroll container with `sticky top-0`. Our `headerSlot` currently renders through `AdminLayout` which can add wrapper padding. We'll drop `headerSlot` for this screen and render the header at the top of the content area with `sticky top-0 z-30`, so it exactly matches the reference (title 20px `text-xl font-semibold`, subtitle `text-sm text-slate-400`, pills at 12px, right-side buttons at `px-4 py-2 text-sm font-medium`).
-2. **Compliance Report icon** — HTML uses `fa-file-shield`. We're using `FileCheck2` which reads as a checklist. Swap to `ShieldCheck` to match the shield-on-document silhouette (closest Lucide match).
-3. **Action tile icons** — HTML mapping is stricter than ours:
-   - `User Suspended` → `UserX` in red (already correct).
-   - `Payment Processed` → `Banknote` in emerald (correct).
-   - `Dispute Filed` → `Scale` in yellow (correct).
-   - `Settings Changed` → `Settings` in purple (already correct).
-   - Missing: `Login/Logout` → `LogIn`/`LogOut` in slate; `Data Export` → `Download` in slate; `Transaction Created/Updated` → `Receipt` in blue; `Refund Issued` → `Undo2` in orange; `Dispute Resolved` → `Gavel` in emerald. Extend `actionIconFor` to cover these keywords so every reference row matches.
-4. **Actor cell for system/automated actors** — HTML renders System with a **rounded-full** blue tile containing a `Bot` icon and `role = "Automated"`. Currently we always show avatar-or-user-icon. Add: if `actor.role === "system"` OR `actor.name` contains "System"/"Automated", render the blue rounded-full Bot tile with role label "Automated".
-5. **Actor avatar ring** — HTML uses `border-2 border-red-500/40` **only** on critical rows and no ring elsewhere. Our code adds `border-slate-700` on non-critical which is subtly wrong. Change to `border-2 border-red-500/40` for critical and no border ring otherwise (drop the slate ring).
-6. **Target subtitle** — Reference shows values like `$2,450.00 USD`, `john.doe@email.com`, `Case #DSP-2024-1247`. Ours renders "Transaction" / "Dispute" as literal subtitles. Change subtitles to: user → email (or `—`); transaction → the transaction code if the shaper provides it, else `Transaction #<short>`; dispute → `Case ID` short.  (Data-side: we already return `user_email`; leaving `transaction_code` for a later backend enrichment. For now show short-ID + a soft label matching HTML sizing/color.)
-7. **IP cell subtitle** — HTML shows a geo/context line (`San Francisco, US`, `Internal Server`). We have no geo data; render only the IP in `text-slate-300 text-sm font-mono` and drop the "Recorded"/"Not captured" line so we don't invent data. Keep spacing so column height stays aligned.
-8. **Table header sticky offset** — We set `sticky top-[88px]` which drifts as the outer sticky header height changes. After we move the page header inline (item 1), compute the offset with `top-[73px]` (h-of-header = py-5 + text-xl line + subtitle) or, more robust, wrap header + thead in a shared sticky column and use `top-0` on the header and `top-[73px]` on the thead. Verify visually.
-9. **Row tint borders** — HTML uses `border-l-4` on tinted rows. Our `rowTint` already does this. Confirm the border-color is visible against the base `bg-slate-900` table (currently `border-red-500`, `border-orange-500`, `border-yellow-500` — good). Ensure `<tr>` uses `border-l-4` at the row level, not on the `<td>`, so it spans full row height.
-10. **Meta labels & spacing** — Small typography touches to match the HTML exactly:
-    - "Audit Log Entries" section subtitle should read `<total> entries • Showing <n> • Immutable records` (drop the "page X of Y" that we added inline; keep pagination controls below).
-    - Search Query placeholder already matches.
-    - "Save Filter Preset" button color = `bg-blue-600` (already correct).
-    - Stat card icon sizes: HTML uses `text-lg` (~18px). Our `h-5 w-5` (20px) is close; keep.
-11. **Action buttons cluster** — HTML always renders the User button in purple even if there's no target user (it just navigates). We hide it when there's no `target.user_id`. Keep our conditional (it's correct behavior — avoids dead buttons), but for `Target` navigation matching HTML: when the row targets a dispute, render an orange "Dispute" button that routes to `/admin/disputes/<id>`. Add that alongside the existing TXN button.
+1. **Adopt standard AdminLayout chrome**
+   - Remove `hideDefaultHeaders` and `fullBleed`. Pass `title="Audit Logs"` and `subtitle="Immutable compliance and forensic audit trail"` to `AdminLayout` like `AdminDashboard` does.
+   - Delete the custom `HeaderBar` component. Move the two action buttons (Export Logs, Compliance Report) and the Immutable / Last-entry pills into a right-aligned toolbar row rendered as the first child inside the layout (a compact `flex items-center justify-between` bar above the KPI grid), so the sticky page header stays the shared one.
+   - Replace raw `<button>`s with `<Button variant="outline" size="sm">` (Export) and `<Button size="sm" className="bg-emerald-600 hover:bg-emerald-500">` (Compliance) — matching dashboard's button treatment.
 
-## Non-goals
+2. **Rebuild `StatCard` to mirror `KpiCards`**
+   - Container: `rounded-xl border border-border bg-card p-4` (was `bg-slate-900 border-slate-800 p-5`).
+   - Icon tile: `h-10 w-10 rounded-lg` with `bg-{color}-500/15 text-{color}-400` (drop the extra border ring).
+   - Label: `text-xs text-muted-foreground` (was `text-sm text-slate-400`).
+   - Value: `text-2xl font-semibold tracking-tight text-foreground` (was `text-3xl font-bold text-white`); keep the colored variant for High Severity / Storage by swapping `text-foreground` for `text-red-400` etc.
+   - Sub line: `text-xs text-muted-foreground`.
+   - Grid: `grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4` (was `gap-4`).
+   - Skeleton height drops from `h-36` to `h-[110px] rounded-xl bg-card`.
 
-- No changes to `admin-audit-logs` edge function, `admin-audit-logs.service.ts`, sidebar, routing, or any other page.
-- Not adding geo lookup for IPs.
-- Not adding "Quick Filters" or "Save Filter Preset" behavior beyond the existing toast placeholder (HTML shows them as static buttons too).
+3. **Filters card**
+   - Wrapper: `rounded-xl border border-border bg-card`.
+   - Header row: `p-4 border-b border-border`, title `text-sm font-semibold text-foreground` with `Filter` icon in `text-primary`, helper `text-xs text-muted-foreground`.
+   - Body: `p-4`, inputs use `bg-background border-border text-foreground` and the shared `Input`/`select` styling with `focus-visible:ring-ring` (drop emerald-500 focus overrides).
+   - Field labels: `text-xs font-medium text-muted-foreground`.
+   - Buttons row uses shared `Button` variants (`variant="default"` for Search, `variant="ghost"` for Clear).
+
+4. **Results table + row chrome**
+   - Card wrapper: `rounded-xl border border-border bg-card overflow-hidden`.
+   - Column header row: `bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground`.
+   - Row hover: `hover:bg-muted/40`.
+   - Severity left-border tints stay (`border-l-4 border-{sev}-500` + faint tint) but body text uses `text-foreground` / `text-muted-foreground`.
+   - Actor cells: name `text-sm font-medium text-foreground`, meta `text-xs text-muted-foreground`.
+   - Pills (severity, TXN, Dispute) keep colored `bg-{c}-500/15 border-{c}-500/30 text-{c}-400` scheme, drop `/20` heavy fills so they match dashboard chip weight.
+   - Pagination footer: `border-t border-border p-3 text-sm text-muted-foreground`; page buttons use `Button variant="outline" size="sm"`.
+
+5. **Drawer**
+   - Panel: `bg-card border-l border-border`.
+   - Section labels: `text-xs uppercase tracking-wider text-muted-foreground`.
+   - Values: `text-sm text-foreground` / `font-mono` where applicable.
+   - JSON block: `bg-muted border border-border text-foreground/90`.
+   - Close and Copy buttons: `Button variant="ghost" size="icon"` / `Button variant="outline" size="sm"`.
+
+6. **Skeletons & loading**
+   - All skeletons switch to `bg-card` heights that match final cards (`h-[110px]` for KPI, `h-[68px]` per row for the table body).
+
+7. **Cleanup**
+   - Remove now-unused imports (`Bookmark`, `CalendarDays`, custom color helpers no longer needed).
+   - Keep every hook, query, filter state, export handler, drawer state, and row-click behaviour exactly as-is.
+
+## Out of scope
+- No changes to `admin-audit-logs` edge function, service layer, filter semantics, exports, or realtime.
+- No changes to what data is shown or how severity is derived — only how it looks.
 
 ## Verification
-
-- Load `/admin/audit-logs` and side-by-side compare against the screenshot: header shell, 4 stat cards, filters card, table row for a critical event (red left border + pulsing CRITICAL pill), a payment event (emerald tile + Info pill), a dispute event (yellow tile + yellow tint).
-- Resize to `lg` breakpoint to confirm the "Last entry" pill hides <lg, "Details/JSON/User/TXN" labels hide <xl exactly like HTML.
-- Scroll the table to confirm the sticky header + sticky thead both stay pinned and the row left-borders remain visible.
+- Compare KPI row against `AdminDashboard` KPI row at the same viewport — card height, padding, icon tile, and typography should match pixel-for-pixel.
+- Toggle light/dark (if enabled) to confirm no hardcoded slate leaks remain.
+- Sticky page header behaviour matches other admin pages (no double header).
+- Filters, table interactions, drawer open/close, and export still work end-to-end.
