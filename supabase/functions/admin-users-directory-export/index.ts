@@ -2,6 +2,7 @@
  * Admin User Directory CSV export.
  */
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { enforceAdminRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,7 +23,8 @@ Deno.serve(async (req) => {
       status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-  try { await requireAdmin(req); }
+  let ctx;
+  try { ctx = await requireAdmin(req); }
   catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;
@@ -30,6 +32,9 @@ Deno.serve(async (req) => {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  const rl = await enforceAdminRateLimit(ctx!, "users_directory_export", 10, corsHeaders);
+  if (rl) return rl;
 
   const url = new URL(req.url);
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";

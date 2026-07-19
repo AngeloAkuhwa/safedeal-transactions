@@ -123,8 +123,17 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Hardcoded test email for Paystack during development
-    userEmail = 'angeloakuhwa@gmail.com';
+    // Use the authenticated buyer's real email (resolved earlier in this
+    // handler). We used to override with a hardcoded test address during
+    // development — that leaked test receipts and misrouted Paystack
+    // notifications, so it is intentionally removed. If `userEmail` is
+    // missing we cannot proceed to Paystack initialization.
+    if (!userEmail) {
+      return jsonErr(
+        "We couldn't find an email on your account. Add one in Profile Settings and try again.",
+        400,
+      );
+    }
 
     // 4. Resolve share token → transaction
     const { data: link, error: linkErr } = await supabase

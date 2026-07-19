@@ -225,6 +225,27 @@ export type Database = {
           },
         ]
       }
+      admin_rate_limits: {
+        Row: {
+          action_key: string
+          admin_user_id: string
+          id: number
+          occurred_at: string
+        }
+        Insert: {
+          action_key: string
+          admin_user_id: string
+          id?: number
+          occurred_at?: string
+        }
+        Update: {
+          action_key?: string
+          admin_user_id?: string
+          id?: number
+          occurred_at?: string
+        }
+        Relationships: []
+      }
       admin_transaction_notes: {
         Row: {
           admin_user_id: string
@@ -4442,6 +4463,14 @@ export type Database = {
           p_transaction_id: string
         }
         Returns: Json
+      }
+      check_admin_rate_limit: {
+        Args: { _action_key: string; _admin_id: string; _max_per_hour: number }
+        Returns: {
+          allowed: boolean
+          cap: number
+          used: number
+        }[]
       }
       complete_payout_atomic: {
         Args: { p_amount: number; p_payout_id: string }

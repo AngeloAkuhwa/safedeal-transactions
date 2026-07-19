@@ -3,6 +3,7 @@
  * Re-runs the same aggregation as admin-flagged-users but without pagination.
  */
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { enforceAdminRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,8 +26,9 @@ Deno.serve(async (req) => {
     });
   }
 
+  let ctx;
   try {
-    await requireAdmin(req);
+    ctx = await requireAdmin(req);
   } catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;
@@ -35,6 +37,9 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  const rl = await enforceAdminRateLimit(ctx!, "flagged_users_export", 10, corsHeaders);
+  if (rl) return rl;
 
   const url = new URL(req.url);
   const overviewUrl = new URL(req.url);
