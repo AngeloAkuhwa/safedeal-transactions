@@ -1,33 +1,42 @@
-## Next action item: Item #15 — Stale TODOs & dispute state transition endpoint
+## Next action item: Item #16 — Lock in server-side role enforcement with integration tests
 
-With Batch D (#10, #11) and Item #12 (scoped realtime) complete, and Item #13 (impersonation) deferred per your instruction until the dedicated screen is ready, the next unfinished item in the audit list is **#15 — Stale TODOs**.
+Everything above #16 is now either shipped or explicitly deferred:
 
-### Current state (verified this turn)
+- **#13 Impersonation** — deferred at your request (new dedicated screen coming).
+- **#14 Design-token sweep** — the audit itself marks this out of scope for the fix pass.
 
-- `src/pages/AdminDisputeDetail.tsx` — the earlier TODO ("replace with a dedicated dispute state transition endpoint") is already gone; the page routes through the `admin-dispute-transition` edge function created during the P0/P1 pass. Nothing left to do here beyond a spot-check.
-- `supabase/functions/admin-dashboard/index.ts:309` — one TODO still ships in production: `// TODO: extend reconciliation rules — duplicate webhook ledger entries, ...`. This is the only remaining stale TODO from the audit.
+That leaves **Item #16** as the only remaining actionable item from the audit.
+
+### Why it matters
+
+`useAdminNav.ts` gates sidebar visibility client-side. The spot check said edge functions re-derive role from the JWT via `has_role`, but nothing prevents a future function from accidentally trusting a client-supplied `role` field. An integration test locks that guarantee in.
 
 ### What to build
 
-1. **Confirm dispute transitions are fully server-gated**
-   - Grep `AdminDisputeDetail.tsx` and any sibling admin dispute components for direct `supabase.from('disputes').update(...)` / `.insert(...)` calls that bypass `admin-dispute-transition`.
-   - If any remain, route them through the edge function so state changes always pass through the audited state machine.
+1. **Shared server-role assertion audit**
+   - Grep every `supabase/functions/admin-*` handler and confirm it goes through `requireAdmin()` (or an equivalent `has_role(auth.uid(), 'admin')` check) before any DB work.
+   - Any function missing the guard gets it added in the same pass.
 
-2. **Resolve the `admin-dashboard` reconciliation TODO**
-   - Decide: implement or delete. Recommend **implement two lightweight rules** since the surrounding block already surfaces reconciliation findings on the dashboard:
-     - Duplicate webhook ledger entries: group `escrow_ledger_entries` by `(transaction_id, source_reference)` where `source = 'paystack_webhook'` and flag `count > 1`.
-     - Orphan payouts: `payouts` in `completed` state with no matching `escrow_ledger_entries` debit row for the same transaction.
-   - Add both as additional entries in the existing `reconciliation.findings[]` array returned by `admin-dashboard`, each shaped like the current findings (`{ code, severity, count, sample_ids }`) so the dashboard renders them without UI changes.
-   - Remove the TODO comment.
+2. **Vitest integration suite: `src/__tests__/admin-auth.contract.test.ts`**
+   Runs against the deployed edge functions using `supabase.functions.invoke`. Covers every admin endpoint enumerated from `supabase/functions/admin-*/`:
+   - **Anonymous call** (no Authorization header) → expect `401`.
+   - **Authenticated non-admin call** (fresh test user, buyer role only) → expect `403`.
+   - **Spoofed role in body/headers** (e.g. `{ role: 'admin' }` in payload, `x-role: admin` header) while authed as buyer → still expect `403`. Proves no function trusts client-supplied role hints.
+   - **Admin call** with a seeded admin user → expect `200` (or method-appropriate success) for read-only endpoints; skip mutation endpoints in this suite.
 
-3. **Sweep for any other `TODO`/`FIXME` inside `supabase/functions/admin-*` and `src/pages/Admin*` / `src/components/admin/`**
-   - Anything stale gets either implemented in this pass or deleted with a one-line justification.
+3. **Test harness**
+   - `src/__tests__/helpers/adminAuth.ts` with `signInAsBuyer()` and `signInAsAdmin()` using dedicated test accounts (emails + passwords sourced from `VITE_TEST_ADMIN_EMAIL`, `VITE_TEST_ADMIN_PASSWORD`, `VITE_TEST_BUYER_EMAIL`, `VITE_TEST_BUYER_PASSWORD` env vars so no credentials are committed).
+   - Endpoint list generated at test time by reading `supabase/functions/` directory names matching `admin-*`, so newly added admin functions are automatically covered — failing the suite until they have the guard.
+
+4. **CI wiring note**
+   - Add an `npm run test:admin-auth` script and document that it requires the four env vars above. Do not add it to the default `test` script (needs a live backend), but leave it available for pre-release runs.
+
+### Out of scope for this item
+
+- Testing mutation semantics (that's a separate suite).
+- Rate-limit / 2FA behavioral tests (covered by #3 and #4 already shipped; not part of #16).
+- Any UI or design-token changes.
 
 ### After this item
 
-Remaining audit items after #15:
-- **#13 Impersonation** — deferred, waiting on the new impersonation screen.
-- **#14 Design-token sweep** — P3, out of scope for this fix pass per the original audit.
-- **#16 Integration tests** — P3 backlog.
-
-So once #15 lands, the P0 + P1 + P2 scope you approved is fully closed and only the explicitly-deferred / explicitly-backlog items remain.
+The full audit — P0 through P3 minus the explicitly deferred #13 and the explicitly out-of-scope #14 — is 100% closed.
