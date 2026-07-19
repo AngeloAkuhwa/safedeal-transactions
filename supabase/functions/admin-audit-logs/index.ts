@@ -27,15 +27,25 @@ function severityFor(action: string): Severity {
   return "low";
 }
 
-// Regex mirrors of severityFor buckets — used to push severity filtering into
-// Postgres via PostgREST `imatch` so paging stays accurate.
-const SEVERITY_REGEX: Record<Exclude<Severity, "low">, string> = {
-  critical: "suspend|freeze|block|impersonat|reveal|delete|force|purge",
-  high: "role|setting|dispute_resolve|refund|override|policy|escrow_alert",
-  medium: "retry|broadcast|notification|review|approve|reject",
-  info: "view|export|list|search",
-};
+// action_type is a Postgres enum, so severity filtering can't use `ilike` or
+// `imatch`. We resolve enum values once per request and filter with `.in()`.
 const UUID_RE = /^[0-9a-f-]{36}$/i;
+let ENUM_CACHE: string[] | null = null;
+async function listActionTypes(admin: any): Promise<string[]> {
+  if (ENUM_CACHE) return ENUM_CACHE;
+  const { data } = await admin.rpc("audit_action_types_list").maybeSingle();
+  if (Array.isArray(data)) { ENUM_CACHE = data as string[]; return ENUM_CACHE; }
+  // Fallback: sample the last 90d of distinct values.
+  const { data: rows } = await admin.from("admin_actions")
+    .select("action_type").gte("created_at", new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString()).limit(5000);
+  const set = new Set<string>();
+  for (const r of rows ?? []) if (r.action_type) set.add(r.action_type as string);
+  ENUM_CACHE = Array.from(set);
+  return ENUM_CACHE;
+}
+function actionsForSeverity(all: string[], sev: Severity): string[] {
+  return all.filter((a) => severityFor(a) === sev);
+}
 
 function humanAction(action: string): string {
   return (action || "")
@@ -154,16 +164,14 @@ Deno.serve(async (req) => {
   if (from) query = query.gte("created_at", from);
   if (to) query = query.lte("created_at", to);
 
-  // Severity — apply via PostgREST regex operator (`imatch`) so pagination is
-  // accurate. For "low" we exclude every other bucket's regex.
+  // Severity — resolve to enum member list and use `.in()`.
   if (severity && severity !== ("all" as Severity)) {
-    if (severity === "low") {
-      for (const rx of Object.values(SEVERITY_REGEX)) {
-        query = query.not("action_type", "imatch", rx);
-      }
-    } else if (SEVERITY_REGEX[severity as Exclude<Severity, "low">]) {
-      query = query.filter("action_type", "imatch", SEVERITY_REGEX[severity as Exclude<Severity, "low">]);
+    const all = await listActionTypes(admin);
+    const wanted = actionsForSeverity(all, severity);
+    if (wanted.length === 0) {
+      return json(200, { rows: [], total: 0, page, page_size: pageSize });
     }
+    query = query.in("action_type", wanted);
   }
 
   // Broadened search: UUIDs match id columns; free text matches action_type,
@@ -175,17 +183,17 @@ Deno.serve(async (req) => {
       );
     } else {
       const like = `%${q.replace(/[,()]/g, " ")}%`;
-      // Resolve extra IDs to widen the OR set.
-      const [{ data: matchedProfiles }, { data: matchedTx }] = await Promise.all([
+      const [{ data: matchedProfiles }, { data: matchedTx }, allTypes] = await Promise.all([
         admin.from("profiles").select("id").or(`full_name.ilike.${like},email.ilike.${like}`).limit(200),
         admin.from("transactions").select("id").ilike("transaction_code", like).limit(200),
+        listActionTypes(admin),
       ]);
       const targetIds = (matchedProfiles ?? []).map((p) => p.id).filter(Boolean);
       const txIds = (matchedTx ?? []).map((t) => t.id).filter(Boolean);
-      const orParts: string[] = [
-        `action_type.ilike.${like}`,
-        `action_notes.ilike.${like}`,
-      ];
+      const qLower = q.toLowerCase();
+      const matchedTypes = allTypes.filter((t) => t.toLowerCase().includes(qLower));
+      const orParts: string[] = [`action_notes.ilike.${like}`];
+      if (matchedTypes.length) orParts.push(`action_type.in.(${matchedTypes.join(",")})`);
       if (targetIds.length) orParts.push(`target_user_id.in.(${targetIds.join(",")})`);
       if (txIds.length) orParts.push(`transaction_id.in.(${txIds.join(",")})`);
       query = query.or(orParts.join(","));
