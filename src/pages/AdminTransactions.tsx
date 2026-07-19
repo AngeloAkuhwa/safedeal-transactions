@@ -267,7 +267,7 @@ const REALTIME_SUBS: Array<{ table: string; filter?: string }> = [
   { table: "transactions", filter: "status=in.(disputed,cancelled,timed_out,refunded)" },
   { table: "disputes", filter: "status=in.(open,escalated,under_review)" },
   { table: "release_review_queue" },
-  { table: "payouts", filter: "status=in.(failed,on_hold)" },
+  { table: "payouts", filter: "status=in.(failed,blocked,reversed)" },
 ];
 
 function relativeMinutes(from: Date | null): string {
