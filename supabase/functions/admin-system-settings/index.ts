@@ -102,26 +102,54 @@ Deno.serve(async (req) => {
         });
       }
 
-      if (rows.length) {
-        const { error: upErr } = await adminClient
+      // Manual upsert: the unique index uses COALESCE(vendor_id, '000...'),
+      // which PostgREST/ON CONFLICT can't target by column list. Do a
+      // scoped select then update-or-insert per row.
+      for (const row of rows) {
+        let existingQuery = adminClient
           .from("system_settings")
-          .upsert(rows, { onConflict: "setting_key,scope,vendor_id" });
-        if (upErr) return json(500, { error: "save_failed", detail: upErr.message });
+          .select("id")
+          .eq("setting_key", row.setting_key)
+          .eq("scope", row.scope);
+        existingQuery = row.vendor_id
+          ? existingQuery.eq("vendor_id", row.vendor_id)
+          : existingQuery.is("vendor_id", null);
+        const { data: existing, error: exErr } = await existingQuery.maybeSingle();
+        if (exErr) return json(500, { error: "save_failed", detail: exErr.message });
+        if (existing?.id) {
+          const { error: updErr } = await adminClient
+            .from("system_settings")
+            .update({ setting_value: row.setting_value, updated_by: row.updated_by, updated_at: row.updated_at })
+            .eq("id", existing.id);
+          if (updErr) return json(500, { error: "save_failed", detail: updErr.message });
+        } else {
+          const { error: insErr } = await adminClient.from("system_settings").insert(row);
+          if (insErr) return json(500, { error: "save_failed", detail: insErr.message });
+        }
       }
 
       // Timeouts
       for (const t of timeouts) {
-        const { error: tUpErr } = await adminClient
+        const payload = {
+          rule_type: t.rule_type,
+          hours_until_trigger: t.hours,
+          is_active: t.is_active ?? true,
+          scope,
+          vendor_id: vendorId,
+          updated_by: userId,
+          updated_at: new Date().toISOString(),
+        };
+        let q = adminClient
           .from("timeout_rules")
-          .upsert({
-            rule_type: t.rule_type,
-            hours_until_trigger: t.hours,
-            is_active: t.is_active ?? true,
-            scope,
-            vendor_id: vendorId,
-            updated_by: userId,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: "rule_type,scope,vendor_id" });
+          .select("id")
+          .eq("rule_type", t.rule_type)
+          .eq("scope", scope);
+        q = vendorId ? q.eq("vendor_id", vendorId) : q.is("vendor_id", null);
+        const { data: existing, error: exErr } = await q.maybeSingle();
+        if (exErr) return json(500, { error: "timeout_save_failed", detail: exErr.message });
+        const { error: tUpErr } = existing?.id
+          ? await adminClient.from("timeout_rules").update(payload).eq("id", existing.id)
+          : await adminClient.from("timeout_rules").insert(payload);
         if (tUpErr) return json(500, { error: "timeout_save_failed", detail: tUpErr.message });
       }
 
