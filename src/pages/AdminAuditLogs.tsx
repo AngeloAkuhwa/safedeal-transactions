@@ -420,18 +420,24 @@ export default function AdminAuditLogs() {
   }, [facets, rows]);
 
   return (
-    <AdminLayout title="Audit Logs" subtitle="Immutable compliance and forensic audit trail">
-      <Toolbar
-        lastEntryAt={stats?.latest_entry_at ?? null}
-        onExport={handleExport}
-        onCompliance={handleCompliance}
-        exporting={exporting}
-        complianceLoading={complianceLoading}
-        onRefresh={handleRefresh}
-        refreshing={refreshing}
-        live={live}
-      />
-
+    <AdminLayout
+      title="Audit Logs"
+      subtitle="Immutable compliance and forensic audit trail"
+      hideDefaultHeaders
+      headerSlot={({ onOpenMenu }) => (
+        <AuditHeader
+          lastEntryAt={stats?.latest_entry_at ?? null}
+          onExport={handleExport}
+          onCompliance={handleCompliance}
+          exporting={exporting}
+          complianceLoading={complianceLoading}
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
+          live={live}
+          onOpenMenu={onOpenMenu}
+        />
+      )}
+    >
       {/* Stats */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {statsQ.isLoading || !stats ? (
