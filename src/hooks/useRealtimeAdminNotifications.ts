@@ -35,7 +35,7 @@ export function useRealtimeAdminNotifications() {
       },
       {
         table: "notification_deliveries",
-        filter: "status=in.(failed,bounced)",
+        filter: "delivery_status=eq.failed",
         onEvent: kick,
       },
     ];
