@@ -100,6 +100,86 @@ export interface SettingsAuditRow {
   created_at: string;
   admin_name?: string | null;
   target_name?: string | null;
+  // Parsed once in the service so the UI doesn't repeat JSON parsing per row.
+  reason: string | null;
+  changed_keys: string[];
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+  metadata: Record<string, unknown> | null;
+  ip: string | null;
+}
+
+// Flatten one nesting level so entries like { settings: {...}, timeouts: {...} }
+// surface each real key on its own row.
+function flattenOneLevel(obj: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj ?? {})) {
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      for (const [kk, vv] of Object.entries(v as Record<string, unknown>)) {
+        out[`${k}.${kk}`] = vv;
+      }
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
+function parseAuditNotes(notes: string | null): {
+  reason: string | null;
+  changed_keys: string[];
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+  metadata: Record<string, unknown> | null;
+  ip: string | null;
+} {
+  const empty = { reason: null, changed_keys: [], before: {}, after: {}, metadata: null, ip: null };
+  if (!notes) return empty;
+  let parsed: any;
+  try { parsed = JSON.parse(notes); } catch { return { ...empty, reason: notes }; }
+  if (!parsed || typeof parsed !== "object") return empty;
+
+  // Unified payload (logAdminAction)
+  if ("before" in parsed || "after" in parsed || "changed_keys" in parsed) {
+    const before = flattenOneLevel((parsed.before ?? {}) as Record<string, unknown>);
+    const after = flattenOneLevel((parsed.after ?? {}) as Record<string, unknown>);
+    const keys = Array.isArray(parsed.changed_keys) && parsed.changed_keys.length
+      ? // Re-derive after flattening so nested key names align with before/after.
+        Array.from(new Set([...Object.keys(before), ...Object.keys(after)])).filter(
+          (k) => JSON.stringify(before[k]) !== JSON.stringify(after[k]),
+        )
+      : Array.from(new Set([...Object.keys(before), ...Object.keys(after)]));
+    return {
+      reason: parsed.reason ?? null,
+      changed_keys: keys,
+      before,
+      after,
+      metadata: (parsed.metadata as Record<string, unknown>) ?? null,
+      ip: parsed.ip ?? null,
+    };
+  }
+
+  // Legacy payload: { scope, updates, timeouts, reason, ...}
+  const updates = (parsed.updates && typeof parsed.updates === "object") ? parsed.updates as Record<string, unknown> : {};
+  const timeouts = Array.isArray(parsed.timeouts) ? parsed.timeouts : [];
+  const after: Record<string, unknown> = { ...updates };
+  for (const t of timeouts) {
+    if (t && typeof t === "object" && "rule_type" in t) {
+      after[`timeout.${(t as any).rule_type}`] = { hours: (t as any).hours, is_active: (t as any).is_active ?? true };
+    }
+  }
+  return {
+    reason: parsed.reason ?? null,
+    changed_keys: Object.keys(after),
+    before: {},
+    after,
+    metadata: {
+      scope: parsed.scope ?? null,
+      vendor_id: parsed.vendor_id ?? null,
+      apply_to_all_vendors: parsed.apply_to_all_vendors ?? false,
+    },
+    ip: null,
+  };
 }
 
 /**
@@ -117,7 +197,14 @@ export async function fetchSettingsAudit(limit = 20): Promise<SettingsAuditRow[]
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
-  const rows = (data ?? []) as SettingsAuditRow[];
+  const rawRows = (data ?? []) as Array<Omit<SettingsAuditRow,
+    "reason" | "changed_keys" | "before" | "after" | "metadata" | "ip" | "admin_name" | "target_name">>;
+  const rows: SettingsAuditRow[] = rawRows.map((r) => ({
+    ...r,
+    admin_name: null,
+    target_name: null,
+    ...parseAuditNotes(r.action_notes),
+  }));
   const ids = Array.from(new Set(rows.flatMap((r) => [r.admin_user_id, r.target_user_id].filter(Boolean) as string[])));
   if (ids.length === 0) return rows;
   const { data: profiles } = await supabase

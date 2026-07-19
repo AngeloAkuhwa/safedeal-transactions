@@ -19,6 +19,40 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
+/* ---- audit value formatting ---- */
+function formatSettingValue(v: unknown): string {
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  if (typeof v === "number" || typeof v === "string") return String(v);
+  try {
+    const s = JSON.stringify(v);
+    return s.length > 80 ? `${s.slice(0, 77)}…` : s;
+  } catch { return String(v); }
+}
+
+function auditRowsToCsv(rows: SettingsAuditRow[]): string {
+  const header = ["created_at","admin","action_type","target","changed_keys","before","after","reason","ip"];
+  const esc = (s: unknown) => {
+    const str = s === null || s === undefined ? "" : (typeof s === "string" ? s : JSON.stringify(s));
+    return `"${str.replace(/"/g, '""')}"`;
+  };
+  const lines = [header.join(",")];
+  for (const r of rows) {
+    lines.push([
+      esc(r.created_at),
+      esc(r.admin_name ?? r.admin_user_id),
+      esc(r.action_type),
+      esc(r.target_name ?? r.target_user_id ?? ""),
+      esc(r.changed_keys.join("|")),
+      esc(r.before),
+      esc(r.after),
+      esc(r.reason ?? ""),
+      esc(r.ip ?? ""),
+    ].join(","));
+  }
+  return lines.join("\n");
+}
+
 /* ------------------------------ primitives ------------------------------ */
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
@@ -741,7 +775,17 @@ export default function AdminSettings() {
                   <p className="text-xs text-muted-foreground mt-1 ml-10">Track all system configuration modifications</p>
                 </div>
                 <button
-                  onClick={() => toast.info("Full audit log export coming with wiring pass")}
+                  onClick={() => {
+                    if (!auditRows.length) { toast.info("No audit rows to export yet"); return; }
+                    const csv = auditRowsToCsv(auditRows);
+                    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `settings-audit-${format(new Date(), "yyyyMMdd-HHmm")}.csv`;
+                    document.body.appendChild(a); a.click(); a.remove();
+                    URL.revokeObjectURL(url);
+                  }}
                   className="h-9 px-3 bg-muted/60 hover:bg-muted text-foreground rounded-lg transition-colors inline-flex items-center gap-1.5 text-xs font-medium border border-border"
                 >
                   <Download className="h-3.5 w-3.5" />
@@ -757,55 +801,7 @@ export default function AdminSettings() {
               ) : (
                 <div className="space-y-2">
                   {auditRows.map((row) => {
-                    // action_notes is JSON stringified by the backend; parse if possible.
-                    let parsed: any = null;
-                    try { parsed = JSON.parse(row.action_notes ?? ""); } catch { /* raw text */ }
-                    const scopeLabel: "platform" | "vendor" = parsed?.scope === "vendor" ? "vendor" : "platform";
-                    const keys = parsed?.updates ? Object.keys(parsed.updates) : [];
-                    const timeoutCount = Array.isArray(parsed?.timeouts) ? parsed.timeouts.length : 0;
-                    const reason: string | undefined = parsed?.reason;
-                    const summary =
-                      keys.length || timeoutCount
-                        ? `Updated ${keys.length ? `${keys.length} setting${keys.length === 1 ? "" : "s"}` : ""}${keys.length && timeoutCount ? " · " : ""}${timeoutCount ? `${timeoutCount} timeout${timeoutCount === 1 ? "" : "s"}` : ""}`
-                        : row.action_notes ?? "Settings updated";
-                    const isVendor = scopeLabel === "vendor";
-                    return (
-                      <div key={row.id} className="p-2.5 bg-muted/30 border border-border rounded-lg flex items-start gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                          <HistoryIcon className="h-3.5 w-3.5 text-blue-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-medium text-foreground truncate">{summary}</p>
-                            {isVendor ? (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Vendor</span>
-                            ) : (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">Platform</span>
-                            )}
-                            {parsed?.apply_to_all_vendors && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300">Applied to all</span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
-                            {row.admin_name ?? "Admin"}
-                            {row.target_name ? <> · target <span className="text-foreground/80">{row.target_name}</span></> : null}
-                            {" · "}
-                            {formatDistanceToNow(new Date(row.created_at), { addSuffix: true })}
-                          </p>
-                          {reason && (
-                            <p className="text-[11px] text-muted-foreground mt-0.5 italic truncate">"{reason}"</p>
-                          )}
-                          {keys.length > 0 && (
-                            <div className="mt-1 flex flex-wrap gap-1">
-                              {keys.slice(0, 4).map((k) => (
-                                <span key={k} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted/60 border border-border text-muted-foreground truncate max-w-[180px]">{k}</span>
-                              ))}
-                              {keys.length > 4 && <span className="text-[10px] text-muted-foreground">+{keys.length - 4}</span>}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
+                    return <AuditDiffRow key={row.id} row={row} />;
                   })}
                 </div>
               )}
@@ -1017,6 +1013,87 @@ function AuditRow({
             <ArrowRight className="h-3 w-3" />
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---- Unified diff row for admin_actions audit ---- */
+function AuditDiffRow({ row }: { row: SettingsAuditRow }) {
+  const [expanded, setExpanded] = useState(false);
+  const meta = row.metadata ?? {};
+  const scope = (meta as any).scope === "vendor" || row.target_user_id ? "vendor" : "platform";
+  const applyAll = Boolean((meta as any).apply_to_all_vendors);
+  const keys = row.changed_keys;
+  const isToggle = row.action_type === "toggle_auto_release";
+  const summary = keys.length
+    ? (isToggle ? "Auto-release toggled" : `Updated ${keys.length} setting${keys.length === 1 ? "" : "s"}`)
+    : (isToggle ? "Auto-release event" : "Settings updated");
+  const shownKeys = expanded ? keys : keys.slice(0, 6);
+  const overflow = keys.length - shownKeys.length;
+
+  return (
+    <div className="p-3 bg-muted/30 border border-border rounded-lg flex items-start gap-2.5">
+      <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+        <HistoryIcon className="h-3.5 w-3.5 text-blue-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-sm font-medium text-foreground truncate">{summary}</p>
+          {scope === "vendor" ? (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">Vendor</span>
+          ) : (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">Platform</span>
+          )}
+          {applyAll && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300">Applied to all</span>
+          )}
+          {isToggle && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">Auto-release</span>
+          )}
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
+          {row.admin_name ?? "Admin"}
+          {row.target_name ? <> · target <span className="text-foreground/80">{row.target_name}</span></> : null}
+          {" · "}
+          {formatDistanceToNow(new Date(row.created_at), { addSuffix: true })}
+          {row.ip ? <> · <span className="font-mono">{row.ip}</span></> : null}
+        </p>
+        {row.reason && (
+          <p className="text-[11px] text-muted-foreground mt-0.5 italic">"{row.reason}"</p>
+        )}
+        {keys.length > 0 && (
+          <div className="mt-2 border border-border rounded-md overflow-hidden">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 px-2 py-1 border-b border-border">
+              <span>Key</span><span>Previous</span><span>New</span>
+            </div>
+            {shownKeys.map((k) => (
+              <div key={k} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] text-[11px] px-2 py-1 border-b border-border last:border-b-0">
+                <span className="font-mono text-foreground/90 truncate">{k}</span>
+                <span className="font-mono text-muted-foreground truncate">{formatSettingValue(row.before[k])}</span>
+                <span className="font-mono text-foreground font-semibold truncate">{formatSettingValue(row.after[k])}</span>
+              </div>
+            ))}
+            {overflow > 0 && (
+              <button
+                type="button"
+                onClick={() => setExpanded(true)}
+                className="w-full text-[11px] text-blue-400 hover:text-blue-300 px-2 py-1 bg-muted/40 text-left"
+              >
+                +{overflow} more
+              </button>
+            )}
+            {expanded && keys.length > 6 && (
+              <button
+                type="button"
+                onClick={() => setExpanded(false)}
+                className="w-full text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 bg-muted/40 text-left"
+              >
+                Show less
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
