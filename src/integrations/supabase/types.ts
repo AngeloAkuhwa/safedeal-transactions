@@ -4420,6 +4420,7 @@ export type Database = {
           release_approved_by: string | null
           release_completed_at: string | null
           release_review_reason: string | null
+          search_tsv: unknown
           seller_confirmed_at: string | null
           seller_id: string
           share_link_expires_at: string | null
@@ -4456,6 +4457,7 @@ export type Database = {
           release_approved_by?: string | null
           release_completed_at?: string | null
           release_review_reason?: string | null
+          search_tsv?: unknown
           seller_confirmed_at?: string | null
           seller_id: string
           share_link_expires_at?: string | null
@@ -4492,6 +4494,7 @@ export type Database = {
           release_approved_by?: string | null
           release_completed_at?: string | null
           release_review_reason?: string | null
+          search_tsv?: unknown
           seller_confirmed_at?: string | null
           seller_id?: string
           share_link_expires_at?: string | null
@@ -5145,6 +5148,10 @@ export type Database = {
         Returns: Json
       }
       complete_refund_atomic: { Args: { p_refund_id: string }; Returns: Json }
+      compute_transaction_search_tsv: {
+        Args: { _tx_id: string }
+        Returns: unknown
+      }
       compute_verification_level: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["verification_level_type"]
