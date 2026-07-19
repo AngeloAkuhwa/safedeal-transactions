@@ -1,46 +1,39 @@
-## Next batch — Flagged Users paginated SQL RPC
+## Next action: Escrow Overview SQL pagination (Item #6, Batch C)
 
-With the Users Directory now on SQL-backed pagination, the next item in the queue is the Flagged Users engine (`_shared/flagged-users-engine.ts` + `admin-flagged-users`), which today still materializes the candidate set in JS and slices it in memory. This is item #6 from the audit.
+### Why this is next
+- Users Directory ✅ SQL-backed via `admin_users_directory_page` RPC
+- Flagged Users ✅ SQL-backed via `admin_flagged_users_mv` + RPCs
+- **Escrow Overview** ❌ still builds full candidate array in JS, then `.slice()` — last remaining OOM risk in the P1 list-pagination batch
 
-### Goal
-Replace JS-side filter/sort/slice with a SQL view + RPC so the endpoint returns page N without loading the full flagged population.
+After this, the P1 scalability workstream is complete except for tsvector search (#7, already partially in place for flagged users) and async exports (#8, already shipped for Users/Flagged/Transactions).
 
-### Scope (this batch only)
-- Flagged Users list + summary
-- Keep existing response shape so `AdminFlaggedUsers.tsx` and the async export builder keep working unchanged
-- Do NOT touch Escrow Overview, Audit helper, tsvector search — those are the following batches
+### Scope
+Refactor `supabase/functions/admin-escrow-overview/index.ts` to be SQL-first, mirroring the pattern used for flagged users.
 
 ### Deliverables
 
-1. **DB migration**
-   - `admin_flagged_users_view` (security_invoker = on) exposing per-user flag signals:
-     - `user_id`, `full_name`, `email`, `role`, `created_at`
-     - `identity_status`, `identity_submitted_at`
-     - `open_disputes_count`, `total_disputes_count`
-     - `chargebacks_count`, `refunds_count`
-     - `failed_payments_count_30d`
-     - `tx_count_30d`, `tx_volume_30d`
-     - `last_activity_at`
-     - `flag_score` (weighted sum matching current JS formula)
-     - `flag_reasons` (text[]) — same tokens the UI currently renders
-   - `admin_flagged_users_page(p_search, p_severity, p_reason, p_sort, p_limit, p_offset)` RPC returning rows + `total_count`
-   - `admin_flagged_users_summary()` RPC returning counts by severity bucket (matches current summary cards)
-   - GRANT EXECUTE to `authenticated` (function itself re-checks `has_role(admin)` via caller context on the edge side)
+**1. Database migration**
+- Create view `admin_escrow_overview_view` combining `transactions` + `escrow_states` + `payments` + `disputes` with pre-computed:
+  - `escrow_status` (funded / released / refunded / held / disputed)
+  - `held_amount`, `released_amount`, `refunded_amount`
+  - `days_in_escrow`, `auto_release_at`
+  - `search_haystack` (tsvector: tx code, buyer/seller name+email)
+- Create RPC `admin_escrow_overview_page(p_status, p_search, p_sort, p_from, p_to)` — returns paginated rows + `total_count`
+- Create RPC `admin_escrow_overview_summary(p_status, p_search)` — returns KPI aggregates (total held, total released, avg days in escrow, at-risk count) computed in SQL, not JS
+- Add GIN index on `search_haystack`, btree indexes on filter/sort columns
+- Grant `service_role` execute; enforce admin check inside RPC via `has_role(auth.uid(), 'admin')` with service-role bypass
 
-2. **Edge function refactor**
-   - New `supabase/functions/_shared/flagged-users-sql.ts` with `getFlaggedPage()` and `getFlaggedSummary()` calling the RPCs
-   - `admin-flagged-users/index.ts` switches to the new helpers; response JSON shape preserved
-   - `flagged-users-engine.ts` kept only for the async export path until the next batch converts it too (avoids breaking exports mid-flight)
+**2. Edge function refactor**
+- New shared helper `supabase/functions/_shared/escrow-overview-sql.ts` with `getEscrowPage()` and `getEscrowSummary()`
+- Rewrite `admin-escrow-overview/index.ts` to call the helpers — remove the in-memory `candidate` array and `.slice()`
+- Preserve the exact response JSON shape so `AdminEscrow.tsx` and the existing async export worker keep working unchanged
 
-3. **Verification**
-   - `supabase--linter` clean
-   - `curl` the deployed function for page 1 + a search term + a severity filter and confirm totals + row shape
-   - Load `/admin/flagged-users` in preview and confirm list, filters, pagination, and summary cards render identically
+**3. Verification**
+- `curl` the endpoint with several filter/sort/search combinations, confirm 200s and correct totals
+- Load `/admin/escrow` in the preview, verify list, KPIs, filters, and pagination all render
+- Confirm the async CSV export still works (it reads from the same source)
 
 ### Out of scope for this batch
-- Escrow Overview SQL pagination (next batch)
-- Unified `logAdminAction` helper (batch after)
-- `transactions.search_tsv` (already handled in earlier batch)
-- Any UI changes beyond what's required to keep the page working
-
-Approve and I'll ship the migration + edge function refactor in build mode.
+- UI changes to `AdminEscrow.tsx` (response shape unchanged)
+- Async export refactor (already done)
+- Remaining P1 items — tsvector on `transactions` (#7 for transactions monitor) and the unified `logAdminAction` helper (#10) come in the next batches per the "Next actions" order.
