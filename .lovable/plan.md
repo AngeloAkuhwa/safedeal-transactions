@@ -1,23 +1,46 @@
-## Diagnosis
+## Next batch — Flagged Users paginated SQL RPC
 
-Edge function logs show:
-```
-code: 42702, message: 'column reference "full_name" is ambiguous'
-```
+With the Users Directory now on SQL-backed pagination, the next item in the queue is the Flagged Users engine (`_shared/flagged-users-engine.ts` + `admin-flagged-users`), which today still materializes the candidate set in JS and slices it in memory. This is item #6 from the audit.
 
-Cause: `admin_users_directory_page` RPC declares `RETURNS TABLE(... full_name text ...)`. Those OUT columns share names with the view columns (`full_name`, `email`, `phone`, `roles`, `derived_status`, `verification_level`, etc.). Inside the `filtered` CTE's `WHERE` clause I used unqualified `full_name ILIKE ...`, which Postgres can't disambiguate between the OUT-parameter and the base column, so every call throws 42702 and the UI shows "Failed to load users / Failed to fetch".
+### Goal
+Replace JS-side filter/sort/slice with a SQL view + RPC so the endpoint returns page N without loading the full flagged population.
 
-## Fix
+### Scope (this batch only)
+- Flagged Users list + summary
+- Keep existing response shape so `AdminFlaggedUsers.tsx` and the async export builder keep working unchanged
+- Do NOT touch Escrow Overview, Audit helper, tsvector search — those are the following batches
 
-Rewrite `public.admin_users_directory_page` so every column reference inside the CTEs is qualified with its table alias:
+### Deliverables
 
-- `filtered` CTE: `base.full_name`, `base.email`, `base.phone`, `base.roles`, `base.default_role`, `base.derived_status`, `base.verification_level`.
-- `ORDER BY` in the final SELECT: use `c.full_name`, `c.disp_active`, `c.joined_at`, `c.last_active_at`, `c.tx_volume`, `c.tx_count` (already aliased — keep as-is).
+1. **DB migration**
+   - `admin_flagged_users_view` (security_invoker = on) exposing per-user flag signals:
+     - `user_id`, `full_name`, `email`, `role`, `created_at`
+     - `identity_status`, `identity_submitted_at`
+     - `open_disputes_count`, `total_disputes_count`
+     - `chargebacks_count`, `refunds_count`
+     - `failed_payments_count_30d`
+     - `tx_count_30d`, `tx_volume_30d`
+     - `last_activity_at`
+     - `flag_score` (weighted sum matching current JS formula)
+     - `flag_reasons` (text[]) — same tokens the UI currently renders
+   - `admin_flagged_users_page(p_search, p_severity, p_reason, p_sort, p_limit, p_offset)` RPC returning rows + `total_count`
+   - `admin_flagged_users_summary()` RPC returning counts by severity bucket (matches current summary cards)
+   - GRANT EXECUTE to `authenticated` (function itself re-checks `has_role(admin)` via caller context on the edge side)
 
-No signature change, no view change, no client change. Wire shape stays identical.
+2. **Edge function refactor**
+   - New `supabase/functions/_shared/flagged-users-sql.ts` with `getFlaggedPage()` and `getFlaggedSummary()` calling the RPCs
+   - `admin-flagged-users/index.ts` switches to the new helpers; response JSON shape preserved
+   - `flagged-users-engine.ts` kept only for the async export path until the next batch converts it too (avoids breaking exports mid-flight)
 
-## Verification
+3. **Verification**
+   - `supabase--linter` clean
+   - `curl` the deployed function for page 1 + a search term + a severity filter and confirm totals + row shape
+   - Load `/admin/flagged-users` in preview and confirm list, filters, pagination, and summary cards render identically
 
-1. `supabase--read_query` → `SELECT user_id, full_name, total_count FROM public.admin_users_directory_page(_search := 'a', _from := 0, _to := 4);` (via service role — the RPC currently returns permission_denied under anon; re-check via edge function instead).
-2. `supabase--edge_function_logs` for `admin-users-directory` → confirm no more 42702.
-3. User reloads `/admin/users` and sees rows.
+### Out of scope for this batch
+- Escrow Overview SQL pagination (next batch)
+- Unified `logAdminAction` helper (batch after)
+- `transactions.search_tsv` (already handled in earlier batch)
+- Any UI changes beyond what's required to keep the page working
+
+Approve and I'll ship the migration + edge function refactor in build mode.
