@@ -128,6 +128,41 @@ export interface DisputeRequestMoreInfoPayload {
 export const disputeRequestMoreInfo = (transactionId: string, payload: DisputeRequestMoreInfoPayload) =>
   invokeAction("dispute_request_more_info", transactionId, payload as unknown as Record<string, unknown>);
 
+// Dedicated dispute state transition — calls the `admin-dispute-transition`
+// edge function so the state machine, history row, and audit diff are handled
+// server-side. Used by AdminDisputeDetail's Move-to-Under-Review action.
+export async function transitionDisputeStatus(
+  disputeId: string,
+  targetStatus: "under_review" | "seller_response_pending" | "escalated" | "open",
+  reason: string,
+  notifyParties = false,
+): Promise<{ ok: true; status: string }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const session = sessionData?.session;
+  if (!session) {
+    if (typeof window !== "undefined") window.location.replace("/auth");
+    return new Promise(() => {});
+  }
+  const { data, error } = await supabase.functions.invoke("admin-dispute-transition", {
+    body: { dispute_id: disputeId, target_status: targetStatus, reason, notify_parties: notifyParties },
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  if (error) {
+    const ctx = (error as unknown as { context?: Response }).context;
+    if (ctx?.status === 403) throw new AdminAccessRequiredError();
+    try {
+      const body = ctx && typeof (ctx as any).clone === "function"
+        ? await (ctx as Response).clone().json()
+        : null;
+      throw new Error(body?.error ?? error.message ?? "Transition failed");
+    } catch (e) {
+      if (e instanceof AdminAccessRequiredError) throw e;
+      throw e instanceof Error ? e : new Error("Transition failed");
+    }
+  }
+  return data as { ok: true; status: string };
+}
+
 export interface ExportTransactionOptions {
   include_summary: boolean;
   include_agreement: boolean;
