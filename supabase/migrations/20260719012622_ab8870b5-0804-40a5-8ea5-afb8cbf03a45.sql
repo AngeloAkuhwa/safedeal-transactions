@@ -1,0 +1,1 @@
+ALTER VIEW public.admin_user_directory_view SET (security_invoker = on);
