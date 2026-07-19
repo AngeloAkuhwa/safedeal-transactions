@@ -1,51 +1,51 @@
-## Next action: Batch D — Audit integrity (Items #10 & #11)
+## Next action item
 
-Item #7 (tsvector search) shipped last turn. The last remaining P1/P2 correctness gap in the approved order is the patchy admin audit trail. The shared helper `supabase/functions/_shared/audit.ts::logAdminAction` already exists and already computes a JSONB diff (`changed_keys` / `before` / `after`) — but only 2 of ~14 admin mutation functions actually call it. The rest still hand-roll `admin_actions` and/or `audit_logs` inserts with inconsistent field shapes, no diff, and (in a few cases) an audit row on only one of the two tables.
+**#11 — Render before/after diff in the AdminSettings Audit History (finish Batch D).**
 
-This batch adopts the helper everywhere and surfaces the diff in the Settings UI.
+The unified `logAdminAction` helper now stores a JSON payload in `admin_actions.action_notes` with the shape:
 
-### What to build
+```
+{ reason, target_type, target_id, changed_keys[], before{}, after{}, metadata{}, ip, user_agent }
+```
 
-1. **Refactor every admin mutation edge function to `logAdminAction`.** Replace hand-rolled inserts in:
-   - `admin-export-transaction-data`
-   - `admin-notifications-action` (retry + broadcast-create)
-   - `admin-user-detail-export`
-   - `admin-escrow-alert-settings`
-   - `admin-flagged-users-bulk`
-   - `admin-vendor-status`
-   - `admin-review-identity` (3 sites; approve/reject/note)
-   - `admin-flagged-users-action`
-   - `admin-transaction-actions` (all 10 action sites — freeze/unfreeze/refund/release/etc.)
-   - `admin-reveal-user-field`
-   - `admin-system-settings` (keep the dedicated `toggle_auto_release` event but route it through `logAdminAction` so the diff column is populated)
-   - `_shared/security-resolver.ts` insert
-   
-   Every call passes `actorId`, `action`, `targetType`/`targetId`, `before`/`after` where applicable, `reason` from the request body, and `mirrorToAuditLogs: true` for security-sensitive events (identity reveal, freeze/unfreeze funds, dispute resolution, refund, impersonation stubs, role change).
+The Audit History tab in `src/pages/AdminSettings.tsx` still only understands the legacy shape (`{ scope, updates, timeouts }`) and the "Export Full Log" button is a toast placeholder. So a supervisor cannot answer "who changed X from Y to Z" — the ask in item #11.
 
-2. **Small helper hardening in `_shared/audit.ts`.**
-   - Add `disputeId` mapping into the `admin_actions.dispute_id` column (already accepted in the type; ensure it's written).
-   - Add an `ip`/`userAgent` extraction utility `extractRequestMeta(req)` so callers don't repeat header parsing.
-   - Never throw from `logAdminAction` — audit failures must not fail the underlying admin operation (already the case; add a `console.warn` on failure so it surfaces in edge logs).
+### Changes
 
-3. **Surface the diff in `AdminSettings.tsx` Audit History (Item #11).**
-   - Parse the new `changed_keys` / `before` / `after` fields from `action_notes` in the audit row renderer.
-   - Under the existing summary line, render a compact key → "old → new" table (max 6 rows, "+N more" for the rest). Reuse existing card styling; no new design tokens.
-   - Wire the placeholder "Full audit log export" button to the existing async export pipeline (out of scope if it requires new infrastructure — otherwise reuse `runExport` with a new `admin_audit_log` job type; only add the job type if it fits in this batch, otherwise leave the toast).
+1. **`src/services/admin-settings.service.ts` — extend `SettingsAuditRow`**
+   - Add parsed fields derived once in the service:
+     - `reason: string | null`
+     - `changed_keys: string[]`
+     - `before: Record<string, unknown>`
+     - `after: Record<string, unknown>`
+     - `metadata: Record<string, unknown> | null` (keeps `scope`, `vendor_id`, `apply_to_all_vendors`)
+   - Handle both shapes: new unified payload (`before` / `after` present) and legacy `{ scope, updates, timeouts }` (fall back to synthesising `changed_keys` from `updates` + timeouts).
+   - Keep raw `action_notes` for backwards compatibility.
 
-4. **Verification**
-   - Trigger one action per refactored function via the UI or `curl` and confirm the resulting `admin_actions` row contains the expected `changed_keys` / `before` / `after` JSON in `action_notes`.
-   - Save a setting change in AdminSettings; verify the Audit History card shows the key-level diff.
-   - Confirm no admin mutation returns a 500 due to audit failures (kill-switch test: temporarily point the helper at a bad table name locally to prove the operation still succeeds).
+2. **`src/pages/AdminSettings.tsx` — Audit row renderer**
+   - Replace the inline JSON re-parse in `AuditRow` with the pre-parsed fields.
+   - Header line: `Updated N settings` (from `changed_keys.length`), plus Platform/Vendor/"Applied to all" pills as today.
+   - New collapsible diff table when `changed_keys.length > 0`:
+     ```
+     escrow.auto_release_hours       48h  →  72h
+     escrow.auto_release_enabled     true →  false
+     ```
+     - Values rendered via a `formatSettingValue()` helper (boolean → Yes/No, numbers/strings shown raw, objects → truncated JSON).
+     - When the diff spans nested groups (e.g. `settings`/`timeouts` on system-settings saves), flatten one level so each real key shows on its own row.
+     - Show first 6 rows, "+N more" toggle for the rest.
+   - Show `reason` in italics under the header (existing).
+   - Footer meta: admin name · target vendor · relative time · IP (if present, monospace, muted).
 
-### Technical notes
-- `admin_actions.action_notes` is `text` — we keep JSON-stringifying the notes payload (existing convention). No schema change needed.
-- The helper already mirrors to `audit_logs` when `mirrorToAuditLogs: true`; per-function decisions on whether to mirror are captured in the refactor above.
-- No migration needed for Batch D.
+3. **"Export Full Log" button**
+   - Wire to a CSV download built client-side from the already-loaded `auditRows`: columns `created_at, admin, action_type, target, changed_keys, before, after, reason, ip`. No new backend surface; async job pipeline for the full corpus is out of scope for this item.
 
-### Out of scope for this batch
-- Item #12 (scoped realtime), Item #13 (impersonation TTL) — next batch.
-- The design-token sweep (#14).
-- Any AdminSettings UI redesign beyond adding the diff rows to the existing card.
+### Not in this pass
 
-### After this ships
-Batch E — Security hardening: #12 scoped realtime channels for `useRealtimeAdminNotifications`, #3 AAL2 enforcement follow-through (helper + admin header enrollment CTA). Impersonation (#13) still deferred to the end as a separate feature workstream per your instruction.
+- No new edge functions, no schema change (`action_notes` already holds the diff as JSON).
+- No changes to other admin pages' audit surfaces — Settings is the one called out in #11.
+- Impersonation (#13), scoped realtime (#12), design-token sweep (#14), integration tests (#16) remain the next queued items after this ships.
+
+### Files touched
+
+- `src/services/admin-settings.service.ts` (parsing + type expansion)
+- `src/pages/AdminSettings.tsx` (`AuditRow` render + Export button handler)
