@@ -4788,6 +4788,61 @@ export type Database = {
           },
         ]
       }
+      admin_flagged_users_mv: {
+        Row: {
+          admin_flag_count: number | null
+          auto_detected: boolean | null
+          avatar_url: string | null
+          blocked_payouts: number | null
+          disputes_30d: number | null
+          email: string | null
+          escalate_count: number | null
+          escrow_at_risk: number | null
+          flag_user_count: number | null
+          flagged_by_admin_id: string | null
+          freeze_count: number | null
+          frozen_tx_count: number | null
+          full_name: string | null
+          has_open_investigation: boolean | null
+          identity_reason: string | null
+          identity_rejected: boolean | null
+          is_suspended: boolean | null
+          last_clear_at: string | null
+          last_signal_at: string | null
+          latest_dispute_id: string | null
+          latest_tx_code: string | null
+          latest_tx_id: string | null
+          needs_admin_review_count: number | null
+          needs_release_review_count: number | null
+          phone: string | null
+          reason_keys: string[] | null
+          refunds_30d: number | null
+          reversed_payouts: number | null
+          risk_level: string | null
+          role: string | null
+          score: number | null
+          search_haystack: string | null
+          status: string | null
+          suspend_count: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_admin_user_id_fkey"
+            columns: ["flagged_by_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "admin_actions_admin_user_id_fkey"
+            columns: ["flagged_by_admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_user_directory_view: {
         Row: {
           avatar_url: string | null
@@ -4932,6 +4987,60 @@ export type Database = {
         }[]
       }
       admin_flagged_users_count: { Args: { _since: string }; Returns: number }
+      admin_flagged_users_page: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_reason?: string
+          p_risk?: string
+          p_search?: string
+          p_sort?: string
+          p_status?: string
+        }
+        Returns: {
+          admin_flag_count: number
+          auto_detected: boolean
+          avatar_url: string
+          blocked_payouts: number
+          disputes_30d: number
+          email: string
+          escrow_at_risk: number
+          flagged_by_admin_id: string
+          full_name: string
+          has_open_investigation: boolean
+          identity_reason: string
+          identity_rejected: boolean
+          is_suspended: boolean
+          last_signal_at: string
+          latest_dispute_id: string
+          latest_tx_code: string
+          latest_tx_id: string
+          phone: string
+          reason_keys: string[]
+          refunds_30d: number
+          reversed_payouts: number
+          risk_level: string
+          role: string
+          score: number
+          status: string
+          total_count: number
+          user_id: string
+        }[]
+      }
+      admin_flagged_users_summary: {
+        Args: never
+        Returns: {
+          auto_detected: number
+          cleared_this_week: number
+          critical_risk: number
+          high_risk: number
+          suspended: number
+          today_cleared: number
+          today_flagged: number
+          today_suspended: number
+          total_flagged: number
+        }[]
+      }
       admin_identity_review_health: {
         Args: { _since_avg: string; _since_spark: string }
         Returns: {
@@ -5104,6 +5213,7 @@ export type Database = {
           product_id: string
         }[]
       }
+      refresh_admin_flagged_users_mv: { Args: never; Returns: undefined }
       release_expired_awaiting_payment: {
         Args: { _cutoff: string }
         Returns: {
