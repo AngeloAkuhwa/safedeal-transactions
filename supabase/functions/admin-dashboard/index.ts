@@ -63,17 +63,14 @@ async function distinctActiveUsers(
   untilIso?: string,
 ): Promise<number> {
   try {
-    let q = client
-      .from("user_sessions")
-      .select("user_id")
-      .gte("last_seen_at", sinceIso)
-      .limit(10000);
-    if (untilIso) q = q.lt("last_seen_at", untilIso);
-    const { data, error } = await q;
-    if (error || !data) return 0;
-    const set = new Set<string>();
-    for (const r of data as any[]) if (r?.user_id) set.add(r.user_id);
-    return set.size;
+    // P1: replaced 10k-row `Set<string>` scan with SQL-side count(distinct).
+    // Removes silent data loss when active users exceed the previous cap.
+    const { data, error } = await client.rpc("admin_distinct_active_users", {
+      _since: sinceIso,
+      _until: untilIso ?? null,
+    });
+    if (error) return 0;
+    return Number(data ?? 0);
   } catch {
     return 0;
   }
