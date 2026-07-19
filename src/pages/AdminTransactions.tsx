@@ -256,15 +256,19 @@ const SORT_OPTIONS: { key: SortKey; dir: SortDir; label: string }[] = [
   { key: "risk_level", dir: "desc", label: "Risk level" },
 ];
 
-const REALTIME_TABLES = [
-  "transactions",
-  "transaction_events",
-  "money_status_history",
-  "disputes",
-  "payments",
-  "payouts",
-  "release_review_queue",
-] as const;
+/**
+ * Realtime tables watched by the transactions monitor.
+ * Each entry carries a server-side `filter` so Postgres only forwards rows
+ * that are actually actionable in the admin view — routine happy-path status
+ * flips (payment_secured → seller_preparing_delivery, etc.) never touch the
+ * browser at platform scale. Audit item #12.
+ */
+const REALTIME_SUBS: Array<{ table: string; filter?: string }> = [
+  { table: "transactions", filter: "status=in.(disputed,cancelled,timed_out,refunded)" },
+  { table: "disputes", filter: "status=in.(open,escalated,under_review)" },
+  { table: "release_review_queue" },
+  { table: "payouts", filter: "status=in.(failed,on_hold)" },
+];
 
 function relativeMinutes(from: Date | null): string {
   if (!from) return "—";
