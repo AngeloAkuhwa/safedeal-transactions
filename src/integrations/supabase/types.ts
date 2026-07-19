@@ -4485,6 +4485,24 @@ export type Database = {
           tertiary_amount: number
         }[]
       }
+      admin_escrow_records_page: {
+        Args: {
+          _amount_bucket?: string
+          _date_range?: string
+          _page?: number
+          _page_size?: number
+          _state?: string
+        }
+        Returns: {
+          frozen_amount: number
+          held_amount: number
+          last_changed_at: string
+          refunded_amount: number
+          released_amount: number
+          total_count: number
+          transaction_id: string
+        }[]
+      }
       admin_search_transaction_ids: {
         Args: { _limit?: number; _query: string }
         Returns: {
