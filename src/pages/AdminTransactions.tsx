@@ -256,15 +256,19 @@ const SORT_OPTIONS: { key: SortKey; dir: SortDir; label: string }[] = [
   { key: "risk_level", dir: "desc", label: "Risk level" },
 ];
 
-const REALTIME_TABLES = [
-  "transactions",
-  "transaction_events",
-  "money_status_history",
-  "disputes",
-  "payments",
-  "payouts",
-  "release_review_queue",
-] as const;
+/**
+ * Realtime tables watched by the transactions monitor.
+ * Each entry carries a server-side `filter` so Postgres only forwards rows
+ * that are actually actionable in the admin view — routine happy-path status
+ * flips (payment_secured → seller_preparing_delivery, etc.) never touch the
+ * browser at platform scale. Audit item #12.
+ */
+const REALTIME_SUBS: Array<{ table: string; filter?: string }> = [
+  { table: "transactions", filter: "status=in.(disputed,cancelled,timed_out,refunded)" },
+  { table: "disputes", filter: "status=in.(open,escalated,under_review)" },
+  { table: "release_review_queue" },
+  { table: "payouts", filter: "status=in.(failed,blocked,reversed)" },
+];
 
 function relativeMinutes(from: Date | null): string {
   if (!from) return "—";
@@ -462,10 +466,12 @@ export default function AdminTransactions() {
     if (accessDenied) return;
     setLiveSync("connecting");
     const channel = supabase.channel("admin-tx-monitor");
-    for (const table of REALTIME_TABLES) {
+    for (const sub of REALTIME_SUBS) {
+      const cfg: Record<string, string> = { event: "*", schema: "public", table: sub.table };
+      if (sub.filter) cfg.filter = sub.filter;
       channel.on(
         "postgres_changes" as any,
-        { event: "*", schema: "public", table },
+        cfg as any,
         () => {
           if (realtimeDebounceRef.current) window.clearTimeout(realtimeDebounceRef.current);
           realtimeDebounceRef.current = window.setTimeout(() => {

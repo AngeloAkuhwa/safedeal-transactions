@@ -1,32 +1,48 @@
-import { useEffect, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  useAdminRealtimeChannel,
+  createBurstThrottle,
+  type AdminRealtimeSub,
+} from "./useAdminRealtimeChannel";
 
 /**
  * Admin-scope realtime subscription for the Notification Center.
- * Debounced invalidation absorbs broadcast bursts.
+ *
+ * Scale hardening (audit #12):
+ * - Server-side filter on `notifications.type` so only admin-relevant types
+ *   (dispute, security, verification, system) reach the browser. The full,
+ *   noisy stream of buyer/seller transaction updates stays server-side.
+ * - `notification_deliveries` is filtered to failure states — successful
+ *   deliveries don't need to page the admin UI.
+ * - Burst throttle collapses spikes to ≤ 1 invalidation per second.
  */
 export function useRealtimeAdminNotifications() {
   const qc = useQueryClient();
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const throttleRef = useRef(createBurstThrottle(1000));
 
-  useEffect(() => {
-    const kick = () => {
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => {
-        qc.invalidateQueries({ queryKey: ["admin-notifications"] });
-      }, 750);
-    };
-
-    const channel = supabase
-      .channel("admin-notifications-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, kick)
-      .on("postgres_changes", { event: "*", schema: "public", table: "notification_deliveries" }, kick)
-      .subscribe();
-
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-      supabase.removeChannel(channel);
-    };
+  const subs = useMemo<AdminRealtimeSub[]>(() => {
+    const kick = () =>
+      throttleRef.current(() =>
+        qc.invalidateQueries({ queryKey: ["admin-notifications"] }),
+      );
+    return [
+      {
+        table: "notifications",
+        filter:
+          "type=in.(dispute_update,security_alert,verification_update,system_message)",
+        onEvent: kick,
+      },
+      {
+        table: "notification_deliveries",
+        filter: "delivery_status=eq.failed",
+        onEvent: kick,
+      },
+    ];
   }, [qc]);
+
+  useAdminRealtimeChannel({
+    channelName: "admin-notifications-live",
+    subs,
+  });
 }
