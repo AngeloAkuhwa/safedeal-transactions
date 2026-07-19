@@ -5,6 +5,7 @@
  * Writes admin_actions audit row per reveal.
  */
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { enforceAdminRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,6 +33,11 @@ Deno.serve(async (req) => {
     return json(500, { error: "auth_failed" });
   }
   const admin = ctx.adminClient;
+
+  // Cap: 20 reveals per admin per rolling hour. Prevents scripted exfiltration
+  // of sensitive fields (email / phone / bank number).
+  const rl = await enforceAdminRateLimit(ctx, "reveal_user_field", 20, corsHeaders);
+  if (rl) return rl;
 
   let body: { user_id?: string; field?: Field; reason?: string };
   try { body = await req.json(); }
