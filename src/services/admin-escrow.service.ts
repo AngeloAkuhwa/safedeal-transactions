@@ -171,7 +171,8 @@ export type ExportType =
   | "users_directory"
   | "flagged_users"
   | "transactions_monitor"
-  | "user_detail";
+  | "user_detail"
+  | "audit_logs";
 
 export interface ExportJob {
   id: string;

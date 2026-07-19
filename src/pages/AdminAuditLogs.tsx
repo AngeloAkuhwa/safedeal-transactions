@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   ShieldCheck, Clock, Download, FileCheck2, ListChecks, TriangleAlert, UserCog,
@@ -14,10 +14,11 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/sonner";
 import {
-  fetchAuditLogs, fetchAuditStats,
+  fetchAuditLogs, fetchAuditStats, fetchAuditFacets, runComplianceReport,
   type AuditRow, type AuditSeverity, type AuditListFilters,
 } from "@/services/admin-audit-logs.service";
 import { runExport } from "@/services/admin-escrow.service";
+import { useAdminRealtimeChannel, createBurstThrottle } from "@/hooks/useAdminRealtimeChannel";
 
 /* ---------------- helpers ---------------- */
 function fmtRelative(iso: string): string {
@@ -75,14 +76,27 @@ function rowTint(sev: AuditSeverity) {
 
 /* ---------------- Toolbar ---------------- */
 function Toolbar({
-  lastEntryAt, onExport, onCompliance, exporting,
-}: { lastEntryAt: string | null; onExport: () => void; onCompliance: () => void; exporting: boolean }) {
+  lastEntryAt, onExport, onCompliance, exporting, complianceLoading, onRefresh, refreshing, live,
+}: {
+  lastEntryAt: string | null;
+  onExport: () => void;
+  onCompliance: () => void;
+  exporting: boolean;
+  complianceLoading: boolean;
+  onRefresh: () => void;
+  refreshing: boolean;
+  live: boolean;
+}) {
   return (
     <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-md">
           <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
           <span className="text-emerald-400 font-medium text-xs">Immutable</span>
+        </div>
+        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs ${live ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-muted border-border text-muted-foreground"}`}>
+          <span className={`inline-block h-1.5 w-1.5 rounded-full ${live ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground"}`} />
+          {live ? "Live" : "Offline"}
         </div>
         {lastEntryAt && (
           <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-muted border border-border rounded-md">
@@ -92,12 +106,16 @@ function Toolbar({
         )}
       </div>
       <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" onClick={onRefresh} disabled={refreshing}>
+          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+          <span className="hidden sm:inline ml-2">Refresh</span>
+        </Button>
         <Button variant="outline" size="sm" onClick={onExport} disabled={exporting}>
           {exporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
           <span className="hidden sm:inline ml-2">Export Logs</span>
         </Button>
-        <Button size="sm" onClick={onCompliance} className="bg-emerald-600 hover:bg-emerald-500 text-white">
-          <ShieldCheck className="h-4 w-4" />
+        <Button size="sm" onClick={onCompliance} disabled={complianceLoading} className="bg-emerald-600 hover:bg-emerald-500 text-white">
+          {complianceLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
           <span className="hidden sm:inline ml-2">Compliance Report</span>
         </Button>
       </div>
@@ -124,9 +142,21 @@ function StatCard({
 }
 
 /* ---------------- Drawer ---------------- */
-function JsonDrawer({ row, onClose }: { row: AuditRow | null; onClose: () => void }) {
+function JsonDrawer({ row, onClose, onOpenUser, onOpenTx, onOpenDispute }: {
+  row: AuditRow | null;
+  onClose: () => void;
+  onOpenUser: (id: string) => void;
+  onOpenTx: (id: string) => void;
+  onOpenDispute: (id: string) => void;
+}) {
   const open = !!row;
   const payload = useMemo(() => row ? JSON.stringify(row, null, 2) : "", [row]);
+  const beforeObj = (row?.before ?? null) as Record<string, unknown> | null;
+  const afterObj = (row?.after ?? null) as Record<string, unknown> | null;
+  const clip = (v: unknown) => {
+    const s = v === null || v === undefined ? "—" : typeof v === "string" ? v : JSON.stringify(v);
+    return s.length > 120 ? s.slice(0, 120) + "…" : s;
+  };
   return (
     <>
       {open && <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />}
@@ -175,6 +205,31 @@ function JsonDrawer({ row, onClose }: { row: AuditRow | null; onClose: () => voi
                   </div>
                 </div>
               ) : null}
+              {row.changed_keys?.length && (beforeObj || afterObj) ? (
+                <div>
+                  <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2">Changes</div>
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/40">
+                        <tr>
+                          <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Field</th>
+                          <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Before</th>
+                          <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">After</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {row.changed_keys.map((k) => (
+                          <tr key={k} className="align-top">
+                            <td className="px-2 py-1.5 font-mono text-foreground/80">{k}</td>
+                            <td className="px-2 py-1.5 font-mono text-red-400">{clip(beforeObj?.[k])}</td>
+                            <td className="px-2 py-1.5 font-mono text-emerald-400">{clip(afterObj?.[k])}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : null}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-muted-foreground text-xs uppercase tracking-wider">Raw JSON</div>
@@ -189,6 +244,26 @@ function JsonDrawer({ row, onClose }: { row: AuditRow | null; onClose: () => voi
                 <pre className="bg-muted border border-border rounded-lg p-4 text-xs text-foreground/90 overflow-x-auto max-h-[50vh]">{payload}</pre>
               </div>
             </div>
+            <div className="p-4 border-t border-border flex flex-wrap gap-2">
+              {row.target.user_id && (
+                <Button size="sm" variant="outline" onClick={() => onOpenUser(row.target.user_id!)}>
+                  <User className="h-3 w-3 mr-1.5" /> Open user profile
+                </Button>
+              )}
+              {row.target.transaction_id && (
+                <Button size="sm" variant="outline" onClick={() => onOpenTx(row.target.transaction_id!)}>
+                  <Receipt className="h-3 w-3 mr-1.5" /> Open transaction
+                </Button>
+              )}
+              {row.target.dispute_id && (
+                <Button size="sm" variant="outline" onClick={() => onOpenDispute(row.target.dispute_id!)}>
+                  <Scale className="h-3 w-3 mr-1.5" /> Open dispute
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(row.id); toast("ID copied"); }}>
+                <Copy className="h-3 w-3 mr-1.5" /> Copy ID
+              </Button>
+            </div>
           </div>
         )}
       </aside>
@@ -198,15 +273,34 @@ function JsonDrawer({ row, onClose }: { row: AuditRow | null; onClose: () => voi
 
 /* ---------------- Page ---------------- */
 const PAGE_SIZE = 50;
+const PAGE_SIZE_OPTIONS = [25, 50, 100];
+const QUICK_RANGES: Array<{ key: "24h" | "7d" | "30d" | "custom"; label: string; hours: number | null }> = [
+  { key: "24h", label: "Last 24h", hours: 24 },
+  { key: "7d", label: "Last 7 days", hours: 24 * 7 },
+  { key: "30d", label: "Last 30 days", hours: 24 * 30 },
+  { key: "custom", label: "Custom", hours: null },
+];
+
+function toLocalDateTime(iso: string): string {
+  // Convert an ISO string to the value shape a `datetime-local` input accepts.
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 export default function AdminAuditLogs() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [filters, setFilters] = useState<AuditListFilters>({
     q: "", action_type: "all", severity: "all", from: "", to: "", page: 1, page_size: PAGE_SIZE,
   });
   const [applied, setApplied] = useState<AuditListFilters>({ page: 1, page_size: PAGE_SIZE });
   const [drawerRow, setDrawerRow] = useState<AuditRow | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [complianceLoading, setComplianceLoading] = useState(false);
+  const [quickRange, setQuickRange] = useState<"24h" | "7d" | "30d" | "custom">("30d");
+  const [live, setLive] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const statsQ = useQuery({ queryKey: ["admin-audit-stats"], queryFn: fetchAuditStats, staleTime: 60_000 });
   const listQ = useQuery({
@@ -214,26 +308,60 @@ export default function AdminAuditLogs() {
     queryFn: () => fetchAuditLogs(applied),
     staleTime: 15_000,
   });
+  const facetsQ = useQuery({ queryKey: ["admin-audit-facets"], queryFn: fetchAuditFacets, staleTime: 5 * 60_000 });
 
   useEffect(() => {
     const id = setInterval(() => statsQ.refetch(), 60_000);
     return () => clearInterval(id);
   }, [statsQ]);
 
+  // Realtime — invalidate list + stats when new admin actions arrive, throttled.
+  const throttleRef = useMemo(() => createBurstThrottle(3000), []);
+  useAdminRealtimeChannel({
+    channelName: "admin-audit-logs",
+    onStatus: (s) => setLive(s === "live"),
+    subs: [{
+      table: "admin_actions",
+      event: "INSERT",
+      onEvent: () => throttleRef(() => {
+        qc.invalidateQueries({ queryKey: ["admin-audit-list"] });
+        qc.invalidateQueries({ queryKey: ["admin-audit-stats"] });
+      }),
+    }],
+  });
+
   const stats = statsQ.data;
   const rows = listQ.data?.rows ?? [];
   const total = listQ.data?.total ?? 0;
+  const facets = facetsQ.data;
 
   const doSearch = () => setApplied({ ...filters, page: 1 });
   const clearAll = () => {
     const empty: AuditListFilters = { q: "", action_type: "all", severity: "all", from: "", to: "", page: 1, page_size: PAGE_SIZE };
-    setFilters(empty); setApplied(empty);
+    setFilters(empty); setApplied(empty); setQuickRange("30d");
+  };
+
+  const applyQuickRange = (key: "24h" | "7d" | "30d" | "custom") => {
+    setQuickRange(key);
+    if (key === "custom") return;
+    const hoursMap: Record<string, number> = { "24h": 24, "7d": 24 * 7, "30d": 24 * 30 };
+    const from = new Date(Date.now() - hoursMap[key] * 3600 * 1000).toISOString();
+    const to = new Date().toISOString();
+    setFilters((f) => ({ ...f, from: toLocalDateTime(from), to: toLocalDateTime(to) }));
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([listQ.refetch(), statsQ.refetch(), facetsQ.refetch()]);
+      toast.success("Refreshed");
+    } finally { setRefreshing(false); }
   };
 
   const handleExport = async () => {
     setExporting(true);
     try {
-      const { url } = await runExport("audit_logs" as any, applied as unknown as Record<string, unknown>);
+      const { url } = await runExport("audit_logs", applied as unknown as Record<string, unknown>);
       window.open(url, "_blank");
       toast.success("Export ready");
     } catch (e) {
@@ -243,19 +371,42 @@ export default function AdminAuditLogs() {
     }
   };
 
+  const handleCompliance = async () => {
+    setComplianceLoading(true);
+    try {
+      const { url } = await runComplianceReport("30d");
+      window.open(url, "_blank");
+      toast.success("Compliance report ready");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Compliance report failed");
+    } finally {
+      setComplianceLoading(false);
+    }
+  };
+
+  // Prefer facets over the current page's rows; fall back to page rows on load.
   const actionOptions = useMemo(() => {
+    if (facets?.action_types?.length) return facets.action_types;
     const set = new Set<string>();
     rows.forEach((r) => set.add(r.action_type));
     return Array.from(set).sort();
-  }, [rows]);
+  }, [facets, rows]);
+  const actorOptions = useMemo(() => {
+    if (facets?.actors?.length) return facets.actors.map((a) => ({ id: a.id, name: a.full_name }));
+    return Array.from(new Map(rows.map((r) => [r.actor.id, { id: r.actor.id, name: r.actor.name }])).values());
+  }, [facets, rows]);
 
   return (
     <AdminLayout title="Audit Logs" subtitle="Immutable compliance and forensic audit trail">
       <Toolbar
         lastEntryAt={stats?.latest_entry_at ?? null}
         onExport={handleExport}
-        onCompliance={() => toast("Compliance report coming soon")}
+        onCompliance={handleCompliance}
         exporting={exporting}
+        complianceLoading={complianceLoading}
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
+        live={live}
       />
 
       {/* Stats */}
@@ -315,7 +466,7 @@ export default function AdminAuditLogs() {
                     className="w-full h-10 px-3 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="all">All Actors</option>
-                    {Array.from(new Map(rows.map((r) => [r.actor.id, r.actor])).values()).map((a) => (
+                    {actorOptions.map((a) => (
                       <option key={a.id} value={a.id}>{a.name}</option>
                     ))}
                   </select>
@@ -336,13 +487,30 @@ export default function AdminAuditLogs() {
                   </select>
                 </div>
               </div>
+              {/* Quick range chips */}
+              <div className="mb-3">
+                <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Quick Range</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {QUICK_RANGES.map((r) => (
+                    <Button
+                      key={r.key}
+                      size="sm"
+                      variant={quickRange === r.key ? "default" : "outline"}
+                      onClick={() => applyQuickRange(r.key)}
+                      className="h-7 px-3 text-xs"
+                    >
+                      {r.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
                 <div>
                   <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Date Range Start</Label>
                   <input
                     type="datetime-local"
                     value={filters.from ?? ""}
-                    onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
+                    onChange={(e) => { setFilters((f) => ({ ...f, from: e.target.value })); setQuickRange("custom"); }}
                     className="w-full h-10 px-3 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
@@ -351,7 +519,7 @@ export default function AdminAuditLogs() {
                   <input
                     type="datetime-local"
                     value={filters.to ?? ""}
-                    onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
+                    onChange={(e) => { setFilters((f) => ({ ...f, to: e.target.value })); setQuickRange("custom"); }}
                     className="w-full h-10 px-3 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
@@ -515,8 +683,18 @@ export default function AdminAuditLogs() {
             {/* Pagination */}
             {total > (applied.page_size ?? PAGE_SIZE) && (
               <div className="p-3 border-t border-border flex items-center justify-between text-sm">
-                <div className="text-muted-foreground text-xs">
-                  Page {applied.page ?? 1} of {Math.ceil(total / (applied.page_size ?? PAGE_SIZE))}
+                <div className="text-muted-foreground text-xs flex items-center gap-3">
+                  <span>Page {applied.page ?? 1} of {Math.ceil(total / (applied.page_size ?? PAGE_SIZE))}</span>
+                  <span className="flex items-center gap-1.5">
+                    Rows:
+                    <select
+                      value={applied.page_size ?? PAGE_SIZE}
+                      onChange={(e) => setApplied((a) => ({ ...a, page_size: Number(e.target.value), page: 1 }))}
+                      className="h-7 bg-background border border-border rounded px-2 text-xs"
+                    >
+                      {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" disabled={(applied.page ?? 1) <= 1}
@@ -532,7 +710,13 @@ export default function AdminAuditLogs() {
             )}
           </div>
 
-      <JsonDrawer row={drawerRow} onClose={() => setDrawerRow(null)} />
+      <JsonDrawer
+        row={drawerRow}
+        onClose={() => setDrawerRow(null)}
+        onOpenUser={(id) => { setDrawerRow(null); navigate(`/admin/users/${id}`); }}
+        onOpenTx={(id) => { setDrawerRow(null); navigate(`/admin/transactions/${id}`); }}
+        onOpenDispute={(id) => { setDrawerRow(null); navigate(`/admin/disputes/${id}`); }}
+      />
     </AdminLayout>
   );
 }

@@ -27,6 +27,24 @@ function severityFor(action: string): Severity {
   return "low";
 }
 
+// action_type is a Postgres enum, so severity filtering can't use `ilike` or
+// `imatch`. We resolve enum values once per request and filter with `.in()`.
+const UUID_RE = /^[0-9a-f-]{36}$/i;
+// Full enum snapshot for admin_action_type — kept in sync with the DB enum so
+// severity filtering can map into `.in()` clauses (Postgres enums don't support
+// ilike/imatch operators via PostgREST).
+const ACTION_TYPES: string[] = [
+  "add_internal_note","add_note","clear_flag","close_case","escalate_case",
+  "export_data","extend_deadline","flag_for_review","flag_user","freeze_transaction",
+  "high_value_flag","open_investigation","refund_buyer","release_funds","request_evidence",
+  "resolve_dispute","set_vendor_status","suspend_user","toggle_auto_release","unflag_user",
+  "unfreeze_transaction","unsuspend_user","update_investigation","update_setting",
+];
+async function listActionTypes(_admin: unknown): Promise<string[]> { return ACTION_TYPES; }
+function actionsForSeverity(all: string[], sev: Severity): string[] {
+  return all.filter((a) => severityFor(a) === sev);
+}
+
 function humanAction(action: string): string {
   return (action || "")
     .replace(/[_-]+/g, " ")
@@ -58,10 +76,12 @@ Deno.serve(async (req) => {
     const now = Date.now();
     const dayAgo = new Date(now - 24 * 3600 * 1000).toISOString();
     const monthAgo = new Date(now - 30 * 24 * 3600 * 1000).toISOString();
-    const [{ count: total30d }, { data: recent }, { data: latest }] = await Promise.all([
+    const [{ count: total30d }, { data: recent }, { data: latest }, { data: sample }] = await Promise.all([
       admin.from("admin_actions").select("id", { count: "exact", head: true }).gte("created_at", monthAgo),
       admin.from("admin_actions").select("admin_user_id, action_type, created_at").gte("created_at", dayAgo).limit(5000),
       admin.from("admin_actions").select("created_at").order("created_at", { ascending: false }).limit(1),
+      // Sample of recent payload sizes for a realistic 30d storage estimate.
+      admin.from("admin_actions").select("action_notes").gte("created_at", monthAgo).limit(2000),
     ]);
     const rec = recent ?? [];
     const highSeverity = rec.filter((r) => {
@@ -69,13 +89,60 @@ Deno.serve(async (req) => {
       return s === "high" || s === "critical";
     }).length;
     const actors = new Set(rec.map((r) => r.admin_user_id).filter(Boolean)).size;
+    const sampled = sample ?? [];
+    const sampledBytes = sampled.reduce((n, r) => n + (r.action_notes ? (r.action_notes as string).length : 0), 0);
+    const avgBytes = sampled.length ? Math.round(sampledBytes / sampled.length) : 512;
+    const storageBytes = (total30d ?? 0) * avgBytes;
     return json(200, {
       total_entries: total30d ?? 0,
       high_severity: highSeverity,
       active_admins: actors,
-      storage_bytes: (total30d ?? 0) * 512,
+      storage_bytes: storageBytes,
       latest_entry_at: latest?.[0]?.created_at ?? null,
     });
+  }
+
+  if (mode === "facets") {
+    // Distinct action types and top actors over the last 90 days.
+    const ninety = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
+    const { data: recent } = await admin
+      .from("admin_actions")
+      .select("action_type, admin_user_id, created_at")
+      .gte("created_at", ninety)
+      .order("created_at", { ascending: false })
+      .limit(10000);
+    const typeCounts = new Map<string, number>();
+    const actorCounts = new Map<string, number>();
+    for (const r of recent ?? []) {
+      const t = (r.action_type as string) ?? "";
+      if (t) typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1);
+      const a = (r.admin_user_id as string) ?? "";
+      if (a) actorCounts.set(a, (actorCounts.get(a) ?? 0) + 1);
+    }
+    const action_types = Array.from(typeCounts.entries())
+      .sort((a, b) => b[1] - a[1]).slice(0, 200).map(([t]) => t);
+    const actorIds = Array.from(actorCounts.entries())
+      .sort((a, b) => b[1] - a[1]).slice(0, 100).map(([id]) => id);
+    const profileMap = new Map<string, { id: string; full_name: string | null; email: string | null }>();
+    const roleMap = new Map<string, string>();
+    if (actorIds.length) {
+      const { data: profs } = await admin.from("profiles")
+        .select("id, full_name, email").in("id", actorIds);
+      for (const p of profs ?? []) profileMap.set(p.id, p);
+      const { data: roles } = await admin.from("user_roles")
+        .select("user_id, role").in("user_id", actorIds);
+      for (const r of roles ?? []) if (!roleMap.has(r.user_id)) roleMap.set(r.user_id, r.role);
+    }
+    const actors = actorIds.map((id) => {
+      const p = profileMap.get(id);
+      return {
+        id,
+        full_name: p?.full_name ?? "Admin",
+        email: p?.email ?? null,
+        role: roleMap.get(id) ?? "admin",
+      };
+    });
+    return json(200, { action_types, actors });
   }
 
   // list mode
@@ -94,10 +161,41 @@ Deno.serve(async (req) => {
   if (actor && actor !== "all") query = query.eq("admin_user_id", actor);
   if (from) query = query.gte("created_at", from);
   if (to) query = query.lte("created_at", to);
+
+  // Severity — resolve to enum member list and use `.in()`.
+  if (severity && severity !== ("all" as Severity)) {
+    const all = await listActionTypes(admin);
+    const wanted = actionsForSeverity(all, severity);
+    if (wanted.length === 0) {
+      return json(200, { rows: [], total: 0, page, page_size: pageSize });
+    }
+    query = query.in("action_type", wanted);
+  }
+
+  // Broadened search: UUIDs match id columns; free text matches action_type,
+  // action_notes, target profile name/email, and transaction codes.
   if (q) {
-    query = query.or(
-      `action_type.ilike.%${q}%,action_notes.ilike.%${q}%,id.eq.${/^[0-9a-f-]{36}$/i.test(q) ? q : "00000000-0000-0000-0000-000000000000"}`,
-    );
+    if (UUID_RE.test(q)) {
+      query = query.or(
+        `id.eq.${q},target_user_id.eq.${q},transaction_id.eq.${q},dispute_id.eq.${q},admin_user_id.eq.${q}`,
+      );
+    } else {
+      const like = `%${q.replace(/[,()]/g, " ")}%`;
+      const [{ data: matchedProfiles }, { data: matchedTx }, allTypes] = await Promise.all([
+        admin.from("profiles").select("id").or(`full_name.ilike.${like},email.ilike.${like}`).limit(200),
+        admin.from("transactions").select("id").ilike("transaction_code", like).limit(200),
+        listActionTypes(admin),
+      ]);
+      const targetIds = (matchedProfiles ?? []).map((p) => p.id).filter(Boolean);
+      const txIds = (matchedTx ?? []).map((t) => t.id).filter(Boolean);
+      const qLower = q.toLowerCase();
+      const matchedTypes = allTypes.filter((t) => t.toLowerCase().includes(qLower));
+      const orParts: string[] = [`action_notes.ilike.${like}`];
+      if (matchedTypes.length) orParts.push(`action_type.in.(${matchedTypes.join(",")})`);
+      if (targetIds.length) orParts.push(`target_user_id.in.(${targetIds.join(",")})`);
+      if (txIds.length) orParts.push(`transaction_id.in.(${txIds.join(",")})`);
+      query = query.or(orParts.join(","));
+    }
   }
   const fromIdx = (page - 1) * pageSize;
   query = query.order("created_at", { ascending: false }).range(fromIdx, fromIdx + pageSize - 1);
