@@ -272,9 +272,9 @@ const buildTransactionsMonitorCsv: Builder = async (admin, params) => {
   const amountMax = Number(params.amountMax ?? 0) || 0;
 
   let q = admin.from("transactions").select(
-    "id, transaction_code, transaction_status, money_status, dispute_status, created_at, updated_at, buyer_id, seller_id, agreed_amount",
+    "id, transaction_code, status, money_status, dispute_status, created_at, updated_at, buyer_id, seller_id",
   ).order("created_at", { ascending: false }).limit(100_000);
-  if (txStatus !== "all") q = q.eq("transaction_status", txStatus);
+  if (txStatus !== "all") q = q.eq("status", txStatus);
   if (moneyStatus !== "all") q = q.eq("money_status", moneyStatus);
   if (dateFrom) q = q.gte("created_at", dateFrom);
   if (dateTo) q = q.lte("created_at", dateTo);
@@ -283,9 +283,6 @@ const buildTransactionsMonitorCsv: Builder = async (admin, params) => {
   if (error) throw new Error(`transactions_select_failed: ${error.message}`);
 
   let rows = txs ?? [];
-  if (amountMin > 0) rows = rows.filter((t: any) => Number(t.agreed_amount ?? 0) >= amountMin);
-  if (amountMax > 0) rows = rows.filter((t: any) => Number(t.agreed_amount ?? 0) <= amountMax);
-
   const ids = rows.map((t: any) => t.id);
   const chunk = <T,>(arr: T[], n: number) => {
     const out: T[][] = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out;
@@ -296,6 +293,8 @@ const buildTransactionsMonitorCsv: Builder = async (admin, params) => {
       .select("transaction_id, buyer_total_amount").in("transaction_id", c);
     for (const p of pricing ?? []) priceMap.set(p.transaction_id as string, Number(p.buyer_total_amount ?? 0));
   }
+  if (amountMin > 0) rows = rows.filter((t: any) => (priceMap.get(t.id) ?? 0) >= amountMin);
+  if (amountMax > 0) rows = rows.filter((t: any) => (priceMap.get(t.id) ?? 0) <= amountMax);
   const profileIds = new Set<string>();
   for (const t of rows) {
     if (t.buyer_id) profileIds.add(t.buyer_id);
@@ -311,7 +310,7 @@ const buildTransactionsMonitorCsv: Builder = async (admin, params) => {
     "transaction_code","created_at","updated_at",
     "transaction_status","money_status","dispute_status",
     "buyer_name","buyer_email","seller_name","seller_email",
-    "agreed_amount_ngn","buyer_total_ngn",
+    "buyer_total_ngn",
   ];
   const lines = [header.join(",")];
   for (const t of rows) {
@@ -319,9 +318,8 @@ const buildTransactionsMonitorCsv: Builder = async (admin, params) => {
     const s = nameMap.get(t.seller_id ?? "") ?? { name: "", email: "" };
     lines.push([
       t.transaction_code, t.created_at, t.updated_at,
-      t.transaction_status, t.money_status, t.dispute_status ?? "",
+      t.status, t.money_status, t.dispute_status ?? "",
       b.name, b.email, s.name, s.email,
-      Number(t.agreed_amount ?? 0),
       priceMap.get(t.id) ?? 0,
     ].map(csvEscape).join(","));
   }
