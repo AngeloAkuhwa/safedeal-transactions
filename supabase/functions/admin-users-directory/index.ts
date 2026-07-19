@@ -3,7 +3,7 @@
  * GET → summary + paginated user roll-ups.
  */
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
-import { buildDirectory, summarize, applyFilters, sortRows } from "../_shared/users-directory-engine.ts";
+import { getDirectoryPage, getDirectorySummary } from "../_shared/users-directory-sql.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,13 +42,16 @@ Deno.serve(async (req) => {
   const page = Math.max(1, Number(url.searchParams.get("page") ?? "1") || 1);
   const pageSize = Math.min(100, Math.max(5, Number(url.searchParams.get("page_size") ?? "20") || 20));
 
-  const all = await buildDirectory(admin);
-  const summary = summarize(all);
-  const filtered = applyFilters(all, filters);
-  sortRows(filtered, sort);
+  const [summary, pageResult] = await Promise.all([
+    getDirectorySummary(admin),
+    getDirectoryPage(admin, filters, sort, page, pageSize),
+  ]);
 
-  const total = filtered.length;
-  const sliced = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  return json(200, { summary, rows: sliced, total, page, page_size: pageSize });
+  return json(200, {
+    summary,
+    rows: pageResult.rows,
+    total: pageResult.total,
+    page,
+    page_size: pageSize,
+  });
 });
