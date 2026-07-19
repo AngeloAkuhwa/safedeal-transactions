@@ -10,6 +10,17 @@
  * schema change required.
  */
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  buildDirectory as buildUsersDirectory,
+  applyFilters as applyDirFilters,
+  sortRows as sortDirRows,
+  type DirFilters,
+} from "../_shared/users-directory-engine.ts";
+import {
+  buildRows as buildFlaggedRows,
+  applyFilters as applyFlaggedFilters,
+  sortRows as sortFlaggedRows,
+} from "../_shared/flagged-users-engine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -168,11 +179,160 @@ const buildStubCsv = (label: string): Builder => async () => {
   return { csv: `${header}\n${row}`, rowCount: 0 };
 };
 
+const buildUsersDirectoryCsv: Builder = async (admin, params) => {
+  const filters: DirFilters = {
+    q: String(params.q ?? ""),
+    role: (params.role as DirFilters["role"]) ?? "all",
+    status: (params.status as DirFilters["status"]) ?? "all",
+    verification: (params.verification as DirFilters["verification"]) ?? "all",
+    range: (params.range as DirFilters["range"]) ?? "all",
+  };
+  const sort = String(params.sort ?? "recent");
+  let rows = await buildUsersDirectory(admin);
+  rows = applyDirFilters(rows, filters);
+  sortDirRows(rows, sort);
+  rows = rows.slice(0, 100_000);
+  const header = [
+    "user_id","display_id","full_name","handle","email","phone",
+    "roles","verification_level","id_status",
+    "transactions_count","transactions_volume_ngn",
+    "disputes_total","disputes_active",
+    "status","is_suspended","is_flagged","joined_at",
+  ];
+  const lines = [header.join(",")];
+  for (const r of rows) {
+    lines.push([
+      r.user_id, r.display_id, r.full_name, r.handle, r.email, r.phone ?? "",
+      (r.roles ?? []).join("; "),
+      r.verification?.level ?? "", r.verification?.id_status ?? "",
+      r.transactions?.count ?? 0, r.transactions?.volume ?? 0,
+      r.disputes?.total ?? 0, r.disputes?.active ?? 0,
+      r.status, r.is_suspended ? "yes" : "no", r.is_flagged ? "yes" : "no",
+      r.joined_at ?? "",
+    ].map(csvEscape).join(","));
+  }
+  return { csv: lines.join("\n"), rowCount: rows.length };
+};
+
+const buildFlaggedUsersCsv: Builder = async (admin, params) => {
+  const range = String(params.range ?? "30d");
+  const filters = {
+    risk: String(params.risk ?? "all"),
+    reason: String(params.reason ?? "all"),
+    status: String(params.status ?? "all"),
+    q: String(params.q ?? ""),
+  };
+  const sort = String(params.sort ?? "recent");
+  let rows = await buildFlaggedRows(admin, range);
+  rows = applyFlaggedFilters(rows, filters);
+  sortFlaggedRows(rows, sort);
+  rows = rows.slice(0, 100_000);
+  const header = [
+    "user_id","display_id","full_name","email","phone",
+    "risk_level","risk_score","status",
+    "flag_reasons","amount_at_risk",
+    "disputes_30d","refunds_30d",
+    "latest_transaction_code","latest_transaction_id",
+    "flagged_by","flagged_by_type","flagged_at","auto_detected",
+  ];
+  const lines = [header.join(",")];
+  for (const r of rows) {
+    lines.push([
+      r.user_id,
+      r.user?.display_id ?? "",
+      r.user?.full_name ?? "",
+      r.user?.email ?? "",
+      r.user?.phone ?? "",
+      r.risk?.level ?? "",
+      r.risk?.score ?? 0,
+      r.status,
+      (r.flag_reasons ?? []).map((x) => x.label).join("; "),
+      r.related_context?.amount_at_risk ?? 0,
+      r.related_context?.disputes_30d ?? 0,
+      r.related_context?.refunds_30d ?? 0,
+      r.related_context?.latest_transaction_code ?? "",
+      r.related_context?.latest_transaction_id ?? "",
+      r.flagged_by?.label ?? r.flagged_by?.admin_name ?? "",
+      r.flagged_by?.type ?? "",
+      r.flagged_at ?? "",
+      r.auto_detected ? "yes" : "no",
+    ].map(csvEscape).join(","));
+  }
+  return { csv: lines.join("\n"), rowCount: rows.length };
+};
+
+const buildTransactionsMonitorCsv: Builder = async (admin, params) => {
+  // Query transactions with filters at SQL layer, hydrate pricing + names.
+  const search = String(params.search ?? params.q ?? "").trim();
+  const txStatus = String(params.transactionStatus ?? params.transaction_status ?? "all");
+  const moneyStatus = String(params.moneyStatus ?? params.money_status ?? "all");
+  const dateFrom = params.dateFrom as string | undefined;
+  const dateTo = params.dateTo as string | undefined;
+  const amountMin = Number(params.amountMin ?? 0) || 0;
+  const amountMax = Number(params.amountMax ?? 0) || 0;
+
+  let q = admin.from("transactions").select(
+    "id, transaction_code, transaction_status, money_status, dispute_status, created_at, updated_at, buyer_id, seller_id, agreed_amount",
+  ).order("created_at", { ascending: false }).limit(100_000);
+  if (txStatus !== "all") q = q.eq("transaction_status", txStatus);
+  if (moneyStatus !== "all") q = q.eq("money_status", moneyStatus);
+  if (dateFrom) q = q.gte("created_at", dateFrom);
+  if (dateTo) q = q.lte("created_at", dateTo);
+  if (search) q = q.ilike("transaction_code", `%${search}%`);
+  const { data: txs, error } = await q;
+  if (error) throw new Error(`transactions_select_failed: ${error.message}`);
+
+  let rows = txs ?? [];
+  if (amountMin > 0) rows = rows.filter((t: any) => Number(t.agreed_amount ?? 0) >= amountMin);
+  if (amountMax > 0) rows = rows.filter((t: any) => Number(t.agreed_amount ?? 0) <= amountMax);
+
+  const ids = rows.map((t: any) => t.id);
+  const chunk = <T,>(arr: T[], n: number) => {
+    const out: T[][] = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out;
+  };
+  const priceMap = new Map<string, number>();
+  for (const c of chunk(ids, 500)) {
+    const { data: pricing } = await admin.from("transaction_pricing")
+      .select("transaction_id, buyer_total_amount").in("transaction_id", c);
+    for (const p of pricing ?? []) priceMap.set(p.transaction_id as string, Number(p.buyer_total_amount ?? 0));
+  }
+  const profileIds = new Set<string>();
+  for (const t of rows) {
+    if (t.buyer_id) profileIds.add(t.buyer_id);
+    if (t.seller_id) profileIds.add(t.seller_id);
+  }
+  const nameMap = new Map<string, { name: string; email: string }>();
+  for (const c of chunk(Array.from(profileIds), 500)) {
+    const { data: profs } = await admin.from("profiles").select("id, full_name, email").in("id", c);
+    for (const p of profs ?? []) nameMap.set(p.id as string, { name: (p.full_name as string) ?? "Unknown", email: (p.email as string) ?? "" });
+  }
+
+  const header = [
+    "transaction_code","created_at","updated_at",
+    "transaction_status","money_status","dispute_status",
+    "buyer_name","buyer_email","seller_name","seller_email",
+    "agreed_amount_ngn","buyer_total_ngn",
+  ];
+  const lines = [header.join(",")];
+  for (const t of rows) {
+    const b = nameMap.get(t.buyer_id ?? "") ?? { name: "", email: "" };
+    const s = nameMap.get(t.seller_id ?? "") ?? { name: "", email: "" };
+    lines.push([
+      t.transaction_code, t.created_at, t.updated_at,
+      t.transaction_status, t.money_status, t.dispute_status ?? "",
+      b.name, b.email, s.name, s.email,
+      Number(t.agreed_amount ?? 0),
+      priceMap.get(t.id) ?? 0,
+    ].map(csvEscape).join(","));
+  }
+  return { csv: lines.join("\n"), rowCount: rows.length };
+};
+
 const BUILDERS: Record<string, Builder> = {
   escrow: buildEscrowCsv,
-  users_directory: buildStubCsv("users_directory"),
-  flagged_users: buildStubCsv("flagged_users"),
-  transactions_monitor: buildStubCsv("transactions_monitor"),
+  users_directory: buildUsersDirectoryCsv,
+  flagged_users: buildFlaggedUsersCsv,
+  transactions_monitor: buildTransactionsMonitorCsv,
   user_detail: buildStubCsv("user_detail"),
 };
 
