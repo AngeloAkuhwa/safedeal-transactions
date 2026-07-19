@@ -4991,6 +4991,19 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_users_directory_summary: {
+        Args: never
+        Returns: {
+          email_verified: number
+          flagged_users: number
+          fully_verified: number
+          id_verified: number
+          new_this_month: number
+          new_this_week: number
+          phone_verified: number
+          total_users: number
+        }[]
+      }
       check_admin_rate_limit: {
         Args: { _action_key: string; _admin_id: string; _max_per_hour: number }
         Returns: {
