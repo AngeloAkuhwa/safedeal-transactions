@@ -151,6 +151,57 @@ export type Database = {
           },
         ]
       }
+      admin_export_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          expires_at: string
+          export_type: string
+          file_path: string | null
+          file_size_bytes: number | null
+          id: string
+          params: Json
+          requester_id: string
+          row_count: number | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string
+          export_type: string
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          params?: Json
+          requester_id: string
+          row_count?: number | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string
+          export_type?: string
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          params?: Json
+          requester_id?: string
+          row_count?: number | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_investigations: {
         Row: {
           assigned_admin_id: string | null

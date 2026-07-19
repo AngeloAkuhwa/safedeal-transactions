@@ -157,3 +157,82 @@ export async function exportEscrowCsv(query: EscrowQuery = {}): Promise<Blob> {
   }
   return await res.blob();
 }
+
+/* -------------------------------------------------------------------------
+ * Async CSV exports (P1 scale item)
+ *
+ * For large datasets, avoid the 30s sync edge-function ceiling by enqueueing
+ * a background job. Callers poll `pollExportJob` for status and receive a
+ * short-lived signed download URL once ready.
+ * ------------------------------------------------------------------------- */
+
+export type ExportType =
+  | "escrow"
+  | "users_directory"
+  | "flagged_users"
+  | "transactions_monitor"
+  | "user_detail";
+
+export interface ExportJob {
+  id: string;
+  requester_id: string;
+  export_type: ExportType;
+  status: "queued" | "running" | "completed" | "failed" | "expired";
+  row_count: number | null;
+  file_path: string | null;
+  file_size_bytes: number | null;
+  error_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExportJobStatus {
+  job: ExportJob;
+  download_url: string | null;
+}
+
+export async function enqueueExport(
+  exportType: ExportType,
+  params: Record<string, unknown> = {},
+): Promise<{ job_id: string }> {
+  const { data, error } = await supabase.functions.invoke("admin-export-enqueue", {
+    body: { export_type: exportType, params },
+  });
+  if (error) throw new Error(error.message);
+  return data as { job_id: string };
+}
+
+export async function getExportStatus(jobId: string): Promise<ExportJobStatus> {
+  const { data, error } = await supabase.functions.invoke("admin-export-status", {
+    body: { job_id: jobId },
+  });
+  if (error) throw new Error(error.message);
+  return data as ExportJobStatus;
+}
+
+/**
+ * Enqueue an export and poll until it completes or fails. Resolves with the
+ * signed download URL, or throws with the worker's error message.
+ */
+export async function runExport(
+  exportType: ExportType,
+  params: Record<string, unknown> = {},
+  opts: { pollMs?: number; timeoutMs?: number } = {},
+): Promise<{ url: string; job: ExportJob }> {
+  const pollMs = opts.pollMs ?? 1500;
+  const timeoutMs = opts.timeoutMs ?? 5 * 60 * 1000;
+  const { job_id } = await enqueueExport(exportType, params);
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    await new Promise((r) => setTimeout(r, pollMs));
+    const { job, download_url } = await getExportStatus(job_id);
+    if (job.status === "completed" && download_url) return { url: download_url, job };
+    if (job.status === "failed" || job.status === "expired") {
+      throw new Error(job.error_message ?? `Export ${job.status}`);
+    }
+  }
+  throw new Error("Export timed out");
+}
