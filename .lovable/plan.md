@@ -1,51 +1,44 @@
-## Next action item
+## Next up: Item #12 — Scope admin realtime channels
 
-**#11 — Render before/after diff in the AdminSettings Audit History (finish Batch D).**
+Batches A–D are complete end to end (P0 security, dashboard/list/search SQL pagination, unified audit + diff UI). The next unfinished item in the audit list is **#12 — Realtime admin channels have no row-level scoping**.
 
-The unified `logAdminAction` helper now stores a JSON payload in `admin_actions.action_notes` with the shape:
+(#13 Impersonation is deferred per your instruction — it belongs to the new dedicated screen. #14 token sweep and #16 tests are P3 backlog. So #12 is the last non-deferred item before we're 100% done.)
 
-```
-{ reason, target_type, target_id, changed_keys[], before{}, after{}, metadata{}, ip, user_agent }
-```
+### Problem (verified)
+`src/hooks/useRealtimeAdminNotifications.ts` and the sibling admin realtime hooks subscribe to entire tables (`notifications`, `disputes`, `transactions`, `admin_actions`) with no server-side filter. At platform scale every admin browser receives every insert/update — thousands per minute — which:
+- drowns the browser event loop and React state,
+- pushes noisy low-severity events into toasts/badges,
+- makes the "unread" counters lag or spike.
 
-The Audit History tab in `src/pages/AdminSettings.tsx` still only understands the legacy shape (`{ scope, updates, timeouts }`) and the "Export Full Log" button is a toast placeholder. So a supervisor cannot answer "who changed X from Y to Z" — the ask in item #11.
+### Fix
 
-### Changes
+1. **Server-side filters on every admin channel.** Change each `postgres_changes` subscription to pass a `filter:` clause so Postgres only forwards rows the admin actually cares about:
+   - `notifications`: `severity=in.(high,critical)` OR `audience=eq.admin`.
+   - `disputes`: `status=in.(open,escalated,under_review)`.
+   - `admin_actions`: `action_type=in.(reveal_field,export_data,impersonate_start,impersonate_end,vendor_status_change,identity_review)`.
+   - `transactions` (monitor): only `status=in.(flagged,frozen,disputed)` — routine status flips don't need to page every admin.
 
-1. **`src/services/admin-settings.service.ts` — extend `SettingsAuditRow`**
-   - Add parsed fields derived once in the service:
-     - `reason: string | null`
-     - `changed_keys: string[]`
-     - `before: Record<string, unknown>`
-     - `after: Record<string, unknown>`
-     - `metadata: Record<string, unknown> | null` (keeps `scope`, `vendor_id`, `apply_to_all_vendors`)
-   - Handle both shapes: new unified payload (`before` / `after` present) and legacy `{ scope, updates, timeouts }` (fall back to synthesising `changed_keys` from `updates` + timeouts).
-   - Keep raw `action_notes` for backwards compatibility.
+2. **"Load older" for the long tail.** The realtime stream now only carries high-signal events. For the full list the UI already paginates via the SQL endpoints from Batch B/C — add an explicit "Load older activity" button in `AdminNotifications` and the dashboard activity feed instead of streaming everything.
 
-2. **`src/pages/AdminSettings.tsx` — Audit row renderer**
-   - Replace the inline JSON re-parse in `AuditRow` with the pre-parsed fields.
-   - Header line: `Updated N settings` (from `changed_keys.length`), plus Platform/Vendor/"Applied to all" pills as today.
-   - New collapsible diff table when `changed_keys.length > 0`:
-     ```
-     escrow.auto_release_hours       48h  →  72h
-     escrow.auto_release_enabled     true →  false
-     ```
-     - Values rendered via a `formatSettingValue()` helper (boolean → Yes/No, numbers/strings shown raw, objects → truncated JSON).
-     - When the diff spans nested groups (e.g. `settings`/`timeouts` on system-settings saves), flatten one level so each real key shows on its own row.
-     - Show first 6 rows, "+N more" toggle for the rest.
-   - Show `reason` in italics under the header (existing).
-   - Footer meta: admin name · target vendor · relative time · IP (if present, monospace, muted).
+3. **One shared channel factory.** Introduce `src/hooks/useAdminRealtimeChannel.ts` that wraps `supabase.channel()` with:
+   - a stable channel name per (table, filter),
+   - automatic teardown on unmount,
+   - a small in-memory de-dupe (last 200 event ids) so retries don't double-fire toasts.
+   Refactor `useRealtimeAdminNotifications`, the dispute list hook, and the transactions-monitor hook to use it.
 
-3. **"Export Full Log" button**
-   - Wire to a CSV download built client-side from the already-loaded `auditRows`: columns `created_at, admin, action_type, target, changed_keys, before, after, reason, ip`. No new backend surface; async job pipeline for the full corpus is out of scope for this item.
+4. **Toast throttling.** Even with filters, bursts happen. Cap toast surfacing to ≤ 1 per second per channel (collapse the rest into an aggregated "+N new" badge).
 
-### Not in this pass
-
-- No new edge functions, no schema change (`action_notes` already holds the diff as JSON).
-- No changes to other admin pages' audit surfaces — Settings is the one called out in #11.
-- Impersonation (#13), scoped realtime (#12), design-token sweep (#14), integration tests (#16) remain the next queued items after this ships.
+5. **Backend: broadcast for cross-admin signals.** For events that don't map cleanly to a filter (e.g. "another admin just took this dispute"), add a lightweight Postgres `pg_notify` → Supabase Broadcast channel `admin:events` published from the unified `logAdminAction` helper. Admin clients subscribe once; payload contains `{action, target_type, target_id, actor}` only — no row data.
 
 ### Files touched
+- `src/hooks/useRealtimeAdminNotifications.ts` (rewrite subscription with filter)
+- `src/hooks/useAdminRealtimeChannel.ts` (new shared factory)
+- `src/hooks/useAdminDisputeRealtime.ts`, `src/pages/AdminTransactions.tsx` realtime block (refactor to factory + filters)
+- `src/pages/AdminNotifications.tsx` (add "Load older", wire throttled toasts)
+- `supabase/functions/_shared/audit.ts` (optional broadcast emit on `logAdminAction`)
 
-- `src/services/admin-settings.service.ts` (parsing + type expansion)
-- `src/pages/AdminSettings.tsx` (`AuditRow` render + Export button handler)
+### Out of scope
+- Impersonation (#13) — deferred to the new impersonation screen.
+- Design-token sweep (#14) and integration tests (#16) — P3 backlog.
+
+After #12 lands, the P0 + P1 + P2 audit list is 100% complete and only the explicitly-deferred P3 items remain.
