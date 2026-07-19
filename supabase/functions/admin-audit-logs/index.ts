@@ -27,6 +27,16 @@ function severityFor(action: string): Severity {
   return "low";
 }
 
+// Regex mirrors of severityFor buckets — used to push severity filtering into
+// Postgres via PostgREST `imatch` so paging stays accurate.
+const SEVERITY_REGEX: Record<Exclude<Severity, "low">, string> = {
+  critical: "suspend|freeze|block|impersonat|reveal|delete|force|purge",
+  high: "role|setting|dispute_resolve|refund|override|policy|escrow_alert",
+  medium: "retry|broadcast|notification|review|approve|reject",
+  info: "view|export|list|search",
+};
+const UUID_RE = /^[0-9a-f-]{36}$/i;
+
 function humanAction(action: string): string {
   return (action || "")
     .replace(/[_-]+/g, " ")
@@ -58,10 +68,12 @@ Deno.serve(async (req) => {
     const now = Date.now();
     const dayAgo = new Date(now - 24 * 3600 * 1000).toISOString();
     const monthAgo = new Date(now - 30 * 24 * 3600 * 1000).toISOString();
-    const [{ count: total30d }, { data: recent }, { data: latest }] = await Promise.all([
+    const [{ count: total30d }, { data: recent }, { data: latest }, { data: sample }] = await Promise.all([
       admin.from("admin_actions").select("id", { count: "exact", head: true }).gte("created_at", monthAgo),
       admin.from("admin_actions").select("admin_user_id, action_type, created_at").gte("created_at", dayAgo).limit(5000),
       admin.from("admin_actions").select("created_at").order("created_at", { ascending: false }).limit(1),
+      // Sample of recent payload sizes for a realistic 30d storage estimate.
+      admin.from("admin_actions").select("action_notes").gte("created_at", monthAgo).limit(2000),
     ]);
     const rec = recent ?? [];
     const highSeverity = rec.filter((r) => {
@@ -69,13 +81,60 @@ Deno.serve(async (req) => {
       return s === "high" || s === "critical";
     }).length;
     const actors = new Set(rec.map((r) => r.admin_user_id).filter(Boolean)).size;
+    const sampled = sample ?? [];
+    const sampledBytes = sampled.reduce((n, r) => n + (r.action_notes ? (r.action_notes as string).length : 0), 0);
+    const avgBytes = sampled.length ? Math.round(sampledBytes / sampled.length) : 512;
+    const storageBytes = (total30d ?? 0) * avgBytes;
     return json(200, {
       total_entries: total30d ?? 0,
       high_severity: highSeverity,
       active_admins: actors,
-      storage_bytes: (total30d ?? 0) * 512,
+      storage_bytes: storageBytes,
       latest_entry_at: latest?.[0]?.created_at ?? null,
     });
+  }
+
+  if (mode === "facets") {
+    // Distinct action types and top actors over the last 90 days.
+    const ninety = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
+    const { data: recent } = await admin
+      .from("admin_actions")
+      .select("action_type, admin_user_id, created_at")
+      .gte("created_at", ninety)
+      .order("created_at", { ascending: false })
+      .limit(10000);
+    const typeCounts = new Map<string, number>();
+    const actorCounts = new Map<string, number>();
+    for (const r of recent ?? []) {
+      const t = (r.action_type as string) ?? "";
+      if (t) typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1);
+      const a = (r.admin_user_id as string) ?? "";
+      if (a) actorCounts.set(a, (actorCounts.get(a) ?? 0) + 1);
+    }
+    const action_types = Array.from(typeCounts.entries())
+      .sort((a, b) => b[1] - a[1]).slice(0, 200).map(([t]) => t);
+    const actorIds = Array.from(actorCounts.entries())
+      .sort((a, b) => b[1] - a[1]).slice(0, 100).map(([id]) => id);
+    const profileMap = new Map<string, { id: string; full_name: string | null; email: string | null }>();
+    const roleMap = new Map<string, string>();
+    if (actorIds.length) {
+      const { data: profs } = await admin.from("profiles")
+        .select("id, full_name, email").in("id", actorIds);
+      for (const p of profs ?? []) profileMap.set(p.id, p);
+      const { data: roles } = await admin.from("user_roles")
+        .select("user_id, role").in("user_id", actorIds);
+      for (const r of roles ?? []) if (!roleMap.has(r.user_id)) roleMap.set(r.user_id, r.role);
+    }
+    const actors = actorIds.map((id) => {
+      const p = profileMap.get(id);
+      return {
+        id,
+        full_name: p?.full_name ?? "Admin",
+        email: p?.email ?? null,
+        role: roleMap.get(id) ?? "admin",
+      };
+    });
+    return json(200, { action_types, actors });
   }
 
   // list mode
@@ -94,10 +153,43 @@ Deno.serve(async (req) => {
   if (actor && actor !== "all") query = query.eq("admin_user_id", actor);
   if (from) query = query.gte("created_at", from);
   if (to) query = query.lte("created_at", to);
+
+  // Severity — apply via PostgREST regex operator (`imatch`) so pagination is
+  // accurate. For "low" we exclude every other bucket's regex.
+  if (severity && severity !== ("all" as Severity)) {
+    if (severity === "low") {
+      for (const rx of Object.values(SEVERITY_REGEX)) {
+        query = query.not("action_type", "imatch", rx);
+      }
+    } else if (SEVERITY_REGEX[severity as Exclude<Severity, "low">]) {
+      query = query.filter("action_type", "imatch", SEVERITY_REGEX[severity as Exclude<Severity, "low">]);
+    }
+  }
+
+  // Broadened search: UUIDs match id columns; free text matches action_type,
+  // action_notes, target profile name/email, and transaction codes.
   if (q) {
-    query = query.or(
-      `action_type.ilike.%${q}%,action_notes.ilike.%${q}%,id.eq.${/^[0-9a-f-]{36}$/i.test(q) ? q : "00000000-0000-0000-0000-000000000000"}`,
-    );
+    if (UUID_RE.test(q)) {
+      query = query.or(
+        `id.eq.${q},target_user_id.eq.${q},transaction_id.eq.${q},dispute_id.eq.${q},admin_user_id.eq.${q}`,
+      );
+    } else {
+      const like = `%${q.replace(/[,()]/g, " ")}%`;
+      // Resolve extra IDs to widen the OR set.
+      const [{ data: matchedProfiles }, { data: matchedTx }] = await Promise.all([
+        admin.from("profiles").select("id").or(`full_name.ilike.${like},email.ilike.${like}`).limit(200),
+        admin.from("transactions").select("id").ilike("transaction_code", like).limit(200),
+      ]);
+      const targetIds = (matchedProfiles ?? []).map((p) => p.id).filter(Boolean);
+      const txIds = (matchedTx ?? []).map((t) => t.id).filter(Boolean);
+      const orParts: string[] = [
+        `action_type.ilike.${like}`,
+        `action_notes.ilike.${like}`,
+      ];
+      if (targetIds.length) orParts.push(`target_user_id.in.(${targetIds.join(",")})`);
+      if (txIds.length) orParts.push(`transaction_id.in.(${txIds.join(",")})`);
+      query = query.or(orParts.join(","));
+    }
   }
   const fromIdx = (page - 1) * pageSize;
   query = query.order("created_at", { ascending: false }).range(fromIdx, fromIdx + pageSize - 1);
