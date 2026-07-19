@@ -71,6 +71,7 @@ import { InternalNoteDialog } from "@/components/admin/transactions/InternalNote
 import { DetailDrawer } from "@/components/admin/transactions/DetailDrawer";
 import { TransactionsEmptyState } from "@/components/admin/transactions/TransactionsEmptyState";
 import { rowStateClass, pickEmptyVariant } from "@/components/admin/transactions/rowState";
+import { runExport } from "@/services/admin-escrow.service";
 
 /* ---------------- Visual helpers ---------------- */
 
