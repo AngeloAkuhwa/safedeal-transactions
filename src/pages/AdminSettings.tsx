@@ -19,6 +19,40 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
+/* ---- audit value formatting ---- */
+function formatSettingValue(v: unknown): string {
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  if (typeof v === "number" || typeof v === "string") return String(v);
+  try {
+    const s = JSON.stringify(v);
+    return s.length > 80 ? `${s.slice(0, 77)}…` : s;
+  } catch { return String(v); }
+}
+
+function auditRowsToCsv(rows: SettingsAuditRow[]): string {
+  const header = ["created_at","admin","action_type","target","changed_keys","before","after","reason","ip"];
+  const esc = (s: unknown) => {
+    const str = s === null || s === undefined ? "" : (typeof s === "string" ? s : JSON.stringify(s));
+    return `"${str.replace(/"/g, '""')}"`;
+  };
+  const lines = [header.join(",")];
+  for (const r of rows) {
+    lines.push([
+      esc(r.created_at),
+      esc(r.admin_name ?? r.admin_user_id),
+      esc(r.action_type),
+      esc(r.target_name ?? r.target_user_id ?? ""),
+      esc(r.changed_keys.join("|")),
+      esc(r.before),
+      esc(r.after),
+      esc(r.reason ?? ""),
+      esc(r.ip ?? ""),
+    ].join(","));
+  }
+  return lines.join("\n");
+}
+
 /* ------------------------------ primitives ------------------------------ */
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
