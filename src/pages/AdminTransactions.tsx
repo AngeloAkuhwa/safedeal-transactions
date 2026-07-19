@@ -635,11 +635,12 @@ export default function AdminTransactions() {
               <button
                 type="button"
                 onClick={handleExport}
+                disabled={exporting}
                 aria-label="Export transactions"
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3.5 py-2 text-sm text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 disabled:opacity-60"
               >
-                <Download className="h-4 w-4" />
-                Export
+                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {exporting ? "Exporting…" : "Export"}
               </button>
               <button
                 type="button"
