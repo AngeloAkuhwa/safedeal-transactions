@@ -24,6 +24,7 @@ const SUPPORTED_TYPES = new Set([
   "flagged_users",
   "transactions_monitor",
   "user_detail",
+  "audit_logs",
 ]);
 
 function json(body: unknown, status = 200) {
