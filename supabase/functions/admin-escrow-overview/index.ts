@@ -329,45 +329,10 @@ Deno.serve(async (req) => {
   };
 
   // ---- Records (paginated) ----
-  // Filter base set of escrow_states by state buckets
-  let candidate = (states ?? []).filter((s) => Number(s.held_amount ?? 0) + Number(s.frozen_amount ?? 0) + Number(s.released_amount ?? 0) + Number(s.refunded_amount ?? 0) > 0);
-
-  if (state !== "all") {
-    const stateMap: Record<string, (s: typeof candidate[number]) => boolean> = {
-      held: (s) => Number(s.held_amount ?? 0) > 0,
-      frozen: (s) => Number(s.frozen_amount ?? 0) > 0,
-      pending_release: (s) => pendingIds.includes(s.transaction_id as string),
-      released: (s) => Number(s.released_amount ?? 0) > 0,
-      refunded: (s) => Number(s.refunded_amount ?? 0) > 0,
-    };
-    const fn = stateMap[state];
-    if (fn) candidate = candidate.filter(fn);
-  }
-
-  // Date filter on last_changed_at
-  const dateCutoff = dateRange === "today" ? new Date(todayStart).getTime()
-    : dateRange === "7d" ? now - 7 * DAY_MS
-    : dateRange === "30d" ? now - 30 * DAY_MS
-    : 0;
-  if (dateCutoff > 0) {
-    candidate = candidate.filter((s) => new Date(s.last_changed_at as string).getTime() >= dateCutoff);
-  }
-
-  // Amount bucket on (held+frozen)
-  if (amountBucket !== "any") {
-    const bands: Record<string, [number, number]> = {
-      "lt_100k": [0, 100_000],
-      "100k_1m": [100_000, 1_000_000],
-      "gt_1m": [1_000_000, Number.POSITIVE_INFINITY],
-    };
-    const [lo, hi] = bands[amountBucket] ?? [0, Number.POSITIVE_INFINITY];
-    candidate = candidate.filter((s) => {
-      const v = Number(s.held_amount ?? 0) + Number(s.frozen_amount ?? 0);
-      return v >= lo && v < hi;
-    });
-  }
-
-  // P1: pagination + filtering pushed into SQL via admin_escrow_records_page.
+  // P1: pagination + filtering pushed fully into SQL via
+  // admin_escrow_records_page. Previously this block filtered/sorted/sliced
+  // the entire escrow_states set in JS — an OOM/silent-truncation risk once
+  // the table grows past ~100k rows.
   // The KPI scan above still walks escrow_states, but record pagination no
   // longer materializes the full set in JS before slicing.
   const { data: pageRows, error: pageErr } = await admin.rpc("admin_escrow_records_page", {
