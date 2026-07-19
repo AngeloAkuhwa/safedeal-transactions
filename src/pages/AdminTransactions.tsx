@@ -493,8 +493,34 @@ export default function AdminTransactions() {
   const handleRefresh = () => {
     fetchData();
   };
-  const handleExport = () =>
-    toast({ title: "Export queued", description: "Your export will appear in /admin/exports when ready." });
+  const [exporting, setExporting] = useState(false);
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      toast({ title: "Preparing export…", description: "Generating CSV in the background." });
+      const params: Record<string, unknown> = {};
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (txStatus) params.transactionStatus = txStatus;
+      if (moneyStatus) params.moneyStatus = moneyStatus;
+      if (disputeStatus) params.disputeStatus = disputeStatus;
+      if (riskLevel) params.riskLevel = riskLevel;
+      if (amountMin) params.amountMin = Number(amountMin);
+      if (amountMax) params.amountMax = Number(amountMax);
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
+      if (activeQuick && activeQuick !== "all") params.quickFilter = activeQuick;
+      const { url, job } = await runExport("transactions_monitor", params);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      toast({ title: "Export ready", description: `${job.row_count?.toLocaleString() ?? 0} rows downloaded.` });
+    } catch (e) {
+      toast({ title: "Export failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const clearAllFilters = useCallback(() => {
     setActiveQuick("all");
