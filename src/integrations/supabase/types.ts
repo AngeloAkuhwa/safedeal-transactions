@@ -4819,7 +4819,7 @@ export type Database = {
           refunds_30d: number | null
           reversed_payouts: number | null
           risk_level: string | null
-          role: Database["public"]["Enums"]["user_role_type"] | null
+          role: string | null
           score: number | null
           search_haystack: string | null
           status: string | null
