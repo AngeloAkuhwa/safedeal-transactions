@@ -4,6 +4,8 @@ export interface AuthContext {
   userId: string;
   email: string | null;
   adminClient: SupabaseClient;
+  /** Assurance level from the access token ("aal1" or "aal2"). */
+  aal?: string | null;
 }
 
 /**
@@ -21,7 +23,14 @@ export async function requireUser(req: Request): Promise<AuthContext> {
   const token = authHeader.replace("Bearer ", "");
   const { data, error } = await adminClient.auth.getUser(token);
   if (error || !data?.user) throw new AuthError(401, "invalid_session");
-  return { userId: data.user.id, email: data.user.email ?? null, adminClient };
+  let aal: string | null = null;
+  try {
+    const payload = JSON.parse(
+      atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
+    );
+    aal = typeof payload?.aal === "string" ? payload.aal : null;
+  } catch { /* non-fatal */ }
+  return { userId: data.user.id, email: data.user.email ?? null, adminClient, aal };
 }
 
 /**
@@ -36,6 +45,28 @@ export async function requireAdmin(req: Request): Promise<AuthContext> {
   });
   if (error) throw new AuthError(500, "role_check_failed");
   if (!hasRole) throw new AuthError(403, "admin_required");
+
+  // Optional AAL2 gate — enforced when platform setting
+  // `security.two_factor_admin` is truthy. Fails open on read errors so a
+  // misconfigured setting can't lock every admin out.
+  try {
+    const { data: row } = await ctx.adminClient
+      .from("system_settings")
+      .select("value")
+      .eq("scope", "platform")
+      .eq("key", "security.two_factor_admin")
+      .maybeSingle();
+    const raw = (row as { value?: unknown } | null)?.value;
+    const requireMfa =
+      raw === true || raw === "true" ||
+      (typeof raw === "object" && raw !== null && (raw as { enabled?: unknown }).enabled === true);
+    if (requireMfa && ctx.aal !== "aal2") {
+      throw new AuthError(403, "mfa_required");
+    }
+  } catch (e) {
+    if (e instanceof AuthError) throw e;
+  }
+
   return ctx;
 }
 
