@@ -1,6 +1,8 @@
-import { Download, UserPlus, Users as UsersIcon } from "lucide-react";
+import { useState } from "react";
+import { Download, Loader2, UserPlus, Users as UsersIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { exportUsersDirectory, type UserDirectoryQuery } from "@/services/admin-users-directory.service";
+import { type UserDirectoryQuery } from "@/services/admin-users-directory.service";
+import { runExport } from "@/services/admin-escrow.service";
 import { PresenceCountChip } from "./PresenceDot";
 
 interface Props {
@@ -12,17 +14,26 @@ interface Props {
 }
 
 export function UsersHeaderBar({ totalUsers, query, onlineCount = 0, offlineCount = 0 }: Props) {
+  const [busy, setBusy] = useState(false);
   const onExport = async () => {
+    setBusy(true);
     try {
-      const blob = await exportUsersDirectory(query);
-      const url = URL.createObjectURL(blob);
+      toast({ title: "Preparing export…", description: "Generating CSV in the background." });
+      const params: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(query)) {
+        if (k === "page" || k === "page_size") continue;
+        if (v !== undefined && v !== null && v !== "") params[k] = v;
+      }
+      const { url, job } = await runExport("users_directory", params);
       const a = document.createElement("a");
       a.href = url;
       a.download = `user-directory-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      document.body.appendChild(a); a.click(); a.remove();
+      toast({ title: "Export ready", description: `${job.row_count?.toLocaleString() ?? 0} rows downloaded.` });
     } catch (e) {
       toast({ title: "Export failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -51,9 +62,9 @@ export function UsersHeaderBar({ totalUsers, query, onlineCount = 0, offlineCoun
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button type="button" onClick={onExport} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-sm font-medium">
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Export Users</span>
+          <button type="button" onClick={onExport} disabled={busy} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            <span className="hidden sm:inline">{busy ? "Exporting…" : "Export Users"}</span>
           </button>
           <button type="button" onClick={() => toast({ title: "Coming soon", description: "User creation is on the roadmap." })} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-2 text-sm font-medium">
             <UserPlus className="h-4 w-4" />
