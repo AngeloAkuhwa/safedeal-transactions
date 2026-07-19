@@ -38,6 +38,25 @@ Deno.serve(async (req) => {
   const { data: isAdmin } = await userClient.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (!isAdmin) return json({ error: "admin_access_required" }, 403);
 
+  // Cap: 10 transaction-data exports per admin per hour.
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const { data: rlRow } = await admin.rpc("check_admin_rate_limit", {
+    _admin_id: userId,
+    _action_key: "transaction_data_export",
+    _max_per_hour: 10,
+  });
+  const rl = Array.isArray(rlRow) ? rlRow[0] : rlRow;
+  if (rl && rl.allowed === false) {
+    return new Response(
+      JSON.stringify({
+        error: "rate_limited",
+        reason: `You have hit the hourly cap for this export (${rl.cap}/hr).`,
+        used: rl.used, cap: rl.cap,
+      }),
+      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "3600" } },
+    );
+  }
+
   let body: any;
   try { body = await req.json(); } catch { return json({ error: "invalid_json" }, 400); }
   const txId = String(body.transaction_id ?? body.transactionId ?? "");
@@ -55,7 +74,7 @@ Deno.serve(async (req) => {
     admin_notes: body.include_admin_notes === true,
   };
 
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  // `admin` client already created above for the rate-limit check.
 
   const { data: tx, error: txErr } = await admin
     .from("transactions")
