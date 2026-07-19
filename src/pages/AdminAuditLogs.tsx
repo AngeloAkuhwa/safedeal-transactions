@@ -242,7 +242,7 @@ export default function AdminAuditLogs() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const { url } = await runExport("audit_logs" as any, applied);
+      const { url } = await runExport("audit_logs" as any, applied as unknown as Record<string, unknown>);
       window.open(url, "_blank");
       toast.success("Export ready");
     } catch (e) {
