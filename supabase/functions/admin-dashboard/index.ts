@@ -258,108 +258,47 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
   ]);
   let flaggedUsersBadge = 0;
   try {
-    const { data: flagRows } = await client
-      .from("admin_actions")
-      .select("target_user_id")
-      .gte("created_at", since7dIso)
-      .in("action_type", ["flag_user", "freeze_transaction", "escalate_case"])
-      .not("target_user_id", "is", null)
-      .limit(5000);
-    flaggedUsersBadge = new Set(
-      ((flagRows ?? []) as any[]).map((r) => r.target_user_id).filter(Boolean),
-    ).size;
+    // P1 #5: SQL-side distinct count (replaces 5000-row JS scan).
+    const { data: cnt } = await client.rpc("admin_flagged_users_count", {
+      _since: since7dIso,
+    });
+    flaggedUsersBadge = Number(cnt ?? 0) || 0;
   } catch {
     flaggedUsersBadge = 0;
   }
 
   // Identity review health (avg time + 9-day sparkline)
+  // P1 #5: single SQL RPC replaces two multi-thousand-row scans + JS bucketing.
   let avgReviewHours: number | null = null;
   let identitySpark: number[] = [];
   try {
-    const { data: reviewed } = await client
-      .from("identity_submissions")
-      .select("submitted_at, reviewed_at")
-      .gte("reviewed_at", since30d)
-      .not("reviewed_at", "is", null)
-      .limit(2000);
-    if (reviewed && reviewed.length) {
-      const hrs = (reviewed as any[])
-        .map((r) =>
-          (new Date(r.reviewed_at).getTime() - new Date(r.submitted_at).getTime()) /
-          (1000 * 60 * 60),
-        )
-        .filter((n) => Number.isFinite(n) && n >= 0);
-      if (hrs.length) {
-        avgReviewHours = Number(
-          (hrs.reduce((a, b) => a + b, 0) / hrs.length).toFixed(1),
-        );
-      }
+    const { data: rows } = await client.rpc("admin_identity_review_health", {
+      _since_avg: since30d,
+      _since_spark: since9d,
+    });
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    if (row) {
+      avgReviewHours = row.avg_hours != null ? Number(row.avg_hours) : null;
+      identitySpark = Array.isArray(row.spark) ? row.spark.map((n: any) => Number(n) || 0) : [];
     }
-    const { data: subs9d } = await client
-      .from("identity_submissions")
-      .select("submitted_at")
-      .gte("submitted_at", since9d)
-      .limit(5000);
-    const buckets: number[] = Array(9).fill(0);
-    const today0 = new Date(startOfToday).getTime();
-    for (const r of (subs9d ?? []) as any[]) {
-      const t = new Date(r.submitted_at).getTime();
-      const dayIdx = 8 - Math.floor((today0 - new Date(
-        new Date(r.submitted_at).getFullYear(),
-        new Date(r.submitted_at).getMonth(),
-        new Date(r.submitted_at).getDate(),
-      ).getTime()) / (24 * 60 * 60 * 1000));
-      if (dayIdx >= 0 && dayIdx < 9) buckets[dayIdx]++;
-    }
-    identitySpark = buckets;
   } catch (e) {
     await logEdgeError(client, `identity_health_failed: ${(e as Error).message}`, userId);
   }
 
   // ---------- Payout Health: avg payout time + 9d sparkline ----------
+  // P1 #5: single SQL RPC replaces two multi-thousand-row scans + JS bucketing.
   let avgPayoutHours: number | null = null;
   let payoutSpark: number[] = [];
   try {
-    const { data: completedPayouts } = await client
-      .from("payouts")
-      .select("released_at, last_release_attempt_at, updated_at, completed_at")
-      .eq("status", "completed")
-      .gte("completed_at", since30d)
-      .not("completed_at", "is", null)
-      .limit(2000);
-    if (completedPayouts?.length) {
-      const hrs = (completedPayouts as any[])
-        .map((r) => {
-          const end = new Date(r.completed_at).getTime();
-          const startTs = r.released_at
-            ? new Date(r.released_at).getTime()
-            : r.last_release_attempt_at
-            ? new Date(r.last_release_attempt_at).getTime()
-            : r.updated_at
-            ? new Date(r.updated_at).getTime()
-            : NaN;
-          return (end - startTs) / (1000 * 60 * 60);
-        })
-        .filter((n) => Number.isFinite(n) && n >= 0);
-      if (hrs.length) {
-        avgPayoutHours = Number((hrs.reduce((a, b) => a + b, 0) / hrs.length).toFixed(1));
-      }
+    const { data: rows } = await client.rpc("admin_payout_health", {
+      _since_avg: since30d,
+      _since_spark: since9d,
+    });
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    if (row) {
+      avgPayoutHours = row.avg_hours != null ? Number(row.avg_hours) : null;
+      payoutSpark = Array.isArray(row.spark) ? row.spark.map((n: any) => Number(n) || 0) : [];
     }
-    const { data: payouts9d } = await client
-      .from("payouts")
-      .select("completed_at")
-      .eq("status", "completed")
-      .gte("completed_at", since9d)
-      .limit(5000);
-    const buckets: number[] = Array(9).fill(0);
-    const today0 = new Date(startOfToday).getTime();
-    for (const r of (payouts9d ?? []) as any[]) {
-      const d = new Date(r.completed_at);
-      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-      const dayIdx = 8 - Math.floor((today0 - dayStart) / (24 * 60 * 60 * 1000));
-      if (dayIdx >= 0 && dayIdx < 9) buckets[dayIdx]++;
-    }
-    payoutSpark = buckets;
   } catch (e) {
     await logEdgeError(client, `payout_health_failed: ${(e as Error).message}`, userId);
   }
@@ -371,27 +310,11 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
   // held_amount vs payment_amount drift on escrow_states.
   let reconMismatchCount = 0;
   try {
-    const { data: succ } = await client
-      .from("payments")
-      .select("transaction_id")
-      .eq("status", "succeeded")
-      .gte("created_at", since30d)
-      .not("transaction_id", "is", null)
-      .limit(2000);
-    const txIds = Array.from(
-      new Set(((succ ?? []) as any[]).map((r) => r.transaction_id).filter(Boolean)),
-    );
-    if (txIds.length) {
-      const { data: ledger } = await client
-        .from("escrow_ledger_entries")
-        .select("transaction_id, entry_type")
-        .in("transaction_id", txIds)
-        .in("entry_type", ["payment_credit", "escrow_hold"]);
-      const haveDeposit = new Set(
-        ((ledger ?? []) as any[]).map((r) => r.transaction_id),
-      );
-      reconMismatchCount = txIds.filter((id) => !haveDeposit.has(id)).length;
-    }
+    // P1 #5: SQL-side left-join count (replaces 2k + N-row JS scan).
+    const { data: cnt } = await client.rpc("admin_reconciliation_mismatches", {
+      _since: since30d,
+    });
+    reconMismatchCount = Number(cnt ?? 0) || 0;
   } catch (e) {
     await logEdgeError(client, `recon_failed: ${(e as Error).message}`, userId);
   }

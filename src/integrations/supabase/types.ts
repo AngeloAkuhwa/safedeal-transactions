@@ -56,6 +56,13 @@ export type Database = {
             foreignKeyName: "account_verifications_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "account_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -97,6 +104,13 @@ export type Database = {
             foreignKeyName: "admin_actions_admin_user_id_fkey"
             columns: ["admin_user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "admin_actions_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -113,6 +127,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "disputes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_actions_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "admin_actions_target_user_id_fkey"
@@ -327,6 +348,13 @@ export type Database = {
             foreignKeyName: "admin_transaction_notes_admin_user_id_fkey"
             columns: ["admin_user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "admin_transaction_notes_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -399,8 +427,22 @@ export type Database = {
             foreignKeyName: "audit_logs_actor_user_id_fkey"
             columns: ["actor_user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "audit_logs_target_user_id_fkey"
@@ -661,6 +703,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "disputes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_reviews_reviewed_by_user_id_fkey"
+            columns: ["reviewed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "case_reviews_reviewed_by_user_id_fkey"
@@ -930,6 +979,13 @@ export type Database = {
             foreignKeyName: "delivery_proof_files_uploaded_by_user_id_fkey"
             columns: ["uploaded_by_user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "delivery_proof_files_uploaded_by_user_id_fkey"
+            columns: ["uploaded_by_user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1064,6 +1120,13 @@ export type Database = {
             foreignKeyName: "delivery_updates_updated_by_user_id_fkey"
             columns: ["updated_by_user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "delivery_updates_updated_by_user_id_fkey"
+            columns: ["updated_by_user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1110,6 +1173,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "devices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "devices_user_id_fkey"
             columns: ["user_id"]
@@ -1185,6 +1255,13 @@ export type Database = {
             foreignKeyName: "dispute_evidence_submitted_by_user_id_fkey"
             columns: ["submitted_by_user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "dispute_evidence_submitted_by_user_id_fkey"
+            columns: ["submitted_by_user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1241,6 +1318,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "disputes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispute_outcomes_resolved_by_user_id_fkey"
+            columns: ["resolved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "dispute_outcomes_resolved_by_user_id_fkey"
@@ -1310,6 +1394,13 @@ export type Database = {
             foreignKeyName: "dispute_responses_responded_by_user_id_fkey"
             columns: ["responded_by_user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "dispute_responses_responded_by_user_id_fkey"
+            columns: ["responded_by_user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1347,6 +1438,13 @@ export type Database = {
           reason?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "dispute_status_history_changed_by_user_id_fkey"
+            columns: ["changed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "dispute_status_history_changed_by_user_id_fkey"
             columns: ["changed_by_user_id"]
@@ -1411,6 +1509,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "disputes_opened_by_user_id_fkey"
+            columns: ["opened_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "disputes_opened_by_user_id_fkey"
             columns: ["opened_by_user_id"]
@@ -1525,6 +1630,13 @@ export type Database = {
           transaction_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "escrow_ledger_entries_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "escrow_ledger_entries_created_by_user_id_fkey"
             columns: ["created_by_user_id"]
@@ -1785,6 +1897,13 @@ export type Database = {
             foreignKeyName: "files_uploaded_by_user_id_fkey"
             columns: ["uploaded_by_user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "files_uploaded_by_user_id_fkey"
+            columns: ["uploaded_by_user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1876,6 +1995,13 @@ export type Database = {
             foreignKeyName: "identity_submissions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "identity_submissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1913,6 +2039,13 @@ export type Database = {
           transaction_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "money_status_history_changed_by_user_id_fkey"
+            columns: ["changed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "money_status_history_changed_by_user_id_fkey"
             columns: ["changed_by_user_id"]
@@ -2033,6 +2166,13 @@ export type Database = {
             foreignKeyName: "notification_preferences_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2129,6 +2269,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pricing_snapshot_audit"
             referencedColumns: ["transaction_id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "notifications_user_id_fkey"
@@ -2304,6 +2451,13 @@ export type Database = {
             foreignKeyName: "payments_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2441,8 +2595,22 @@ export type Database = {
             foreignKeyName: "payouts_release_approved_by_user_id_fkey"
             columns: ["release_approved_by_user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "payouts_release_approved_by_user_id_fkey"
+            columns: ["release_approved_by_user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "payouts_seller_id_fkey"
@@ -2519,6 +2687,13 @@ export type Database = {
           verified_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "phone_otp_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "phone_otp_codes_user_id_fkey"
             columns: ["user_id"]
@@ -2602,6 +2777,13 @@ export type Database = {
           reference_type?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "product_inventory_logs_changed_by_user_id_fkey"
+            columns: ["changed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "product_inventory_logs_changed_by_user_id_fkey"
             columns: ["changed_by_user_id"]
@@ -2765,6 +2947,13 @@ export type Database = {
             foreignKeyName: "products_seller_id_fkey"
             columns: ["seller_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "products_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2849,6 +3038,13 @@ export type Database = {
             foreignKeyName: "profiles_vendor_status_changed_by_fkey"
             columns: ["vendor_status_changed_by"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "profiles_vendor_status_changed_by_fkey"
+            columns: ["vendor_status_changed_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2922,6 +3118,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "refunds_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "refunds_buyer_id_fkey"
             columns: ["buyer_id"]
@@ -3023,6 +3226,13 @@ export type Database = {
             foreignKeyName: "release_review_queue_claimed_by_user_id_fkey"
             columns: ["claimed_by_user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "release_review_queue_claimed_by_user_id_fkey"
+            columns: ["claimed_by_user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -3032,6 +3242,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payouts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "release_review_queue_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "release_review_queue_seller_id_fkey"
@@ -3210,8 +3427,22 @@ export type Database = {
             foreignKeyName: "system_settings_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "system_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_settings_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "system_settings_vendor_id_fkey"
@@ -3261,8 +3492,22 @@ export type Database = {
             foreignKeyName: "timeout_rules_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "timeout_rules_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeout_rules_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "timeout_rules_vendor_id_fkey"
@@ -3299,6 +3544,13 @@ export type Database = {
           transaction_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transaction_agreement_snapshots_locked_by_user_id_fkey"
+            columns: ["locked_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "transaction_agreement_snapshots_locked_by_user_id_fkey"
             columns: ["locked_by_user_id"]
@@ -3365,6 +3617,13 @@ export type Database = {
           transaction_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transaction_completion_confirmations_confirmed_by_user_id_fkey"
+            columns: ["confirmed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "transaction_completion_confirmations_confirmed_by_user_id_fkey"
             columns: ["confirmed_by_user_id"]
@@ -3517,6 +3776,13 @@ export type Database = {
           transaction_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transaction_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "transaction_events_actor_user_id_fkey"
             columns: ["actor_user_id"]
@@ -3795,8 +4061,22 @@ export type Database = {
             foreignKeyName: "transaction_messages_recipient_user_id_fkey"
             columns: ["recipient_user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "transaction_messages_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_messages_sender_user_id_fkey"
+            columns: ["sender_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "transaction_messages_sender_user_id_fkey"
@@ -3952,6 +4232,13 @@ export type Database = {
             foreignKeyName: "transaction_participants_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "transaction_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -4063,6 +4350,13 @@ export type Database = {
           transaction_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transaction_status_history_changed_by_user_id_fkey"
+            columns: ["changed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "transaction_status_history_changed_by_user_id_fkey"
             columns: ["changed_by_user_id"]
@@ -4214,8 +4508,22 @@ export type Database = {
             foreignKeyName: "transactions_buyer_id_fkey"
             columns: ["buyer_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "transactions_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "transactions_created_by_user_id_fkey"
@@ -4235,8 +4543,22 @@ export type Database = {
             foreignKeyName: "transactions_release_approved_by_fkey"
             columns: ["release_approved_by"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "transactions_release_approved_by_fkey"
+            columns: ["release_approved_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "transactions_seller_id_fkey"
@@ -4286,6 +4608,13 @@ export type Database = {
             foreignKeyName: "user_region_access_logs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_region_access_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -4314,6 +4643,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "user_roles_user_id_fkey"
             columns: ["user_id"]
@@ -4381,6 +4717,13 @@ export type Database = {
             foreignKeyName: "user_sessions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -4401,6 +4744,13 @@ export type Database = {
           transaction_id: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "disputes_opened_by_user_id_fkey"
+            columns: ["opened_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "disputes_opened_by_user_id_fkey"
             columns: ["opened_by_user_id"]
@@ -4437,6 +4787,33 @@ export type Database = {
             referencedColumns: ["transaction_id"]
           },
         ]
+      }
+      admin_user_directory_view: {
+        Row: {
+          avatar_url: string | null
+          default_role: string | null
+          disp_active: number | null
+          disp_total: number | null
+          email: string | null
+          email_verified: boolean | null
+          full_name: string | null
+          has_investigation: boolean | null
+          id_status: string | null
+          identity_verified: boolean | null
+          is_flagged: boolean | null
+          is_suspended: boolean | null
+          joined_at: string | null
+          last_active_at: string | null
+          phone: string | null
+          phone_verified: boolean | null
+          profile_status: string | null
+          roles: string[] | null
+          tx_count: number | null
+          tx_resolved: number | null
+          tx_volume: number | null
+          user_id: string | null
+        }
+        Relationships: []
       }
       buyer_transactions_view: {
         Row: {
@@ -4554,10 +4931,77 @@ export type Database = {
           transaction_id: string
         }[]
       }
+      admin_flagged_users_count: { Args: { _since: string }; Returns: number }
+      admin_identity_review_health: {
+        Args: { _since_avg: string; _since_spark: string }
+        Returns: {
+          avg_hours: number
+          spark: number[]
+        }[]
+      }
+      admin_payout_health: {
+        Args: { _since_avg: string; _since_spark: string }
+        Returns: {
+          avg_hours: number
+          spark: number[]
+        }[]
+      }
+      admin_reconciliation_mismatches: {
+        Args: { _since: string }
+        Returns: number
+      }
       admin_search_transaction_ids: {
         Args: { _limit?: number; _query: string }
         Returns: {
           transaction_id: string
+        }[]
+      }
+      admin_users_directory_page: {
+        Args: {
+          _from?: number
+          _role?: string
+          _search?: string
+          _sort?: string
+          _status?: string
+          _to?: number
+          _verification?: string
+        }
+        Returns: {
+          avatar_url: string
+          derived_status: string
+          disp_active: number
+          disp_total: number
+          email: string
+          email_verified: boolean
+          full_name: string
+          has_investigation: boolean
+          id_status: string
+          identity_verified: boolean
+          is_flagged: boolean
+          is_suspended: boolean
+          joined_at: string
+          last_active_at: string
+          phone: string
+          phone_verified: boolean
+          roles: string[]
+          total_count: number
+          tx_count: number
+          tx_resolved: number
+          tx_volume: number
+          user_id: string
+        }[]
+      }
+      admin_users_directory_summary: {
+        Args: never
+        Returns: {
+          email_verified: number
+          flagged_users: number
+          fully_verified: number
+          id_verified: number
+          new_this_month: number
+          new_this_week: number
+          phone_verified: number
+          total_users: number
         }[]
       }
       check_admin_rate_limit: {
