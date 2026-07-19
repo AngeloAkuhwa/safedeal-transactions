@@ -3,6 +3,7 @@
  * Honors same filters as admin-escrow-overview (state, date_range, amount_bucket, flag, q).
  */
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { enforceAdminRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,6 +40,9 @@ Deno.serve(async (req) => {
     });
   }
   const admin = ctx.adminClient;
+
+  const rl = await enforceAdminRateLimit(ctx, "escrow_export", 10, corsHeaders);
+  if (rl) return rl;
   const url = new URL(req.url);
 
   const state = url.searchParams.get("state") ?? "all";

@@ -5,6 +5,7 @@
  * Returns text/csv; writes admin_actions audit row per export.
  */
 import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { enforceAdminRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,6 +64,10 @@ Deno.serve(async (req) => {
     return json(500, { error: "auth_failed" });
   }
   const admin = ctx.adminClient;
+
+  // Cap: 10 user-detail exports per admin per hour.
+  const rl = await enforceAdminRateLimit(ctx, "user_detail_export", 10, corsHeaders);
+  if (rl) return rl;
 
   const url = new URL(req.url);
   const user_id = url.searchParams.get("user_id");
