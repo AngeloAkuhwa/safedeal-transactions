@@ -397,6 +397,90 @@ async function currentUserId(): Promise<string> {
   return uid;
 }
 
+// ============================================================================
+// Safeguard helpers — enforced client-side (mirrored by DB triggers/RLS)
+// ============================================================================
+
+async function loadUserRolesAndOverrides(userId: string): Promise<{
+  roles: InternalRoleKey[];
+  effective: string[];
+  base: string[];
+  grants: string[];
+  revokes: string[];
+}> {
+  const [rp, r, o] = await Promise.all([
+    loadRolePermissions(),
+    supabase.from("internal_user_roles").select("role_key").eq("user_id", userId),
+    supabase.from("user_permission_overrides").select("permission_key,mode").eq("user_id", userId),
+  ]);
+  const roles = ((r.data ?? []) as Array<{ role_key: string }>).map((x) => x.role_key as InternalRoleKey);
+  const grants: string[] = [];
+  const revokes: string[] = [];
+  for (const row of (o.data ?? []) as Array<{ permission_key: string; mode: string }>) {
+    if (row.mode === "grant") grants.push(row.permission_key);
+    else revokes.push(row.permission_key);
+  }
+  const { base, effective } = computeEffective(roles, grants, revokes, rp);
+  return { roles, effective, base, grants, revokes };
+}
+
+const ACCESS_RANK: Record<AccessLevel, number> = { full: 4, high: 3, standard: 2, limited: 1 };
+
+/** Rule d — cannot remove `super_admin` from the last active holder. */
+async function assertNotLastSuperAdmin(targetUserId: string, willRemoveSuperAdmin: boolean): Promise<void> {
+  if (!willRemoveSuperAdmin) return;
+  const { data } = await supabase
+    .from("internal_user_roles")
+    .select("user_id, internal_users:internal_users!inner(status)")
+    .eq("role_key", "super_admin");
+  const active = (data ?? []).filter((r: any) => r.internal_users?.status === "active");
+  const others = active.filter((r: any) => r.user_id !== targetUserId);
+  if (others.length === 0) {
+    throw new Error("Cannot remove the last active Super Admin. Assign another Super Admin first.");
+  }
+}
+
+/** Rules c + e — caller must outrank target, cannot self-modify privileges. */
+async function assertOutranksTarget(callerId: string, targetUserId: string, action: string): Promise<void> {
+  if (callerId === targetUserId) {
+    throw new Error(`You cannot ${action} your own account.`);
+  }
+  const [me, target] = await Promise.all([
+    loadUserRolesAndOverrides(callerId),
+    loadUserRolesAndOverrides(targetUserId),
+  ]);
+  const myLevel = deriveAccessLevel(me.effective, me.roles);
+  const targetLevel = deriveAccessLevel(target.effective, target.roles);
+  // Super admin outranks everyone.
+  if (me.roles.includes("super_admin")) return;
+  if (ACCESS_RANK[targetLevel] >= ACCESS_RANK[myLevel]) {
+    throw new Error(`You cannot ${action} a user whose access level is at or above yours.`);
+  }
+}
+
+/** Rule b — cannot grant a permission you do not hold. */
+async function assertCallerHoldsPermissions(callerId: string, keys: string[]): Promise<void> {
+  if (keys.length === 0) return;
+  const me = await loadUserRolesAndOverrides(callerId);
+  if (me.roles.includes("super_admin")) return;
+  const held = new Set(me.effective);
+  const missing = keys.filter((k) => !held.has(k));
+  if (missing.length > 0) {
+    throw new Error(
+      `You cannot grant permissions you don't hold: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "…" : ""}`,
+    );
+  }
+}
+
+async function callerIsSuperAdmin(callerId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("internal_user_roles")
+    .select("role_key")
+    .eq("user_id", callerId)
+    .eq("role_key", "super_admin");
+  return (data ?? []).length > 0;
+}
+
 async function auditLog(target_user_id: string, action_type: string, description: string, severity: "info" | "warning" | "critical" = "info", metadata: Record<string, unknown> = {}) {
   try {
     const uid = await currentUserId();
@@ -429,6 +513,8 @@ export async function updateUserRoles(input: UpdateRolesInput): Promise<{ applie
     throw new Error("Primary role must be one of the assigned roles.");
   }
   const requester = await currentUserId();
+  if (!input.reason?.trim()) throw new Error("A reason is required for role changes.");
+  await assertOutranksTarget(requester, input.user_id, "change roles for");
 
   // Read current state
   const { data: current, error: curErr } = await supabase
@@ -442,6 +528,17 @@ export async function updateUserRoles(input: UpdateRolesInput): Promise<{ applie
   const added = [...after].filter((r) => !before.has(r));
   const removed = [...before].filter((r) => !after.has(r));
   const hasProtected = [...added, ...removed].some(isProtectedRole);
+  const willRemoveSuperAdmin = before.has("super_admin") && !after.has("super_admin");
+  await assertNotLastSuperAdmin(input.user_id, willRemoveSuperAdmin);
+
+  // Rule b — cannot elevate to a role you don't hold at least equivalent to.
+  const addedProtected = added.filter(isProtectedRole);
+  if (addedProtected.length > 0) {
+    const isSuper = await callerIsSuperAdmin(requester);
+    if (!isSuper) {
+      // handled via approval queue below (existing behaviour)
+    }
+  }
 
   // If protected and caller isn't super_admin, queue for approval
   const { data: myRoles } = await supabase
@@ -514,6 +611,9 @@ export async function updatePermissionOverrides(input: UpdatePermissionsInput): 
   const invalid = [...input.grants, ...input.revokes].filter((k) => !ALL_PERMISSION_KEYS.includes(k));
   if (invalid.length) throw new Error(`Unknown permission keys: ${invalid.join(", ")}`);
   const requester = await currentUserId();
+  if (!input.reason?.trim()) throw new Error("A reason is required for permission overrides.");
+  await assertOutranksTarget(requester, input.user_id, "change permissions for");
+  await assertCallerHoldsPermissions(requester, input.grants);
 
   const { error: delErr } = await supabase
     .from("user_permission_overrides")
@@ -537,6 +637,12 @@ export async function updatePermissionOverrides(input: UpdatePermissionsInput): 
 export interface SuspendInput { user_id: string; reason: string; }
 
 export async function suspendInternalUser(input: SuspendInput): Promise<void> {
+  const requester = await currentUserId();
+  if (!input.reason?.trim()) throw new Error("A reason is required to suspend a user.");
+  await assertOutranksTarget(requester, input.user_id, "suspend");
+  // Rule d — protect the last super admin.
+  const target = await loadUserRolesAndOverrides(input.user_id);
+  await assertNotLastSuperAdmin(input.user_id, target.roles.includes("super_admin"));
   const { error } = await supabase
     .from("internal_users")
     .update({ status: "suspended" })
@@ -546,6 +652,9 @@ export async function suspendInternalUser(input: SuspendInput): Promise<void> {
 }
 
 export async function reactivateInternalUser(input: SuspendInput): Promise<void> {
+  const requester = await currentUserId();
+  if (!input.reason?.trim()) throw new Error("A reason is required to reactivate a user.");
+  await assertOutranksTarget(requester, input.user_id, "reactivate");
   const { error } = await supabase
     .from("internal_users")
     .update({ status: "active" })
@@ -555,6 +664,11 @@ export async function reactivateInternalUser(input: SuspendInput): Promise<void>
 }
 
 export async function deactivateInternalUser(input: SuspendInput): Promise<void> {
+  const requester = await currentUserId();
+  if (!input.reason?.trim()) throw new Error("A reason is required to deactivate a user.");
+  await assertOutranksTarget(requester, input.user_id, "deactivate");
+  const target = await loadUserRolesAndOverrides(input.user_id);
+  await assertNotLastSuperAdmin(input.user_id, target.roles.includes("super_admin"));
   const { error } = await supabase
     .from("internal_users")
     .update({ status: "deactivated" })
@@ -787,6 +901,11 @@ export interface SuspendAtomicInput {
 }
 
 export async function suspendUserAtomic(input: SuspendAtomicInput): Promise<{ revoked_sessions: number }> {
+  const requester = await currentUserId();
+  if (!input.reason?.trim()) throw new Error("A reason is required to suspend a user.");
+  await assertOutranksTarget(requester, input.user_id, "suspend");
+  const target = await loadUserRolesAndOverrides(input.user_id);
+  await assertNotLastSuperAdmin(input.user_id, target.roles.includes("super_admin"));
   const { error } = await supabase
     .from("internal_users")
     .update({ status: "suspended" })
@@ -907,13 +1026,15 @@ export async function inviteInternalUser(input: InviteUserInput): Promise<Intern
 
 // ---------- Access change requests ----------
 
-export async function listAccessChangeRequests(status: "pending" | "all" = "pending"): Promise<AccessChangeRequest[]> {
+export async function listAccessChangeRequests(
+  status: "pending" | "approved" | "rejected" | "cancelled" | "all" = "pending",
+): Promise<AccessChangeRequest[]> {
   const q = supabase
     .from("access_change_requests")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(50);
-  const { data, error } = status === "pending" ? await q.eq("status", "pending") : await q;
+  const { data, error } = status === "all" ? await q : await q.eq("status", status);
   if (error) throw error;
 
   const rows = data ?? [];
@@ -945,6 +1066,7 @@ export async function listAccessChangeRequests(status: "pending" | "all" = "pend
 
 export async function reviewAccessChangeRequest(id: string, decision: "approve" | "reject", reason: string): Promise<void> {
   const requester = await currentUserId();
+  if (!reason?.trim()) throw new Error("A reason is required to review this request.");
   const { data: req, error: fetchErr } = await supabase
     .from("access_change_requests")
     .select("*")
@@ -954,6 +1076,23 @@ export async function reviewAccessChangeRequest(id: string, decision: "approve" 
   if (req.status !== "pending") throw new Error("Request already reviewed.");
   if (req.requested_by === requester) throw new Error("You cannot approve your own request.");
 
+  // Safeguards must hold at approval time — the world may have changed
+  // since the request was raised.
+  if (decision === "approve") {
+    await assertOutranksTarget(requester, req.target_user_id, "approve changes for");
+    if (req.change_type === "role") {
+      const payload = req.payload as { roles: InternalRoleKey[] };
+      const target = await loadUserRolesAndOverrides(req.target_user_id);
+      const willRemoveSuperAdmin = target.roles.includes("super_admin") && !payload.roles.includes("super_admin");
+      await assertNotLastSuperAdmin(req.target_user_id, willRemoveSuperAdmin);
+    } else if (req.change_type === "permission") {
+      const payload = req.payload as { permission_key: string; mode: "grant" | "revoke" };
+      if (payload.mode === "grant") {
+        await assertCallerHoldsPermissions(requester, [payload.permission_key]);
+      }
+    }
+  }
+
   const nextStatus = decision === "approve" ? "approved" : "rejected";
   const { error: updErr } = await supabase
     .from("access_change_requests")
@@ -961,21 +1100,51 @@ export async function reviewAccessChangeRequest(id: string, decision: "approve" 
     .eq("id", id);
   if (updErr) throw updErr;
 
-  if (decision === "approve" && req.change_type === "role") {
-    const payload = req.payload as { roles: InternalRoleKey[]; primary_role: InternalRoleKey };
-    // Apply immediately, bypassing the protected-role queue by calling as super_admin.
-    await updateUserRoles({
-      user_id: req.target_user_id,
-      roles: payload.roles,
-      primary_role: payload.primary_role,
-      reason: `Approved change request: ${reason}`,
-    });
+  if (decision === "approve") {
+    if (req.change_type === "role") {
+      const payload = req.payload as { roles: InternalRoleKey[]; primary_role: InternalRoleKey };
+      // Apply role change directly (bypass the queue — approver is authorised).
+      const target = await loadUserRolesAndOverrides(req.target_user_id);
+      const before = new Set(target.roles);
+      const after = new Set(payload.roles);
+      const removed = [...before].filter((r) => !after.has(r));
+      if (removed.length) {
+        await supabase.from("internal_user_roles")
+          .delete()
+          .eq("user_id", req.target_user_id)
+          .in("role_key", removed);
+      }
+      await supabase.from("internal_user_roles")
+        .update({ is_primary: false })
+        .eq("user_id", req.target_user_id);
+      for (const role of payload.roles) {
+        await supabase.from("internal_user_roles").upsert({
+          user_id: req.target_user_id,
+          role_key: role,
+          is_primary: role === payload.primary_role,
+          assigned_by: requester,
+        }, { onConflict: "user_id,role_key" });
+      }
+    } else if (req.change_type === "permission") {
+      const payload = req.payload as { permission_key: string; mode: "grant" | "revoke" };
+      await supabase.from("user_permission_overrides").insert({
+        user_id: req.target_user_id,
+        permission_key: payload.permission_key,
+        mode: payload.mode,
+        reason: `Approved: ${reason}`,
+        granted_by: requester,
+      });
+    } else if (req.change_type === "suspend") {
+      await supabase.from("internal_users").update({ status: "suspended" }).eq("id", req.target_user_id);
+    } else if (req.change_type === "reactivate") {
+      await supabase.from("internal_users").update({ status: "active" }).eq("id", req.target_user_id);
+    }
   }
 
   await auditLog(req.target_user_id, `access_change_${decision}d`,
     `${decision === "approve" ? "Approved" : "Rejected"} access change request`,
     decision === "approve" ? "warning" : "info",
-    { request_id: id, reason });
+    { request_id: id, reason, change_type: req.change_type, payload: req.payload });
 }
 
 // ---------- Presentation helpers ----------
