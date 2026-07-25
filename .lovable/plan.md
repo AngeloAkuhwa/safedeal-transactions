@@ -1,35 +1,40 @@
-# Access Control port — remaining gaps
+## 1. Footer copyright — stop hardcoding the year
 
-Status: ~85% done. The main screen, service layer, multi-role permissions foundation, drawers, table, filters, and summary cards are wired at `/admin/access-control` under a new "Administration" sidebar group with "Users & Access" + "Audit Logs".
+`src/components/admin/AdminFooter.tsx` currently prints `© 2024 SafeDeal Admin Portal`. Replace with a computed year so it always tracks the current date.
 
-## What's missing vs. the brief
+```tsx
+const year = new Date().getFullYear();
+// …
+<div>© {year} SafeDeal Admin Portal</div>
+```
 
-1. **Route alias `/admin/users-access`** — brief allowed reusing existing, but alias should redirect to `/admin/access-control` so any incoming links resolve.
-2. **"Permission Matrix" nav item** — brief says keep it under Administration alongside Users & Access and Audit Logs. Currently absent from `AdminSidebar.tsx`.
-3. **Named reusable components not yet extracted** (logic exists inline; brief asks for these as dedicated components):
-   - `SuspendUserDialog` — today we reuse `ActionConfirmDialog` inline in `AdminAccessControl.tsx`. Extract a thin wrapper.
-   - `AccessHistoryTimeline` — timeline inside `UserDetailsDrawer` is inline; extract.
-   - `EmptyState`, `ErrorState`, `LoadingSkeleton` for the access-control surface — currently ad-hoc skeleton in page; no empty/error components.
-   - `RoleBadge`, `AccessLevelBadge`, `UserStatusBadge` — exist in `badges.tsx` as `RoleBadge` / `AccessLevelPill` / `StatusBadge`; rename/export aliases so names match the brief.
-4. **Admin footer** (from earlier turn's screenshot request) — `AdminFooter` component with © + Privacy/Terms/Support links, mounted in `AdminLayout`. Not yet created.
-5. **Permission Matrix page stub** — minimal read-only matrix view at `/admin/permission-matrix` driven by `permission-catalog.ts` (roles × modules/actions), so the nav item resolves instead of showing "Coming soon".
+Same footer already links `Privacy Policy`, `Terms of Service`, `Support` — layout stays unchanged.
 
-## Plan
+## 2. Is the internal role / permission foundation done 100%?
 
-1. Add route `/admin/users-access` → `<Navigate to="/admin/access-control" replace />` in `src/App.tsx`.
-2. Add "Permission Matrix" entry to the Administration group in `AdminSidebar.tsx`; whitelist `/admin/permission-matrix` in `useAdminNav.ts`.
-3. Create `src/pages/AdminPermissionMatrix.tsx` — table of roles × permissions from `permission-catalog.ts` with check/dot cells; register route in `App.tsx`.
-4. Extract components under `src/components/admin/access-control/`:
-   - `SuspendUserDialog.tsx` (wraps `ActionConfirmDialog`)
-   - `AccessHistoryTimeline.tsx` (moved from `UserDetailsDrawer`)
-   - `EmptyState.tsx`, `ErrorState.tsx`, `LoadingSkeleton.tsx`
-   - Re-export `RoleBadge`, `AccessLevelBadge` (alias of `AccessLevelPill`), `UserStatusBadge` (alias of `StatusBadge`) from `badges.tsx`.
-5. Update `AdminAccessControl.tsx` to use the new `SuspendUserDialog`, `LoadingSkeleton`, and to render `EmptyState` when `rows.length === 0` and `ErrorState` when the query errors.
-6. Create `src/components/admin/AdminFooter.tsx` (© 2024 SafeDeal Admin Portal · Privacy Policy · Terms of Service · Support) and mount it inside `AdminLayout` beneath `<main>`.
-7. Typecheck.
+Short answer: **yes, the foundation is in place** — verified against the current tree:
 
-## Technical notes
+- **Tables (migration `20260725182513_…`)**: `internal_users`, `internal_roles`, `permissions`, `role_permissions`, `internal_user_roles`, `user_permission_overrides`, `access_change_requests` — all created with GRANTs + RLS. `audit_logs` already existed and is reused.
+- **10 seeded roles**: super_admin, senior_admin, dispute_manager, dispute_agent, support_agent, identity_officer, finance_operator, finance_approver, compliance_officer, auditor — inserted with `protected` flag on super/senior/finance_approver.
+- **14 modules** in `src/services/permission-catalog.ts`: Dashboard, Transactions, Escrow, Disputes, Identity Verification, Task Orchestration, Agent Performance, Flagged Users, Users & Access, Permission Management, Financial Controls, Audit Logs, Reports & Exports, Platform Configuration.
+- **Granular actions** covered: view, create, update, assign, reassign, approve, reject, resolve, escalate, suspend, export, configure, manage_permissions.
+- **Role permissions vs user overrides** stored in separate tables (`role_permissions` + `user_permission_overrides`); effective set computed by SQL fn `internal_effective_permissions` and mirrored client-side.
+- **Access Level is derived, never picked**: `internal_effective_access_level` in SQL + `deriveAccessLevel` in TS. `AddUserDrawer` / `ChangeRoleDrawer` only expose role checkboxes + primary star — no Access Level control anywhere.
+- **Guardrails**: `enforce_internal_role_rules` DB trigger + `validateRoleSet` client-side (super_admin exclusive; finance_operator vs finance_approver mutually exclusive; ≥1 role required).
+- **Privileged approvals**: `access_change_requests` table + service layer route protected-role edits through it.
+- **Multi-role assignments**: `internal_user_roles` (many-to-many) with `is_primary` — enforced across UI and DB.
 
-- The Permission Matrix page is read-only; editing role→permission mappings can come later — the brief only requires the nav slot exists under Administration.
-- No database changes in this pass; the role/permission foundation from the prior turn is sufficient.
-- All new components stay within the existing dark semantic tokens (no hardcoded colors).
+### Small polish worth cleaning up (not blocking)
+
+`HIGH_PERMISSIONS` in `permission-catalog.ts` references two keys that don't exist in the catalog:
+- `compliance.approve`
+- `compliance.configure`
+
+There is no `compliance` module — compliance duties are covered by `audit_logs.*`, `flagged_users.*`, `financial_controls.approve`. These two stray keys never match, so they're dead entries. I'll remove them and keep `financial_controls.approve/configure`, `platform_configuration.configure`, `permissions.manage_permissions`, `users_and_access.suspend/manage_permissions` as the High-Access triggers.
+
+## Files touched
+
+- `src/components/admin/AdminFooter.tsx` — dynamic year.
+- `src/services/permission-catalog.ts` — drop the two stray compliance keys from `HIGH_PERMISSIONS`.
+
+No DB migration required.
