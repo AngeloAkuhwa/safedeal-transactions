@@ -160,14 +160,33 @@ Deno.serve(async (req) => {
   if (dupe) return json(409, { error: "email_already_exists" });
 
   // 1) Send Supabase auth invite (creates auth.users row + emails link)
+  let newUserId: string | undefined;
   const { data: authRes, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { full_name: fullName, default_role: primary },
     redirectTo: origin,
   });
-  if (inviteErr || !authRes?.user?.id) {
+  if (authRes?.user?.id) {
+    newUserId = authRes.user.id;
+  } else if (inviteErr && /already been registered|already registered|already exists/i.test(inviteErr.message)) {
+    // Auth user exists (likely from a previous failed insert). Reuse it.
+    try {
+      const { data: list } = await (admin as any).auth.admin.listUsers({ page: 1, perPage: 200 });
+      const found = list?.users?.find((u: any) => (u.email ?? "").toLowerCase() === email);
+      if (found?.id) newUserId = found.id;
+    } catch { /* ignore */ }
+    if (!newUserId) {
+      return json(400, { error: "invite_failed", detail: inviteErr.message });
+    }
+    // Best-effort: re-send an invitation link so the user still gets an email.
+    try {
+      await admin.auth.admin.inviteUserByEmail(email, {
+        data: { full_name: fullName, default_role: primary },
+        redirectTo: origin,
+      });
+    } catch { /* ignore */ }
+  } else {
     return json(400, { error: "invite_failed", detail: inviteErr?.message ?? "no_user_returned" });
   }
-  const newUserId = authRes.user.id;
 
   // 2) Insert into internal_users. employee_id + display_id filled by DB triggers.
   const { data: iuRow, error: iuErr } = await admin
