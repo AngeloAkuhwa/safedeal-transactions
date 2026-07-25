@@ -12,7 +12,7 @@ export async function isInternalUser(userId: string): Promise<boolean> {
   if (!userId) return false;
   const { data, error } = await supabase.rpc("has_any_internal_role", {
     _user_id: userId,
-    _roles: INTERNAL_ROLE_KEYS,
+    _role_keys: INTERNAL_ROLE_KEYS,
   });
   if (error) return false;
   return data === true;
