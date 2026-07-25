@@ -60,6 +60,10 @@ const ACTION_WORD: Record<PermissionAction, string> = {
   reassign: "reassign", approve: "approve", reject: "reject", resolve: "resolve",
   escalate: "escalate", suspend: "suspend", export: "export", configure: "configure",
   manage_permissions: "manage perms",
+  view_assigned: "view assigned", add_internal_note: "add note",
+  request_information: "request info", request_evidence: "request evidence",
+  update_status: "update status", resolve_assigned: "resolve assigned",
+  resolve_all: "resolve any", remove_flag: "remove flag",
 };
 
 const ALL_PERMISSIONS: PermissionEntry[] =
