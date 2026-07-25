@@ -67,6 +67,7 @@ import AdminNotifications from "./pages/AdminNotifications";
 import AdminSettings from "./pages/AdminSettings";
 import AdminAuditLogs from "./pages/AdminAuditLogs";
 import AdminAccessControl from "./pages/AdminAccessControl";
+import AdminPermissionMatrix from "./pages/AdminPermissionMatrix";
 import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -150,6 +151,8 @@ const App = () => (
              <Route path="/admin/settings" element={<AdminSettings />} />
              <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
              <Route path="/admin/access-control" element={<AdminAccessControl />} />
+             <Route path="/admin/users-access" element={<Navigate to="/admin/access-control" replace />} />
+             <Route path="/admin/permission-matrix" element={<AdminPermissionMatrix />} />
             </Route>
 
             {/* Protected: requires session + seller role */}
