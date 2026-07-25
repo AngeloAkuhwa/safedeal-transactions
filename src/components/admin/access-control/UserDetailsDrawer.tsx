@@ -97,7 +97,7 @@ export function UserDetailsDrawer({
             )}
             {(audit ?? []).map((a) => (
               <div key={a.id} className={`rounded-lg border px-3 py-2 text-xs ${SEVERITY_TINT[a.severity]}`}>
-                <div className="font-semibold text-foreground">{a.action.replaceAll("_", " ")}</div>
+                <div className="font-semibold text-foreground">{a.action.split("_").join(" ")}</div>
                 <div>{a.detail}</div>
                 <div className="mt-0.5 text-[11px] text-muted-foreground">
                   {a.actor_name} · {relativeTime(a.created_at)}
