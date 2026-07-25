@@ -499,6 +499,28 @@ const CANONICAL_ADMIN_ACTIONS: ReadonlySet<string> = new Set([
   "suspend_user","unsuspend_user","add_internal_note",
 ]);
 
+// Map internal "access_*" action names used across this service to real
+// admin_action_type enum values so the unified edge-function logger accepts
+// them. Anything not mapped falls back to add_internal_note.
+const ACTION_ALIAS: Record<string, string> = {
+  access_role_change_requested: "role_change_approved",     // requested-for-approval → tracked separately below
+  access_roles_updated: "role_changed",
+  access_permissions_updated: "permission_override_approved",
+  access_permission_override_requested: "permission_override_requested",
+  access_user_suspended: "suspend_user",
+  access_user_reactivated: "user_reactivated",
+  access_user_deactivated: "user_deactivated",
+  access_invite_resent: "invitation_resent",
+  access_change_approved: "role_change_approved",
+  access_change_rejected: "role_change_rejected",
+};
+
+function canonicalActionType(raw: string): string {
+  if (CANONICAL_ADMIN_ACTIONS.has(raw)) return raw;
+  if (ACTION_ALIAS[raw]) return ACTION_ALIAS[raw];
+  return "add_internal_note";
+}
+
 interface AuditWriteOpts {
   target_user_id: string;
   action_type: string;
@@ -509,6 +531,8 @@ interface AuditWriteOpts {
   reason?: string;
   approval_reference?: string | null;
   metadata?: Record<string, unknown>;
+  result?: "success" | "blocked_by_safeguard" | "failed";
+  entity_ref?: string | null;
 }
 
 async function auditLog(
@@ -522,9 +546,38 @@ async function auditLog(
 }
 
 async function writeAudit(opts: AuditWriteOpts): Promise<void> {
+  const canonical = canonicalActionType(opts.action_type);
+  const payload = {
+    target_user_id: opts.target_user_id,
+    action_type: canonical,
+    description: opts.description,
+    reason: opts.reason ?? (opts.metadata?.reason as string | undefined) ?? null,
+    before: opts.before ?? opts.metadata?.before ?? null,
+    after: opts.after ?? opts.metadata?.after ?? null,
+    approval_reference: opts.approval_reference ?? (opts.metadata?.request_id as string | undefined) ?? null,
+    result: opts.result ?? "success",
+    entity_ref: opts.entity_ref ?? `internal_users:${opts.target_user_id}`,
+    metadata: {
+      ...opts.metadata,
+      raw_action: opts.action_type,
+      severity: opts.severity ?? "info",
+    },
+    mirror: true,
+  };
+
+  // Preferred path: edge function captures IP + User-Agent server-side.
+  try {
+    const { error } = await supabase.functions.invoke("admin-log-access-action", { body: payload });
+    if (!error) return;
+  } catch {
+    /* fall through to client-side best-effort write */
+  }
+
+  // Fallback — direct writes so the timeline never loses an event if the
+  // edge function is unreachable.
   try {
     const uid = await currentUserId();
-    const payload = {
+    const bodyPayload = {
       reason: opts.reason ?? (opts.metadata?.reason as string | undefined) ?? null,
       before: opts.before ?? opts.metadata?.before ?? null,
       after: opts.after ?? opts.metadata?.after ?? null,
@@ -533,25 +586,18 @@ async function writeAudit(opts: AuditWriteOpts): Promise<void> {
       description: opts.description,
       ...opts.metadata,
     };
-
-    // 1) Canonical admin_actions row when we have a real enum value.
-    if (CANONICAL_ADMIN_ACTIONS.has(opts.action_type)) {
-      await supabase.from("admin_actions").insert({
-        admin_user_id: uid,
-        target_user_id: opts.target_user_id,
-        action_type: opts.action_type as any,
-        action_notes: JSON.stringify(payload),
-      } as any);
-    }
-
-    // 2) Mirror to audit_logs so the AccessHistoryTimeline (which reads from
-    //    audit_logs today) continues to render every access-control event.
+    await supabase.from("admin_actions").insert({
+      admin_user_id: uid,
+      target_user_id: opts.target_user_id,
+      action_type: canonical as any,
+      action_notes: JSON.stringify(bodyPayload),
+    } as any);
     await supabase.from("audit_logs").insert({
       actor_user_id: uid,
       target_user_id: opts.target_user_id,
       action: "admin_internal_note",
       description: `[${opts.action_type}] ${opts.description}`,
-      metadata: { ...payload, access_action: opts.action_type },
+      metadata: { ...bodyPayload, access_action: opts.action_type },
     } as any);
   } catch {
     /* audit best-effort */
