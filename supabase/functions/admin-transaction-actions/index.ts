@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
   // Load transaction snapshot
   const { data: tx, error: txErr } = await admin
     .from("transactions")
-    .select("id, status, money_status, dispute_status, seller_id, buyer_confirmed_at, seller_confirmed_at, needs_release_review, needs_admin_review, transaction_code, amount_total")
+    .select("id, status, money_status, dispute_status, seller_id, buyer_confirmed_at, seller_confirmed_at, needs_release_review, needs_admin_review, transaction_code, buyer_total_amount")
     .eq("id", txId)
     .single();
   if (txErr || !tx) return json({ error: "transaction_not_found" }, 404);
