@@ -1101,7 +1101,7 @@ export async function fetchRequestDiff(req: AccessChangeRequest): Promise<Reques
   if (req.change_type === "permission") {
     const payload = req.payload as { permission_key: string; mode: "grant" | "revoke" };
     const target = await loadUserRolesAndOverrides(req.target_user_id);
-    const before = target.permissions.slice().sort();
+    const before = target.effective.slice().sort();
     const key = payload.permission_key;
     const after = payload.mode === "grant"
       ? [...new Set([...before, key])].sort()
@@ -1114,8 +1114,12 @@ export async function fetchRequestDiff(req: AccessChangeRequest): Promise<Reques
       removed: payload.mode === "revoke" ? [key] : [],
     };
   }
-  const target = await loadUserRolesAndOverrides(req.target_user_id);
-  const beforeStatus = target.status;
+  const { data: statusRow } = await supabase
+    .from("internal_users")
+    .select("status")
+    .eq("id", req.target_user_id)
+    .maybeSingle();
+  const beforeStatus = (statusRow?.status as string | undefined) ?? "unknown";
   const afterStatus = req.change_type === "suspend" ? "suspended" : "active";
   return {
     label: "Account status",
