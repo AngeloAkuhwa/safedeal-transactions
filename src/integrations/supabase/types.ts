@@ -5627,6 +5627,7 @@ export type Database = {
         Returns: string
       }
       timeout_transaction_atomic: { Args: { p_tx_id: string }; Returns: Json }
+      touch_internal_user_last_active: { Args: never; Returns: undefined }
       unfreeze_funds_atomic: {
         Args: {
           p_actor: string

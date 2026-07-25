@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { touchInternalUserLastActive } from "@/services/admin-access-control.service";
 
 /**
  * Broadcasts the signed-in user's presence on a shared Realtime channel so
@@ -13,6 +14,9 @@ export function usePresenceHeartbeat() {
 
     const join = async (userId: string) => {
       if (cancelled) return;
+      // Persist a real DB timestamp so the Access & Roles "Last Active" column
+      // shows relative times instead of "Never" for internal users.
+      void touchInternalUserLastActive();
       // Remove any stale channel with the same topic (StrictMode double-mount).
       for (const ch of supabase.getChannels()) {
         if (ch.topic === "realtime:presence:users") {
@@ -51,9 +55,19 @@ export function usePresenceHeartbeat() {
       });
     });
 
+    // Refresh on tab focus + on an interval; the writer is throttled to
+    // once per 60s inside the service.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void touchInternalUserLastActive();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    const iv = window.setInterval(() => { void touchInternalUserLastActive(); }, 120_000);
+
     return () => {
       cancelled = true;
       sub.subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(iv);
       void teardown();
     };
   }, []);
