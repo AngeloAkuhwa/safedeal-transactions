@@ -66,6 +66,7 @@ import AdminUserDetail from "./pages/AdminUserDetail";
 import AdminNotifications from "./pages/AdminNotifications";
 import AdminSettings from "./pages/AdminSettings";
 import AdminAuditLogs from "./pages/AdminAuditLogs";
+import AdminAccessControl from "./pages/AdminAccessControl";
 import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -148,6 +149,7 @@ const App = () => (
               <Route path="/admin/notifications" element={<AdminNotifications />} />
              <Route path="/admin/settings" element={<AdminSettings />} />
              <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+             <Route path="/admin/access-control" element={<AdminAccessControl />} />
             </Route>
 
             {/* Protected: requires session + seller role */}
