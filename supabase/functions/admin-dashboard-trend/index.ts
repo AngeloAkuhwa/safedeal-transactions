@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,28 +19,19 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const auth = req.headers.get("Authorization");
-    if (!auth?.startsWith("Bearer ")) return jsonResp({ error: "Not authenticated" }, 401);
+    let ctx;
+    try { ctx = await requirePermission(req, "dashboard.view"); }
+    catch (err) {
+      const resp = authErrorResponse(err, corsHeaders);
+      if (resp) return resp;
+      throw err;
+    }
+    const client = ctx.adminClient;
 
     const url = new URL(req.url);
     const winRaw = (url.searchParams.get("window") || "7D").toUpperCase();
     const win = winRaw === "30D" ? "30D" : winRaw === "90D" ? "90D" : "7D";
     const days = win === "7D" ? 7 : win === "30D" ? 30 : 90;
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const client = createClient(supabaseUrl, serviceRoleKey);
-
-    const { data: userData, error: userErr } = await client.auth.getUser(
-      auth.replace("Bearer ", ""),
-    );
-    if (userErr || !userData?.user) return jsonResp({ error: "Invalid session" }, 401);
-
-    const { data: hasRole, error: roleErr } = await client.rpc("has_role", {
-      _user_id: userData.user.id,
-      _role: "admin",
-    });
-    if (roleErr || !hasRole) return jsonResp({ error: "Admin role required" }, 403);
 
     // SQL-side date bucketing (P1 scalability fix — replaces .limit(50000) scans).
     const { data: rows, error: rpcErr } = await client.rpc("admin_daily_activity_counts", { _days: days });
