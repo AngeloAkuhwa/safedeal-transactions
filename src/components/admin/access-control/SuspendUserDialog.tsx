@@ -19,6 +19,8 @@ import {
   ROLE_LABEL,
   type InternalUser,
 } from "@/services/admin-access-control.service";
+import { useDrawerSafety } from "@/hooks/useDrawerSafety";
+import { useMutationOnce } from "@/hooks/useMutationOnce";
 
 export interface SuspendSubmission {
   reason: string;
@@ -44,12 +46,11 @@ export function SuspendUserDialog({ user, open, onOpenChange, onConfirm }: Props
   const [reassign, setReassign]             = useState(false);
   const [targetId, setTargetId]             = useState<string>("");
   const [ack, setAck]             = useState(false);
-  const [busy, setBusy]           = useState(false);
 
   useEffect(() => {
     if (open) {
       setReason(""); setMode("indefinite"); setUntil(undefined);
-      setRevokeSessions(true); setReassign(false); setTargetId(""); setAck(false); setBusy(false);
+      setRevokeSessions(true); setReassign(false); setTargetId(""); setAck(false);
     }
   }, [open]);
 
@@ -74,28 +75,28 @@ export function SuspendUserDialog({ user, open, onOpenChange, onConfirm }: Props
 
   const durationOk = mode === "indefinite" || (!!until && until > new Date());
   const reassignOk = !reassign || !!targetId;
-  const canSubmit = !!user && !busy && reason.trim().length >= 12 && durationOk && reassignOk && ack;
 
-  const submit = async () => {
-    if (!canSubmit || !user) return;
-    setBusy(true);
-    try {
-      await onConfirm({
-        reason: reason.trim(),
-        duration: mode === "indefinite" ? "indefinite" : { until: until!.toISOString() },
-        revoke_sessions: revokeSessions,
-        reassign_tasks: reassign,
-        reassign_target_id: reassign ? targetId : null,
-      });
-      onOpenChange(false);
-    } finally { setBusy(false); }
-  };
+  const isDirty = reason.trim().length > 0 || ack || reassign || mode === "until";
+  const { attemptClose } = useDrawerSafety({ open, isDirty, onClose: () => onOpenChange(false) });
+  const submitOnce = useMutationOnce(async () => {
+    if (!user) return;
+    await onConfirm({
+      reason: reason.trim(),
+      duration: mode === "indefinite" ? "indefinite" : { until: until!.toISOString() },
+      revoke_sessions: revokeSessions,
+      reassign_tasks: reassign,
+      reassign_target_id: reassign ? targetId : null,
+    });
+    onOpenChange(false);
+  });
+  const busy = submitOnce.pending;
+  const canSubmit = !!user && !busy && reason.trim().length >= 12 && durationOk && reassignOk && ack;
 
   if (!user) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+    <Dialog open={open} onOpenChange={(v) => { if (!v) attemptClose(); else onOpenChange(v); }}>
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldOff className="h-4 w-4 text-rose-400" />
@@ -229,9 +230,9 @@ export function SuspendUserDialog({ user, open, onOpenChange, onConfirm }: Props
         </label>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
+          <Button variant="outline" onClick={attemptClose} disabled={busy}>Cancel</Button>
           <Button
-            onClick={submit}
+            onClick={() => submitOnce.run()}
             disabled={!canSubmit}
             className="bg-rose-600 text-white hover:bg-rose-700"
           >
