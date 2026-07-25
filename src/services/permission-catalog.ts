@@ -4,7 +4,10 @@
 export type PermissionAction =
   | "view" | "create" | "update" | "assign" | "reassign"
   | "approve" | "reject" | "resolve" | "escalate" | "suspend"
-  | "export" | "configure" | "manage_permissions";
+  | "export" | "configure" | "manage_permissions"
+  | "view_assigned" | "add_internal_note" | "request_information"
+  | "request_evidence" | "update_status" | "resolve_assigned"
+  | "resolve_all" | "remove_flag";
 
 export interface PermissionEntry {
   key: string;      // module.action
@@ -23,11 +26,11 @@ const MODULES: Array<{ key: string; label: string; actions: PermissionAction[] }
   { key: "dashboard",              label: "Dashboard",              actions: ["view", "export"] },
   { key: "transactions",           label: "Transactions",           actions: ["view", "update", "export", "escalate"] },
   { key: "escrow",                 label: "Escrow",                 actions: ["view", "update", "approve", "configure", "export"] },
-  { key: "disputes",               label: "Disputes",               actions: ["view", "create", "update", "assign", "reassign", "resolve", "escalate", "approve", "reject", "export"] },
+  { key: "disputes",               label: "Disputes",               actions: ["view", "view_assigned", "create", "update", "update_status", "add_internal_note", "request_information", "request_evidence", "assign", "reassign", "resolve", "resolve_assigned", "resolve_all", "escalate", "approve", "reject", "export"] },
   { key: "identity_verification",  label: "Identity Verification",  actions: ["view", "approve", "reject", "escalate", "export"] },
   { key: "task_orchestration",     label: "Task Orchestration",     actions: ["view", "assign", "reassign", "configure"] },
   { key: "agent_performance",      label: "Agent Performance",      actions: ["view", "export"] },
-  { key: "flagged_users",          label: "Flagged Users",          actions: ["view", "update", "suspend", "export"] },
+  { key: "flagged_users",          label: "Flagged Users",          actions: ["view", "update", "remove_flag", "suspend", "export"] },
   { key: "users_and_access",       label: "Users & Access",         actions: ["view", "create", "update", "suspend", "manage_permissions", "export"] },
   { key: "permissions",            label: "Permission Management",  actions: ["view", "manage_permissions"] },
   { key: "financial_controls",     label: "Financial Controls",     actions: ["view", "create", "approve", "reject", "configure", "export"] },
@@ -41,6 +44,10 @@ const ACTION_LABEL: Record<PermissionAction, string> = {
   reassign: "Reassign", approve: "Approve", reject: "Reject", resolve: "Resolve",
   escalate: "Escalate", suspend: "Suspend", export: "Export", configure: "Configure",
   manage_permissions: "Manage Permissions",
+  view_assigned: "View Assigned", add_internal_note: "Add Internal Note",
+  request_information: "Request Information", request_evidence: "Request Evidence",
+  update_status: "Update Status", resolve_assigned: "Resolve Assigned",
+  resolve_all: "Resolve Any", remove_flag: "Remove Flag",
 };
 
 export const PERMISSION_MODULES: PermissionModule[] = MODULES.map((m) => ({
