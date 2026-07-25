@@ -82,8 +82,11 @@ const ACTION_PERMS: Record<string, string[]> = {
   escalate_dispute:          ["disputes.escalate"],
   open_investigation:        ["transactions.update"],
   upsert_investigation:      ["transactions.update"],
-  // Only high-authority roles can execute money-movement dispute outcomes.
-  resolve_dispute:           ["disputes.resolve_all", "financial_controls.approve"],
+  // Money-movement dispute outcomes: high-authority roles bypass the
+  // per-agent cap; `resolve_assigned` holders (support/dispute agents)
+  // may resolve only when the transaction passes the escalation policy
+  // enforced inside the branch below.
+  resolve_dispute:           ["disputes.resolve_all", "financial_controls.approve", "disputes.resolve_assigned"],
   dispute_request_more_info: ["disputes.request_information"],
   block_payout:              ["transactions.update", "financial_controls.approve"],
   unblock_payout:            ["transactions.update", "financial_controls.approve"],
