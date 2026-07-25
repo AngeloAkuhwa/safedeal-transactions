@@ -30,15 +30,14 @@ describe.skip("validateInviteInput", () => {
 
   it("requires department and primary role", () => {
     expect(validateInviteInput({ ...base, department: "" }).ok).toBe(false);
-    // @ts-expect-error deliberately invalid
-    expect(validateInviteInput({ ...base, primary_role: undefined }).ok).toBe(false);
+    expect(validateInviteInput({ ...base, primary_role: undefined as never }).ok).toBe(false);
   });
 
   it("primary role must be one of the assigned roles", () => {
     const bad = validateInviteInput({
       ...base,
       roles: ["support_agent" as const],
-      primary_role: "finance_lead" as const,
+      primary_role: "finance_lead" as never,
     });
     expect(bad.ok).toBe(false);
   });
