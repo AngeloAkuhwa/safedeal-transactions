@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   ACCESS_LABEL,
   ALL_PERMISSION_KEYS,
+  INTERNAL_ROLES,
   PERMISSION_MODULES,
   ROLE_LABEL,
   deriveAccessLevel,
@@ -34,7 +35,10 @@ export type InternalUserStatus =
 export interface InternalUser {
   id: string;
   display_id: string;
+  employee_id: string;
   full_name: string;
+  first_name: string | null;
+  last_name: string | null;
   email: string;
   avatar_url: string | null;
   roles: InternalRoleKey[];
@@ -45,6 +49,14 @@ export interface InternalUser {
   two_factor_enabled: boolean;
   created_at: string;
   department: string | null;
+  team: string | null;
+  job_title: string | null;
+  reporting_manager_id: string | null;
+  reporting_manager_name: string | null;
+  reporting_manager_role: InternalRoleKey | null;
+  access_expires_at: string | null;
+  reason_for_access: string | null;
+  invitation_status: "not_invited" | "sent" | "accepted" | "expired" | "revoked";
   permissions: string[];         // effective (union - revokes + grants)
   base_permissions: string[];    // from roles only
   grants: string[];              // explicit grants (overrides)
@@ -206,16 +218,26 @@ export async function fetchAccessDirectory(q: AccessDirectoryQuery = {}): Promis
     overridesByUser.set(o.user_id, cur);
   }
 
+  // Build a lookup so we can resolve reporting-manager metadata locally.
+  const userById = new Map<string, any>();
+  for (const row of (usersRes.data ?? [])) userById.set(row.id, row);
+
   const all: InternalUser[] = (usersRes.data ?? []).map((row): InternalUser => {
     const rr = rolesByUser.get(row.id) ?? [];
     const roles = rr.map((x) => x.key as InternalRoleKey);
     const primary = (rr.find((x) => x.primary)?.key ?? rr[0]?.key ?? "support_agent") as InternalRoleKey;
     const ov = overridesByUser.get(row.id) ?? { grants: [], revokes: [] };
     const { base, effective } = computeEffective(roles, ov.grants, ov.revokes, rolePerms);
+    const managerRow = row.reporting_manager_id ? userById.get(row.reporting_manager_id) : null;
+    const managerRoles = managerRow ? (rolesByUser.get(managerRow.id) ?? []) : [];
+    const managerPrimary = managerRoles.find((x) => x.primary)?.key ?? managerRoles[0]?.key ?? null;
     return {
       id: row.id,
       display_id: row.display_id,
+      employee_id: row.employee_id ?? row.display_id,
       full_name: row.full_name,
+      first_name: row.first_name ?? null,
+      last_name: row.last_name ?? null,
       email: row.email,
       avatar_url: null,
       roles,
@@ -226,6 +248,14 @@ export async function fetchAccessDirectory(q: AccessDirectoryQuery = {}): Promis
       two_factor_enabled: !!row.two_factor_enabled,
       created_at: row.created_at,
       department: row.department,
+      team: row.team ?? null,
+      job_title: row.job_title ?? null,
+      reporting_manager_id: row.reporting_manager_id ?? null,
+      reporting_manager_name: managerRow?.full_name ?? null,
+      reporting_manager_role: (managerPrimary as InternalRoleKey | null) ?? null,
+      access_expires_at: row.access_expires_at ?? null,
+      reason_for_access: row.reason_for_access ?? null,
+      invitation_status: (row.invitation_status ?? "not_invited") as InternalUser["invitation_status"],
       permissions: effective,
       base_permissions: base,
       grants: ov.grants,
@@ -524,11 +554,79 @@ export async function resendInternalUserInvite(input: { user_id: string; email: 
 
 export interface InviteUserInput {
   full_name: string;
+  first_name?: string;
+  last_name?: string;
   email: string;
   roles: InternalRoleKey[];
   primary_role: InternalRoleKey;
-  department?: string;
+  department: string;
+  team?: string;
+  job_title?: string;
+  reporting_manager_id?: string | null;
+  access_expires_at?: string | null;
+  reason?: string;
+  send_invitation?: boolean;
   require_2fa: boolean;
+}
+
+/** Simple RFC-5321-ish email format check for client-side validation. */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function validateInviteInput(input: Partial<InviteUserInput>): { ok: true } | { ok: false; error: string } {
+  const email = (input.email ?? "").trim();
+  if (!input.first_name?.trim()) return { ok: false, error: "First name is required." };
+  if (!input.last_name?.trim())  return { ok: false, error: "Last name is required." };
+  if (!email)                    return { ok: false, error: "Work email is required." };
+  if (!EMAIL_RE.test(email))     return { ok: false, error: "Enter a valid work email." };
+  if (!input.department)         return { ok: false, error: "Department is required." };
+  if (!input.primary_role)       return { ok: false, error: "Primary role is required." };
+  const roles = input.roles ?? [];
+  const check = validateRoleSet(roles);
+  if (!check.ok) return { ok: false, error: check.error ?? "Invalid role selection." };
+  const requiresApproval = roles.some(isProtectedRole);
+  if (requiresApproval && !input.reason?.trim()) {
+    return { ok: false, error: "A reason is required for privileged roles." };
+  }
+  return { ok: true };
+}
+
+/** Returns true when the email is already in use by an internal user. */
+export async function checkEmailAvailability(email: string): Promise<{ available: boolean }> {
+  const clean = email.trim().toLowerCase();
+  if (!clean) return { available: true };
+  const { data, error } = await supabase
+    .from("internal_users")
+    .select("id")
+    .ilike("email", clean)
+    .limit(1);
+  if (error) return { available: true };
+  return { available: (data?.length ?? 0) === 0 };
+}
+
+/** Reporting-manager options — admin-tier active users only. */
+export async function fetchReportingManagerOptions(): Promise<Array<{
+  id: string; full_name: string; role: InternalRoleKey | null;
+}>> {
+  const [usersRes, rolesRes] = await Promise.all([
+    supabase.from("internal_users").select("id,full_name,status").eq("status", "active"),
+    supabase.from("internal_user_roles").select("user_id,role_key,is_primary"),
+  ]);
+  if (usersRes.error) return [];
+  const primaryByUser = new Map<string, InternalRoleKey>();
+  for (const r of rolesRes.data ?? []) {
+    if (r.is_primary) primaryByUser.set(r.user_id, r.role_key as InternalRoleKey);
+  }
+  const ADMIN_TIER: InternalRoleKey[] = [
+    "super_admin", "senior_admin", "dispute_manager", "finance_approver", "compliance_officer",
+  ];
+  return (usersRes.data ?? [])
+    .map((u: any) => ({
+      id: u.id as string,
+      full_name: u.full_name as string,
+      role: primaryByUser.get(u.id) ?? null,
+    }))
+    .filter((u) => !u.role || ADMIN_TIER.includes(u.role))
+    .sort((a, b) => a.full_name.localeCompare(b.full_name));
 }
 
 export async function inviteInternalUser(input: InviteUserInput): Promise<InternalUser> {
