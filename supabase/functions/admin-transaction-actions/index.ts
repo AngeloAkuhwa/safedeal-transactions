@@ -402,6 +402,62 @@ Deno.serve(async (req) => {
         const releaseAmount = Number(payload.release_amount ?? 0);
         if (!Number.isFinite(refundAmount) || refundAmount < 0) return badRequest("invalid_refund_amount");
         if (!Number.isFinite(releaseAmount) || releaseAmount < 0) return badRequest("invalid_release_amount");
+
+        // ---- Escalation policy (Support Agent RBAC finalisation) --------
+        // Callers with `disputes.resolve_all` or `financial_controls.approve`
+        // bypass the cap. Callers with only `disputes.resolve_assigned`
+        // (e.g. support/dispute agents) must escalate when the transaction
+        // is high-risk, compliance-flagged, or above the configured cap.
+        try {
+          const { data: heldRaw } = await admin.rpc(
+            "internal_effective_permissions",
+            { _user_id: userId },
+          );
+          const held = new Set(Array.isArray(heldRaw) ? (heldRaw as string[]) : []);
+          const isSuperResolver =
+            held.has("disputes.resolve_all") || held.has("financial_controls.approve");
+          if (!isSuperResolver) {
+            // Load cap from platform settings; default ₦500,000.
+            let cap = 500_000;
+            try {
+              const { data: setRows } = await admin.rpc("get_effective_settings", {
+                _vendor_id: tx.seller_id,
+                _keys: ["dispute.support_agent_resolution_cap_ngn"],
+              });
+              const row = (setRows as Array<{ setting_key: string; setting_value: unknown }> | null)
+                ?.find((r) => r.setting_key === "dispute.support_agent_resolution_cap_ngn");
+              const raw = row?.setting_value;
+              const n = typeof raw === "string" ? Number(raw) : (raw as number);
+              if (Number.isFinite(n) && n > 0) cap = n;
+            } catch { /* fallback to default */ }
+
+            const amount = Number(tx.buyer_total_amount ?? 0);
+            const escalationReasons: string[] = [];
+            if (tx.needs_admin_review) escalationReasons.push("high_risk_flag");
+            if (amount > cap) escalationReasons.push(`amount_over_cap:${cap}`);
+            // Money-movement outcomes require approver on any non-trivial value.
+            const movesMoney =
+              outcome === "refund_buyer" ||
+              outcome === "release_funds_to_seller" ||
+              outcome === "partial_refund_release";
+            if (movesMoney && (refundAmount > cap || releaseAmount > cap)) {
+              escalationReasons.push(`outcome_amount_over_cap:${cap}`);
+            }
+            if (escalationReasons.length > 0) {
+              return json({
+                error: "escalation_required",
+                reasons: escalationReasons,
+                cap_ngn: cap,
+              }, 403);
+            }
+          }
+        } catch (e) {
+          console.error("[resolve_dispute] escalation policy check failed", e);
+          // Fail closed for non-super resolvers.
+          return json({ error: "escalation_policy_check_failed" }, 500);
+        }
+        // -----------------------------------------------------------------
+
         const notifyParties = payload.notify_parties === true;
         const alsoCloseInvestigation = payload.also_close_investigation === true;
         const acknowledgeFrozenFunds = payload.acknowledge_frozen_funds === true;
