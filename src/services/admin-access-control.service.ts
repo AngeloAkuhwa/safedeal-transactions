@@ -10,6 +10,8 @@ import {
   ROLE_LABEL,
   deriveAccessLevel,
   isProtectedRole,
+  isPrivilegedPermission,
+  permissionsForRoles,
   validateRoleSet,
   type AccessLevel,
   type InternalRoleKey,
@@ -18,7 +20,7 @@ import {
 
 export {
   ACCESS_LABEL, ROLE_LABEL, deriveAccessLevel, isProtectedRole, validateRoleSet,
-  PERMISSION_MODULES,
+  PERMISSION_MODULES, isPrivilegedPermission, permissionsForRoles,
 };
 export type { AccessLevel, InternalRoleKey, PermissionModule };
 
