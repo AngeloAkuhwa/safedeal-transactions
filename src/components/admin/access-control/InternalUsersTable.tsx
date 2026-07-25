@@ -1,4 +1,4 @@
-import { KeyRound, MoreHorizontal, ShieldAlert, RefreshCcw, Ban, Undo2, Eye, History, MailPlus, UserMinus } from "lucide-react";
+import { KeyRound, MoreHorizontal, ShieldAlert, RefreshCcw, Ban, Undo2, Eye, History, MailPlus, UserMinus, Trash2, CalendarClock } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +20,8 @@ interface Props {
   onReactivate: (u: InternalUser) => void;
   onDeactivate: (u: InternalUser) => void;
   onResendInvite: (u: InternalUser) => void;
+  onDeleteInvited: (u: InternalUser) => void;
+  onExtendAccess: (u: InternalUser) => void;
 }
 
 function ringFor(u: InternalUser): "critical" | "elevated" | "high" | "none" {
@@ -31,6 +33,7 @@ function ringFor(u: InternalUser): "critical" | "elevated" | "high" | "none" {
 export function InternalUsersTable({
   rows, onOpen, onChangeRole, onReviewPermissions, onViewHistory,
   onSuspend, onReactivate, onDeactivate, onResendInvite,
+  onDeleteInvited, onExtendAccess,
 }: Props) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -69,6 +72,16 @@ export function InternalUsersTable({
               const suspended = u.status === "suspended" || u.status === "locked";
               const deactivated = u.status === "deactivated";
               const invited = u.status === "invited";
+              const nowMs = Date.now();
+              const expiresMs = u.access_expires_at ? new Date(u.access_expires_at).getTime() : null;
+              const isExpired = expiresMs !== null && expiresMs < nowMs;
+              const nearExpiry = expiresMs !== null && expiresMs - nowMs < 14 * 24 * 60 * 60 * 1000;
+              const canResend =
+                invited ||
+                (u as any).invitation_status === "expired" ||
+                (invited && isExpired);
+              const canExtend = expiresMs !== null && (isExpired || nearExpiry);
+              const canHardDelete = invited || deactivated;
               return (
                 <tr
                   key={u.id}
@@ -128,9 +141,14 @@ export function InternalUsersTable({
                           <History className="mr-2 h-4 w-4" /> View Access History
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        {invited && (
+                        {canResend && (
                           <DropdownMenuItem onClick={() => onResendInvite(u)}>
                             <MailPlus className="mr-2 h-4 w-4" /> Resend Invitation
+                          </DropdownMenuItem>
+                        )}
+                        {canExtend && (
+                          <DropdownMenuItem onClick={() => onExtendAccess(u)}>
+                            <CalendarClock className="mr-2 h-4 w-4" /> Extend Access
                           </DropdownMenuItem>
                         )}
                         {suspended ? (
@@ -153,6 +171,15 @@ export function InternalUsersTable({
                             className="text-red-500 focus:text-red-500"
                           >
                             <UserMinus className="mr-2 h-4 w-4" /> Deactivate User
+                          </DropdownMenuItem>
+                        )}
+                        {canHardDelete && (
+                          <DropdownMenuItem
+                            onClick={() => onDeleteInvited(u)}
+                            className="text-red-500 focus:text-red-500"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            {invited ? "Delete Invited User" : "Delete User"}
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
