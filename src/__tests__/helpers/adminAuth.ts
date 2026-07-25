@@ -80,6 +80,7 @@ export const ADMIN_FUNCTIONS: string[] = [
   "admin-users-directory",
   "admin-users-directory-export",
   "admin-vendor-status",
+  "admin-log-access-action",
 ];
 
 export async function rawInvoke(

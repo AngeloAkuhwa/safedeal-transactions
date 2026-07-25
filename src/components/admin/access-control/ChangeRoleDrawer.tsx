@@ -20,6 +20,10 @@ import {
   type AccessLevel,
 } from "@/services/admin-access-control.service";
 import { RolePicker } from "./RolePicker";
+import { useDrawerSafety } from "@/hooks/useDrawerSafety";
+import { useMutationOnce } from "@/hooks/useMutationOnce";
+import { fetchAssignedWorkImpact } from "@/services/assigned-work.service";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const LEVEL_BADGE: Record<AccessLevel, string> = {
   full:     "bg-rose-500/15 text-rose-300 border-rose-500/40",
@@ -93,7 +97,7 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
   const [reason, setReason]   = useState("");
   const [effective, setEffective] = useState<Date | undefined>(today);
   const [expires, setExpires]     = useState<Date | undefined>(undefined);
-  const [saving, setSaving]   = useState(false);
+  const [ackImpact, setAckImpact] = useState(false);
 
   useEffect(() => {
     if (user && open) {
@@ -102,6 +106,7 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
       setReason("");
       setEffective(today);
       setExpires(undefined);
+      setAckImpact(false);
     }
   }, [user, open, today]);
 
@@ -115,6 +120,17 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
   });
   const diff = diffQ.data;
 
+  // Rule f — warn when the role change removes permissions required by
+  // open work assigned to the target.
+  const impactQ = useQuery({
+    enabled: !!user && !!diff && diff.removed.length > 0,
+    queryKey: ["role-change-impact", user?.id, (diff?.removed ?? []).slice().sort().join(",")],
+    staleTime: 30_000,
+    queryFn: () => fetchAssignedWorkImpact(user!.id, diff!.removed),
+  });
+  const impact = impactQ.data;
+  const hasImpact = !!impact && (impact.open_items ?? 0) > 0;
+
   const hasRoleChange = useMemo(() => {
     if (!user) return false;
     const a = [...user.roles].sort().join(",");
@@ -123,32 +139,32 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
   }, [user, roles, primary]);
 
   const dateOk = !!effective && (!expires || expires > effective);
+
+  const isDirty = hasRoleChange || reason.trim().length > 0;
+  const { attemptClose } = useDrawerSafety({ open, isDirty, onClose: () => onOpenChange(false) });
+  const submitOnce = useMutationOnce(async () => {
+    if (!primary || !effective) return;
+    await onSubmit({
+      roles, primary,
+      effective_at: toIsoDay(effective)!,
+      expires_at: toIsoDay(expires),
+      reason: reason.trim(),
+      requiresApproval,
+    });
+    onOpenChange(false);
+  });
+  const saving = submitOnce.pending;
   const canSubmit =
     validation.ok && !!primary && reason.trim().length >= 12 &&
-    hasRoleChange && dateOk && !saving;
+    hasRoleChange && dateOk && !saving && (!hasImpact || ackImpact);
 
   const requiresApproval = diff?.requiresApproval ?? false;
   const primaryLabel = requiresApproval ? "Submit for approval" : "Apply immediately";
 
-  const submit = async () => {
-    if (!canSubmit || !primary || !effective) return;
-    setSaving(true);
-    try {
-      await onSubmit({
-        roles, primary,
-        effective_at: toIsoDay(effective)!,
-        expires_at: toIsoDay(expires),
-        reason: reason.trim(),
-        requiresApproval,
-      });
-      onOpenChange(false);
-    } finally { setSaving(false); }
-  };
-
   if (!user) return null;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={(v) => { if (!v) attemptClose(); else onOpenChange(v); }}>
       <SheetContent side="right" className="w-full sm:max-w-[960px] p-0 flex flex-col gap-0 overflow-hidden">
         <SheetHeader className="shrink-0 border-b border-border bg-muted/30 px-6 py-4">
           <SheetTitle className="text-lg">Change role — {user.full_name}</SheetTitle>
@@ -234,6 +250,23 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
                   Change the role selection or primary to enable submission.
                 </div>
               )}
+
+              {hasImpact && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-amber-300">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    This will affect {impact?.open_items ?? 0} open item{(impact?.open_items ?? 0) === 1 ? "" : "s"}
+                  </div>
+                  <div className="text-[11px] text-foreground/80">
+                    Removing these permissions may prevent this user from finishing work already assigned to them
+                    ({(impact?.affected_modules ?? []).join(", ") || "open tasks in affected modules"}). Consider reassigning first.
+                  </div>
+                  <label className="flex items-start gap-2 text-[11px] text-foreground/90">
+                    <Checkbox checked={ackImpact} onCheckedChange={(v) => setAckImpact(!!v)} className="mt-0.5" />
+                    <span>I understand this impacts open work and want to proceed.</span>
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* --------- Right: diff panel --------- */}
@@ -310,7 +343,7 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={submit} disabled={!canSubmit}>
+              <Button onClick={() => submitOnce.run()} disabled={!canSubmit}>
                 {saving ? "Working…" : primaryLabel}
               </Button>
             </div>
