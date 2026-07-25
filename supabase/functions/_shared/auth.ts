@@ -123,15 +123,15 @@ export async function requirePermission(
   return ctx;
 }
 
-export class PermissionError extends AuthError {
-  constructor(public required: string) {
-    super(403, "permission_denied");
-  }
-}
-
 export class AuthError extends Error {
   constructor(public status: number, public code: string) {
     super(code);
+  }
+}
+
+export class PermissionError extends AuthError {
+  constructor(public required: string) {
+    super(403, "permission_denied");
   }
 }
 
