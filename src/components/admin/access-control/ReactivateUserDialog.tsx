@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { InternalUser } from "@/services/admin-access-control.service";
 import { ROLE_LABEL } from "@/services/admin-access-control.service";
+import { useDrawerSafety } from "@/hooks/useDrawerSafety";
+import { useMutationOnce } from "@/hooks/useMutationOnce";
 
 interface Props {
   user: InternalUser | null;
@@ -20,24 +22,24 @@ interface Props {
  */
 export function ReactivateUserDialog({ user, open, onOpenChange, onConfirm }: Props) {
   const [reason, setReason] = useState("");
-  const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (open) { setReason(""); setBusy(false); } }, [open]);
+  useEffect(() => { if (open) { setReason(""); } }, [open]);
 
+  const isDirty = reason.trim().length > 0;
+  const { attemptClose } = useDrawerSafety({ open, isDirty, onClose: () => onOpenChange(false) });
+  const submitOnce = useMutationOnce(async () => {
+    if (!user) return;
+    await onConfirm(reason.trim());
+    onOpenChange(false);
+  });
+  const busy = submitOnce.pending;
   const canSubmit = !busy && reason.trim().length >= 8 && !!user;
-
-  const submit = async () => {
-    if (!canSubmit || !user) return;
-    setBusy(true);
-    try { await onConfirm(reason.trim()); onOpenChange(false); }
-    finally { setBusy(false); }
-  };
 
   if (!user) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={(v) => { if (!v) attemptClose(); else onOpenChange(v); }}>
+      <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserCheck className="h-4 w-4 text-emerald-400" />
@@ -63,8 +65,8 @@ export function ReactivateUserDialog({ user, open, onOpenChange, onConfirm }: Pr
           Sign-in and task assignment resume immediately. Existing overrides and audit history are preserved.
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
-          <Button onClick={submit} disabled={!canSubmit}>
+          <Button variant="outline" onClick={attemptClose} disabled={busy}>Cancel</Button>
+          <Button onClick={() => submitOnce.run()} disabled={!canSubmit}>
             {busy ? "Working…" : "Reactivate user"}
           </Button>
         </DialogFooter>
