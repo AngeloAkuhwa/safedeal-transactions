@@ -1,18 +1,27 @@
-// Access Control Management service.
-// Backend edge functions for internal-user access are not yet wired; this
-// service returns deterministic mock data so the UI is fully interactive.
-// Swap the internal `fetchMock` calls for real edge-function calls when the
-// backend endpoints ship — the exported types are the contract to hold to.
+// Access Control Management service — Supabase backed.
+// Model is documented in mem://architecture/service-layer.
 
-export type InternalRole =
-  | "super_admin"
-  | "admin"
-  | "senior_agent"
-  | "agent"
-  | "junior_agent"
-  | "read_only";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  ACCESS_LABEL,
+  ALL_PERMISSION_KEYS,
+  PERMISSION_MODULES,
+  ROLE_LABEL,
+  deriveAccessLevel,
+  isProtectedRole,
+  validateRoleSet,
+  type AccessLevel,
+  type InternalRoleKey,
+  type PermissionModule,
+} from "./permission-catalog";
 
-export type AccessLevel = "full" | "elevated" | "high" | "standard" | "limited";
+export {
+  ACCESS_LABEL, ROLE_LABEL, deriveAccessLevel, isProtectedRole, validateRoleSet,
+  PERMISSION_MODULES,
+};
+export type { AccessLevel, InternalRoleKey, PermissionModule };
+
+export type InternalRole = InternalRoleKey;
 
 export type InternalUserStatus = "active" | "suspended" | "pending" | "invited";
 
@@ -22,15 +31,18 @@ export interface InternalUser {
   full_name: string;
   email: string;
   avatar_url: string | null;
-  role: InternalRole;
+  roles: InternalRoleKey[];
+  primary_role: InternalRoleKey;
   access_level: AccessLevel;
   status: InternalUserStatus;
   last_active_at: string | null;
   two_factor_enabled: boolean;
   created_at: string;
-  created_by?: string | null;
-  department?: string | null;
-  permissions: string[];
+  department: string | null;
+  permissions: string[];         // effective (union - revokes + grants)
+  base_permissions: string[];    // from roles only
+  grants: string[];              // explicit grants (overrides)
+  revokes: string[];             // explicit revokes (overrides)
 }
 
 export interface AccessSummary {
@@ -44,11 +56,9 @@ export interface AccessSummary {
 }
 
 export type AccessFilter =
-  | "all"
-  | "admins"
-  | "agents"
-  | "suspended"
-  | "critical";
+  | "all" | "admins" | "agents" | "finance"
+  | "compliance" | "identity" | "auditors"
+  | "suspended" | "critical";
 
 export interface AccessDirectoryQuery {
   filter?: AccessFilter;
@@ -70,205 +80,449 @@ export interface AccessAuditEntry {
   severity: "info" | "warning" | "critical";
 }
 
-// ---------- MOCK STORE ----------
+export interface AccessChangeRequest {
+  id: string;
+  target_user_id: string;
+  target_name: string | null;
+  requested_by: string;
+  requested_by_name: string | null;
+  change_type: "role" | "permission" | "suspend" | "reactivate";
+  payload: Record<string, unknown>;
+  reason: string;
+  status: "pending" | "approved" | "rejected" | "cancelled";
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_reason: string | null;
+  created_at: string;
+}
 
-const now = Date.now();
-const iso = (msAgo: number) => new Date(now - msAgo).toISOString();
+// ---------- Role classification helpers ----------
 
-const MOCK_USERS: InternalUser[] = [
-  {
-    id: "u_1", display_id: "ADM-001",
-    full_name: "Sarah Chen", email: "sarah.chen@safedeal.com",
-    avatar_url: null, role: "super_admin", access_level: "full",
-    status: "active", last_active_at: iso(2 * 60_000),
-    two_factor_enabled: true, created_at: iso(400 * 86_400_000),
-    department: "Platform Security",
-    permissions: ["*"],
-  },
-  {
-    id: "u_2", display_id: "ADM-002",
-    full_name: "Michael Rodriguez", email: "michael.r@safedeal.com",
-    avatar_url: null, role: "admin", access_level: "high",
-    status: "active", last_active_at: iso(15 * 60_000),
-    two_factor_enabled: true, created_at: iso(300 * 86_400_000),
-    department: "Trust & Safety",
-    permissions: ["users.manage", "disputes.manage", "payouts.review"],
-  },
-  {
-    id: "u_3", display_id: "AGT-015",
-    full_name: "Emma Thompson", email: "emma.t@safedeal.com",
-    avatar_url: null, role: "senior_agent", access_level: "standard",
-    status: "active", last_active_at: iso(60 * 60_000),
-    two_factor_enabled: true, created_at: iso(180 * 86_400_000),
-    department: "Customer Support",
-    permissions: ["disputes.view", "disputes.respond", "users.view"],
-  },
-  {
-    id: "u_4", display_id: "AGT-032",
-    full_name: "James Wilson", email: "james.w@safedeal.com",
-    avatar_url: null, role: "agent", access_level: "limited",
-    status: "active", last_active_at: iso(3 * 60 * 60_000),
-    two_factor_enabled: false, created_at: iso(120 * 86_400_000),
-    department: "Customer Support",
-    permissions: ["disputes.view", "users.view"],
-  },
-  {
-    id: "u_5", display_id: "ADM-007",
-    full_name: "Olivia Martins", email: "olivia.m@safedeal.com",
-    avatar_url: null, role: "admin", access_level: "elevated",
-    status: "suspended", last_active_at: iso(6 * 86_400_000),
-    two_factor_enabled: true, created_at: iso(500 * 86_400_000),
-    department: "Finance Ops",
-    permissions: ["payouts.approve", "escrow.review"],
-  },
-  {
-    id: "u_6", display_id: "AGT-041",
-    full_name: "Daniel Ade", email: "daniel.a@safedeal.com",
-    avatar_url: null, role: "junior_agent", access_level: "limited",
-    status: "pending", last_active_at: null,
-    two_factor_enabled: false, created_at: iso(2 * 86_400_000),
-    department: "Customer Support",
-    permissions: ["disputes.view"],
-  },
-  {
-    id: "u_7", display_id: "ADM-003",
-    full_name: "Priya Nair", email: "priya.n@safedeal.com",
-    avatar_url: null, role: "super_admin", access_level: "full",
-    status: "active", last_active_at: iso(9 * 60_000),
-    two_factor_enabled: true, created_at: iso(600 * 86_400_000),
-    department: "Engineering",
-    permissions: ["*"],
-  },
-];
+const ADMIN_ROLES: InternalRoleKey[] = ["super_admin", "senior_admin"];
+const AGENT_ROLES: InternalRoleKey[] = ["dispute_manager", "dispute_agent", "support_agent"];
+const FINANCE_ROLES: InternalRoleKey[] = ["finance_operator", "finance_approver"];
+const COMPLIANCE_ROLES: InternalRoleKey[] = ["compliance_officer"];
+const IDENTITY_ROLES: InternalRoleKey[] = ["identity_officer"];
+const AUDITOR_ROLES: InternalRoleKey[] = ["auditor"];
 
-const MOCK_AUDIT: AccessAuditEntry[] = [
-  { id: "a1", user_id: "u_2", actor_name: "Sarah Chen",
-    action: "role_changed", detail: "Promoted to Admin", severity: "warning",
-    created_at: iso(2 * 86_400_000) },
-  { id: "a2", user_id: "u_5", actor_name: "System",
-    action: "user_suspended", detail: "Suspended after 3 failed policy checks",
-    severity: "critical", created_at: iso(6 * 86_400_000) },
-  { id: "a3", user_id: "u_3", actor_name: "Michael Rodriguez",
-    action: "permission_granted", detail: "Added disputes.respond",
-    severity: "info", created_at: iso(10 * 86_400_000) },
-];
+function overlaps<T>(a: T[], b: T[]) { return a.some((x) => b.includes(x)); }
 
 function passesFilter(u: InternalUser, f: AccessFilter): boolean {
-  if (f === "admins") return u.role === "admin" || u.role === "super_admin";
-  if (f === "agents") return u.role === "senior_agent" || u.role === "agent" || u.role === "junior_agent";
-  if (f === "suspended") return u.status === "suspended";
-  if (f === "critical") return u.access_level === "full" || u.access_level === "elevated";
-  return true;
+  switch (f) {
+    case "admins":     return overlaps(u.roles, ADMIN_ROLES);
+    case "agents":     return overlaps(u.roles, AGENT_ROLES);
+    case "finance":    return overlaps(u.roles, FINANCE_ROLES);
+    case "compliance": return overlaps(u.roles, COMPLIANCE_ROLES);
+    case "identity":   return overlaps(u.roles, IDENTITY_ROLES);
+    case "auditors":   return overlaps(u.roles, AUDITOR_ROLES);
+    case "suspended":  return u.status === "suspended";
+    case "critical":   return u.access_level === "full" || u.access_level === "high";
+    case "all":
+    default:           return true;
+  }
 }
 
-function buildSummary(users: InternalUser[]): AccessSummary {
-  const admins = users.filter((u) => (u.role === "admin" || u.role === "super_admin") && u.status === "active").length;
-  const agents = users.filter((u) => (u.role === "senior_agent" || u.role === "agent" || u.role === "junior_agent") && u.status === "active").length;
-  const suspended = users.filter((u) => u.status === "suspended").length;
-  const full = users.filter((u) => u.access_level === "full").length;
-  return {
-    active_admins: admins, admins_delta_week: 2,
-    active_agents: agents, agents_delta_week: 5,
-    suspended_users: suspended, suspended_delta_week: -1,
-    full_access_users: full,
-  };
+// ---------- Directory ----------
+
+let cachedRolePerms: Map<string, string[]> | null = null;
+async function loadRolePermissions(): Promise<Map<string, string[]>> {
+  if (cachedRolePerms) return cachedRolePerms;
+  const { data, error } = await supabase
+    .from("role_permissions")
+    .select("role_key,permission_key");
+  if (error) throw error;
+  const map = new Map<string, string[]>();
+  for (const r of data ?? []) {
+    const arr = map.get(r.role_key) ?? [];
+    arr.push(r.permission_key);
+    map.set(r.role_key, arr);
+  }
+  cachedRolePerms = map;
+  return map;
 }
 
-async function delay<T>(v: T, ms = 250): Promise<T> {
-  return new Promise((r) => setTimeout(() => r(v), ms));
+export function invalidateRolePermissionCache() { cachedRolePerms = null; }
+
+function computeEffective(roles: string[], grants: string[], revokes: string[], rolePerms: Map<string, string[]>): {
+  base: string[]; effective: string[];
+} {
+  const base = new Set<string>();
+  for (const r of roles) for (const p of (rolePerms.get(r) ?? [])) base.add(p);
+  const eff = new Set<string>(base);
+  for (const g of grants) eff.add(g);
+  for (const r of revokes) eff.delete(r);
+  return { base: Array.from(base).sort(), effective: Array.from(eff).sort() };
 }
 
 export async function fetchAccessDirectory(q: AccessDirectoryQuery = {}): Promise<AccessDirectoryResponse> {
+  const [rolePerms, usersRes, rolesRes, overridesRes] = await Promise.all([
+    loadRolePermissions(),
+    supabase.from("internal_users").select("*").order("created_at", { ascending: false }),
+    supabase.from("internal_user_roles").select("user_id,role_key,is_primary"),
+    supabase.from("user_permission_overrides").select("user_id,permission_key,mode"),
+  ]);
+  if (usersRes.error) throw usersRes.error;
+  if (rolesRes.error) throw rolesRes.error;
+  if (overridesRes.error) throw overridesRes.error;
+
+  const rolesByUser = new Map<string, { key: string; primary: boolean }[]>();
+  for (const r of rolesRes.data ?? []) {
+    const arr = rolesByUser.get(r.user_id) ?? [];
+    arr.push({ key: r.role_key, primary: !!r.is_primary });
+    rolesByUser.set(r.user_id, arr);
+  }
+  const overridesByUser = new Map<string, { grants: string[]; revokes: string[] }>();
+  for (const o of overridesRes.data ?? []) {
+    const cur = overridesByUser.get(o.user_id) ?? { grants: [], revokes: [] };
+    if (o.mode === "grant") cur.grants.push(o.permission_key);
+    else cur.revokes.push(o.permission_key);
+    overridesByUser.set(o.user_id, cur);
+  }
+
+  const all: InternalUser[] = (usersRes.data ?? []).map((row): InternalUser => {
+    const rr = rolesByUser.get(row.id) ?? [];
+    const roles = rr.map((x) => x.key as InternalRoleKey);
+    const primary = (rr.find((x) => x.primary)?.key ?? rr[0]?.key ?? "support_agent") as InternalRoleKey;
+    const ov = overridesByUser.get(row.id) ?? { grants: [], revokes: [] };
+    const { base, effective } = computeEffective(roles, ov.grants, ov.revokes, rolePerms);
+    return {
+      id: row.id,
+      display_id: row.display_id,
+      full_name: row.full_name,
+      email: row.email,
+      avatar_url: null,
+      roles,
+      primary_role: primary,
+      access_level: deriveAccessLevel(effective, roles),
+      status: row.status as InternalUserStatus,
+      last_active_at: row.last_active_at,
+      two_factor_enabled: !!row.two_factor_enabled,
+      created_at: row.created_at,
+      department: row.department,
+      permissions: effective,
+      base_permissions: base,
+      grants: ov.grants,
+      revokes: ov.revokes,
+    };
+  });
+
   const filter = q.filter ?? "all";
   const search = (q.q ?? "").trim().toLowerCase();
-  const rows = MOCK_USERS.filter((u) => passesFilter(u, filter)).filter((u) => {
-    if (!search) return true;
-    return [u.full_name, u.email, u.display_id, u.role, u.department ?? ""]
-      .join(" ")
-      .toLowerCase()
-      .includes(search);
-  });
-  return delay({ summary: buildSummary(MOCK_USERS), rows });
+  const rows = all
+    .filter((u) => passesFilter(u, filter))
+    .filter((u) => {
+      if (!search) return true;
+      const hay = [
+        u.full_name, u.email, u.display_id, u.department ?? "",
+        ...u.roles.map((r) => ROLE_LABEL[r] ?? r),
+      ].join(" ").toLowerCase();
+      return hay.includes(search);
+    });
+
+  const summary: AccessSummary = {
+    active_admins: all.filter((u) => overlaps(u.roles, ADMIN_ROLES) && u.status === "active").length,
+    admins_delta_week: 0,
+    active_agents: all.filter((u) => overlaps(u.roles, AGENT_ROLES) && u.status === "active").length,
+    agents_delta_week: 0,
+    suspended_users: all.filter((u) => u.status === "suspended").length,
+    suspended_delta_week: 0,
+    full_access_users: all.filter((u) => u.access_level === "full").length,
+  };
+
+  return { summary, rows };
 }
+
+// ---------- Audit history ----------
 
 export async function fetchAccessAudit(userId: string): Promise<AccessAuditEntry[]> {
-  return delay(MOCK_AUDIT.filter((a) => a.user_id === userId));
+  const { data, error } = await supabase
+    .from("audit_logs")
+    .select("id,action_type,description,created_at,severity,actor_id")
+    .eq("target_user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(25);
+  if (error) throw error;
+
+  const actorIds = Array.from(new Set((data ?? []).map((r: any) => r.actor_id).filter(Boolean)));
+  let names = new Map<string, string>();
+  if (actorIds.length) {
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("id,full_name")
+      .in("id", actorIds);
+    for (const p of profs ?? []) names.set(p.id, p.full_name ?? "Admin");
+  }
+
+  return (data ?? []).map((r: any): AccessAuditEntry => ({
+    id: r.id,
+    user_id: userId,
+    actor_name: r.actor_id ? (names.get(r.actor_id) ?? "Admin") : "System",
+    action: String(r.action_type ?? "action"),
+    detail: String(r.description ?? ""),
+    created_at: r.created_at,
+    severity: (["critical", "warning", "info"].includes(r.severity) ? r.severity : "info") as any,
+  }));
 }
 
-export interface ChangeRoleInput { user_id: string; role: InternalRole; access_level: AccessLevel; reason: string; }
-export async function changeRole(input: ChangeRoleInput): Promise<void> {
-  const u = MOCK_USERS.find((x) => x.id === input.user_id);
-  if (u) { u.role = input.role; u.access_level = input.access_level; }
-  await delay(null);
+// ---------- Mutations ----------
+
+async function currentUserId(): Promise<string> {
+  const { data } = await supabase.auth.getUser();
+  const uid = data.user?.id;
+  if (!uid) throw new Error("Not signed in");
+  return uid;
 }
 
-export interface UpdatePermissionsInput { user_id: string; permissions: string[]; reason: string; }
-export async function updatePermissions(input: UpdatePermissionsInput): Promise<void> {
-  const u = MOCK_USERS.find((x) => x.id === input.user_id);
-  if (u) u.permissions = input.permissions;
-  await delay(null);
+async function auditLog(target_user_id: string, action_type: string, description: string, severity: "info" | "warning" | "critical" = "info", metadata: Record<string, unknown> = {}) {
+  try {
+    const uid = await currentUserId();
+    await supabase.from("audit_logs").insert({
+      actor_id: uid,
+      target_user_id,
+      action_type,
+      description,
+      severity,
+      metadata,
+    });
+  } catch { /* audit best-effort */ }
+}
+
+export interface UpdateRolesInput {
+  user_id: string;
+  roles: InternalRoleKey[];
+  primary_role: InternalRoleKey;
+  reason: string;
+}
+
+/**
+ * Replaces a user's role set. If any of the added/removed roles is protected
+ * and the caller isn't super_admin, this queues an access_change_request
+ * instead of applying immediately.
+ */
+export async function updateUserRoles(input: UpdateRolesInput): Promise<{ applied: boolean; request_id?: string }> {
+  const check = validateRoleSet(input.roles);
+  if (!check.ok) throw new Error(check.error);
+  if (!input.roles.includes(input.primary_role)) {
+    throw new Error("Primary role must be one of the assigned roles.");
+  }
+  const requester = await currentUserId();
+
+  // Read current state
+  const { data: current, error: curErr } = await supabase
+    .from("internal_user_roles")
+    .select("role_key,is_primary")
+    .eq("user_id", input.user_id);
+  if (curErr) throw curErr;
+
+  const before = new Set((current ?? []).map((r: any) => r.role_key));
+  const after = new Set(input.roles);
+  const added = [...after].filter((r) => !before.has(r));
+  const removed = [...before].filter((r) => !after.has(r));
+  const hasProtected = [...added, ...removed].some(isProtectedRole);
+
+  // If protected and caller isn't super_admin, queue for approval
+  const { data: myRoles } = await supabase
+    .from("internal_user_roles")
+    .select("role_key")
+    .eq("user_id", requester);
+  const isSuper = (myRoles ?? []).some((r: any) => r.role_key === "super_admin");
+
+  if (hasProtected && !isSuper) {
+    const { data: req, error: reqErr } = await supabase
+      .from("access_change_requests")
+      .insert({
+        target_user_id: input.user_id,
+        requested_by: requester,
+        change_type: "role",
+        payload: { roles: input.roles, primary_role: input.primary_role },
+        reason: input.reason,
+      })
+      .select("id")
+      .single();
+    if (reqErr) throw reqErr;
+    await auditLog(input.user_id, "access_role_change_requested",
+      `Role change queued for approval (added: ${added.join(", ") || "—"}, removed: ${removed.join(", ") || "—"})`,
+      "warning", { request_id: req.id });
+    return { applied: false, request_id: req.id };
+  }
+
+  // Apply atomically-ish: delete removed, upsert kept, ensure single primary
+  if (removed.length) {
+    const { error } = await supabase
+      .from("internal_user_roles")
+      .delete()
+      .eq("user_id", input.user_id)
+      .in("role_key", removed);
+    if (error) throw error;
+  }
+
+  // Clear existing primary, then insert/update rows for the new set
+  await supabase.from("internal_user_roles")
+    .update({ is_primary: false })
+    .eq("user_id", input.user_id);
+
+  for (const role of input.roles) {
+    const { error } = await supabase
+      .from("internal_user_roles")
+      .upsert({
+        user_id: input.user_id,
+        role_key: role,
+        is_primary: role === input.primary_role,
+        assigned_by: requester,
+      }, { onConflict: "user_id,role_key" });
+    if (error) throw error;
+  }
+
+  await auditLog(input.user_id, "access_roles_updated",
+    `Roles updated (added: ${added.join(", ") || "—"}, removed: ${removed.join(", ") || "—"}, primary: ${input.primary_role})`,
+    hasProtected ? "warning" : "info",
+    { before: [...before], after: [...after], primary: input.primary_role, reason: input.reason });
+  return { applied: true };
+}
+
+export interface UpdatePermissionsInput {
+  user_id: string;
+  grants: string[];
+  revokes: string[];
+  reason: string;
+}
+
+export async function updatePermissionOverrides(input: UpdatePermissionsInput): Promise<void> {
+  const invalid = [...input.grants, ...input.revokes].filter((k) => !ALL_PERMISSION_KEYS.includes(k));
+  if (invalid.length) throw new Error(`Unknown permission keys: ${invalid.join(", ")}`);
+  const requester = await currentUserId();
+
+  const { error: delErr } = await supabase
+    .from("user_permission_overrides")
+    .delete()
+    .eq("user_id", input.user_id);
+  if (delErr) throw delErr;
+
+  const rows = [
+    ...input.grants.map((k) => ({ user_id: input.user_id, permission_key: k, mode: "grant", reason: input.reason, granted_by: requester })),
+    ...input.revokes.map((k) => ({ user_id: input.user_id, permission_key: k, mode: "revoke", reason: input.reason, granted_by: requester })),
+  ];
+  if (rows.length) {
+    const { error } = await supabase.from("user_permission_overrides").insert(rows);
+    if (error) throw error;
+  }
+  await auditLog(input.user_id, "access_permissions_updated",
+    `Permission overrides updated (${input.grants.length} grants / ${input.revokes.length} revokes)`,
+    "warning", { grants: input.grants, revokes: input.revokes, reason: input.reason });
 }
 
 export interface SuspendInput { user_id: string; reason: string; }
+
 export async function suspendInternalUser(input: SuspendInput): Promise<void> {
-  const u = MOCK_USERS.find((x) => x.id === input.user_id);
-  if (u) u.status = "suspended";
-  await delay(null);
+  const { error } = await supabase
+    .from("internal_users")
+    .update({ status: "suspended" })
+    .eq("id", input.user_id);
+  if (error) throw error;
+  await auditLog(input.user_id, "access_user_suspended", `Suspended: ${input.reason}`, "critical", { reason: input.reason });
 }
+
 export async function reactivateInternalUser(input: SuspendInput): Promise<void> {
-  const u = MOCK_USERS.find((x) => x.id === input.user_id);
-  if (u) u.status = "active";
-  await delay(null);
+  const { error } = await supabase
+    .from("internal_users")
+    .update({ status: "active" })
+    .eq("id", input.user_id);
+  if (error) throw error;
+  await auditLog(input.user_id, "access_user_reactivated", `Reactivated: ${input.reason}`, "info", { reason: input.reason });
 }
 
 export interface InviteUserInput {
   full_name: string;
   email: string;
-  role: InternalRole;
-  access_level: AccessLevel;
+  roles: InternalRoleKey[];
+  primary_role: InternalRoleKey;
   department?: string;
   require_2fa: boolean;
 }
+
 export async function inviteInternalUser(input: InviteUserInput): Promise<InternalUser> {
-  const rolePrefix = input.role === "admin" || input.role === "super_admin" ? "ADM" : "AGT";
-  const seq = String(MOCK_USERS.length + 1).padStart(3, "0");
-  const u: InternalUser = {
-    id: `u_${Date.now()}`,
-    display_id: `${rolePrefix}-${seq}`,
-    full_name: input.full_name,
-    email: input.email,
-    avatar_url: null,
-    role: input.role,
-    access_level: input.access_level,
-    status: "invited",
-    last_active_at: null,
-    two_factor_enabled: input.require_2fa,
-    created_at: new Date().toISOString(),
-    department: input.department ?? null,
-    permissions: [],
-  };
-  MOCK_USERS.unshift(u);
-  return delay(u);
+  const check = validateRoleSet(input.roles);
+  if (!check.ok) throw new Error(check.error);
+  const { data, error } = await supabase.functions.invoke("admin-invite-internal-user", { body: input });
+  if (error) throw error;
+  if (data?.error) throw new Error(String(data.error));
+  return data.user as InternalUser;
 }
 
-// ---------- PRESENTATION HELPERS ----------
+// ---------- Access change requests ----------
 
-export const ROLE_LABEL: Record<InternalRole, string> = {
-  super_admin: "Super Admin",
-  admin: "Admin",
-  senior_agent: "Senior Agent",
-  agent: "Agent",
-  junior_agent: "Junior Agent",
-  read_only: "Read Only",
-};
+export async function listAccessChangeRequests(status: "pending" | "all" = "pending"): Promise<AccessChangeRequest[]> {
+  const q = supabase
+    .from("access_change_requests")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  const { data, error } = status === "pending" ? await q.eq("status", "pending") : await q;
+  if (error) throw error;
 
-export const ACCESS_LABEL: Record<AccessLevel, string> = {
-  full: "Full Access",
-  elevated: "Elevated Access",
-  high: "High Access",
-  standard: "Standard Access",
-  limited: "Limited Access",
-};
+  const rows = data ?? [];
+  const ids = Array.from(new Set(rows.flatMap((r: any) => [r.requested_by, r.target_user_id]).filter(Boolean)));
+  const names = new Map<string, string>();
+  if (ids.length) {
+    const { data: profs } = await supabase.from("profiles").select("id,full_name").in("id", ids);
+    for (const p of profs ?? []) names.set(p.id, p.full_name ?? "");
+    const { data: ius } = await supabase.from("internal_users").select("id,full_name").in("id", ids);
+    for (const p of ius ?? []) names.set(p.id, p.full_name ?? "");
+  }
+
+  return rows.map((r: any): AccessChangeRequest => ({
+    id: r.id,
+    target_user_id: r.target_user_id,
+    target_name: names.get(r.target_user_id) ?? null,
+    requested_by: r.requested_by,
+    requested_by_name: names.get(r.requested_by) ?? null,
+    change_type: r.change_type,
+    payload: r.payload ?? {},
+    reason: r.reason,
+    status: r.status,
+    reviewed_by: r.reviewed_by,
+    reviewed_at: r.reviewed_at,
+    review_reason: r.review_reason,
+    created_at: r.created_at,
+  }));
+}
+
+export async function reviewAccessChangeRequest(id: string, decision: "approve" | "reject", reason: string): Promise<void> {
+  const requester = await currentUserId();
+  const { data: req, error: fetchErr } = await supabase
+    .from("access_change_requests")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (fetchErr) throw fetchErr;
+  if (req.status !== "pending") throw new Error("Request already reviewed.");
+  if (req.requested_by === requester) throw new Error("You cannot approve your own request.");
+
+  const nextStatus = decision === "approve" ? "approved" : "rejected";
+  const { error: updErr } = await supabase
+    .from("access_change_requests")
+    .update({ status: nextStatus, reviewed_by: requester, reviewed_at: new Date().toISOString(), review_reason: reason })
+    .eq("id", id);
+  if (updErr) throw updErr;
+
+  if (decision === "approve" && req.change_type === "role") {
+    const payload = req.payload as { roles: InternalRoleKey[]; primary_role: InternalRoleKey };
+    // Apply immediately, bypassing the protected-role queue by calling as super_admin.
+    await updateUserRoles({
+      user_id: req.target_user_id,
+      roles: payload.roles,
+      primary_role: payload.primary_role,
+      reason: `Approved change request: ${reason}`,
+    });
+  }
+
+  await auditLog(req.target_user_id, `access_change_${decision}d`,
+    `${decision === "approve" ? "Approved" : "Rejected"} access change request`,
+    decision === "approve" ? "warning" : "info",
+    { request_id: id, reason });
+}
+
+// ---------- Presentation helpers ----------
 
 export const STATUS_LABEL: Record<InternalUserStatus, string> = {
   active: "Active",
@@ -280,7 +534,6 @@ export const STATUS_LABEL: Record<InternalUserStatus, string> = {
 export function accessDotClass(level: AccessLevel): string {
   switch (level) {
     case "full": return "bg-red-400";
-    case "elevated": return "bg-orange-400";
     case "high": return "bg-amber-400";
     case "standard": return "bg-blue-400";
     case "limited": return "bg-emerald-400";
@@ -299,26 +552,8 @@ export function relativeTime(iso: string | null): string {
   return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
-export const PERMISSION_CATALOG: Array<{ group: string; items: Array<{ key: string; label: string }> }> = [
-  { group: "Users", items: [
-    { key: "users.view", label: "View user directory" },
-    { key: "users.manage", label: "Manage users & roles" },
-    { key: "users.suspend", label: "Suspend / reactivate users" },
-  ]},
-  { group: "Disputes", items: [
-    { key: "disputes.view", label: "View disputes" },
-    { key: "disputes.respond", label: "Respond to disputes" },
-    { key: "disputes.manage", label: "Manage & resolve disputes" },
-  ]},
-  { group: "Payments & Escrow", items: [
-    { key: "payouts.review", label: "Review payouts" },
-    { key: "payouts.approve", label: "Approve payouts" },
-    { key: "escrow.review", label: "Review escrow ledger" },
-    { key: "escrow.adjust", label: "Adjust escrow entries" },
-  ]},
-  { group: "Platform", items: [
-    { key: "settings.view", label: "View platform settings" },
-    { key: "settings.manage", label: "Manage platform settings" },
-    { key: "audit.view", label: "View audit logs" },
-  ]},
-];
+// Back-compat export used by some legacy imports.
+export const PERMISSION_CATALOG = PERMISSION_MODULES.map((m) => ({
+  group: m.label,
+  items: m.permissions.map((p) => ({ key: p.key, label: p.label })),
+}));
