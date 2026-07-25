@@ -26,6 +26,26 @@ export type { AccessLevel, InternalRoleKey, PermissionModule };
 
 export type InternalRole = InternalRoleKey;
 
+/**
+ * Client-side throttled heartbeat writer for `internal_users.last_active_at`.
+ * No-op for buyers/sellers (row missing). Never throws — presence must not
+ * break the app shell.
+ */
+const TOUCH_KEY = "sd:internal-last-active:ts";
+const TOUCH_MIN_MS = 60_000;
+export async function touchInternalUserLastActive(): Promise<void> {
+  try {
+    const now = Date.now();
+    const raw = typeof sessionStorage !== "undefined" ? sessionStorage.getItem(TOUCH_KEY) : null;
+    const last = raw ? Number(raw) : 0;
+    if (Number.isFinite(last) && now - last < TOUCH_MIN_MS) return;
+    if (typeof sessionStorage !== "undefined") sessionStorage.setItem(TOUCH_KEY, String(now));
+    await supabase.rpc("touch_internal_user_last_active");
+  } catch {
+    /* silent — presence is best-effort */
+  }
+}
+
 export type InternalUserStatus =
   | "active"
   | "suspended"
