@@ -371,11 +371,15 @@ Deno.serve(async (req) => {
       inviterName,
       roleLabel,
       redirectTo,
+      isExistingUser: true,
     });
 
     await admin
       .from("internal_users")
-      .update({ invitation_status: "sent", updated_at: new Date().toISOString() })
+      .update({
+        invitation_status: emailRes.channel === "failed" ? "failed" : "sent",
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", existing.id);
 
     await logAdminAction(admin, {
