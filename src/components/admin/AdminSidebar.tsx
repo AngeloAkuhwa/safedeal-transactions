@@ -133,9 +133,14 @@ function buildGroups(badges?: AdminDashboardResponse["sidebar_badges"]): NavGrou
       label: "Settings",
       items: [
         { label: "Notifications", href: "/admin/notifications", icon: Bell },
-        { label: "Audit Logs", href: "/admin/audit-logs", icon: ScrollText },
         { label: "Platform Settings", href: "/admin/settings", icon: Settings },
-        { label: "Access Control", href: "/admin/access-control", icon: KeyRound },
+      ],
+    },
+    {
+      label: "Administration",
+      items: [
+        { label: "Users & Access", href: "/admin/access-control", icon: KeyRound },
+        { label: "Audit Logs", href: "/admin/audit-logs", icon: ScrollText },
       ],
     },
   ];
