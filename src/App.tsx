@@ -154,6 +154,7 @@ const App = () => (
              <Route path="/admin/access-control" element={<AdminAccessControl />} />
              <Route path="/admin/users-access" element={<Navigate to="/admin/access-control" replace />} />
              <Route path="/admin/permission-matrix" element={<AdminPermissionMatrix />} />
+             <Route path="/admin/access-approvals" element={<AdminAccessApprovals />} />
             </Route>
 
             {/* Protected: requires session + seller role */}
