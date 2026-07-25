@@ -1,125 +1,42 @@
-## Scope
-Complete the Users & Access screen with the full filter/search/sort/pagination surface, the requested statuses, and the row-level action menu. Keeps the existing drawers (Quick preview, Change Role, Review Permissions, Suspend) intact.
+## Status of the Users & Access scope
 
-## 1. Status model — widen to 6 values
+Verified against the current files. **~95% done.** Everything in sections 1–10 is in place:
 
-`internal_users.status` is a plain `text` column (verified — no enum, no CHECK). Extend the vocabulary:
+- Status vocabulary widened to the 6 values (`invited`, `pending_approval`, `active`, `suspended`, `locked`, `deactivated`) with matching labels and badge tones.
+- 6 clickable summary cards with active-state highlight (`AccessSummaryCards.tsx`).
+- 10 chip filters + advanced filters (role / department / status / access level) + Clear all (`UserAccessFilters.tsx`, `AdvancedFilters.tsx`).
+- `TableToolbar` with sort, result count, rows-per-page, prev/next pagination.
+- `fetchAccessDirectory` accepts `page`, `page_size`, `sort_by`, `sort_dir` and returns `{ summary, rows, total, page, page_size, departments }`; summary includes `pending_invites`, `pending_approvals`, `suspended_or_locked`, `privileged_users`.
+- 9-column table with row-click → drawer and a `⋯` actions menu (View, Change Role, Review Permissions, View Access History, Resend Invitation, Suspend, Reactivate, Deactivate) with correct status-based visibility.
+- `deactivateInternalUser` and `resendInternalUserInvite` service methods + `ActionConfirmDialog` wiring with reason capture and toasts.
+- `LoadingSkeleton`, `EmptyState`, `NoResultsState`, `ErrorState` all rendered from the page based on `isLoading` / `isError` / `total === 0` / `hasAnyFilter`.
 
-- `invited` — invite sent, never signed in.
-- `pending_approval` — awaiting a Super Admin decision (new).
-- `active` — normal.
-- `suspended` — temporarily blocked.
-- `locked` — auto-locked (e.g. failed auth / security).  *(new)*
-- `deactivated` — permanently disabled, retained for audit.  *(new — replaces "delete")*
+## What's still missing
 
-Update: `InternalUserStatus` type, `STATUS_LABEL`, `STATUS_STYLES` in `badges.tsx`, and the `passesFilter` matrix. No DB migration needed for the column itself; the seed migration will only add a comment documenting the vocabulary.
+Two small gaps against section 8 and section 7:
 
-## 2. Summary cards → 6 clickable KPI tiles
+1. **`PermissionDeniedState` is built but never rendered.** `AdminAccessControl.tsx` only distinguishes `isLoading` / `isError` / empty. A Supabase `42501` (or any thrown "permission denied" from `fetchAccessDirectory`) falls into the generic `ErrorState` instead of the dedicated screen.
+2. **"View Access History" opens the drawer but does not focus the history section.** `UserDetailsDrawer` renders an "Access history" block inline (no tabs), so today the user has to scroll. The spec says the action should land on that section.
 
-Rebuild `AccessSummaryCards.tsx` to render six equal cards on `xl:grid-cols-3` / `md:grid-cols-2`:
+## Fix plan
 
-| Card | Filter applied on click |
-|---|---|
-| Active Admins | `admins` |
-| Active Agents | `agents` |
-| Pending Invitations | `invited` |
-| Pending Access Approvals | `pending_approval` |
-| Suspended or Locked Users | `suspended_or_locked` |
-| Privileged Access Users | `privileged` (full + high) |
+### 1. Wire `PermissionDeniedState` in `src/pages/AdminAccessControl.tsx`
 
-`AccessSummary` gains: `pending_invites`, `pending_approvals`, `suspended_or_locked`, `privileged_users`. Computed inside `fetchAccessDirectory` from the same in-memory set. Cards accept `onSelect` and highlight when the active filter matches.
+- Pull `error` off the `useQuery` result alongside `isError`.
+- Add a small helper `isPermissionDenied(err)` that checks for `err?.code === "42501"` or `/permission denied/i` on the message (covers both PostgREST and thrown Error shapes).
+- Render order becomes: `isLoading` → skeleton, `isError && isPermissionDenied(error)` → `PermissionDeniedState`, `isError || !data` → `ErrorState`, else content.
+- Import `PermissionDeniedState` at the top of the page.
 
-## 3. Filter chips (10)
+### 2. Focus the Access History section from the actions menu
 
-Replace the current 5 chips in `UserAccessFilters.tsx` with:
+- Add an optional `initialFocus?: "history"` prop to `UserDetailsDrawer`.
+- When set, on drawer open use a `useEffect` + `ref` on the "Access history" heading to `scrollIntoView({ behavior: "smooth", block: "start" })` after the drawer mounts.
+- In `AdminAccessControl.tsx`, pass `initialFocus={historyUser ? "history" : undefined}` to the drawer so only the "View Access History" entry point scrolls; the row-body click and Quick preview stay at the top as today.
 
-`All Users · Admins · Operational Agents · Finance · Compliance · Auditors · Pending Invitations · Pending Approval · Suspended · Privileged Access`
+### 3. Verify
 
-`AccessFilter` union grows to include `agents` (= operational agents), `finance`, `compliance`, `auditors`, `invited`, `pending_approval`, `suspended_or_locked`, `privileged`. Existing `identity` filter is retained internally but is not exposed as a top-level chip (identity officers are counted under Agents / can still be reached via role dropdown).
+- `tsgo` typecheck.
+- Manually click a row → drawer opens at top (unchanged). Open actions menu → "View Access History" → drawer opens scrolled to the history section.
+- No other files touched; drawers, mutations, filters, and pagination stay exactly as they are.
 
-## 4. Advanced filter bar
-
-New collapsible row under the chips with:
-
-- **Search** — name, email, employee ID (`display_id`), or role label. Debounced 250 ms.
-- **Role** select — multi-select combobox listing all 10 roles.
-- **Department / team** select — populated from distinct `internal_users.department` values in the current result.
-- **Status** select — the 6 status values.
-- **Access level** select — full / high / standard / limited.
-- **Clear all** button — resets chip filter + search + all advanced filters.
-
-All filters compose with the chip filter (chip = broad slice, advanced = fine-grain).
-
-## 5. Sort + pagination + rows-per-page + result count
-
-New `TableToolbar` component above the table renders:
-
-- Sort dropdown: Name (A→Z), Role, Status, Access Level, Last Active (default). Toggle asc/desc.
-- Result count: `Showing 11–20 of 47 users`.
-- Rows per page: 10 / 25 / 50 / 100.
-- Prev / Next pagination with page number.
-
-`fetchAccessDirectory` gains `page`, `pageSize`, `sortBy`, `sortDir` params and returns `{ summary, rows, total }`. Filtering/sorting/pagination is done in memory today (internal user set is small); the signature is server-ready so a future RPC can drop straight in.
-
-## 6. Table columns (9)
-
-`InternalUsersTable.tsx` rebuilt to:
-
-| # | Column | Source |
-|---|---|---|
-| 1 | User | avatar + full_name |
-| 2 | Employee ID | `display_id` |
-| 3 | Email | `email` |
-| 4 | Department / Team | `department ?? "—"` |
-| 5 | Primary Role | `RoleBadge` + `+N` chip |
-| 6 | Effective Access Level | `AccessLevelPill` |
-| 7 | Status | `StatusBadge` (6 tones) |
-| 8 | Last Active | `relativeTime` |
-| 9 | Actions | dropdown menu (see §7) |
-
-Entire row remains clickable → opens `UserDetailsDrawer` (quick preview). Clicks inside the actions cell stop propagation.
-
-## 7. Actions menu (accessible)
-
-Replace the inline icon buttons with a single `⋯` menu ( `DropdownMenu`) that always renders:
-
-- View User
-- Change Role
-- Review Permissions
-- View Access History (opens drawer on the Access History tab)
-- Resend Invitation — visible only when `status === "invited"`
-- Suspend User — visible when status is `active`
-- Reactivate User — visible when status is `suspended` / `locked`
-- Deactivate User — visible for any status except `deactivated`; destructive styling
-
-Every trigger has a `title`/`aria-label`. `Resend Invitation` calls `admin-invite-internal-user` with a `resend: true` flag (already accepted by the existing edge function; if not, will add). `Deactivate User` calls a new service method that sets status = `deactivated` and writes an audit entry — **never deletes**.
-
-## 8. State screens
-
-Extend the state components already added last turn:
-
-- `LoadingSkeleton` — used while `isLoading`.
-- `EmptyState` — when the base directory returns zero rows.
-- New `NoResultsState` — when filters/search yield zero of a non-empty base; includes a "Clear filters" button.
-- New `PermissionDeniedState` — surfaced when the query throws a Supabase 42501 / `permission denied`. Includes a link back to `/admin` and an explanation.
-- `ErrorState` — already exists; will keep its `Retry` button and trigger `refetch()`.
-
-`AdminAccessControl.tsx` selects the appropriate state based on `isLoading` / `isError` / `error.code` / `rows.length` / whether any filters are applied.
-
-## 9. Toasts
-
-All mutations (invite, resend, role change, permission override, suspend, reactivate, deactivate, approve/reject request) surface success + failure via the existing `useToast` hook already wired on the page — same pattern as today, plus new toasts for `resend` and `deactivate`.
-
-## 10. Files touched
-
-- `src/services/admin-access-control.service.ts` — types (`InternalUserStatus`, `AccessFilter`, `AccessSummary`, `AccessDirectoryQuery`, `AccessDirectoryResponse`), `fetchAccessDirectory` (paging/sort/summary), new `deactivateInternalUser`, `resendInternalUserInvite`, updated `passesFilter`, `STATUS_LABEL`.
-- `src/components/admin/access-control/AccessSummaryCards.tsx` — 6 clickable cards, active-state highlight, `onSelect` prop.
-- `src/components/admin/access-control/UserAccessFilters.tsx` — 10 chip surface + advanced filter row + Clear all.
-- `src/components/admin/access-control/AdvancedFilters.tsx` — new: role/department/status/access-level popovers.
-- `src/components/admin/access-control/TableToolbar.tsx` — new: sort, result count, rows-per-page, pagination.
-- `src/components/admin/access-control/InternalUsersTable.tsx` — 9 columns, actions menu with 8 items, tooltips, row click.
-- `src/components/admin/access-control/badges.tsx` — 6-status style map + new "Locked" and "Deactivated" tones; add "Pending Approval" label.
-- `src/components/admin/access-control/NoResultsState.tsx` + `PermissionDeniedState.tsx` — new.
-- `src/pages/AdminAccessControl.tsx` — state selection, wiring for card→filter click, advanced filters, sort, pagination, new mutations (`deactivate`, `resend`), open-drawer-on-tab helper.
-
-No database migration is required. `internal_users.status` already accepts arbitrary text; `deactivateInternalUser` is a plain `UPDATE`. If we want a hard guarantee, a follow-up migration can add a CHECK constraint — flagged but not part of this pass.
+No DB migration and no service changes required.

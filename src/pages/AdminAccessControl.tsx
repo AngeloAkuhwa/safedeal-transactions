@@ -20,6 +20,7 @@ import type { AdvancedFilterState } from "@/components/admin/access-control/Adva
 import { InternalUsersTable } from "@/components/admin/access-control/InternalUsersTable";
 import { TableToolbar, type SortBy, type SortDir } from "@/components/admin/access-control/TableToolbar";
 import { NoResultsState } from "@/components/admin/access-control/NoResultsState";
+import { PermissionDeniedState } from "@/components/admin/access-control/PermissionDeniedState";
 import { AddUserDrawer } from "@/components/admin/access-control/AddUserDrawer";
 import { ChangeRoleDrawer } from "@/components/admin/access-control/ChangeRoleDrawer";
 import { ReviewPermissionsDrawer } from "@/components/admin/access-control/ReviewPermissionsDrawer";
@@ -65,11 +66,18 @@ export default function AdminAccessControl() {
     page, page_size: pageSize,
   }), [filter, q, advanced, sortBy, sortDir, page, pageSize]);
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["admin-access-control", query],
     queryFn: () => fetchAccessDirectory(query),
     staleTime: 15_000,
   });
+
+  const isPermissionDenied = (err: unknown): boolean => {
+    if (!err) return false;
+    const anyErr = err as { code?: string; message?: string };
+    if (anyErr.code === "42501") return true;
+    return typeof anyErr.message === "string" && /permission denied/i.test(anyErr.message);
+  };
 
   const invalidate = () =>
     qc.invalidateQueries({ queryKey: ["admin-access-control"] });
@@ -147,6 +155,8 @@ export default function AdminAccessControl() {
     >
       {isLoading ? (
         <LoadingSkeleton />
+      ) : isError && isPermissionDenied(error) ? (
+        <PermissionDeniedState />
       ) : isError || !data ? (
         <ErrorState onRetry={() => refetch()} />
       ) : (
@@ -227,6 +237,7 @@ export default function AdminAccessControl() {
       <UserDetailsDrawer
         user={detailsUser ?? historyUser}
         open={!!(detailsUser ?? historyUser)}
+        initialFocus={historyUser && !detailsUser ? "history" : undefined}
         onOpenChange={(o) => { if (!o) { setDetailsUser(null); setHistoryUser(null); } }}
         onChangeRole={(u) => { setDetailsUser(null); setHistoryUser(null); setChangeRoleUser(u); }}
         onReviewPermissions={(u) => { setDetailsUser(null); setHistoryUser(null); setPermsUser(u); }}

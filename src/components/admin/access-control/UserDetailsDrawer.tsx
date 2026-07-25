@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -16,17 +17,27 @@ interface Props {
   onReviewPermissions: (u: InternalUser) => void;
   onSuspend: (u: InternalUser) => void;
   onReactivate: (u: InternalUser) => void;
+  initialFocus?: "history";
 }
 
 export function UserDetailsDrawer({
   user, open, onOpenChange,
-  onChangeRole, onReviewPermissions, onSuspend, onReactivate,
+  onChangeRole, onReviewPermissions, onSuspend, onReactivate, initialFocus,
 }: Props) {
   const { data: audit } = useQuery({
     queryKey: ["access-audit", user?.id],
     queryFn: () => fetchAccessAudit(user!.id),
     enabled: !!user,
   });
+
+  const historyRef = useRef<HTMLHeadingElement | null>(null);
+  useEffect(() => {
+    if (!open || initialFocus !== "history") return;
+    const t = setTimeout(() => {
+      historyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [open, initialFocus, user?.id]);
 
   if (!user) return null;
 
@@ -93,7 +104,7 @@ export function UserDetailsDrawer({
         <Separator className="my-5" />
 
         <div>
-          <h4 className="mb-2 text-sm font-semibold text-foreground">Access history</h4>
+          <h4 ref={historyRef} className="mb-2 scroll-mt-4 text-sm font-semibold text-foreground">Access history</h4>
           <AccessHistoryTimeline entries={audit} />
         </div>
 
