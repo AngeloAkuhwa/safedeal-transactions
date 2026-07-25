@@ -5685,6 +5685,20 @@ export type Database = {
         | "toggle_auto_release"
         | "high_value_flag"
         | "set_vendor_status"
+        | "user_invited"
+        | "invitation_resent"
+        | "user_activated"
+        | "role_assigned"
+        | "role_changed"
+        | "permission_override_requested"
+        | "permission_override_approved"
+        | "permission_override_rejected"
+        | "role_change_approved"
+        | "role_change_rejected"
+        | "user_reactivated"
+        | "user_deactivated"
+        | "session_revoked"
+        | "task_reassigned"
       admin_investigation_priority: "low" | "medium" | "high" | "critical"
       admin_investigation_status:
         | "open"
@@ -6086,6 +6100,20 @@ export const Constants = {
         "toggle_auto_release",
         "high_value_flag",
         "set_vendor_status",
+        "user_invited",
+        "invitation_resent",
+        "user_activated",
+        "role_assigned",
+        "role_changed",
+        "permission_override_requested",
+        "permission_override_approved",
+        "permission_override_rejected",
+        "role_change_approved",
+        "role_change_rejected",
+        "user_reactivated",
+        "user_deactivated",
+        "session_revoked",
+        "task_reassigned",
       ],
       admin_investigation_priority: ["low", "medium", "high", "critical"],
       admin_investigation_status: [

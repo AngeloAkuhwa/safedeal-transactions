@@ -481,17 +481,118 @@ async function callerIsSuperAdmin(callerId: string): Promise<boolean> {
   return (data ?? []).length > 0;
 }
 
-async function auditLog(target_user_id: string, action_type: string, description: string, severity: "info" | "warning" | "critical" = "info", metadata: Record<string, unknown> = {}) {
+// ---------------------------------------------------------------------------
+// Canonical audit writer.
+// Writes ONE row to `admin_actions` using a real `admin_action_type` when the
+// value is one of the new lifecycle enums (see 20260725 migration), and
+// mirrors a human-readable copy to `audit_logs` so the existing timeline UI
+// (which currently reads from `audit_logs`) keeps working during the
+// transition to the edge-function pipeline described in the plan.
+// ---------------------------------------------------------------------------
+const CANONICAL_ADMIN_ACTIONS: ReadonlySet<string> = new Set([
+  "user_invited","invitation_resent","user_activated",
+  "role_assigned","role_changed",
+  "permission_override_requested","permission_override_approved","permission_override_rejected",
+  "role_change_approved","role_change_rejected",
+  "user_reactivated","user_deactivated",
+  "session_revoked","task_reassigned",
+  "suspend_user","unsuspend_user","add_internal_note",
+]);
+
+interface AuditWriteOpts {
+  target_user_id: string;
+  action_type: string;
+  description: string;
+  severity?: "info" | "warning" | "critical";
+  before?: unknown;
+  after?: unknown;
+  reason?: string;
+  approval_reference?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+async function auditLog(
+  target_user_id: string,
+  action_type: string,
+  description: string,
+  severity: "info" | "warning" | "critical" = "info",
+  metadata: Record<string, unknown> = {},
+): Promise<void> {
+  return writeAudit({ target_user_id, action_type, description, severity, metadata });
+}
+
+async function writeAudit(opts: AuditWriteOpts): Promise<void> {
   try {
     const uid = await currentUserId();
+    const payload = {
+      reason: opts.reason ?? (opts.metadata?.reason as string | undefined) ?? null,
+      before: opts.before ?? opts.metadata?.before ?? null,
+      after: opts.after ?? opts.metadata?.after ?? null,
+      approval_reference: opts.approval_reference ?? null,
+      severity: opts.severity ?? "info",
+      description: opts.description,
+      ...opts.metadata,
+    };
+
+    // 1) Canonical admin_actions row when we have a real enum value.
+    if (CANONICAL_ADMIN_ACTIONS.has(opts.action_type)) {
+      await supabase.from("admin_actions").insert({
+        admin_user_id: uid,
+        target_user_id: opts.target_user_id,
+        action_type: opts.action_type as any,
+        action_notes: JSON.stringify(payload),
+      } as any);
+    }
+
+    // 2) Mirror to audit_logs so the AccessHistoryTimeline (which reads from
+    //    audit_logs today) continues to render every access-control event.
     await supabase.from("audit_logs").insert({
       actor_user_id: uid,
-      target_user_id,
+      target_user_id: opts.target_user_id,
       action: "admin_internal_note",
-      description: `[${action_type}] ${description}`,
-      metadata: { ...metadata, access_action: action_type, severity },
-    });
-  } catch { /* audit best-effort */ }
+      description: `[${opts.action_type}] ${opts.description}`,
+      metadata: { ...payload, access_action: opts.action_type },
+    } as any);
+  } catch {
+    /* audit best-effort */
+  }
+}
+
+// Typed safeguard error so callers/UI can render inline hints.
+export class AccessSafeguardError extends Error {
+  code: string;
+  rule: "a"|"b"|"c"|"d"|"e"|"f"|"g"|"h";
+  constructor(rule: AccessSafeguardError["rule"], code: string, message: string) {
+    super(message);
+    this.name = "AccessSafeguardError";
+    this.code = code;
+    this.rule = rule;
+  }
+}
+
+/**
+ * Rule g — Finance-touching permission changes cannot be approved by the same
+ * operator that raised them, regardless of role. Called from
+ * `reviewAccessChangeRequest` after the requester ≠ reviewer check.
+ */
+function assertFinanceParanoidCheck(
+  req: { requested_by: string; change_type: string; payload: any },
+  reviewerId: string,
+): void {
+  if (req.change_type !== "permission") return;
+  const key = String(req.payload?.permission_key ?? "");
+  const finance =
+    key.startsWith("finance_") ||
+    key.startsWith("payouts.") ||
+    key.startsWith("refunds.") ||
+    key.startsWith("escrow.release");
+  if (finance && reviewerId === req.requested_by) {
+    throw new AccessSafeguardError(
+      "g",
+      "E_FINANCE_SELF_APPROVAL",
+      "Financial permission changes cannot be approved by the same person that raised them.",
+    );
+  }
 }
 
 export interface UpdateRolesInput {
@@ -1075,6 +1176,13 @@ export async function reviewAccessChangeRequest(id: string, decision: "approve" 
   if (fetchErr) throw fetchErr;
   if (req.status !== "pending") throw new Error("Request already reviewed.");
   if (req.requested_by === requester) throw new Error("You cannot approve your own request.");
+
+  // Rule g — paranoid double check for finance-touching changes even when
+  // the reviewer is a super admin.
+  assertFinanceParanoidCheck(
+    { requested_by: req.requested_by, change_type: req.change_type, payload: req.payload },
+    requester,
+  );
 
   // Safeguards must hold at approval time — the world may have changed
   // since the request was raised.

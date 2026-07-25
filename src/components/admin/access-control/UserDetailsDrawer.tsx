@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Ban, Undo2, KeyRound, RefreshCcw, ShieldCheck, Lock } from "lucide-react";
+import { Ban, Undo2, KeyRound, RefreshCcw, ShieldCheck, Lock, ExternalLink, ClipboardList, LineChart, FileClock } from "lucide-react";
 import type { InternalUser } from "@/services/admin-access-control.service";
-import { fetchAccessAudit, relativeTime } from "@/services/admin-access-control.service";
+import { fetchAccessAudit, listAccessChangeRequests, relativeTime } from "@/services/admin-access-control.service";
 import { AccessLevelPill, InitialsAvatar, RoleBadge, StatusBadge } from "./badges";
 import { AccessHistoryTimeline } from "./AccessHistoryTimeline";
 import { resolveDepartmentLabel } from "@/services/departments.catalog";
@@ -43,6 +44,24 @@ export function UserDetailsDrawer({
     enabled: !!user,
   });
   const { data: myPerms } = useInternalPermissions();
+
+  // Contextual navigation — surface a link to any pending approval that
+  // targets this user so operators can jump straight to the queue.
+  const { data: pendingReq } = useQuery({
+    queryKey: ["access-approvals", "pending-for", user?.id],
+    queryFn: async () => {
+      const rows = await listAccessChangeRequests("pending");
+      return rows.find((r) => r.target_user_id === user!.id) ?? null;
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+
+  const isAgentTier = !!user && (
+    user.roles.includes("support_agent") ||
+    user.roles.includes("dispute_agent") ||
+    user.roles.includes("identity_officer")
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -195,6 +214,30 @@ export function UserDetailsDrawer({
         </Tabs>
 
         <div className="sticky bottom-0 -mx-6 mt-6 flex flex-wrap items-center gap-2 border-t border-border bg-background/95 p-4 backdrop-blur">
+          {pendingReq && (
+            <Button asChild size="sm" variant="outline">
+              <Link to={`/admin/access-approvals?request=${pendingReq.id}`}>
+                <FileClock className="mr-2 h-4 w-4" /> View approval request
+              </Link>
+            </Button>
+          )}
+          <Button asChild size="sm" variant="ghost">
+            <Link to="/admin/task-orchestration">
+              <ClipboardList className="mr-2 h-4 w-4" /> Assigned tasks
+            </Link>
+          </Button>
+          {isAgentTier && (
+            <Button asChild size="sm" variant="ghost">
+              <Link to="/admin/agent-performance">
+                <LineChart className="mr-2 h-4 w-4" /> Agent performance
+              </Link>
+            </Button>
+          )}
+          <Button asChild size="sm" variant="ghost">
+            <Link to={`/admin/audit-logs?entity=internal_users:${user.id}`}>
+              <ExternalLink className="mr-2 h-4 w-4" /> Audit logs
+            </Link>
+          </Button>
           {canManageRoles && (
             <Button size="sm" variant="outline" onClick={() => onChangeRole(user)}>
               <RefreshCcw className="mr-2 h-4 w-4" /> Change role
