@@ -69,6 +69,8 @@ import AdminAuditLogs from "./pages/AdminAuditLogs";
 import AdminAccessControl from "./pages/AdminAccessControl";
 import AdminPermissionMatrix from "./pages/AdminPermissionMatrix";
 import AdminAccessApprovals from "./pages/AdminAccessApprovals";
+import AdminTaskOrchestration from "./pages/AdminTaskOrchestration";
+import AdminAgentPerformance from "./pages/AdminAgentPerformance";
 import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -154,7 +156,10 @@ const App = () => (
              <Route path="/admin/access-control" element={<AdminAccessControl />} />
              <Route path="/admin/users-access" element={<Navigate to="/admin/access-control" replace />} />
              <Route path="/admin/permission-matrix" element={<AdminPermissionMatrix />} />
+             <Route path="/admin/permissions" element={<Navigate to="/admin/permission-matrix" replace />} />
              <Route path="/admin/access-approvals" element={<AdminAccessApprovals />} />
+             <Route path="/admin/task-orchestration" element={<AdminTaskOrchestration />} />
+             <Route path="/admin/agent-performance" element={<AdminAgentPerformance />} />
             </Route>
 
             {/* Protected: requires session + seller role */}
