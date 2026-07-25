@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
   // Load transaction snapshot
   const { data: tx, error: txErr } = await admin
     .from("transactions")
-    .select("id, status, money_status, dispute_status, seller_id, buyer_confirmed_at, seller_confirmed_at, needs_release_review, needs_admin_review, transaction_code, buyer_total_amount")
+    .select("id, status, money_status, dispute_status, seller_id, buyer_confirmed_at, seller_confirmed_at, needs_release_review, needs_admin_review, transaction_code, transaction_pricing(buyer_total_amount)")
     .eq("id", txId)
     .single();
   if (txErr || !tx) return json({ error: "transaction_not_found" }, 404);
@@ -431,7 +431,9 @@ Deno.serve(async (req) => {
               if (Number.isFinite(n) && n > 0) cap = n;
             } catch { /* fallback to default */ }
 
-            const amount = Number(tx.buyer_total_amount ?? 0);
+            const pricing = (tx as any).transaction_pricing;
+            const pricingRow = Array.isArray(pricing) ? pricing[0] : pricing;
+            const amount = Number(pricingRow?.buyer_total_amount ?? 0);
             const escalationReasons: string[] = [];
             if (tx.needs_admin_review) escalationReasons.push("high_risk_flag");
             if (amount > cap) escalationReasons.push(`amount_over_cap:${cap}`);
