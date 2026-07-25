@@ -259,7 +259,7 @@ export function ChangeRoleDrawer({ user, open, onOpenChange, onSubmit }: Props) 
                   </div>
                   <div className="text-[11px] text-foreground/80">
                     Removing these permissions may prevent this user from finishing work already assigned to them
-                    ({impact?.summary ?? "open tasks in affected modules"}). Consider reassigning first.
+                    ({(impact?.affected_modules ?? []).join(", ") || "open tasks in affected modules"}). Consider reassigning first.
                   </div>
                   <label className="flex items-start gap-2 text-[11px] text-foreground/90">
                     <Checkbox checked={ackImpact} onCheckedChange={(v) => setAckImpact(!!v)} className="mt-0.5" />
