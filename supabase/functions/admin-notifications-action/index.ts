@@ -2,7 +2,7 @@
  * Admin Notification Center — write actions: retry and broadcast.
  * POST { action: "retry", delivery_id } | { action: "broadcast", title, message, priority, audience, channels[] }
  */
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
 const corsHeaders = {
@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   let ctx;
-  try { ctx = await requireAdmin(req); }
+  try { ctx = await requirePermission(req, "platform_configuration.configure"); }
   catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

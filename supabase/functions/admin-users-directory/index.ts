@@ -2,7 +2,7 @@
  * Admin User Directory aggregator (read-only).
  * GET → summary + paginated user roll-ups.
  */
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { getDirectoryPage, getDirectorySummary } from "../_shared/users-directory-sql.ts";
 
 const corsHeaders = {
@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
   if (req.method !== "GET") return json(405, { error: "method_not_allowed" });
 
   let ctx;
-  try { ctx = await requireAdmin(req); }
+  try { ctx = await requirePermission(req, "users_and_access.view"); }
   catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

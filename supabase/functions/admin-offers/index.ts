@@ -1,5 +1,6 @@
 // Admin oversight: full traceability for buyer-specific offers.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,25 +21,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return jsonResponse({ error: "Not authenticated" }, 401);
+    let ctx;
+    try { ctx = await requirePermission(req, "transactions.view"); }
+    catch (err) {
+      const resp = authErrorResponse(err, corsHeaders);
+      if (resp) return resp;
+      throw err;
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const token = authHeader.replace("Bearer ", "");
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
-
-    const { data: userData } = await adminClient.auth.getUser(token);
-    if (!userData?.user) return jsonResponse({ error: "Invalid session" }, 401);
-    const userId = userData.user.id;
-
-    const { data: isAdmin } = await adminClient.rpc("has_role", {
-      _user_id: userId,
-      _role: "admin",
-    });
-    if (!isAdmin) return jsonResponse({ error: "Admin role required" }, 403);
+    const adminClient = ctx.adminClient;
 
     const url = new URL(req.url);
     const offerId = url.searchParams.get("offer_id");

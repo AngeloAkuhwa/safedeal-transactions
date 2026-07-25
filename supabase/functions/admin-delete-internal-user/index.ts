@@ -4,7 +4,7 @@
 //   2. internal_users
 //   3. auth.users (via admin API)
 // Emits a canonical admin_actions audit row with mode = "hard_delete".
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
 const corsHeaders = {
@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   let ctx;
-  try { ctx = await requireAdmin(req); }
+  try { ctx = await requirePermission(req, "users_and_access.manage_permissions"); }
   catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

@@ -30,6 +30,8 @@ import { useLocation } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAdminNav, isBuiltAdminRoute } from "./useAdminNav";
 import { signOut } from "@/services/auth.service";
+import { useAdminPermissions } from "@/context/AdminPermissionsContext";
+import { permissionForPath } from "@/services/admin-route-permissions";
 import type { AdminDashboardResponse } from "@/services/admin-dashboard.service";
 
 type Badge = {
@@ -155,7 +157,25 @@ interface AdminSidebarProps {
 export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
   const { go } = useAdminNav();
   const { pathname } = useLocation();
-  const groups = buildGroups(badges);
+  const { has, isSuper, loading } = useAdminPermissions();
+  const rawGroups = buildGroups(badges);
+
+  // Filter each group by permission: hide items the user can't visit, and
+  // drop groups that become empty. During the initial permissions fetch we
+  // keep the sidebar collapsed to a single "Dashboard" entry to avoid a
+  // flash of screens the user may not have access to.
+  const groups = rawGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (!isBuiltAdminRoute(item.href)) return false; // "Coming soon" — hide until built
+        const required = permissionForPath(item.href);
+        if (!required) return true;
+        if (loading) return item.href === "/admin/dashboard";
+        return isSuper || has(required);
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
 
   const handleClick = (item: NavItem) => {
     go(item.href, item.label);
@@ -192,7 +212,7 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
                 {group.items.map((item) => {
                   const Icon = item.icon;
                   const active = pathname === item.href;
-                  const built = isBuiltAdminRoute(item.href);
+                  const built = true; // items are pre-filtered above
                   const row = (
                     <button
                       type="button"

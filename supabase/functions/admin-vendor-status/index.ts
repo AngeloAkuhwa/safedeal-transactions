@@ -1,6 +1,6 @@
 // Admin endpoint: set vendor active/disabled/suspended flag with audit trail.
 // POST { vendor_id, status: 'active'|'disabled'|'suspended', reason }
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
 const corsHeaders = {
@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   try {
-    const { userId, adminClient } = await requireAdmin(req);
+    const { userId, adminClient } = await requirePermission(req, "users_and_access.update");
     let body: any;
     try { body = await req.json(); } catch { return json(400, { error: "invalid_json" }); }
 

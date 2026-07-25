@@ -8,6 +8,7 @@ import {
   buildRiskFlags,
   mapRiskLevel as sharedMapRisk,
 } from "../_shared/admin-mappers.ts";
+import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,25 +66,19 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
-  const auth = req.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
-
-  const userClient = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: auth } } },
-  );
-  const { data: userData, error: userErr } = await userClient.auth.getUser(auth.replace("Bearer ", ""));
-  if (userErr || !userData?.user) return json({ error: "unauthorized" }, 401);
-  const { data: isAdmin } = await userClient.rpc("has_role", { _user_id: userData.user.id, _role: "admin" });
-  if (!isAdmin) return json({ error: "admin_access_required" }, 403);
+  let ctx;
+  try { ctx = await requirePermission(req, "transactions.view"); }
+  catch (err) {
+    const resp = authErrorResponse(err, corsHeaders);
+    if (resp) return resp;
+    throw err;
+  }
+  const admin = ctx.adminClient;
 
   let body: { transaction_id?: string; transactionId?: string };
   try { body = await req.json(); } catch { return json({ error: "invalid_json" }, 400); }
   const txId = body.transaction_id ?? body.transactionId;
   if (!txId) return json({ error: "missing_transaction_id" }, 400);
-
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   const { data: tx, error: txErr } = await admin
     .from("transactions")

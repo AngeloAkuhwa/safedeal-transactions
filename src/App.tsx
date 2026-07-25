@@ -75,6 +75,8 @@ import AdminAgentPerformance from "./pages/AdminAgentPerformance";
 import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import PermissionRoute from "./components/auth/PermissionRoute";
+import { AdminPermissionsProvider } from "./context/AdminPermissionsContext";
 import { usePresenceHeartbeat } from "./hooks/usePresenceHeartbeat";
 import { useSessionIdleTimeout } from "./hooks/useSessionIdleTimeout";
 
@@ -137,31 +139,39 @@ const App = () => (
 
             {/* Admin routes */}
             <Route element={<ProtectedRoute requireRole="admin" />}>
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/transactions" element={<AdminTransactions />} />
-              <Route path="/admin/transactions/:transactionId" element={<AdminTransactionDetail />} />
-              <Route path="/admin/disputes" element={<AdminDisputes />} />
-              <Route path="/admin/disputes/:id" element={<AdminDisputeDetail />} />
-              <Route path="/admin/offers" element={<AdminOffers />} />
-              <Route path="/admin/offers/:offerId" element={<AdminOfferDetail />} />
-              <Route path="/admin/payouts" element={<AdminPayouts />} />
-              <Route path="/admin/reconciliation" element={<AdminReconciliation />} />
-              <Route path="/admin/escrow" element={<AdminEscrow />} />
-              <Route path="/admin/flagged-users" element={<AdminFlaggedUsers />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/users/:id" element={<AdminUserDetail />} />
-              <Route path="/admin/users/:id/profile" element={<Navigate to=".." replace relative="path" />} />
-              <Route path="/admin/users/:id/hub" element={<Navigate to=".." replace relative="path" />} />
-              <Route path="/admin/notifications" element={<AdminNotifications />} />
-             <Route path="/admin/settings" element={<AdminSettings />} />
-             <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
-             <Route path="/admin/access-control" element={<AdminAccessControl />} />
-             <Route path="/admin/users-access" element={<Navigate to="/admin/access-control" replace />} />
-             <Route path="/admin/permission-matrix" element={<AdminPermissionMatrix />} />
-             <Route path="/admin/permissions" element={<Navigate to="/admin/permission-matrix" replace />} />
-             <Route path="/admin/access-approvals" element={<AdminAccessApprovals />} />
-             <Route path="/admin/task-orchestration" element={<AdminTaskOrchestration />} />
-             <Route path="/admin/agent-performance" element={<AdminAgentPerformance />} />
+              <Route
+                element={
+                  <AdminPermissionsProvider>
+                    <PermissionRoute />
+                  </AdminPermissionsProvider>
+                }
+              >
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin/transactions" element={<AdminTransactions />} />
+                <Route path="/admin/transactions/:transactionId" element={<AdminTransactionDetail />} />
+                <Route path="/admin/disputes" element={<AdminDisputes />} />
+                <Route path="/admin/disputes/:id" element={<AdminDisputeDetail />} />
+                <Route path="/admin/offers" element={<AdminOffers />} />
+                <Route path="/admin/offers/:offerId" element={<AdminOfferDetail />} />
+                <Route path="/admin/payouts" element={<AdminPayouts />} />
+                <Route path="/admin/reconciliation" element={<AdminReconciliation />} />
+                <Route path="/admin/escrow" element={<AdminEscrow />} />
+                <Route path="/admin/flagged-users" element={<AdminFlaggedUsers />} />
+                <Route path="/admin/users" element={<AdminUsers />} />
+                <Route path="/admin/users/:id" element={<AdminUserDetail />} />
+                <Route path="/admin/users/:id/profile" element={<Navigate to=".." replace relative="path" />} />
+                <Route path="/admin/users/:id/hub" element={<Navigate to=".." replace relative="path" />} />
+                <Route path="/admin/notifications" element={<AdminNotifications />} />
+                <Route path="/admin/settings" element={<AdminSettings />} />
+                <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+                <Route path="/admin/access-control" element={<AdminAccessControl />} />
+                <Route path="/admin/users-access" element={<Navigate to="/admin/access-control" replace />} />
+                <Route path="/admin/permission-matrix" element={<AdminPermissionMatrix />} />
+                <Route path="/admin/permissions" element={<Navigate to="/admin/permission-matrix" replace />} />
+                <Route path="/admin/access-approvals" element={<AdminAccessApprovals />} />
+                <Route path="/admin/task-orchestration" element={<AdminTaskOrchestration />} />
+                <Route path="/admin/agent-performance" element={<AdminAgentPerformance />} />
+              </Route>
             </Route>
 
             {/* Protected: requires session + seller role */}

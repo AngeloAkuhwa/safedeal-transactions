@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { useAdminPermissions } from "@/context/AdminPermissionsContext";
+import { permissionForPath } from "@/services/admin-route-permissions";
 
 /** Routes that actually exist in the router. Everything else is "Coming soon". */
 const BUILT_ROUTES = new Set<string>([
@@ -31,6 +33,7 @@ export function isBuiltAdminRoute(href: string | null | undefined): boolean {
 
 export function useAdminNav() {
   const navigate = useNavigate();
+  const { canVisit } = useAdminPermissions();
 
   const go = (href: string | null | undefined, label?: string) => {
     if (!href || !isBuiltAdminRoute(href)) {
@@ -42,8 +45,24 @@ export function useAdminNav() {
       });
       return;
     }
+    if (!canVisit(href)) {
+      toast({
+        title: "Access restricted",
+        description: label
+          ? `You don't have permission to open ${label}.`
+          : "You don't have permission to open this screen.",
+        variant: "destructive",
+      });
+      return;
+    }
     navigate(href);
   };
 
-  return { go, isBuilt: isBuiltAdminRoute };
+  return {
+    go,
+    isBuilt: isBuiltAdminRoute,
+    canVisit: (href: string | null | undefined) =>
+      isBuiltAdminRoute(href) && canVisit(href),
+    requiredPermission: permissionForPath,
+  };
 }

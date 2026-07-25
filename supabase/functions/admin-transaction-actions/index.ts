@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
 import { notifyUser } from "../_shared/notify.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
@@ -71,27 +72,14 @@ interface Body {
 }
 
 async function gateAdmin(req: Request): Promise<{ admin: any; userId: string } | Response> {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
-  const userClient = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: authHeader } } },
-  );
-  const token = authHeader.replace("Bearer ", "");
-  const { data: userData, error: userErr } = await userClient.auth.getUser(token);
-  if (userErr || !userData?.user) return json({ error: "unauthorized" }, 401);
-  const userId = userData.user.id;
-  const { data: isAdmin, error: roleErr } = await userClient.rpc("has_role", {
-    _user_id: userId,
-    _role: "admin",
-  });
-  if (roleErr || !isAdmin) return json({ error: "admin_access_required" }, 403);
-  const admin = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
-  return { admin, userId };
+  try {
+    const ctx = await requirePermission(req, "transactions.update");
+    return { admin: ctx.adminClient, userId: ctx.userId };
+  } catch (err) {
+    const resp = authErrorResponse(err, corsHeaders);
+    if (resp) return resp;
+    throw err;
+  }
 }
 
 function badRequest(msg: string) {

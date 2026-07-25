@@ -1,7 +1,7 @@
 // Admin CRUD for scoped system settings and timeout rules.
 // GET  ?vendor_id=... → returns platform + optional vendor overrides
 // PUT  { scope, vendor_id?, updates: {key: value}, timeouts?: [{rule_type, hours}], reason, apply_to_all_vendors? }
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { clampSetting } from "../_shared/settings-catalog.ts";
 import { logAdminAction } from "../_shared/audit.ts";
 
@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { userId, adminClient } = await requireAdmin(req);
+    const { userId, adminClient } = await requirePermission(req, "platform_configuration.view");
     const url = new URL(req.url);
 
     if (req.method === "GET") {

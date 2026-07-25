@@ -2,7 +2,7 @@
  * Admin Export Status — returns job progress and a short-lived signed URL
  * for the generated CSV once the worker finishes.
  */
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
 
   let ctx;
   try {
-    ctx = await requireAdmin(req);
+    ctx = await requirePermission(req, "dashboard.view");
   } catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

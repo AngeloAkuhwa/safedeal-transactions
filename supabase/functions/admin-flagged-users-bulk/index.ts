@@ -3,7 +3,7 @@
  * POST { action, user_ids[], note } → loops, returns success/failure counts.
  * Admin-only.
  */
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
 const corsHeaders = {
@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   let ctx;
-  try { ctx = await requireAdmin(req); }
+  try { ctx = await requirePermission(req, "flagged_users.update"); }
   catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

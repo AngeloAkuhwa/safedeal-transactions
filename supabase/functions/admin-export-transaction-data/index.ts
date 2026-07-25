@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,22 +25,17 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
-  const auth = req.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
-
-  const userClient = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: auth } } },
-  );
-  const { data: userData, error: userErr } = await userClient.auth.getUser(auth.replace("Bearer ", ""));
-  if (userErr || !userData?.user) return json({ error: "unauthorized" }, 401);
-  const userId = userData.user.id;
-  const { data: isAdmin } = await userClient.rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (!isAdmin) return json({ error: "admin_access_required" }, 403);
+  let ctx;
+  try { ctx = await requirePermission(req, "transactions.export"); }
+  catch (err) {
+    const resp = authErrorResponse(err, corsHeaders);
+    if (resp) return resp;
+    throw err;
+  }
+  const userId = ctx.userId;
+  const admin = ctx.adminClient;
 
   // Cap: 10 transaction-data exports per admin per hour.
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const { data: rlRow } = await admin.rpc("check_admin_rate_limit", {
     _admin_id: userId,
     _action_key: "transaction_data_export",
