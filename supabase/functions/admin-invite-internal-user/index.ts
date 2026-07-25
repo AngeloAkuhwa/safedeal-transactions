@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
   // 1) Send Supabase auth invite (creates auth.users row + emails link)
   let newUserId: string | undefined;
   const { data: authRes, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: fullName, default_role: primary },
+    data: { full_name: fullName },
     redirectTo: origin,
   });
   if (authRes?.user?.id) {
@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
     // Best-effort: re-send an invitation link so the user still gets an email.
     try {
       await admin.auth.admin.inviteUserByEmail(email, {
-        data: { full_name: fullName, default_role: primary },
+        data: { full_name: fullName },
         redirectTo: origin,
       });
     } catch { /* ignore */ }
