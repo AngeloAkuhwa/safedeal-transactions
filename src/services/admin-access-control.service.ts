@@ -113,6 +113,7 @@ export interface AccessAuditEntry {
   detail: string;
   created_at: string;
   severity: "info" | "warning" | "critical";
+  metadata: Record<string, unknown>;
 }
 
 export interface AccessChangeRequest {
@@ -360,6 +361,7 @@ export async function fetchAccessAudit(userId: string): Promise<AccessAuditEntry
       detail: String(r.description ?? ""),
       created_at: r.created_at,
       severity: (["critical", "warning", "info"].includes(sev) ? sev : "info") as AccessAuditEntry["severity"],
+      metadata: meta,
     };
   });
 }
