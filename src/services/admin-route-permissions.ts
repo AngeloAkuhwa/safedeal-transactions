@@ -31,10 +31,13 @@ export const ADMIN_ROUTE_PERMISSIONS: AdminRoutePermission[] = [
   { path: "/admin/reconciliation",          permission: "financial_controls.view" },
   { path: "/admin/escrow",                  permission: "escrow.view" },
   { path: "/admin/payouts",                 permission: "financial_controls.view" },
+  { path: "/admin/flagged-users/export",    permission: "flagged_users.export" },
   { path: "/admin/flagged-users",           permission: "flagged_users.view" },
   { path: "/admin/users",                   permission: "users_and_access.view" },
   { path: "/admin/offers",                  permission: "transactions.view" },
+  { path: "/admin/disputes/export",         permission: "disputes.export" },
   { path: "/admin/disputes",                permission: "disputes.view" },
+  { path: "/admin/transactions/export",     permission: "transactions.export" },
   { path: "/admin/transactions",            permission: "transactions.view" },
   { path: "/admin/dashboard",               permission: "dashboard.view" },
 ];
@@ -48,8 +51,13 @@ export function permissionForPath(pathname: string | null | undefined): string |
   if (!pathname) return null;
   // Normalise trailing slash.
   const p = pathname.replace(/\/+$/g, "") || "/";
+  // Leaf-first: pick the LONGEST matching entry so nested action routes
+  // (e.g. /admin/transactions/export) take precedence over parent view perms.
+  let best: AdminRoutePermission | null = null;
   for (const entry of ADMIN_ROUTE_PERMISSIONS) {
-    if (p === entry.path || p.startsWith(entry.path + "/")) return entry.permission;
+    if (p === entry.path || p.startsWith(entry.path + "/")) {
+      if (!best || entry.path.length > best.path.length) best = entry;
+    }
   }
-  return null;
+  return best?.permission ?? null;
 }
