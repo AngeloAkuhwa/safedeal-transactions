@@ -129,7 +129,8 @@ export const ACCESS_LABEL: Record<AccessLevel, string> = {
 };
 
 // Cross-role guardrails enforced client-side (matches DB trigger).
-export function validateRoleSet(roles: string[]): { ok: true } | { ok: false; error: string } {
+export interface RoleSetValidation { ok: boolean; error?: string }
+export function validateRoleSet(roles: string[]): RoleSetValidation {
   if (roles.includes("super_admin") && roles.length > 1) {
     return { ok: false, error: "Super Admin cannot be combined with any other role." };
   }
