@@ -57,7 +57,11 @@ export function UserDetailsDrawer({
     staleTime: 30_000,
   });
 
-  const isAgentTier = !!user && (user.roles.includes("support_agent") || user.roles.includes("dispute_agent") || user.roles.includes("verification_agent"));
+  const isAgentTier = !!user && (
+    user.roles.includes("support_agent") ||
+    user.roles.includes("dispute_agent") ||
+    user.roles.includes("identity_officer")
+  );
 
   useEffect(() => {
     if (!open) return;
