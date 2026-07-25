@@ -189,10 +189,20 @@ Deno.serve(async (req) => {
   }
 
   // 2) Insert into internal_users. employee_id + display_id filled by DB triggers.
+  // Generate employee_id via RPC (no BEFORE INSERT trigger exists) and mirror to display_id.
+  const { data: empIdData, error: empIdErr } = await (admin as any).rpc("generate_employee_id");
+  if (empIdErr || !empIdData) {
+    try { await admin.auth.admin.deleteUser(newUserId); } catch { /* ignore */ }
+    return json(400, { error: "insert_failed", detail: empIdErr?.message ?? "employee_id_generation_failed" });
+  }
+  const employeeId = String(empIdData);
+
   const { data: iuRow, error: iuErr } = await admin
     .from("internal_users")
     .insert({
       id: newUserId,
+      employee_id: employeeId,
+      display_id: employeeId,
       full_name: fullName,
       first_name: body.first_name ?? null,
       last_name: body.last_name ?? null,
