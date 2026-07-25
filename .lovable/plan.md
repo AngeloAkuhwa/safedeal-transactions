@@ -1,56 +1,50 @@
-## Problem
+# Fix: Resend invitation never arrives
 
-- A newly invited internal user (e.g. Angelo Akuhwa in the screenshot) shows **Active** in the Users & Access table even though the invitee has never accepted the invite. Root cause: the `admin-invite-internal-user` edge function hard-codes `status: "active"` on insert.
-- There's no way to **delete** an invited user to re-invite from scratch.
-- There's no way to **extend access** when `access_expires_at` has passed (or reset it after expiry).
+## Root cause (confirmed from edge logs)
 
-## Fix Plan
+`admin-invite-internal-user` log shows:
 
-### 1. Correct initial status on invite (edge function)
-`supabase/functions/admin-invite-internal-user/index.ts`
-- On the initial insert (line ~450), set `status` based on `shouldSend`:
-  - `shouldSend === true` → `status: "invited"` (matches the existing `InternalUserStatus` value + indigo `StatusBadge` styling).
-  - `shouldSend === false` → keep `status: "invited"` too (row exists but no email sent yet) with `invitation_status: "not_invited"`.
-- Keep `invitation_status` logic as-is (`sent` / `failed` / `not_invited`).
+```
+[invite] generateLink failed, falling back: A user with this email address has already been registered
+```
 
-### 2. Auto-promote to Active on first sign-in
-Add a lightweight promotion step so the badge flips once the invitee actually accepts:
-- Extend `src/pages/AcceptInvite.tsx` (or a small `admin-accept-invite` edge function) so that once the invitee sets a password and Supabase session is established, we PATCH `internal_users` where `id = auth.uid()` and `status = 'invited'` → `status: 'active'`, `invitation_status: 'accepted'`, and stamp `accepted_at` (existing column if present, else skip).
-- Write one `audit_logs` entry: `access_user_activated` (already in `ADMIN_ACTION_TYPES`).
+Flow today in `issueInviteEmail`:
+1. Calls `admin.auth.admin.generateLink({ type: "invite", email })`.
+2. Supabase rejects `type: "invite"` when the auth user already exists → no `action_link` returned.
+3. Fallback calls `admin.auth.admin.inviteUserByEmail(...)` which **also** rejects existing users.
+4. Result: `channel: "failed"`, no email sent, but the UI still shows "Invite resent" because the row update succeeds.
 
-### 3. Add "Delete invited user" action (hard delete, gated)
-- Service: new `deleteInvitedInternalUser({ user_id, reason })` in `src/services/admin-access-control.service.ts` calling a new edge function `admin-delete-internal-user`.
-- Edge function `supabase/functions/admin-delete-internal-user/index.ts`:
-  - Auth-gate (super_admin / access_admin only, reuse `assertOutranksTarget`).
-  - **Guard:** only allow when target `status IN ('invited','deactivated')` AND no `audit_logs` rows reference the user as actor (safety). Otherwise return `409 delete_blocked` → UI should suggest Deactivate instead.
-  - Delete `internal_user_roles`, `internal_users` row, then `auth.admin.deleteUser(userId)`.
-  - Emit audit event `user_deactivated` with `metadata.mode = "hard_delete"` (reuses existing enum; no schema change needed).
-- Table row menu (`InternalUsersTable.tsx`): show **"Delete invited user"** (red) only when `u.status === "invited"`. Confirm dialog reuses the existing `ConfirmDialog` pattern with a required reason.
-- After delete, invalidate directory query so the row disappears — user can immediately re-invite via **Add User** with the same email.
+So every resend to a user that was already created (which is every resend, by definition) silently fails.
 
-### 4. Reinvite for expired invitations
-- The **Resend Invitation** menu item already exists but is gated on `u.status === "invited"`. Broaden the gate to also show when `invitation_status === "expired"` OR when `status === "invited"` AND `access_expires_at < now()`.
-- No backend change needed — existing `resendInternalUserInvite` already regenerates the invite link and email.
+## Fix
 
-### 5. Extend access for expired users
-- Service: new `extendInternalUserAccess({ user_id, new_expires_at, reason })` in `admin-access-control.service.ts`. Direct table update with RLS-safe wrapper:
-  - Updates `access_expires_at`; if `status === 'suspended'` due to expiry auto-lock, keeps status untouched (separate re-activate flow already exists).
-  - Writes audit entry `permission_override_approved` with `metadata = { field: "access_expires_at", before, after }` (reuses existing enum).
-- New drawer/dialog `ExtendAccessDialog.tsx`: date picker (default +90 days), required reason textarea.
-- Table row menu: add **"Extend access"** item, shown when `access_expires_at` is set AND (`access_expires_at < now()` OR within 14 days of expiry). Icon: `CalendarClock`.
+Make `issueInviteEmail` generate a link that works for existing auth users, then send via Resend as today.
 
-### 6. Access-history / audit visibility
-No changes needed — the three new actions (`user_activated`, `user_deactivated` w/ hard_delete, `permission_override_approved` for expiry extension) already surface in the existing Access History timeline.
+Change in `supabase/functions/admin-invite-internal-user/index.ts`:
 
-## Files touched
-- `supabase/functions/admin-invite-internal-user/index.ts` (status fix)
-- `supabase/functions/admin-delete-internal-user/index.ts` (new)
-- `src/pages/AcceptInvite.tsx` (post-accept promotion)
-- `src/services/admin-access-control.service.ts` (2 new service fns, broaden resend gate helper)
-- `src/components/admin/access-control/InternalUsersTable.tsx` (2 new menu items + gating)
-- `src/pages/AdminAccessControl.tsx` (wire delete + extend dialogs, mutations, toasts)
-- `src/components/admin/access-control/ExtendAccessDialog.tsx` (new)
+1. Add a new arg `isExistingUser: boolean` (true for the resend path, and for the new-invite path when we detect the "already registered" case).
+2. When `isExistingUser` is true, skip `type: "invite"` and call:
+   ```ts
+   admin.auth.admin.generateLink({
+     type: "recovery",
+     email,
+     options: { redirectTo }, // /accept-invite
+   })
+   ```
+   Recovery links work for existing users and drop them into the same `AcceptInvite` page where they set a password — same UX as an invite.
+3. If `type: "invite"` fails in the new-user path with "already registered", retry once with `type: "recovery"` before giving up, so first-time invites for users left over from prior failed attempts also succeed.
+4. Keep the branded Resend HTML (subject stays "You're invited to the SafeDeal admin console"; wording already reads naturally for both first-time and repeat sends).
+5. On the resend path, only mark `invitation_status: "sent"` when the email actually went out — if `emailRes.channel === "failed"`, set `invitation_status: "failed"` so the UI shows the true state and the toast in `AdminAccessControl.tsx` (which already branches on `email_channel`) surfaces the failure.
+
+## Verification
+
+- Deploy `admin-invite-internal-user`.
+- From Users & Access, click Resend Invitation on Angelo's row.
+- Expect a branded SafeDeal email in the inbox, and the row menu toast to say "Invite resent".
+- Check `admin-invite-internal-user` logs — no more "generateLink failed" error; a successful Resend send.
 
 ## Out of scope
-- No enum/schema migrations (all statuses and audit action types already exist).
-- Impersonation and bulk actions remain untouched.
+
+- No UI changes.
+- No DB migrations.
+- No changes to `AcceptInvite.tsx` (recovery links already land there via `redirectTo`).
