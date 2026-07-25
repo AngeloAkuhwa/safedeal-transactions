@@ -237,6 +237,7 @@ export default function AdminAccessControl() {
       <UserDetailsDrawer
         user={detailsUser ?? historyUser}
         open={!!(detailsUser ?? historyUser)}
+        initialFocus={historyUser && !detailsUser ? "history" : undefined}
         onOpenChange={(o) => { if (!o) { setDetailsUser(null); setHistoryUser(null); } }}
         onChangeRole={(u) => { setDetailsUser(null); setHistoryUser(null); setChangeRoleUser(u); }}
         onReviewPermissions={(u) => { setDetailsUser(null); setHistoryUser(null); setPermsUser(u); }}
