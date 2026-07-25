@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { getSession, signOut } from "@/services/auth.service";
 import { getUserRoles, assignRole, checkRoleExists } from "@/services/role.service";
 import type { SelectableRole } from "@/services/role.service";
+import { isInternalUser } from "@/lib/internal-role";
 
 const buyerFeatures = [
   { icon: Shield, title: "Payment Protection", description: "Funds held until you verify receipt" },
@@ -40,6 +41,13 @@ const RoleSelection = () => {
     const check = async () => {
       const { data: { session } } = await getSession();
       if (!session) return; // ProtectedRoute handles redirect
+
+      // Internal team members (support agents, admins, auditors, …) must
+      // never see the Buyer/Seller picker. Route them straight to admin.
+      if (await isInternalUser(session.user.id)) {
+        navigate("/admin/dashboard", { replace: true });
+        return;
+      }
 
       const { data: roles } = await getUserRoles(session.user.id);
       if (roles && roles.length > 0) {

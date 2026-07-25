@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { getSession, onAuthStateChange } from "@/services/auth.service";
 import { getUserRoles } from "@/services/role.service";
+import { isInternalUser } from "@/lib/internal-role";
 import BrandedAuthSplash from "./BrandedAuthSplash";
 
 interface ProtectedRouteProps {
@@ -14,6 +15,7 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
     "loading" | "authenticated" | "unauthenticated" | "needs-role" | "wrong-role"
   >("loading");
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [isInternal, setIsInternal] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -35,6 +37,16 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
         setUserRoles(roleNames);
 
         if (roleNames.length === 0) {
+          // Internal (back-office) teammates don't have rows in `user_roles`;
+          // their access comes from `internal_user_roles`. Never send them
+          // through the Buyer/Seller picker.
+          const internal = await isInternalUser(session.user.id);
+          if (!mounted) return;
+          if (internal) {
+            setIsInternal(true);
+            setStatus("wrong-role");
+            return;
+          }
           setStatus("needs-role");
           return;
         }
@@ -79,6 +91,10 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
   }
 
   if (status === "wrong-role") {
+    // Internal team members always belong in the admin workspace.
+    if (isInternal) {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
     // Admins always go to admin dashboard, regardless of which non-admin route they tried.
     if (userRoles.includes("admin")) {
       return <Navigate to="/admin/dashboard" replace />;

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/form";
 import { supabase } from "@/integrations/supabase/client";
 import { updatePassword } from "@/services/auth.service";
+import { isInternalUser } from "@/lib/internal-role";
 
 const schema = z
   .object({
@@ -91,12 +92,8 @@ const AcceptInvite = () => {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (uid) {
-        const { data: roleRows } = await supabase
-          .from("internal_user_roles" as any)
-          .select("role_key")
-          .eq("user_id", uid)
-          .limit(1);
-        if (roleRows && roleRows.length > 0) {
+        const internal = await isInternalUser(uid);
+        if (internal) {
           // Promote invited internal user to active on first successful
           // password-set. Guarded by `.eq("status","invited")` so we never
           // clobber an existing suspended/deactivated row.
