@@ -67,7 +67,11 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   let ctx;
-  try { ctx = await requirePermission(req, "transactions.view"); }
+  // Dispute review flows (AdminDisputeDetail) proxy through this endpoint. Accept
+  // any of the relevant view permissions so dispute-focused roles like
+  // support_agent / dispute_agent can open cases without holding a global
+  // transactions.view grant.
+  try { ctx = await requireAnyPermission(req, ["transactions.view", "disputes.view", "disputes.view_assigned"]); }
   catch (err) {
     const resp = authErrorResponse(err, corsHeaders);
     if (resp) return resp;
