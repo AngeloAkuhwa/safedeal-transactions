@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import {
   fetchAccessDirectory,
@@ -20,7 +19,10 @@ import { AddUserDrawer } from "@/components/admin/access-control/AddUserDrawer";
 import { ChangeRoleDrawer } from "@/components/admin/access-control/ChangeRoleDrawer";
 import { ReviewPermissionsDrawer } from "@/components/admin/access-control/ReviewPermissionsDrawer";
 import { UserDetailsDrawer } from "@/components/admin/access-control/UserDetailsDrawer";
-import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
+import { SuspendUserDialog } from "@/components/admin/access-control/SuspendUserDialog";
+import { LoadingSkeleton } from "@/components/admin/access-control/LoadingSkeleton";
+import { EmptyState } from "@/components/admin/access-control/EmptyState";
+import { ErrorState } from "@/components/admin/access-control/ErrorState";
 
 export default function AdminAccessControl() {
   const qc = useQueryClient();
@@ -33,7 +35,7 @@ export default function AdminAccessControl() {
   const [suspendUser, setSuspendUser] = useState<InternalUser | null>(null);
 
   const query = useMemo(() => ({ filter, q: q.trim() || undefined }), [filter, q]);
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-access-control", query],
     queryFn: () => fetchAccessDirectory(query),
     staleTime: 15_000,
@@ -83,16 +85,10 @@ export default function AdminAccessControl() {
       title="Access & Role Management"
       subtitle="Internal user permissions and access control"
     >
-      {isLoading || !data ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-[128px] rounded-xl" />
-            ))}
-          </div>
-          <Skeleton className="h-[92px] rounded-xl" />
-          <Skeleton className="h-[420px] rounded-xl" />
-        </div>
+      {isLoading ? (
+        <LoadingSkeleton />
+      ) : isError || !data ? (
+        <ErrorState onRetry={() => refetch()} />
       ) : (
         <div className="space-y-6">
           <AccessSummaryCards summary={data.summary} />
@@ -103,14 +99,18 @@ export default function AdminAccessControl() {
             onQuery={setQ}
             onAddUser={() => setAddOpen(true)}
           />
-          <InternalUsersTable
-            rows={data.rows}
-            onOpen={(u) => setDetailsUser(u)}
-            onChangeRole={(u) => setChangeRoleUser(u)}
-            onReviewPermissions={(u) => setPermsUser(u)}
-            onSuspend={(u) => setSuspendUser(u)}
-            onReactivate={(u) => reactivateMut.mutate({ user_id: u.id, reason: "Reactivated from access console" })}
-          />
+          {data.rows.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <InternalUsersTable
+              rows={data.rows}
+              onOpen={(u) => setDetailsUser(u)}
+              onChangeRole={(u) => setChangeRoleUser(u)}
+              onReviewPermissions={(u) => setPermsUser(u)}
+              onSuspend={(u) => setSuspendUser(u)}
+              onReactivate={(u) => reactivateMut.mutate({ user_id: u.id, reason: "Reactivated from access console" })}
+            />
+          )}
         </div>
       )}
 
@@ -150,15 +150,10 @@ export default function AdminAccessControl() {
         onReactivate={(u) => { setDetailsUser(null); reactivateMut.mutate({ user_id: u.id, reason: "Reactivated from user drawer" }); }}
       />
 
-      <ActionConfirmDialog
+      <SuspendUserDialog
+        user={suspendUser}
         open={!!suspendUser}
         onOpenChange={(o) => { if (!o) setSuspendUser(null); }}
-        title={suspendUser ? `Suspend ${suspendUser.full_name}` : ""}
-        description="Suspended internal users lose console access immediately. This action is logged."
-        reasonLabel="Reason"
-        reasonPlaceholder="Explain why this user is being suspended…"
-        confirmLabel="Suspend user"
-        confirmTone="danger"
         onConfirm={async (reason) => {
           if (!suspendUser) return;
           await suspendMut.mutateAsync({ user_id: suspendUser.id, reason });

@@ -6,6 +6,7 @@ import { Ban, Undo2, KeyRound, RefreshCcw, ShieldCheck } from "lucide-react";
 import type { InternalUser } from "@/services/admin-access-control.service";
 import { fetchAccessAudit, relativeTime } from "@/services/admin-access-control.service";
 import { AccessLevelPill, InitialsAvatar, RoleBadge, StatusBadge } from "./badges";
+import { AccessHistoryTimeline } from "./AccessHistoryTimeline";
 
 interface Props {
   user: InternalUser | null;
@@ -16,12 +17,6 @@ interface Props {
   onSuspend: (u: InternalUser) => void;
   onReactivate: (u: InternalUser) => void;
 }
-
-const SEVERITY_TINT: Record<string, string> = {
-  info: "bg-blue-500/10 text-blue-300 border-blue-500/30",
-  warning: "bg-amber-500/10 text-amber-300 border-amber-500/30",
-  critical: "bg-red-500/10 text-red-300 border-red-500/40",
-};
 
 export function UserDetailsDrawer({
   user, open, onOpenChange,
@@ -99,20 +94,7 @@ export function UserDetailsDrawer({
 
         <div>
           <h4 className="mb-2 text-sm font-semibold text-foreground">Access history</h4>
-          <div className="space-y-2">
-            {(audit ?? []).length === 0 && (
-              <div className="text-xs text-muted-foreground">No changes recorded.</div>
-            )}
-            {(audit ?? []).map((a) => (
-              <div key={a.id} className={`rounded-lg border px-3 py-2 text-xs ${SEVERITY_TINT[a.severity]}`}>
-                <div className="font-semibold text-foreground">{a.action.split("_").join(" ")}</div>
-                <div>{a.detail}</div>
-                <div className="mt-0.5 text-[11px] text-muted-foreground">
-                  {a.actor_name} · {relativeTime(a.created_at)}
-                </div>
-              </div>
-            ))}
-          </div>
+          <AccessHistoryTimeline entries={audit} />
         </div>
 
         <div className="sticky bottom-0 -mx-6 mt-6 flex flex-wrap gap-2 border-t border-border bg-background/95 p-4 backdrop-blur">

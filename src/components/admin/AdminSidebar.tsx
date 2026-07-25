@@ -140,6 +140,7 @@ function buildGroups(badges?: AdminDashboardResponse["sidebar_badges"]): NavGrou
       label: "Administration",
       items: [
         { label: "Users & Access", href: "/admin/access-control", icon: KeyRound },
+        { label: "Permission Matrix", href: "/admin/permission-matrix", icon: ShieldCheck },
         { label: "Audit Logs", href: "/admin/audit-logs", icon: ScrollText },
       ],
     },

@@ -55,6 +55,10 @@ export function AccessLevelPill({ level }: { level: AccessLevel }) {
   );
 }
 
+// Aliases to match the reusable component names requested in the brief.
+export { AccessLevelPill as AccessLevelBadge };
+export { StatusBadge as UserStatusBadge };
+
 export function InitialsAvatar({
   name,
   ring,
