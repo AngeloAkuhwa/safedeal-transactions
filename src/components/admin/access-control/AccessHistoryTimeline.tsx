@@ -48,10 +48,10 @@ export function AccessHistoryTimeline({ entries }: Props) {
             <div className="flex items-start justify-between gap-2">
               <div className="font-semibold text-foreground">{humanize(a.action)}</div>
               <Link
-                to={`/admin/audit-logs?event=${a.id}`}
+                to={`/admin/audit-logs?event=${a.id}&action=${encodeURIComponent(a.action)}`}
                 className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
               >
-                Audit ref
+                View in audit logs
               </Link>
             </div>
             {a.detail && <div className="mt-0.5">{a.detail}</div>}
