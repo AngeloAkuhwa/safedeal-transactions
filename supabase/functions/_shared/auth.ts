@@ -123,6 +123,38 @@ export async function requirePermission(
   return ctx;
 }
 
+/**
+ * Like `requirePermission` but accepts a set of alternative permission keys.
+ * Passes when the caller holds AT LEAST ONE of them (or is a super role).
+ */
+export async function requireAnyPermission(
+  req: Request,
+  permissions: string[],
+  existingCtx?: AuthContext,
+): Promise<AuthContext> {
+  const ctx = existingCtx ?? (await requireAdmin(req));
+
+  const [{ data: isSuper }, { data: isConsumerAdmin }] = await Promise.all([
+    ctx.adminClient.rpc("has_any_internal_role", {
+      _user_id: ctx.userId,
+      _role_keys: ["super_admin"],
+    }),
+    ctx.adminClient.rpc("has_role", { _user_id: ctx.userId, _role: "admin" }),
+  ]);
+  if (isSuper || isConsumerAdmin) return ctx;
+
+  const { data: perms, error } = await ctx.adminClient.rpc(
+    "internal_effective_permissions",
+    { _user_id: ctx.userId },
+  );
+  if (error) throw new AuthError(500, "permission_check_failed");
+  const held = new Set(Array.isArray(perms) ? (perms as string[]) : []);
+  if (!permissions.some((p) => held.has(p))) {
+    throw new PermissionError(permissions.join("|"));
+  }
+  return ctx;
+}
+
 export class AuthError extends Error {
   constructor(public status: number, public code: string) {
     super(code);

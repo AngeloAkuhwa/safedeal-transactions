@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
+import { requirePermission, requireAnyPermission, authErrorResponse } from "../_shared/auth.ts";
 import { notifyUser } from "../_shared/notify.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
@@ -71,9 +71,27 @@ interface Body {
   payload?: Record<string, unknown>;
 }
 
-async function gateAdmin(req: Request): Promise<{ admin: any; userId: string } | Response> {
+// Fine-grained gates per admin action. Each action gets a set of accepted
+// permission keys; requireAnyPermission passes if the caller holds any of
+// them (or is a super role).
+const ACTION_PERMS: Record<string, string[]> = {
+  add_internal_note:         ["disputes.add_internal_note", "transactions.update"],
+  freeze:                    ["transactions.update"],
+  unfreeze:                  ["transactions.update"],
+  flag_for_review:           ["transactions.update", "flagged_users.update"],
+  escalate_dispute:          ["disputes.escalate"],
+  open_investigation:        ["transactions.update"],
+  upsert_investigation:      ["transactions.update"],
+  // Only high-authority roles can execute money-movement dispute outcomes.
+  resolve_dispute:           ["disputes.resolve_all", "financial_controls.approve"],
+  dispute_request_more_info: ["disputes.request_information"],
+  block_payout:              ["transactions.update", "financial_controls.approve"],
+  unblock_payout:            ["transactions.update", "financial_controls.approve"],
+};
+async function gateAction(req: Request, action: string): Promise<{ admin: any; userId: string } | Response> {
+  const perms = ACTION_PERMS[action] ?? ["transactions.update"];
   try {
-    const ctx = await requirePermission(req, "transactions.update");
+    const ctx = await requireAnyPermission(req, perms);
     return { admin: ctx.adminClient, userId: ctx.userId };
   } catch (err) {
     const resp = authErrorResponse(err, corsHeaders);
@@ -103,7 +121,7 @@ Deno.serve(async (req) => {
     return badRequest("Refund must be handled from dispute or payout review");
   }
 
-  const gated = await gateAdmin(req);
+  const gated = await gateAction(req, body.action);
   if (gated instanceof Response) return gated;
   const { admin, userId } = gated;
   const txId = body.transactionId;

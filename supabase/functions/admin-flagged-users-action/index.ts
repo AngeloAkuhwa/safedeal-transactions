@@ -3,7 +3,7 @@
  * POST { action, user_id, ... } → writes admin_actions, mutates profile.status when needed.
  * Admin-only.
  */
-import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse, requirePermission, requireAnyPermission } from "../_shared/auth.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
 const corsHeaders = {
@@ -29,8 +29,21 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
+  let body: Record<string, unknown>;
+  try { body = await req.json(); }
+  catch { return json(400, { error: "invalid_json" }); }
+
+  const action = body.action as Action;
+  // Gate per-action so support/dispute roles can add notes or clear a flag
+  // without gaining suspension powers.
+  const perms =
+    action === "suspend_user" || action === "unsuspend_user"
+      ? ["flagged_users.suspend"]
+      : action === "clear_flag"
+        ? ["flagged_users.remove_flag", "flagged_users.update"]
+        : ["flagged_users.update"];
   let ctx;
-  try { ctx = await requirePermission(req, "flagged_users.update"); }
+  try { ctx = await requireAnyPermission(req, perms); }
   catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;
@@ -38,11 +51,6 @@ Deno.serve(async (req) => {
   }
   const admin = ctx.adminClient;
 
-  let body: Record<string, unknown>;
-  try { body = await req.json(); }
-  catch { return json(400, { error: "invalid_json" }); }
-
-  const action = body.action as Action;
   const user_id = body.user_id as string;
   const note = ((body.note as string) ?? "").trim();
   const reason_key = (body.reason_key as string) ?? null;
