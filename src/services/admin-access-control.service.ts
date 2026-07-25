@@ -538,10 +538,10 @@ async function writeAudit(opts: AuditWriteOpts): Promise<void> {
     if (CANONICAL_ADMIN_ACTIONS.has(opts.action_type)) {
       await supabase.from("admin_actions").insert({
         admin_user_id: uid,
-        target_user_id,
+        target_user_id: opts.target_user_id,
         action_type: opts.action_type as any,
         action_notes: JSON.stringify(payload),
-      });
+      } as any);
     }
 
     // 2) Mirror to audit_logs so the AccessHistoryTimeline (which reads from
@@ -552,7 +552,7 @@ async function writeAudit(opts: AuditWriteOpts): Promise<void> {
       action: "admin_internal_note",
       description: `[${opts.action_type}] ${opts.description}`,
       metadata: { ...payload, access_action: opts.action_type },
-    });
+    } as any);
   } catch {
     /* audit best-effort */
   }
