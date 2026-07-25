@@ -133,7 +133,7 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
     const draft = buildInput();
     if (!draft) return;
     const v = validateInviteInput(draft);
-    if (!v.ok) { setError(v.error); return; }
+    if (v.ok === false) { setError(v.error); return; }
     if (emailTaken) { setError("A user with that email already exists."); return; }
     setError(null); setSaving(true);
     try {
