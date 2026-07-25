@@ -86,6 +86,49 @@ export async function requireAdmin(req: Request): Promise<AuthContext> {
   return ctx;
 }
 
+/**
+ * Assert the caller (already authenticated as an admin/internal user) has a
+ * specific fine-grained permission. Bypasses the check for `super_admin`
+ * and the legacy consumer `admin` role.
+ *
+ * Should be called AFTER `requireAdmin(req)`; when `ctx` is omitted this
+ * helper will run `requireAdmin` itself.
+ */
+export async function requirePermission(
+  req: Request,
+  permission: string,
+  existingCtx?: AuthContext,
+): Promise<AuthContext> {
+  const ctx = existingCtx ?? (await requireAdmin(req));
+
+  // Short-circuit for super roles.
+  const [{ data: isSuper }, { data: isConsumerAdmin }] = await Promise.all([
+    ctx.adminClient.rpc("has_any_internal_role", {
+      _user_id: ctx.userId,
+      _role_keys: ["super_admin"],
+    }),
+    ctx.adminClient.rpc("has_role", { _user_id: ctx.userId, _role: "admin" }),
+  ]);
+  if (isSuper || isConsumerAdmin) return ctx;
+
+  const { data: perms, error } = await ctx.adminClient.rpc(
+    "internal_effective_permissions",
+    { _user_id: ctx.userId },
+  );
+  if (error) throw new AuthError(500, "permission_check_failed");
+  const list = Array.isArray(perms) ? (perms as string[]) : [];
+  if (!list.includes(permission)) {
+    throw new PermissionError(permission);
+  }
+  return ctx;
+}
+
+export class PermissionError extends AuthError {
+  constructor(public required: string) {
+    super(403, "permission_denied");
+  }
+}
+
 export class AuthError extends Error {
   constructor(public status: number, public code: string) {
     super(code);
@@ -93,6 +136,12 @@ export class AuthError extends Error {
 }
 
 export function authErrorResponse(err: unknown, corsHeaders: Record<string, string>): Response | null {
+  if (err instanceof PermissionError) {
+    return new Response(
+      JSON.stringify({ error: err.code, required: err.required }),
+      { status: err.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
   if (err instanceof AuthError) {
     return new Response(JSON.stringify({ error: err.code }), {
       status: err.status,
