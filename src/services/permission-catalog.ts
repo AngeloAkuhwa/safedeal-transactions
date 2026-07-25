@@ -108,8 +108,6 @@ const HIGH_PERMISSIONS = new Set<string>([
   "platform_configuration.configure",
   "users_and_access.suspend",
   "users_and_access.manage_permissions",
-  "compliance.approve",
-  "compliance.configure",
 ]);
 
 const STANDARD_ACTIONS = /\.(create|update|assign|reassign|resolve|escalate|approve|reject)$/;
