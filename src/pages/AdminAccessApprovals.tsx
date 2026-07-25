@@ -61,7 +61,7 @@ export default function AdminAccessApprovals() {
                         {r.change_type === "role" ? "Role change" : "Permission"}
                       </Badge>
                     </td>
-                    <td className="px-4 py-2 text-foreground/90">{r.target_user_name ?? r.target_user_id}</td>
+                    <td className="px-4 py-2 text-foreground/90">{r.target_name ?? r.target_user_id}</td>
                     <td className="px-4 py-2 text-foreground/80">{r.requested_by_name ?? "—"}</td>
                     <td className="px-4 py-2 font-mono text-xs text-foreground/80">{summary}</td>
                     <td className="px-4 py-2 text-xs text-muted-foreground">{relativeTime(r.created_at)}</td>
