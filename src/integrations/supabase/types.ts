@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_change_requests: {
+        Row: {
+          change_type: string
+          created_at: string
+          id: string
+          payload: Json
+          reason: string
+          requested_by: string
+          review_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          target_user_id: string
+        }
+        Insert: {
+          change_type: string
+          created_at?: string
+          id?: string
+          payload: Json
+          reason: string
+          requested_by: string
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          target_user_id: string
+        }
+        Update: {
+          change_type?: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          reason?: string
+          requested_by?: string
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          target_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_change_requests_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "internal_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_verifications: {
         Row: {
           created_at: string
@@ -2007,6 +2057,117 @@ export type Database = {
           },
         ]
       }
+      internal_roles: {
+        Row: {
+          created_at: string
+          description: string
+          is_system: boolean
+          key: string
+          name: string
+          protected: boolean
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          is_system?: boolean
+          key: string
+          name: string
+          protected?: boolean
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          is_system?: boolean
+          key?: string
+          name?: string
+          protected?: boolean
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      internal_user_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          is_primary: boolean
+          role_key: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          is_primary?: boolean
+          role_key: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          is_primary?: boolean
+          role_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_user_roles_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "internal_roles"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "internal_user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "internal_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_users: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department: string | null
+          display_id: string
+          email: string
+          full_name: string
+          id: string
+          last_active_at: string | null
+          status: string
+          two_factor_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          display_id: string
+          email: string
+          full_name: string
+          id: string
+          last_active_at?: string | null
+          status?: string
+          two_factor_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          display_id?: string
+          email?: string
+          full_name?: string
+          id?: string
+          last_active_at?: string | null
+          status?: string
+          two_factor_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       money_status_history: {
         Row: {
           changed_at: string
@@ -2649,6 +2810,36 @@ export type Database = {
           },
         ]
       }
+      permissions: {
+        Row: {
+          action: string
+          created_at: string
+          description: string
+          key: string
+          label: string
+          module: string
+          sort_order: number
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string
+          key: string
+          label: string
+          module: string
+          sort_order?: number
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string
+          key?: string
+          label?: string
+          module?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       phone_otp_codes: {
         Row: {
           attempts: number
@@ -3284,6 +3475,36 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_pricing_snapshot_audit"
             referencedColumns: ["transaction_id"]
+          },
+        ]
+      }
+      role_permissions: {
+        Row: {
+          permission_key: string
+          role_key: string
+        }
+        Insert: {
+          permission_key: string
+          role_key: string
+        }
+        Update: {
+          permission_key?: string
+          role_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "internal_roles"
+            referencedColumns: ["key"]
           },
         ]
       }
@@ -4572,6 +4793,48 @@ export type Database = {
           },
         ]
       }
+      user_permission_overrides: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          mode: string
+          permission_key: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          mode: string
+          permission_key: string
+          reason: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          mode?: string
+          permission_key?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permission_overrides_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "user_permission_overrides_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "internal_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_region_access_logs: {
         Row: {
           access_result: string
@@ -5219,12 +5482,28 @@ export type Database = {
         }
         Returns: number
       }
+      has_any_internal_role: {
+        Args: { _role_keys: string[]; _user_id: string }
+        Returns: boolean
+      }
+      has_internal_role: {
+        Args: { _role_key: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role_type"]
           _user_id: string
         }
         Returns: boolean
+      }
+      internal_effective_access_level: {
+        Args: { _user_id: string }
+        Returns: string
+      }
+      internal_effective_permissions: {
+        Args: { _user_id: string }
+        Returns: string[]
       }
       invalidate_old_sessions: {
         Args: { _user_id: string }

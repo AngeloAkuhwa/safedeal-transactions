@@ -21,7 +21,6 @@ interface Props {
 
 function ringFor(u: InternalUser): "critical" | "elevated" | "high" | "none" {
   if (u.access_level === "full") return "critical";
-  if (u.access_level === "elevated") return "elevated";
   if (u.access_level === "high") return "high";
   return "none";
 }
@@ -78,7 +77,16 @@ export function InternalUsersTable({
                     </div>
                   </td>
                   <td className="px-5 py-4 text-foreground/80">{u.email}</td>
-                  <td className="px-5 py-4"><RoleBadge role={u.role} /></td>
+                  <td className="px-5 py-4">
+                    <div className="flex flex-wrap gap-1">
+                      <RoleBadge role={u.primary_role} />
+                      {u.roles.length > 1 && (
+                        <span className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                          +{u.roles.length - 1}
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-5 py-4"><AccessLevelPill level={u.access_level} /></td>
                   <td className="px-5 py-4"><StatusBadge status={u.status} /></td>
                   <td className="px-5 py-4 text-xs text-muted-foreground">{relativeTime(u.last_active_at)}</td>

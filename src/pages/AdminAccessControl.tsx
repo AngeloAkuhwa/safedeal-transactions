@@ -6,8 +6,8 @@ import { toast } from "@/hooks/use-toast";
 import {
   fetchAccessDirectory,
   inviteInternalUser,
-  changeRole,
-  updatePermissions,
+  updateUserRoles,
+  updatePermissionOverrides,
   suspendInternalUser,
   reactivateInternalUser,
   type AccessFilter,
@@ -51,12 +51,20 @@ export default function AdminAccessControl() {
   });
 
   const roleMut = useMutation({
-    mutationFn: changeRole,
-    onSuccess: () => { toast({ title: "Role updated", description: "Change was logged to audit trail." }); invalidate(); },
+    mutationFn: updateUserRoles,
+    onSuccess: (res) => {
+      toast({
+        title: res.applied ? "Roles updated" : "Approval required",
+        description: res.applied
+          ? "Change was logged to audit trail."
+          : "Protected-role changes were queued for review.",
+      });
+      invalidate();
+    },
   });
 
   const permsMut = useMutation({
-    mutationFn: updatePermissions,
+    mutationFn: updatePermissionOverrides,
     onSuccess: () => { toast({ title: "Permissions updated" }); invalidate(); },
   });
 
@@ -116,9 +124,9 @@ export default function AdminAccessControl() {
         user={changeRoleUser}
         open={!!changeRoleUser}
         onOpenChange={(o) => { if (!o) setChangeRoleUser(null); }}
-        onSubmit={async (role, level, reason) => {
+        onSubmit={async (roles, primary, reason) => {
           if (!changeRoleUser) return;
-          await roleMut.mutateAsync({ user_id: changeRoleUser.id, role, access_level: level, reason });
+          await roleMut.mutateAsync({ user_id: changeRoleUser.id, roles, primary_role: primary, reason });
         }}
       />
 
@@ -126,9 +134,9 @@ export default function AdminAccessControl() {
         user={permsUser}
         open={!!permsUser}
         onOpenChange={(o) => { if (!o) setPermsUser(null); }}
-        onSubmit={async (permissions, reason) => {
+        onSubmit={async (grants, revokes, reason) => {
           if (!permsUser) return;
-          await permsMut.mutateAsync({ user_id: permsUser.id, permissions, reason });
+          await permsMut.mutateAsync({ user_id: permsUser.id, grants, revokes, reason });
         }}
       />
 

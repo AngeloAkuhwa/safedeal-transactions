@@ -1,6 +1,6 @@
 import type {
   AccessLevel,
-  InternalRole,
+  InternalRoleKey,
   InternalUserStatus,
 } from "@/services/admin-access-control.service";
 import {
@@ -10,13 +10,17 @@ import {
   accessDotClass,
 } from "@/services/admin-access-control.service";
 
-const ROLE_STYLES: Record<InternalRole, string> = {
-  super_admin: "bg-purple-500/15 text-purple-300 border-purple-500/30",
-  admin: "bg-blue-500/15 text-blue-300 border-blue-500/30",
-  senior_agent: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  agent: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
-  junior_agent: "bg-sky-500/15 text-sky-300 border-sky-500/30",
-  read_only: "bg-slate-500/15 text-slate-300 border-slate-500/30",
+const ROLE_STYLES: Record<InternalRoleKey, string> = {
+  super_admin:        "bg-purple-500/15 text-purple-300 border-purple-500/30",
+  senior_admin:       "bg-blue-500/15 text-blue-300 border-blue-500/30",
+  dispute_manager:    "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  dispute_agent:      "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
+  support_agent:      "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
+  identity_officer:   "bg-sky-500/15 text-sky-300 border-sky-500/30",
+  finance_operator:   "bg-amber-500/15 text-amber-300 border-amber-500/30",
+  finance_approver:   "bg-orange-500/15 text-orange-300 border-orange-500/30",
+  compliance_officer: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30",
+  auditor:            "bg-slate-500/15 text-slate-300 border-slate-500/30",
 };
 
 const STATUS_STYLES: Record<InternalUserStatus, string> = {
@@ -26,9 +30,9 @@ const STATUS_STYLES: Record<InternalUserStatus, string> = {
   invited: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30",
 };
 
-export function RoleBadge({ role }: { role: InternalRole }) {
+export function RoleBadge({ role }: { role: InternalRoleKey }) {
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${ROLE_STYLES[role]}`}>
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${ROLE_STYLES[role] ?? "bg-muted text-foreground/80 border-border"}`}>
       {ROLE_LABEL[role]}
     </span>
   );
