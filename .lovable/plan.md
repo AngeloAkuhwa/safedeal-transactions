@@ -1,49 +1,138 @@
-# Fix: Invited internal users land on Admin, not the Buyer/Seller picker
+## Goal
 
-## What's happening today
+Enforce role-based access control (RBAC) on every admin screen so a signed-in teammate only sees — and can only reach — the routes their role permissions allow. Users without a permission should not see the sidebar entry, cannot deep-link to the URL, and cannot call the backing edge function.
 
-When an invited teammate (e.g. a Support Agent) clicks their invite email and sets a password, they end up on **/role-selection** with the nested-redirect loop shown in the screenshot. Two things cause it:
+## Current state (verified)
 
-1. `AcceptInvite.tsx` decides where to send them by client-querying `internal_user_roles`. If the query returns empty for any reason (session not fully hydrated on first tick after `updateUser`, transient RLS/session race, or Supabase reusing a `recovery` link that lands on `/` first), the fallback is `navigate("/role-selection")`.
-2. `ProtectedRoute.tsx` only knows about `user_roles` (buyer/seller/admin consumer roles) via `getUserRoles`. Internal-only teammates have **zero** rows in `user_roles`, so any guarded route sends them to `/role-selection`, which itself compounds the redirect chain.
-3. `RoleSelection.tsx` has no awareness of internal roles, so it renders the Buyer / Seller cards to a Support Agent.
+- `src/services/permission-catalog.ts` already defines 14 permission modules and 10 internal roles. `permissionsForRoles()` derives the effective permission set from `role_permissions` (DB truth).
+- DB functions `internal_effective_permissions()` and `internal_effective_access_level()` return the effective set server-side.
+- `src/components/admin/useAdminNav.ts` gates nav on `BUILT_ROUTES` (existence only) — no permission check.
+- `src/components/admin/AdminSidebar.tsx` renders every group unconditionally; no per-item permission filter.
+- `src/components/auth/ProtectedRoute.tsx` gates `/admin/*` by the coarse `admin` role (plus the just-added internal fallback) — no per-route permission check.
+- Edge functions use `requireAdmin` (accepts any internal role) but do not check per-permission.
 
-## The correct flow for an invited internal user
+So today: once a teammate is inside the admin workspace, every menu item and every route is visible/reachable regardless of role.
 
-```text
-Invite email ─▶ /accept-invite ─▶ set password
-              ─▶ detect internal role (server-trusted)
-              ─▶ /admin/dashboard   (always, for any internal role_key)
+## Design
+
+### 1. Route → required-permission map (single source of truth)
+
+Add `src/services/admin-route-permissions.ts` mapping each admin route to the permission that unlocks it:
+
+```
+/admin/dashboard             → dashboard.view
+/admin/transactions          → transactions.view
+/admin/transactions/:id      → transactions.view
+/admin/disputes              → disputes.view
+/admin/disputes/:id          → disputes.view
+/admin/offers                → transactions.view      (offers live under txn ops)
+/admin/payouts               → financial_controls.view
+/admin/escrow                → escrow.view
+/admin/reconciliation        → financial_controls.view
+/admin/flagged-users         → flagged_users.view
+/admin/users                 → users_and_access.view
+/admin/users/:id             → users_and_access.view
+/admin/notifications         → platform_configuration.view
+/admin/settings              → platform_configuration.configure
+/admin/audit-logs            → audit_logs.view
+/admin/access-control        → users_and_access.manage_permissions
+/admin/permission-matrix     → permissions.view
+/admin/access-approvals      → users_and_access.manage_permissions
+/admin/task-orchestration    → task_orchestration.view
+/admin/agent-performance     → agent_performance.view
 ```
 
-Internal roles (`super_admin`, `senior_admin`, `support_agent`, `auditor`, `finance_ops`, `dispute_specialist`, …) are defined in `permission-catalog` and enforced by `internal_effective_permissions` / `has_any_internal_role`. They already carry their access level — the user should never see the buyer/seller picker.
+`super_admin` bypasses all checks (short-circuit).
 
-## Changes
+### 2. Permission context (client-side, server-derived)
 
-### 1. `src/pages/AcceptInvite.tsx` — trust the server, not a client query race
-- Replace the direct `from("internal_user_roles").select(...)` check with an RPC call to `internal_effective_access_level(_user_id)` (or `has_any_internal_role` with the full set of internal keys). Both are `SECURITY DEFINER` and immune to RLS/session timing.
-- If the RPC returns any internal access level → `navigate("/admin/dashboard", { replace: true })`.
-- Only fall back to `/role-selection` when the user genuinely has no internal role (i.e. legacy consumer invite, which this screen won't normally serve).
+Add `src/context/AdminPermissionsContext.tsx`:
+- On mount inside `AdminLayout`, call new edge function `admin-me` which returns `{ roles: string[], permissions: string[], access_level }` sourced from `internal_effective_permissions(auth.uid())` — never trust the client.
+- Expose `useAdminPermissions()` with `has(key)`, `hasAny(keys[])`, `canVisit(pathname)`, `roles`, `accessLevel`, `loading`.
+- Cache per session; refresh on `visibilitychange` after 5 min.
 
-### 2. `src/components/auth/ProtectedRoute.tsx` — internal users bypass the picker
-- After `getUserRoles` returns empty (`roleNames.length === 0`), do a second check via the same `internal_effective_access_level` / `has_any_internal_role` RPC.
-- If internal → set status to `"authenticated"` when the guarded route is `/admin/*`, else redirect to `/admin/dashboard`.
-- Only redirect to `/role-selection` when the user is truly a consumer with no roles at all. This kills the nested-redirect loop.
+### 3. Sidebar filtering
 
-### 3. `src/pages/RoleSelection.tsx` — hard guard against internal users
-- On mount, check internal role via RPC. If internal, immediately `Navigate` to `/admin/dashboard` (replace). Prevents accidental exposure of Buyer/Seller cards even if someone deep-links the URL.
+Update `AdminSidebar.tsx` to filter items via `canVisit(item.href)`. Hide a group entirely if all its items are filtered out. Keep icons/badges unchanged. `useAdminNav.go()` also checks `canVisit` and shows an "Access restricted" toast instead of "Coming soon" when the route exists but the user lacks permission.
 
-### 4. `src/hooks/useAuthState.ts` (light touch)
-- Expose an `isInternal` boolean derived from the same RPC so downstream components (nav, dashboards) can render the correct workspace without another round-trip. Optional but keeps everything consistent.
+### 4. Route-level guard
 
-## Technical notes
+Introduce `<PermissionRoute permission="…" />` wrapping every admin route in `src/App.tsx`. Behavior:
+- `loading` → `<BrandedAuthSplash />`.
+- Missing permission → render `<AdminAccessDenied />` (new page: shield icon, "You don't have access to this screen", role name, "Request access" CTA → prefilled `AccessRequestDialog`, "Back to dashboard" link).
+- Never redirect to a screen they can't see either — if they lack `dashboard.view`, pick the first `canVisit` route from their sidebar.
 
-- Use `supabase.rpc("has_any_internal_role", { _user_id: uid, _roles: INTERNAL_ROLE_KEYS })`. `INTERNAL_ROLE_KEYS` already exists in `src/services/permission-catalog.ts` (`INTERNAL_ROLES.map(r => r.key)`).
-- All checks stay client-side reads of `SECURITY DEFINER` functions; no schema changes, no new migrations, no edge functions.
-- `AcceptInvite` still promotes `internal_users.status` from `invited` → `active` on first password set — unchanged.
-- The `admin-invite-internal-user` edge function already sets `redirectTo: ${origin}/accept-invite` for both invite and recovery links — no change needed.
+### 5. Server-side enforcement (defense in depth)
 
-## Not in scope
+Extend `supabase/functions/_shared/auth.ts` with `requirePermission(req, key)`:
+- Calls `internal_effective_permissions(auth.uid())`.
+- Returns 403 `{ error: "permission_denied", required: key }` when missing.
+- `super_admin` bypasses.
 
-- No changes to invite delivery, email template, role assignment, or the Access Control screen.
-- No changes to `user_roles` / consumer flows — buyers and sellers still see the picker exactly as today.
+Wire the required permission into each admin edge function (one-line change per function):
+- `admin-dashboard` → `dashboard.view`
+- `admin-transactions*` → `transactions.view` (writes → `transactions.update`)
+- `admin-disputes*` → `disputes.view` / `disputes.resolve` / `disputes.assign`
+- `admin-payouts*`, `admin-escrow*`, `admin-reconciliation*` → `financial_controls.view` / `.approve` / `.configure`
+- `admin-flagged-users*` → `flagged_users.view` / `.suspend`
+- `admin-user-detail*`, `admin-invite-internal-user`, `admin-delete-internal-user`, `admin-access-control` → `users_and_access.view` / `.manage_permissions`
+- `admin-audit-logs*` → `audit_logs.view`
+- `admin-settings*` → `platform_configuration.view` / `.configure`
+- `admin-notifications*` → `platform_configuration.view`
+- `admin-reveal-user-field` → `users_and_access.view` (already gates by role)
+- Every `*-export` function → the module's `.export`
+
+Client `.service.ts` files translate a 403 `permission_denied` into a toast + no navigation.
+
+### 6. Access-denied UX
+
+- Deep link to a hidden page → `<AdminAccessDenied>` page (not a redirect loop).
+- "Request access" opens the existing `access-change-request` flow with the required permission pre-filled.
+- Header quick actions and dashboard KPI cards use `has()` to hide/disable CTAs (Suspend, Freeze, Reveal, Export) — matching existing gating in the drawers.
+
+### 7. Tests
+
+Add `src/__tests__/rbac-route-map.contract.test.ts`:
+- Every admin route in `App.tsx` has an entry in the route→permission map.
+- Every permission referenced exists in `ALL_PERMISSION_KEYS`.
+- `super_admin` seed grants every permission.
+- `support_agent` seed does **not** grant `platform_configuration.configure`, `financial_controls.approve`, or `users_and_access.manage_permissions`.
+
+Add `src/__tests__/admin-permission.contract.test.ts` — every admin edge function called without the mapped permission returns 403 `permission_denied`.
+
+## Files touched
+
+New:
+- `src/services/admin-route-permissions.ts`
+- `src/context/AdminPermissionsContext.tsx`
+- `src/components/auth/PermissionRoute.tsx`
+- `src/pages/AdminAccessDenied.tsx`
+- `supabase/functions/admin-me/index.ts`
+- `src/__tests__/rbac-route-map.contract.test.ts`
+- `src/__tests__/admin-permission.contract.test.ts`
+
+Modified:
+- `supabase/functions/_shared/auth.ts` (`requirePermission`)
+- Every `supabase/functions/admin-*/index.ts` (add one `requirePermission` call)
+- `src/App.tsx` (wrap each admin route in `PermissionRoute`)
+- `src/components/admin/AdminLayout.tsx` (mount provider)
+- `src/components/admin/AdminSidebar.tsx` (filter items/groups)
+- `src/components/admin/useAdminNav.ts` (permission-aware `go`)
+- Admin header/action buttons: use `has()` to hide privileged CTAs.
+
+## Rollout order
+
+1. Add catalog map + context + `admin-me` edge function.
+2. Wrap routes with `PermissionRoute`; add `AdminAccessDenied`.
+3. Filter sidebar + nav toasts.
+4. Add `requirePermission` to `_shared/auth.ts`; wire each admin edge function.
+5. Gate in-screen CTAs.
+6. Ship contract tests.
+
+## Verification
+
+- Log in as `support_agent`: sidebar shows only Dashboard, Transactions (read), Disputes (read), Users (read), Audit Logs; visiting `/admin/settings` shows Access Denied; `admin-settings` edge function returns 403.
+- Log in as `finance_approver`: sees Escrow/Payouts/Reconciliation with approve CTAs; does not see Users & Access or Permission Matrix.
+- Log in as `auditor`: sees only read-only screens; every "Export" button hidden if `.export` missing.
+- Log in as `super_admin`: sees everything (unchanged from today).
+- Legacy consumer `admin` role: treated as `super_admin`-equivalent to avoid breaking the existing owner account.
