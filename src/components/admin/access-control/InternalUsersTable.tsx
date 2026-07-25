@@ -1,4 +1,4 @@
-import { KeyRound, MoreHorizontal, ShieldAlert, UserTag, RefreshCcw, Ban, Undo2 } from "lucide-react";
+import { KeyRound, MoreHorizontal, ShieldAlert, UserCog, RefreshCcw, Ban, Undo2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,7 +90,7 @@ export function InternalUsersTable({
                         onClick={() => onChangeRole(u)}
                         className="rounded-md p-2 text-blue-400 transition-colors hover:bg-blue-500/15 hover:text-blue-300"
                       >
-                        <UserTag className="h-4 w-4" />
+                        <UserCog className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
