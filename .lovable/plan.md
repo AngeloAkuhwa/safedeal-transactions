@@ -1,85 +1,127 @@
-## Goal
 
-Port the supplied "Access Control Management" HTML into SafeDeal as a fully integrated admin screen at `/admin/access-control` (route already reserved in the sidebar), reusing the existing `AdminLayout`, sidebar and design tokens. No horizontal nav, no duplicated shell.
+# SafeDeal Internal Role & Permission Foundation
 
-## Sidebar / navigation changes (`src/components/admin/AdminSidebar.tsx` + `useAdminNav.ts`)
+Extends `/admin/access-control` with a real role/permission model backed by Supabase, first-class **multi-role assignments per user**, and a global admin footer.
 
-- Add a new nav group **Administration** placed above the existing "Settings" group. It will contain:
-  - **Users & Access** → `/admin/access-control` (icon: `KeyRound`) — the new screen.
-  - **Permission Matrix** → `/admin/permission-matrix` (icon: `ShieldCheck`) — remains "Coming soon".
-  - **Audit Logs** → `/admin/audit-logs` (icon: `ScrollText`) — moved out of "Settings".
-- Remove the duplicate "Access Control" and "Audit Logs" entries from the current "Settings" group so nothing is listed twice.
-- Add `/admin/access-control` to `BUILT_ROUTES` in `useAdminNav.ts` so the item is enabled.
+## 1. Admin footer (all admin pages)
 
-## Route
+Add `src/components/admin/AdminFooter.tsx` rendered inside `AdminLayout` beneath the page body:
 
-- Register `/admin/access-control` in `src/App.tsx` as a protected admin route rendering the new page component. No new equivalent route exists, so this is the canonical path (the sidebar already links to it today as "Coming soon").
+```
+© {year} SafeDeal Admin Portal. All rights reserved.     Privacy Policy   Terms of Service   Support
+```
 
-## New files
+- Left: copyright, muted foreground, 13px. Year is dynamic.
+- Right: three link buttons routing to `/privacy`, `/terms`, `/support` (use existing routes if present, otherwise `#`).
+- Full width, `border-t border-border bg-card/40`, matches spacing in the attached screenshot.
 
-Page:
-- `src/pages/AdminAccessControl.tsx` — wraps `AdminLayout` (title "Access & Role Management", subtitle "Internal user permissions and access control"), owns query state, orchestrates the drawers/dialogs. No hardcoded user rows in the page.
+## 2. Role catalogue (10 roles)
 
-Feature components under `src/components/admin/access-control/`:
-- `AccessSummaryCards.tsx` — the 4 KPI cards (Active Admins, Active Agents, Suspended Users, Full Access Users) with delta chips and the red "Critical" ring on Full Access, matching the reference. Reuses the dashboard `KpiCard` sizing tokens.
-- `UserAccessFilters.tsx` — filter pill row (All Users / Admins / Agents / Suspended / Critical Access) + search input + primary "Add User" button. Emits typed filter changes.
-- `InternalUsersTable.tsx` — desktop table (columns: User, Email, Role, Access Level, Status, Last Active, Actions) with left-border accent per access tier (critical/elevated/high/suspended shadows via semantic classes added to `index.css`). Row actions: change role, review permissions, suspend/reactivate, more-menu (view details, reset password, view history, remove).
-- `InternalUsersMobileFeed.tsx` — card list for `< lg`, mirroring the row info stacked.
-- `RoleBadge.tsx`, `AccessLevelBadge.tsx`, `UserStatusBadge.tsx` — badge primitives with variants (Super Admin, Admin, Senior Agent, Agent / Full, High, Standard, Limited / Active, Suspended, Pending). Colors via design tokens (blue/purple/emerald/amber/red).
-- `UserDetailsDrawer.tsx` — right-side drawer showing profile, current role & access, recent actions, quick action buttons (Change Role, Review Permissions, Suspend, Reset MFA).
-- `AddUserDrawer.tsx` — form drawer (name, email, role, access level, notes). Submit wired to a placeholder service call.
-- `ChangeRoleDrawer.tsx` — role + reason form.
-- `ReviewPermissionsDrawer.tsx` — grouped permission toggles (read from a static permissions catalog for now).
-- `SuspendUserDialog.tsx` — confirmation dialog reusing `ActionConfirmDialog` pattern (reason required).
-- `AccessHistoryTimeline.tsx` — vertical timeline used inside `UserDetailsDrawer`.
-- `EmptyState.tsx`, `ErrorState.tsx`, `LoadingSkeleton.tsx` — screen-level states (table + KPI skeletons).
+Replace the current 6-role enum with the full SafeDeal set:
 
-Service / data layer:
-- `src/services/admin-access-control.service.ts` — typed models (`InternalUser`, `AccessLevel`, `InternalRole`, `AccessSummary`, `AccessHistoryEntry`, `AccessQuery`, `AccessResponse`) and functions:
-  - `fetchAccessSummary()`
-  - `fetchInternalUsers(query)`
-  - `fetchInternalUserDetail(id)`
-  - `createInternalUser(input)`
-  - `changeInternalUserRole(id, input)`
-  - `updateInternalUserPermissions(id, input)`
-  - `suspendInternalUser(id, reason)` / `reactivateInternalUser(id, reason)`
-  - `fetchAccessHistory(id)`
-  Each function follows the existing pattern (edge-function `fetch` with `authHeaders()`, mirrors `admin-users-directory.service.ts`). Until a backend exists, functions call a stub `admin-access-control` endpoint; the UI is fully data-driven via TanStack Query and will light up when the edge function is added in a later step. No mock data lives inside components.
+`super_admin`, `senior_admin`, `dispute_manager`, `dispute_agent`, `support_agent`, `identity_officer`, `finance_operator`, `finance_approver`, `compliance_officer`, `auditor`.
 
-## Design system additions
+Each role stores: display name, one-line description, `protected` flag (edits to `super_admin` and `finance_approver` require privileged approval), `is_system` flag, and a default permission set (see §3).
 
-- Add semantic access-ring utilities to `src/index.css` (`.access-ring-critical`, `.access-ring-elevated`, `.access-ring-high`, `.access-row-suspended`) that map to the reference shadows using HSL tokens — no raw hex in components.
-- Use existing shadcn `Button`, `Input`, `Sheet`, `Dialog`, `Badge`, `Avatar`, `DropdownMenu` primitives.
-- Icons come from `lucide-react` (no Font Awesome). Map: `ShieldAlert`, `Users`, `UserX`, `AlertTriangle`, `KeyRound`, `UserPlus`, `MoreHorizontal`, `RefreshCcw`, `ArrowLeftRight`.
+## 3. Multi-role assignments per user (first-class)
 
-## Responsive behavior
+Users can hold **any number of roles simultaneously**. A user's effective permissions = **union** of every assigned role's permissions, then adjusted by user-specific overrides (§5).
 
-- `lg+`: sidebar + desktop table + horizontal KPI grid (4 cols).
-- `md`: 2-col KPI grid, table becomes horizontally scrollable inside the card.
-- `sm`: KPI horizontal scroll (reuse `UsersMobileStatsScroll` pattern), `InternalUsersMobileFeed` cards, filters collapse into a sheet-triggered advanced filter (reuse the pattern from `UsersAdvancedFiltersSheet`).
+- Join table `internal_user_roles(user_id, role_key, assigned_by, assigned_at, is_primary bool)` — composite PK, no unique-per-user constraint on role count.
+- Exactly one role per user is flagged `is_primary` (used for the "primary role" column, avatar tint, and default landing screen). Changing primary is an audited action.
+- Guardrails:
+  - `super_admin` can only be combined with `super_admin` alone (enforced in DB trigger + UI).
+  - `finance_operator` + `finance_approver` on the same user is blocked (segregation of duties) — trigger raises, UI warns.
+  - Assigning/removing a role always writes an `audit_logs` entry with before/after role sets.
+- UI treatment:
+  - `InternalUsersTable` role column shows the primary role badge + `+N` chip; hover/tap reveals the full list.
+  - Filters (`Admins`, `Agents`, `Finance`, `Compliance`, `Identity`, `Auditors`) match if **any** assigned role qualifies.
+  - Search matches on any role label.
 
-## Wiring — every CTA has a handler stub
+## 4. Permission catalogue (modules × actions)
 
-- Filter pills → update `AccessQuery.segment` and refetch.
-- Search → debounced update to `q`.
-- Add User → opens `AddUserDrawer`; submit calls `createInternalUser` and invalidates queries.
-- Row "change role" icon → opens `ChangeRoleDrawer`.
-- Row "key" icon → opens `ReviewPermissionsDrawer`.
-- Row "suspend/unsuspend" icon → opens `SuspendUserDialog`.
-- Row overflow menu → View Details (drawer), Reset MFA, Copy Email, View Access History.
-- Clicking row body → opens `UserDetailsDrawer`.
-- All mutations show toasts and invalidate `["admin-access-control", ...]` queries.
+Typed catalogue grouped by module:
 
-## What is explicitly NOT in this batch
+Dashboard · Transactions · Escrow · Disputes · Identity Verification · Task Orchestration · Agent Performance · Flagged Users · Users & Access · Permission Management · Financial Controls · Audit Logs · Reports & Exports · Platform Configuration
 
-- No backend edge function implementation; the service layer is created with typed contracts and query keys but a follow-up will implement `admin-access-control` and RLS.
-- No real permissions model migration.
-- Impersonation stays a separate feature.
+Granular actions (only emitted where meaningful per module): `view`, `create`, `update`, `assign`, `reassign`, `approve`, `reject`, `resolve`, `escalate`, `suspend`, `export`, `configure`, `manage_permissions`.
 
-## Acceptance
+Keys are `module.action` (e.g. `disputes.assign`, `financial_controls.approve`, `permissions.manage_permissions`). Catalogue lives in `src/services/permission-catalog.ts` as the single source of truth for UI and seed migration.
 
-- `/admin/access-control` renders inside the standard SafeDeal admin shell with the SafeDeal sidebar (no top nav).
-- KPI cards, filter row, and table visually match the reference at desktop widths using semantic tokens.
-- Sidebar shows a new **Administration** group with Users & Access (active), Permission Matrix, Audit Logs — no duplicates elsewhere.
-- Every button/row action opens the correct drawer/dialog or calls the correct service function.
-- No user records are hardcoded inside the page component.
+## 5. Derived Access Level (never user-picked)
+
+Access Level is computed from effective permissions, not editable:
+
+- **Full** — `super_admin` role present.
+- **High** — any of: `permissions.manage_permissions`, `financial_controls.approve`, `users.suspend`, `platform_configuration.configure`, `compliance.*` approve/configure.
+- **Standard** — has any `create/update/assign/resolve` operational permission but nothing High.
+- **Limited** — only `*.view` / `*.export`.
+
+Implemented as pure fn `deriveAccessLevel(perms: string[]): AccessLevel` used by:
+- UI badge on table + drawer (read-only pill).
+- DB function `internal_effective_access_level(_user_id)` mirroring the TS derivation for server-side filtering.
+
+Access Level `<Select>` removed from `AddUserDrawer` and `ChangeRoleDrawer`.
+
+## 6. Database (Lovable Cloud)
+
+Single migration adds, with GRANTs + RLS + `has_role` gating:
+
+- `internal_roles(key text pk, name, description, protected bool, is_system bool)`
+- `permissions(key text pk, module text, action text, label, description)`
+- `role_permissions(role_key fk, permission_key fk, composite pk)`
+- `internal_users(id uuid pk → auth.users, display_id, full_name, email, department, status, two_factor_enabled, last_active_at, created_by)`
+- `internal_user_roles(user_id, role_key, is_primary bool, assigned_by, assigned_at, composite pk)` — **multi-role, one primary**
+- `user_permission_overrides(user_id, permission_key, mode enum grant|revoke, reason, granted_by, composite pk)`
+- `access_change_requests(id, target_user_id, requested_by, change_type enum role|permission|suspend|reactivate, payload jsonb, status enum pending|approved|rejected, reviewed_by, reviewed_at, reason)`
+- Reuse existing `audit_logs` for all mutations.
+
+SQL helpers (SECURITY DEFINER, `search_path = public`):
+- `internal_effective_permissions(_user_id uuid) returns text[]` = union of role_permissions across all assigned roles, plus `grant` overrides, minus `revoke` overrides.
+- `internal_effective_access_level(_user_id uuid) returns text` mirrors §5.
+- Triggers enforce the multi-role guardrails in §3 and the single-primary invariant.
+
+Extend the existing `app_role` enum with the 10 role keys via `ALTER TYPE ... ADD VALUE` in the same migration so `has_role()` continues to be the sole RLS gate.
+
+RLS:
+- `super_admin` and `senior_admin` read/write `internal_*` tables.
+- `finance_approver` required to approve finance-scoped `access_change_requests`; `super_admin` required to approve protected-role changes.
+- `auditor` gets read-only on `permissions`, `role_permissions`, `audit_logs`.
+- All new tables deny anon.
+
+Seed migration inserts the 10 roles, the full permission catalogue, and default role→permission mappings described in §2/§4.
+
+## 7. Service layer refactor
+
+Rewrite `src/services/admin-access-control.service.ts` against Supabase (mock store removed):
+- `fetchAccessDirectory` — server-side filter/search, returns per-user `roles: string[]`, `primary_role`, effective permissions, derived access level.
+- `inviteInternalUser` → edge fn `admin-invite-internal-user` (service-role auth create, insert `internal_users`, seed initial role(s), send invite email, audit).
+- `updateUserRoles({ user_id, roles, primary_role, reason })` — edge fn that replaces role set atomically; when any protected role is added/removed it queues an `access_change_requests` row instead of applying immediately.
+- `updatePermissionOverrides`, `suspendInternalUser`, `reactivateInternalUser` — audited edge fns.
+- `listAccessChangeRequests`, `reviewAccessChangeRequest(id, approve|reject, reason)` — new endpoints.
+- All mutations funnel through the existing `logAdminAction` helper (IP + UA + JSONB diff).
+
+## 8. UI updates
+
+- `AddUserDrawer`: **multi-select** role chips (all 10 roles), one marked primary; Access Level field removed, replaced by derived read-only pill preview; validation for the segregation guardrails.
+- `ChangeRoleDrawer` renamed to `ManageRolesDrawer`: same multi-select + primary picker + reason; banner "This change requires Super Admin approval" when a protected role is involved.
+- `ReviewPermissionsDrawer`: renders full module catalogue; each row shows Base (from union of roles) vs Override (grant/revoke) as a tri-state control; `super_admin` still locked to wildcard.
+- `InternalUsersTable`: primary role badge + `+N` role chip; Access Level pill is read-only; filter chips extended with `Finance`, `Compliance`, `Identity`, `Auditors`.
+- New **Approvals** tab on `AdminAccessControl` page — pending `access_change_requests` with Approve/Reject (visible only to Super Admin / Finance Approver).
+- `UserDetailsDrawer`: shows every assigned role, primary indicator, effective permission count, and links to the Approvals tab when a pending request exists for that user.
+
+## 9. Out of scope
+
+- Building Privacy / Terms / Support marketing pages.
+- Rolling the new permission checks into every existing admin edge function — this plan installs the model + console; per-module enforcement is a follow-up.
+- Impersonation (still deferred).
+
+## Implementation order
+
+1. Migration: enum extension, tables, RLS, GRANTs, seed roles/permissions/mappings, effective-permission + guardrail functions and triggers.
+2. `permission-catalog.ts` + `deriveAccessLevel` + unit tests.
+3. Edge functions: invite, update-roles, update-overrides, suspend/reactivate, list/review approval requests.
+4. Refactor `admin-access-control.service.ts` to call the above.
+5. Update drawers (multi-role picker + primary) + table + Approvals tab.
+6. Add `AdminFooter` and mount in `AdminLayout`.
+7. Typecheck + extend `admin-auth.contract.test.ts` for the new edge functions.
