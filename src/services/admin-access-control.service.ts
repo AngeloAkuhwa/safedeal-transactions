@@ -10,6 +10,8 @@ import {
   ROLE_LABEL,
   deriveAccessLevel,
   isProtectedRole,
+  isPrivilegedPermission,
+  permissionsForRoles,
   validateRoleSet,
   type AccessLevel,
   type InternalRoleKey,
@@ -18,7 +20,7 @@ import {
 
 export {
   ACCESS_LABEL, ROLE_LABEL, deriveAccessLevel, isProtectedRole, validateRoleSet,
-  PERMISSION_MODULES,
+  PERMISSION_MODULES, isPrivilegedPermission, permissionsForRoles,
 };
 export type { AccessLevel, InternalRoleKey, PermissionModule };
 
@@ -552,6 +554,249 @@ export async function resendInternalUserInvite(input: { user_id: string; email: 
   }
   await auditLog(input.user_id, "access_invite_resent",
     `Resent invitation to ${input.email}`, "info", { email: input.email });
+}
+
+// ---------- Role diff helpers ----------
+
+/**
+ * Returns the union of permissions a given role set would grant, using the
+ * cached `role_permissions` map.
+ */
+export async function fetchPermissionsForRoles(roles: string[]): Promise<string[]> {
+  const map = await loadRolePermissions();
+  return permissionsForRoles(roles, map);
+}
+
+export interface RoleChangeDiff {
+  added: string[];
+  removed: string[];
+  privilegedIntroduced: string[];
+  unavailableModules: { key: string; label: string }[];
+  newAccessLevel: AccessLevel;
+  requiresApproval: boolean;
+}
+
+export async function computeRoleChangeDiff(
+  user: Pick<InternalUser, "base_permissions" | "roles">,
+  nextRoles: InternalRoleKey[],
+): Promise<RoleChangeDiff> {
+  const nextBase = await fetchPermissionsForRoles(nextRoles);
+  const prev = new Set(user.base_permissions);
+  const next = new Set(nextBase);
+  const added = [...next].filter((p) => !prev.has(p)).sort();
+  const removed = [...prev].filter((p) => !next.has(p)).sort();
+  const privilegedIntroduced = added.filter(isPrivilegedPermission);
+  const prevModules = new Set([...prev].map((p) => p.split(".")[0]));
+  const nextModules = new Set([...next].map((p) => p.split(".")[0]));
+  const unavailable = [...prevModules].filter((m) => !nextModules.has(m));
+  const moduleLabel = new Map(PERMISSION_MODULES.map((m) => [m.key, m.label]));
+  const unavailableModules = unavailable.map((k) => ({ key: k, label: moduleLabel.get(k) ?? k }));
+  const newAccessLevel = deriveAccessLevel(nextBase, nextRoles);
+  const requiresApproval =
+    nextRoles.some(isProtectedRole) ||
+    newAccessLevel === "full" || newAccessLevel === "high" ||
+    privilegedIntroduced.length > 0;
+  return { added, removed, privilegedIntroduced, unavailableModules, newAccessLevel, requiresApproval };
+}
+
+// ---------- Change-role: submit-for-approval ----------
+
+export interface SubmitRoleChangeInput {
+  user_id: string;
+  roles: InternalRoleKey[];
+  primary_role: InternalRoleKey;
+  effective_at: string;   // ISO
+  expires_at: string | null;
+  reason: string;
+}
+
+export async function submitRoleChangeRequest(input: SubmitRoleChangeInput): Promise<{ request_id: string }> {
+  const check = validateRoleSet(input.roles);
+  if (!check.ok) throw new Error(check.error);
+  if (!input.roles.includes(input.primary_role)) {
+    throw new Error("Primary role must be one of the assigned roles.");
+  }
+  const requester = await currentUserId();
+  const { data, error } = await supabase
+    .from("access_change_requests")
+    .insert({
+      target_user_id: input.user_id,
+      requested_by: requester,
+      change_type: "role",
+      payload: {
+        roles: input.roles,
+        primary_role: input.primary_role,
+        effective_at: input.effective_at,
+        expires_at: input.expires_at,
+      },
+      reason: input.reason,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  await auditLog(input.user_id, "access_role_change_requested",
+    `Role change submitted for approval (${input.roles.join(", ")})`,
+    "warning", { request_id: data.id, reason: input.reason });
+  return { request_id: data.id };
+}
+
+// ---------- Permission overrides: individual request flow ----------
+
+export interface OverrideDetail {
+  permission_key: string;
+  mode: "grant" | "revoke";
+  reason: string;
+  granted_by: string | null;
+  granted_by_name: string | null;
+  granted_at: string;
+  expires_at: string | null;
+}
+
+export async function fetchUserOverrides(user_id: string): Promise<OverrideDetail[]> {
+  const { data, error } = await supabase
+    .from("user_permission_overrides")
+    .select("permission_key, mode, reason, granted_by, granted_at")
+    .eq("user_id", user_id);
+  if (error) throw error;
+  const rows = data ?? [];
+  const actorIds = Array.from(new Set(rows.map((r: any) => r.granted_by).filter(Boolean)));
+  const names = new Map<string, string>();
+  if (actorIds.length) {
+    const { data: profs } = await supabase.from("profiles").select("id,full_name").in("id", actorIds);
+    for (const p of profs ?? []) names.set(p.id, p.full_name ?? "");
+    const { data: ius } = await supabase.from("internal_users").select("id,full_name").in("id", actorIds);
+    for (const p of ius ?? []) names.set(p.id, p.full_name ?? "");
+  }
+  return rows.map((r: any): OverrideDetail => ({
+    permission_key: r.permission_key,
+    mode: r.mode,
+    reason: r.reason,
+    granted_by: r.granted_by,
+    granted_by_name: r.granted_by ? names.get(r.granted_by) ?? "Admin" : null,
+    granted_at: r.granted_at,
+    expires_at: null,   // schema does not yet track expiry; reserved for future
+  }));
+}
+
+export async function fetchPendingRequestsForUser(user_id: string): Promise<AccessChangeRequest[]> {
+  const all = await listAccessChangeRequests("pending");
+  return all.filter((r) => r.target_user_id === user_id);
+}
+
+export interface RequestOverrideInput {
+  user_id: string;
+  permission_key: string;
+  mode: "grant" | "revoke";
+  expires_at: string | null;
+  reason: string;
+}
+
+export async function requestPermissionOverride(input: RequestOverrideInput): Promise<{ request_id: string }> {
+  if (!ALL_PERMISSION_KEYS.includes(input.permission_key)) {
+    throw new Error(`Unknown permission key: ${input.permission_key}`);
+  }
+  const requester = await currentUserId();
+  const { data, error } = await supabase
+    .from("access_change_requests")
+    .insert({
+      target_user_id: input.user_id,
+      requested_by: requester,
+      change_type: "permission",
+      payload: {
+        permission_key: input.permission_key,
+        mode: input.mode,
+        expires_at: input.expires_at,
+      },
+      reason: input.reason,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  await auditLog(input.user_id, "access_permission_override_requested",
+    `Requested ${input.mode} of ${input.permission_key}`,
+    "warning", { request_id: data.id, ...input });
+  return { request_id: data.id };
+}
+
+// ---------- Suspend (rich): sessions + audit ----------
+
+export async function fetchActiveSessionCount(user_id: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("user_sessions")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user_id)
+    .eq("is_active", true)
+    .is("revoked_at", null);
+  if (error) return 0;
+  return count ?? 0;
+}
+
+export async function fetchReassignmentTargets(excludeUserId: string): Promise<Array<{ id: string; full_name: string; role: InternalRoleKey | null }>> {
+  const [usersRes, rolesRes] = await Promise.all([
+    supabase.from("internal_users").select("id,full_name,status").eq("status", "active"),
+    supabase.from("internal_user_roles").select("user_id,role_key,is_primary"),
+  ]);
+  if (usersRes.error) return [];
+  const primaryByUser = new Map<string, InternalRoleKey>();
+  const rolesByUser = new Map<string, InternalRoleKey[]>();
+  for (const r of rolesRes.data ?? []) {
+    if (r.is_primary) primaryByUser.set(r.user_id, r.role_key as InternalRoleKey);
+    const arr = rolesByUser.get(r.user_id) ?? [];
+    arr.push(r.role_key as InternalRoleKey);
+    rolesByUser.set(r.user_id, arr);
+  }
+  const ELIGIBLE: InternalRoleKey[] = ["dispute_manager", "dispute_agent"];
+  return (usersRes.data ?? [])
+    .filter((u: any) => u.id !== excludeUserId)
+    .filter((u: any) => (rolesByUser.get(u.id) ?? []).some((r) => ELIGIBLE.includes(r)))
+    .map((u: any) => ({
+      id: u.id as string,
+      full_name: u.full_name as string,
+      role: primaryByUser.get(u.id) ?? null,
+    }))
+    .sort((a, b) => a.full_name.localeCompare(b.full_name));
+}
+
+export interface SuspendAtomicInput {
+  user_id: string;
+  reason: string;
+  duration: "indefinite" | { until: string };
+  revoke_sessions: boolean;
+  reassign_tasks: boolean;
+  reassign_target_id: string | null;
+}
+
+export async function suspendUserAtomic(input: SuspendAtomicInput): Promise<{ revoked_sessions: number }> {
+  const { error } = await supabase
+    .from("internal_users")
+    .update({ status: "suspended" })
+    .eq("id", input.user_id);
+  if (error) throw error;
+
+  let revoked = 0;
+  if (input.revoke_sessions) {
+    const { data, error: sErr } = await supabase
+      .from("user_sessions")
+      .update({ is_active: false, revoked_at: new Date().toISOString(), revoke_reason: "user_suspended" })
+      .eq("user_id", input.user_id)
+      .eq("is_active", true)
+      .is("revoked_at", null)
+      .select("id");
+    if (!sErr) revoked = data?.length ?? 0;
+  }
+
+  await auditLog(input.user_id, "access_user_suspended",
+    `Suspended: ${input.reason}`,
+    "critical",
+    {
+      reason: input.reason,
+      duration: input.duration,
+      revoked_sessions: revoked,
+      reassign_tasks: input.reassign_tasks,
+      reassign_target_id: input.reassign_target_id,
+    });
+
+  return { revoked_sessions: revoked };
 }
 
 export interface InviteUserInput {
