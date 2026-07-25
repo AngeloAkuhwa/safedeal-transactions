@@ -447,7 +447,10 @@ Deno.serve(async (req) => {
       reporting_manager_id: body.reporting_manager_id ?? null,
       access_expires_at: body.access_expires_at ?? null,
       reason_for_access: body.reason ?? null,
-      status: "active",
+      // New internal users start as "invited" — they only flip to "active"
+      // after they accept the invite and set their password. Prevents the
+      // roster from showing green "Active" pills for un-onboarded people.
+      status: "invited",
       invitation_status: !shouldSend
         ? "not_invited"
         : emailRes.channel === "failed"

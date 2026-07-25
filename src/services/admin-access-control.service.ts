@@ -837,6 +837,69 @@ export async function resendInternalUserInvite(input: { user_id: string; email: 
     `Resent invitation to ${input.email}`, "info", { email: input.email });
 }
 
+// Hard-delete an invited (or already-deactivated) internal user. The edge
+// function guards status so audit rows for previously-active users can't be
+// erased — those must go through deactivateInternalUser instead.
+export async function deleteInvitedInternalUser(input: { user_id: string; reason: string; }): Promise<void> {
+  if (!input.reason?.trim()) throw new Error("A reason is required to delete a user.");
+  const { data, error } = await supabase.functions.invoke("admin-delete-internal-user", {
+    body: { user_id: input.user_id, reason: input.reason },
+  });
+  if (error) {
+    // Surface the edge function's structured error body when available.
+    const anyErr = error as { context?: { text?: () => Promise<string> } };
+    let detail = error.message;
+    try {
+      if (anyErr.context?.text) {
+        const txt = await anyErr.context.text();
+        const parsed = JSON.parse(txt);
+        detail = parsed.detail ?? parsed.error ?? detail;
+      }
+    } catch { /* keep default */ }
+    throw new Error(detail);
+  }
+  return data as any;
+}
+
+// Extend or reset access_expires_at for an existing internal user. Written
+// as a permission override so it appears in the same audit timeline as other
+// access-scope changes.
+export async function extendInternalUserAccess(input: {
+  user_id: string;
+  new_expires_at: string | null; // ISO string; null clears the expiry
+  reason: string;
+}): Promise<void> {
+  if (!input.reason?.trim()) throw new Error("A reason is required to extend access.");
+  const { data: before, error: loadErr } = await supabase
+    .from("internal_users")
+    .select("access_expires_at, status")
+    .eq("id", input.user_id)
+    .maybeSingle();
+  if (loadErr) throw loadErr;
+  const previous = before?.access_expires_at ?? null;
+
+  const { error } = await supabase
+    .from("internal_users")
+    .update({ access_expires_at: input.new_expires_at })
+    .eq("id", input.user_id);
+  if (error) throw error;
+
+  await auditLog(
+    input.user_id,
+    "access_permissions_updated",
+    input.new_expires_at
+      ? `Access expiry extended to ${new Date(input.new_expires_at).toLocaleDateString()}`
+      : "Access expiry cleared (no expiration)",
+    "warning",
+    {
+      reason: input.reason,
+      field: "access_expires_at",
+      before: previous,
+      after: input.new_expires_at,
+    },
+  );
+}
+
 // ---------- Role diff helpers ----------
 
 /**

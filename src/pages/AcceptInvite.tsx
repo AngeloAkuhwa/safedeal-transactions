@@ -97,6 +97,19 @@ const AcceptInvite = () => {
           .eq("user_id", uid)
           .limit(1);
         if (roleRows && roleRows.length > 0) {
+          // Promote invited internal user to active on first successful
+          // password-set. Guarded by `.eq("status","invited")` so we never
+          // clobber an existing suspended/deactivated row.
+          try {
+            await supabase
+              .from("internal_users" as any)
+              .update({
+                status: "active",
+                invitation_status: "accepted",
+              })
+              .eq("id", uid)
+              .eq("status", "invited");
+          } catch { /* non-fatal — badge will flip on next admin refresh */ }
           navigate("/admin/dashboard", { replace: true });
           return;
         }
