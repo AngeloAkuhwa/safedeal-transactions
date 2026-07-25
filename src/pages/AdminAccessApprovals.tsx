@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, FileClock, CheckCircle2, XCircle, ShieldAlert } from "lucide-react";
+import { ArrowLeft, FileClock, CheckCircle2, XCircle, ShieldAlert, AlertTriangle, ArrowRight } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +15,13 @@ import {
   reviewAccessChangeRequest,
   relativeTime,
   ROLE_LABEL,
+  previewRequestSafeguards,
+  fetchRequestDiff,
   type AccessChangeRequest,
+  type SafeguardCheck,
+  type RequestDiff,
 } from "@/services/admin-access-control.service";
+import { fetchAssignedWorkImpact } from "@/services/assigned-work.service";
 import { useMutationOnce } from "@/hooks/useMutationOnce";
 
 type StatusTab = "pending" | "approved" | "rejected" | "cancelled";
@@ -163,10 +168,41 @@ function ReviewDrawer({
   const [reason, setReason] = useState("");
   const isReadOnly = !!request && request.status !== "pending";
 
+  const diffQ = useQuery({
+    queryKey: ["access-approval-diff", request?.id],
+    queryFn: () => fetchRequestDiff(request!),
+    enabled: !!request,
+  });
+
+  const safeguardsQ = useQuery({
+    queryKey: ["access-approval-safeguards", request?.id],
+    queryFn: () => previewRequestSafeguards(request!),
+    enabled: !!request && !isReadOnly,
+  });
+
+  const impactQ = useQuery({
+    queryKey: ["access-approval-impact", request?.id],
+    queryFn: async () => {
+      const diff = await fetchRequestDiff(request!);
+      const removedKeys = request!.change_type === "permission"
+        ? diff.removed
+        : []; // role-level impact isn't derivable from role names alone
+      return fetchAssignedWorkImpact(request!.target_user_id, removedKeys);
+    },
+    enabled: !!request,
+  });
+
+  const blocking = (safeguardsQ.data ?? []).filter((s) => s.level === "block");
+  const canDecide = !isReadOnly && !!reason.trim() && blocking.length === 0;
+
   const submit = useMutationOnce(async (decision: "approve" | "reject") => {
     if (!request) return;
     if (!reason.trim()) {
       toast({ title: "Reason required", description: "Enter a decision reason for the audit trail.", variant: "destructive" });
+      return;
+    }
+    if (decision === "approve" && blocking.length > 0) {
+      toast({ title: "Blocked by safeguard", description: blocking[0].message, variant: "destructive" });
       return;
     }
     try {
@@ -194,7 +230,17 @@ function ReviewDrawer({
 
             <div className="mt-4 space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3">
-                <Meta label="Target user" value={request.target_name ?? request.target_user_id} />
+                <Meta
+                  label="Target user"
+                  value={
+                    <Link
+                      to={`/admin/access-control?user=${request.target_user_id}`}
+                      className="text-primary underline-offset-2 hover:underline"
+                    >
+                      {request.target_name ?? request.target_user_id}
+                    </Link>
+                  }
+                />
                 <Meta label="Requested by" value={request.requested_by_name ?? "—"} />
                 <Meta label="Submitted" value={relativeTime(request.created_at)} />
                 <Meta label="Status" value={request.status} />
@@ -207,9 +253,39 @@ function ReviewDrawer({
                 </div>
               </div>
 
+              {diffQ.data && <DiffPanel diff={diffQ.data} />}
+
+              {impactQ.data && impactQ.data.open_items > 0 && (
+                <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+                  <div className="flex items-center gap-1.5 font-semibold">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Impact
+                  </div>
+                  <div className="mt-1">
+                    Approving this will affect <strong>{impactQ.data.open_items}</strong> open item(s) in{" "}
+                    {impactQ.data.affected_modules.join(", ")}.
+                  </div>
+                </div>
+              )}
+
+              {!isReadOnly && safeguardsQ.data && safeguardsQ.data.length > 0 && (
+                <div className="rounded-md border border-red-500/40 bg-red-500/10 p-3 text-xs">
+                  <div className="mb-1 font-semibold text-red-200">Blocked by safeguard</div>
+                  <ul className="space-y-0.5 text-red-100">
+                    {safeguardsQ.data.map((s) => (
+                      <li key={s.code}>
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-red-300">Rule {s.rule}</span>
+                        {" — "}
+                        {s.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div>
-                <Label className="text-xs text-muted-foreground">Payload</Label>
-                <pre className="mt-1 max-h-56 overflow-auto rounded-md border border-border bg-muted/20 p-3 text-[11px]">
+                <Label className="text-xs text-muted-foreground">Raw payload</Label>
+                <pre className="mt-1 max-h-40 overflow-auto rounded-md border border-border bg-muted/20 p-3 text-[11px]">
 {JSON.stringify(request.payload, null, 2)}
                 </pre>
               </div>
@@ -244,7 +320,7 @@ function ReviewDrawer({
                     </Button>
                     <Button
                       onClick={() => submit.run("approve")}
-                      disabled={submit.pending || !reason.trim()}
+                      disabled={submit.pending || !canDecide}
                     >
                       <CheckCircle2 className="mr-1 h-4 w-4" /> Approve
                     </Button>
@@ -259,11 +335,49 @@ function ReviewDrawer({
   );
 }
 
-function Meta({ label, value }: { label: string; value: string }) {
+function Meta({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
       <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="mt-0.5 text-sm text-foreground/90">{value}</div>
+    </div>
+  );
+}
+
+function DiffPanel({ diff }: { diff: RequestDiff }) {
+  return (
+    <div className="rounded-md border border-border bg-muted/20 p-3">
+      <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-foreground">
+        {diff.label} <ArrowRight className="h-3 w-3 text-muted-foreground" />
+      </div>
+      <div className="grid grid-cols-2 gap-3 text-[11px]">
+        <div>
+          <div className="mb-1 uppercase tracking-wider text-muted-foreground">Before</div>
+          <ul className="space-y-0.5 text-foreground/80">
+            {diff.before.length ? diff.before.map((v) => <li key={`b-${v}`}>{v}</li>) : <li className="text-muted-foreground">—</li>}
+          </ul>
+        </div>
+        <div>
+          <div className="mb-1 uppercase tracking-wider text-muted-foreground">After</div>
+          <ul className="space-y-0.5 text-foreground/80">
+            {diff.after.length ? diff.after.map((v) => <li key={`a-${v}`}>{v}</li>) : <li className="text-muted-foreground">—</li>}
+          </ul>
+        </div>
+      </div>
+      {(diff.added.length > 0 || diff.removed.length > 0) && (
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
+          {diff.added.map((v) => (
+            <span key={`add-${v}`} className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-emerald-300">
+              + {v}
+            </span>
+          ))}
+          {diff.removed.map((v) => (
+            <span key={`rem-${v}`} className="rounded-md border border-rose-500/40 bg-rose-500/10 px-1.5 py-0.5 text-rose-300">
+              − {v}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
