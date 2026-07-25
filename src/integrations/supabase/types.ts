@@ -2128,45 +2128,80 @@ export type Database = {
       }
       internal_users: {
         Row: {
+          access_expires_at: string | null
           created_at: string
           created_by: string | null
           department: string | null
           display_id: string
           email: string
+          employee_id: string
+          first_name: string | null
           full_name: string
           id: string
+          invitation_status: string
+          job_title: string | null
           last_active_at: string | null
+          last_name: string | null
+          reason_for_access: string | null
+          reporting_manager_id: string | null
           status: string
+          team: string | null
           two_factor_enabled: boolean
           updated_at: string
         }
         Insert: {
+          access_expires_at?: string | null
           created_at?: string
           created_by?: string | null
           department?: string | null
           display_id: string
           email: string
+          employee_id?: string
+          first_name?: string | null
           full_name: string
           id: string
+          invitation_status?: string
+          job_title?: string | null
           last_active_at?: string | null
+          last_name?: string | null
+          reason_for_access?: string | null
+          reporting_manager_id?: string | null
           status?: string
+          team?: string | null
           two_factor_enabled?: boolean
           updated_at?: string
         }
         Update: {
+          access_expires_at?: string | null
           created_at?: string
           created_by?: string | null
           department?: string | null
           display_id?: string
           email?: string
+          employee_id?: string
+          first_name?: string | null
           full_name?: string
           id?: string
+          invitation_status?: string
+          job_title?: string | null
           last_active_at?: string | null
+          last_name?: string | null
+          reason_for_access?: string | null
+          reporting_manager_id?: string | null
           status?: string
+          team?: string | null
           two_factor_enabled?: boolean
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "internal_users_reporting_manager_id_fkey"
+            columns: ["reporting_manager_id"]
+            isOneToOne: false
+            referencedRelation: "internal_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       money_status_history: {
         Row: {
@@ -5462,6 +5497,7 @@ export type Database = {
         Args: { p_actor: string; p_reason: string; p_transaction_id: string }
         Returns: Database["public"]["Enums"]["money_status"]
       }
+      generate_employee_id: { Args: never; Returns: string }
       generate_transaction_code: { Args: never; Returns: string }
       get_effective_setting: {
         Args: { _key: string; _vendor_id: string }

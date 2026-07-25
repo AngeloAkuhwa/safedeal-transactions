@@ -1,13 +1,19 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Ban, Undo2, KeyRound, RefreshCcw, ShieldCheck } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Ban, Undo2, KeyRound, RefreshCcw, ShieldCheck, Lock } from "lucide-react";
 import type { InternalUser } from "@/services/admin-access-control.service";
 import { fetchAccessAudit, relativeTime } from "@/services/admin-access-control.service";
 import { AccessLevelPill, InitialsAvatar, RoleBadge, StatusBadge } from "./badges";
 import { AccessHistoryTimeline } from "./AccessHistoryTimeline";
+import { resolveDepartmentLabel } from "@/services/departments.catalog";
+import { fetchAssignedWorkSummary } from "@/services/assigned-work.service";
+import { canPerform, useInternalPermissions } from "@/hooks/useInternalPermissions";
+import { ROLE_LABEL } from "@/services/permission-catalog";
+
+type TabKey = "overview" | "role" | "work" | "activity" | "history";
 
 interface Props {
   user: InternalUser | null;
@@ -24,26 +30,43 @@ export function UserDetailsDrawer({
   user, open, onOpenChange,
   onChangeRole, onReviewPermissions, onSuspend, onReactivate, initialFocus,
 }: Props) {
+  const [tab, setTab] = useState<TabKey>("overview");
+
   const { data: audit } = useQuery({
     queryKey: ["access-audit", user?.id],
     queryFn: () => fetchAccessAudit(user!.id),
     enabled: !!user,
   });
+  const { data: work } = useQuery({
+    queryKey: ["assigned-work", user?.id],
+    queryFn: () => fetchAssignedWorkSummary(user!.id),
+    enabled: !!user,
+  });
+  const { data: myPerms } = useInternalPermissions();
 
-  const historyRef = useRef<HTMLHeadingElement | null>(null);
   useEffect(() => {
-    if (!open || initialFocus !== "history") return;
-    const t = setTimeout(() => {
-      historyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 150);
-    return () => clearTimeout(t);
+    if (!open) return;
+    setTab(initialFocus === "history" ? "history" : "overview");
   }, [open, initialFocus, user?.id]);
 
   if (!user) return null;
 
+  const canManageRoles     = canPerform(myPerms, "internal_users.manage");
+  const canManagePerms     = canPerform(myPerms, "internal_users.manage_permissions") || canManageRoles;
+  const canSuspend         = canPerform(myPerms, "internal_users.suspend") || canManageRoles;
+
+  const signInEvents = useMemo(
+    () => (audit ?? []).filter((a) => /sign_in|login|logout|session/i.test(a.action)).slice(0, 8),
+    [audit],
+  );
+  const generalActivity = useMemo(
+    () => (audit ?? []).filter((a) => !/sign_in|login|logout|session/i.test(a.action)).slice(0, 12),
+    [audit],
+  );
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
         <SheetHeader><SheetTitle>User details</SheetTitle></SheetHeader>
 
         <div className="mt-4 flex items-center gap-3">
@@ -51,81 +74,166 @@ export function UserDetailsDrawer({
           <div className="min-w-0">
             <div className="truncate text-base font-semibold text-foreground">{user.full_name}</div>
             <div className="text-xs text-muted-foreground">#{user.display_id} · {user.email}</div>
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-          <div className="rounded-lg border border-border bg-muted/40 p-3">
-            <div className="text-xs text-muted-foreground">Roles</div>
-            <div className="mt-1 flex flex-wrap gap-1">
-              {user.roles.map((r) => (
-                <RoleBadge key={r} role={r} />
-              ))}
-              {user.roles.length === 0 && (
-                <span className="text-xs text-muted-foreground">No roles assigned</span>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <StatusBadge status={user.status} />
+              <AccessLevelPill level={user.access_level} />
+              {user.two_factor_enabled ? (
+                <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-300">
+                  <ShieldCheck className="h-3 w-3" /> 2FA on
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300">
+                  <ShieldCheck className="h-3 w-3" /> 2FA off
+                </span>
               )}
             </div>
-            <div className="mt-1 text-[11px] text-muted-foreground">Primary: {user.primary_role}</div>
-          </div>
-          <div className="rounded-lg border border-border bg-muted/40 p-3">
-            <div className="text-xs text-muted-foreground">Access</div>
-            <div className="mt-1"><AccessLevelPill level={user.access_level} /></div>
-          </div>
-          <div className="rounded-lg border border-border bg-muted/40 p-3">
-            <div className="text-xs text-muted-foreground">Status</div>
-            <div className="mt-1"><StatusBadge status={user.status} /></div>
-          </div>
-          <div className="rounded-lg border border-border bg-muted/40 p-3">
-            <div className="text-xs text-muted-foreground">Last active</div>
-            <div className="mt-1 text-foreground/90">{relativeTime(user.last_active_at)}</div>
-          </div>
-          <div className="col-span-2 flex items-center gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-            <ShieldCheck className={`h-4 w-4 ${user.two_factor_enabled ? "text-emerald-400" : "text-amber-400"}`} />
-            {user.two_factor_enabled ? "Two-factor authentication enabled" : "Two-factor authentication NOT enabled"}
           </div>
         </div>
 
-        <Separator className="my-5" />
+        <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="mt-5">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="role">Role & Access</TabsTrigger>
+            <TabsTrigger value="work">Assigned Work</TabsTrigger>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="history">Access History</TabsTrigger>
+          </TabsList>
 
-        <div>
-          <h4 className="mb-2 text-sm font-semibold text-foreground">Permissions ({user.permissions.length})</h4>
-          <div className="flex flex-wrap gap-1.5">
-            {user.permissions.length === 0 && (
-              <span className="text-xs text-muted-foreground">No permissions assigned.</span>
+          {/* -------- Overview -------- */}
+          <TabsContent value="overview" className="mt-4 space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-3">
+              <FieldCard label="Employee ID" value={<span className="font-mono">{user.display_id}</span>} readOnly />
+              <FieldCard label="Work email"   value={user.email} />
+              <FieldCard label="Department"   value={resolveDepartmentLabel(user.department)} />
+              <FieldCard label="Team"         value={user.team ?? "—"} />
+              <FieldCard label="Job title"    value={user.job_title ?? "—"} />
+              <FieldCard
+                label="Reporting manager"
+                value={
+                  user.reporting_manager_name
+                    ? `${user.reporting_manager_name}${user.reporting_manager_role ? ` · ${ROLE_LABEL[user.reporting_manager_role]}` : ""}`
+                    : "—"
+                }
+              />
+              <FieldCard label="Last active"  value={relativeTime(user.last_active_at)} />
+              <FieldCard label="Access expiry" value={user.access_expires_at ? new Date(user.access_expires_at).toLocaleDateString() : "No expiry"} />
+            </div>
+          </TabsContent>
+
+          {/* -------- Role & Access -------- */}
+          <TabsContent value="role" className="mt-4 space-y-4">
+            <div className="rounded-lg border border-border bg-muted/40 p-3">
+              <div className="text-xs text-muted-foreground">Roles</div>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {user.roles.map((r) => <RoleBadge key={r} role={r} />)}
+                {user.roles.length === 0 && (
+                  <span className="text-xs text-muted-foreground">No roles assigned</span>
+                )}
+              </div>
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                Primary: {ROLE_LABEL[user.primary_role] ?? user.primary_role}
+              </div>
+            </div>
+            <div>
+              <h4 className="mb-2 text-sm font-semibold text-foreground">Permissions ({user.permissions.length})</h4>
+              <div className="flex flex-wrap gap-1.5">
+                {user.permissions.length === 0 && (
+                  <span className="text-xs text-muted-foreground">No permissions assigned.</span>
+                )}
+                {user.permissions.map((p) => (
+                  <span key={p} className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[11px] font-mono text-foreground/80">
+                    {p}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* -------- Assigned Work -------- */}
+          <TabsContent value="work" className="mt-4 space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-3">
+              <FieldCard label="Active disputes" value={String(work?.active_disputes ?? "…")} />
+              <FieldCard
+                label="Open tasks"
+                value={work?.task_orchestration_available ? String(work.open_tasks) : "Not wired yet"}
+              />
+            </div>
+            {!work?.task_orchestration_available && (
+              <div className="rounded-md border border-dashed border-border p-2 text-[11px] text-muted-foreground">
+                Task orchestration surface isn't wired to this workspace yet — dispute assignment is used as a proxy.
+              </div>
             )}
-            {user.permissions.map((p) => (
-              <span key={p} className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[11px] font-mono text-foreground/80">
-                {p}
-              </span>
-            ))}
-          </div>
-        </div>
+          </TabsContent>
 
-        <Separator className="my-5" />
+          {/* -------- Activity -------- */}
+          <TabsContent value="activity" className="mt-4 space-y-4">
+            <div>
+              <h4 className="mb-2 text-sm font-semibold text-foreground">Recent sign-in events</h4>
+              {signInEvents.length === 0 ? (
+                <div className="text-xs text-muted-foreground">No sign-in events recorded.</div>
+              ) : (
+                <ul className="space-y-1 text-xs">
+                  {signInEvents.map((e) => (
+                    <li key={e.id} className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-2 py-1">
+                      <span className="text-foreground/80">{e.action.replace(/_/g, " ")}</span>
+                      <span className="text-muted-foreground">{relativeTime(e.created_at)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <h4 className="mb-2 text-sm font-semibold text-foreground">Recent actions</h4>
+              <AccessHistoryTimeline entries={generalActivity} />
+            </div>
+          </TabsContent>
 
-        <div>
-          <h4 ref={historyRef} className="mb-2 scroll-mt-4 text-sm font-semibold text-foreground">Access history</h4>
-          <AccessHistoryTimeline entries={audit} />
-        </div>
+          {/* -------- Access history -------- */}
+          <TabsContent value="history" className="mt-4">
+            <AccessHistoryTimeline entries={audit} />
+          </TabsContent>
+        </Tabs>
 
-        <div className="sticky bottom-0 -mx-6 mt-6 flex flex-wrap gap-2 border-t border-border bg-background/95 p-4 backdrop-blur">
-          <Button size="sm" variant="outline" onClick={() => onChangeRole(user)}>
-            <RefreshCcw className="mr-2 h-4 w-4" /> Change role
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => onReviewPermissions(user)}>
-            <KeyRound className="mr-2 h-4 w-4" /> Permissions
-          </Button>
-          {user.status === "suspended" ? (
-            <Button size="sm" onClick={() => onReactivate(user)}>
-              <Undo2 className="mr-2 h-4 w-4" /> Reactivate
+        <div className="sticky bottom-0 -mx-6 mt-6 flex flex-wrap items-center gap-2 border-t border-border bg-background/95 p-4 backdrop-blur">
+          {canManageRoles && (
+            <Button size="sm" variant="outline" onClick={() => onChangeRole(user)}>
+              <RefreshCcw className="mr-2 h-4 w-4" /> Change role
             </Button>
-          ) : (
-            <Button size="sm" variant="destructive" onClick={() => onSuspend(user)}>
-              <Ban className="mr-2 h-4 w-4" /> Suspend
+          )}
+          {canManagePerms && (
+            <Button size="sm" variant="outline" onClick={() => onReviewPermissions(user)}>
+              <KeyRound className="mr-2 h-4 w-4" /> Permissions
             </Button>
+          )}
+          {canSuspend && (
+            user.status === "suspended" ? (
+              <Button size="sm" onClick={() => onReactivate(user)}>
+                <Undo2 className="mr-2 h-4 w-4" /> Reactivate
+              </Button>
+            ) : (
+              <Button size="sm" variant="destructive" onClick={() => onSuspend(user)}>
+                <Ban className="mr-2 h-4 w-4" /> Suspend
+              </Button>
+            )
+          )}
+          {!canManageRoles && !canManagePerms && !canSuspend && (
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Lock className="h-3 w-3" /> Read-only view — you don't have permission to make changes.
+            </div>
           )}
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function FieldCard({ label, value, readOnly }: { label: string; value: React.ReactNode; readOnly?: boolean }) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/40 p-3">
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        {label}{readOnly && <Lock className="h-3 w-3" />}
+      </div>
+      <div className="mt-1 text-sm text-foreground/90 break-words">{value}</div>
+    </div>
   );
 }
