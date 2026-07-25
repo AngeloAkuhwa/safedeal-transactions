@@ -1,7 +1,7 @@
 // Admin Audit Logs — read-only aggregator for the /admin/audit-logs screen.
 // Returns paginated rows from admin_actions (canonical) with parsed diff /
 // severity, plus lightweight aggregate stats for the KPI cards.
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
   if (req.method !== "GET") return json(405, { error: "method_not_allowed" });
 
   let ctx;
-  try { ctx = await requireAdmin(req); }
+  try { ctx = await requirePermission(req, "audit_logs.view"); }
   catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

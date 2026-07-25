@@ -15,7 +15,7 @@
  *   - profiles.status (suspended)
  * Admin-only.
  */
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { getFlaggedPage, getFlaggedSummary } from "../_shared/flagged-users-sql.ts";
 
 const corsHeaders = {
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
 
   let ctx;
   try {
-    ctx = await requireAdmin(req);
+    ctx = await requirePermission(req, "flagged_users.view");
   } catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

@@ -5,7 +5,7 @@
 //   3. Insert one row per role into public.internal_user_roles
 //   4. Emit a canonical admin_actions audit row via logAdminAction
 // Returns a hydrated InternalUser payload matching the client contract.
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
 const corsHeaders = {
@@ -315,7 +315,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   let ctx;
-  try { ctx = await requireAdmin(req); }
+  try { ctx = await requirePermission(req, "users_and_access.manage_permissions"); }
   catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

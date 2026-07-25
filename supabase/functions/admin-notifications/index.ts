@@ -2,7 +2,7 @@
  * Admin Notification Center — read aggregator.
  * GET: returns KPIs, delivery performance, failed list, recent activity.
  */
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
   if (req.method !== "GET") return json(405, { error: "method_not_allowed" });
 
   let ctx;
-  try { ctx = await requireAdmin(req); }
+  try { ctx = await requirePermission(req, "platform_configuration.view"); }
   catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

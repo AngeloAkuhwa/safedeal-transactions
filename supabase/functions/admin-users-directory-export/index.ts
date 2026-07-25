@@ -1,7 +1,7 @@
 /**
  * Admin User Directory CSV export.
  */
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { enforceAdminRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     });
   }
   let ctx;
-  try { ctx = await requireAdmin(req); }
+  try { ctx = await requirePermission(req, "users_and_access.export"); }
   catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

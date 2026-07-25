@@ -5,7 +5,7 @@
 //
 // POST /admin-dispute-transition
 // body: { dispute_id: string, target_status: "under_review"|"seller_response_pending"|"escalated"|"open", reason: string, notify_parties?: boolean }
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { logAdminAction } from "../_shared/audit.ts";
 
 const cors = {
@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   try {
-    const { userId, adminClient } = await requireAdmin(req);
+    const { userId, adminClient } = await requirePermission(req, "disputes.update");
     let body: any;
     try { body = await req.json(); } catch { return json(400, { error: "invalid_json" }); }
 

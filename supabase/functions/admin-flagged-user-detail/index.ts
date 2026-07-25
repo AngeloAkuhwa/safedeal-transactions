@@ -3,7 +3,7 @@
  * GET ?user_id=<uuid> → full per-user fraud roll-up + timeline.
  * Admin-only.
  */
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { buildRows, recommendationFor } from "../_shared/flagged-users-engine.ts";
 
 const corsHeaders = {
@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
   if (req.method !== "GET") return json(405, { error: "method_not_allowed" });
 
   let ctx;
-  try { ctx = await requireAdmin(req); }
+  try { ctx = await requirePermission(req, "flagged_users.view"); }
   catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

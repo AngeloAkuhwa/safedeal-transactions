@@ -2,7 +2,7 @@
  * Admin Escrow Detail — read-only deep view of one transaction's escrow record.
  * GET ?tx=<transaction_id>
  */
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
 
   let ctx;
   try {
-    ctx = await requireAdmin(req);
+    ctx = await requirePermission(req, "escrow.view");
   } catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

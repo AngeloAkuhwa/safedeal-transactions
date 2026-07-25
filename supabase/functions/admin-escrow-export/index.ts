@@ -2,7 +2,7 @@
  * Admin Escrow CSV Export — exports filtered escrow records as CSV.
  * Honors same filters as admin-escrow-overview (state, date_range, amount_bucket, flag, q).
  */
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { enforceAdminRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
 
   let ctx;
   try {
-    ctx = await requireAdmin(req);
+    ctx = await requirePermission(req, "escrow.export");
   } catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

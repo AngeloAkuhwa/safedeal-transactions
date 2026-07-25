@@ -4,7 +4,7 @@
  * Supports platform (default) and vendor scope via `?vendor_id=<uuid>`.
  * Vendor rows fall back to the platform value when missing.
  */
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { userId, adminClient } = await requireAdmin(req);
+    const { userId, adminClient } = await requirePermission(req, "escrow.configure");
 
     const url = new URL(req.url);
     const vendorIdParam = url.searchParams.get("vendor_id");

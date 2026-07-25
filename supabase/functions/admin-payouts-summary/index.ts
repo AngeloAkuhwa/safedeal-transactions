@@ -1,4 +1,4 @@
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
   let ctx;
   try {
-    ctx = await requireAdmin(req);
+    ctx = await requirePermission(req, "financial_controls.view");
   } catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;

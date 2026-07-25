@@ -2,7 +2,7 @@
  * Admin Flagged Users CSV export. Streams a CSV reflecting current filters.
  * Re-runs the same aggregation as admin-flagged-users but without pagination.
  */
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { enforceAdminRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
 
   let ctx;
   try {
-    ctx = await requireAdmin(req);
+    ctx = await requirePermission(req, "flagged_users.export");
   } catch (err) {
     const r = authErrorResponse(err, corsHeaders);
     if (r) return r;
