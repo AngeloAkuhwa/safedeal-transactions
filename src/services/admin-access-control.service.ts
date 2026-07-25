@@ -1345,7 +1345,11 @@ export async function inviteInternalUser(input: InviteUserInput): Promise<Intern
   const { data, error } = await supabase.functions.invoke("admin-invite-internal-user", { body: input });
   if (error) throw error;
   if (data?.error) throw new Error(String(data.error));
-  return data.user as InternalUser;
+  const user = data.user as InternalUser;
+  // Attach the email delivery outcome so the UI can adapt its toast.
+  (user as any).__email_channel = data.email_channel ?? "resend";
+  (user as any).__email_error = data.email_error ?? null;
+  return user;
 }
 
 // ---------- Access change requests ----------
