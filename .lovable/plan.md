@@ -1,59 +1,86 @@
+# Users & Access finalization — remaining work
 
-# Users & Access — remaining work
+**Not 100% done.** Roughly 70% complete. Below is exactly what's left, mapped to the original plan's numbering.
 
-## Status against the original 9-step sequence
+## Gap analysis (against the plan)
 
-| Step | Item | Status |
-|---|---|---|
-| 1 | Migration: new `admin_action_type` enum values | Not done |
-| 2 | Service safeguards a, c, d, e + `assertNotLastSuperAdmin` + `requiresApproval` | Done |
-| 2 | Safeguards b, f, g, h | Not done |
-| 3 | Edge functions `admin-access-control-mutate` / `admin-access-review-request` | Not done (still using client `auditLog()` in service) |
-| 3 | Migrate all mutations off client `auditLog()` to `logAdminAction` | Not done |
-| 4 | Approvals page tabs + review drawer + approve/reject | Done |
-| 5 | Coming Soon pages + route registration + `/admin/permissions` alias | Done |
-| 6 | Contextual nav buttons (View Approval Request, View in Audit Logs, View Assigned Tasks, View Agent Performance, Manage Role Template) | Not done (only "Open Permission Matrix" exists) |
-| 7 | `useDrawerSafety` + `useMutationOnce` hooks | Hooks exist, but only wired into `AdminAccessApprovals.tsx`. Not applied to `AddUserDrawer`, `UserDetailsDrawer`, `ChangeRoleDrawer`, `ReviewPermissionsDrawer`, `SuspendUserDialog`, `ReactivateUserDialog` |
-| 8 | Contract tests `access-safeguards` + `access-audit` | Not done |
-| 9 | Manual QA pass | Pending |
+### §1 Safeguards
+- [x] a — requester ≠ approver (in `reviewAccessChangeRequest`)
+- [ ] **b — grantor must hold the permission**: helper `assertCallerHoldsPermissions` exists but is NOT called on the raise path (`requestPermissionOverride`, `updatePermissionOverrides`)
+- [x] c — outrank check (`assertOutranksTarget`)
+- [x] d — last super admin (`assertNotLastSuperAdmin`)
+- [x] e — cannot self-escalate
+- [ ] **f — work-impact warning**: service helper `fetchAssignedWorkImpact` exists but no drawer renders the yellow panel or the "I understand" checkbox
+- [x] g — finance paranoid check (`assertFinanceParanoidCheck`)
+- [ ] **h — reason enforcement**: consistent on review, inconsistent on raise (some paths still allow empty reason)
+- [ ] **`requiresApproval()` router**: not centralised — routing logic still scattered across `requestRoleChange`, `requestPermissionOverride`, `updateUserRoles`, `updatePermissionOverrides`
 
-## What to build next (build-mode order)
+### §2 Approvals page
+- [x] Tabs (Pending/Approved/Rejected/Cancelled)
+- [x] Review drawer with payload + deep-link
+- [ ] **Before → After diff panel** (roles/permissions/suspend payload rendered side-by-side, not raw JSON)
+- [ ] **Impact panel** in the drawer (open tasks, last-super-admin flag)
+- [ ] **Inline safeguard hints** — Approve button greying out with the specific failing rule name when a–g would block
 
-### 1. DB migration — audit enum
-Add these `admin_action_type` values: `user_invited`, `invitation_resent`, `user_activated`, `role_assigned`, `role_changed`, `permission_override_requested`, `permission_override_approved`, `permission_override_rejected`, `user_reactivated`, `user_deactivated`, `session_revoked`, `task_reassigned`.
+### §3 Unified audit trail
+- [x] New `admin_action_type` enum values migrated
+- [x] Canonical `writeAudit()` writes to `admin_actions` + mirrors `audit_logs`
+- [ ] **Edge functions**: `admin-access-control-mutate` and `admin-access-review-request` NOT built — client writes directly, so IP / User-Agent are never captured
+- [ ] **`result` and `entity_ref` fields**: not persisted on audit rows (payload includes them loosely; not queryable)
 
-### 2. Finish safeguards in `admin-access-control.service.ts`
-- **Rule b (grantor holds permission):** in `requestPermissionOverride` and `updatePermissionOverrides`, fetch caller effective permissions via `internal_effective_permissions`; reject any added key not in the caller's set with typed error `E_GRANTOR_MISSING_PERMISSION`.
-- **Rule f (open-work impact warning):** add `fetchAssignedWorkImpact(targetId, removedKeys)` returning open counts per module; return it from `computeRoleChangeDiff` and a new `previewPermissionOverride` so drawers can show a yellow "This affects N open items" panel with an "I understand" checkbox.
-- **Rule g (finance paranoid check):** in `reviewAccessChangeRequest`, when payload is `permission` with any `finance_*` / `payouts.*` / `refunds.*` / `escrow.release*` key, reject when `reviewer.id === request.requested_by` regardless of role.
-- **Rule h (reason required):** enforce non-empty `reason` on `submitRoleChangeRequest`, `requestPermissionOverride`, `updateUserRoles`, `updatePermissionOverrides`, `suspendUserAtomic`, `reactivateInternalUser`, `deactivateInternalUser`, `reviewAccessChangeRequest` (approve + reject).
+### §4 Routes & nav
+- [x] `/admin/task-orchestration`, `/admin/agent-performance` Coming Soon pages
+- [x] All admin routes registered in `BUILT_ROUTES`
+- [ ] **`/admin/permissions` alias route** — not wired; redirect to `/admin/permission-matrix` missing
+- [x] `UserDetailsDrawer` contextual buttons (approval, tasks, agent perf, audit logs)
+- [x] `AccessHistoryTimeline` "View in audit logs" link
+- [ ] **`ReviewPermissionsDrawer` → Manage Role Template** (Super Admin only) — not added
 
-Each guard throws a typed `AccessSafeguardError` with `code` + `rule` so the UI can render inline.
+### §5 Drawer QA polish
+- [x] `useDrawerSafety` + `useMutationOnce` hooks exist
+- [ ] **Not wired into any drawer** — `AddUserDrawer`, `UserDetailsDrawer`, `ChangeRoleDrawer`, `ReviewPermissionsDrawer`, `SuspendUserDialog`, `ReactivateUserDialog`, Approval Detail all still use bare `saving` booleans and skip dirty-check
+- [ ] Loading skeletons + error/empty state audit not done consistently
+- [ ] Mobile full-screen sheet conversion not verified
 
-### 3. Unified audit via edge functions
-Create two edge functions with CORS + JWT validation:
-- `admin-access-control-mutate` — one entry with `op ∈ { update_roles, apply_permission_override, suspend, reactivate, deactivate, resend_invite, revoke_session, reassign_task }`. Each branch calls the existing service logic then `logAdminAction` with the correct `admin_action_type`, `before`/`after` JSONB diff, `reason`, `entity_ref`, and `ip`/`user_agent` from headers.
-- `admin-access-review-request` — approve/reject queue items; runs safeguards a–g server-side; logs `role_change_approved` / `permission_override_approved` / etc. with `approval_reference = request.id`.
+### §6 Verification
+- [ ] `access-safeguards.contract.test.ts` — missing
+- [ ] `access-audit.contract.test.ts` — missing
+- [ ] Manual QA pass — not run
 
-Refactor client service methods to thin wrappers that `functions.invoke` these endpoints. Delete the local `auditLog()` writer once every caller migrates.
+---
 
-### 4. Contextual nav buttons
-- `UserDetailsDrawer` → "View Approval Request" (visible when target has a pending `access_change_requests` row): links to `/admin/access-approvals?request=<id>`.
-- `UserDetailsDrawer` → "View Assigned Tasks" → `/admin/task-orchestration` (Coming Soon page).
-- `UserDetailsDrawer` → "View Agent Performance" (only for agent-tier roles) → `/admin/agent-performance`.
-- `AccessHistoryTimeline` row → "View in Audit Logs" → `/admin/audit-logs?entity=internal_users:<id>&action=<type>` (extend `AdminAuditLogs` to read those query params on mount).
-- `ReviewPermissionsDrawer` → "Manage Role Template" (Super Admin only) → Coming Soon.
-- `AdminAccessApprovals` → read `?request=<id>` query param and auto-open the drawer.
+## Finish plan (build-mode order)
 
-### 5. Apply drawer QA hooks
-Wire `useDrawerSafety({ open, isDirty, onClose })` and replace bare `saving` state with `useMutationOnce` in: `AddUserDrawer`, `UserDetailsDrawer` (tabs with edits), `ChangeRoleDrawer`, `ReviewPermissionsDrawer`, `SuspendUserDialog`, `ReactivateUserDialog`. Verify Esc/overlay/X all respect the dirty guard, and focus restores to the row action trigger.
+Split into three batches so you can approve incrementally.
 
-### 6. Contract tests
-- `src/__tests__/access-safeguards.contract.test.ts` — one case per rule a–h asserting typed error code.
-- `src/__tests__/access-audit.contract.test.ts` — each mutation path produces exactly one `admin_actions` row with `action_type`, `target_user_id`, before/after diff, `approval_reference` when applicable.
+### Batch 1 — Service safeguards & approval-page polish (small, low-risk)
+1. Add rule **b** guard to `requestPermissionOverride` + `updatePermissionOverrides`.
+2. Enforce **h** (non-empty `reason`) uniformly on every raise path.
+3. Introduce `requiresApproval(action, payload, caller, target)` in `admin-access-control.service.ts`; refactor the four raise paths to call it.
+4. Extend `AdminAccessApprovals` `ReviewDrawer` with:
+   - Structured Before → After diff renderer (per change_type)
+   - Impact panel (calls `fetchAssignedWorkImpact` + `assertNotLastSuperAdmin` in preview mode)
+   - Inline safeguard hint (runs safeguards a–g client-side before enabling Approve)
 
-### 7. Manual QA checklist
-Run the drawer-safety checklist across desktop + mobile widths for all six drawers + approval drawer.
+### Batch 2 — Drawer QA + rule f UI + missing nav
+5. Add `/admin/permissions` route as a redirect to `/admin/permission-matrix`.
+6. Add "Manage Role Template" button (Super Admin only) to `ReviewPermissionsDrawer`.
+7. Wire `useDrawerSafety` + `useMutationOnce` into all seven drawers/dialogs.
+8. Add rule f warning panel to `ChangeRoleDrawer` and `ReviewPermissionsDrawer` (yellow card + required "I understand" checkbox when `fetchAssignedWorkImpact.open_items > 0`).
+9. Audit loading skeletons / empty / error / permission-denied states across the seven surfaces.
 
-## Out of scope
-Task Orchestration and Agent Performance dashboards remain Coming Soon; no changes to non-admin flows or role definitions.
+### Batch 3 — Edge-function pipeline + contract tests
+10. Ship `admin-access-control-mutate` edge function (branches: role_update, permission_apply, suspend, reactivate, deactivate, invite_resend, session_revoke, task_reassign). Each branch calls `logAdminAction` with `ip`, `userAgent`, before/after diff, `approval_reference`, `result` (`success | blocked_by_safeguard | failed`), `entity_ref`.
+11. Ship `admin-access-review-request` edge function; move review-time safeguards + audit writes into it.
+12. Migrate client service methods to thin `supabase.functions.invoke` wrappers; drop direct table writes for these paths.
+13. Add `result` + `entity_ref` columns to `admin_actions` (or store in `action_notes` JSON with a check) and expose them in the audit logs UI.
+14. Add `src/__tests__/access-safeguards.contract.test.ts` — one case per rule a–h asserting the typed error code.
+15. Add `src/__tests__/access-audit.contract.test.ts` — every mutation path produces exactly one canonical `admin_actions` row with the expected fields.
+
+## Out of scope (unchanged)
+- Task Orchestration / Agent Performance real dashboards
+- New role definitions
+- Non-admin flows
+
+## Suggested next action
+Approve **Batch 1** to close the safeguard + approvals-page gaps first — it's the highest-value, lowest-risk slice and unblocks the UI hints for rules a–g. Batches 2 and 3 can follow independently.
