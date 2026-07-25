@@ -57,6 +57,33 @@ export const PERMISSION_MODULES: PermissionModule[] = MODULES.map((m) => ({
 export const ALL_PERMISSION_KEYS: string[] =
   PERMISSION_MODULES.flatMap((m) => m.permissions.map((p) => p.key));
 
+/**
+ * Union of role→permission arrays. Callers pass the map loaded from the
+ * `role_permissions` table so this stays a single source of truth without
+ * duplicating the seed here.
+ */
+export function permissionsForRoles(
+  roles: string[],
+  rolePerms: Map<string, string[]>,
+): string[] {
+  const out = new Set<string>();
+  for (const r of roles) for (const p of (rolePerms.get(r) ?? [])) out.add(p);
+  return Array.from(out).sort();
+}
+
+/**
+ * High-signal / dangerous action list. Used to flag "privileged permissions
+ * being introduced" in the Change Role diff and "restricted" listings.
+ */
+export const PRIVILEGED_ACTIONS: PermissionAction[] = [
+  "approve", "manage_permissions", "configure", "suspend",
+];
+
+export function isPrivilegedPermission(key: string): boolean {
+  const action = key.split(".")[1] as PermissionAction | undefined;
+  return !!action && PRIVILEGED_ACTIONS.includes(action);
+}
+
 // ---------------------------------------------------------------------------
 // Internal role catalogue
 // ---------------------------------------------------------------------------
