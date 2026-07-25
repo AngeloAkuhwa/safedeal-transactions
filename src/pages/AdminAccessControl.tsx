@@ -100,7 +100,20 @@ export default function AdminAccessControl() {
   const inviteMut = useMutation({
     mutationFn: inviteInternalUser,
     onSuccess: (u) => {
-      toast({ title: "Invite sent", description: `${u.full_name} (${u.email}) will receive onboarding instructions.` });
+      const channel = (u as any).__email_channel as "resend" | "supabase_default" | "failed" | undefined;
+      if (channel === "failed") {
+        toast({
+          title: "User created — email failed",
+          description: `${u.full_name} was added, but the invite email could not be sent. Use "Resend invite" to retry.`,
+          variant: "destructive",
+        });
+      } else {
+        const suffix = channel === "supabase_default" ? " (using default provider)" : "";
+        toast({
+          title: "Invite sent",
+          description: `${u.full_name} (${u.email}) will receive onboarding instructions${suffix}.`,
+        });
+      }
       invalidate();
     },
     onError: failToast("Could not send invite"),

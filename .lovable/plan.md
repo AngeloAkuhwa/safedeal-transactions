@@ -1,68 +1,54 @@
-## Problem
+## Goal
 
-Clicking **Accept Invitation** in the email sends the invitee to `/` (the SafeDeal marketing landing page). The Supabase invite link consumes the token and drops a recovery session at the redirect target, but we never take the user through a "set your password" step, so they either bounce to the landing page or end up half-signed-in with no way to complete setup.
+Skip the email-domain setup. Send the internal-user invite as a polished, branded HTML email via the existing **Resend** integration (`RESEND_API_KEY` + `RESEND_FROM_EMAIL` are already in secrets). If Resend fails for any reason, fall back to Supabase's default `inviteUserByEmail` so the user still gets an invite link.
 
-Root cause: in `supabase/functions/admin-invite-internal-user/index.ts`, both the new-invite and resend paths call `inviteUserByEmail(..., { redirectTo: origin })` — i.e. the site root — and no dedicated invite-acceptance route exists. Separately, the invite email is the raw Supabase default template ("no-reply@auth.lovable.cloud", plain black button), which is what the user wants polished.
+## Flow in `admin-invite-internal-user`
 
-## Plan
+1. Generate the invite link ourselves using the Supabase Admin API:
+   - Call `supabase.auth.admin.generateLink({ type: 'invite', email, options: { redirectTo: `${origin}/accept-invite`, data: { invited_by, invited_as_role, org_name: 'SafeDeal' } } })`.
+   - This returns `action_link` without sending an email.
+2. Try Resend first:
+   - `POST https://api.resend.com/emails` with `Authorization: Bearer ${RESEND_API_KEY}`.
+   - `from`: `RESEND_FROM_EMAIL` (fallback `SafeDeal <onboarding@resend.dev>` only if unset).
+   - `to`: invitee email. `subject`: `You're invited to the SafeDeal admin console`.
+   - `html`: branded template (see below). `text`: plain fallback.
+   - `reply_to`: `RESEND_FROM_EMAIL`. Tag with `{ name: 'category', value: 'internal-invite' }`.
+3. If Resend responds non-2xx or throws:
+   - Log the status + body (no secrets).
+   - Fall back to `supabase.auth.admin.inviteUserByEmail(email, { redirectTo, data })` so the built-in email still fires.
+   - Include `email_channel: 'resend' | 'supabase_default' | 'failed'` in the function response so the UI can surface a subtle notice.
+4. Resend path on the **resend-invite** branch works the same way (regenerate link, re-send via Resend, fallback if needed) and updates `invitation_status` + `invited_at` as today.
 
-### 1. New route: `/accept-invite`
+## Branded email template
 
-Create `src/pages/AcceptInvite.tsx` and register it in `src/App.tsx` as a public route.
+Inline-styled HTML string built in the edge function (no new files, no React Email). Palette pulled from the app's sky-blue primary; white background; Inter/system font stack; 600px centered container; rounded 12px card; subtle border `#E2E8F0`.
 
-Behavior:
-- On mount, wait for `supabase.auth.onAuthStateChange` / `getSession()` — the invite link hash (`#access_token=...&type=invite`) is auto-consumed by `supabase-js` and produces a session.
-- If no session appears within a short window, show an "Invite link expired or invalid" state with a button back to `/auth?mode=login`.
-- If a session is present, show a **Set your password** card (same visual language as `ResetPassword.tsx`): SafeDeal logo header, welcome copy ("Welcome to SafeDeal — set a password to activate your team account"), read-only email chip, password + confirm fields with show/hide toggles, same Zod rules as reset (min 8, letters + digits, match).
-- On submit call `supabase.auth.updateUser({ password })`. On success:
-  - Look up the user's internal role via a lightweight query (`internal_user_roles` for `auth.uid()`); if any internal role is found, navigate to `/admin/dashboard`.
-  - Otherwise fall back to `/role-selection` (safe default for non-internal invitees).
-- Toast success / error using the existing sonner setup.
+Structure:
+- Preheader (hidden): "Your SafeDeal admin invitation — accept to set your password."
+- Header row: SafeDeal wordmark (text logo, sky-blue) + small "Admin Console" chip.
+- H1: "You've been invited to SafeDeal".
+- Sub: "{inviter_name or 'A SafeDeal admin'} invited you to join the **{role_label}** team on the SafeDeal admin console."
+- Primary CTA button: "Accept invitation & set password" → `action_link`. Sky-blue bg, white text, 12px radius, 44px height.
+- Trust chips row (inline table): 🔒 Secure link · ⏱ Expires in 24h · 🛡 SafeDeal Trust Layer.
+- Fallback link block: "Button not working? Paste this URL: {action_link}" in a monospaced, wrapped `<code>` block.
+- Divider + footer: "You're receiving this because your email was added to the SafeDeal admin console. If this wasn't expected, you can ignore this email." + copyright line.
 
-### 2. Point the invite email at the new route
+Escape all interpolated values (email, inviter name, role label) to prevent HTML injection.
 
-In `supabase/functions/admin-invite-internal-user/index.ts`, change every `inviteUserByEmail` call (both the resend branch and the new-invite branch, including the "auth user already exists" re-send) from:
+## Response + UI
 
-```
-redirectTo: origin
-```
+- Extend the function response with `email_channel` and `email_error` (string, only when fallback happened).
+- `AddUserDrawer` toast: on success, show "Invite sent via email." When `email_channel === 'supabase_default'`, append "(using default provider)". When `'failed'`, show a warning toast and keep the row in `pending` with the "Resend" action.
 
-to:
+## Not doing
 
-```
-redirectTo: `${origin}/accept-invite`
-```
+- Not calling `email_domain--*` tools or scaffolding auth email templates.
+- Not touching the other five auth email templates.
+- Not changing `AcceptInvite.tsx` or the redirect target.
 
-No other logic changes.
+## Technical notes
 
-### 3. Polish the invitation email (scaffold managed auth templates)
-
-Use the managed auth email flow so we can control the invite HTML end-to-end:
-
-1. Call `email_domain--check_email_domain_status` — if no domain is configured, surface the email-setup dialog first (`<presentation-open-email-setup>`), then continue after the user completes it.
-2. Call `email_domain--scaffold_auth_email_templates` to generate `supabase/functions/_shared/email-templates/*.tsx` and the `auth-email-hook` function.
-3. Restyle **all six** scaffolded templates against SafeDeal's design tokens read from `src/index.css` — sky-blue primary button, Inter font stack, matching border-radius, muted-foreground body copy, `#ffffff` email background. Keep changes light on the other five (signup/magic-link/recovery/email-change/reauthentication) — mainly brand colors, logo, and tone — since the user only asked about the invite specifically.
-4. Rewrite `invite.tsx` with a polished layout:
-   - Header band with SafeDeal shield logo (uploaded to a new `email-assets` Storage bucket via `supabase--storage_upload` if a logo file exists in `public/`; skip if not).
-   - Headline: "You're invited to join SafeDeal".
-   - Sub-copy: "{{inviter/team}} added you to the SafeDeal admin workspace. Click below to set your password and activate your account."
-   - Primary CTA button "Accept invitation & set password" in sky-blue (`hsl(var(--primary))`), 12–14px radius, white text.
-   - Secondary trust row: three inline chips ("Encrypted link", "Expires in 24h", "Support: help@safedeal…") using neutral text.
-   - Footer: small muted-foreground line "If you weren't expecting this invitation, you can safely ignore this email." + copyright.
-5. Deploy with `supabase--deploy_edge_functions({ function_names: ["auth-email-hook"] })`.
-6. Tell the user the polished template activates automatically once DNS verification finishes (link them to Cloud → Emails); default Supabase invite email keeps sending until then.
-
-### 4. Verification
-
-- Send a fresh invite from `/admin/access-control` → confirm email now shows the branded template preview (via Cloud → Emails preview link).
-- Click **Accept invitation** → lands on `/accept-invite`, sets password, is routed into `/admin/dashboard`.
-- Re-open the link after use → shows the "invalid/expired" fallback state instead of the landing page.
-
-## Files touched
-
-- **New:** `src/pages/AcceptInvite.tsx`
-- **Edit:** `src/App.tsx` (register route)
-- **Edit:** `supabase/functions/admin-invite-internal-user/index.ts` (three `redirectTo` values)
-- **New/Edit (via scaffold tool):** `supabase/functions/_shared/email-templates/*.tsx`, `supabase/functions/auth-email-hook/**`
-
-No DB migrations. No changes to existing auth pages or the drawer flow.
+- Read `RESEND_API_KEY` and `RESEND_FROM_EMAIL` via `Deno.env.get`. If `RESEND_API_KEY` is missing, skip straight to the Supabase fallback (don't error).
+- `generateLink` requires the service-role client we already use in this function.
+- Keep the existing "auth user already exists → look up and reuse id" and `generate_employee_id` logic intact.
+- Deploy `admin-invite-internal-user` after the edit.
