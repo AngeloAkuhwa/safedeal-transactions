@@ -21,7 +21,7 @@ import {
   freezeTransactionDetailed, unfreezeTransactionDetailed,
   upsertInvestigation, addInternalNoteDetailed,
   exportTransactionData,
-  resolveDispute, disputeRequestMoreInfo,
+  resolveDispute, disputeRequestMoreInfo, DisputeEscalationRequiredError,
 } from "@/services/admin-transaction-actions.service";
 import { formatMoney } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -1756,7 +1756,14 @@ export default function AdminTransactionDetail() {
             await resolveDispute(transactionId, payload);
             toast.success("Dispute resolved");
             setReloadKey((k) => k + 1);
-          } catch (e) { toast.error((e as Error).message ?? "Failed to resolve dispute"); throw e; }
+          } catch (e) {
+            if (e instanceof DisputeEscalationRequiredError) {
+              toast.error("Escalation required", { description: e.reasons.join(" • ") || e.message });
+            } else {
+              toast.error((e as Error).message ?? "Failed to resolve dispute");
+            }
+            throw e;
+          }
         }}
         onRequestMoreInfo={async (payload) => {
           if (!transactionId) return;
