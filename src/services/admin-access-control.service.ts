@@ -852,6 +852,10 @@ export async function submitRoleChangeRequest(input: SubmitRoleChangeInput): Pro
     throw new Error("Primary role must be one of the assigned roles.");
   }
   const requester = await currentUserId();
+  // Rule h — reason required.
+  if (!input.reason?.trim()) throw new Error("A reason is required to submit a role change request.");
+  // Rule c — must outrank the target even to raise.
+  await assertOutranksTarget(requester, input.user_id, "raise role change for");
   const { data, error } = await supabase
     .from("access_change_requests")
     .insert({
@@ -931,6 +935,18 @@ export async function requestPermissionOverride(input: RequestOverrideInput): Pr
     throw new Error(`Unknown permission key: ${input.permission_key}`);
   }
   const requester = await currentUserId();
+  // Rule h — reason required.
+  if (!input.reason?.trim()) throw new Error("A reason is required to request a permission override.");
+  // Rule c — must outrank the target.
+  await assertOutranksTarget(requester, input.user_id, "raise permission override for");
+  // Rule b — grantor must hold the permission being granted.
+  if (input.mode === "grant") {
+    await assertCallerHoldsPermissions(requester, [input.permission_key]);
+  }
+  // Rule e — cannot request an override on your own account.
+  if (input.user_id === requester) {
+    throw new AccessSafeguardError("e", "E_SELF_ESCALATION", "You cannot request permission overrides on your own account.");
+  }
   const { data, error } = await supabase
     .from("access_change_requests")
     .insert({
@@ -951,6 +967,163 @@ export async function requestPermissionOverride(input: RequestOverrideInput): Pr
     `Requested ${input.mode} of ${input.permission_key}`,
     "warning", { request_id: data.id, ...input });
   return { request_id: data.id };
+}
+
+// ---------------------------------------------------------------------------
+// requiresApproval — single decision point for direct-apply vs. queue.
+// Kept as a pure helper so drawers, tests, and services all agree.
+// ---------------------------------------------------------------------------
+export type ApprovalAction =
+  | { type: "role_change"; nextRoles: InternalRoleKey[]; primaryRole: InternalRoleKey; currentRoles: InternalRoleKey[] }
+  | { type: "permission_override"; key: string; mode: "grant" | "revoke" }
+  | { type: "suspend"; targetRoles: InternalRoleKey[] }
+  | { type: "deactivate"; targetRoles: InternalRoleKey[] }
+  | { type: "reactivate" };
+
+export function requiresApproval(action: ApprovalAction, callerIsSuper: boolean): boolean {
+  if (callerIsSuper) return false;
+  switch (action.type) {
+    case "role_change": {
+      const changed = new Set<string>([...action.nextRoles, ...action.currentRoles]);
+      return [...changed].some(isProtectedRole);
+    }
+    case "permission_override":
+      return isPrivilegedPermission(action.key);
+    case "suspend":
+    case "deactivate":
+      return action.targetRoles.some(isProtectedRole);
+    case "reactivate":
+      return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// previewRequestSafeguards — evaluates rules a–g against a pending request
+// so the Review Drawer can disable Approve and surface the failing rule
+// before calling the mutation.
+// ---------------------------------------------------------------------------
+export interface SafeguardCheck {
+  rule: "a" | "b" | "c" | "d" | "e" | "f" | "g";
+  level: "block" | "warn";
+  code: string;
+  message: string;
+}
+
+export async function previewRequestSafeguards(req: AccessChangeRequest): Promise<SafeguardCheck[]> {
+  const findings: SafeguardCheck[] = [];
+  const reviewer = await currentUserId();
+
+  // a — requester != approver
+  if (req.requested_by === reviewer) {
+    findings.push({ rule: "a", level: "block", code: "E_SELF_APPROVAL", message: "You cannot approve your own request." });
+  }
+
+  // g — finance paranoid check (independent of role)
+  try {
+    assertFinanceParanoidCheck(
+      { requested_by: req.requested_by, change_type: req.change_type, payload: req.payload },
+      reviewer,
+    );
+  } catch (e) {
+    if (e instanceof AccessSafeguardError) {
+      findings.push({ rule: "g", level: "block", code: e.code, message: e.message });
+    }
+  }
+
+  // c — outrank check
+  try {
+    await assertOutranksTarget(reviewer, req.target_user_id, "approve changes for");
+  } catch (e) {
+    findings.push({ rule: "c", level: "block", code: "E_OUTRANK", message: (e as Error).message });
+  }
+
+  if (req.change_type === "role") {
+    const payload = req.payload as { roles: InternalRoleKey[] };
+    const target = await loadUserRolesAndOverrides(req.target_user_id);
+    const willRemoveSuperAdmin = target.roles.includes("super_admin") && !payload.roles.includes("super_admin");
+    if (willRemoveSuperAdmin) {
+      try {
+        await assertNotLastSuperAdmin(req.target_user_id, true);
+      } catch (e) {
+        findings.push({ rule: "d", level: "block", code: "E_LAST_SUPER_ADMIN", message: (e as Error).message });
+      }
+    }
+  } else if (req.change_type === "permission") {
+    const payload = req.payload as { permission_key: string; mode: "grant" | "revoke" };
+    if (payload.mode === "grant") {
+      try {
+        await assertCallerHoldsPermissions(reviewer, [payload.permission_key]);
+      } catch (e) {
+        findings.push({ rule: "b", level: "block", code: "E_GRANT_UNHELD", message: (e as Error).message });
+      }
+    }
+  } else if (req.change_type === "suspend") {
+    const target = await loadUserRolesAndOverrides(req.target_user_id);
+    if (target.roles.includes("super_admin")) {
+      try {
+        await assertNotLastSuperAdmin(req.target_user_id, true);
+      } catch (e) {
+        findings.push({ rule: "d", level: "block", code: "E_LAST_SUPER_ADMIN", message: (e as Error).message });
+      }
+    }
+  }
+
+  return findings;
+}
+
+// ---------------------------------------------------------------------------
+// Before/after diff resolver for a pending request. Powers the diff panel.
+// ---------------------------------------------------------------------------
+export interface RequestDiff {
+  label: string;
+  before: string[];
+  after: string[];
+  added: string[];
+  removed: string[];
+}
+
+export async function fetchRequestDiff(req: AccessChangeRequest): Promise<RequestDiff> {
+  if (req.change_type === "role") {
+    const payload = req.payload as { roles: InternalRoleKey[] };
+    const target = await loadUserRolesAndOverrides(req.target_user_id);
+    const before = target.roles.slice().sort();
+    const after = payload.roles.slice().sort();
+    const beforeSet = new Set(before);
+    const afterSet = new Set(after);
+    return {
+      label: "Roles",
+      before: before.map((r) => ROLE_LABEL[r] ?? r),
+      after: after.map((r) => ROLE_LABEL[r] ?? r),
+      added: [...afterSet].filter((r) => !beforeSet.has(r)).map((r) => ROLE_LABEL[r] ?? r),
+      removed: [...beforeSet].filter((r) => !afterSet.has(r)).map((r) => ROLE_LABEL[r] ?? r),
+    };
+  }
+  if (req.change_type === "permission") {
+    const payload = req.payload as { permission_key: string; mode: "grant" | "revoke" };
+    const target = await loadUserRolesAndOverrides(req.target_user_id);
+    const before = target.permissions.slice().sort();
+    const key = payload.permission_key;
+    const after = payload.mode === "grant"
+      ? [...new Set([...before, key])].sort()
+      : before.filter((k) => k !== key);
+    return {
+      label: "Permissions",
+      before,
+      after,
+      added: payload.mode === "grant" ? [key] : [],
+      removed: payload.mode === "revoke" ? [key] : [],
+    };
+  }
+  const target = await loadUserRolesAndOverrides(req.target_user_id);
+  const beforeStatus = target.status;
+  const afterStatus = req.change_type === "suspend" ? "suspended" : "active";
+  return {
+    label: "Account status",
+    before: [beforeStatus],
+    after: [afterStatus],
+    added: [afterStatus],
+    removed: [beforeStatus],
+  };
 }
 
 // ---------- Suspend (rich): sessions + audit ----------
