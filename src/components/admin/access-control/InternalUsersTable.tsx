@@ -1,4 +1,4 @@
-import { KeyRound, MoreHorizontal, ShieldAlert, UserCog, RefreshCcw, Ban, Undo2 } from "lucide-react";
+import { KeyRound, MoreHorizontal, ShieldAlert, RefreshCcw, Ban, Undo2, Eye, History, MailPlus, UserMinus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,8 +15,11 @@ interface Props {
   onOpen: (u: InternalUser) => void;
   onChangeRole: (u: InternalUser) => void;
   onReviewPermissions: (u: InternalUser) => void;
+  onViewHistory: (u: InternalUser) => void;
   onSuspend: (u: InternalUser) => void;
   onReactivate: (u: InternalUser) => void;
+  onDeactivate: (u: InternalUser) => void;
+  onResendInvite: (u: InternalUser) => void;
 }
 
 function ringFor(u: InternalUser): "critical" | "elevated" | "high" | "none" {
@@ -26,7 +29,8 @@ function ringFor(u: InternalUser): "critical" | "elevated" | "high" | "none" {
 }
 
 export function InternalUsersTable({
-  rows, onOpen, onChangeRole, onReviewPermissions, onSuspend, onReactivate,
+  rows, onOpen, onChangeRole, onReviewPermissions, onViewHistory,
+  onSuspend, onReactivate, onDeactivate, onResendInvite,
 }: Props) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -46,37 +50,45 @@ export function InternalUsersTable({
           <thead className="bg-muted/40">
             <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <th className="px-5 py-3">User</th>
+              <th className="px-5 py-3">Employee ID</th>
               <th className="px-5 py-3">Email</th>
-              <th className="px-5 py-3">Role</th>
+              <th className="px-5 py-3">Department / Team</th>
+              <th className="px-5 py-3">Primary Role</th>
               <th className="px-5 py-3">
                 <span className="inline-flex items-center gap-1">
-                  <ShieldAlert className="h-3 w-3 text-amber-400" /> Access Level
+                  <ShieldAlert className="h-3 w-3 text-amber-400" /> Effective Access
                 </span>
               </th>
               <th className="px-5 py-3">Status</th>
               <th className="px-5 py-3">Last Active</th>
-              <th className="px-5 py-3">Actions</th>
+              <th className="px-5 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((u) => {
-              const suspended = u.status === "suspended";
+              const suspended = u.status === "suspended" || u.status === "locked";
+              const deactivated = u.status === "deactivated";
+              const invited = u.status === "invited";
               return (
                 <tr
                   key={u.id}
                   onClick={() => onOpen(u)}
-                  className={`cursor-pointer transition-colors hover:bg-muted/40 ${suspended ? "access-row-suspended" : ""}`}
+                  className={`cursor-pointer transition-colors hover:bg-muted/40 ${
+                    suspended ? "access-row-suspended" : ""
+                  } ${deactivated ? "opacity-60" : ""}`}
                 >
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
                       <InitialsAvatar name={u.full_name} ring={ringFor(u)} />
                       <div className="min-w-0">
                         <p className="truncate font-medium text-foreground">{u.full_name}</p>
-                        <p className="text-xs text-muted-foreground">#{u.display_id}</p>
+                        <p className="text-xs text-muted-foreground">{u.email}</p>
                       </div>
                     </div>
                   </td>
+                  <td className="px-5 py-4 font-mono text-xs text-foreground/80">#{u.display_id}</td>
                   <td className="px-5 py-4 text-foreground/80">{u.email}</td>
+                  <td className="px-5 py-4 text-foreground/80">{u.department ?? "—"}</td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap gap-1">
                       <RoleBadge role={u.primary_role} />
@@ -90,67 +102,68 @@ export function InternalUsersTable({
                   <td className="px-5 py-4"><AccessLevelPill level={u.access_level} /></td>
                   <td className="px-5 py-4"><StatusBadge status={u.status} /></td>
                   <td className="px-5 py-4 text-xs text-muted-foreground">{relativeTime(u.last_active_at)}</td>
-                  <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        title="Change Role"
-                        onClick={() => onChangeRole(u)}
-                        className="rounded-md p-2 text-blue-400 transition-colors hover:bg-blue-500/15 hover:text-blue-300"
-                      >
-                        <UserCog className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        title="Review Permissions"
-                        onClick={() => onReviewPermissions(u)}
-                        className="rounded-md p-2 text-amber-400 transition-colors hover:bg-amber-500/15 hover:text-amber-300"
-                      >
-                        <KeyRound className="h-4 w-4" />
-                      </button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            type="button"
-                            title="More"
-                            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-52">
-                          <DropdownMenuItem onClick={() => onOpen(u)}>
-                            View details
+                  <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          title="Row actions"
+                          aria-label={`Actions for ${u.full_name}`}
+                          className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={() => onOpen(u)}>
+                          <Eye className="mr-2 h-4 w-4" /> View User
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onChangeRole(u)}>
+                          <RefreshCcw className="mr-2 h-4 w-4" /> Change Role
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onReviewPermissions(u)}>
+                          <KeyRound className="mr-2 h-4 w-4" /> Review Permissions
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onViewHistory(u)}>
+                          <History className="mr-2 h-4 w-4" /> View Access History
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {invited && (
+                          <DropdownMenuItem onClick={() => onResendInvite(u)}>
+                            <MailPlus className="mr-2 h-4 w-4" /> Resend Invitation
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onChangeRole(u)}>
-                            <RefreshCcw className="mr-2 h-4 w-4" /> Change role
+                        )}
+                        {suspended ? (
+                          <DropdownMenuItem onClick={() => onReactivate(u)}>
+                            <Undo2 className="mr-2 h-4 w-4" /> Reactivate User
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onReviewPermissions(u)}>
-                            <KeyRound className="mr-2 h-4 w-4" /> Review permissions
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {suspended ? (
-                            <DropdownMenuItem onClick={() => onReactivate(u)}>
-                              <Undo2 className="mr-2 h-4 w-4" /> Reactivate
-                            </DropdownMenuItem>
-                          ) : (
+                        ) : (
+                          u.status === "active" && (
                             <DropdownMenuItem
                               onClick={() => onSuspend(u)}
                               className="text-red-500 focus:text-red-500"
                             >
-                              <Ban className="mr-2 h-4 w-4" /> Suspend user
+                              <Ban className="mr-2 h-4 w-4" /> Suspend User
                             </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                          )
+                        )}
+                        {!deactivated && (
+                          <DropdownMenuItem
+                            onClick={() => onDeactivate(u)}
+                            className="text-red-500 focus:text-red-500"
+                          >
+                            <UserMinus className="mr-2 h-4 w-4" /> Deactivate User
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               );
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-5 py-12 text-center text-sm text-muted-foreground">
+                <td colSpan={9} className="px-5 py-12 text-center text-sm text-muted-foreground">
                   No internal users match your current filters.
                 </td>
               </tr>

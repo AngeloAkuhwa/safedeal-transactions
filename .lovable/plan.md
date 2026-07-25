@@ -1,40 +1,125 @@
-## 1. Footer copyright — stop hardcoding the year
+## Scope
+Complete the Users & Access screen with the full filter/search/sort/pagination surface, the requested statuses, and the row-level action menu. Keeps the existing drawers (Quick preview, Change Role, Review Permissions, Suspend) intact.
 
-`src/components/admin/AdminFooter.tsx` currently prints `© 2024 SafeDeal Admin Portal`. Replace with a computed year so it always tracks the current date.
+## 1. Status model — widen to 6 values
 
-```tsx
-const year = new Date().getFullYear();
-// …
-<div>© {year} SafeDeal Admin Portal</div>
-```
+`internal_users.status` is a plain `text` column (verified — no enum, no CHECK). Extend the vocabulary:
 
-Same footer already links `Privacy Policy`, `Terms of Service`, `Support` — layout stays unchanged.
+- `invited` — invite sent, never signed in.
+- `pending_approval` — awaiting a Super Admin decision (new).
+- `active` — normal.
+- `suspended` — temporarily blocked.
+- `locked` — auto-locked (e.g. failed auth / security).  *(new)*
+- `deactivated` — permanently disabled, retained for audit.  *(new — replaces "delete")*
 
-## 2. Is the internal role / permission foundation done 100%?
+Update: `InternalUserStatus` type, `STATUS_LABEL`, `STATUS_STYLES` in `badges.tsx`, and the `passesFilter` matrix. No DB migration needed for the column itself; the seed migration will only add a comment documenting the vocabulary.
 
-Short answer: **yes, the foundation is in place** — verified against the current tree:
+## 2. Summary cards → 6 clickable KPI tiles
 
-- **Tables (migration `20260725182513_…`)**: `internal_users`, `internal_roles`, `permissions`, `role_permissions`, `internal_user_roles`, `user_permission_overrides`, `access_change_requests` — all created with GRANTs + RLS. `audit_logs` already existed and is reused.
-- **10 seeded roles**: super_admin, senior_admin, dispute_manager, dispute_agent, support_agent, identity_officer, finance_operator, finance_approver, compliance_officer, auditor — inserted with `protected` flag on super/senior/finance_approver.
-- **14 modules** in `src/services/permission-catalog.ts`: Dashboard, Transactions, Escrow, Disputes, Identity Verification, Task Orchestration, Agent Performance, Flagged Users, Users & Access, Permission Management, Financial Controls, Audit Logs, Reports & Exports, Platform Configuration.
-- **Granular actions** covered: view, create, update, assign, reassign, approve, reject, resolve, escalate, suspend, export, configure, manage_permissions.
-- **Role permissions vs user overrides** stored in separate tables (`role_permissions` + `user_permission_overrides`); effective set computed by SQL fn `internal_effective_permissions` and mirrored client-side.
-- **Access Level is derived, never picked**: `internal_effective_access_level` in SQL + `deriveAccessLevel` in TS. `AddUserDrawer` / `ChangeRoleDrawer` only expose role checkboxes + primary star — no Access Level control anywhere.
-- **Guardrails**: `enforce_internal_role_rules` DB trigger + `validateRoleSet` client-side (super_admin exclusive; finance_operator vs finance_approver mutually exclusive; ≥1 role required).
-- **Privileged approvals**: `access_change_requests` table + service layer route protected-role edits through it.
-- **Multi-role assignments**: `internal_user_roles` (many-to-many) with `is_primary` — enforced across UI and DB.
+Rebuild `AccessSummaryCards.tsx` to render six equal cards on `xl:grid-cols-3` / `md:grid-cols-2`:
 
-### Small polish worth cleaning up (not blocking)
+| Card | Filter applied on click |
+|---|---|
+| Active Admins | `admins` |
+| Active Agents | `agents` |
+| Pending Invitations | `invited` |
+| Pending Access Approvals | `pending_approval` |
+| Suspended or Locked Users | `suspended_or_locked` |
+| Privileged Access Users | `privileged` (full + high) |
 
-`HIGH_PERMISSIONS` in `permission-catalog.ts` references two keys that don't exist in the catalog:
-- `compliance.approve`
-- `compliance.configure`
+`AccessSummary` gains: `pending_invites`, `pending_approvals`, `suspended_or_locked`, `privileged_users`. Computed inside `fetchAccessDirectory` from the same in-memory set. Cards accept `onSelect` and highlight when the active filter matches.
 
-There is no `compliance` module — compliance duties are covered by `audit_logs.*`, `flagged_users.*`, `financial_controls.approve`. These two stray keys never match, so they're dead entries. I'll remove them and keep `financial_controls.approve/configure`, `platform_configuration.configure`, `permissions.manage_permissions`, `users_and_access.suspend/manage_permissions` as the High-Access triggers.
+## 3. Filter chips (10)
 
-## Files touched
+Replace the current 5 chips in `UserAccessFilters.tsx` with:
 
-- `src/components/admin/AdminFooter.tsx` — dynamic year.
-- `src/services/permission-catalog.ts` — drop the two stray compliance keys from `HIGH_PERMISSIONS`.
+`All Users · Admins · Operational Agents · Finance · Compliance · Auditors · Pending Invitations · Pending Approval · Suspended · Privileged Access`
 
-No DB migration required.
+`AccessFilter` union grows to include `agents` (= operational agents), `finance`, `compliance`, `auditors`, `invited`, `pending_approval`, `suspended_or_locked`, `privileged`. Existing `identity` filter is retained internally but is not exposed as a top-level chip (identity officers are counted under Agents / can still be reached via role dropdown).
+
+## 4. Advanced filter bar
+
+New collapsible row under the chips with:
+
+- **Search** — name, email, employee ID (`display_id`), or role label. Debounced 250 ms.
+- **Role** select — multi-select combobox listing all 10 roles.
+- **Department / team** select — populated from distinct `internal_users.department` values in the current result.
+- **Status** select — the 6 status values.
+- **Access level** select — full / high / standard / limited.
+- **Clear all** button — resets chip filter + search + all advanced filters.
+
+All filters compose with the chip filter (chip = broad slice, advanced = fine-grain).
+
+## 5. Sort + pagination + rows-per-page + result count
+
+New `TableToolbar` component above the table renders:
+
+- Sort dropdown: Name (A→Z), Role, Status, Access Level, Last Active (default). Toggle asc/desc.
+- Result count: `Showing 11–20 of 47 users`.
+- Rows per page: 10 / 25 / 50 / 100.
+- Prev / Next pagination with page number.
+
+`fetchAccessDirectory` gains `page`, `pageSize`, `sortBy`, `sortDir` params and returns `{ summary, rows, total }`. Filtering/sorting/pagination is done in memory today (internal user set is small); the signature is server-ready so a future RPC can drop straight in.
+
+## 6. Table columns (9)
+
+`InternalUsersTable.tsx` rebuilt to:
+
+| # | Column | Source |
+|---|---|---|
+| 1 | User | avatar + full_name |
+| 2 | Employee ID | `display_id` |
+| 3 | Email | `email` |
+| 4 | Department / Team | `department ?? "—"` |
+| 5 | Primary Role | `RoleBadge` + `+N` chip |
+| 6 | Effective Access Level | `AccessLevelPill` |
+| 7 | Status | `StatusBadge` (6 tones) |
+| 8 | Last Active | `relativeTime` |
+| 9 | Actions | dropdown menu (see §7) |
+
+Entire row remains clickable → opens `UserDetailsDrawer` (quick preview). Clicks inside the actions cell stop propagation.
+
+## 7. Actions menu (accessible)
+
+Replace the inline icon buttons with a single `⋯` menu ( `DropdownMenu`) that always renders:
+
+- View User
+- Change Role
+- Review Permissions
+- View Access History (opens drawer on the Access History tab)
+- Resend Invitation — visible only when `status === "invited"`
+- Suspend User — visible when status is `active`
+- Reactivate User — visible when status is `suspended` / `locked`
+- Deactivate User — visible for any status except `deactivated`; destructive styling
+
+Every trigger has a `title`/`aria-label`. `Resend Invitation` calls `admin-invite-internal-user` with a `resend: true` flag (already accepted by the existing edge function; if not, will add). `Deactivate User` calls a new service method that sets status = `deactivated` and writes an audit entry — **never deletes**.
+
+## 8. State screens
+
+Extend the state components already added last turn:
+
+- `LoadingSkeleton` — used while `isLoading`.
+- `EmptyState` — when the base directory returns zero rows.
+- New `NoResultsState` — when filters/search yield zero of a non-empty base; includes a "Clear filters" button.
+- New `PermissionDeniedState` — surfaced when the query throws a Supabase 42501 / `permission denied`. Includes a link back to `/admin` and an explanation.
+- `ErrorState` — already exists; will keep its `Retry` button and trigger `refetch()`.
+
+`AdminAccessControl.tsx` selects the appropriate state based on `isLoading` / `isError` / `error.code` / `rows.length` / whether any filters are applied.
+
+## 9. Toasts
+
+All mutations (invite, resend, role change, permission override, suspend, reactivate, deactivate, approve/reject request) surface success + failure via the existing `useToast` hook already wired on the page — same pattern as today, plus new toasts for `resend` and `deactivate`.
+
+## 10. Files touched
+
+- `src/services/admin-access-control.service.ts` — types (`InternalUserStatus`, `AccessFilter`, `AccessSummary`, `AccessDirectoryQuery`, `AccessDirectoryResponse`), `fetchAccessDirectory` (paging/sort/summary), new `deactivateInternalUser`, `resendInternalUserInvite`, updated `passesFilter`, `STATUS_LABEL`.
+- `src/components/admin/access-control/AccessSummaryCards.tsx` — 6 clickable cards, active-state highlight, `onSelect` prop.
+- `src/components/admin/access-control/UserAccessFilters.tsx` — 10 chip surface + advanced filter row + Clear all.
+- `src/components/admin/access-control/AdvancedFilters.tsx` — new: role/department/status/access-level popovers.
+- `src/components/admin/access-control/TableToolbar.tsx` — new: sort, result count, rows-per-page, pagination.
+- `src/components/admin/access-control/InternalUsersTable.tsx` — 9 columns, actions menu with 8 items, tooltips, row click.
+- `src/components/admin/access-control/badges.tsx` — 6-status style map + new "Locked" and "Deactivated" tones; add "Pending Approval" label.
+- `src/components/admin/access-control/NoResultsState.tsx` + `PermissionDeniedState.tsx` — new.
+- `src/pages/AdminAccessControl.tsx` — state selection, wiring for card→filter click, advanced filters, sort, pagination, new mutations (`deactivate`, `resend`), open-drawer-on-tab helper.
+
+No database migration is required. `internal_users.status` already accepts arbitrary text; `deactivateInternalUser` is a plain `UPDATE`. If we want a hard guarantee, a follow-up migration can add a CHECK constraint — flagged but not part of this pass.

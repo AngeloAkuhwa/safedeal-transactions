@@ -9,32 +9,62 @@ import {
   updatePermissionOverrides,
   suspendInternalUser,
   reactivateInternalUser,
+  deactivateInternalUser,
+  resendInternalUserInvite,
   type AccessFilter,
   type InternalUser,
 } from "@/services/admin-access-control.service";
 import { AccessSummaryCards } from "@/components/admin/access-control/AccessSummaryCards";
 import { UserAccessFilters } from "@/components/admin/access-control/UserAccessFilters";
+import type { AdvancedFilterState } from "@/components/admin/access-control/AdvancedFilters";
 import { InternalUsersTable } from "@/components/admin/access-control/InternalUsersTable";
+import { TableToolbar, type SortBy, type SortDir } from "@/components/admin/access-control/TableToolbar";
+import { NoResultsState } from "@/components/admin/access-control/NoResultsState";
 import { AddUserDrawer } from "@/components/admin/access-control/AddUserDrawer";
 import { ChangeRoleDrawer } from "@/components/admin/access-control/ChangeRoleDrawer";
 import { ReviewPermissionsDrawer } from "@/components/admin/access-control/ReviewPermissionsDrawer";
 import { UserDetailsDrawer } from "@/components/admin/access-control/UserDetailsDrawer";
 import { SuspendUserDialog } from "@/components/admin/access-control/SuspendUserDialog";
+import { ActionConfirmDialog } from "@/components/admin/access-control/ActionConfirmDialog";
 import { LoadingSkeleton } from "@/components/admin/access-control/LoadingSkeleton";
 import { EmptyState } from "@/components/admin/access-control/EmptyState";
 import { ErrorState } from "@/components/admin/access-control/ErrorState";
+
+const EMPTY_ADVANCED: AdvancedFilterState = {
+  role: null, department: null, status: null, access_level: null,
+};
 
 export default function AdminAccessControl() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<AccessFilter>("all");
   const [q, setQ] = useState("");
+  const [advanced, setAdvanced] = useState<AdvancedFilterState>(EMPTY_ADVANCED);
+  const [sortBy, setSortBy] = useState<SortBy>("last_active");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   const [addOpen, setAddOpen] = useState(false);
   const [detailsUser, setDetailsUser] = useState<InternalUser | null>(null);
+  const [historyUser, setHistoryUser] = useState<InternalUser | null>(null);
   const [changeRoleUser, setChangeRoleUser] = useState<InternalUser | null>(null);
   const [permsUser, setPermsUser] = useState<InternalUser | null>(null);
   const [suspendUser, setSuspendUser] = useState<InternalUser | null>(null);
+  const [deactivateUser, setDeactivateUser] = useState<InternalUser | null>(null);
+  const [resendUser, setResendUser] = useState<InternalUser | null>(null);
 
-  const query = useMemo(() => ({ filter, q: q.trim() || undefined }), [filter, q]);
+  const query = useMemo(() => ({
+    filter,
+    q: q.trim() || undefined,
+    role: advanced.role ?? undefined,
+    department: advanced.department ?? undefined,
+    status: advanced.status ?? undefined,
+    access_level: advanced.access_level ?? undefined,
+    sort_by: sortBy,
+    sort_dir: sortDir,
+    page, page_size: pageSize,
+  }), [filter, q, advanced, sortBy, sortDir, page, pageSize]);
+
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-access-control", query],
     queryFn: () => fetchAccessDirectory(query),
@@ -44,12 +74,26 @@ export default function AdminAccessControl() {
   const invalidate = () =>
     qc.invalidateQueries({ queryKey: ["admin-access-control"] });
 
+  const handleFilterChange = (f: AccessFilter) => { setFilter(f); setPage(1); };
+  const handleQueryChange = (v: string) => { setQ(v); setPage(1); };
+  const handleAdvancedChange = (s: AdvancedFilterState) => { setAdvanced(s); setPage(1); };
+  const clearAll = () => {
+    setFilter("all"); setQ(""); setAdvanced(EMPTY_ADVANCED); setPage(1);
+  };
+  const hasAnyFilter =
+    filter !== "all" || q.trim().length > 0 ||
+    !!advanced.role || !!advanced.department || !!advanced.status || !!advanced.access_level;
+
+  const failToast = (title: string) => (err: unknown) =>
+    toast({ title, description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
+
   const inviteMut = useMutation({
     mutationFn: inviteInternalUser,
     onSuccess: (u) => {
       toast({ title: "Invite sent", description: `${u.full_name} (${u.email}) will receive onboarding instructions.` });
       invalidate();
     },
+    onError: failToast("Could not send invite"),
   });
 
   const roleMut = useMutation({
@@ -63,21 +107,37 @@ export default function AdminAccessControl() {
       });
       invalidate();
     },
+    onError: failToast("Could not update roles"),
   });
 
   const permsMut = useMutation({
     mutationFn: updatePermissionOverrides,
     onSuccess: () => { toast({ title: "Permissions updated" }); invalidate(); },
+    onError: failToast("Could not update permissions"),
   });
 
   const suspendMut = useMutation({
     mutationFn: suspendInternalUser,
     onSuccess: () => { toast({ title: "User suspended", variant: "destructive" }); invalidate(); },
+    onError: failToast("Could not suspend user"),
   });
 
   const reactivateMut = useMutation({
     mutationFn: reactivateInternalUser,
     onSuccess: () => { toast({ title: "User reactivated" }); invalidate(); },
+    onError: failToast("Could not reactivate user"),
+  });
+
+  const deactivateMut = useMutation({
+    mutationFn: deactivateInternalUser,
+    onSuccess: () => { toast({ title: "User deactivated", description: "Historical audit records are retained.", variant: "destructive" }); invalidate(); },
+    onError: failToast("Could not deactivate user"),
+  });
+
+  const resendMut = useMutation({
+    mutationFn: resendInternalUserInvite,
+    onSuccess: () => { toast({ title: "Invitation resent" }); invalidate(); },
+    onError: failToast("Could not resend invitation"),
   });
 
   return (
@@ -91,25 +151,49 @@ export default function AdminAccessControl() {
         <ErrorState onRetry={() => refetch()} />
       ) : (
         <div className="space-y-6">
-          <AccessSummaryCards summary={data.summary} />
+          <AccessSummaryCards
+            summary={data.summary}
+            activeFilter={filter}
+            onSelect={handleFilterChange}
+          />
           <UserAccessFilters
             filter={filter}
-            onFilter={setFilter}
+            onFilter={handleFilterChange}
             q={q}
-            onQuery={setQ}
+            onQuery={handleQueryChange}
             onAddUser={() => setAddOpen(true)}
+            advanced={advanced}
+            onAdvanced={handleAdvancedChange}
+            departments={data.departments}
+            onClearAll={clearAll}
+            hasAnyFilter={hasAnyFilter}
           />
-          {data.rows.length === 0 ? (
-            <EmptyState />
+          {data.total === 0 ? (
+            hasAnyFilter ? <NoResultsState onClear={clearAll} /> : <EmptyState />
           ) : (
-            <InternalUsersTable
-              rows={data.rows}
-              onOpen={(u) => setDetailsUser(u)}
-              onChangeRole={(u) => setChangeRoleUser(u)}
-              onReviewPermissions={(u) => setPermsUser(u)}
-              onSuspend={(u) => setSuspendUser(u)}
-              onReactivate={(u) => reactivateMut.mutate({ user_id: u.id, reason: "Reactivated from access console" })}
-            />
+            <>
+              <InternalUsersTable
+                rows={data.rows}
+                onOpen={(u) => setDetailsUser(u)}
+                onChangeRole={(u) => setChangeRoleUser(u)}
+                onReviewPermissions={(u) => setPermsUser(u)}
+                onViewHistory={(u) => setHistoryUser(u)}
+                onSuspend={(u) => setSuspendUser(u)}
+                onReactivate={(u) => reactivateMut.mutate({ user_id: u.id, reason: "Reactivated from access console" })}
+                onDeactivate={(u) => setDeactivateUser(u)}
+                onResendInvite={(u) => setResendUser(u)}
+              />
+              <TableToolbar
+                total={data.total}
+                page={data.page}
+                pageSize={data.page_size}
+                sortBy={sortBy}
+                sortDir={sortDir}
+                onSort={(by, dir) => { setSortBy(by); setSortDir(dir); }}
+                onPage={setPage}
+                onPageSize={(n) => { setPageSize(n); setPage(1); }}
+              />
+            </>
           )}
         </div>
       )}
@@ -141,13 +225,13 @@ export default function AdminAccessControl() {
       />
 
       <UserDetailsDrawer
-        user={detailsUser}
-        open={!!detailsUser}
-        onOpenChange={(o) => { if (!o) setDetailsUser(null); }}
-        onChangeRole={(u) => { setDetailsUser(null); setChangeRoleUser(u); }}
-        onReviewPermissions={(u) => { setDetailsUser(null); setPermsUser(u); }}
-        onSuspend={(u) => { setDetailsUser(null); setSuspendUser(u); }}
-        onReactivate={(u) => { setDetailsUser(null); reactivateMut.mutate({ user_id: u.id, reason: "Reactivated from user drawer" }); }}
+        user={detailsUser ?? historyUser}
+        open={!!(detailsUser ?? historyUser)}
+        onOpenChange={(o) => { if (!o) { setDetailsUser(null); setHistoryUser(null); } }}
+        onChangeRole={(u) => { setDetailsUser(null); setHistoryUser(null); setChangeRoleUser(u); }}
+        onReviewPermissions={(u) => { setDetailsUser(null); setHistoryUser(null); setPermsUser(u); }}
+        onSuspend={(u) => { setDetailsUser(null); setHistoryUser(null); setSuspendUser(u); }}
+        onReactivate={(u) => { setDetailsUser(null); setHistoryUser(null); reactivateMut.mutate({ user_id: u.id, reason: "Reactivated from user drawer" }); }}
       />
 
       <SuspendUserDialog
@@ -158,6 +242,38 @@ export default function AdminAccessControl() {
           if (!suspendUser) return;
           await suspendMut.mutateAsync({ user_id: suspendUser.id, reason });
           setSuspendUser(null);
+        }}
+      />
+
+      <ActionConfirmDialog
+        open={!!deactivateUser}
+        onOpenChange={(o) => { if (!o) setDeactivateUser(null); }}
+        title="Deactivate internal user?"
+        description={
+          deactivateUser
+            ? `${deactivateUser.full_name} will lose all access immediately. Audit records will be retained.`
+            : ""
+        }
+        confirmLabel="Deactivate"
+        variant="destructive"
+        requireReason
+        onConfirm={async (reason) => {
+          if (!deactivateUser) return;
+          await deactivateMut.mutateAsync({ user_id: deactivateUser.id, reason: reason ?? "Deactivated by admin" });
+          setDeactivateUser(null);
+        }}
+      />
+
+      <ActionConfirmDialog
+        open={!!resendUser}
+        onOpenChange={(o) => { if (!o) setResendUser(null); }}
+        title="Resend invitation?"
+        description={resendUser ? `A new onboarding email will be sent to ${resendUser.email}.` : ""}
+        confirmLabel="Resend"
+        onConfirm={async () => {
+          if (!resendUser) return;
+          await resendMut.mutateAsync({ user_id: resendUser.id, email: resendUser.email, full_name: resendUser.full_name });
+          setResendUser(null);
         }}
       />
     </AdminLayout>

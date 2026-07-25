@@ -26,8 +26,10 @@ const ROLE_STYLES: Record<InternalRoleKey, string> = {
 const STATUS_STYLES: Record<InternalUserStatus, string> = {
   active: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
   suspended: "bg-red-500/15 text-red-300 border-red-500/30",
-  pending: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+  pending_approval: "bg-amber-500/15 text-amber-300 border-amber-500/30",
   invited: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30",
+  locked: "bg-orange-500/15 text-orange-300 border-orange-500/30",
+  deactivated: "bg-slate-500/15 text-slate-400 border-slate-500/30",
 };
 
 export function RoleBadge({ role }: { role: InternalRoleKey }) {
