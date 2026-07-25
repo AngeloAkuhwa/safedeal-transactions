@@ -6,7 +6,6 @@ import {
   fetchAccessDirectory,
   inviteInternalUser,
   updateUserRoles,
-  suspendInternalUser,
   suspendUserAtomic,
   submitRoleChangeRequest,
   reactivateInternalUser,
@@ -202,7 +201,7 @@ export default function AdminAccessControl() {
                 onReviewPermissions={(u) => setPermsUser(u)}
                 onViewHistory={(u) => setHistoryUser(u)}
                 onSuspend={(u) => setSuspendUser(u)}
-                onReactivate={(u) => reactivateMut.mutate({ user_id: u.id, reason: "Reactivated from access console" })}
+                onReactivate={(u) => setReactivateUser(u)}
                 onDeactivate={(u) => setDeactivateUser(u)}
                 onResendInvite={(u) => setResendUser(u)}
               />
