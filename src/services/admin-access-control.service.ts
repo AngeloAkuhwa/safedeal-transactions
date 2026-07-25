@@ -237,31 +237,33 @@ export async function fetchAccessDirectory(q: AccessDirectoryQuery = {}): Promis
 export async function fetchAccessAudit(userId: string): Promise<AccessAuditEntry[]> {
   const { data, error } = await supabase
     .from("audit_logs")
-    .select("id,action_type,description,created_at,severity,actor_id")
+    .select("id,action,description,created_at,metadata,actor_user_id")
     .eq("target_user_id", userId)
     .order("created_at", { ascending: false })
     .limit(25);
   if (error) throw error;
 
-  const actorIds = Array.from(new Set((data ?? []).map((r: any) => r.actor_id).filter(Boolean)));
-  let names = new Map<string, string>();
+  const actorIds = Array.from(new Set((data ?? []).map((r: any) => r.actor_user_id).filter(Boolean)));
+  const names = new Map<string, string>();
   if (actorIds.length) {
     const { data: profs } = await supabase
-      .from("profiles")
-      .select("id,full_name")
-      .in("id", actorIds);
+      .from("profiles").select("id,full_name").in("id", actorIds);
     for (const p of profs ?? []) names.set(p.id, p.full_name ?? "Admin");
   }
 
-  return (data ?? []).map((r: any): AccessAuditEntry => ({
-    id: r.id,
-    user_id: userId,
-    actor_name: r.actor_id ? (names.get(r.actor_id) ?? "Admin") : "System",
-    action: String(r.action_type ?? "action"),
-    detail: String(r.description ?? ""),
-    created_at: r.created_at,
-    severity: (["critical", "warning", "info"].includes(r.severity) ? r.severity : "info") as any,
-  }));
+  return (data ?? []).map((r: any): AccessAuditEntry => {
+    const meta = (r.metadata ?? {}) as Record<string, unknown>;
+    const sev = typeof meta.severity === "string" ? meta.severity : "info";
+    return {
+      id: r.id,
+      user_id: userId,
+      actor_name: r.actor_user_id ? (names.get(r.actor_user_id) ?? "Admin") : "System",
+      action: String(meta.access_action ?? r.action ?? "action"),
+      detail: String(r.description ?? ""),
+      created_at: r.created_at,
+      severity: (["critical", "warning", "info"].includes(sev) ? sev : "info") as AccessAuditEntry["severity"],
+    };
+  });
 }
 
 // ---------- Mutations ----------
@@ -277,12 +279,11 @@ async function auditLog(target_user_id: string, action_type: string, description
   try {
     const uid = await currentUserId();
     await supabase.from("audit_logs").insert({
-      actor_id: uid,
+      actor_user_id: uid,
       target_user_id,
-      action_type,
-      description,
-      severity,
-      metadata,
+      action: "admin_internal_note",
+      description: `[${action_type}] ${description}`,
+      metadata: { ...metadata, access_action: action_type, severity },
     });
   } catch { /* audit best-effort */ }
 }
