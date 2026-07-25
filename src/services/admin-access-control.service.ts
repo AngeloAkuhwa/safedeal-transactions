@@ -1026,7 +1026,9 @@ export async function inviteInternalUser(input: InviteUserInput): Promise<Intern
 
 // ---------- Access change requests ----------
 
-export async function listAccessChangeRequests(status: "pending" | "all" = "pending"): Promise<AccessChangeRequest[]> {
+export async function listAccessChangeRequests(
+  status: "pending" | "approved" | "rejected" | "cancelled" | "all" = "pending",
+): Promise<AccessChangeRequest[]> {
   const q = supabase
     .from("access_change_requests")
     .select("*")
