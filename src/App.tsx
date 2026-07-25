@@ -68,6 +68,7 @@ import AdminSettings from "./pages/AdminSettings";
 import AdminAuditLogs from "./pages/AdminAuditLogs";
 import AdminAccessControl from "./pages/AdminAccessControl";
 import AdminPermissionMatrix from "./pages/AdminPermissionMatrix";
+import AdminAccessApprovals from "./pages/AdminAccessApprovals";
 import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
