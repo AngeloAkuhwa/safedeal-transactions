@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
 
     const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
       data: { full_name: existing.full_name },
-      redirectTo: origin,
+      redirectTo: `${origin}/accept-invite`,
     });
     if (inviteErr && !/already/i.test(inviteErr.message)) {
       return json(400, { error: "invite_failed", detail: inviteErr.message });
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
   let newUserId: string | undefined;
   const { data: authRes, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { full_name: fullName },
-    redirectTo: origin,
+    redirectTo: `${origin}/accept-invite`,
   });
   if (authRes?.user?.id) {
     newUserId = authRes.user.id;
@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
     try {
       await admin.auth.admin.inviteUserByEmail(email, {
         data: { full_name: fullName },
-        redirectTo: origin,
+        redirectTo: `${origin}/accept-invite`,
       });
     } catch { /* ignore */ }
   } else {
