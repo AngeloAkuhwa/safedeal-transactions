@@ -6,8 +6,9 @@ import {
   fetchAccessDirectory,
   inviteInternalUser,
   updateUserRoles,
-  updatePermissionOverrides,
   suspendInternalUser,
+  suspendUserAtomic,
+  submitRoleChangeRequest,
   reactivateInternalUser,
   deactivateInternalUser,
   resendInternalUserInvite,
@@ -26,6 +27,7 @@ import { ChangeRoleDrawer } from "@/components/admin/access-control/ChangeRoleDr
 import { ReviewPermissionsDrawer } from "@/components/admin/access-control/ReviewPermissionsDrawer";
 import { UserDetailsDrawer } from "@/components/admin/access-control/UserDetailsDrawer";
 import { SuspendUserDialog } from "@/components/admin/access-control/SuspendUserDialog";
+import { ReactivateUserDialog } from "@/components/admin/access-control/ReactivateUserDialog";
 import { ActionConfirmDialog } from "@/components/admin/access-control/ActionConfirmDialog";
 import { LoadingSkeleton } from "@/components/admin/access-control/LoadingSkeleton";
 import { EmptyState } from "@/components/admin/access-control/EmptyState";
@@ -51,6 +53,7 @@ export default function AdminAccessControl() {
   const [changeRoleUser, setChangeRoleUser] = useState<InternalUser | null>(null);
   const [permsUser, setPermsUser] = useState<InternalUser | null>(null);
   const [suspendUser, setSuspendUser] = useState<InternalUser | null>(null);
+  const [reactivateUser, setReactivateUser] = useState<InternalUser | null>(null);
   const [deactivateUser, setDeactivateUser] = useState<InternalUser | null>(null);
   const [resendUser, setResendUser] = useState<InternalUser | null>(null);
 
@@ -118,15 +121,25 @@ export default function AdminAccessControl() {
     onError: failToast("Could not update roles"),
   });
 
-  const permsMut = useMutation({
-    mutationFn: updatePermissionOverrides,
-    onSuccess: () => { toast({ title: "Permissions updated" }); invalidate(); },
-    onError: failToast("Could not update permissions"),
+  const roleRequestMut = useMutation({
+    mutationFn: submitRoleChangeRequest,
+    onSuccess: () => {
+      toast({ title: "Approval requested", description: "Role change queued for review." });
+      invalidate();
+    },
+    onError: failToast("Could not submit role change"),
   });
 
   const suspendMut = useMutation({
-    mutationFn: suspendInternalUser,
-    onSuccess: () => { toast({ title: "User suspended", variant: "destructive" }); invalidate(); },
+    mutationFn: suspendUserAtomic,
+    onSuccess: (r) => {
+      toast({
+        title: "User suspended",
+        description: r.revoked_sessions > 0 ? `${r.revoked_sessions} session(s) revoked.` : undefined,
+        variant: "destructive",
+      });
+      invalidate();
+    },
     onError: failToast("Could not suspend user"),
   });
 
@@ -218,9 +231,25 @@ export default function AdminAccessControl() {
         user={changeRoleUser}
         open={!!changeRoleUser}
         onOpenChange={(o) => { if (!o) setChangeRoleUser(null); }}
-        onSubmit={async (roles, primary, reason) => {
+        onSubmit={async (s) => {
           if (!changeRoleUser) return;
-          await roleMut.mutateAsync({ user_id: changeRoleUser.id, roles, primary_role: primary, reason });
+          if (s.requiresApproval) {
+            await roleRequestMut.mutateAsync({
+              user_id: changeRoleUser.id,
+              roles: s.roles,
+              primary_role: s.primary,
+              effective_at: s.effective_at,
+              expires_at: s.expires_at,
+              reason: s.reason,
+            });
+          } else {
+            await roleMut.mutateAsync({
+              user_id: changeRoleUser.id,
+              roles: s.roles,
+              primary_role: s.primary,
+              reason: s.reason,
+            });
+          }
         }}
       />
 
@@ -228,10 +257,6 @@ export default function AdminAccessControl() {
         user={permsUser}
         open={!!permsUser}
         onOpenChange={(o) => { if (!o) setPermsUser(null); }}
-        onSubmit={async (grants, revokes, reason) => {
-          if (!permsUser) return;
-          await permsMut.mutateAsync({ user_id: permsUser.id, grants, revokes, reason });
-        }}
       />
 
       <UserDetailsDrawer
@@ -242,17 +267,28 @@ export default function AdminAccessControl() {
         onChangeRole={(u) => { setDetailsUser(null); setHistoryUser(null); setChangeRoleUser(u); }}
         onReviewPermissions={(u) => { setDetailsUser(null); setHistoryUser(null); setPermsUser(u); }}
         onSuspend={(u) => { setDetailsUser(null); setHistoryUser(null); setSuspendUser(u); }}
-        onReactivate={(u) => { setDetailsUser(null); setHistoryUser(null); reactivateMut.mutate({ user_id: u.id, reason: "Reactivated from user drawer" }); }}
+        onReactivate={(u) => { setDetailsUser(null); setHistoryUser(null); setReactivateUser(u); }}
       />
 
       <SuspendUserDialog
         user={suspendUser}
         open={!!suspendUser}
         onOpenChange={(o) => { if (!o) setSuspendUser(null); }}
-        onConfirm={async (reason) => {
+        onConfirm={async (s) => {
           if (!suspendUser) return;
-          await suspendMut.mutateAsync({ user_id: suspendUser.id, reason });
+          await suspendMut.mutateAsync({ user_id: suspendUser.id, ...s });
           setSuspendUser(null);
+        }}
+      />
+
+      <ReactivateUserDialog
+        user={reactivateUser}
+        open={!!reactivateUser}
+        onOpenChange={(o) => { if (!o) setReactivateUser(null); }}
+        onConfirm={async (reason) => {
+          if (!reactivateUser) return;
+          await reactivateMut.mutateAsync({ user_id: reactivateUser.id, reason });
+          setReactivateUser(null);
         }}
       />
 
