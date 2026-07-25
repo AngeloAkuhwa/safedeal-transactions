@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import AcceptInvite from "./pages/AcceptInvite";
 import RoleSelection from "./pages/RoleSelection";
 import Dashboard from "./pages/Dashboard";
 import BuyerMarketplace from "./pages/BuyerMarketplace";
@@ -101,6 +102,7 @@ const App = () => (
             <Route path="/t/:shareToken/pay" element={<BuyerPaymentSummary />} />
             <Route path="/t/:shareToken/cancelled" element={<TransactionCancelled />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/accept-invite" element={<AcceptInvite />} />
             <Route path="/store/:sellerSlug" element={<PublicStorefront />} />
             <Route path="/store/:sellerSlug/:productSlug" element={<PublicProductDetail />} />
             <Route path="/offer/:offerToken" element={<OfferClaimLanding />} />
