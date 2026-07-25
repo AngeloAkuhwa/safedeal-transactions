@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Info, Lock } from "lucide-react";
+import {
+  Building2, CheckCircle2, IdCard, Info, KeyRound, Loader2, Lock, Send, XCircle,
+} from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +21,7 @@ import {
 } from "@/services/admin-access-control.service";
 import { isProtectedRole, ROLE_LABEL } from "@/services/permission-catalog";
 import { DEPARTMENTS } from "@/services/departments.catalog";
+import { getTeamsForDepartment } from "@/services/teams.catalog";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
@@ -29,12 +32,31 @@ interface Props {
 
 const INITIAL_ROLES: InternalRoleKey[] = ["support_agent"];
 
+const OTHER_TEAM = "__other__";
+
+function SectionHeader({
+  icon, title, helper,
+}: { icon: ReactNode; title: string; helper: string }) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+        {icon}
+      </div>
+      <div>
+        <div className="text-sm font-semibold text-foreground">{title}</div>
+        <div className="text-xs text-muted-foreground">{helper}</div>
+      </div>
+    </div>
+  );
+}
+
 export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName]   = useState("");
   const [email, setEmail]         = useState("");
   const [department, setDepartment] = useState<string>("");
   const [team, setTeam]           = useState("");
+  const [teamPick, setTeamPick]   = useState<string>(""); // dropdown value
   const [jobTitle, setJobTitle]   = useState("");
   const [managerId, setManagerId] = useState<string>("");
   const [expiresAt, setExpiresAt] = useState("");
@@ -50,7 +72,7 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
 
   const reset = () => {
     setFirstName(""); setLastName(""); setEmail("");
-    setDepartment(""); setTeam(""); setJobTitle(""); setManagerId("");
+    setDepartment(""); setTeam(""); setTeamPick(""); setJobTitle(""); setManagerId("");
     setExpiresAt(""); setReason("");
     setRoles(INITIAL_ROLES); setPrimary("support_agent");
     setRequire2fa(true); setSendNow(true);
@@ -58,6 +80,9 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
   };
 
   useEffect(() => { if (!open) reset(); }, [open]);
+
+  // Reset team whenever department changes to avoid stale mismatches.
+  useEffect(() => { setTeamPick(""); setTeam(""); }, [department]);
 
   // Debounced duplicate-email check.
   useEffect(() => {
@@ -98,6 +123,8 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
   const requiresApproval = roles.some(isProtectedRole);
   const selectedManager = managersQ.data?.find((m) => m.id === managerId);
   const primaryLabel = primary ? ROLE_LABEL[primary] : "";
+  const teamOptions = useMemo(() => getTeamsForDepartment(department), [department]);
+  const teamDisabled = !department;
 
   const buildInput = (): InviteUserInput | null => {
     if (!primary) return null;
@@ -148,14 +175,29 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
-        <SheetHeader><SheetTitle>Invite internal user</SheetTitle></SheetHeader>
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-[980px] p-0 flex flex-col gap-0 overflow-hidden"
+      >
+        {/* Sticky header */}
+        <SheetHeader className="shrink-0 border-b border-border bg-muted/30 px-6 py-4">
+          <SheetTitle className="text-lg">Invite internal user</SheetTitle>
+          <p className="text-xs text-muted-foreground">
+            Set up a teammate's identity, placement and access. Privileged roles require approval.
+          </p>
+        </SheetHeader>
 
-        <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_18rem]">
-          <div className="space-y-5">
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="min-w-0 space-y-5">
             {/* Identity */}
-            <section className="space-y-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Identity</h4>
+            <section className="rounded-xl border border-border/60 bg-card/40 p-4 space-y-3">
+              <SectionHeader
+                icon={<IdCard className="h-3.5 w-3.5" />}
+                title="Identity"
+                helper="Who is this teammate and how do we reach them."
+              />
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>First name<span className="text-rose-400"> *</span></Label>
@@ -168,14 +210,30 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
               </div>
               <div className="space-y-1.5">
                 <Label>Work email<span className="text-rose-400"> *</span></Label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ada@safedeal.com"
-                />
-                {emailChecking && <div className="text-[11px] text-muted-foreground">Checking availability…</div>}
-                {emailTaken === true && <div className="text-[11px] text-rose-400">That email is already assigned to an internal user.</div>}
+                <div className="relative">
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="ada@safedeal.com"
+                    className="pr-9"
+                  />
+                  <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
+                    {emailChecking ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                    ) : emailTaken === true ? (
+                      <XCircle className="h-3.5 w-3.5 text-rose-400" />
+                    ) : emailTaken === false && email.trim() ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                    ) : null}
+                  </div>
+                </div>
+                {emailTaken === true && (
+                  <div className="text-[11px] text-rose-400">Already assigned to an internal user.</div>
+                )}
+                {emailTaken === false && email.trim() && !emailChecking && (
+                  <div className="text-[11px] text-emerald-400">Email is available.</div>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label>Employee ID</Label>
@@ -184,7 +242,7 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
                     readOnly
                     value=""
                     placeholder="Auto-generated on invite"
-                    className="pr-8 font-mono text-sm"
+                    className="pr-8 font-mono text-sm border-dashed bg-muted/40 cursor-not-allowed"
                     aria-readonly
                   />
                   <Lock className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -196,8 +254,12 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
             </section>
 
             {/* Placement */}
-            <section className="space-y-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placement</h4>
+            <section className="rounded-xl border border-border/60 bg-card/40 p-4 space-y-3">
+              <SectionHeader
+                icon={<Building2 className="h-3.5 w-3.5" />}
+                title="Placement"
+                helper="Where they sit in the org and who they report to."
+              />
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Department<span className="text-rose-400"> *</span></Label>
@@ -212,7 +274,33 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Team</Label>
-                  <Input value={team} onChange={(e) => setTeam(e.target.value)} placeholder="e.g. High-value cases" />
+                  <Select
+                    value={teamPick}
+                    onValueChange={(v) => {
+                      setTeamPick(v);
+                      if (v !== OTHER_TEAM) setTeam(v);
+                      else setTeam("");
+                    }}
+                    disabled={teamDisabled}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={teamDisabled ? "Select a department first" : "Select team"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teamOptions.map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                      <SelectItem value={OTHER_TEAM}>Other…</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {teamPick === OTHER_TEAM && (
+                    <Input
+                      value={team}
+                      onChange={(e) => setTeam(e.target.value)}
+                      placeholder="Type team name"
+                      className="mt-1"
+                    />
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Job title</Label>
@@ -231,21 +319,32 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
                       ))}
                     </SelectContent>
                   </Select>
+                  {selectedManager && (
+                    <div className="text-[11px] text-muted-foreground">
+                      Reports to <span className="text-foreground/80">{selectedManager.full_name}</span>
+                      {selectedManager.role && (
+                        <> · <span className="text-foreground/60">{ROLE_LABEL[selectedManager.role]}</span></>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
 
             {/* Access */}
-            <section className="space-y-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Access</h4>
+            <section className="rounded-xl border border-border/60 bg-card/40 p-4 space-y-3">
+              <SectionHeader
+                icon={<KeyRound className="h-3.5 w-3.5" />}
+                title="Access"
+                helper="Assign roles, expiry and justification."
+              />
               <div className="space-y-1.5">
                 <Label>Roles (star marks primary)<span className="text-rose-400"> *</span></Label>
                 <RolePicker roles={roles} primaryRole={primary} onChange={(r, p) => { setRoles(r); setPrimary(p); }} />
-                {selectedManager && primary && (
+                {primary && (
                   <div className="text-[11px] text-muted-foreground">
-                    Reports to <span className="text-foreground/80">{selectedManager.full_name}</span>
-                    {selectedManager.role ? <> · <span className="text-foreground/60">{ROLE_LABEL[selectedManager.role]}</span></> : null}
-                    {primaryLabel && <> · Primary role <span className="text-foreground/80">{primaryLabel}</span></>}
+                    Primary role: <span className="text-foreground/80">{primaryLabel}</span>
+                    {selectedManager && <> · Reports to <span className="text-foreground/80">{selectedManager.full_name}</span></>}
                   </div>
                 )}
               </div>
@@ -271,15 +370,12 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
             </section>
 
             {/* Delivery */}
-            <section className="space-y-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Delivery</h4>
-              <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 p-3">
-                <div>
-                  <div className="text-sm font-medium">Send invitation immediately</div>
-                  <div className="text-xs text-muted-foreground">Turn off to create the user in a pending state.</div>
-                </div>
-                <Switch checked={sendNow} onCheckedChange={setSendNow} />
-              </div>
+            <section className="rounded-xl border border-border/60 bg-card/40 p-4 space-y-3">
+              <SectionHeader
+                icon={<Send className="h-3.5 w-3.5" />}
+                title="Delivery & security"
+                helper="How the invite is sent and initial MFA policy."
+              />
               <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 p-3">
                 <div>
                   <div className="text-sm font-medium">Require 2FA</div>
@@ -292,18 +388,29 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
             {error && (
               <div className="rounded-md border border-rose-500/40 bg-rose-500/10 p-2 text-xs text-rose-300">{error}</div>
             )}
+          </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+          <aside className="lg:sticky lg:top-0 lg:self-start">
+            <RoleSummaryCard role={primary} rolePermissions={rolePermsQ.data} />
+          </aside>
+        </div>
+        </div>
+
+        {/* Sticky footer */}
+        <div className="shrink-0 border-t border-border bg-background/95 px-6 py-3 backdrop-blur">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <label className="flex items-center gap-2 text-xs">
+              <Switch checked={sendNow} onCheckedChange={setSendNow} />
+              <span className="text-foreground/80">Send invitation immediately</span>
+              <span className="text-muted-foreground">— off keeps the user pending.</span>
+            </label>
+            <div className="flex gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               <Button onClick={submit} disabled={saving || !canSubmit}>
                 {saving ? "Working…" : primaryCta}
               </Button>
             </div>
           </div>
-
-          <aside className="lg:sticky lg:top-4 lg:h-fit">
-            <RoleSummaryCard role={primary} rolePermissions={rolePermsQ.data} />
-          </aside>
         </div>
       </SheetContent>
     </Sheet>
