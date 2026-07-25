@@ -11,6 +11,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
   const location = useLocation();
+  const isAdminPath = location.pathname.startsWith("/admin");
   const [status, setStatus] = useState<
     "loading" | "authenticated" | "unauthenticated" | "needs-role" | "wrong-role"
   >("loading");
@@ -44,7 +45,7 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
           if (!mounted) return;
           if (internal) {
             setIsInternal(true);
-            setStatus("wrong-role");
+            setStatus(requireRole === "admin" && isAdminPath ? "authenticated" : "wrong-role");
             return;
           }
           setStatus("needs-role");
@@ -53,6 +54,15 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
 
         if (typeof requireRole === "string") {
           if (!roleNames.includes(requireRole)) {
+            if (requireRole === "admin" && isAdminPath) {
+              const internal = await isInternalUser(session.user.id);
+              if (!mounted) return;
+              if (internal) {
+                setIsInternal(true);
+                setStatus("authenticated");
+                return;
+              }
+            }
             setStatus("wrong-role");
             return;
           }
@@ -74,7 +84,7 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [requireRole]);
+  }, [requireRole, isAdminPath]);
 
   if (status === "loading") {
     return <BrandedAuthSplash />;
@@ -93,6 +103,9 @@ const ProtectedRoute = ({ requireRole = false }: ProtectedRouteProps) => {
   if (status === "wrong-role") {
     // Internal team members always belong in the admin workspace.
     if (isInternal) {
+      if (isAdminPath) {
+        return <Outlet />;
+      }
       return <Navigate to="/admin/dashboard" replace />;
     }
     // Admins always go to admin dashboard, regardless of which non-admin route they tried.
