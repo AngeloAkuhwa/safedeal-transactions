@@ -35,16 +35,20 @@ export function AdminPermissionsProvider({ children }: { children: ReactNode }) 
   const lastFetchRef = useRef<number>(0);
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const { data: resp, error: fnErr } = await supabase.functions.invoke("admin-me");
-      if (fnErr) throw fnErr;
+      if (fnErr) {
+        const status = "context" in fnErr && fnErr.context instanceof Response ? ` (${fnErr.context.status})` : "";
+        throw new Error(`${fnErr.message}${status}`);
+      }
       setData(resp as AdminMePayload);
       setError(null);
       lastFetchRef.current = Date.now();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
-      setData({ user_id: "", email: null, roles: [], permissions: [], access_level: "limited", is_super: false });
+      setError(msg || "Could not load admin permissions.");
+      setData((current) => current);
     } finally {
       setLoading(false);
     }
