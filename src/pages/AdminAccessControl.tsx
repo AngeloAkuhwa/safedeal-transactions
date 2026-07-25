@@ -11,6 +11,8 @@ import {
   reactivateInternalUser,
   deactivateInternalUser,
   resendInternalUserInvite,
+  deleteInvitedInternalUser,
+  extendInternalUserAccess,
   type AccessFilter,
   type InternalUser,
 } from "@/services/admin-access-control.service";
@@ -28,6 +30,7 @@ import { UserDetailsDrawer } from "@/components/admin/access-control/UserDetails
 import { SuspendUserDialog } from "@/components/admin/access-control/SuspendUserDialog";
 import { ReactivateUserDialog } from "@/components/admin/access-control/ReactivateUserDialog";
 import { ActionConfirmDialog } from "@/components/admin/access-control/ActionConfirmDialog";
+import { ExtendAccessDialog } from "@/components/admin/access-control/ExtendAccessDialog";
 import { LoadingSkeleton } from "@/components/admin/access-control/LoadingSkeleton";
 import { EmptyState } from "@/components/admin/access-control/EmptyState";
 import { ErrorState } from "@/components/admin/access-control/ErrorState";
@@ -55,6 +58,8 @@ export default function AdminAccessControl() {
   const [reactivateUser, setReactivateUser] = useState<InternalUser | null>(null);
   const [deactivateUser, setDeactivateUser] = useState<InternalUser | null>(null);
   const [resendUser, setResendUser] = useState<InternalUser | null>(null);
+  const [deleteUser, setDeleteUser] = useState<InternalUser | null>(null);
+  const [extendUser, setExtendUser] = useState<InternalUser | null>(null);
 
   const query = useMemo(() => ({
     filter,
@@ -173,6 +178,24 @@ export default function AdminAccessControl() {
     onError: failToast("Could not resend invitation"),
   });
 
+  const deleteMut = useMutation({
+    mutationFn: deleteInvitedInternalUser,
+    onSuccess: () => {
+      toast({ title: "User deleted", description: "You can now re-invite with the same email." });
+      invalidate();
+    },
+    onError: failToast("Could not delete user"),
+  });
+
+  const extendMut = useMutation({
+    mutationFn: extendInternalUserAccess,
+    onSuccess: () => {
+      toast({ title: "Access updated", description: "Change recorded in audit trail." });
+      invalidate();
+    },
+    onError: failToast("Could not update access expiry"),
+  });
+
   return (
     <AdminLayout
       title="Access & Role Management"
@@ -217,6 +240,8 @@ export default function AdminAccessControl() {
                 onReactivate={(u) => setReactivateUser(u)}
                 onDeactivate={(u) => setDeactivateUser(u)}
                 onResendInvite={(u) => setResendUser(u)}
+                onDeleteInvited={(u) => setDeleteUser(u)}
+                onExtendAccess={(u) => setExtendUser(u)}
               />
               <TableToolbar
                 total={data.total}
@@ -333,6 +358,39 @@ export default function AdminAccessControl() {
           if (!resendUser) return;
           await resendMut.mutateAsync({ user_id: resendUser.id, email: resendUser.email, full_name: resendUser.full_name });
           setResendUser(null);
+        }}
+      />
+
+      <ActionConfirmDialog
+        open={!!deleteUser}
+        onOpenChange={(o) => { if (!o) setDeleteUser(null); }}
+        title={deleteUser?.status === "invited" ? "Delete invited user?" : "Delete user?"}
+        description={
+          deleteUser
+            ? `${deleteUser.full_name} (${deleteUser.email}) will be removed permanently. This is only allowed because the user is ${deleteUser.status}. You will be able to re-invite this email afterward.`
+            : ""
+        }
+        confirmLabel="Delete"
+        variant="destructive"
+        requireReason
+        onConfirm={async (reason) => {
+          if (!deleteUser) return;
+          await deleteMut.mutateAsync({
+            user_id: deleteUser.id,
+            reason: reason ?? "Deleted before onboarding",
+          });
+          setDeleteUser(null);
+        }}
+      />
+
+      <ExtendAccessDialog
+        user={extendUser}
+        open={!!extendUser}
+        onOpenChange={(o) => { if (!o) setExtendUser(null); }}
+        onConfirm={async ({ new_expires_at, reason }) => {
+          if (!extendUser) return;
+          await extendMut.mutateAsync({ user_id: extendUser.id, new_expires_at, reason });
+          setExtendUser(null);
         }}
       />
     </AdminLayout>
