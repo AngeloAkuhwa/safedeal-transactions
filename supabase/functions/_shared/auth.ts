@@ -39,12 +39,28 @@ export async function requireUser(req: Request): Promise<AuthContext> {
  */
 export async function requireAdmin(req: Request): Promise<AuthContext> {
   const ctx = await requireUser(req);
-  const { data: hasRole, error } = await ctx.adminClient.rpc("has_role", {
-    _user_id: ctx.userId,
-    _role: "admin",
-  });
-  if (error) throw new AuthError(500, "role_check_failed");
-  if (!hasRole) throw new AuthError(403, "admin_required");
+  // Accept either the legacy consumer `admin` role OR any internal
+  // (back-office) role. Internal teammates like support_agent, auditor,
+  // finance_ops, etc. don't have rows in `user_roles` — their access
+  // comes from `internal_user_roles`.
+  const [{ data: hasConsumerAdmin, error: consumerErr }, { data: hasInternal, error: internalErr }] =
+    await Promise.all([
+      ctx.adminClient.rpc("has_role", { _user_id: ctx.userId, _role: "admin" }),
+      ctx.adminClient.rpc("has_any_internal_role", {
+        _user_id: ctx.userId,
+        _role_keys: [
+          "super_admin", "senior_admin",
+          "dispute_manager", "dispute_agent",
+          "support_agent",
+          "identity_officer",
+          "finance_operator", "finance_approver",
+          "compliance_officer",
+          "auditor",
+        ],
+      }),
+    ]);
+  if (consumerErr || internalErr) throw new AuthError(500, "role_check_failed");
+  if (!hasConsumerAdmin && !hasInternal) throw new AuthError(403, "admin_required");
 
   // Optional AAL2 gate — enforced when platform setting
   // `security.two_factor_admin` is truthy. Fails open on read errors so a
