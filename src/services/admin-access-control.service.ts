@@ -23,7 +23,13 @@ export type { AccessLevel, InternalRoleKey, PermissionModule };
 
 export type InternalRole = InternalRoleKey;
 
-export type InternalUserStatus = "active" | "suspended" | "pending" | "invited";
+export type InternalUserStatus =
+  | "active"
+  | "suspended"
+  | "pending_approval"
+  | "invited"
+  | "locked"
+  | "deactivated";
 
 export interface InternalUser {
   id: string;
@@ -53,21 +59,38 @@ export interface AccessSummary {
   suspended_users: number;
   suspended_delta_week: number;
   full_access_users: number;
+  pending_invites: number;
+  pending_approvals: number;
+  suspended_or_locked: number;
+  privileged_users: number;
 }
 
 export type AccessFilter =
   | "all" | "admins" | "agents" | "finance"
   | "compliance" | "identity" | "auditors"
-  | "suspended" | "critical";
+  | "suspended" | "critical"
+  | "invited" | "pending_approval" | "suspended_or_locked" | "privileged";
 
 export interface AccessDirectoryQuery {
   filter?: AccessFilter;
   q?: string;
+  role?: InternalRoleKey | null;
+  department?: string | null;
+  status?: InternalUserStatus | null;
+  access_level?: AccessLevel | null;
+  sort_by?: "name" | "role" | "status" | "access_level" | "last_active";
+  sort_dir?: "asc" | "desc";
+  page?: number;
+  page_size?: number;
 }
 
 export interface AccessDirectoryResponse {
   summary: AccessSummary;
   rows: InternalUser[];
+  total: number;
+  page: number;
+  page_size: number;
+  departments: string[];
 }
 
 export interface AccessAuditEntry {
@@ -117,6 +140,10 @@ function passesFilter(u: InternalUser, f: AccessFilter): boolean {
     case "auditors":   return overlaps(u.roles, AUDITOR_ROLES);
     case "suspended":  return u.status === "suspended";
     case "critical":   return u.access_level === "full" || u.access_level === "high";
+    case "invited":            return u.status === "invited";
+    case "pending_approval":   return u.status === "pending_approval";
+    case "suspended_or_locked":return u.status === "suspended" || u.status === "locked";
+    case "privileged":         return u.access_level === "full" || u.access_level === "high";
     case "all":
     default:           return true;
   }
@@ -208,7 +235,7 @@ export async function fetchAccessDirectory(q: AccessDirectoryQuery = {}): Promis
 
   const filter = q.filter ?? "all";
   const search = (q.q ?? "").trim().toLowerCase();
-  const rows = all
+  let rows = all
     .filter((u) => passesFilter(u, filter))
     .filter((u) => {
       if (!search) return true;
@@ -217,7 +244,44 @@ export async function fetchAccessDirectory(q: AccessDirectoryQuery = {}): Promis
         ...u.roles.map((r) => ROLE_LABEL[r] ?? r),
       ].join(" ").toLowerCase();
       return hay.includes(search);
-    });
+    })
+    .filter((u) => (q.role ? u.roles.includes(q.role) : true))
+    .filter((u) => (q.department ? (u.department ?? "") === q.department : true))
+    .filter((u) => (q.status ? u.status === q.status : true))
+    .filter((u) => (q.access_level ? u.access_level === q.access_level : true));
+
+  const sortBy = q.sort_by ?? "last_active";
+  const dir = (q.sort_dir ?? "desc") === "asc" ? 1 : -1;
+  const accessRank: Record<AccessLevel, number> = { full: 4, high: 3, standard: 2, limited: 1 };
+  const statusRank: Record<InternalUserStatus, number> = {
+    active: 6, invited: 5, pending_approval: 4, suspended: 3, locked: 2, deactivated: 1,
+  };
+  rows.sort((a, b) => {
+    let cmp = 0;
+    switch (sortBy) {
+      case "name": cmp = a.full_name.localeCompare(b.full_name); break;
+      case "role": cmp = (ROLE_LABEL[a.primary_role] ?? "").localeCompare(ROLE_LABEL[b.primary_role] ?? ""); break;
+      case "status": cmp = statusRank[a.status] - statusRank[b.status]; break;
+      case "access_level": cmp = accessRank[a.access_level] - accessRank[b.access_level]; break;
+      case "last_active":
+      default: {
+        const at = a.last_active_at ? new Date(a.last_active_at).getTime() : 0;
+        const bt = b.last_active_at ? new Date(b.last_active_at).getTime() : 0;
+        cmp = at - bt;
+      }
+    }
+    return cmp * dir;
+  });
+
+  const total = rows.length;
+  const page_size = Math.max(1, q.page_size ?? 25);
+  const page = Math.max(1, q.page ?? 1);
+  const start = (page - 1) * page_size;
+  const pagedRows = rows.slice(start, start + page_size);
+
+  const departments = Array.from(
+    new Set(all.map((u) => u.department).filter((d): d is string => !!d)),
+  ).sort();
 
   const summary: AccessSummary = {
     active_admins: all.filter((u) => overlaps(u.roles, ADMIN_ROLES) && u.status === "active").length,
@@ -227,9 +291,13 @@ export async function fetchAccessDirectory(q: AccessDirectoryQuery = {}): Promis
     suspended_users: all.filter((u) => u.status === "suspended").length,
     suspended_delta_week: 0,
     full_access_users: all.filter((u) => u.access_level === "full").length,
+    pending_invites: all.filter((u) => u.status === "invited").length,
+    pending_approvals: all.filter((u) => u.status === "pending_approval").length,
+    suspended_or_locked: all.filter((u) => u.status === "suspended" || u.status === "locked").length,
+    privileged_users: all.filter((u) => u.access_level === "full" || u.access_level === "high").length,
   };
 
-  return { summary, rows };
+  return { summary, rows: pagedRows, total, page, page_size, departments };
 }
 
 // ---------- Audit history ----------
@@ -432,6 +500,28 @@ export async function reactivateInternalUser(input: SuspendInput): Promise<void>
   await auditLog(input.user_id, "access_user_reactivated", `Reactivated: ${input.reason}`, "info", { reason: input.reason });
 }
 
+export async function deactivateInternalUser(input: SuspendInput): Promise<void> {
+  const { error } = await supabase
+    .from("internal_users")
+    .update({ status: "deactivated" })
+    .eq("id", input.user_id);
+  if (error) throw error;
+  await auditLog(input.user_id, "access_user_deactivated",
+    `Deactivated (retained for audit): ${input.reason}`, "critical", { reason: input.reason });
+}
+
+export async function resendInternalUserInvite(input: { user_id: string; email: string; full_name: string; }): Promise<void> {
+  try {
+    await supabase.functions.invoke("admin-invite-internal-user", {
+      body: { ...input, resend: true },
+    });
+  } catch {
+    /* best-effort — still audit */
+  }
+  await auditLog(input.user_id, "access_invite_resent",
+    `Resent invitation to ${input.email}`, "info", { email: input.email });
+}
+
 export interface InviteUserInput {
   full_name: string;
   email: string;
@@ -528,8 +618,10 @@ export async function reviewAccessChangeRequest(id: string, decision: "approve" 
 export const STATUS_LABEL: Record<InternalUserStatus, string> = {
   active: "Active",
   suspended: "Suspended",
-  pending: "Pending",
+  pending_approval: "Pending Approval",
   invited: "Invited",
+  locked: "Locked",
+  deactivated: "Deactivated",
 };
 
 export function accessDotClass(level: AccessLevel): string {
