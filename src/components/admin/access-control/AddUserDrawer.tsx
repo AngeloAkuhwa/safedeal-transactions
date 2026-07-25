@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RolePicker } from "./RolePicker";
 import { RoleSummaryCard } from "./RoleSummaryCard";
+import { useDrawerSafety } from "@/hooks/useDrawerSafety";
+import { useMutationOnce } from "@/hooks/useMutationOnce";
 import {
   checkEmailAvailability,
   fetchReportingManagerOptions,
@@ -68,7 +70,6 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
   const [emailTaken, setEmailTaken] = useState<boolean | null>(null);
   const [emailChecking, setEmailChecking] = useState(false);
   const [error, setError]         = useState<string | null>(null);
-  const [saving, setSaving]       = useState(false);
 
   const reset = () => {
     setFirstName(""); setLastName(""); setEmail("");
@@ -156,25 +157,28 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firstName, lastName, email, department, roles, primary, reason, emailTaken]);
 
-  const submit = async () => {
+  const isDirty = !!(firstName || lastName || email || jobTitle || reason || managerId);
+  const { attemptClose } = useDrawerSafety({ open, isDirty, onClose: () => onOpenChange(false) });
+  const submitOnce = useMutationOnce(async () => {
     const draft = buildInput();
     if (!draft) return;
     const v = validateInviteInput(draft);
     if (v.ok === false) { setError(v.error); return; }
     if (emailTaken) { setError("A user with that email already exists."); return; }
-    setError(null); setSaving(true);
+    setError(null);
     try {
       await onSubmit(draft);
       onOpenChange(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not send invite.");
-    } finally { setSaving(false); }
-  };
+    }
+  });
+  const saving = submitOnce.pending;
 
   const primaryCta = sendNow ? "Send invitation" : "Save as pending";
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={(v) => { if (!v) attemptClose(); else onOpenChange(v); }}>
       <SheetContent
         side="right"
         className="w-full sm:max-w-[980px] p-0 flex flex-col gap-0 overflow-hidden"
@@ -405,8 +409,8 @@ export function AddUserDrawer({ open, onOpenChange, onSubmit }: Props) {
               <span className="text-muted-foreground">— off keeps the user pending.</span>
             </label>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={submit} disabled={saving || !canSubmit}>
+              <Button variant="outline" onClick={attemptClose}>Cancel</Button>
+              <Button onClick={() => submitOnce.run()} disabled={saving || !canSubmit}>
                 {saving ? "Working…" : primaryCta}
               </Button>
             </div>
