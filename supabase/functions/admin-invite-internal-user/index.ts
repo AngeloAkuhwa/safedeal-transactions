@@ -156,29 +156,53 @@ async function issueInviteEmail(admin: any, opts: {
   inviterName: string;
   roleLabel: string;
   redirectTo: string;
+  isExistingUser?: boolean;
 }): Promise<{ channel: EmailChannel; actionLink?: string; error?: string; userId?: string }> {
-  // 1) Generate the invite link (creates auth user if it doesn't exist, without sending an email).
-  const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-    type: "invite",
-    email: opts.email,
-    options: {
-      redirectTo: opts.redirectTo,
-      data: { full_name: opts.fullName },
-    },
-  });
+  // 1) Generate an action link.
+  //    - New user: try "invite" first (creates the auth user, does NOT email).
+  //    - Existing user (resend, or invite that races with an existing row):
+  //      use "recovery" — "invite" rejects registered users, and recovery
+  //      links drop the user into the same /accept-invite page to set a
+  //      password.
+  async function gen(type: "invite" | "recovery") {
+    return await admin.auth.admin.generateLink({
+      type,
+      email: opts.email,
+      options: {
+        redirectTo: opts.redirectTo,
+        data: { full_name: opts.fullName },
+      },
+    });
+  }
+
+  let linkData: any;
+  let linkErr: any;
+  if (opts.isExistingUser) {
+    ({ data: linkData, error: linkErr } = await gen("recovery"));
+  } else {
+    ({ data: linkData, error: linkErr } = await gen("invite"));
+    // Retry as recovery if the user already exists (leftover from a prior attempt).
+    if (linkErr && /already|registered|exist/i.test(linkErr.message ?? "")) {
+      console.warn("[invite] user already exists, retrying with recovery link");
+      ({ data: linkData, error: linkErr } = await gen("recovery"));
+    }
+  }
 
   const actionLink: string | undefined = linkData?.properties?.action_link ?? linkData?.action_link;
   const userId: string | undefined = linkData?.user?.id;
 
   if (linkErr || !actionLink) {
-    // Fallback: ask Supabase to send its default invite email so at least something goes out.
-    console.error("[invite] generateLink failed, falling back:", linkErr?.message);
-    const { data: fbData, error: fbErr } = await admin.auth.admin.inviteUserByEmail(opts.email, {
-      data: { full_name: opts.fullName },
-      redirectTo: opts.redirectTo,
-    });
-    if (fbErr) return { channel: "failed", error: fbErr.message };
-    return { channel: "supabase_default", userId: fbData?.user?.id };
+    console.error("[invite] generateLink failed:", linkErr?.message);
+    // Only try inviteUserByEmail for brand-new users; it rejects existing ones.
+    if (!opts.isExistingUser) {
+      const { data: fbData, error: fbErr } = await admin.auth.admin.inviteUserByEmail(opts.email, {
+        data: { full_name: opts.fullName },
+        redirectTo: opts.redirectTo,
+      });
+      if (fbErr) return { channel: "failed", error: fbErr.message };
+      return { channel: "supabase_default", userId: fbData?.user?.id };
+    }
+    return { channel: "failed", error: linkErr?.message ?? "no_action_link" };
   }
 
   // 2) Try Resend first with our branded template.
@@ -202,15 +226,19 @@ async function issueInviteEmail(admin: any, opts: {
   });
   if (resendResult.ok) return { channel: "resend", actionLink, userId };
 
-  // 3) Resend failed — fall back to Supabase's default invite email.
-  const { error: fbErr } = await admin.auth.admin.inviteUserByEmail(opts.email, {
-    data: { full_name: opts.fullName },
-    redirectTo: opts.redirectTo,
-  });
-  if (fbErr) {
-    return { channel: "failed", actionLink, userId, error: `resend_failed:${resendResult.status}; supabase_failed:${fbErr.message}` };
+  // 3) Resend failed. For new users, fall back to Supabase's default invite email.
+  //    For existing users, inviteUserByEmail rejects them — return failed.
+  if (!opts.isExistingUser) {
+    const { error: fbErr } = await admin.auth.admin.inviteUserByEmail(opts.email, {
+      data: { full_name: opts.fullName },
+      redirectTo: opts.redirectTo,
+    });
+    if (fbErr) {
+      return { channel: "failed", actionLink, userId, error: `resend_failed:${resendResult.status}; supabase_failed:${fbErr.message}` };
+    }
+    return { channel: "supabase_default", actionLink, userId, error: `resend_failed:${resendResult.status}` };
   }
-  return { channel: "supabase_default", actionLink, userId, error: `resend_failed:${resendResult.status}` };
+  return { channel: "failed", actionLink, userId, error: `resend_failed:${resendResult.status}:${resendResult.body}` };
 }
 
 async function lookupAuthUserId(admin: any, email: string): Promise<string | undefined> {
