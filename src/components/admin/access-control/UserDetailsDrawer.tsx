@@ -41,7 +41,7 @@ export function UserDetailsDrawer({
         <SheetHeader><SheetTitle>User details</SheetTitle></SheetHeader>
 
         <div className="mt-4 flex items-center gap-3">
-          <InitialsAvatar name={user.full_name} ring={user.access_level === "full" ? "critical" : user.access_level === "elevated" ? "elevated" : "none"} />
+          <InitialsAvatar name={user.full_name} ring={user.access_level === "full" ? "critical" : user.access_level === "high" ? "high" : "none"} />
           <div className="min-w-0">
             <div className="truncate text-base font-semibold text-foreground">{user.full_name}</div>
             <div className="text-xs text-muted-foreground">#{user.display_id} · {user.email}</div>
@@ -50,8 +50,16 @@ export function UserDetailsDrawer({
 
         <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
           <div className="rounded-lg border border-border bg-muted/40 p-3">
-            <div className="text-xs text-muted-foreground">Role</div>
-            <div className="mt-1"><RoleBadge role={user.role} /></div>
+            <div className="text-xs text-muted-foreground">Roles</div>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {user.roles.map((r) => (
+                <RoleBadge key={r} role={r} />
+              ))}
+              {user.roles.length === 0 && (
+                <span className="text-xs text-muted-foreground">No roles assigned</span>
+              )}
+            </div>
+            <div className="mt-1 text-[11px] text-muted-foreground">Primary: {user.primary_role}</div>
           </div>
           <div className="rounded-lg border border-border bg-muted/40 p-3">
             <div className="text-xs text-muted-foreground">Access</div>
