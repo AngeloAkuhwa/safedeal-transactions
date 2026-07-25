@@ -8,7 +8,7 @@
  * The client polls `admin-export-status` for progress and the final signed
  * download URL.
  */
-import { requireAdmin, authErrorResponse } from "../_shared/auth.ts";
+import { requireAdmin, requirePermission, authErrorResponse } from "../_shared/auth.ts";
 import { enforceAdminRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
@@ -27,6 +27,18 @@ const SUPPORTED_TYPES = new Set([
   "audit_logs",
 ]);
 
+// Per-export-type permission gating (Support Agent RBAC finalisation).
+// Every export must require its own module's `.export` permission so a role
+// that can only view users cannot pull the full users CSV.
+const EXPORT_PERMS: Record<string, string> = {
+  escrow:               "escrow.export",
+  users_directory:      "users_and_access.export",
+  flagged_users:        "flagged_users.export",
+  transactions_monitor: "transactions.export",
+  user_detail:          "users_and_access.export",
+  audit_logs:           "audit_logs.export",
+};
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -38,18 +50,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
-  let ctx;
-  try {
-    ctx = await requireAdmin(req);
-  } catch (err) {
-    const r = authErrorResponse(err, corsHeaders);
-    if (r) return r;
-    return json({ error: "auth_failed" }, 500);
-  }
-
-  const rl = await enforceAdminRateLimit(ctx, "export_enqueue", 20, corsHeaders);
-  if (rl) return rl;
-
+  // Parse body first so we know which export_type we're gating.
   let body: { export_type?: string; params?: Record<string, unknown> } = {};
   try {
     body = await req.json();
@@ -60,6 +61,22 @@ Deno.serve(async (req) => {
   if (!SUPPORTED_TYPES.has(exportType)) {
     return json({ error: "unsupported_export_type", detail: exportType }, 400);
   }
+
+  const requiredPerm = EXPORT_PERMS[exportType];
+  let ctx;
+  try {
+    ctx = requiredPerm
+      ? await requirePermission(req, requiredPerm)
+      : await requireAdmin(req);
+  } catch (err) {
+    const r = authErrorResponse(err, corsHeaders);
+    if (r) return r;
+    return json({ error: "auth_failed" }, 500);
+  }
+
+  const rl = await enforceAdminRateLimit(ctx, "export_enqueue", 20, corsHeaders);
+  if (rl) return rl;
+
   const params = body.params && typeof body.params === "object" ? body.params : {};
 
   const { data: job, error: insErr } = await ctx.adminClient

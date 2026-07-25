@@ -144,6 +144,15 @@ const HIGH_PERMISSIONS = new Set<string>([
   "users_and_access.manage_permissions",
 ]);
 
+// Suspension permission split (Support Agent RBAC finalisation):
+//   • `flagged_users.suspend`     — suspensions initiated from the Flagged
+//     Users queue (contextual to a risk signal). Wired in
+//     `admin-flagged-users-action`.
+//   • `users_and_access.suspend`  — directory-initiated suspensions from the
+//     Users & Access screen (independent of flags). Enforced on any
+//     directory-side suspend endpoint.
+// Both map to the same DB mutation but audit distinctly by source.
+
 const STANDARD_ACTIONS = /\.(create|update|assign|reassign|resolve|escalate|approve|reject)$/;
 
 export function deriveAccessLevel(perms: string[], roles: string[] = []): AccessLevel {

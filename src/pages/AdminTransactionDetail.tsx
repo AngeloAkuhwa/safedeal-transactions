@@ -21,7 +21,7 @@ import {
   freezeTransactionDetailed, unfreezeTransactionDetailed,
   upsertInvestigation, addInternalNoteDetailed,
   exportTransactionData,
-  resolveDispute, disputeRequestMoreInfo,
+  resolveDispute, disputeRequestMoreInfo, DisputeEscalationRequiredError,
 } from "@/services/admin-transaction-actions.service";
 import { formatMoney } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,7 @@ import { deriveDisputeDisplay } from "@/lib/dispute-display-status";
 import { deriveActiveState, riskBannerTone, visibleRiskFlags, flagChipTone } from "@/lib/admin-active-state";
 import { AdminCaseTimeline } from "@/components/admin/timeline/AdminCaseTimeline";
 import { performFlaggedAction } from "@/services/admin-flagged-users.service";
+import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 
 const ngn = (v: number | null | undefined) => formatMoney(v ?? 0, "NGN");
 
@@ -318,6 +319,12 @@ export default function AdminTransactionDetail() {
   const tx = data?.transaction;
   const dispute = data?.dispute;
   const adminCan = data?.adminActionsAvailable ?? {};
+  const { hasAny } = useAdminPermissions();
+  const canResolveDispute = hasAny([
+    "disputes.resolve_all",
+    "disputes.resolve_assigned",
+    "financial_controls.approve",
+  ]);
   const evidence: AdminTxEvidenceItem[] = data?.evidence ?? [];
   const lockedAgreement = data?.lockedAgreement ?? null;
 
@@ -923,7 +930,7 @@ export default function AdminTransactionDetail() {
                         <Scale className="h-4 w-4 mr-1.5" />
                         {active.isDisputeResolved ? "View Dispute" : "Manage Dispute"}
                       </Button>
-                      {!disputeResolved && dispute.status !== "closed" && (
+                      {!disputeResolved && dispute.status !== "closed" && canResolveDispute && (
                         <Button size="sm" variant="outline" className="border-emerald-500/40 text-emerald-300 hover:text-emerald-200" onClick={() => setResolveDisputeOpen(true)}>
                           <Scale className="h-4 w-4 mr-1.5" /> Resolve Dispute
                         </Button>
@@ -1749,7 +1756,14 @@ export default function AdminTransactionDetail() {
             await resolveDispute(transactionId, payload);
             toast.success("Dispute resolved");
             setReloadKey((k) => k + 1);
-          } catch (e) { toast.error((e as Error).message ?? "Failed to resolve dispute"); throw e; }
+          } catch (e) {
+            if (e instanceof DisputeEscalationRequiredError) {
+              toast.error("Escalation required", { description: e.reasons.join(" • ") || e.message });
+            } else {
+              toast.error((e as Error).message ?? "Failed to resolve dispute");
+            }
+            throw e;
+          }
         }}
         onRequestMoreInfo={async (payload) => {
           if (!transactionId) return;

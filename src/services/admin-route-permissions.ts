@@ -32,12 +32,19 @@ export const ADMIN_ROUTE_PERMISSIONS: AdminRoutePermission[] = [
   { path: "/admin/escrow",                  permission: "escrow.view" },
   { path: "/admin/payouts",                 permission: "financial_controls.view" },
   { path: "/admin/flagged-users/export",    permission: "flagged_users.export" },
+  // Nested action leaves — matched most-specific first by permissionForPath.
+  // Buttons/CTA visibility on parent pages perform additional fine-grained
+  // checks (e.g. disputes.resolve_assigned vs disputes.resolve_all).
+  { path: "/admin/flagged-users/:id/remove-flag", permission: "flagged_users.remove_flag" },
   { path: "/admin/flagged-users",           permission: "flagged_users.view" },
   { path: "/admin/users",                   permission: "users_and_access.view" },
   { path: "/admin/offers",                  permission: "transactions.view" },
   { path: "/admin/disputes/export",         permission: "disputes.export" },
+  { path: "/admin/disputes/:id/resolve",    permission: "disputes.resolve_all" },
+  { path: "/admin/disputes/:id/escalate",   permission: "disputes.escalate" },
   { path: "/admin/disputes",                permission: "disputes.view" },
   { path: "/admin/transactions/export",     permission: "transactions.export" },
+  { path: "/admin/transactions/:id/update", permission: "transactions.update" },
   { path: "/admin/transactions",            permission: "transactions.view" },
   { path: "/admin/dashboard",               permission: "dashboard.view" },
 ];
@@ -52,12 +59,24 @@ export function permissionForPath(pathname: string | null | undefined): string |
   // Normalise trailing slash.
   const p = pathname.replace(/\/+$/g, "") || "/";
   // Leaf-first: pick the LONGEST matching entry so nested action routes
-  // (e.g. /admin/transactions/export) take precedence over parent view perms.
+  // (e.g. /admin/transactions/export or /admin/disputes/:id/resolve) take
+  // precedence over parent view perms. Entries with ":id" segments match
+  // any single path segment.
+  const segs = p.split("/").filter(Boolean);
   let best: AdminRoutePermission | null = null;
   for (const entry of ADMIN_ROUTE_PERMISSIONS) {
-    if (p === entry.path || p.startsWith(entry.path + "/")) {
-      if (!best || entry.path.length > best.path.length) best = entry;
+    const eSegs = entry.path.split("/").filter(Boolean);
+    if (segs.length < eSegs.length) continue;
+    let match = true;
+    for (let i = 0; i < eSegs.length; i++) {
+      const e = eSegs[i];
+      if (e.startsWith(":")) continue; // wildcard segment
+      if (e !== segs[i]) { match = false; break; }
     }
+    // Only accept as prefix match if the entry either equals the path or
+    // is a strict prefix (i.e. followed by another segment).
+    if (!match) continue;
+    if (!best || eSegs.length > best.path.split("/").filter(Boolean).length) best = entry;
   }
   return best?.permission ?? null;
 }

@@ -32,6 +32,7 @@ import {
   addInternalNoteDetailed,
   transitionDisputeStatus,
   type DisputeOutcomeType,
+  DisputeEscalationRequiredError,
 } from "@/services/admin-transaction-actions.service";
 import { ResolveDisputeDialog } from "@/components/admin/transactions/ResolveDisputeDialog";
 import { ActionConfirmDialog } from "@/components/admin/transactions/ActionConfirmDialog";
@@ -375,7 +376,11 @@ function DisputePage({ data, refresh, dialogs }: { data: AdminDisputeFull; refre
       toast.success("Dispute resolution recorded");
       refresh();
     } catch (e) {
-      toast.error((e as Error).message ?? "Failed to resolve dispute");
+      if (e instanceof DisputeEscalationRequiredError) {
+        toast.error("Escalation required", { description: e.reasons.join(" • ") || e.message });
+      } else {
+        toast.error((e as Error).message ?? "Failed to resolve dispute");
+      }
     }
   };
   const handleRequestMoreInfo = async (payload: { message: string; new_due_at: string; notify_seller?: boolean }) => {
