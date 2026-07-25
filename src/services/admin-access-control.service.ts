@@ -1177,6 +1177,13 @@ export async function reviewAccessChangeRequest(id: string, decision: "approve" 
   if (req.status !== "pending") throw new Error("Request already reviewed.");
   if (req.requested_by === requester) throw new Error("You cannot approve your own request.");
 
+  // Rule g — paranoid double check for finance-touching changes even when
+  // the reviewer is a super admin.
+  assertFinanceParanoidCheck(
+    { requested_by: req.requested_by, change_type: req.change_type, payload: req.payload },
+    requester,
+  );
+
   // Safeguards must hold at approval time — the world may have changed
   // since the request was raised.
   if (decision === "approve") {
