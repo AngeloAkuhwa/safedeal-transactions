@@ -1,0 +1,155 @@
+import { KeyRound, MoreHorizontal, ShieldAlert, UserTag, RefreshCcw, Ban, Undo2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { InternalUser } from "@/services/admin-access-control.service";
+import { relativeTime } from "@/services/admin-access-control.service";
+import { AccessLevelPill, InitialsAvatar, RoleBadge, StatusBadge } from "./badges";
+
+interface Props {
+  rows: InternalUser[];
+  onOpen: (u: InternalUser) => void;
+  onChangeRole: (u: InternalUser) => void;
+  onReviewPermissions: (u: InternalUser) => void;
+  onSuspend: (u: InternalUser) => void;
+  onReactivate: (u: InternalUser) => void;
+}
+
+function ringFor(u: InternalUser): "critical" | "elevated" | "high" | "none" {
+  if (u.access_level === "full") return "critical";
+  if (u.access_level === "elevated") return "elevated";
+  if (u.access_level === "high") return "high";
+  return "none";
+}
+
+export function InternalUsersTable({
+  rows, onOpen, onChangeRole, onReviewPermissions, onSuspend, onReactivate,
+}: Props) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="border-b border-border p-5">
+        <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+          <KeyRound className="h-4 w-4 text-blue-400" />
+          Internal Access Management
+        </h3>
+        <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+          <ShieldAlert className="h-3 w-3 text-amber-400" />
+          Manage admin and agent permissions, roles, and access levels — changes are logged and require approval
+        </p>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40">
+            <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <th className="px-5 py-3">User</th>
+              <th className="px-5 py-3">Email</th>
+              <th className="px-5 py-3">Role</th>
+              <th className="px-5 py-3">
+                <span className="inline-flex items-center gap-1">
+                  <ShieldAlert className="h-3 w-3 text-amber-400" /> Access Level
+                </span>
+              </th>
+              <th className="px-5 py-3">Status</th>
+              <th className="px-5 py-3">Last Active</th>
+              <th className="px-5 py-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((u) => {
+              const suspended = u.status === "suspended";
+              return (
+                <tr
+                  key={u.id}
+                  onClick={() => onOpen(u)}
+                  className={`cursor-pointer transition-colors hover:bg-muted/40 ${suspended ? "access-row-suspended" : ""}`}
+                >
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <InitialsAvatar name={u.full_name} ring={ringFor(u)} />
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-foreground">{u.full_name}</p>
+                        <p className="text-xs text-muted-foreground">#{u.display_id}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 text-foreground/80">{u.email}</td>
+                  <td className="px-5 py-4"><RoleBadge role={u.role} /></td>
+                  <td className="px-5 py-4"><AccessLevelPill level={u.access_level} /></td>
+                  <td className="px-5 py-4"><StatusBadge status={u.status} /></td>
+                  <td className="px-5 py-4 text-xs text-muted-foreground">{relativeTime(u.last_active_at)}</td>
+                  <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        title="Change Role"
+                        onClick={() => onChangeRole(u)}
+                        className="rounded-md p-2 text-blue-400 transition-colors hover:bg-blue-500/15 hover:text-blue-300"
+                      >
+                        <UserTag className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        title="Review Permissions"
+                        onClick={() => onReviewPermissions(u)}
+                        className="rounded-md p-2 text-amber-400 transition-colors hover:bg-amber-500/15 hover:text-amber-300"
+                      >
+                        <KeyRound className="h-4 w-4" />
+                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            title="More"
+                            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-52">
+                          <DropdownMenuItem onClick={() => onOpen(u)}>
+                            View details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onChangeRole(u)}>
+                            <RefreshCcw className="mr-2 h-4 w-4" /> Change role
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onReviewPermissions(u)}>
+                            <KeyRound className="mr-2 h-4 w-4" /> Review permissions
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {suspended ? (
+                            <DropdownMenuItem onClick={() => onReactivate(u)}>
+                              <Undo2 className="mr-2 h-4 w-4" /> Reactivate
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => onSuspend(u)}
+                              className="text-red-500 focus:text-red-500"
+                            >
+                              <Ban className="mr-2 h-4 w-4" /> Suspend user
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-5 py-12 text-center text-sm text-muted-foreground">
+                  No internal users match your current filters.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
