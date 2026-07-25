@@ -239,3 +239,24 @@
 /* Hide scrollbar visually while keeping scroll behavior */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+
+/* Access Control – access level ring accents */
+.access-ring-critical {
+  box-shadow: 0 0 0 2px hsl(0 84% 60% / 0.35), 0 0 12px hsl(0 84% 60% / 0.2);
+}
+.access-ring-elevated {
+  box-shadow: 0 0 0 2px hsl(38 92% 50% / 0.35), 0 0 12px hsl(38 92% 50% / 0.2);
+}
+.access-ring-high {
+  box-shadow: 0 0 0 2px hsl(199 89% 48% / 0.35);
+}
+.access-row-suspended {
+  opacity: 0.7;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    hsl(0 84% 60% / 0.05) 10px,
+    hsl(0 84% 60% / 0.05) 20px
+  );
+}
