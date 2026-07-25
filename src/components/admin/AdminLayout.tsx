@@ -6,6 +6,7 @@ import { AdminHeader } from "./AdminHeader";
 import { AdminMobileHeader } from "./AdminMobileHeader";
 import { ReadingModeProvider } from "./ReadingModeContext";
 import { AdminReadingModeControl } from "./AdminReadingModeControl";
+import { AdminFooter } from "./AdminFooter";
 import type { AdminDashboardResponse } from "@/services/admin-dashboard.service";
 
 interface AdminLayoutProps {
@@ -84,6 +85,7 @@ export function AdminLayout({
               <div className="mx-auto w-full max-w-[1400px] space-y-5">{children}</div>
             </main>
           )}
+          {!fullHeight && <AdminFooter />}
         </div>
       </div>
       {hideDefaultHeaders && !mobileHeaderSlot && typeof headerSlot !== "function" && (
