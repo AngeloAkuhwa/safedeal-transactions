@@ -7,6 +7,22 @@ export class AdminAccessRequiredError extends Error {
   }
 }
 
+/**
+ * Raised when a support/dispute agent tries to resolve a dispute that
+ * exceeds their authority (cap, risk flag, or compliance flag). Carries
+ * the reasons returned by the server for a helpful UI toast.
+ */
+export class DisputeEscalationRequiredError extends Error {
+  reasons: string[];
+  capNgn: number | null;
+  constructor(reasons: string[], capNgn: number | null) {
+    super("This action must be escalated to a senior approver.");
+    this.name = "DisputeEscalationRequiredError";
+    this.reasons = reasons;
+    this.capNgn = capNgn;
+  }
+}
+
 async function invokeAction(action: string, transactionId: string, payload?: Record<string, unknown>) {
   const { data: sessionData } = await supabase.auth.getSession();
   const session = sessionData?.session;
@@ -20,14 +36,27 @@ async function invokeAction(action: string, transactionId: string, payload?: Rec
   });
   if (error) {
     const ctx = (error as unknown as { context?: Response }).context;
-    if (ctx?.status === 403) throw new AdminAccessRequiredError();
+    // Parse body first so 403s with a specific `error` code (e.g.
+    // `escalation_required`) surface as typed exceptions instead of a
+    // generic "Admin access required".
+    let body: any = null;
     try {
-      const body = ctx && typeof (ctx as any).clone === "function"
+      body = ctx && typeof (ctx as any).clone === "function"
         ? await (ctx as Response).clone().json()
         : null;
+    } catch { /* ignore parse errors */ }
+    if (ctx?.status === 403 && body?.error === "escalation_required") {
+      throw new DisputeEscalationRequiredError(
+        Array.isArray(body.reasons) ? body.reasons : [],
+        typeof body.cap_ngn === "number" ? body.cap_ngn : null,
+      );
+    }
+    if (ctx?.status === 403) throw new AdminAccessRequiredError();
+    try {
       throw new Error(body?.error ?? error.message ?? "Action failed");
     } catch (e) {
       if (e instanceof AdminAccessRequiredError) throw e;
+      if (e instanceof DisputeEscalationRequiredError) throw e;
       throw new Error((e as Error)?.message ?? error.message ?? "Action failed");
     }
   }
