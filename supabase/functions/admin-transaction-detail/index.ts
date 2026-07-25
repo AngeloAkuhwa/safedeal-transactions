@@ -8,7 +8,7 @@ import {
   buildRiskFlags,
   mapRiskLevel as sharedMapRisk,
 } from "../_shared/admin-mappers.ts";
-import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
+import { requirePermission, requireAnyPermission, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
