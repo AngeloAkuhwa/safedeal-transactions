@@ -11,7 +11,7 @@ interface Props {
   user: InternalUser | null;
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  onSubmit: (permissions: string[], reason: string) => Promise<void>;
+  onSubmit: (grants: string[], revokes: string[], reason: string) => Promise<void>;
 }
 
 export function ReviewPermissionsDrawer({ user, open, onOpenChange, onSubmit }: Props) {
@@ -19,7 +19,8 @@ export function ReviewPermissionsDrawer({ user, open, onOpenChange, onSubmit }: 
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const superAdmin = user?.role === "super_admin";
+  const superAdmin = user?.roles.includes("super_admin") ?? false;
+  const base = new Set(user?.base_permissions ?? []);
 
   useEffect(() => {
     if (user) {
@@ -38,8 +39,14 @@ export function ReviewPermissionsDrawer({ user, open, onOpenChange, onSubmit }: 
   const submit = async () => {
     if (reason.trim().length < 8) return;
     setSaving(true);
-    try { await onSubmit(Array.from(perms), reason.trim()); onOpenChange(false); }
-    finally { setSaving(false); }
+    try {
+      const grants: string[] = [];
+      const revokes: string[] = [];
+      for (const p of perms) if (!base.has(p)) grants.push(p);
+      for (const p of base) if (!perms.has(p)) revokes.push(p);
+      await onSubmit(grants, revokes, reason.trim());
+      onOpenChange(false);
+    } finally { setSaving(false); }
   };
 
   return (
