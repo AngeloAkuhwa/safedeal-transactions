@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
+import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,30 +26,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return jsonResponse({ error: "Not authenticated" }, 401);
+    let ctx;
+    try {
+      ctx = await requirePermission(
+        req,
+        req.method === "GET" ? "identity_verification.view" : "identity_verification.approve",
+      );
+    } catch (err) {
+      const resp = authErrorResponse(err, corsHeaders);
+      if (resp) return resp;
+      throw err;
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const token = authHeader.replace("Bearer ", "");
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
-
-    const { data: userData, error: userError } = await adminClient.auth.getUser(token);
-    if (userError || !userData?.user) {
-      return jsonResponse({ error: "Invalid session" }, 401);
-    }
-    const adminUserId = userData.user.id;
-
-    // Check admin role
-    const { data: hasRole } = await adminClient.rpc("has_role", {
-      _user_id: adminUserId,
-      _role: "admin",
-    });
-    if (!hasRole) {
-      return jsonResponse({ error: "Admin role required" }, 403);
-    }
+    const adminClient = ctx.adminClient;
+    const adminUserId = ctx.userId;
 
     // ── GET: Review queue ──
     if (req.method === "GET") {
