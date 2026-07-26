@@ -84,6 +84,12 @@ export interface ChangeSetRow {
   created_at: string;
 }
 
+export interface PermissionDependencyRow {
+  permission_key: string;
+  requires_key: string;
+  note: string | null;
+}
+
 export interface SubmitChangeSetInput {
   target_scope: "role" | "user" | "template";
   target_key: string;
@@ -107,6 +113,7 @@ export interface PermissionRepository {
   listChangeSets(status?: ChangeSetRow["status"]): Promise<ChangeSetRow[]>;
   listApprovals(): Promise<ApprovalRepoRow[]>;
   listHistory(limit: number, sinceHours?: number, actionTypes?: string[]): Promise<AdminActionHistoryRow[]>;
+  listPermissionDependencies(): Promise<PermissionDependencyRow[]>;
   submitChangeSet(input: SubmitChangeSetInput): Promise<ChangeSetRow>;
   approveChangeSet(id: string, reason?: string | null): Promise<ChangeSetRow>;
   rejectChangeSet(id: string, reason?: string | null): Promise<ChangeSetRow>;
@@ -207,6 +214,14 @@ class SupabasePermissionRepository implements PermissionRepository {
     const { data, error } = await q;
     if (error) throw error;
     return (data ?? []) as AdminActionHistoryRow[];
+  }
+
+  async listPermissionDependencies(): Promise<PermissionDependencyRow[]> {
+    const { data, error } = await (supabase as any)
+      .from("permission_dependencies")
+      .select("permission_key,requires_key,note");
+    if (error) throw error;
+    return (data ?? []) as PermissionDependencyRow[];
   }
 
   async submitChangeSet(input: SubmitChangeSetInput): Promise<ChangeSetRow> {
