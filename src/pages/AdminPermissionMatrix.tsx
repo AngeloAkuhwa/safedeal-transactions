@@ -175,16 +175,16 @@ export default function AdminPermissionMatrix() {
     staleTime: 30_000,
   });
   const approvalsQuery = useQuery({
-    queryKey: ["perm-workspace", "approvals"],
-    queryFn: fetchPendingApprovals,
+    queryKey: ["perm-workspace", "approvals", environment],
+    queryFn: () => fetchPermissionApprovalItems({ env: environment }),
     staleTime: 20_000,
   });
   const historyQuery = useQuery({
-    queryKey: ["perm-workspace", "history", params.get("since") ?? "all"],
-    queryFn: () => fetchChangeHistory(
-      100,
-      params.get("since") === "24h" ? 24 : undefined,
-    ),
+    queryKey: ["perm-workspace", "history", environment, params.get("since") ?? "all"],
+    queryFn: () => fetchPermissionHistoryItems({
+      env: environment,
+      since: params.get("since") === "24h" ? new Date(Date.now() - 24 * 3600_000).toISOString() : undefined,
+    }),
     staleTime: 30_000,
   });
 
