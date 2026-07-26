@@ -17,6 +17,8 @@ import {
   type OverrideRow,
 } from "@/services/permission-workspace.service";
 import type { InternalRoleKey } from "@/services/permission-catalog";
+import { hydratePermissionCatalog } from "@/services/permission-catalog";
+import { permissionRepo } from "@/services/permission-repository";
 import { PermissionSummaryCards } from "@/components/admin/permission-matrix/PermissionSummaryCards";
 import { HowPermissionsWorkPanel } from "@/components/admin/permission-matrix/HowPermissionsWorkPanel";
 import {
@@ -90,6 +92,19 @@ export default function AdminPermissionMatrix() {
     queryKey: ["perm-workspace", "role-map"],
     queryFn: () => fetchRoleGrantMap(true),
     staleTime: 60_000,
+  });
+  // Hydrate module catalog + risk levels from DB (permissions table).
+  useQuery({
+    queryKey: ["perm-workspace", "feature-catalog"],
+    queryFn: async () => {
+      const rows = await permissionRepo.listFeatures();
+      hydratePermissionCatalog(rows.map((r) => ({
+        key: r.key, module: r.module, action: r.action, label: r.label,
+        risk_level: r.risk_level, module_label: r.module_label,
+      })));
+      return rows;
+    },
+    staleTime: 5 * 60_000,
   });
   const summaryQuery = useQuery({
     queryKey: ["perm-workspace", "summary"],

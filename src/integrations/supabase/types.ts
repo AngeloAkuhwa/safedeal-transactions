@@ -2848,32 +2848,148 @@ export type Database = {
           },
         ]
       }
+      permission_change_sets: {
+        Row: {
+          after: Json
+          applied_at: string | null
+          applied_by: string | null
+          before: Json
+          created_at: string
+          id: string
+          reason: string | null
+          requested_by: string | null
+          status: string
+          target_key: string
+          target_scope: string
+        }
+        Insert: {
+          after?: Json
+          applied_at?: string | null
+          applied_by?: string | null
+          before?: Json
+          created_at?: string
+          id?: string
+          reason?: string | null
+          requested_by?: string | null
+          status?: string
+          target_key: string
+          target_scope: string
+        }
+        Update: {
+          after?: Json
+          applied_at?: string | null
+          applied_by?: string | null
+          before?: Json
+          created_at?: string
+          id?: string
+          reason?: string | null
+          requested_by?: string | null
+          status?: string
+          target_key?: string
+          target_scope?: string
+        }
+        Relationships: []
+      }
+      permission_template_items: {
+        Row: {
+          permission_key: string
+          template_id: string
+        }
+        Insert: {
+          permission_key: string
+          template_id: string
+        }
+        Update: {
+          permission_key?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_template_items_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "permission_template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "permission_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permission_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          role_source: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          role_source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          role_source?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_templates_role_source_fkey"
+            columns: ["role_source"]
+            isOneToOne: false
+            referencedRelation: "internal_roles"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       permissions: {
         Row: {
           action: string
           created_at: string
           description: string
+          is_system_default: boolean
           key: string
           label: string
           module: string
+          risk_level: string
           sort_order: number
         }
         Insert: {
           action: string
           created_at?: string
           description?: string
+          is_system_default?: boolean
           key: string
           label: string
           module: string
+          risk_level?: string
           sort_order?: number
         }
         Update: {
           action?: string
           created_at?: string
           description?: string
+          is_system_default?: boolean
           key?: string
           label?: string
           module?: string
+          risk_level?: string
           sort_order?: number
         }
         Relationships: []
@@ -4833,6 +4949,7 @@ export type Database = {
       }
       user_permission_overrides: {
         Row: {
+          expires_at: string | null
           granted_at: string
           granted_by: string | null
           mode: string
@@ -4841,6 +4958,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          expires_at?: string | null
           granted_at?: string
           granted_by?: string | null
           mode: string
@@ -4849,6 +4967,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          expires_at?: string | null
           granted_at?: string
           granted_by?: string | null
           mode?: string
@@ -5548,6 +5667,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: undefined
       }
+      is_internal_admin: { Args: { _user_id: string }; Returns: boolean }
       is_transaction_party: {
         Args: { _transaction_id: string; _user_id: string }
         Returns: boolean
