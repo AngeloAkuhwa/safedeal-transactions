@@ -1,90 +1,96 @@
-## What's already landed (from the previous turn)
+# Task Orchestration — full port + domain model
 
-- `QuickActionsMenu` mounted next to the Environment switcher on `/admin/permission-matrix` with 5 gated actions (Reset · Export · History · Alerts · Suspend).
-- Sidebar: new **Access Approvals**, **Task Orchestration**, **Agent Performance** entries under Administration + pending-approvals badge via `usePendingApprovalsBadge` (RPC `count_pending_approvals_for_actor`, realtime + 60s poll).
-- Migration shipped: `permissions.assignable`, index on `permission_change_sets(status, environment)`, the SECURITY DEFINER counter RPC.
-- Export dialog writes an `admin_actions` receipt (`action_type='export'`, `resource='permission_matrix'`).
+Replace the current `Coming Soon` placeholder at `/admin/task-orchestration` with a real, server-backed Task Orchestration command centre that mirrors the supplied HTML 100% and plugs into SafeDeal's existing admin shell (sidebar, header, auth, `PermissionRoute`, dark theme, toasts, drawers, tables).
 
-## Gaps this plan closes
+## 1. Database (single migration, awaits approval)
 
-### A. Suspend must be a change-set, not a direct write
-Current `SuspendPermissionDialog` calls `permissionRepo.updatePermission({ status: 'suspended' })`. Spec requires:
-- Flip `permissions.assignable = false` (not `status`) so existing grants remain.
-- Route through `apply_permission_change_set` with `requires_approval = true` unconditionally + 20-char reason.
-- Filter non-assignable permissions out of `CreateOverrideDrawer` and the matrix "grant" picker.
-- Un-suspend uses the same flow (toggle to `assignable = true`).
-- Add repo method `submitAssignabilityChange(key, assignable, reason)` that emits an `admin_actions` row on submit.
+New tables (all with `GRANT` + RLS + `updated_at` trigger, no changes to existing disputes/transactions/internal_users):
 
-### B. Alert Settings — server-backed, not localStorage
-Verified: `notification_preferences` has only fixed boolean columns (`payment_updates`, `dispute_updates`, `system_alerts`, …). No free-form key store exists, so the spec's `key = access_control.matrix` cannot land as-written.
-- Migration: add nullable JSONB `notification_preferences.matrix_alerts` holding the 4 typed toggles (`critical_permission_changed`, `change_set_rejected_or_failed`, `temporary_access_expiring`, `protected_role_modified`).
-- Rewrite `AlertSettingsDrawer` to read/write that column via `notification-preferences.service.ts` (RLS: user can only touch their own row).
-- Emit those alerts from `apply_permission_change_set` (grant/revoke of Privileged/Critical; reject/fail terminals; protected-role touch) and from a small cron that scans `user_permission_overrides.expires_at` in the next 72h; fan-out reuses the existing `notifications` + `notification_deliveries` pipeline.
+- `orchestration_tasks` — full task record: `task_code`, `type`, `title`, `description`, `priority` (low/medium/high/critical), `status` (unassigned/assigned/in_progress/waiting_on_buyer/waiting_on_seller/waiting_on_evidence/escalated/pending_approval/resolved/closed/cancelled), `stage`, `queue`, `team`, `assigned_agent_id`, `suggested_agent_id`, `dispute_id`, `transaction_id`, `buyer_id`, `seller_id`, `amount`, `currency`, `sla_status`, `required_role`, `required_permissions text[]`, `required_skills text[]`, `risk_level`, `tags text[]`, `escalation_level`, `escalation_reason`, `assignment_reason`, `reassignment_count`, `version`, `source_event_key` (UNIQUE → idempotent creation), `created_at`, `assigned_at`, `started_at`, `due_at`, `first_action_at`, `resolved_at`, `updated_at`.
+- `task_assignment_history` — every assignment change (from/to agent, mode, actor, reason).
+- `task_status_history` — status + stage transitions with actor.
+- `task_comments` — internal notes per task.
+- `agent_capacity` — per internal_user: `max_active_tasks`, `current_active`, `overdue_count`, `avg_first_action_seconds`, `updated_at`.
+- `agent_availability` — `status` (available/active/busy/at_capacity/offline), `last_heartbeat`, `updated_at`.
+- `agent_skills` — `skill` text array join.
+- `assignment_rules` + `assignment_rule_versions` — JSONB config (round robin, priority routing, capacity skip, online-only, senior pool fallback, max overdue, self-assignment toggle, etc.).
+- `escalation_rules` — thresholds + target queue.
+- `orchestration_events` — append-only audit stream.
 
-### C. Export moves to an edge function (audit + scale)
-`ExportConfigDialog` currently builds the CSV/JSON client-side from the in-memory role map. Replace with:
-- `supabase/functions/admin-permission-matrix-export/index.ts` — verify_jwt validation, `requirePermission('permissions.view')`, Zod input (`scope`, `format`, `env`, `filters`), SQL-first snapshot join of `role_permissions ⨝ permissions ⨝ permission_environments`, streams a signed URL back.
-- Reuses `admin_export_jobs` (already used for user/tx exports) with resource='permission_matrix'.
-- Client polls the job and downloads.
+Enums for task type / priority / status / stage / sla_status. RLS: read/write via `has_internal_role` + `has_permission` checks (`task_orchestration.view/manage/assign/escalate/rebalance/export`). `service_role` full for edge functions.
 
-### D. Deep-link plumbing (unverified surfaces — verified during build)
-Need to read these files first and add only what's missing:
-- `/admin/access-control` — accept `?userId=<id>&tab=role-access` and auto-open that user's drawer. (`?role=` already respected — verified.)
-- `/admin/audit-logs` — accept `?ref=<id>&type=change_set|override` as a filter on `admin_actions.resource_id` / metadata.
-- `/admin/permission-matrix` — Role Detail user-count chip → `/admin/access-control?role=…`; Overrides row user cell → `/admin/access-control?userId=…`; any audit id chip → `/admin/audit-logs?ref=…`.
-- `/admin/access-control` header — add "Open Permission Matrix" button that forwards `role` or `userId`.
+SQL RPCs (SECURITY DEFINER, `search_path = public`):
 
-### E. Route guards for the two new admin pages
-`permissionForPath` already maps `/admin/task-orchestration` → `task_orchestration.view` and `/admin/agent-performance` → `agent_performance.view`, but `App.tsx` may not wrap those Route elements in `PermissionRoute`. Read `App.tsx` and, if unwrapped, wrap them (mirrors the pattern already used for `/admin/permission-matrix`).
+- `create_orchestration_task(...)` — idempotent on `source_event_key`.
+- `assign_task(task_id, agent_id, mode, reason)` — bumps version, writes history, respects capacity + assignable.
+- `auto_assign_pending(mode)` — batch, honours rules.
+- `rebalance_agents()` — redistributes overflow, returns preview payload.
+- `escalate_task(task_id, reason)` — moves to senior pool.
+- `complete_task(task_id, resolution)` — validates it does NOT trigger refunds/payouts (financial actions gated by separate permissions elsewhere).
 
-### F. `AdminAccessApprovals` — remove shadow list (if any)
-Read the page; confirm it reads the same `permission_change_sets` filter used by the matrix's Pending Approvals tab via `fetchPermissionApprovalItems`. If it maintains a local list, delete and reuse.
+Trigger hooks so new `disputes` rows (and future qualifying events) fanout via `create_orchestration_task` — idempotent, does not touch existing dispute logic.
 
-### G. UX + a11y sweep (targeted, not blanket)
-- Sticky permission column + matrix header at `xl↓`: add scroll shadow inside `RoleMatrix` container only.
-- Mobile (`<md`) auto-switch to Role Detail — verify the `useIsMobile` gate covers the tab default (already partial).
-- Loading skeletons + `EmptyState` retry on Overrides, Templates, Pending, History tables (audit which are missing).
-- `PermissionStateCell` — verify all 6 states include a glyph, not colour-only.
-- Icon-only buttons in Quick Actions dropdown items already labelled; audit rest of matrix.
-- Extend `useDrawerSafety` so focus returns to the launcher after Alert / Export / Suspend / Reset drawers close.
+## 2. Edge functions
 
-### H. Data integrity + security regression
-- Add a Postgres unit test file (`supabase/tests/permission-matrix.sql` via `pg_prove` or a plain psql script) covering:
-  - duplicate `(role_key, permission_key, environment)` fails.
-  - `apply_permission_change_set` rejects requester = approver.
-  - rejects grants outside requester's permissions.
-  - rejects removing protected system perms.
-  - rejects removing the last active Super Admin.
-  - rejects temporary override without `expires_at`.
-- RLS regression: unprivileged internal user cannot `UPDATE role_permissions` / `INSERT permission_change_sets` outside scope / `UPDATE user_permission_overrides`.
-- Auditor role: assert every mutation edge function returns 403 for them.
+- `admin-task-orchestration-overview` — summary KPIs + queue + agent roster + live progression + insights in one call (matches Feature Registry pattern, uses SQL aggregates).
+- `admin-task-assign` — validates permission, calls `assign_task`, writes `audit_logs` + `admin_actions`.
+- `admin-task-auto-assign`, `admin-task-rebalance`, `admin-task-escalate`, `admin-task-complete`.
+- `admin-task-export` — async job into existing `admin_export_jobs` pipeline, signed URL.
+- `admin-orchestration-rules` — GET/PUT assignment + escalation rule config (versioned).
 
-### I. Final smoke pass
-After D–G land: load `/admin/permission-matrix`, `/admin/access-control`, `/admin/access-approvals`, `/admin/audit-logs`, `/admin/task-orchestration`, `/admin/agent-performance`; capture any console/runtime errors; run the security scanner; fix or acknowledge findings.
+All use `requirePermission` + `logAdminAction` helpers already in the repo, CORS + direct `fetch` PATCH pattern per project conventions.
 
-## Order of execution
+## 3. Service layer (`src/services/task-orchestration/`)
 
-1. Migration (assignability change-set support helper + `matrix_alerts` column).
-2. Backend: suspend-as-change-set repo method, alert-prefs service, export edge function.
-3. Frontend rewrites: `SuspendPermissionDialog` (change-set path + assignable filter in override picker), `AlertSettingsDrawer` (server-backed), `ExportConfigDialog` (edge-function-backed).
-4. Deep links + PermissionRoute wraps + AccessApprovals reuse check.
-5. UX / a11y / skeleton pass.
-6. SQL + RLS regression tests.
-7. Smoke + security scan.
+- `orchestration-repository.ts` — typed reads/writes, no Supabase client in UI.
+- `orchestration-realtime.ts` — throttled realtime subscription for task + agent updates.
+- `orchestration-types.ts` — shared enums/types.
+- `assignment-rules.ts` — client-side rule evaluation for preview drawers.
 
-## Explicit unknowns to verify at build time
+## 4. React components (`src/components/admin/task-orchestration/`)
 
-- Whether `App.tsx` already wraps `/admin/task-orchestration` and `/admin/agent-performance` in `PermissionRoute`.
-- Whether `AdminAccessControl` supports `?userId=`.
-- Whether `AdminAuditLogs` supports `?ref=` or needs a new filter.
-- Whether `AdminAccessApprovals` currently uses `fetchPermissionApprovalItems` or a shadow query.
-- Which override/template/pending/history tables are missing skeleton/retry.
-- Whether `PermissionStateCell` already renders glyphs for all 6 states.
+Exact list from the request, each a real component (no decorative controls):
 
-Each will be resolved by a file read before the corresponding edit.
+- `TaskOrchestrationHeader` — title, subtitle, Auto-Assign pill (server-toggled), notification bell, `Export Report` button.
+- `OrchestrationSummaryCards` — 6 KPI cards with left accent bars (danger/success/warning/plain/danger/plain).
+- `AssignmentControlPanel` wrapping:
+  - `AssignmentModeSelector` (Manual / Round Robin / Next Available / Priority-Based / Assign To Self) — writes to `assignment_rules`.
+  - `AssignmentQuickActions` — Assign Selected, Auto Assign, Assign To Me, Rebalance, Escalate, Bulk Export (each wired to its edge function / drawer).
+  - Senior-Admin-Only lock chip driven by permission check.
+- `UnassignedTaskQueue` + `TaskQueueFilters` (priority filter, View All) + row selection checkboxes, Suggested agent column, per-row `Assign` action.
+- `AgentRoster` with `AgentLoadCard` variants (available/active/busy/at_capacity/offline) — left-accent gradients from the HTML.
+- `LiveTaskProgression` table (Task ID, Agent, Case Ref, Stage, Started, Last Updated, Status pill, View action) with Filter + View All.
+- `ProductivityInsights` — 5 highlight cards (Most Active, Most Resolved, Least Loaded, Highest Overdue, Fastest Response).
+- `AssignmentRulesPanel` — 6 toggles + `Maximum Active Disputes per Agent` + `Fallback Assignment Target` + `Maximum Overdue Cases Before Skip` + `Super Admin Self-Assignment`, plus `Save Assignment` and `Test Configuration` buttons wired to `admin-orchestration-rules`.
+- Drawers/dialogs: `TaskDetailsDrawer`, `AgentDetailsDrawer`, `AssignTaskDrawer`, `AutoAssignPreviewDrawer`, `RebalancePreviewDrawer`, `EscalateTaskDialog`, `AssignmentHistoryDrawer` — all real, all audited.
+- `LoadingSkeleton`, `EmptyState`, `ErrorState` — reused across sections.
 
-## Deliberately out of scope
+Page (`src/pages/AdminTaskOrchestration.tsx`) composes these inside `AdminLayout`, reuses existing sidebar/header. Sticky header per existing pattern. Route + `PermissionRoute` already wired.
 
-- No new tables. Only the two column additions above.
-- No changes to the shared header/nav shell beyond the Access Approvals badge already shipped.
-- No template-authoring UI changes.
+## 5. Visual system
+
+Matches Feature Registry & Permission Matrix: deep navy background (`bg-background`), `bg-card/60` glass surfaces, `border-border/60`, subtle radial primary/success glows, blue primary buttons, semantic status colours (success/warning/danger/muted), mono badges for task codes. All values via existing tokens — no hex literals.
+
+## 6. Responsiveness
+
+- Desktop ≥ `xl`: full command-centre grid (queue 2/3 + roster 1/3, 6-col KPI row, 2-col rules panel).
+- `md–lg`: KPIs 3-col, queue + roster stack, rules 1-col.
+- Mobile: KPI carousel, queue rows become task cards with primary action, roster horizontal scroll snapping, tables use existing responsive-table helper, no page-level horizontal overflow.
+
+## 7. Task lifecycle rules (enforced server-side)
+
+- Idempotent creation via `source_event_key`.
+- Critical tasks flagged + auto-routed to senior queue.
+- Resolving a task never triggers refund/payout/release — those still require their own financial permissions elsewhere.
+- Additional-approval path → `pending_approval` status.
+- Full history preserved in `task_*_history` + `orchestration_events` + `audit_logs`.
+
+## 8. Verification
+
+`tsgo` typecheck, targeted Playwright pass over `/admin/task-orchestration` (KPIs load, assign flow writes history, rules save persists, mobile stack renders, sticky header behaves).
+
+## Out of scope
+
+- No changes to existing disputes / transactions / payouts / escrow business logic.
+- No new financial permissions; task completion remains non-financial.
+- No sidebar redesign (entry already exists).

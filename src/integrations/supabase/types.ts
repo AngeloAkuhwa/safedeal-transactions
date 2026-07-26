@@ -438,6 +438,155 @@ export type Database = {
           },
         ]
       }
+      agent_availability: {
+        Row: {
+          last_heartbeat: string | null
+          status: Database["public"]["Enums"]["agent_availability_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          last_heartbeat?: string | null
+          status?: Database["public"]["Enums"]["agent_availability_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          last_heartbeat?: string | null
+          status?: Database["public"]["Enums"]["agent_availability_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agent_capacity: {
+        Row: {
+          avg_first_action_seconds: number
+          current_active: number
+          max_active_tasks: number
+          overdue_count: number
+          resolved_today: number
+          tasks_today: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avg_first_action_seconds?: number
+          current_active?: number
+          max_active_tasks?: number
+          overdue_count?: number
+          resolved_today?: number
+          tasks_today?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avg_first_action_seconds?: number
+          current_active?: number
+          max_active_tasks?: number
+          overdue_count?: number
+          resolved_today?: number
+          tasks_today?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agent_skills: {
+        Row: {
+          created_at: string
+          id: string
+          proficiency: number
+          skill: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          proficiency?: number
+          skill: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          proficiency?: number
+          skill?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      assignment_rule_versions: {
+        Row: {
+          actor_id: string | null
+          config: Json
+          created_at: string
+          id: string
+          note: string | null
+          rule_id: string
+          version: number
+        }
+        Insert: {
+          actor_id?: string | null
+          config: Json
+          created_at?: string
+          id?: string
+          note?: string | null
+          rule_id: string
+          version: number
+        }
+        Update: {
+          actor_id?: string | null
+          config?: Json
+          created_at?: string
+          id?: string
+          note?: string | null
+          rule_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_rule_versions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "assignment_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assignment_rules: {
+        Row: {
+          active: boolean
+          config: Json
+          created_at: string
+          id: string
+          mode: string
+          scope: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          config?: Json
+          created_at?: string
+          id?: string
+          mode?: string
+          scope?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          config?: Json
+          created_at?: string
+          id?: string
+          mode?: string
+          scope?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: Database["public"]["Enums"]["audit_action_type"]
@@ -1636,6 +1785,39 @@ export type Database = {
         }
         Relationships: []
       }
+      escalation_rules: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          min_priority: Database["public"]["Enums"]["orchestration_task_priority"]
+          name: string
+          target_queue: string
+          trigger_after_seconds: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          min_priority?: Database["public"]["Enums"]["orchestration_task_priority"]
+          name: string
+          target_queue?: string
+          trigger_after_seconds?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          min_priority?: Database["public"]["Enums"]["orchestration_task_priority"]
+          name?: string
+          target_queue?: string
+          trigger_after_seconds?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       escrow_ledger_entries: {
         Row: {
           amount: number
@@ -2520,6 +2702,204 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "buyer_specific_product_offers"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      orchestration_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          task_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+          task_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orchestration_events_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "orchestration_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orchestration_tasks: {
+        Row: {
+          amount: number | null
+          assigned_agent_id: string | null
+          assigned_at: string | null
+          assignment_reason: string | null
+          buyer_id: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          dispute_id: string | null
+          due_at: string | null
+          escalation_level: number
+          escalation_reason: string | null
+          first_action_at: string | null
+          id: string
+          priority: Database["public"]["Enums"]["orchestration_task_priority"]
+          queue: string
+          reassignment_count: number
+          required_permissions: string[]
+          required_role: string | null
+          required_skills: string[]
+          resolved_at: string | null
+          risk_level: string
+          seller_id: string | null
+          sla_status: Database["public"]["Enums"]["orchestration_sla_status"]
+          source_event_key: string | null
+          stage: Database["public"]["Enums"]["orchestration_task_stage"]
+          started_at: string | null
+          status: Database["public"]["Enums"]["orchestration_task_status"]
+          suggested_agent_id: string | null
+          tags: string[]
+          task_code: string
+          team: string | null
+          title: string
+          transaction_id: string | null
+          type: Database["public"]["Enums"]["orchestration_task_type"]
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          amount?: number | null
+          assigned_agent_id?: string | null
+          assigned_at?: string | null
+          assignment_reason?: string | null
+          buyer_id?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          dispute_id?: string | null
+          due_at?: string | null
+          escalation_level?: number
+          escalation_reason?: string | null
+          first_action_at?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["orchestration_task_priority"]
+          queue?: string
+          reassignment_count?: number
+          required_permissions?: string[]
+          required_role?: string | null
+          required_skills?: string[]
+          resolved_at?: string | null
+          risk_level?: string
+          seller_id?: string | null
+          sla_status?: Database["public"]["Enums"]["orchestration_sla_status"]
+          source_event_key?: string | null
+          stage?: Database["public"]["Enums"]["orchestration_task_stage"]
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["orchestration_task_status"]
+          suggested_agent_id?: string | null
+          tags?: string[]
+          task_code?: string
+          team?: string | null
+          title: string
+          transaction_id?: string | null
+          type: Database["public"]["Enums"]["orchestration_task_type"]
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          amount?: number | null
+          assigned_agent_id?: string | null
+          assigned_at?: string | null
+          assignment_reason?: string | null
+          buyer_id?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          dispute_id?: string | null
+          due_at?: string | null
+          escalation_level?: number
+          escalation_reason?: string | null
+          first_action_at?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["orchestration_task_priority"]
+          queue?: string
+          reassignment_count?: number
+          required_permissions?: string[]
+          required_role?: string | null
+          required_skills?: string[]
+          resolved_at?: string | null
+          risk_level?: string
+          seller_id?: string | null
+          sla_status?: Database["public"]["Enums"]["orchestration_sla_status"]
+          source_event_key?: string | null
+          stage?: Database["public"]["Enums"]["orchestration_task_stage"]
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["orchestration_task_status"]
+          suggested_agent_id?: string | null
+          tags?: string[]
+          task_code?: string
+          team?: string | null
+          title?: string
+          transaction_id?: string | null
+          type?: Database["public"]["Enums"]["orchestration_task_type"]
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orchestration_tasks_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "admin_dispute_summary_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orchestration_tasks_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orchestration_tasks_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orchestration_tasks_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orchestration_tasks_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orchestration_tasks_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
           },
         ]
       }
@@ -3990,6 +4370,144 @@ export type Database = {
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_assignment_history: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          from_agent_id: string | null
+          id: string
+          mode: string
+          reason: string | null
+          task_id: string
+          to_agent_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          from_agent_id?: string | null
+          id?: string
+          mode: string
+          reason?: string | null
+          task_id: string
+          to_agent_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          from_agent_id?: string | null
+          id?: string
+          mode?: string
+          reason?: string | null
+          task_id?: string
+          to_agent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_assignment_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "orchestration_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_comments: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "orchestration_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_status_history: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          from_stage:
+            | Database["public"]["Enums"]["orchestration_task_stage"]
+            | null
+          from_status:
+            | Database["public"]["Enums"]["orchestration_task_status"]
+            | null
+          id: string
+          reason: string | null
+          task_id: string
+          to_stage:
+            | Database["public"]["Enums"]["orchestration_task_stage"]
+            | null
+          to_status: Database["public"]["Enums"]["orchestration_task_status"]
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          from_stage?:
+            | Database["public"]["Enums"]["orchestration_task_stage"]
+            | null
+          from_status?:
+            | Database["public"]["Enums"]["orchestration_task_status"]
+            | null
+          id?: string
+          reason?: string | null
+          task_id: string
+          to_stage?:
+            | Database["public"]["Enums"]["orchestration_task_stage"]
+            | null
+          to_status: Database["public"]["Enums"]["orchestration_task_status"]
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          from_stage?:
+            | Database["public"]["Enums"]["orchestration_task_stage"]
+            | null
+          from_status?:
+            | Database["public"]["Enums"]["orchestration_task_status"]
+            | null
+          id?: string
+          reason?: string | null
+          task_id?: string
+          to_stage?:
+            | Database["public"]["Enums"]["orchestration_task_stage"]
+            | null
+          to_status?: Database["public"]["Enums"]["orchestration_task_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_status_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "orchestration_tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -5785,6 +6303,16 @@ export type Database = {
               isSetofReturn: false
             }
           }
+      assign_task: {
+        Args: {
+          _actor_id: string
+          _agent_id: string
+          _mode: string
+          _reason: string
+          _task_id: string
+        }
+        Returns: undefined
+      }
       check_admin_rate_limit: {
         Args: { _action_key: string; _admin_id: string; _max_per_hour: number }
         Returns: {
@@ -5792,6 +6320,10 @@ export type Database = {
           cap: number
           used: number
         }[]
+      }
+      complete_orchestration_task: {
+        Args: { _actor_id: string; _resolution: string; _task_id: string }
+        Returns: undefined
       }
       complete_payout_atomic: {
         Args: { p_amount: number; p_payout_id: string }
@@ -5810,6 +6342,24 @@ export type Database = {
         Args: { _actor: string }
         Returns: number
       }
+      create_orchestration_task: {
+        Args: {
+          _amount: number
+          _buyer_id: string
+          _currency: string
+          _description: string
+          _dispute_id: string
+          _priority: Database["public"]["Enums"]["orchestration_task_priority"]
+          _queue: string
+          _required_permissions: string[]
+          _seller_id: string
+          _source_event_key: string
+          _title: string
+          _transaction_id: string
+          _type: Database["public"]["Enums"]["orchestration_task_type"]
+        }
+        Returns: string
+      }
       derive_target_user_id: {
         Args: { p_dispute_id: string; p_transaction_id: string }
         Returns: string
@@ -5822,6 +6372,10 @@ export type Database = {
           p_new_due_at: string
         }
         Returns: Json
+      }
+      escalate_task: {
+        Args: { _actor_id: string; _reason: string; _task_id: string }
+        Returns: undefined
       }
       expire_stale_offers: { Args: never; Returns: number }
       fail_payout_atomic: {
@@ -5899,6 +6453,7 @@ export type Database = {
         Returns: boolean
       }
       is_user_region_allowed: { Args: { _user_id: string }; Returns: boolean }
+      orch_generate_task_code: { Args: never; Returns: string }
       recompute_needs_admin_review: {
         Args: { p_tx_id: string }
         Returns: undefined
@@ -6125,6 +6680,12 @@ export type Database = {
         | "escalated"
         | "resolved"
         | "dismissed"
+      agent_availability_status:
+        | "available"
+        | "active"
+        | "busy"
+        | "at_capacity"
+        | "offline"
       audit_action_type:
         | "profile_update"
         | "profile_suspend"
@@ -6279,6 +6840,50 @@ export type Database = {
         | "security_alert"
         | "system_message"
         | "direct_message"
+      orchestration_sla_status:
+        | "on_track"
+        | "at_risk"
+        | "overdue"
+        | "met"
+        | "breached"
+      orchestration_task_priority: "low" | "medium" | "high" | "critical"
+      orchestration_task_stage:
+        | "initial_review"
+        | "investigation"
+        | "evidence_collection"
+        | "buyer_response"
+        | "seller_response"
+        | "evidence_review"
+        | "resolution_preparation"
+        | "pending_approval"
+        | "final_decision"
+        | "completed"
+      orchestration_task_status:
+        | "unassigned"
+        | "assigned"
+        | "in_progress"
+        | "waiting_on_buyer"
+        | "waiting_on_seller"
+        | "waiting_on_evidence"
+        | "escalated"
+        | "pending_approval"
+        | "resolved"
+        | "closed"
+        | "cancelled"
+      orchestration_task_type:
+        | "new_dispute_review"
+        | "buyer_complaint"
+        | "seller_complaint"
+        | "payment_hold_review"
+        | "transaction_review"
+        | "evidence_review"
+        | "seller_response_review"
+        | "buyer_response_review"
+        | "refund_request"
+        | "escrow_release_review"
+        | "flagged_user_review"
+        | "compliance_escalation"
+        | "general_investigation"
       payment_method_type: "card" | "bank_transfer" | "wallet"
       payment_provider: "paystack" | "flutterwave" | "stripe" | "manual"
       payment_status:
@@ -6546,6 +7151,13 @@ export const Constants = {
         "resolved",
         "dismissed",
       ],
+      agent_availability_status: [
+        "available",
+        "active",
+        "busy",
+        "at_capacity",
+        "offline",
+      ],
       audit_action_type: [
         "profile_update",
         "profile_suspend",
@@ -6717,6 +7329,54 @@ export const Constants = {
         "security_alert",
         "system_message",
         "direct_message",
+      ],
+      orchestration_sla_status: [
+        "on_track",
+        "at_risk",
+        "overdue",
+        "met",
+        "breached",
+      ],
+      orchestration_task_priority: ["low", "medium", "high", "critical"],
+      orchestration_task_stage: [
+        "initial_review",
+        "investigation",
+        "evidence_collection",
+        "buyer_response",
+        "seller_response",
+        "evidence_review",
+        "resolution_preparation",
+        "pending_approval",
+        "final_decision",
+        "completed",
+      ],
+      orchestration_task_status: [
+        "unassigned",
+        "assigned",
+        "in_progress",
+        "waiting_on_buyer",
+        "waiting_on_seller",
+        "waiting_on_evidence",
+        "escalated",
+        "pending_approval",
+        "resolved",
+        "closed",
+        "cancelled",
+      ],
+      orchestration_task_type: [
+        "new_dispute_review",
+        "buyer_complaint",
+        "seller_complaint",
+        "payment_hold_review",
+        "transaction_review",
+        "evidence_review",
+        "seller_response_review",
+        "buyer_response_review",
+        "refund_request",
+        "escrow_release_review",
+        "flagged_user_review",
+        "compliance_escalation",
+        "general_investigation",
       ],
       payment_method_type: ["card", "bank_transfer", "wallet"],
       payment_provider: ["paystack", "flutterwave", "stripe", "manual"],
