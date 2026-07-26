@@ -6690,6 +6690,8 @@ export type Database = {
         | "busy"
         | "at_capacity"
         | "offline"
+        | "on_leave"
+        | "suspended"
       audit_action_type:
         | "profile_update"
         | "profile_suspend"
@@ -7161,6 +7163,8 @@ export const Constants = {
         "busy",
         "at_capacity",
         "offline",
+        "on_leave",
+        "suspended",
       ],
       audit_action_type: [
         "profile_update",
