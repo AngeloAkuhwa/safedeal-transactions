@@ -10,7 +10,7 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const reload = () => setTemplates(listTemplates());
+  const reload = () => { listTemplates().then(setTemplates).catch(() => setTemplates([])); };
   useEffect(() => { reload(); }, []);
 
   const create = async () => {
@@ -77,7 +77,7 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
                     {canEdit && (
                       <button
                         type="button"
-                        onClick={() => { deleteTemplate(t.id); reload(); }}
+                        onClick={async () => { await deleteTemplate(t.id); reload(); }}
                         className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       >
                         <Trash2 className="h-3 w-3" /> Delete
