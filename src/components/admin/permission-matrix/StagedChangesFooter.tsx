@@ -1,26 +1,23 @@
-import { useState } from "react";
-import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ClipboardList, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { InternalRoleKey } from "@/services/permission-catalog";
 import { ROLE_LABEL } from "@/services/permission-catalog";
-import { permissionRepo, type PermissionEnvironment, DEFAULT_ENVIRONMENT } from "@/services/permission-repository";
+import { type PermissionEnvironment, DEFAULT_ENVIRONMENT } from "@/services/permission-repository";
 import type { RoleGrantMap } from "@/services/permission-workspace.service";
 import type { StagedChange } from "@/hooks/useStagedPermissionChanges";
-import { toast } from "sonner";
+import { evaluateApproval } from "@/services/permission-approval-rules";
 
 interface Props {
   changes: StagedChange[];
   roleMap: RoleGrantMap;
   environment?: PermissionEnvironment;
   onDiscard: () => void;
-  onSubmitted: () => void;
+  onReview: () => void;
 }
 
-export function StagedChangesFooter({ changes, roleMap, environment = DEFAULT_ENVIRONMENT, onDiscard, onSubmitted }: Props) {
-  const [busy, setBusy] = useState(false);
-  const [reason, setReason] = useState("");
+export function StagedChangesFooter({ changes, environment = DEFAULT_ENVIRONMENT, onDiscard, onReview }: Props) {
   const [expanded, setExpanded] = useState(false);
-
   if (changes.length === 0) return null;
 
   const byRole = new Map<InternalRoleKey, StagedChange[]>();
@@ -30,72 +27,45 @@ export function StagedChangesFooter({ changes, roleMap, environment = DEFAULT_EN
     byRole.set(c.role, bag);
   }
 
-  const submit = async () => {
-    setBusy(true);
-    try {
-      for (const [role, list] of byRole) {
-        const before = Array.from(roleMap.map.get(role) ?? []).sort();
-        const after = new Set(before);
-        for (const c of list) {
-          if (c.op === "grant") after.add(c.permissionKey);
-          else after.delete(c.permissionKey);
-        }
-        await permissionRepo.submitChangeSet({
-          target_scope: "role",
-          target_key: role,
-          before: { permission_keys: before },
-          after: { permission_keys: Array.from(after).sort() },
-          reason: reason.trim() || `Bulk edit: ${list.length} change(s) on ${ROLE_LABEL[role]}`,
-          environment,
-        });
-      }
-      toast.success(`Submitted ${byRole.size} change set(s) for approval (${environment})`);
-      onSubmitted();
-    } catch (e) {
-      toast.error((e as Error).message || "Failed to submit changes");
-    } finally {
-      setBusy(false);
+  const requiresApproval = useMemo(() => {
+    for (const [role, list] of byRole) {
+      const adds = list.filter((c) => c.op === "grant").map((c) => c.permissionKey);
+      const removes = list.filter((c) => c.op === "revoke").map((c) => c.permissionKey);
+      if (evaluateApproval({ targetScope: "role", targetKey: role, addedKeys: adds, removedKeys: removes }).requires) return true;
     }
-  };
+    return false;
+  }, [changes]);
 
   return (
     <div className="sticky bottom-4 z-40 mx-auto max-w-[1400px]">
       <div className="rounded-2xl border border-primary/40 bg-card/95 p-4 shadow-2xl backdrop-blur">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex-1 min-w-[200px]">
-            <div className="text-sm font-semibold">
+            <div className="flex items-center gap-2 text-sm font-semibold">
               {changes.length} change{changes.length === 1 ? "" : "s"} staged across {byRole.size} role{byRole.size === 1 ? "" : "s"}
+              <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">{environment}</span>
+              {requiresApproval && (
+                <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">Approval required</span>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => setExpanded((e) => !e)}
-              className="mt-0.5 text-xs text-muted-foreground hover:text-foreground"
-            >
-              {expanded ? "Hide" : "Review"} details
+            <button type="button" onClick={() => setExpanded((e) => !e)} className="mt-0.5 text-xs text-muted-foreground hover:text-foreground">
+              {expanded ? "Hide details" : "Show details"}
             </button>
           </div>
-          <input
-            className="h-9 min-w-[220px] flex-1 rounded-md border border-border bg-background/60 px-3 text-xs outline-none focus:border-primary"
-            placeholder="Reason (optional, shown in audit trail)"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
           <button
             type="button"
-            disabled={busy}
             onClick={onDiscard}
-            className="inline-flex h-9 items-center gap-1 rounded-md border border-border bg-background/60 px-3 text-xs font-medium hover:bg-muted disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-1 rounded-md border border-border bg-background/60 px-3 text-xs font-medium hover:bg-muted"
           >
             <XCircle className="h-3.5 w-3.5" /> Discard
           </button>
           <button
             type="button"
-            disabled={busy}
-            onClick={submit}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            onClick={onReview}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
           >
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-            Submit for approval
+            <ClipboardList className="h-3.5 w-3.5" />
+            Review changes
           </button>
         </div>
 
@@ -112,9 +82,7 @@ export function StagedChangesFooter({ changes, roleMap, environment = DEFAULT_EN
                       <span
                         className={cn(
                           "inline-flex h-5 min-w-[52px] items-center justify-center rounded-full px-2 text-[10px] font-semibold",
-                          c.op === "grant"
-                            ? "bg-emerald-500/20 text-emerald-300"
-                            : "bg-rose-500/20 text-rose-300",
+                          c.op === "grant" ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-300",
                         )}
                       >
                         {c.op === "grant" ? "Grant" : "Revoke"}

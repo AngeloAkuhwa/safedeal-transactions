@@ -98,15 +98,27 @@ export interface TemplateRow {
 export interface ChangeSetRow {
   id: string;
   requested_by: string | null;
-  target_scope: "role" | "user" | "template";
+  target_scope: "role" | "user" | "template" | "permission";
   target_key: string;
   before: unknown;
   after: unknown;
   reason: string | null;
-  status: "pending" | "approved" | "rejected" | "applied" | "cancelled";
+  status: "draft" | "pending" | "pending_approval" | "approved" | "rejected" | "applied" | "cancelled" | "requested_changes" | "failed";
   applied_at: string | null;
   applied_by: string | null;
   created_at: string;
+  submitted_at?: string | null;
+  requires_approval?: boolean;
+  review_comments?: ReviewComment[] | unknown;
+  environment?: PermissionEnvironment;
+}
+
+export interface ReviewComment {
+  actor: string;
+  actor_name?: string | null;
+  action: "approved" | "rejected" | "requested_changes" | "commented" | "submitted" | "cancelled";
+  comment: string;
+  at: string;
 }
 
 export interface PermissionDependencyRow {
@@ -144,12 +156,26 @@ export interface AcknowledgeConflictInput {
 }
 
 export interface SubmitChangeSetInput {
-  target_scope: "role" | "user" | "template";
+  target_scope: "role" | "user" | "template" | "permission";
   target_key: string;
   before: unknown;
   after: unknown;
   reason?: string | null;
   environment?: PermissionEnvironment;
+  requires_approval?: boolean;
+  /** Auto-apply immediately when the actor is allowed and no approval is required. */
+  autoApply?: boolean;
+}
+
+export interface ChangeSetFilter {
+  env?: PermissionEnvironment;
+  states?: Array<ChangeSetRow["status"]>;
+  scope?: ChangeSetRow["target_scope"];
+  requestedBy?: string;
+  since?: string;
+  until?: string;
+  limit?: number;
+  targetKey?: string;
 }
 
 export interface CreateTemplateInput {
@@ -198,8 +224,12 @@ export interface PermissionRepository {
   acknowledgeConflict(input: AcknowledgeConflictInput): Promise<void>;
   revokeConflictAcknowledgement(id: string): Promise<void>;
   submitChangeSet(input: SubmitChangeSetInput): Promise<ChangeSetRow>;
+  submitChangeSets(inputs: SubmitChangeSetInput[]): Promise<ChangeSetRow[]>;
   approveChangeSet(id: string, reason?: string | null, env?: PermissionEnvironment): Promise<ChangeSetRow>;
   rejectChangeSet(id: string, reason?: string | null, env?: PermissionEnvironment): Promise<ChangeSetRow>;
+  requestChangesOnChangeSet(id: string, comment: string): Promise<void>;
+  cancelChangeSet(id: string, reason?: string | null): Promise<void>;
+  listAllChangeSets(filter?: ChangeSetFilter): Promise<ChangeSetRow[]>;
   createTemplate(input: CreateTemplateInput, permissionKeys: string[]): Promise<TemplateRow>;
   updateTemplate(id: string, patch: Partial<CreateTemplateInput>): Promise<void>;
   deleteTemplate(id: string): Promise<void>;
@@ -457,6 +487,7 @@ class SupabasePermissionRepository implements PermissionRepository {
 
   async submitChangeSet(input: SubmitChangeSetInput): Promise<ChangeSetRow> {
     const { data: userRes } = await supabase.auth.getUser();
+    const status = input.autoApply && !input.requires_approval ? "draft" : "pending_approval";
     const { data, error } = await supabase
       .from("permission_change_sets")
       .insert({
@@ -467,11 +498,98 @@ class SupabasePermissionRepository implements PermissionRepository {
         reason: input.reason ?? null,
         requested_by: userRes.user?.id ?? null,
         environment: input.environment ?? DEFAULT_ENVIRONMENT,
+        requires_approval: input.requires_approval ?? false,
+        status,
+        submitted_at: new Date().toISOString(),
       })
       .select("*")
       .single();
     if (error) throw error;
     return data as ChangeSetRow;
+  }
+
+  async submitChangeSets(inputs: SubmitChangeSetInput[]): Promise<ChangeSetRow[]> {
+    const results: ChangeSetRow[] = [];
+    for (const input of inputs) {
+      const row = await this.submitChangeSet(input);
+      if (input.autoApply && !input.requires_approval) {
+        try {
+          const applied = await this.approveChangeSet(row.id, input.reason ?? null, input.environment ?? DEFAULT_ENVIRONMENT);
+          results.push(applied);
+          continue;
+        } catch (err) {
+          // Best-effort rollback: mark failed so it doesn't linger as draft.
+          await (supabase as any)
+            .from("permission_change_sets")
+            .update({ status: "failed" })
+            .eq("id", row.id);
+          throw err;
+        }
+      }
+      results.push(row);
+    }
+    return results;
+  }
+
+  async requestChangesOnChangeSet(id: string, comment: string): Promise<void> {
+    const { data: userRes } = await supabase.auth.getUser();
+    // Append to review_comments and flip to requested_changes/draft
+    const { data: current, error: readErr } = await supabase
+      .from("permission_change_sets")
+      .select("review_comments")
+      .eq("id", id)
+      .maybeSingle();
+    if (readErr) throw readErr;
+    const list = Array.isArray((current as any)?.review_comments) ? (current as any).review_comments : [];
+    list.push({
+      actor: userRes.user?.id ?? null,
+      action: "requested_changes",
+      comment,
+      at: new Date().toISOString(),
+    });
+    const { error } = await (supabase as any)
+      .from("permission_change_sets")
+      .update({ status: "requested_changes", review_comments: list })
+      .eq("id", id);
+    if (error) throw error;
+  }
+
+  async cancelChangeSet(id: string, reason?: string | null): Promise<void> {
+    const { data: userRes } = await supabase.auth.getUser();
+    const { data: current, error: readErr } = await supabase
+      .from("permission_change_sets")
+      .select("review_comments")
+      .eq("id", id)
+      .maybeSingle();
+    if (readErr) throw readErr;
+    const list = Array.isArray((current as any)?.review_comments) ? (current as any).review_comments : [];
+    list.push({
+      actor: userRes.user?.id ?? null,
+      action: "cancelled",
+      comment: reason ?? "",
+      at: new Date().toISOString(),
+    });
+    const { error } = await (supabase as any)
+      .from("permission_change_sets")
+      .update({ status: "cancelled", review_comments: list })
+      .eq("id", id);
+    if (error) throw error;
+  }
+
+  async listAllChangeSets(filter: ChangeSetFilter = {}): Promise<ChangeSetRow[]> {
+    let q = supabase.from("permission_change_sets").select("*")
+      .order("created_at", { ascending: false })
+      .limit(filter.limit ?? 500);
+    if (filter.env) q = q.eq("environment", filter.env);
+    if (filter.states?.length) q = q.in("status", filter.states as any);
+    if (filter.scope) q = q.eq("target_scope", filter.scope);
+    if (filter.requestedBy) q = q.eq("requested_by", filter.requestedBy);
+    if (filter.targetKey) q = q.eq("target_key", filter.targetKey);
+    if (filter.since) q = q.gte("created_at", filter.since);
+    if (filter.until) q = q.lte("created_at", filter.until);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []) as ChangeSetRow[];
   }
 
   async approveChangeSet(id: string, reason?: string | null, env: PermissionEnvironment = DEFAULT_ENVIRONMENT): Promise<ChangeSetRow> {
