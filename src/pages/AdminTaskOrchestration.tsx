@@ -22,6 +22,7 @@ import {
   ErrorState,
 } from "@/components/admin/task-orchestration";
 import type { QueueFilters } from "@/components/admin/task-orchestration";
+import { DEFAULT_QUEUE_FILTERS } from "@/components/admin/task-orchestration/TaskQueueFilters";
 import {
   fetchOrchestrationOverview,
   runOrchestrationAction,
@@ -46,9 +47,8 @@ export default function AdminTaskOrchestration() {
   const [error, setError] = useState<string | null>(null);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [queueFilters, setQueueFilters] = useState<QueueFilters>({
-    search: "", priority: "all", type: "all", ageBucket: "all",
-  });
+  const [selectingAllMatching, setSelectingAllMatching] = useState(false);
+  const [queueFilters, setQueueFilters] = useState<QueueFilters>(DEFAULT_QUEUE_FILTERS);
   const [detailTask, setDetailTask] = useState<UnassignedTask | null>(null);
   const [assignTarget, setAssignTarget] = useState<UnassignedTask | null>(null);
   const [assignBulk, setAssignBulk] = useState(false);
@@ -66,7 +66,26 @@ export default function AdminTaskOrchestration() {
   const load = useCallback(async () => {
     try {
       setLoading(true); setError(null);
-      const overview = await fetchOrchestrationOverview();
+      const overview = await fetchOrchestrationOverview({
+        search: queueFilters.search,
+        priority: queueFilters.priority,
+        type: queueFilters.type,
+        status: queueFilters.status,
+        stage: queueFilters.stage,
+        sla: queueFilters.sla,
+        queue: queueFilters.queue,
+        team: queueFilters.team,
+        required_role: queueFilters.requiredRole,
+        amount_min: queueFilters.amountMin ? Number(queueFilters.amountMin) : null,
+        amount_max: queueFilters.amountMax ? Number(queueFilters.amountMax) : null,
+        date_from: queueFilters.dateFrom || null,
+        date_to: queueFilters.dateTo || null,
+        age_bucket: queueFilters.ageBucket,
+        sort_by: queueFilters.sortBy,
+        sort_dir: queueFilters.sortDir,
+        page: queueFilters.page,
+        per_page: queueFilters.perPage,
+      });
       setData(overview);
       setMode(overview.rules?.mode ?? overview.rules?.config?.mode ?? "round_robin");
     } catch (e) {
@@ -74,7 +93,7 @@ export default function AdminTaskOrchestration() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [queueFilters]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -107,7 +126,12 @@ export default function AdminTaskOrchestration() {
   });
   const toggleAll = (checked: boolean) => {
     if (!data) return;
+    setSelectingAllMatching(false);
     setSelectedIds(new Set(checked ? data.unassigned_queue.map(t => t.id) : []));
+  };
+  const selectAllMatching = (ids: string[]) => {
+    setSelectingAllMatching(true);
+    setSelectedIds(new Set(ids));
   };
 
   const runAction = async (label: string, fn: () => Promise<unknown>) => {
@@ -274,9 +298,12 @@ export default function AdminTaskOrchestration() {
               <div className="lg:col-span-2">
                 <UnassignedTaskQueue
                   tasks={data.unassigned_queue}
+                  page={data.unassigned_page}
                   selectedIds={selectedIds}
                   onToggle={toggleId}
                   onToggleAll={toggleAll}
+                  onSelectAllMatching={selectAllMatching}
+                  selectingAllMatching={selectingAllMatching}
                   onAssignRow={handleAssignRow}
                   onOpenDetail={setDetailTask}
                   filters={queueFilters}
