@@ -314,10 +314,19 @@ function toLocalDateTime(iso: string): string {
 export default function AdminAuditLogs() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  // Deep-link support: `/admin/audit-logs?ref=<id>&type=change_set|override`
+  // seeds the search box with the reference id so the operator lands on the
+  // filtered rows. `type` is currently informational only — the audit list is
+  // full-text and any resource id is matched by the `q` filter.
+  const initialRef = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("ref") ?? ""
+    : "";
   const [filters, setFilters] = useState<AuditListFilters>({
-    q: "", action_type: "all", severity: "all", from: "", to: "", page: 1, page_size: PAGE_SIZE,
+    q: initialRef, action_type: "all", severity: "all", from: "", to: "", page: 1, page_size: PAGE_SIZE,
   });
-  const [applied, setApplied] = useState<AuditListFilters>({ page: 1, page_size: PAGE_SIZE });
+  const [applied, setApplied] = useState<AuditListFilters>({
+    q: initialRef || undefined, page: 1, page_size: PAGE_SIZE,
+  });
   const [drawerRow, setDrawerRow] = useState<AuditRow | null>(null);
   const [exporting, setExporting] = useState(false);
   const [complianceLoading, setComplianceLoading] = useState(false);

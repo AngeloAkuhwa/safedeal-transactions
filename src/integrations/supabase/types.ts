@@ -2330,6 +2330,7 @@ export type Database = {
           dispute_updates: boolean
           id: string
           marketing_messages: boolean
+          matrix_alerts: Json
           payment_updates: boolean
           system_alerts: boolean
           updated_at: string
@@ -2342,6 +2343,7 @@ export type Database = {
           dispute_updates?: boolean
           id?: string
           marketing_messages?: boolean
+          matrix_alerts?: Json
           payment_updates?: boolean
           system_alerts?: boolean
           updated_at?: string
@@ -2354,6 +2356,7 @@ export type Database = {
           dispute_updates?: boolean
           id?: string
           marketing_messages?: boolean
+          matrix_alerts?: Json
           payment_updates?: boolean
           system_alerts?: boolean
           updated_at?: string

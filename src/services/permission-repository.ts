@@ -211,6 +211,7 @@ export interface PermissionRepository {
     approval_required?: boolean; owner_role?: string | null;
     status?: "active" | "suspended" | "deprecated";
   }): Promise<void>;
+  setPermissionAssignable(key: string, assignable: boolean, reason: string): Promise<void>;
   listRoles(): Promise<RoleRow[]>;
   listRoleGrants(env?: PermissionEnvironment): Promise<RoleGrantRow[]>;
   listOverrides(env?: PermissionEnvironment): Promise<OverrideRepoRow[]>;
@@ -344,6 +345,26 @@ class SupabasePermissionRepository implements PermissionRepository {
     if (Object.keys(upd).length === 0) return;
     const { error } = await (supabase as any).from("permissions").update(upd).eq("key", key);
     if (error) throw error;
+  }
+
+  async setPermissionAssignable(key: string, assignable: boolean, reason: string): Promise<void> {
+    // Flips permissions.assignable; existing role_permissions and user_permission_overrides
+    // are intentionally left in place — only *new* assignments are blocked.
+    const { error } = await (supabase as any)
+      .from("permissions")
+      .update({ assignable })
+      .eq("key", key);
+    if (error) throw error;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) {
+      await (supabase as any).from("admin_actions").insert({
+        actor_id: session.user.id,
+        action_type: assignable ? "unsuspend_permission_assignment" : "suspend_permission_assignment",
+        resource: "permissions",
+        resource_id: key,
+        metadata: { permission_key: key, assignable, reason },
+      });
+    }
   }
 
   async listRoles(): Promise<RoleRow[]> {

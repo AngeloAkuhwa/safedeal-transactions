@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const ALERT_KEYS = [
   { key: "critical_permission_changed", label: "Critical permission changes", desc: "Notify when Privileged / Critical permissions are granted, revoked, or applied." },
@@ -16,37 +17,62 @@ const ALERT_KEYS = [
 
 type AlertSettings = Record<string, boolean>;
 
-function storageKey(uid: string) { return `safedeal:matrix-alerts:${uid}`; }
+const DEFAULTS = (): AlertSettings =>
+  Object.fromEntries(ALERT_KEYS.map((a) => [a.key, true]));
 
-function loadSettings(uid: string): AlertSettings {
-  try {
-    const raw = localStorage.getItem(storageKey(uid));
-    if (!raw) return Object.fromEntries(ALERT_KEYS.map((a) => [a.key, true]));
-    return { ...Object.fromEntries(ALERT_KEYS.map((a) => [a.key, true])), ...JSON.parse(raw) };
-  } catch {
-    return Object.fromEntries(ALERT_KEYS.map((a) => [a.key, true]));
+async function loadSettings(uid: string): Promise<AlertSettings> {
+  const { data, error } = await supabase
+    .from("notification_preferences")
+    .select("matrix_alerts")
+    .eq("user_id", uid)
+    .maybeSingle();
+  if (error) return DEFAULTS();
+  const stored = (data?.matrix_alerts ?? {}) as Record<string, unknown>;
+  const out = DEFAULTS();
+  for (const k of Object.keys(out)) {
+    if (typeof stored[k] === "boolean") out[k] = stored[k] as boolean;
   }
+  return out;
+}
+
+async function persistSettings(uid: string, s: AlertSettings) {
+  // Upsert against the user's row — the auth trigger creates it on signup but
+  // we defensively upsert so a missing row does not silently drop preferences.
+  const { error } = await supabase
+    .from("notification_preferences")
+    .upsert({ user_id: uid, matrix_alerts: s as unknown as any }, { onConflict: "user_id" });
+  if (error) throw error;
 }
 
 export function AlertSettingsDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const uid = useCurrentUserId();
   const perms = useAdminPermissions();
   const canReceiveCritical = perms.has("permissions.view");
-  const [state, setState] = useState<AlertSettings>({});
+  const [state, setState] = useState<AlertSettings>(DEFAULTS());
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!uid || !open) return;
-    setState(loadSettings(uid));
+    let cancelled = false;
+    setLoading(true);
+    loadSettings(uid)
+      .then((s) => { if (!cancelled) setState(s); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [uid, open]);
 
-  const save = () => {
+  const save = async () => {
     if (!uid) return;
+    setBusy(true);
     try {
-      localStorage.setItem(storageKey(uid), JSON.stringify(state));
+      await persistSettings(uid, state);
       toast.success("Alert preferences saved");
       onOpenChange(false);
-    } catch {
-      toast.error("Could not save preferences");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save preferences");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -83,8 +109,10 @@ export function AlertSettingsDrawer({ open, onOpenChange }: { open: boolean; onO
         </div>
 
         <div className="mt-6 flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button size="sm" onClick={save}>Save preferences</Button>
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
+          <Button size="sm" onClick={save} disabled={busy || loading}>
+            {busy ? "Saving…" : loading ? "Loading…" : "Save preferences"}
+          </Button>
         </div>
       </SheetContent>
     </Sheet>

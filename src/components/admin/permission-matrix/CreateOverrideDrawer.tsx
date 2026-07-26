@@ -34,6 +34,7 @@ export function CreateOverrideDrawer({
   const [busy, setBusy] = useState(false);
 
   const [roleBag, setRoleBag] = useState<Set<string> | null>(null);
+  const [nonAssignable, setNonAssignable] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open) return;
@@ -41,6 +42,23 @@ export function CreateOverrideDrawer({
     setPermQuery(""); setPermKey(null);
     setType("grant"); setReason(""); setExpiresAt("");
     setRoleBag(null);
+  }, [open]);
+
+  // Load the set of permission keys that were suspended (assignable=false) so
+  // they are filtered out of the picker — existing overrides remain untouched
+  // but new grants are blocked at the UI layer.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("permissions")
+        .select("key,assignable")
+        .eq("assignable", false);
+      if (cancelled) return;
+      setNonAssignable(new Set((data ?? []).map((r: { key: string }) => r.key)));
+    })();
+    return () => { cancelled = true; };
   }, [open]);
 
   // Search internal_users
@@ -83,9 +101,9 @@ export function CreateOverrideDrawer({
     const q = permQuery.trim().toLowerCase();
     const all = PERMISSION_MODULES.flatMap((m) => m.permissions.map((p) => ({
       key: p.key, label: p.label, module: m.label,
-    })));
+    }))).filter((p) => !nonAssignable.has(p.key));
     return q ? all.filter((p) => p.key.toLowerCase().includes(q) || p.label.toLowerCase().includes(q)) : all.slice(0, 30);
-  }, [permQuery]);
+  }, [permQuery, nonAssignable]);
 
   const privileged = permKey ? isPrivilegedPermission(permKey) : false;
   const isTemporary = type === "temporary" || (privileged && type === "grant");
