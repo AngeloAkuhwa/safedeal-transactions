@@ -110,6 +110,207 @@ export function invalidateRoleGrantMap(env?: PermissionEnvironment) {
   else roleMapCache.clear();
 }
 
+// ---------------------------------------------------------------------------
+// Role Detail helpers
+// ---------------------------------------------------------------------------
+
+export interface RoleAssignedUser {
+  id: string;
+  name: string;
+  email: string;
+  is_primary: boolean;
+  status: string | null;
+}
+
+export async function fetchRoleAssignedUsers(role: InternalRoleKey): Promise<RoleAssignedUser[]> {
+  const { data: rr, error } = await supabase
+    .from("internal_user_roles")
+    .select("user_id,is_primary,role_key")
+    .eq("role_key", role);
+  if (error) throw error;
+  const ids = Array.from(new Set((rr ?? []).map((r) => r.user_id))).filter(Boolean);
+  if (!ids.length) return [];
+  const { data: users, error: uErr } = await supabase
+    .from("internal_users")
+    .select("id,full_name,email,status")
+    .in("id", ids);
+  if (uErr) throw uErr;
+  const byId = new Map((users ?? []).map((u: any) => [u.id, u]));
+  return (rr ?? [])
+    .map((r) => {
+      const u = byId.get(r.user_id);
+      if (!u) return null;
+      return {
+        id: u.id,
+        name: (u as any).full_name ?? "—",
+        email: (u as any).email ?? "",
+        is_primary: !!r.is_primary,
+        status: (u as any).status ?? null,
+      } as RoleAssignedUser;
+    })
+    .filter((r): r is RoleAssignedUser => !!r);
+}
+
+export async function fetchRoleUserCounts(): Promise<Map<string, number>> {
+  const { data, error } = await supabase.from("internal_user_roles").select("role_key");
+  if (error) throw error;
+  const out = new Map<string, number>();
+  for (const r of data ?? []) out.set(r.role_key, (out.get(r.role_key) ?? 0) + 1);
+  return out;
+}
+
+export async function fetchActiveSuperAdminCount(): Promise<number> {
+  const { data, error } = await supabase
+    .from("internal_user_roles")
+    .select("user_id,internal_users!inner(status)")
+    .eq("role_key", "super_admin");
+  if (error) throw error;
+  return (data ?? []).filter((r: any) => (r.internal_users?.status ?? "active") === "active").length;
+}
+
+export async function fetchPermissionEnvironments(): Promise<Map<string, PermissionEnvironment[]>> {
+  const rows = await permissionRepo.listPermissionEnvironments();
+  const out = new Map<string, PermissionEnvironment[]>();
+  for (const r of rows) {
+    const bag = out.get(r.permission_key) ?? [];
+    bag.push(r.environment);
+    out.set(r.permission_key, bag);
+  }
+  return out;
+}
+
+export interface PendingChangeRow {
+  id: string;
+  target_scope: string;
+  target_key: string;
+  reason: string | null;
+  status: string;
+  created_at: string;
+  requested_by: string | null;
+  before_keys: string[];
+  after_keys: string[];
+}
+
+function normaliseKeys(payload: any): string[] {
+  if (!payload || typeof payload !== "object") return [];
+  if (Array.isArray(payload.permission_keys)) return payload.permission_keys as string[];
+  return [];
+}
+
+export async function fetchPendingChangesForRole(
+  role: InternalRoleKey,
+  env: PermissionEnvironment = DEFAULT_ENVIRONMENT,
+): Promise<PendingChangeRow[]> {
+  const rows = await permissionRepo.listChangeSets("pending", env);
+  return rows
+    .filter((r) => r.target_scope === "role" && r.target_key === role)
+    .map((r) => ({
+      id: r.id,
+      target_scope: r.target_scope,
+      target_key: r.target_key,
+      reason: r.reason ?? null,
+      status: r.status,
+      created_at: r.created_at,
+      requested_by: r.requested_by ?? null,
+      before_keys: normaliseKeys(r.before),
+      after_keys: normaliseKeys(r.after),
+    }));
+}
+
+export async function fetchPendingChangesForPermission(
+  permissionKey: string,
+  env: PermissionEnvironment = DEFAULT_ENVIRONMENT,
+): Promise<PendingChangeRow[]> {
+  const rows = await permissionRepo.listChangeSets("pending", env);
+  const out: PendingChangeRow[] = [];
+  for (const r of rows) {
+    const before = normaliseKeys(r.before);
+    const after = normaliseKeys(r.after);
+    if (before.includes(permissionKey) || after.includes(permissionKey)) {
+      out.push({
+        id: r.id,
+        target_scope: r.target_scope,
+        target_key: r.target_key,
+        reason: r.reason ?? null,
+        status: r.status,
+        created_at: r.created_at,
+        requested_by: r.requested_by ?? null,
+        before_keys: before,
+        after_keys: after,
+      });
+    }
+  }
+  return out;
+}
+
+export async function fetchOverridesForPermission(
+  permissionKey: string,
+  env: PermissionEnvironment = DEFAULT_ENVIRONMENT,
+): Promise<Array<{ user_id: string; user_name: string; user_email: string; mode: string; reason: string | null; expires_at: string | null; created_at: string }>> {
+  const all = await permissionRepo.listOverrides(env);
+  const matching = all.filter((o) => o.permission_key === permissionKey);
+  if (!matching.length) return [];
+  const ids = Array.from(new Set(matching.map((o) => o.user_id)));
+  const { data: users } = await supabase.from("internal_users").select("id,full_name,email").in("id", ids);
+  const byId = new Map((users ?? []).map((u: any) => [u.id, u]));
+  return matching.map((o) => {
+    const u = byId.get(o.user_id);
+    return {
+      user_id: o.user_id,
+      user_name: (u as any)?.full_name ?? "Unknown user",
+      user_email: (u as any)?.email ?? "",
+      mode: o.mode,
+      reason: o.reason ?? null,
+      expires_at: o.expires_at ?? null,
+      created_at: o.granted_at,
+    };
+  });
+}
+
+export interface RoleLastModified {
+  at: string | null;
+  by_id: string | null;
+  by_name: string | null;
+}
+
+export async function fetchRoleLastModified(role: InternalRoleKey, env: PermissionEnvironment = DEFAULT_ENVIRONMENT): Promise<RoleLastModified> {
+  const changesets = await permissionRepo.listChangeSets(undefined, env);
+  const forRole = changesets.filter((c) => c.target_scope === "role" && c.target_key === role);
+  if (!forRole.length) return { at: null, by_id: null, by_name: null };
+  forRole.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  const top = forRole[0];
+  let byName: string | null = null;
+  if (top.requested_by) {
+    const { data: u } = await supabase.from("internal_users").select("full_name").eq("id", top.requested_by).maybeSingle();
+    byName = (u as any)?.full_name ?? null;
+  }
+  return { at: top.applied_at ?? top.created_at, by_id: top.requested_by ?? null, by_name: byName };
+}
+
+export async function fetchRoleHistory(role: InternalRoleKey, limit = 20): Promise<Array<{ id: string; action_type: string; created_at: string; actor_name: string | null; summary: string | null }>> {
+  // Filter admin_actions for permission-related types where notes mention the role.
+  const rows = await permissionRepo.listHistory(200, undefined, [
+    "role_assigned", "role_changed", "permission_override_requested",
+    "permission_override_approved", "permission_override_rejected",
+    "role_change_approved", "role_change_rejected",
+  ]);
+  const filtered = rows.filter((r) => (r.action_notes ?? "").includes(role));
+  const top = filtered.slice(0, limit);
+  const ids = Array.from(new Set(top.map((r) => r.admin_user_id).filter(Boolean))) as string[];
+  const names = new Map<string, string>();
+  if (ids.length) {
+    const { data } = await supabase.from("internal_users").select("id,full_name").in("id", ids);
+    for (const u of data ?? []) names.set((u as any).id, (u as any).full_name ?? "—");
+  }
+  return top.map((r) => ({
+    id: r.id,
+    action_type: r.action_type,
+    created_at: r.created_at,
+    actor_name: r.admin_user_id ? (names.get(r.admin_user_id) ?? null) : null,
+    summary: r.action_notes ?? null,
+  }));
+}
+
 export async function fetchOverrides(): Promise<OverrideRow[]> {
   const [overrides, usersRes, rolesRes] = await Promise.all([
     permissionRepo.listOverrides(),
