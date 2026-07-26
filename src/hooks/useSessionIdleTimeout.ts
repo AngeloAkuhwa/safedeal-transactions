@@ -42,11 +42,24 @@ export function useSessionIdleTimeout() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session || cancelled) return;
       try {
-        const { data, error } = await supabase.functions.invoke("security-config");
-        if (!error && data?.session_timeout_minutes) {
-          const mins = Number(data.session_timeout_minutes);
+        // Use direct fetch instead of supabase.functions.invoke so a transient
+        // 401 (e.g. token expiring mid-refresh) does not emit a console.error
+        // that the runtime tracker misreads as a blank-screen crash.
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/security-config`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "Content-Type": "application/json",
+          },
+        });
+        if (res.ok) {
+          const data = await res.json().catch(() => null);
+          const mins = Number(data?.session_timeout_minutes);
           if (Number.isFinite(mins) && mins >= 1) timeoutMsRef.current = mins * 60 * 1000;
         }
+        // Non-2xx (including 401 invalid_session) → keep default silently.
       } catch { /* keep default */ }
       if (cancelled) return;
       attach();
