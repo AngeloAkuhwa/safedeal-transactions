@@ -1,108 +1,51 @@
+# Task Orchestration — remaining UI gaps + aesthetic polish
 
-# Task Orchestration — remaining gaps vs spec
+Backend for the 10-point plan is done: availability enum expanded, server-side queue filters/pagination/matching_ids, SoD guard, skill-aware auto-assign, movement-safe rebalance, reassign notifications, and 7 new lifecycle actions (`start`, `update_stage`, `add_internal_note`, `request_info`, `request_evidence`, `submit_resolution`, `close`). Queue UI (columns, filters, sort, pagination, "select all matching") landed last turn.
 
-I audited the current wiring against your spec. Sidebar gating, route guards, per-action server permissions, non-`view_all` realtime scoping, per-row bulk results, auto-assign exclusions and CSV exports via server permission are **already in place**. Below are the remaining gaps grouped by the sections in your spec, followed by the fix plan.
+All remaining work stays inside `src/components/admin/task-orchestration/**` plus `src/pages/AdminTaskOrchestration.tsx` and the shared tokens in `src/index.css`.
 
-## Confirmed gaps
+## Part 1 — Functional gaps
 
-### A. Unassigned Task Queue — columns & filters
-Present today: Selection, Task ID (+ dispute), Type, Priority, Age, Amount, Suggested, Action; filters = search / priority / type / age; select-current-page only.
-Missing:
-- Columns: Case/Dispute Reference (dedicated), Stage, SLA Due, Queue.
-- Filters: Queue, Status, Stage, SLA, Amount range, Team, Required-role, Date-range, Clear filters.
-- Sort controls, pagination + rows-per-page, result count.
-- "Select all matching results" (across pages), separate from "select current page".
+1. **Assign Task drawer eligibility panel** — per-agent row: availability chip, capacity meter, overdue count, team, role, skills, suggested score, eligibility reason; inline warnings for capacity / missing skill / SoD; "Selected tasks" list when bulk-assigning.
+2. **Auto-Assign preview depth** — render `agent_loads` (current → projected) and `unmatched` (task + reason) sections the server already returns.
+3. **Rebalance preview overhaul** — list per-movement rows `{ task, from, to, reason, sla_delta, priority }` with per-row exclude checkboxes and a required confirmation reason; pass `exclude_move_ids` + `reason` to `rebalance`.
+4. **Live Task Progression filters + status chips** — real filter popover (agent, team, stage, status, priority, SLA, task type, date range) + distinct chips for `waiting_on_external`, `escalated`, `pending_approval` next to the SLA badge.
+5. **Task Details drawer 7-tab expansion** — Overview · Buyer & Seller · Transaction · Dispute · Evidence · Communications · Internal Notes · Assignment History. Overview adds Risk, Stage, Queue, Assigned Agent, Due Date, SLA Status, Required Role, Required Permissions, Escalation State. Action bar adds Start Task, Update Stage, Add Internal Note, Request Information, Request Evidence, Reassign, Submit Resolution, Close — gated by `useOrchestrationPerms`.
+6. **Agent Details drawer completeness** — role, permissions, skills, critical-task count, SLA risk, avg resolution time, reassignment history, contextual link buttons (Access Control, Agent Performance, Assigned Tasks, Assignment History).
+7. **Agent Roster card enrichment** — role, team, critical-task count, current SLA risk, last-activity relative time on each card; keep availability distinct from "eligible".
 
-### B. Assign Task drawer — eligibility depth
-Shows agent name + `active/max`. Missing per spec:
-- Availability chip, capacity bar, overdue count, team, role, relevant skills, suggested score, eligibility reason.
-- Explicit warnings for capacity, permissions/skill gaps, SoD conflicts.
-- "Selected tasks" summary when bulk-assigning (currently only the first task is echoed).
+## Part 2 — Aesthetic polish (screen-wide)
 
-### C. Auto-Assign preview — depth
-Has proposals + per-row exclusion + counts. Missing:
-- Per-agent "current → projected" load rows.
-- Unmatched tasks list with the reason each one could not be placed (no seats / missing skill / offline etc.).
-- Selected assignment mode is shown, but selected-tasks scoping (subset vs whole queue) is not surfaced.
+The orchestration surface today reads as a dense operations table. The polish raises it to the same "control-room dashboard" register used across Feature Registry and Access Control — richer, quieter, more premium — without changing the functional layout.
 
-### D. Rebalance — safety & preview
-`buildRebalancePlan` picks best agent by capacity only. Missing:
-- Exclusion rules server-side: skip tasks in Final Decision, `pending_approval`, tasks locked by another operation, continuity-required tasks, moves that would create a permission/skill conflict.
-- Preview must list, per proposed movement: task, previous agent, proposed agent, reason, SLA impact, priority impact.
-- Per-movement exclusion checkboxes and a required confirmation reason.
-- Notifications to both previous and new agent on apply.
+**Design directions ritual first.** Before touching any styles, capture the current `/admin/task-orchestration` screen, run `design--create_directions` on a hero band + one representative card, and present three rendered directions via a prototype question. Locked tokens must match the existing admin palette (sky primary, glass surfaces, inter type). Only after the user picks a direction do we commit tokens.
 
-### E. Live Task Progression — filters & status
-"Filter" button is a placeholder. Missing filters (Agent, Team, Stage, Status, Priority, SLA, Task Type, Date range) and distinct status chips for `waiting_on_external`, `escalated`, `pending_approval` (today only SLA badge is shown).
+Once a direction is chosen, apply consistently across:
 
-### F. Task Details drawer — tabs, fields, actions
-Only 3 tabs (Overview / Timeline / Comments). Missing tabs & content:
-- Buyer & Seller (role-permitted view).
-- Transaction (summary + link to full Transaction Details).
-- Dispute (summary + link to full Dispute Details).
-- Evidence (list + permitted evidence actions).
-- Communications (buyer/seller messages related to the task).
-- Internal Notes as a distinct tab from public Comments.
-- Assignment History as a dedicated tab (previous agent, new agent, assigned by, mode, reason, timestamp).
+- **Header band** — softer gradient wash, refined KPI chips with monospaced tabular numerals, subtle live-pulse indicator on the "Active" dot, tighter subtitle rhythm.
+- **Summary cards (KPIs)** — glass surfaces (`bg-card/60` + backdrop blur) with hairline `ring-border/50`, delta arrows with tinted backgrounds, `tabular-nums` on every number, hover lift `translate-y-[-1px]` + soft shadow.
+- **Assignment Control Panel** — segmented mode selector styled like the Environment Switcher, quick-action buttons grouped with a divider, disabled-state affordance for permission-gated actions.
+- **Unassigned Task Queue** — sticky header row, alternating hairline row separators, priority pills that own their column, SLA badges with left-tick color bar, hoverable rows that reveal the row action, empty-state illustration hint.
+- **Agent Roster** — cards get avatar ring tinted by availability, capacity meter as a slim segmented bar, role/team as a two-line subtitle, "eligible/ineligible" state visually distinct from availability dot.
+- **Live Task Progression** — swimlane feel: status chip + SLA badge sit side-by-side, stage progression rendered as a compact stepper, filter popover styled as glass over-panel.
+- **Productivity Insights** — icon-led stat tiles, subtle gradient underline for each superlative, avatar cluster where relevant.
+- **Assignment Rules panel** — form group with clearer section labels, toggles use the shadcn switch, "Last saved" chip in the corner.
+- **All drawers** — 480/600/720 px width tiers by content weight, sticky header with entity code + status pill, sticky footer for the primary action, section headers in `text-xs uppercase tracking-wider text-muted-foreground`, tab bar mirrors Feature Registry.
+- **Loading & empty states** — replace the generic skeleton with card-shaped skeletons that mirror final layout; empty states get a single-icon glyph + one-line explanation + one CTA.
+- **Motion register** — 120–180 ms tween on hover/press, 220 ms slide+fade on drawers, no bounce; reduce-motion respected.
+- **Tokens** — pull any new gradients/shadows into `src/index.css` as `--gradient-orchestration-header`, `--shadow-orchestration-card` so they're reusable and dark-mode safe. No hard-coded colors in components.
 
-Overview fields missing: Risk, Stage, Queue, Assigned agent, Due date, SLA status, Required role, Required permissions, Escalation state.
+## Order of work
 
-Task actions missing per permission: Start Task, Update Stage, Add Note (internal), Request Information, Request Evidence, Reassign, Submit Resolution, Close. (Assign, Escalate, Send-for-Approval, Complete already wired.)
+1. Group A (drawers powered by existing payloads): items 1 → 2 → 3.
+2. Group B (live surface + roster): items 4 → 6 → 7.
+3. Group C (largest): item 5 — 7-tab Task Details.
+4. Group D (aesthetic): run directions ritual → apply chosen direction top-down (header → KPIs → panels → tables → drawers → states).
 
-### G. Agent Roster / Agent Details drawer
-Agent Details drawer today shows Load / Overdue / Tasks Today / Resolved Today / Avg First Action only. Missing: role, permissions, skills, critical-task count, current SLA risk, avg resolution time, reassignment history, and contextual links (View in Users & Access, View Agent Performance, View Assigned Tasks, View Assignment History).
-
-Agent Roster card is missing: role, team, critical-task count, current SLA risk, last activity.
-
-### H. Availability enum coverage
-`agent_availability_status` = `available | active | busy | at_capacity | offline`. Spec requires **`on_leave`** and **`suspended`** as first-class statuses used for eligibility filtering.
-
-### I. Server-side safety extras
-- `reassign` does not emit notifications to previous/new agent.
-- `assign_to_me` and `assign_selected` don't check separation-of-duty (e.g., initiator cannot approve their own financial task).
-- No explicit block when target agent status is `on_leave`/`suspended` (enum doesn't yet include these values).
-
-## Fix plan
-
-Ordered for minimal blast radius. Every item stays inside the Task Orchestration surface; no other module changes.
-
-1. **Availability enum expansion (migration)** — add `on_leave` and `suspended` to `agent_availability_status`; treat both as ineligible in `pickBestAgent`, `buildAutoAssignPlan`, assign/reassign guards, and Roster status controls.
-2. **Queue filters & pagination**
-   - Extend `QueueFilters` with `status`, `stage`, `sla`, `queue`, `team`, `requiredRole`, `amountMin`, `amountMax`, `dateFrom`, `dateTo`, plus `sortBy`, `sortDir`, `page`, `perPage`.
-   - Move filtering + counting server-side in `admin-task-orchestration-overview` (accept a `queue_filters` payload; return `{ rows, total, page, per_page }`).
-   - UI: dedicated columns for Case/Dispute Ref, Stage, SLA Due, Queue; result count, "clear filters", sort headers, pagination bar, rows-per-page selector, and a second "Select all matching results" checkbox that switches selection to a server-scoped id set.
-3. **Assign Task drawer eligibility panel** — expand each agent row with availability chip, capacity meter, overdue count, team, role, skills; compute a suggested score and eligibility reason; show inline warnings for capacity / missing skill / SoD; render a "selected tasks" list for bulk assign.
-4. **Auto-Assign preview depth** — enrich server `preview_auto_assign` response with `agent_loads: [{ agent_id, current, projected }]` and `unmatched: [{ task_id, reason }]`; render both sections in the drawer.
-5. **Rebalance overhaul (server + drawer)**
-   - Server: exclude tasks in stages `final_decision`, statuses `pending_approval`/`escalated`, rows with `locked_by_action_id IS NOT NULL`, tasks flagged `continuity_required`, and moves that would violate skill/permission match.
-   - Server response for `preview_rebalance` returns per-move `{ task_id, task_code, from, to, reason, sla_delta, priority }`.
-   - Drawer lists movements with checkboxes to exclude, requires a reason, and passes `exclude_task_ids` + `reason` to `rebalance`; on apply, enqueue notifications for both agents.
-6. **Live Task Progression filters + status chips** — real filter popover (agent/team/stage/status/priority/SLA/type/date range) + distinct chips for `waiting_on_external`, `escalated`, `pending_approval` alongside the existing SLA badge.
-7. **Task Details drawer expansion**
-   - Add tabs: Buyer & Seller, Transaction, Dispute, Evidence, Communications, Internal Notes, Assignment History (split from Timeline).
-   - Overview: add Risk, Stage, Queue, Assigned Agent, Due Date, SLA Status, Required Role, Required Permissions, Escalation State fields.
-   - Action bar: Start Task, Update Stage, Add Internal Note, Request Information, Request Evidence, Reassign, Submit Resolution, Close — each gated by its `useOrchestrationPerms` flag and routed through new `admin-task-orchestration-action` cases (`start`, `update_stage`, `add_internal_note`, `request_info`, `request_evidence`, `submit_resolution`, `close`) that write to `orchestration_tasks` + `task_status_history` and mirror to `admin_actions` / `audit_logs`.
-   - Non-goal reminder: Transaction / Dispute / Evidence tabs render a **summary + deep link** to the existing full screens, not a duplicate of them.
-8. **Agent Details drawer completeness** — surface role, permissions, skills, critical-task count, SLA risk, avg resolution time, and a reassignment-history list; add contextual link buttons to `/admin/access-control?userId=`, `/admin/agents/:id/performance`, `/admin/task-orchestration?assigned=:id`, and the Assignment History drawer scoped to that agent.
-9. **Agent Roster card enrichment** — add role, team, critical-task count, current SLA risk, last-activity relative time to each card; keep availability distinct from "eligible".
-10. **Notifications & SoD**
-    - On `reassign` and `rebalance` movements, insert `notifications` rows for `from_agent_id` and `to_agent_id`.
-    - Add SoD guard in `assign`, `assign_selected`, `assign_to_me`: reject when target agent is the task's initiator/originator on financial task types (`refund_request`, `escrow_release_review`, `payment_hold_review`, `payout_review`), returning `sod_conflict` unless the caller holds `task_orchestration.override_capacity` **and** provides a ≥8-char reason.
+Functional work (Groups A–C) ships first so the visual pass in Group D dresses a complete surface rather than a moving target.
 
 ## Technical notes
 
-- All new drawer tabs read via `fetchTaskDetail` — extend the server `task_detail` case to include buyer/seller summary (role-permitted), transaction stub, dispute stub, evidence rows, communication rows, and split `internal_notes` from public `comments`.
-- New action cases must reuse the existing `checkVersion` optimistic-lock pattern and `logAdminAction({ mirrorToAuditLogs: true })`.
-- Availability enum change is a migration; refresh types after apply.
-- Server-side pagination for the queue is required so "Select all matching results" is honest — client-only filtering would silently drop rows beyond the 50-row cap.
-
-```text
-Overview endpoint returns:
-{ scope, kpis,
-  unassigned_queue: { rows, total, page, per_page },
-  live_progression: [...],
-  roster: [...],
-  insights, rules }
-```
-
-No changes to Feature Registry / Permission Matrix / Users & Access are needed — permissions and role grants already cover every new action.
+- No new migrations, no new edge-function actions. Overview payload already exposes `roster[*].skills / role / critical_active / sla_risk / last_activity_at` and `unassigned_page.matching_ids`.
+- Rebalance apply loop needs the existing `notifyReassignment` call on each accepted move (single-line addition inside `rebalance` handler, folded into item 3).
+- Aesthetic changes must be additive to `src/index.css` tokens — no component-level hex or `text-white`/`bg-black` classes. Contrast verified in both themes.
