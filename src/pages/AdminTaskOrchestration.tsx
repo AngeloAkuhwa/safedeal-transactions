@@ -45,6 +45,7 @@ import { useOrchestrationPerms } from "@/hooks/useOrchestrationPerms";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function AdminTaskOrchestration() {
+  const navigate = useNavigate();
   const perms = useOrchestrationPerms();
   const { isSenior } = perms;
 
