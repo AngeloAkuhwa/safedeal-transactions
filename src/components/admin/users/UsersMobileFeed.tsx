@@ -4,7 +4,7 @@ import {
   UserCog, FileDown, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import type { UserDirectoryRow } from "@/services/admin-users-directory.service";
 import { formatMoneyCompact } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";

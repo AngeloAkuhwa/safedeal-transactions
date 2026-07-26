@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import {
   ShieldCheck, Clock, Download, FileCheck2, ListChecks, TriangleAlert, UserCog,
   Database, Filter, Search, FileText, Code2, Eye, User,

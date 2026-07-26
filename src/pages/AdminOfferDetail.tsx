@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, ArrowLeft, Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";

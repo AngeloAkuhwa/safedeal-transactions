@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router";
 import { Receipt, ArrowRight, Package, Truck, Scale, Clock, CheckCircle, Lock, Snowflake, Unlock } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

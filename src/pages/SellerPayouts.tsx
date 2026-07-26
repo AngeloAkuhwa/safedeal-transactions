@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formatMoney } from "@/lib/format";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import {
   Loader2, RefreshCw, Wallet, TrendingUp, Shield, AlertTriangle,
   Search, Filter, Download, Clock, CheckCircle2,

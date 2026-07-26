@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import {
   AlertTriangle, Loader2, Flag, X, CloudUpload, Plus,
   FileText, Film, ImageIcon, RotateCcw, Hash,

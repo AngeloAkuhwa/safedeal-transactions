@@ -26,7 +26,7 @@ import {
   FileBarChart,
   Undo2,
 } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAdminNav, isBuiltAdminRoute } from "./useAdminNav";
 import { signOut } from "@/services/auth.service";

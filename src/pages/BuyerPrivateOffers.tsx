@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Lock, Clock, ChevronDown, ChevronUp, Package, ArrowRight, AlertTriangle } from "lucide-react";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";

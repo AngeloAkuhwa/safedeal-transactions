@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router";
 import { formatMoney } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import {

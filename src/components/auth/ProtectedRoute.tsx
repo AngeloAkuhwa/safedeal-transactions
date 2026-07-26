@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet, Navigate, useLocation } from "react-router-dom";
+import { Outlet, Navigate, useLocation } from "react-router";
 import { getSession, onAuthStateChange } from "@/services/auth.service";
 import { getUserRoles } from "@/services/role.service";
 import { isInternalUser } from "@/lib/internal-role";

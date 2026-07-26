@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router";
 import { useState } from "react";
 import {
   Ban, ShieldCheck, Info, Lightbulb, Home, Headphones, ChevronDown, ChevronUp,

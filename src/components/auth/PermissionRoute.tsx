@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation } from "react-router";
 import { RefreshCw } from "lucide-react";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 import { permissionForPath } from "@/services/admin-route-permissions";

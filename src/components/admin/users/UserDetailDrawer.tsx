@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, Loader2, Flag, Ban, CheckCircle2, ShieldCheck, Banknote, Scale, ExternalLink, Clock, Mail, Phone, IdCard } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { fetchUserDirectoryDetail } from "@/services/admin-users-directory.service";
 import { formatMoney, formatMoneyCompact } from "@/lib/format";
 import { Sheet, SheetContent } from "@/components/ui/sheet";

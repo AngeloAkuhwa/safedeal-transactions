@@ -1,5 +1,5 @@
 import { Flag, ExternalLink, FileText, Vault, Scale, SearchCheck, StickyNote, Link2, Hourglass, CheckCircle2, AlertTriangle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { formatMoney } from "@/lib/format";
 import { formatRelative } from "@/components/admin/dashboard/relative";
 import type { EscrowRecordRow } from "@/services/admin-escrow.service";

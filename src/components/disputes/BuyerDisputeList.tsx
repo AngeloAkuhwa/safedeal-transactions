@@ -1,5 +1,5 @@
 import { List } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { format, formatDistanceToNow } from "date-fns";
 import { formatMoney } from "@/lib/format";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

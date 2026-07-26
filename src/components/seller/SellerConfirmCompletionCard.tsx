@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { sellerConfirmCompletion } from "@/services/seller-transaction-detail.service";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { SellerPayoutLine } from "@/components/payment/SellerPayoutLine";
 
 interface SellerConfirmCompletionCardProps {

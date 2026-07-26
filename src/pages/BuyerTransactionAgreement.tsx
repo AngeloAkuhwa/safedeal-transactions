@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { BuyerNav } from "@/components/dashboard/BuyerNav";
 import { Footer } from "@/components/landing/Footer";

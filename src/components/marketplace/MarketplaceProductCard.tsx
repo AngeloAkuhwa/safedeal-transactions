@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { formatMoney } from "@/lib/format";
 import { Heart, ShoppingCart, Bell, CheckCircle, PackageOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router";
 import { useBuyerIdentity } from "@/hooks/useBuyerIdentity";
 import { useQuery } from "@tanstack/react-query";
 import {

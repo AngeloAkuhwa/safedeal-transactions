@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { toast } from "@/hooks/use-toast";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 import { permissionForPath } from "@/services/admin-route-permissions";

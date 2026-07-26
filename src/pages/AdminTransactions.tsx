@@ -32,7 +32,7 @@ import {
   FileText,
   Hourglass,
 } from "lucide-react";
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminReadingModeControl } from "@/components/admin/AdminReadingModeControl";

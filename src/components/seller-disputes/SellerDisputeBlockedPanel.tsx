@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { formatMoney } from "@/lib/format";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";

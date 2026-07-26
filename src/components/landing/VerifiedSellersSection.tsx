@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { useEffect, useRef, useState } from "react";
 import { Shield, Star, MapPin, ArrowRight, BadgeCheck, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";

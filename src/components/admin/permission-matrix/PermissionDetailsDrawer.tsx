@@ -9,7 +9,7 @@ import type { OverrideRow } from "@/services/permission-workspace.service";
 import { PermissionRiskBadge } from "./PermissionRiskBadge";
 import { PermissionSourceBadge } from "./PermissionSourceBadge";
 import { ROLE_LABEL } from "@/services/permission-catalog";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 export function PermissionDetailsDrawer({
   override,

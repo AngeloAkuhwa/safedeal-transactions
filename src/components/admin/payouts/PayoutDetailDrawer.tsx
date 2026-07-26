@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Loader2, X, ExternalLink, AlertTriangle, ShieldCheck, ShieldOff, Check, Clock, RotateCcw } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";

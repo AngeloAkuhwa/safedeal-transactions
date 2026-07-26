@@ -1,5 +1,5 @@
 import { CheckCircle, Scale, AlertTriangle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { VerificationCountdown } from "@/components/verification/VerificationCountdown";
 

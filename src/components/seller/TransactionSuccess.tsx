@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import {
   Check, Shield, Clock, Lock, FileText, Share2, Copy,
   Mail, MessageSquare, Smartphone, MoreHorizontal,
