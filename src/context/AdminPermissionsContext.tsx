@@ -37,12 +37,39 @@ export function AdminPermissionsProvider({ children }: { children: ReactNode }) 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: resp, error: fnErr } = await supabase.functions.invoke("admin-me");
-      if (fnErr) {
-        const status = "context" in fnErr && fnErr.context instanceof Response ? ` (${fnErr.context.status})` : "";
-        throw new Error(`${fnErr.message}${status}`);
+      // Use direct fetch instead of supabase.functions.invoke so 401/403
+      // responses do not emit a console.error that the runtime tracker
+      // misinterprets as a blank-screen crash.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        // No session — silently mark as unauthenticated; ProtectedRoute
+        // will handle redirecting to /auth.
+        setData(null);
+        setError(null);
+        return;
       }
-      setData(resp as AdminMePayload);
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-me`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "Content-Type": "application/json",
+        },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 401 || body?.error === "invalid_session") {
+        // Stale/expired session: sign out cleanly so the auth guard can redirect.
+        await supabase.auth.signOut().catch(() => {});
+        setData(null);
+        setError(null);
+        return;
+      }
+      if (!res.ok) {
+        throw new Error(body?.error || `admin-me failed (${res.status})`);
+      }
+      setData(body as AdminMePayload);
       setError(null);
       lastFetchRef.current = Date.now();
     } catch (e) {
