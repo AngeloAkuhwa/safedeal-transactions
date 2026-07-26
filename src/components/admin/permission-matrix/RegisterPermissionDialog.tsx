@@ -1,0 +1,191 @@
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
+import {
+  INTERNAL_ROLES, PERMISSION_MODULES, ROLE_LABEL,
+  findPermissionEntry,
+} from "@/services/permission-catalog";
+import { permissionRepo, type PermissionEnvironment, type PermissionRiskLevel } from "@/services/permission-repository";
+
+const ENVS: PermissionEnvironment[] = ["production", "staging", "development"];
+const RISKS: PermissionRiskLevel[] = ["low", "medium", "high", "critical"];
+const ACTIONS = [
+  "view","view_assigned","create","update","approve","reject","escalate","resolve",
+  "assign","reassign","export","configure","manage_permissions","suspend","reactivate","remove_flag",
+];
+
+export function RegisterPermissionDialog({
+  open,
+  onOpenChange,
+  editingKey,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  editingKey?: string | null;
+  onSaved?: () => void;
+}) {
+  const qc = useQueryClient();
+  const editing = editingKey ? findPermissionEntry(editingKey) : null;
+
+  const [moduleKey, setModuleKey] = useState(editing?.module ?? PERMISSION_MODULES[0]?.key ?? "");
+  const [action, setAction] = useState(editing?.action ?? "view");
+  const [label, setLabel] = useState(editing?.label ?? "");
+  const [description, setDescription] = useState(editing?.description ?? "");
+  const [risk, setRisk] = useState<PermissionRiskLevel>(editing?.risk ?? "low");
+  const [approvalRequired, setApprovalRequired] = useState<boolean>(!!editing?.approval_required);
+  const [ownerRole, setOwnerRole] = useState<string>(editing?.owner_role ?? "");
+  const [status, setStatus] = useState<"active"|"suspended"|"deprecated">((editing?.status ?? "active") as any);
+  const [envs, setEnvs] = useState<PermissionEnvironment[]>(["production","staging","development"]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (editing) {
+      setModuleKey(editing.module);
+      setAction(editing.action);
+      setLabel(editing.label);
+      setDescription(editing.description ?? "");
+      setRisk((editing.risk ?? "low") as PermissionRiskLevel);
+      setApprovalRequired(!!editing.approval_required);
+      setOwnerRole(editing.owner_role ?? "");
+      setStatus((editing.status ?? "active") as any);
+    }
+  }, [open, editingKey]);
+
+  const key = useMemo(() => `${moduleKey}.${action}`, [moduleKey, action]);
+
+  const create = useMutation({
+    mutationFn: async () => {
+      await permissionRepo.createPermission({
+        key, module: moduleKey, action, label, description,
+        risk_level: risk, approval_required: approvalRequired,
+        owner_role: ownerRole || null,
+        environments: envs,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Permission registered", description: key });
+      qc.invalidateQueries({ queryKey: ["perm-workspace"] });
+      onSaved?.();
+      onOpenChange(false);
+    },
+    onError: (e: any) => toast({ title: "Could not register", description: e?.message ?? String(e), variant: "destructive" }),
+  });
+
+  const update = useMutation({
+    mutationFn: async () => {
+      await permissionRepo.updatePermission(key, {
+        label, description, risk_level: risk,
+        approval_required: approvalRequired,
+        owner_role: ownerRole || null,
+        status,
+      });
+      if (envs.length) await permissionRepo.setPermissionEnvironments(key, envs);
+    },
+    onSuccess: () => {
+      toast({ title: "Permission updated", description: key });
+      qc.invalidateQueries({ queryKey: ["perm-workspace"] });
+      onSaved?.();
+      onOpenChange(false);
+    },
+    onError: (e: any) => toast({ title: "Could not update", description: e?.message ?? String(e), variant: "destructive" }),
+  });
+
+  const canSubmit = moduleKey && action && label.trim().length > 2;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{editing ? "Edit permission" : "Register new permission"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 text-sm">
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Module</span>
+              <select disabled={!!editing} value={moduleKey} onChange={(e) => setModuleKey(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2">
+                {PERMISSION_MODULES.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Action</span>
+              <select disabled={!!editing} value={action} onChange={(e) => setAction(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2">
+                {ACTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </label>
+          </div>
+          <div className="rounded-md border border-border/60 bg-muted/30 px-2 py-1 font-mono text-xs text-muted-foreground">{key}</div>
+          <label className="block">
+            <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Label</span>
+            <input value={label} onChange={(e) => setLabel(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2" placeholder="Human-readable name" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Description</span>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full rounded-md border border-border bg-background p-2 text-sm" />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Risk</span>
+              <select value={risk} onChange={(e) => setRisk(e.target.value as PermissionRiskLevel)} className="h-9 w-full rounded-md border border-border bg-background px-2">
+                {RISKS.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Owner role</span>
+              <select value={ownerRole} onChange={(e) => setOwnerRole(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2">
+                <option value="">— None —</option>
+                {INTERNAL_ROLES.map((r) => <option key={r.key} value={r.key}>{ROLE_LABEL[r.key]}</option>)}
+              </select>
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={approvalRequired} onChange={(e) => setApprovalRequired(e.target.checked)} />
+              Approval required
+            </label>
+            {editing && (
+              <label className="block">
+                <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Status</span>
+                <select value={status} onChange={(e) => setStatus(e.target.value as any)} className="h-9 w-full rounded-md border border-border bg-background px-2">
+                  <option value="active">Active</option>
+                  <option value="suspended">Suspended</option>
+                  <option value="deprecated">Deprecated</option>
+                </select>
+              </label>
+            )}
+          </div>
+          <div>
+            <div className="mb-1 text-[11px] uppercase text-muted-foreground">Environments</div>
+            <div className="flex gap-2">
+              {ENVS.map((e) => {
+                const active = envs.includes(e);
+                return (
+                  <button
+                    type="button"
+                    key={e}
+                    onClick={() => setEnvs((prev) => active ? prev.filter((x) => x !== e) : [...prev, e])}
+                    className={`rounded-md border px-2 py-1 text-xs ${active ? "border-primary/50 bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground"}`}
+                  >{e}</button>
+                );
+              })}
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Permissions are never permanently deleted. Use <span className="font-semibold">Deprecated</span> to retire.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button
+            disabled={!canSubmit || create.isPending || update.isPending}
+            onClick={() => (editing ? update.mutate() : create.mutate())}
+          >
+            {editing ? "Save changes" : "Register permission"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
