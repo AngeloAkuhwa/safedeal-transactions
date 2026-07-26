@@ -2890,6 +2890,30 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_dependencies: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          permission_key: string
+          requires_key: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          permission_key: string
+          requires_key: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          permission_key?: string
+          requires_key?: string
+        }
+        Relationships: []
+      }
       permission_template_items: {
         Row: {
           permission_key: string
