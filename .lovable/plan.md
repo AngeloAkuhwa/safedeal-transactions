@@ -1,59 +1,73 @@
-# Role Matrix — honest completion check + polish plan
+## Part A — The Super Admin conflicts in the screenshot
 
-## Verdict: ~85% done, not 100%
+**Short answer:** yes, they should be cleaned up. What you're seeing is not a data bug — it's the intelligence layer telling the truth: Super Admin holds `payouts.create` AND `payouts.approve`, `refunds.create` AND `refunds.approve`, etc. That's a real segregation-of-duties violation *for any normal role*, but Super Admin exists precisely to hold everything. Flagging it every time creates noise that hides the one line that actually matters (`Senior Admin — escrow.update conflicts with escrow.approve`).
 
-The plan's structural spec landed: All Roles matrix with frozen first column + sticky headers, Compare mode with 2–4 role picker, filter toolbar, staging buffer, sticky submit footer, dependency + conflict analysis, read-only enforcement. Files exist and are wired in `RoleMatrix.tsx`.
+Two things wrong today:
+1. `computeConflicts()` runs against every role, including protected ones (Super Admin is marked `protected: true` in the catalog).
+2. The Senior Admin `escrow.update` ↔ `escrow.approve` finding is legitimate and needs a product decision — is that intentional, or should Senior Admin lose one side of the pair?
 
-### Still missing vs the approved plan
+### A1. Exempt protected roles from SoD flagging, with an explanatory chip
+- Update `computeConflicts` / the Compare panel to skip roles where `isProtectedRole(role) === true` AND add a small inline note in the section: *"Super Admin is exempt from segregation-of-duties checks by design."*
+- Same treatment for Missing Dependencies on protected roles (Super Admin can never be "missing" a dependency).
+- Result: the screenshot's "Super Admin" block disappears; only Senior Admin's one legitimate conflict remains — clearly visible and actionable.
 
-1. **URL sync** — `useRoleMatrixFilters` is pure `useState`. Nothing writes/reads `?q=&mods=&risk=&roles=&env=&mode=`, so links aren't shareable as promised.
-2. **Environment switcher** — toolbar renders an Environment popover when `environmentSupported` is true, but there's no `onToggle` (`() => { /* wired in follow-up */ }`), no DB column, no filter application. Either finish B2 or hide the control entirely per the plan's own rule.
-3. **Bulk module actions** — Grant all / Revoke all non-mandatory / Reset to role default with confirm dialog ("X permissions will change · Y users hold this role"). Not present on module header rows.
-4. **Dependency data source** — `permission-dependencies.ts` is a hardcoded array. Plan called for a `permission_dependencies` table + `listPermissionDependencies()` repository reader. Skipped.
-5. **Virtualisation** — no `@tanstack/react-virtual`. Fine while catalog < ~120 rows, but not implemented.
-6. **Copy Permissions preview drawer** — currently uses `window.confirm()` with a text summary. Plan called for a preview drawer showing adds / removes / unchanged before staging.
-7. **Unsaved-changes route guard** — staging survives in memory, but there's no "You have unsaved staged changes" prompt on navigation.
-8. **Compare mode "differences only" respect** — toggle exists in toolbar, but Compare view ignores it (Compare is already diff-first, so behaviour is defensible — needs an explicit decision or hide the chip in Compare mode).
+### A2. Add an "Acknowledge" affordance for non-protected roles
+- Some conflicts on non-protected roles are intentional (small teams, controlled scopes). Add a per-conflict "Acknowledge & mute" button that writes to a new `permission_conflict_acknowledgements` table (role, pair, reason, actor, timestamp).
+- Acknowledged conflicts render as a muted grey row with the reason as a tooltip; unacknowledged conflicts stay red.
+- Acknowledgements are auditable and reversible.
 
-## Polish for the sections in your screenshots
+### A3. Decide on Senior Admin's `escrow.update` + `escrow.approve`
+- I will not silently change this. In build mode I'll surface it in the plan output and ask which side to remove, or whether to acknowledge it.
 
-Screenshots show Compare mode Sections rendering as flat `<details>` with title + count and cramped body content. Make them read like the Feature Registry cards.
+### A4. Promote conflict rules from hardcoded to DB
+- Currently `PERMISSION_CONFLICTS` is a hardcoded array in `permission-dependencies.ts`. Move it to a new `permission_conflicts (a_key, b_key, severity, rationale)` table, seed the existing 4 pairs, hydrate at app start (mirroring what we just did for `permission_dependencies`), keep the hardcoded array as a fallback if the table is unreachable.
+- Lets ops add/remove SoD rules without a code deploy.
 
-**S1. Section shell**
-- Replace `<details>/<summary>` with `PermissionPanel` (rounded-2xl, glass, subtle inner padding) + a header row: icon chip (tone-tinted), title, count pill, chevron on the right, optional right-slot ("Copy to…" quick action).
-- Tone accents on the *icon chip only*, not on the whole card border, so Danger/Warn read as signal not noise.
-- Kill the `border-t` divider between summary and body; use spacing.
+---
 
-**S2. Copy Permissions panel**
-- Empty state today ("COPY PERMISSIONS" label with no body) looks broken. Replace with two-column controls: **From** role select · arrow · **To** role select · "Preview & stage" CTA that opens the new `CopyPermissionsPreview` drawer.
-- Show a one-line hint: "Preview shows adds/removes before anything is staged."
+## Part B — Remaining Role Matrix finish-line gaps
 
-**S3. Privileged permission differences table**
-- Convert to card-row layout matching Feature Registry (no `<table>` borders): each row is a rounded hover surface with risk chip + label + `permission.key` on the left and a compact per-role check/× cluster on the right (icons in tinted circles: emerald tint for held, muted for not-held).
-- Column headers become a lightweight sticky sub-header inside the card.
+### B1. In-app unsaved staged changes prompt
+Today only `beforeunload` (tab close / hard reload) guards staged edits. Route changes inside the app do NOT prompt.
+- Wire a React Router `useBlocker` (v6.4+) inside `RoleMatrix.tsx` that intercepts navigation when `stagedChanges.size > 0`.
+- Show a small confirmation dialog: *"You have N staged changes across M roles. Leave without submitting?"* with Discard / Stay actions.
+- Also block the tab switcher between Role Matrix / Feature Registry when staged.
 
-**S4. Unique to <Role> sections**
-- Two-column responsive grid (`md:grid-cols-2`) of pill rows so 7 unique perms don't stretch as one long list.
-- Add a right-aligned "Copy these to…" mini-menu (gated by `canWrite`) that pre-fills the Copy panel.
+### B2. Virtualization for the All Roles matrix
+Not needed at today's ~90 permissions, but worth landing before the catalog grows.
+- Add `@tanstack/react-virtual` (already in the ecosystem) to `AllRolesMatrix.tsx`.
+- Virtualize permission rows only; module header rows stay outside the virtualizer so sticky headers and per-module bulk menus keep working.
+- Turn virtualization on unconditionally (removing the earlier "threshold" idea — a single code path is simpler than branching at 120 rows).
+- Preserve sticky-first-column behaviour by using absolute-positioned rows inside the virtualizer with the first cell also `sticky left-0`.
 
-**S5. Missing dependencies + Conflicting responsibilities**
-- Per-role subsections get a small header chip with the role name and count.
-- Each row: leading tinted icon dot, then human sentence — "**Payouts — Approve** requires **Payouts — View**" — with the raw `permission.key` shown muted underneath, not inline `<code>` mid-sentence.
-- Add a "Fix by staging" button on each row that stages the missing view grant (respect `canWrite` + protected role).
+### B3. Environment switcher
+Still deferred. Explicit decision needed:
+- **Option 1 (recommended):** ship the migration this pass. Add `environment` column (`prod` / `staging` / `dev`, default `prod`) to `role_permissions`, `user_permission_overrides`, `permission_change_sets`. Add a segmented control in the toolbar. Every read/write filters by the active environment. URL param `rm_env=`.
+- **Option 2:** keep it hidden. Note it in a follow-up.
 
-**S6. Shared by all selected roles**
-- Collapsed by default is right. When open, render as a dense chip cloud (rounded-full muted pills, wrap) instead of a 3-col list — communicates "lots, unremarkable" better.
+---
 
-**S7. Empty-state polish**
-- "No privileged permission differences." → centred icon + short sentence + subtle hint ("Selected roles have identical privileged access.").
-- Same treatment for the other empty branches.
+## Technical details (for the record)
 
-## Decisions before I build
+**Files to edit**
+- `src/services/permission-dependencies.ts` — add `hydratePermissionConflicts`, `listPermissionConflicts`; skip protected roles in `computeConflicts` and `computeMissingDependencies`
+- `src/services/permission-repository.ts` — add `listPermissionConflicts()` and `acknowledgeConflict()`
+- `src/components/admin/permission-matrix/CompareRolesMatrix.tsx` — render the "Super Admin is exempt" chip; add Acknowledge button + acknowledged-state row styling
+- `src/components/admin/permission-matrix/RoleMatrix.tsx` — `useBlocker` for staged changes; guard tab switcher
+- `src/components/admin/permission-matrix/AllRolesMatrix.tsx` — wire `@tanstack/react-virtual`
 
-1. **URL sync (item 1) + unsaved-changes guard (item 7)** — ship now, or defer? (Small; recommend ship.)
-2. **Environment switcher (item 2)** — hide entirely for this pass, or land the B2 migration + `environment` column and filter now?
-3. **Bulk module actions + Copy Preview drawer (items 3, 6)** — in-scope for this pass, or a follow-up? These are the two biggest gaps between "landed" and "spec complete".
-4. **`permission_dependencies` table (item 4)** — migrate now with a seeded starter list, or keep the code-side array until the ruleset stabilises?
-5. **Virtualisation (item 5)** — skip until catalog grows, or wire `@tanstack/react-virtual` now?
+**Files to add**
+- (Optional) `src/components/admin/permission-matrix/AcknowledgeConflictDialog.tsx`
 
-Approve the polish list + your calls on 1–5 and I'll execute in one build pass.
+**Migrations**
+1. `permission_conflicts (id, a_key, b_key, severity text, rationale text, created_at)` + grants + RLS + seed 4 existing pairs
+2. `permission_conflict_acknowledgements (id, role_key, a_key, b_key, reason, actor_id, created_at, expires_at nullable)` + grants + RLS + trigger to write an `admin_actions` audit row
+3. (Only if you approve B3-Option-1) `environment` column on `role_permissions`, `user_permission_overrides`, `permission_change_sets` + backfill `'prod'` for existing rows
+
+---
+
+## Decisions I need before building
+
+1. **Senior Admin `escrow.update` + `escrow.approve`** — remove one side (which?), acknowledge with a reason, or leave flagged?
+2. **Environment switcher** — ship the migration now (Option 1) or keep hidden (Option 2)?
+3. **Acknowledgements** — do you want expiring acknowledgements (auto-re-flag after N days) or permanent-until-reversed?
