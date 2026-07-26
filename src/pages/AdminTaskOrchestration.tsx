@@ -25,7 +25,7 @@ import {
   type LiveTask,
   type AssignmentRulesConfig,
 } from "@/services/task-orchestration.service";
-import { useAdminPermissions } from "@/hooks/useAdminPermissions";
+import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 
 export default function AdminTaskOrchestration() {
   const perms = useAdminPermissions();
