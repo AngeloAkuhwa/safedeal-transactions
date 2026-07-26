@@ -12,11 +12,13 @@ import {
 } from "@/services/permission-catalog";
 import type { PermissionEnvironment } from "@/services/permission-repository";
 import type { RoleGrantMap } from "@/services/permission-workspace.service";
+import type { useStagedPermissionChanges } from "@/hooks/useStagedPermissionChanges";
 import {
   fetchRoleAssignedUsers, fetchRoleUserCounts,
   fetchPendingChangesForRole, fetchRoleLastModified, fetchRoleHistory,
 } from "@/services/permission-workspace.service";
 import { PermissionRiskBadge } from "./PermissionRiskBadge";
+import { PermissionToggleRow } from "./PermissionToggleRow";
 
 function KpiCard({ icon: Icon, label, value, tone = "text-foreground" }: any) {
   return (
@@ -62,6 +64,8 @@ export function RoleDetailPanel({
   onCloneAsTemplate,
   onResetToDefault,
   onViewHistory,
+  canManage = false,
+  staged,
 }: {
   roleMap: RoleGrantMap;
   role?: InternalRoleKey;
@@ -71,6 +75,8 @@ export function RoleDetailPanel({
   onCloneAsTemplate?: (r: InternalRoleKey) => void;
   onResetToDefault?: (r: InternalRoleKey) => void;
   onViewHistory?: (r: InternalRoleKey) => void;
+  canManage?: boolean;
+  staged?: ReturnType<typeof useStagedPermissionChanges>;
 }) {
   const navigate = useNavigate();
   const [internal, setInternal] = useState<InternalRoleKey>(roleProp ?? "super_admin");
@@ -125,6 +131,8 @@ export function RoleDetailPanel({
   });
 
   const activeUsers = countsQuery.data?.get(role) ?? usersQuery.data?.length ?? 0;
+  const stagingEnabled = canManage && !!staged && !protectedRole;
+  const superAdminCount = countsQuery.data?.get("super_admin") ?? 0;
   const derivedLevel = summary.granted === summary.total
     ? "Full access"
     : summary.privileged > 0 ? "Elevated" : summary.granted > 0 ? "Standard" : "Read-only / none";
@@ -237,40 +245,69 @@ export function RoleDetailPanel({
 
       {/* Granted permissions */}
       <Section id="granted" title="Granted Permissions" count={summary.granted}>
-        <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-          {summary.grantedKeys.length === 0 && <li className="text-xs text-muted-foreground">No granted permissions.</li>}
-          {summary.grantedKeys.map((k) => {
-            const label = k.split(".")[1] ?? k;
-            return (
-              <li key={k} className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5 text-xs">
-                <Check className="h-3.5 w-3.5 text-emerald-400" />
-                <span className="truncate">{label}</span>
-                <span className="ml-auto font-mono text-[10px] text-muted-foreground">{k.split(".")[0]}</span>
-                {isPrivilegedPermission(k) && <PermissionRiskBadge privileged size="xs" />}
-              </li>
-            );
-          })}
-        </ul>
+        {stagingEnabled ? (
+          <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {summary.grantedKeys.length === 0 && <li className="text-xs text-muted-foreground">No granted permissions.</li>}
+            {summary.grantedKeys.map((k) => (
+              <PermissionToggleRow key={k} role={role} permissionKey={k} currentlyGranted
+                canManage stagedOp={staged!.getStaged(role, k)}
+                onToggle={staged!.stage} activeSuperAdminCount={superAdminCount} tone="granted" />
+            ))}
+          </ul>
+        ) : (
+          <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {summary.grantedKeys.length === 0 && <li className="text-xs text-muted-foreground">No granted permissions.</li>}
+            {summary.grantedKeys.map((k) => {
+              const label = k.split(".")[1] ?? k;
+              return (
+                <li key={k} className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5 text-xs">
+                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  <span className="truncate">{label}</span>
+                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">{k.split(".")[0]}</span>
+                  {isPrivilegedPermission(k) && <PermissionRiskBadge privileged size="xs" />}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </Section>
 
       {/* Denied permissions */}
       <Section id="denied" title="Denied Permissions" count={summary.denied} defaultOpen={false}>
-        <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-          {summary.deniedKeys.map((k) => (
-            <li key={k} className="flex items-center gap-2 rounded-md border border-border bg-background/30 px-2 py-1.5 text-xs text-muted-foreground">
-              <Minus className="h-3.5 w-3.5" />
-              <span className="truncate">{k.split(".")[1]}</span>
-              <span className="ml-auto font-mono text-[10px]">{k.split(".")[0]}</span>
-            </li>
-          ))}
-        </ul>
+        {stagingEnabled ? (
+          <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {summary.deniedKeys.map((k) => (
+              <PermissionToggleRow key={k} role={role} permissionKey={k} currentlyGranted={false}
+                canManage stagedOp={staged!.getStaged(role, k)}
+                onToggle={staged!.stage} activeSuperAdminCount={superAdminCount} tone="denied" />
+            ))}
+          </ul>
+        ) : (
+          <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {summary.deniedKeys.map((k) => (
+              <li key={k} className="flex items-center gap-2 rounded-md border border-border bg-background/30 px-2 py-1.5 text-xs text-muted-foreground">
+                <Minus className="h-3.5 w-3.5" />
+                <span className="truncate">{k.split(".")[1]}</span>
+                <span className="ml-auto font-mono text-[10px]">{k.split(".")[0]}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </Section>
 
       {/* Privileged permissions */}
       <Section id="privileged" title="Privileged Permissions" count={summary.privileged}>
         {summary.privilegedKeys.length === 0
           ? <div className="text-xs text-muted-foreground">This role holds no privileged permissions.</div>
-          : (
+          : stagingEnabled ? (
+            <ul className="grid gap-1.5 sm:grid-cols-2">
+              {summary.privilegedKeys.map((k) => (
+                <PermissionToggleRow key={k} role={role} permissionKey={k} currentlyGranted
+                  canManage stagedOp={staged!.getStaged(role, k)}
+                  onToggle={staged!.stage} activeSuperAdminCount={superAdminCount} tone="privileged" />
+              ))}
+            </ul>
+          ) : (
             <ul className="grid gap-1.5 sm:grid-cols-2">
               {summary.privilegedKeys.map((k) => (
                 <li key={k} className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1.5 text-xs">

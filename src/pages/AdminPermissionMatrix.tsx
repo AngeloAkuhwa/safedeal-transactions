@@ -32,6 +32,8 @@ import {
 import { PermissionFilters, type FiltersState } from "@/components/admin/permission-matrix/PermissionFilters";
 import { RoleMatrix } from "@/components/admin/permission-matrix/RoleMatrix";
 import { RoleDetailPanel } from "@/components/admin/permission-matrix/RoleDetailPanel";
+import { StagedChangesFooter } from "@/components/admin/permission-matrix/StagedChangesFooter";
+import { useStagedPermissionChanges } from "@/hooks/useStagedPermissionChanges";
 import { FeatureRegistryTable } from "@/components/admin/permission-matrix/FeatureRegistryTable";
 import { UserOverrideTable } from "@/components/admin/permission-matrix/UserOverrideTable";
 import { PermissionTemplateTable } from "@/components/admin/permission-matrix/PermissionTemplateTable";
@@ -44,6 +46,7 @@ import { RegisterPermissionDialog } from "@/components/admin/permission-matrix/R
 import { CloneRoleAsTemplateDialog } from "@/components/admin/permission-matrix/CloneRoleAsTemplateDialog";
 import { ResetRoleToDefaultDialog } from "@/components/admin/permission-matrix/ResetRoleToDefaultDialog";
 import { CreateOverrideDrawer } from "@/components/admin/permission-matrix/CreateOverrideDrawer";
+import { ViewOverrideAuditDialog } from "@/components/admin/permission-matrix/ViewOverrideAuditDialog";
 import { ErrorState, LoadingSkeleton } from "@/components/admin/permission-matrix/EmptyState";
 import { fetchPermissionEnvironments } from "@/services/permission-workspace.service";
 import { Plus } from "lucide-react";
@@ -202,6 +205,8 @@ export default function AdminPermissionMatrix() {
   const [cloneRoleFor, setCloneRoleFor] = useState<InternalRoleKey | null>(null);
   const [resetRoleFor, setResetRoleFor] = useState<InternalRoleKey | null>(null);
   const [createOverrideOpen, setCreateOverrideOpen] = useState(false);
+  const staged = useStagedPermissionChanges();
+  const [reviewOverride, setReviewOverride] = useState<OverrideRow | null>(null);
 
   const openFeature = (k: string) => { setFeatureKey(k); setFeatureOpen(true); };
   const openOverride = (o: OverrideRow) => setOverride(o);
@@ -343,7 +348,7 @@ export default function AdminPermissionMatrix() {
                 roleMap={rolesQuery.data}
                 canWrite={canManage}
                 environment={environment}
-                onSubmitted={() => { rolesQuery.refetch(); approvalsQuery.refetch(); historyQuery.refetch(); }}
+                staged={staged}
               />
             )}
           </>
@@ -359,6 +364,8 @@ export default function AdminPermissionMatrix() {
                 role={((params.get("role") as InternalRoleKey) || undefined)}
                 onRoleChange={(r) => setParams((p) => { p.set("role", r); return p; }, { replace: true })}
                 environment={environment}
+                canManage={canManage}
+                staged={staged}
                 onCompare={(r) => setTab("role-matrix", { rm_mode: "compare", rm_pri: r })}
                 onCloneAsTemplate={(r) => canManage && setCloneRoleFor(r)}
                 onResetToDefault={(r) => canManage && setResetRoleFor(r)}
@@ -393,7 +400,8 @@ export default function AdminPermissionMatrix() {
             {overridesQuery.data && (
               <UserOverrideTable
                 rows={overridesQuery.data}
-                onRowClick={openOverride}
+                onRowClick={(o) => setReviewOverride(o)}
+                onAudit={openOverride}
                 canEdit={canManage}
                 onChanged={() => overridesQuery.refetch()}
                 onCreate={() => setCreateOverrideOpen(true)}
@@ -426,6 +434,16 @@ export default function AdminPermissionMatrix() {
         )}
       </div>
 
+      {canManage && rolesQuery.data && (activeTabResolved === "role-matrix" || activeTabResolved === "role-detail") && (
+        <StagedChangesFooter
+          changes={staged.flat}
+          roleMap={rolesQuery.data}
+          environment={environment}
+          onDiscard={staged.discardAll}
+          onSubmitted={() => { staged.discardAll(); rolesQuery.refetch(); approvalsQuery.refetch(); historyQuery.refetch(); }}
+        />
+      )}
+
       {rolesQuery.data && (
         <FeatureDetailsDrawer
           permissionKey={featureKey}
@@ -446,6 +464,15 @@ export default function AdminPermissionMatrix() {
         onSaved={() => environmentsQuery.refetch()}
       />
       <PermissionDetailsDrawer
+        override={reviewOverride}
+        open={!!reviewOverride}
+        onOpenChange={(v) => { if (!v) setReviewOverride(null); }}
+        canEdit={canManage}
+        environment={environment}
+        onChanged={() => overridesQuery.refetch()}
+        onAudit={(o) => { setReviewOverride(null); setOverride(o); }}
+      />
+      <ViewOverrideAuditDialog
         override={override}
         open={!!override}
         onOpenChange={(v) => { if (!v) setOverride(null); }}

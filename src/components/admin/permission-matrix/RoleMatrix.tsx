@@ -7,21 +7,23 @@ import { useUnsavedNavigationGuard } from "@/hooks/useUnsavedNavigationGuard";
 import { RoleMatrixToolbar } from "./RoleMatrixToolbar";
 import { AllRolesMatrix } from "./AllRolesMatrix";
 import { CompareRolesMatrix } from "./CompareRolesMatrix";
-import { StagedChangesFooter } from "./StagedChangesFooter";
+
+type StagedApi = ReturnType<typeof useStagedPermissionChanges>;
 
 export function RoleMatrix({
   roleMap,
   canWrite,
   environment,
-  onSubmitted,
+  staged: externalStaged,
 }: {
   roleMap: RoleGrantMap;
   canWrite: boolean;
   environment: PermissionEnvironment;
-  onSubmitted?: () => void;
+  staged?: StagedApi;
 }) {
   const { state: filters, set, toggleModule, expandAll, collapseAll, reset, isModuleExpanded, activeFilterCount } = useRoleMatrixFilters();
-  const staged = useStagedPermissionChanges();
+  const localStaged = useStagedPermissionChanges();
+  const staged = externalStaged ?? localStaged;
 
   // Unsaved-changes guard: intercepts in-app link clicks and hard closes/reloads
   // while staged edits exist.
@@ -79,16 +81,6 @@ export function RoleMatrix({
           environment={environment}
           onSetCompareRoles={(roles) => set("compareRoles", roles)}
           onStageMany={staged.stageMany}
-        />
-      )}
-
-      {canWrite && (
-        <StagedChangesFooter
-          changes={staged.flat}
-          roleMap={roleMap}
-          environment={environment}
-          onDiscard={staged.discardAll}
-          onSubmitted={() => { staged.discardAll(); onSubmitted?.(); }}
         />
       )}
     </div>

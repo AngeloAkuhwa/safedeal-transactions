@@ -11,7 +11,7 @@ import type { OverrideRow } from "@/services/permission-workspace.service";
 import { PermissionRiskBadge } from "./PermissionRiskBadge";
 import { PermissionSourceBadge } from "./PermissionSourceBadge";
 import { EmptyState } from "./EmptyState";
-import { ArrowUpRight, ShieldOff, TimerReset, Filter } from "lucide-react";
+import { ArrowUpRight, ShieldOff, TimerReset, Filter, History, Eye } from "lucide-react";
 
 type OverrideType = "grant" | "deny" | "temporary";
 type OverrideStatus = "active" | "expired";
@@ -34,9 +34,9 @@ interface Filters {
 }
 const DEFAULT_FILTERS: Filters = { type: "all", status: "all", module: "all", role: "all", q: "" };
 
-export function UserOverrideTable({ rows, onRowClick, canEdit = false, onChanged, onCreate }: {
+export function UserOverrideTable({ rows, onRowClick, onAudit, canEdit = false, onChanged, onCreate }: {
   rows: OverrideRow[]; onRowClick?: (r: OverrideRow) => void; canEdit?: boolean; onChanged?: () => void;
-  onCreate?: () => void;
+  onCreate?: () => void; onAudit?: (r: OverrideRow) => void;
 }) {
   const env = useCurrentEnvironment();
   const [extendFor, setExtendFor] = useState<OverrideRow | null>(null);
@@ -144,7 +144,8 @@ export function UserOverrideTable({ rows, onRowClick, canEdit = false, onChanged
               return (
               <tr
                 key={r.user_id + r.permission_key + i}
-                className="transition hover:bg-muted/30 [&>td]:bg-background/30 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
+                className="cursor-pointer transition hover:bg-muted/30 [&>td]:bg-background/30 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
+                onClick={() => onRowClick?.(r)}
               >
                 <td className="px-4 py-3 align-middle">
                   <div className="text-sm font-medium text-foreground">{r.user_name}</div>
@@ -183,7 +184,17 @@ export function UserOverrideTable({ rows, onRowClick, canEdit = false, onChanged
                 </td>
                 <td className="px-4 py-3 align-middle text-xs text-muted-foreground">{r.reason ?? <span className="italic">—</span>}</td>
                 <td className="px-4 py-3 align-middle text-right">
-                  <div className="flex justify-end gap-1">
+                  <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" onClick={() => onRowClick?.(r)}
+                      className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] hover:bg-muted">
+                      <Eye className="h-3 w-3" /> Review
+                    </button>
+                    {onAudit && (
+                      <button type="button" onClick={() => onAudit(r)}
+                        className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] hover:bg-muted">
+                        <History className="h-3 w-3" /> Audit
+                      </button>
+                    )}
                     {canEdit && (
                       <>
                         <button type="button" onClick={() => setExtendFor(r)}
@@ -199,7 +210,6 @@ export function UserOverrideTable({ rows, onRowClick, canEdit = false, onChanged
                     <Link
                       to={`/admin/access-control?user=${r.user_id}`}
                       className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-muted"
-                      onClick={() => onRowClick?.(r)}
                     >
                       Open <ArrowUpRight className="h-3 w-3" />
                     </Link>
