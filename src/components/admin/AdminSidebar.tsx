@@ -25,6 +25,9 @@ import {
   BarChart3,
   FileBarChart,
   Undo2,
+  Inbox,
+  ListChecks,
+  Gauge,
 } from "lucide-react";
 import { useLocation } from "react-router";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -33,6 +36,7 @@ import { signOut } from "@/services/auth.service";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 import { permissionForPath } from "@/services/admin-route-permissions";
 import type { AdminDashboardResponse } from "@/services/admin-dashboard.service";
+import { usePendingApprovalsBadge } from "@/hooks/usePendingApprovalsBadge";
 
 type Badge = {
   count: number;
@@ -142,7 +146,15 @@ function buildGroups(badges?: AdminDashboardResponse["sidebar_badges"]): NavGrou
       label: "Administration",
       items: [
         { label: "Users & Access", href: "/admin/access-control", icon: KeyRound },
+        {
+          label: "Access Approvals",
+          href: "/admin/access-approvals",
+          icon: Inbox,
+          badge: badges?.access_approvals ? { count: badges.access_approvals, tone: "orange" } : undefined,
+        },
         { label: "Permission Matrix", href: "/admin/permission-matrix", icon: ShieldCheck },
+        { label: "Task Orchestration", href: "/admin/task-orchestration", icon: ListChecks },
+        { label: "Agent Performance", href: "/admin/agent-performance", icon: Gauge },
         { label: "Audit Logs", href: "/admin/audit-logs", icon: ScrollText },
       ],
     },
@@ -158,7 +170,11 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
   const { go } = useAdminNav();
   const { pathname } = useLocation();
   const { has, isSuper, loading } = useAdminPermissions();
-  const rawGroups = buildGroups(badges);
+  const { count: pendingApprovals } = usePendingApprovalsBadge();
+  const badgesWithApprovals = badges
+    ? { ...badges, access_approvals: pendingApprovals }
+    : ({ access_approvals: pendingApprovals } as AdminDashboardResponse["sidebar_badges"]);
+  const rawGroups = buildGroups(badgesWithApprovals);
 
   // Filter each group by permission: hide items the user can't visit, and
   // drop groups that become empty. During the initial permissions fetch we
