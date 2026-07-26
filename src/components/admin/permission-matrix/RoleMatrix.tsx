@@ -2,7 +2,7 @@ import { Shield } from "lucide-react";
 import type { RoleGrantMap } from "@/services/permission-workspace.service";
 import type { PermissionEnvironment } from "@/services/permission-repository";
 import { useRoleMatrixFilters } from "@/hooks/useRoleMatrixFilters";
-import { useStagedPermissionChanges, type useStagedPermissionChanges as UseStaged } from "@/hooks/useStagedPermissionChanges";
+import { useStagedPermissionChanges } from "@/hooks/useStagedPermissionChanges";
 import { useUnsavedNavigationGuard } from "@/hooks/useUnsavedNavigationGuard";
 import { RoleMatrixToolbar } from "./RoleMatrixToolbar";
 import { AllRolesMatrix } from "./AllRolesMatrix";
