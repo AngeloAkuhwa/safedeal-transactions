@@ -565,6 +565,8 @@ export async function cloneRoleAsTemplate(
     permission_keys: created.permission_keys,
     created_at: created.created_at,
     updated_at: created.updated_at,
+    is_system: false,
+    status: "active",
   };
 }
 
