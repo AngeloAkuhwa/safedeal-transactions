@@ -6,6 +6,7 @@ import {
   PERMISSION_ENVIRONMENTS,
   type PermissionEnvironment,
 } from "@/services/permission-repository";
+import { getStagedPermissionChangeCount } from "@/hooks/useStagedPermissionChanges";
 
 const URL_KEY = "rm_env";
 
@@ -45,19 +46,19 @@ export function useCurrentEnvironment(): PermissionEnvironment {
  * The optional `beforeChange` hook lets callers guard unsaved staged edits
  * (returning false cancels the switch).
  */
-export function EnvironmentSwitcher({
-  beforeChange,
-  className,
-}: {
-  beforeChange?: (next: PermissionEnvironment) => boolean;
-  className?: string;
-}) {
+export function EnvironmentSwitcher({ className }: { className?: string }) {
   const [params, setParams] = useSearchParams();
   const current = useCurrentEnvironment();
 
   const setEnv = (next: PermissionEnvironment) => {
     if (next === current) return;
-    if (beforeChange && !beforeChange(next)) return;
+    const staged = getStagedPermissionChangeCount();
+    if (staged > 0) {
+      const ok = window.confirm(
+        `You have ${staged} unsaved staged change${staged === 1 ? "" : "s"}. Switching environments will discard them. Continue?`,
+      );
+      if (!ok) return;
+    }
     const nextParams = new URLSearchParams(params);
     if (next === DEFAULT_ENVIRONMENT) nextParams.delete(URL_KEY);
     else nextParams.set(URL_KEY, next);
