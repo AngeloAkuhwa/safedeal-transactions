@@ -259,7 +259,9 @@ Deno.serve(async (req) => {
       case "auto_assign": {
         const { data: rules } = await admin.from("assignment_rules").select("config").eq("scope","global").maybeSingle();
         const mode = (rules?.config as any)?.mode ?? body.mode ?? "round_robin";
-        const plan = await buildAutoAssignPlan(mode);
+        const fullPlan = await buildAutoAssignPlan(mode);
+        const excluded = new Set(body.exclude_task_ids ?? []);
+        const plan = fullPlan.filter(p => !excluded.has(p.task_id));
         let count = 0;
         for (const p of plan) {
           await admin.rpc("assign_task", {
@@ -269,7 +271,7 @@ Deno.serve(async (req) => {
         }
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_auto_assign",
-          targetType: "system", metadata: { count, mode }, mirrorToAuditLogs: true,
+          targetType: "system", metadata: { count, mode, excluded: [...excluded] }, mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
         return respond({ ok: true, count });
