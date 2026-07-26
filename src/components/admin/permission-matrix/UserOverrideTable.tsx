@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ROLE_LABEL } from "@/services/permission-catalog";
 import type { OverrideRow } from "@/services/permission-workspace.service";
 import { PermissionRiskBadge } from "./PermissionRiskBadge";
+import { PermissionSourceBadge } from "./PermissionSourceBadge";
 import { EmptyState } from "./EmptyState";
 import { ArrowUpRight } from "lucide-react";
 
@@ -17,6 +18,7 @@ export function UserOverrideTable({ rows, onRowClick }: { rows: OverrideRow[]; o
               <th className="px-4 py-2 text-left font-medium">Role</th>
               <th className="px-4 py-2 text-left font-medium">Permission</th>
               <th className="px-4 py-2 text-left font-medium">Mode</th>
+              <th className="px-4 py-2 text-left font-medium">Source</th>
               <th className="px-4 py-2 text-left font-medium">Reason</th>
               <th className="px-4 py-2 text-right font-medium">Manage</th>
             </tr>
@@ -42,6 +44,13 @@ export function UserOverrideTable({ rows, onRowClick }: { rows: OverrideRow[]; o
                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${r.mode === "grant" ? "bg-emerald-500/15 text-emerald-300" : "bg-destructive/15 text-destructive"}`}>
                     {r.mode === "grant" ? "+ Grant" : "− Revoke"}
                   </span>
+                </td>
+                <td className="px-4 py-2">
+                  <PermissionSourceBadge
+                    source={r.source}
+                    size="xs"
+                    title={r.expires_at ? `Expires ${new Date(r.expires_at).toLocaleString()}` : undefined}
+                  />
                 </td>
                 <td className="px-4 py-2 text-xs text-muted-foreground">{r.reason ?? <span className="italic">—</span>}</td>
                 <td className="px-4 py-2 text-right">

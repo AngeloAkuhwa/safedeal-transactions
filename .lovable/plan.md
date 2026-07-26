@@ -1,177 +1,125 @@
-## Feature Registry & Permission Matrix — architecture upgrade
+# Permission Matrix — Finish-line plan (10 gaps)
 
-Goal: extend the existing permission stack (already backed by `internal_roles`, `permissions`, `role_permissions`, `user_permission_overrides`, `access_change_requests`) with the missing modules, granular actions, risk levels, row-state model, source tracking, and templates — without renaming any existing keys or roles.
+Additive only. No key/role renames. No visual regressions beyond the new chips.
 
-### 1. Roles (no changes)
-Reuse the 10 roles already seeded in `public.internal_roles` and mirrored in `permission-catalog.ts`. The matrix reads `internal_roles` directly instead of the local `INTERNAL_ROLES` constant so Users & Access remains the single source.
+## 1. Verify + patch RLS/GRANTs on new tables (spec §7)
 
-### 2. Modules & permissions (DB seed migration — additive)
+Run a read query against `information_schema` + `pg_policies` for `permission_templates`, `permission_template_items`, `permission_change_sets`. If anything is missing, ship one migration:
 
-Preserve every existing key. Add the missing modules and actions the spec calls for. New module keys:
+- `GRANT SELECT` to `authenticated`, `GRANT ALL` to `service_role` on all three.
+- `ENABLE ROW LEVEL SECURITY` on all three.
+- Policies (using existing `has_internal_role` / `internal_effective_permissions`, non-recursive):
+  - SELECT: viewer has `permissions.view` OR is super_admin.
+  - INSERT/UPDATE/DELETE on templates + change_sets: viewer has `permissions.manage_permissions`.
+  - `permission_change_sets` UPDATE to `status='approved'|'applied'`: super_admin only (enforced in the RPC in §3, but also gated at policy level).
 
-| New key | Label | Actions |
-|---|---|---|
-| `analytics` | Analytics | view, export, configure |
-| `payments` | Payments | view, update, export |
-| `payouts` | Payouts | view, create (initiate), approve, reject, export |
-| `refunds` | Refunds | view, create, approve, reject, export |
-| `money_tracing` | Money Tracing | view, export |
-| `users` | Users | view, update, suspend, reactivate, export |
-| `investigations` | Investigations | view, create, update, assign, reassign, escalate, resolve, export |
+## 2. Repository — complete the write surface (spec §6, §8)
 
-Also extend existing modules where the spec adds actions:
-- `disputes` → already has assign/reassign/resolve/escalate; no changes.
-- `users_and_access` → add `reactivate`.
-- `permissions` → add `manage_permissions` (already present) + `configure`.
-- `audit_logs` → keep `view`, `export`.
-- `platform_configuration` → already has `view`, `configure`.
+Extend `SupabasePermissionRepository` in `src/services/permission-repository.ts`:
 
-`PermissionAction` union gains: `reactivate`, `initiate` (aliased via `create` on payouts/refunds to keep keys stable — spec's "Create/Initiate/Approve" pattern).
+- `approveChangeSet(id, reason)` → calls new RPC `apply_permission_change_set(id, reason)`.
+- `rejectChangeSet(id, reason)` → updates `status='rejected'`, stamps `applied_by=auth.uid()`, writes `audit_logs` row.
+- Template CRUD: `createTemplate`, `updateTemplate`, `deleteTemplate`, `setTemplateItems(template_id, keys[])` — the last as an atomic delete+insert inside a transaction via RPC `set_permission_template_items`.
 
-Every new row inserted into `public.permissions` in one migration, then `role_permissions` seeded for the appropriate roles (super_admin gets all; auditor read-only across new modules; finance_operator gets payouts.create/refunds.create; finance_approver gets .approve/.reject; compliance_officer gets money_tracing.view/export; dispute_manager/agent get investigations.*; etc.).
+## 3. Atomic apply RPC (spec §6)
 
-### 3. Risk levels (new)
+New security-definer function `public.apply_permission_change_set(_id uuid, _reason text)`:
 
-Add `risk_level` column to `public.permissions`:
-```
-risk_level TEXT NOT NULL DEFAULT 'low'
-  CHECK (risk_level IN ('low','medium','high','critical'))
-```
+1. Load change set; assert `status='pending'`; assert caller is super_admin via `has_internal_role`.
+2. Branch on `target_scope`:
+   - `role` — diff `before` vs `after` (arrays of permission_keys). Delete removed grants and insert added grants in `role_permissions` for `target_key`.
+   - `user` — diff overrides; upsert/delete `user_permission_overrides` rows for `target_key` (user id).
+   - `template` — replace `permission_template_items` for `target_key`.
+3. Insert `audit_logs` row (action_type: config change, actor, before/after JSONB, reason); store its id in `permission_change_sets.audit_ref`.
+4. Mark `status='applied'`, `applied_at=now()`, `applied_by=auth.uid()`.
 
-Seed values in the same migration. Critical set (locked):
-- `permissions.manage_permissions`, `users_and_access.manage_permissions`
-- `users_and_access.create` (Super Admin promotion path)
-- Any future `impersonation.*`
-- `escrow.approve` (release funds), `payouts.approve`, `payouts.create`
-- `refunds.approve`
-- `audit_logs.view`, `audit_logs.export`
-- `platform_configuration.configure`
+## 4. Workspace service → thin aggregator (spec §8)
 
-High: exports of sensitive data, `.suspend`, `users_and_access.update`, `.reject` on financial modules, `permissions.view`.
-Medium: `.update`, `.assign`, `.reassign`, `.resolve`, `.escalate`.
-Low: `.view` on non-sensitive modules.
+Refactor `src/services/permission-workspace.service.ts` so every DB call routes through `permissionRepo`:
 
-Deprecate `PRIVILEGED_ACTIONS` heuristic in `permission-catalog.ts` — read `risk_level` from DB instead. Keep `isPrivilegedPermission()` returning true for high+critical for backward compat.
+- Replace direct `supabase.from("user_permission_overrides")` with `permissionRepo.listOverrides()`.
+- Replace direct reads of `internal_roles`, `role_permissions`, `access_change_requests`, `audit_logs` with repo methods (add `listApprovals`, `listHistory` to the repo).
+- Keep the existing `OverrideRow` / `ApprovalRow` shapes so callers don't change.
+- Keep the aggregator's join/derivation logic (user names, primary role, permission label) here — the repo returns raw rows only.
 
-### 4. Row-level permission states (new)
+## 5. Real row-state derivation (spec §4)
 
-Replace the current cell computation used inside the drawers/row lists. Introduce a typed enum used only for **individual permission rows** (not module cells):
+Move state derivation out of `FeatureRegistryTable` into a shared helper `derivePermissionRowState({ permission, viewer, roleGrantMap, overrides, pendingRequests })`:
 
-```ts
-type PermissionRowState =
-  | 'granted' | 'denied'
-  | 'override_granted' | 'override_denied'
-  | 'pending' | 'restricted';
-```
+- `restricted` — `risk_level='critical'` AND viewer lacks `permissions.manage_permissions`.
+- `pending` — `(target_user_id, permission_key)` present in `access_change_requests` with status `pending`.
+- `override_granted` / `override_denied` — from `user_permission_overrides.mode`.
+- `granted` / `denied` — fall back to role grants.
 
-Derivation (client-side, from data we already load):
-- `restricted` — permission `risk_level='critical'` AND the viewer lacks `permissions.manage_permissions`.
-- `pending` — the (user_id, permission_key) has an open row in `access_change_requests`.
-- `override_granted` / `override_denied` — row exists in `user_permission_overrides` with `mode='grant'|'revoke'`.
-- `granted` / `denied` — otherwise, based on `role_permissions` for the user's roles.
+Load `access_change_requests` (already read for the Approvals tab) once at the page level, index by `permission_key`, and pass into the table and drawers. In the Feature Registry (which is not user-scoped) collapse `pending`/`override_*` counts into a single per-row summary; per-user state stays in `UserOverrideTable` and `PermissionDetailsDrawer`.
 
-Module summary keeps `full / partial / none` (renamed labels: Full Access / Partial Access / No Access). Fraction badge stays on partial.
+Also: implement `is_system_default` consumption in the same helper — a permission with `is_system_default=true` and no user override contributes `source='system_default'`.
 
-### 5. Permission source tracking (new)
+## 6. Source chips everywhere effective permissions render (spec §5, §9)
 
-Add source enum surfaced everywhere an effective permission is shown:
+Add a `PermissionSourceBadge` component (6 chips: System Default / Role Template / Direct Role Config / User Override / Temporary Access / System Restriction).
 
-```ts
-type PermissionSource =
-  | 'system_default' | 'role_template'
-  | 'direct_role' | 'user_override'
-  | 'temporary_access' | 'system_restriction';
-```
+Wire it into:
 
-Backing data:
-- `user_permission_overrides` gains `expires_at TIMESTAMPTZ NULL` — when set + still in future → source = `temporary_access`.
-- New table `public.permission_templates` (id, name, description, created_by, created_at, updated_at) + `permission_template_items` (template_id, permission_key). When a role's grants exactly match a template snapshot → source = `role_template`; otherwise `direct_role`.
-- `system_default` = seeded rows from migration (tracked via `permissions.is_system_default BOOLEAN`).
-- `system_restriction` = critical permissions not granted to viewer's role AND viewer isn't super_admin.
+- `PermissionDetailsDrawer` — show source next to Mode.
+- `FeatureDetailsDrawer` — show source in the per-role/per-user breakdown row.
+- `UserOverrideTable` — new column between "Mode" and "Reason".
 
-### 6. Change sets (new)
+Add role-vs-template detection: compare each role's grant set (sorted keys) to every template's items. Exact match → `role_template` with the template name; otherwise `direct_role`. Compute once per page load and pass down.
 
-New table `public.permission_change_sets`:
-```
-id, requested_by, target_scope ('role'|'user'|'template'),
-target_key, before jsonb, after jsonb, status, applied_at, applied_by,
-audit_ref (fk audit_logs), created_at
-```
+## 7. Templates persisted against real tables (spec §5)
 
-Bulk edits from the Matrix funnel through this instead of writing directly to `role_permissions`. On approval an atomic RPC diffs before/after and applies + writes to `audit_logs`.
+Rewrite `PermissionTemplateTable` to read/write via the repo:
 
-### 7. Tables — final list & GRANTs
+- List from `permissionRepo.listTemplates()` (already implemented).
+- Create/rename/delete via new repo methods (§2).
+- "Save items" runs through `submitChangeSet({ target_scope: 'template', target_key: templateId, before, after })` so template edits are audited too.
+- Remove the `system_settings` JSON fallback path.
 
-Reused (no schema change beyond noted columns):
-- `internal_roles`, `permissions` (+ `risk_level`, `is_system_default`), `role_permissions`, `user_permission_overrides` (+ `expires_at`), `access_change_requests`, `audit_logs`.
+Data migration (one-shot): if a `system_settings` row with the templates JSON exists, migrate it into `permission_templates` + `permission_template_items` on first load of the page (idempotent, keyed by name), then leave the JSON in place for one release cycle.
 
-New:
-- `permission_templates`, `permission_template_items`, `permission_change_sets`.
+## 8. Change-set write path from bulk edits (spec §6)
 
-For each new table:
-```
-GRANT SELECT ON ... TO authenticated;
-GRANT ALL ON ... TO service_role;
-ALTER TABLE ... ENABLE ROW LEVEL SECURITY;
-```
+Any surface that mutates role grants funnels through `submitChangeSet`:
 
-RLS policies:
-- SELECT: `has_internal_role(auth.uid(),'super_admin'|…)` OR viewer has `permissions.view`.
-- INSERT/UPDATE/DELETE on templates & change_sets: viewer has `permissions.manage_permissions`. Approving a change_set requires super_admin.
+- `RoleMatrix` "Save changes" — build `before` from current `roleMap`, `after` from the edited state, submit one change set per role touched with `target_scope='role'`.
+- `PermissionDetailsDrawer` / `UserOverrideTable` add/remove — `target_scope='user'`.
+- Show a toast "Submitted for approval" and refresh the Approvals tab.
 
-Reuse existing `has_role`/`has_internal_role`/`internal_effective_permissions` — no recursive policies.
+Direct writes to `role_permissions` / `user_permission_overrides` from UI paths are removed; only the apply RPC (§3) writes to those tables going forward.
 
-### 8. Repository interfaces (typed service seam)
+## 9. Module-summary label rename (spec §4)
 
-New file `src/services/permission-repository.ts` — narrow read/write interfaces:
+Rename `PermissionStateCell` labels: `Full` → "Full Access", `Partial` → "Partial Access", `None` → "No Access". Fraction badge and colors unchanged.
 
-```ts
-export interface PermissionRepository {
-  listFeatures(): Promise<FeatureRow[]>;         // permissions + risk_level
-  listRoles(): Promise<RoleRow[]>;               // from internal_roles
-  listRoleGrants(): Promise<RoleGrantRow[]>;     // role_permissions
-  listOverrides(): Promise<OverrideRow[]>;       // + expires_at
-  listTemplates(): Promise<TemplateRow[]>;
-  listChangeSets(status?): Promise<ChangeSetRow[]>;
-  submitChangeSet(input): Promise<ChangeSetRow>;
-  approveChangeSet(id, reason): Promise<void>;
-  rejectChangeSet(id, reason): Promise<void>;
-}
-export const permissionRepo: PermissionRepository = new SupabasePermissionRepository();
-```
+## 10. Deprecate `PRIVILEGED_ACTIONS` heuristic (spec §3)
 
-`permission-workspace.service.ts` becomes a thin aggregator on top of the repo. Page and drawers import from the repo only — never `supabase` directly for permission data.
+- Audit callers of `PRIVILEGED_ACTIONS` and `isPrivilegedPermission()`; switch any risk-based UI decision to `getPermissionRisk(key)` returning the 4-tier value.
+- Keep `isPrivilegedPermission()` as a shim returning `risk in ('high','critical')` for backward compat, with a `@deprecated` JSDoc.
 
-### 9. UI wiring (minimal, no visual regression)
+---
 
-- `permission-catalog.ts`: replace hardcoded `MODULES` with a runtime loader that hydrates from `permissions` table on first fetch and caches. Static fallback keeps the current list until the hydrate resolves.
-- `PermissionStateCell` (module summary) — unchanged (Full/Partial/None).
-- `FeatureRegistryTable` and `PermissionDetailsDrawer` — render the new 6-state pill for individual rows via a new `PermissionRowStateBadge`.
-- Risk column already exists; swap heuristic for real `risk_level`. Add Critical (red) alongside existing Privileged/Standard.
-- Source column on Override / Feature drawers — chip with the 6 sources.
+## Implementation sequence
 
-### 10. Migrations plan (2 files)
+1. RLS/GRANT audit + patch migration (§1).
+2. Apply-RPC + repository writes (§2, §3).
+3. Workspace service → repo aggregator (§4).
+4. Row-state helper + `is_system_default` (§5).
+5. Source badge + role-vs-template detection (§6).
+6. Templates CRUD via repo + one-shot JSON migration (§7).
+7. Change-set write path from RoleMatrix + drawers (§8).
+8. Label rename + `PRIVILEGED_ACTIONS` cleanup (§9, §10).
+9. Contract test: `src/__tests__/permission-matrix.contract.test.ts` — asserts repo interface is fully implemented and no non-repo file imports `supabase` for permission tables.
 
-1. `add_permission_matrix_architecture.sql`
-   - `ALTER TABLE permissions ADD COLUMN risk_level`, `is_system_default`.
-   - `ALTER TABLE user_permission_overrides ADD COLUMN expires_at`.
-   - `CREATE TABLE permission_templates`, `permission_template_items`, `permission_change_sets` (+ GRANTs + RLS + policies).
-2. `seed_permission_matrix_v2.sql`
-   - `INSERT ... ON CONFLICT DO NOTHING` for the new module rows in `permissions`.
-   - `UPDATE permissions SET risk_level = …` per the classification list.
-   - `INSERT INTO role_permissions ... ON CONFLICT DO NOTHING` for baseline role grants on the new modules.
+## Out of scope (unchanged)
 
-Both migrations are additive — no key rename, no role rename.
+- Impersonation module.
+- Any theming beyond the new chips.
+- Users & Access screen rewrite.
 
-### 11. Out of scope
-- Impersonation module (per prior instruction, deferred).
-- UI theming changes beyond the new risk/source/state chips.
-- Rewriting Users & Access screen — it continues to consume the same catalog.
+## Technical details
 
-### Implementation sequence
-1. Migration #1 (schema).
-2. Migration #2 (seed).
-3. `permission-repository.ts` + swap workspace service to use it.
-4. Runtime hydrate of `PERMISSION_MODULES` from DB with static fallback.
-5. Row-state + source badges in Feature Registry, Overrides, Feature drawer.
-6. Change-set write path from any bulk edit surface (initially just prep — approval UI already lives in Pending Approvals).
+- New RPC: `public.apply_permission_change_set(uuid, text)` — SECURITY DEFINER, `SET search_path = public`, super_admin guard via `has_internal_role`.
+- New RPC: `public.set_permission_template_items(uuid, text[])` — SECURITY DEFINER, `permissions.manage_permissions` guard.
+- Files touched: `src/services/permission-repository.ts`, `src/services/permission-workspace.service.ts`, `src/services/permission-catalog.ts`, `src/components/admin/permission-matrix/{FeatureRegistryTable,PermissionDetailsDrawer,FeatureDetailsDrawer,PermissionTemplateTable,UserOverrideTable,RoleMatrix,PermissionStateCell}.tsx`, plus new `PermissionSourceBadge.tsx` and `derive-row-state.ts`.
+- Migrations: two additive SQL files (RLS patch + RPCs). No column drops, no key renames.
