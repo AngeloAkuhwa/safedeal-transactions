@@ -29,10 +29,12 @@ import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 
 export default function AdminTaskOrchestration() {
   const perms = useAdminPermissions();
-  const isSenior =
-    perms.hasPermission("task_orchestration.assign") ||
-    perms.hasPermission("task_orchestration.rebalance") ||
-    perms.hasPermission("task_orchestration.escalate");
+  const isSenior = perms.isSuper || perms.hasAny([
+    "task_orchestration.assign",
+    "task_orchestration.rebalance",
+    "task_orchestration.escalate",
+    "task_orchestration.manage",
+  ]);
 
   const [data, setData] = useState<OrchestrationOverview | null>(null);
   const [loading, setLoading] = useState(true);
