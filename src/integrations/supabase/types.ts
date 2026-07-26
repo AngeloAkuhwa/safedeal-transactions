@@ -2855,6 +2855,7 @@ export type Database = {
           applied_by: string | null
           before: Json
           created_at: string
+          environment: string
           id: string
           reason: string | null
           requested_by: string | null
@@ -2868,6 +2869,7 @@ export type Database = {
           applied_by?: string | null
           before?: Json
           created_at?: string
+          environment?: string
           id?: string
           reason?: string | null
           requested_by?: string | null
@@ -2881,6 +2883,7 @@ export type Database = {
           applied_by?: string | null
           before?: Json
           created_at?: string
+          environment?: string
           id?: string
           reason?: string | null
           requested_by?: string | null
@@ -2896,6 +2899,7 @@ export type Database = {
           actor_id: string
           b_key: string
           created_at: string
+          environment: string
           expires_at: string | null
           id: string
           reason: string
@@ -2906,6 +2910,7 @@ export type Database = {
           actor_id: string
           b_key: string
           created_at?: string
+          environment?: string
           expires_at?: string | null
           id?: string
           reason: string
@@ -2916,6 +2921,7 @@ export type Database = {
           actor_id?: string
           b_key?: string
           created_at?: string
+          environment?: string
           expires_at?: string | null
           id?: string
           reason?: string
@@ -3020,6 +3026,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          environment: string
           id: string
           name: string
           role_source: string | null
@@ -3029,6 +3036,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          environment?: string
           id?: string
           name: string
           role_source?: string | null
@@ -3038,6 +3046,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          environment?: string
           id?: string
           name?: string
           role_source?: string | null
@@ -3729,14 +3738,17 @@ export type Database = {
       }
       role_permissions: {
         Row: {
+          environment: string
           permission_key: string
           role_key: string
         }
         Insert: {
+          environment?: string
           permission_key: string
           role_key: string
         }
         Update: {
+          environment?: string
           permission_key?: string
           role_key?: string
         }
@@ -5044,6 +5056,7 @@ export type Database = {
       }
       user_permission_overrides: {
         Row: {
+          environment: string
           expires_at: string | null
           granted_at: string
           granted_by: string | null
@@ -5053,6 +5066,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          environment?: string
           expires_at?: string | null
           granted_at?: string
           granted_by?: string | null
@@ -5062,6 +5076,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          environment?: string
           expires_at?: string | null
           granted_at?: string
           granted_by?: string | null
@@ -5658,28 +5673,53 @@ export type Database = {
           total_users: number
         }[]
       }
-      apply_permission_change_set: {
-        Args: { _id: string; _reason?: string }
-        Returns: {
-          after: Json
-          applied_at: string | null
-          applied_by: string | null
-          before: Json
-          created_at: string
-          id: string
-          reason: string | null
-          requested_by: string | null
-          status: string
-          target_key: string
-          target_scope: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "permission_change_sets"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      apply_permission_change_set:
+        | {
+            Args: { _id: string; _reason?: string }
+            Returns: {
+              after: Json
+              applied_at: string | null
+              applied_by: string | null
+              before: Json
+              created_at: string
+              environment: string
+              id: string
+              reason: string | null
+              requested_by: string | null
+              status: string
+              target_key: string
+              target_scope: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "permission_change_sets"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { _environment?: string; _id: string; _reason?: string }
+            Returns: {
+              after: Json
+              applied_at: string | null
+              applied_by: string | null
+              before: Json
+              created_at: string
+              environment: string
+              id: string
+              reason: string | null
+              requested_by: string | null
+              status: string
+              target_key: string
+              target_scope: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "permission_change_sets"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       check_admin_rate_limit: {
         Args: { _action_key: string; _admin_id: string; _max_per_hour: number }
         Returns: {
@@ -5803,28 +5843,53 @@ export type Database = {
         }[]
       }
       refresh_admin_flagged_users_mv: { Args: never; Returns: undefined }
-      reject_permission_change_set: {
-        Args: { _id: string; _reason?: string }
-        Returns: {
-          after: Json
-          applied_at: string | null
-          applied_by: string | null
-          before: Json
-          created_at: string
-          id: string
-          reason: string | null
-          requested_by: string | null
-          status: string
-          target_key: string
-          target_scope: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "permission_change_sets"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      reject_permission_change_set:
+        | {
+            Args: { _id: string; _reason?: string }
+            Returns: {
+              after: Json
+              applied_at: string | null
+              applied_by: string | null
+              before: Json
+              created_at: string
+              environment: string
+              id: string
+              reason: string | null
+              requested_by: string | null
+              status: string
+              target_key: string
+              target_scope: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "permission_change_sets"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { _environment?: string; _id: string; _reason?: string }
+            Returns: {
+              after: Json
+              applied_at: string | null
+              applied_by: string | null
+              before: Json
+              created_at: string
+              environment: string
+              id: string
+              reason: string | null
+              requested_by: string | null
+              status: string
+              target_key: string
+              target_scope: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "permission_change_sets"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       release_expired_awaiting_payment: {
         Args: { _cutoff: string }
         Returns: {
