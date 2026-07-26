@@ -50,6 +50,9 @@ export interface AgentRosterEntry {
   last_name: string | null;
   email: string | null;
   avatar_url: string | null;
+  team?: string | null;
+  job_title?: string | null;
+  last_heartbeat?: string | null;
   availability: AgentAvailability;
   max_active: number;
   active: number;
