@@ -14,6 +14,8 @@ import {
   EscalateTaskDialog,
   AgentDetailsDrawer,
   TaskDetailsDrawer,
+  AutoAssignPreviewDrawer,
+  RebalancePreviewDrawer,
   LoadingSkeleton,
   ErrorState,
 } from "@/components/admin/task-orchestration";
@@ -28,6 +30,7 @@ import {
   type AssignmentRulesConfig,
 } from "@/services/task-orchestration.service";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function AdminTaskOrchestration() {
   const perms = useAdminPermissions();
@@ -55,6 +58,8 @@ export default function AdminTaskOrchestration() {
   const [savingRules, setSavingRules] = useState(false);
   const [testingRules, setTestingRules] = useState(false);
   const [mode, setMode] = useState("round_robin");
+  const [autoPreview, setAutoPreview] = useState<{ pending: number; seats: number; wouldAssign: number } | null>(null);
+  const [rebalancePreview, setRebalancePreview] = useState<{ moves: number } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -70,6 +75,21 @@ export default function AdminTaskOrchestration() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    let pending = false;
+    const debounced = () => {
+      if (pending) return;
+      pending = true;
+      setTimeout(() => { pending = false; void load(); }, 800);
+    };
+    const ch = supabase.channel("task-orchestration-live")
+      .on("postgres_changes" as any, { event: "*", schema: "public", table: "orchestration_tasks" }, debounced)
+      .on("postgres_changes" as any, { event: "*", schema: "public", table: "task_status_history" }, debounced)
+      .on("postgres_changes" as any, { event: "*", schema: "public", table: "task_assignment_history" }, debounced)
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
+  }, [load]);
 
   const toggleId = (id: string) => setSelectedIds(s => {
     const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n;
@@ -106,15 +126,37 @@ export default function AdminTaskOrchestration() {
     setAssignTarget(null); setAssignBulk(false);
   };
 
-  const handleAutoAssign = () => runAction("auto_assign",
-    () => runOrchestrationAction({ action: "auto_assign", mode }));
+  const handleAutoAssign = async () => {
+    try {
+      const res = await runOrchestrationAction<{ pending: number; would_assign: number; plan: unknown[] }>({
+        action: "preview_auto_assign", mode,
+      });
+      setAutoPreview({ pending: res.pending, seats: res.plan.length, wouldAssign: res.would_assign });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Preview failed");
+    }
+  };
+  const confirmAutoAssign = async () => {
+    setAutoPreview(null);
+    await runAction("auto_assign", () => runOrchestrationAction({ action: "auto_assign", mode }));
+  };
   const handleAssignToMe = () => {
     if (!selectedIds.size) return;
     return runAction("assign_to_me",
       () => runOrchestrationAction({ action: "assign_to_me", task_ids: Array.from(selectedIds) }));
   };
-  const handleRebalance = () => runAction("rebalance",
-    () => runOrchestrationAction({ action: "rebalance" }));
+  const handleRebalance = async () => {
+    try {
+      const res = await runOrchestrationAction<{ moves: number }>({ action: "preview_rebalance" });
+      setRebalancePreview({ moves: res.moves });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Preview failed");
+    }
+  };
+  const confirmRebalance = async () => {
+    setRebalancePreview(null);
+    await runAction("rebalance", () => runOrchestrationAction({ action: "rebalance" }));
+  };
   const handleEscalate = () => setEscalateOpen(true);
   const handleConfirmEscalate = (reason: string) => runAction("escalate", async () => {
     await runOrchestrationAction({ action: "escalate", task_ids: Array.from(selectedIds), reason });
@@ -262,6 +304,23 @@ export default function AdminTaskOrchestration() {
         roster={data?.roster ?? []}
         onAssign={t => { setDetailTask(null); handleAssignRow(t); }}
         onEscalate={t => { setSelectedIds(new Set([t.id])); setDetailTask(null); setEscalateOpen(true); }}
+        onAfterMutate={load}
+      />
+      <AutoAssignPreviewDrawer
+        open={!!autoPreview}
+        onOpenChange={o => { if (!o) setAutoPreview(null); }}
+        pending={autoPreview?.pending ?? 0}
+        seats={autoPreview?.seats ?? 0}
+        wouldAssign={autoPreview?.wouldAssign ?? 0}
+        onConfirm={confirmAutoAssign}
+        submitting={busy === "auto_assign"}
+      />
+      <RebalancePreviewDrawer
+        open={!!rebalancePreview}
+        onOpenChange={o => { if (!o) setRebalancePreview(null); }}
+        roster={data?.roster ?? []}
+        onConfirm={confirmRebalance}
+        submitting={busy === "rebalance"}
       />
     </AdminLayout>
   );
