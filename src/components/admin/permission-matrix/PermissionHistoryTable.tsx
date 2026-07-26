@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, RotateCcw } from "lucide-react";
 import { changeStateTone, normalizeChangeState } from "@/services/permission-approval-rules";
+import { findPermissionEntry } from "@/services/permission-catalog";
 
 export function PermissionHistoryTable({
   rows,
@@ -19,12 +20,41 @@ export function PermissionHistoryTable({
   const [q, setQ] = useState("");
   const [scope, setScope] = useState("any");
   const [result, setResult] = useState("any");
+  const [actor, setActor] = useState("any");
+  const [module, setModule] = useState("any");
+  const [permission, setPermission] = useState("any");
+  const [range, setRange] = useState("any");
+
+  const actorOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    rows.forEach((r) => { if (r.actor_id) m.set(r.actor_id, r.actor_name ?? r.actor_id); });
+    return Array.from(m.entries()).map(([v, l]) => ({ v, l }));
+  }, [rows]);
+  const keyToModule = (k: string) => findPermissionEntry(k)?.moduleLabel ?? "—";
+  const moduleOptions = useMemo(() => {
+    const s = new Set<string>();
+    rows.forEach((r) => { [...r.added_keys, ...r.removed_keys].forEach((k) => s.add(keyToModule(k))); });
+    s.delete("—");
+    return Array.from(s.values()).map((v) => ({ v, l: v }));
+  }, [rows]);
+  const permissionOptions = useMemo(() => {
+    const s = new Set<string>();
+    rows.forEach((r) => { [...r.added_keys, ...r.removed_keys].forEach((k) => s.add(k)); });
+    return Array.from(s.values()).sort().map((v) => ({ v, l: v }));
+  }, [rows]);
+  const rangeMs = range === "1d" ? 86_400_000 : range === "7d" ? 7 * 86_400_000 : range === "30d" ? 30 * 86_400_000 : null;
 
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
+    const cutoff = rangeMs ? Date.now() - rangeMs : null;
     return rows.filter((r) => {
       if (scope !== "any" && r.target_scope !== scope) return false;
       if (result !== "any" && r.result !== result) return false;
+      if (actor !== "any" && r.actor_id !== actor) return false;
+      if (cutoff !== null && new Date(r.when).getTime() < cutoff) return false;
+      const keys = [...r.added_keys, ...r.removed_keys];
+      if (module !== "any" && !keys.some((k) => keyToModule(k) === module)) return false;
+      if (permission !== "any" && !keys.includes(permission)) return false;
       if (!ql) return true;
       return (
         r.target_label.toLowerCase().includes(ql) ||
@@ -34,7 +64,7 @@ export function PermissionHistoryTable({
         r.id.toLowerCase().includes(ql)
       );
     });
-  }, [rows, q, scope, result]);
+  }, [rows, q, scope, result, actor, module, permission, rangeMs]);
 
   return (
     <div className="space-y-3">
@@ -55,6 +85,35 @@ export function PermissionHistoryTable({
           <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Result" /></SelectTrigger>
           <SelectContent>
             {[{ v: "any", l: "All results" }, { v: "applied", l: "Applied" }, { v: "rejected", l: "Rejected" }, { v: "cancelled", l: "Cancelled" }, { v: "failed", l: "Failed" }].map((i) => (
+              <SelectItem key={i.v} value={i.v} className="text-xs">{i.l}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={actor} onValueChange={setActor}>
+          <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Actor" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="any" className="text-xs">Any actor</SelectItem>
+            {actorOptions.map((i) => (<SelectItem key={i.v} value={i.v} className="text-xs">{i.l}</SelectItem>))}
+          </SelectContent>
+        </Select>
+        <Select value={module} onValueChange={setModule}>
+          <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Module" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="any" className="text-xs">Any module</SelectItem>
+            {moduleOptions.map((i) => (<SelectItem key={i.v} value={i.v} className="text-xs">{i.l}</SelectItem>))}
+          </SelectContent>
+        </Select>
+        <Select value={permission} onValueChange={setPermission}>
+          <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue placeholder="Permission" /></SelectTrigger>
+          <SelectContent className="max-h-[280px]">
+            <SelectItem value="any" className="text-xs">Any permission</SelectItem>
+            {permissionOptions.map((i) => (<SelectItem key={i.v} value={i.v} className="text-xs font-mono">{i.l}</SelectItem>))}
+          </SelectContent>
+        </Select>
+        <Select value={range} onValueChange={setRange}>
+          <SelectTrigger className="h-8 w-[140px] text-xs"><SelectValue placeholder="Date" /></SelectTrigger>
+          <SelectContent>
+            {[{ v: "any", l: "Any time" }, { v: "1d", l: "Last 24h" }, { v: "7d", l: "Last 7 days" }, { v: "30d", l: "Last 30 days" }].map((i) => (
               <SelectItem key={i.v} value={i.v} className="text-xs">{i.l}</SelectItem>
             ))}
           </SelectContent>
