@@ -10,12 +10,12 @@ import {
   PERMISSION_MODULES,
   ROLE_LABEL,
   isPrivilegedPermission,
-  hydratePermissionCatalog,
   getPermissionRisk,
   type PermissionRiskLevel,
   type PermissionSource,
   type InternalRoleKey,
 } from "./permission-catalog";
+import { permissionRepo } from "./permission-repository";
 
 export interface RoleGrantMap {
   map: Map<string, Set<string>>;
@@ -86,13 +86,10 @@ let cachedRoleMap: RoleGrantMap | null = null;
 
 export async function fetchRoleGrantMap(force = false): Promise<RoleGrantMap> {
   if (cachedRoleMap && !force) return cachedRoleMap;
-  const { data, error } = await supabase
-    .from("role_permissions")
-    .select("role_key,permission_key");
-  if (error) throw error;
+  const rows = await permissionRepo.listRoleGrants();
   const map = new Map<string, Set<string>>();
   for (const r of INTERNAL_ROLES) map.set(r.key, new Set());
-  for (const row of data ?? []) {
+  for (const row of rows) {
     const bag = map.get(row.role_key) ?? new Set();
     bag.add(row.permission_key);
     map.set(row.role_key, bag);
@@ -104,15 +101,11 @@ export async function fetchRoleGrantMap(force = false): Promise<RoleGrantMap> {
 export function invalidateRoleGrantMap() { cachedRoleMap = null; }
 
 export async function fetchOverrides(): Promise<OverrideRow[]> {
-  const [ovRes, usersRes, rolesRes] = await Promise.all([
-    supabase
-      .from("user_permission_overrides")
-      .select("user_id,permission_key,mode,reason,granted_by,granted_at,expires_at")
-      .order("granted_at", { ascending: false }),
+  const [overrides, usersRes, rolesRes] = await Promise.all([
+    permissionRepo.listOverrides(),
     supabase.from("internal_users").select("id,full_name,email"),
     supabase.from("internal_user_roles").select("user_id,role_key,is_primary"),
   ]);
-  if (ovRes.error) throw ovRes.error;
   if (usersRes.error) throw usersRes.error;
   if (rolesRes.error) throw rolesRes.error;
 
@@ -132,7 +125,7 @@ export async function fetchOverrides(): Promise<OverrideRow[]> {
     for (const p of m.permissions) permIndex.set(p.key, { label: p.label, module: m.label });
   }
 
-  return (ovRes.data ?? []).map((row: any): OverrideRow => {
+  return overrides.map((row): OverrideRow => {
     const u = userById.get(row.user_id);
     const meta = permIndex.get(row.permission_key);
     const expires = row.expires_at ?? null;
@@ -161,14 +154,7 @@ export async function fetchOverrides(): Promise<OverrideRow[]> {
 }
 
 export async function fetchPendingApprovals(): Promise<ApprovalRow[]> {
-  const { data, error } = await supabase
-    .from("access_change_requests")
-    .select("id,target_user_id,requested_by,change_type,payload,reason,status,created_at")
-    .eq("status", "pending")
-    .order("created_at", { ascending: false })
-    .limit(200);
-  if (error) throw error;
-  const rows = (data ?? []) as any[];
+  const rows = await permissionRepo.listApprovals();
   const ids = Array.from(new Set(rows.flatMap((r) => [r.target_user_id, r.requested_by].filter(Boolean))));
   const names = new Map<string, string>();
   if (ids.length) {
@@ -189,6 +175,25 @@ export async function fetchPendingApprovals(): Promise<ApprovalRow[]> {
   }));
 }
 
+/**
+ * Build a per-user set of permission_keys with an open pending permission
+ * change_request. Used by `derivePermissionRowState` to render the "pending"
+ * row-state without a second round trip in tight components.
+ */
+export async function fetchPendingPermissionKeysByUser(): Promise<Map<string, Set<string>>> {
+  const rows = await permissionRepo.listApprovals();
+  const out = new Map<string, Set<string>>();
+  for (const r of rows) {
+    if (r.change_type !== "permission") continue;
+    const payload = r.payload as { permission_key?: string } | null;
+    if (!payload?.permission_key) continue;
+    const bag = out.get(r.target_user_id) ?? new Set<string>();
+    bag.add(payload.permission_key);
+    out.set(r.target_user_id, bag);
+  }
+  return out;
+}
+
 const HISTORY_ACTION_TYPES = [
   "role_assigned",
   "role_changed",
@@ -200,19 +205,7 @@ const HISTORY_ACTION_TYPES = [
 ] as const;
 
 export async function fetchChangeHistory(limit = 100, sinceHours?: number): Promise<HistoryRow[]> {
-  let q = supabase
-    .from("admin_actions")
-    .select("id,admin_user_id,target_user_id,action_type,action_notes,created_at")
-    .in("action_type", HISTORY_ACTION_TYPES)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (sinceHours && sinceHours > 0) {
-    const since = new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
-    q = q.gte("created_at", since);
-  }
-  const { data, error } = await q;
-  if (error) throw error;
-  const rows = (data ?? []) as any[];
+  const rows = await permissionRepo.listHistory(limit, sinceHours, [...HISTORY_ACTION_TYPES]);
   const ids = Array.from(new Set(rows.flatMap((r) => [r.admin_user_id, r.target_user_id].filter(Boolean))));
   const names = new Map<string, string>();
   if (ids.length) {
@@ -256,83 +249,75 @@ export async function fetchWorkspaceSummary(): Promise<WorkspaceSummary> {
   };
 }
 
-const TEMPLATE_STORE_KEY = "safedeal.permMatrix.templates.v1";
-const TEMPLATE_SETTING_KEY = "permissions.templates";
-
-function readTemplates(): PermissionTemplate[] {
-  if (typeof localStorage === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(TEMPLATE_STORE_KEY);
-    return raw ? (JSON.parse(raw) as PermissionTemplate[]) : [];
-  } catch { return []; }
-}
-
-function writeTemplates(t: PermissionTemplate[]) {
-  if (typeof localStorage === "undefined") return;
-  localStorage.setItem(TEMPLATE_STORE_KEY, JSON.stringify(t));
-}
-
-// Templates persist to `system_settings` (shared across teammates) with a
-// per-browser localStorage fallback so the workspace remains usable even if
-// the platform_settings row hasn't been seeded yet.
-async function readTemplatesRemote(): Promise<PermissionTemplate[] | null> {
-  try {
-    const { data, error } = await supabase
-      .from("system_settings")
-      .select("setting_value")
-      .eq("setting_key", TEMPLATE_SETTING_KEY)
-      .maybeSingle();
-    if (error) return null;
-    const val = (data as any)?.setting_value;
-    if (Array.isArray(val)) return val as PermissionTemplate[];
-    if (val && Array.isArray((val as any).templates)) return (val as any).templates as PermissionTemplate[];
-    return [];
-  } catch { return null; }
-}
-
-async function writeTemplatesRemote(t: PermissionTemplate[]): Promise<boolean> {
-  try {
-    const { error } = await supabase
-      .from("system_settings")
-      .upsert(
-        { setting_key: TEMPLATE_SETTING_KEY, setting_value: t as any, updated_at: new Date().toISOString() } as any,
-        { onConflict: "setting_key,scope,vendor_id" },
-      );
-    return !error;
-  } catch { return false; }
-}
-
+// Templates are persisted through `permissionRepo` against the dedicated
+// `permission_templates` + `permission_template_items` tables. All writes
+// route through change-set-aware repo methods so the audit trail catches
+// them alongside role/user edits.
 export async function listTemplates(): Promise<PermissionTemplate[]> {
-  const remote = await readTemplatesRemote();
-  const source = remote && remote.length ? remote : readTemplates();
-  return [...source].sort((a, b) => a.name.localeCompare(b.name));
+  const rows = await permissionRepo.listTemplates();
+  return rows
+    .map((r): PermissionTemplate => ({
+      id: r.id,
+      name: r.name,
+      description: r.description ?? "",
+      role_source: (r.role_source ?? null) as InternalRoleKey | null,
+      permission_keys: r.permission_keys,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function cloneRoleAsTemplate(role: InternalRoleKey, name: string, description = ""): Promise<PermissionTemplate> {
+export async function cloneRoleAsTemplate(
+  role: InternalRoleKey,
+  name: string,
+  description = "",
+): Promise<PermissionTemplate> {
   const roleMap = await fetchRoleGrantMap();
   const perms = Array.from(roleMap.map.get(role) ?? []).sort();
-  const now = new Date().toISOString();
-  const tpl: PermissionTemplate = {
-    id: crypto.randomUUID(),
-    name: name.trim() || `${ROLE_LABEL[role]} clone`,
-    description: description.trim(),
-    role_source: role,
-    permission_keys: perms,
-    created_at: now,
-    updated_at: now,
+  const created = await permissionRepo.createTemplate(
+    { name: name.trim() || `${ROLE_LABEL[role]} clone`, description: description.trim(), role_source: role },
+    perms,
+  );
+  // Record the create as a change set so it shows up in Recent Changes.
+  await permissionRepo.submitChangeSet({
+    target_scope: "template",
+    target_key: created.id,
+    before: null,
+    after: { name: created.name, role_source: role, permission_keys: perms },
+    reason: `Cloned template from ${ROLE_LABEL[role]}`,
+  });
+  return {
+    id: created.id,
+    name: created.name,
+    description: created.description ?? "",
+    role_source: (created.role_source ?? null) as InternalRoleKey | null,
+    permission_keys: created.permission_keys,
+    created_at: created.created_at,
+    updated_at: created.updated_at,
   };
-  const remote = (await readTemplatesRemote()) ?? readTemplates();
-  const next = [...remote, tpl];
-  const ok = await writeTemplatesRemote(next);
-  if (!ok) writeTemplates(next);
-  return tpl;
 }
 
 export async function deleteTemplate(id: string) {
-  const remote = (await readTemplatesRemote()) ?? readTemplates();
-  const next = remote.filter((t) => t.id !== id);
-  const ok = await writeTemplatesRemote(next);
-  if (!ok) writeTemplates(next);
+  await permissionRepo.submitChangeSet({
+    target_scope: "template",
+    target_key: id,
+    before: { id },
+    after: null,
+    reason: "Template deleted",
+  });
+  await permissionRepo.deleteTemplate(id);
+}
+
+export async function updateTemplateItems(id: string, keys: string[], before: string[]) {
+  await permissionRepo.submitChangeSet({
+    target_scope: "template",
+    target_key: id,
+    before: { permission_keys: before },
+    after: { permission_keys: keys },
+    reason: "Template items updated",
+  });
+  await permissionRepo.setTemplateItems(id, keys);
 }
 
 export type CellState = "full" | "partial" | "none";
