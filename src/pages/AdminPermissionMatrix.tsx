@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Shield, ShieldAlert, History, Save, ArrowRight } from "lucide-react";
+import { Shield, ShieldAlert, History, ArrowUpRight } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminMobileHeader } from "@/components/admin/AdminMobileHeader";
@@ -107,8 +107,11 @@ export default function AdminPermissionMatrix() {
     staleTime: 20_000,
   });
   const historyQuery = useQuery({
-    queryKey: ["perm-workspace", "history"],
-    queryFn: () => fetchChangeHistory(100),
+    queryKey: ["perm-workspace", "history", params.get("since") ?? "all"],
+    queryFn: () => fetchChangeHistory(
+      100,
+      params.get("since") === "24h" ? 24 : undefined,
+    ),
     staleTime: 30_000,
   });
 
@@ -136,7 +139,11 @@ export default function AdminPermissionMatrix() {
     if (target === "feature-registry" && filter === "privileged") {
       setFilters((f) => ({ ...f, risk: "privileged" }));
     }
-    setTab(target);
+    if (target === "change-history") {
+      setTab(target, { since: "24h" });
+    } else {
+      setTab(target);
+    }
   };
 
   const securityLevel: { label: string; tone: string } = canManage
@@ -178,10 +185,10 @@ export default function AdminPermissionMatrix() {
             type="button"
             disabled={!canManage}
             onClick={() => navigate("/admin/access-control")}
-            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
-            title={canManage ? "Manage permissions in Users & Access" : "You do not have permission to edit"}
+            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-[0_1px_0_hsl(var(--primary-foreground)/0.2)_inset] hover:bg-primary/90 disabled:opacity-50"
+            title={canManage ? "Edit role assignments in Users & Access" : "You do not have permission to edit"}
           >
-            <Save className="h-3.5 w-3.5" /> Save changes <ArrowRight className="h-3 w-3" />
+            Manage in Users &amp; Access <ArrowUpRight className="h-3 w-3" />
           </button>
         </div>
       </div>
@@ -213,7 +220,7 @@ export default function AdminPermissionMatrix() {
         </>
       }
     >
-      <div className="w-full max-w-full space-y-4 overflow-x-hidden">
+      <div className="relative w-full max-w-full space-y-6 overflow-x-hidden bg-[radial-gradient(ellipse_at_top_left,hsl(var(--primary)/0.06),transparent_60%)]">
         <HowPermissionsWorkPanel />
 
         <PermissionSummaryCards
