@@ -375,6 +375,22 @@ Deno.serve(async (req) => {
       }
       case "save_rules": {
         if (!body.rules) return respond({ error: "missing_rules" }, 400);
+        const r = body.rules as Record<string, unknown>;
+        const bounded = (k: string, min: number, max: number) => {
+          if (r[k] === undefined || r[k] === null) return null;
+          const v = Number(r[k]);
+          if (!Number.isFinite(v) || v < min || v > max) return `${k} must be between ${min} and ${max}`;
+          return null;
+        };
+        const errs = [
+          bounded("max_active_per_agent", 1, 200),
+          bounded("max_overdue_before_skip", 0, 100),
+        ].filter(Boolean) as string[];
+        const allowedModes = ["round_robin","least_loaded","priority_weighted","skill_match","manual_only"];
+        if (r.mode !== undefined && !allowedModes.includes(String(r.mode))) {
+          errs.push(`mode must be one of ${allowedModes.join(", ")}`);
+        }
+        if (errs.length) return respond({ error: "invalid_rules", details: errs }, 400);
         const { data: existing } = await admin.from("assignment_rules").select("id, config").eq("scope","global").maybeSingle();
         const before = existing?.config ?? null;
         const nextConfig = { ...(before as object ?? {}), ...body.rules };
@@ -393,7 +409,7 @@ Deno.serve(async (req) => {
           targetType: "setting", before, after: nextConfig, mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
-        return respond({ ok: true, rules: saved });
+        return respond({ ok: true, rules: saved, version: nextVer });
       }
       case "test_rules": {
         const { data: pending } = await admin.from("orchestration_tasks").select("id").eq("status","unassigned").limit(50);
