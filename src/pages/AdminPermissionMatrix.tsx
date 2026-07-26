@@ -41,6 +41,9 @@ import { FeatureDetailsDrawer } from "@/components/admin/permission-matrix/Featu
 import { PermissionDetailsDrawer } from "@/components/admin/permission-matrix/PermissionDetailsDrawer";
 import { ReviewChangesDrawer } from "@/components/admin/permission-matrix/ReviewChangesDrawer";
 import { RegisterPermissionDialog } from "@/components/admin/permission-matrix/RegisterPermissionDialog";
+import { CloneRoleAsTemplateDialog } from "@/components/admin/permission-matrix/CloneRoleAsTemplateDialog";
+import { ResetRoleToDefaultDialog } from "@/components/admin/permission-matrix/ResetRoleToDefaultDialog";
+import { CreateOverrideDrawer } from "@/components/admin/permission-matrix/CreateOverrideDrawer";
 import { ErrorState, LoadingSkeleton } from "@/components/admin/permission-matrix/EmptyState";
 import { fetchPermissionEnvironments } from "@/services/permission-workspace.service";
 import { Plus } from "lucide-react";
@@ -196,6 +199,9 @@ export default function AdminPermissionMatrix() {
   const [approval, setApproval] = useState<ApprovalRow | null>(null);
   const [history, setHistory] = useState<HistoryRow | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [cloneRoleFor, setCloneRoleFor] = useState<InternalRoleKey | null>(null);
+  const [resetRoleFor, setResetRoleFor] = useState<InternalRoleKey | null>(null);
+  const [createOverrideOpen, setCreateOverrideOpen] = useState(false);
 
   const openFeature = (k: string) => { setFeatureKey(k); setFeatureOpen(true); };
   const openOverride = (o: OverrideRow) => setOverride(o);
@@ -354,6 +360,9 @@ export default function AdminPermissionMatrix() {
                 onRoleChange={(r) => setParams((p) => { p.set("role", r); return p; }, { replace: true })}
                 environment={environment}
                 onCompare={(r) => setTab("role-matrix", { rm_mode: "compare", rm_pri: r })}
+                onCloneAsTemplate={(r) => canManage && setCloneRoleFor(r)}
+                onResetToDefault={(r) => canManage && setResetRoleFor(r)}
+                onViewHistory={(r) => setTab("change-history", { role: r })}
               />
             )}
           </>
@@ -387,6 +396,7 @@ export default function AdminPermissionMatrix() {
                 onRowClick={openOverride}
                 canEdit={canManage}
                 onChanged={() => overridesQuery.refetch()}
+                onCreate={() => setCreateOverrideOpen(true)}
               />
             )}
           </>
@@ -445,6 +455,25 @@ export default function AdminPermissionMatrix() {
         history={history}
         open={reviewOpen}
         onOpenChange={(v) => { setReviewOpen(v); if (!v) { setApproval(null); setHistory(null); } }}
+      />
+      <CloneRoleAsTemplateDialog
+        open={!!cloneRoleFor}
+        role={cloneRoleFor}
+        onOpenChange={(v) => { if (!v) setCloneRoleFor(null); }}
+        onDone={() => setTab("permission-templates")}
+      />
+      <ResetRoleToDefaultDialog
+        open={!!resetRoleFor}
+        role={resetRoleFor}
+        environment={environment}
+        onOpenChange={(v) => { if (!v) setResetRoleFor(null); }}
+        onDone={() => { approvalsQuery.refetch(); historyQuery.refetch(); }}
+      />
+      <CreateOverrideDrawer
+        open={createOverrideOpen}
+        environment={environment}
+        onOpenChange={setCreateOverrideOpen}
+        onCreated={() => overridesQuery.refetch()}
       />
     </AdminLayout>
   );

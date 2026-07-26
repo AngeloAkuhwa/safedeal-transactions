@@ -494,6 +494,7 @@ export interface ApplyTemplateDiff {
   approval_required: boolean;
   before: string[];
   after: string[];
+  dependencies_added: Array<{ key: string; from: string[] }>;
 }
 
 export async function computeApplyTemplateDiff(
@@ -512,12 +513,111 @@ export async function computeApplyTemplateDiff(
   const add = [...target].filter((k) => !current.has(k));
   const remove = [...current].filter((k) => !target.has(k));
   const privileged_added = add.filter(isPrivilegedPermission);
+  // Which required perms are pulled in transitively by the additions.
+  let deps: Array<{ permission_key: string; requires_key: string }> = [];
+  try { deps = await permissionRepo.listPermissionDependencies() as any; } catch { deps = []; }
+  const targetSet = target;
+  const addedSet = new Set(add);
+  const depsMap = new Map<string, Set<string>>();
+  for (const d of deps) {
+    if (!addedSet.has(d.permission_key)) continue;
+    if (targetSet.has(d.requires_key)) continue; // already covered by template
+    const bag = depsMap.get(d.requires_key) ?? new Set<string>();
+    bag.add(d.permission_key);
+    depsMap.set(d.requires_key, bag);
+  }
+  const dependencies_added = Array.from(depsMap.entries())
+    .map(([key, from]) => ({ key, from: Array.from(from).sort() }))
+    .sort((a, b) => a.key.localeCompare(b.key));
   return {
     add, remove, privileged_added,
     approval_required: privileged_added.length > 0,
     before: [...current].sort(),
     after: [...target].sort(),
+    dependencies_added,
   };
+}
+
+/**
+ * For each template, list the roles whose current grant set is a superset of
+ * (i.e. fully includes) the template's permissions in the given environment.
+ * "Uses this template" == the role's baseline satisfies the template.
+ */
+export async function fetchTemplateRoleUsage(
+  env: PermissionEnvironment = DEFAULT_ENVIRONMENT,
+): Promise<Map<string, InternalRoleKey[]>> {
+  const [templates, roleMap] = await Promise.all([
+    listTemplates(),
+    fetchRoleGrantMap(false, env),
+  ]);
+  const out = new Map<string, InternalRoleKey[]>();
+  for (const t of templates) {
+    const target = t.permission_keys;
+    if (!target.length) { out.set(t.id, []); continue; }
+    const matches: InternalRoleKey[] = [];
+    for (const r of INTERNAL_ROLES) {
+      const bag = roleMap.map.get(r.key);
+      if (!bag) continue;
+      let all = true;
+      for (const k of target) { if (!bag.has(k)) { all = false; break; } }
+      if (all) matches.push(r.key);
+    }
+    out.set(t.id, matches);
+  }
+  return out;
+}
+
+/**
+ * Compute the diff needed to reset a role back to its "system default":
+ * the seeded system template whose `role_source` equals the target role.
+ * Falls back to the catalog snapshot when no such template exists.
+ */
+export interface ResetRoleDiff {
+  add: string[];
+  remove: string[];
+  source: "system_template" | "catalog";
+  template_id: string | null;
+  before: string[];
+  after: string[];
+}
+export async function computeRoleResetDiff(
+  role: InternalRoleKey,
+  env: PermissionEnvironment = DEFAULT_ENVIRONMENT,
+): Promise<ResetRoleDiff> {
+  const [templates, roleMap] = await Promise.all([listTemplates(), fetchRoleGrantMap(true, env)]);
+  const seed = templates.find((t) => t.is_system && t.role_source === role);
+  const current = new Set(roleMap.map.get(role) ?? []);
+  const target = new Set<string>(
+    seed
+      ? seed.permission_keys
+      : PERMISSION_MODULES.flatMap((m) => m.permissions.map((p) => p.key)),
+  );
+  const add = [...target].filter((k) => !current.has(k));
+  const remove = [...current].filter((k) => !target.has(k));
+  return {
+    add, remove,
+    source: seed ? "system_template" : "catalog",
+    template_id: seed?.id ?? null,
+    before: [...current].sort(),
+    after: [...target].sort(),
+  };
+}
+
+export async function stageRoleReset(
+  role: InternalRoleKey,
+  env: PermissionEnvironment = DEFAULT_ENVIRONMENT,
+  reason?: string,
+): Promise<ResetRoleDiff> {
+  const diff = await computeRoleResetDiff(role, env);
+  await permissionRepo.submitChangeSet({
+    target_scope: "role",
+    target_key: role,
+    before: diff.before,
+    after: diff.after,
+    reason: reason ?? `Reset ${ROLE_LABEL[role]} to system default`,
+    environment: env,
+  });
+  return diff;
 }
 
 export async function stageApplyTemplateToRole(
