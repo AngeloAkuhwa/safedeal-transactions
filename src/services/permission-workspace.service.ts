@@ -18,6 +18,7 @@ import {
 import { permissionRepo } from "./permission-repository";
 import type { PermissionEnvironment } from "./permission-repository";
 import { DEFAULT_ENVIRONMENT } from "./permission-repository";
+import { evaluateApproval } from "./permission-approval-rules";
 
 export interface RoleGrantMap {
   map: Map<string, Set<string>>;
