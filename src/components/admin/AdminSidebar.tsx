@@ -63,7 +63,9 @@ const BADGE_TONE: Record<Badge["tone"], string> = {
   cyan: "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30",
 };
 
-function buildGroups(badges?: AdminDashboardResponse["sidebar_badges"]): NavGroup[] {
+type SidebarBadges = AdminDashboardResponse["sidebar_badges"] & { access_approvals?: number };
+
+function buildGroups(badges?: SidebarBadges): NavGroup[] {
   return [
     {
       label: "Overview",
@@ -171,9 +173,9 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
   const { pathname } = useLocation();
   const { has, isSuper, loading } = useAdminPermissions();
   const { count: pendingApprovals } = usePendingApprovalsBadge();
-  const badgesWithApprovals = badges
+  const badgesWithApprovals: SidebarBadges | undefined = badges
     ? { ...badges, access_approvals: pendingApprovals }
-    : ({ access_approvals: pendingApprovals } as AdminDashboardResponse["sidebar_badges"]);
+    : (pendingApprovals > 0 ? ({ access_approvals: pendingApprovals } as SidebarBadges) : undefined);
   const rawGroups = buildGroups(badgesWithApprovals);
 
   // Filter each group by permission: hide items the user can't visit, and
