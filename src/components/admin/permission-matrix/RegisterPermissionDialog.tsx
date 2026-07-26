@@ -9,6 +9,8 @@ import {
   type PermissionAction, type PermissionRiskLevel,
 } from "@/services/permission-catalog";
 import { permissionRepo, type PermissionEnvironment } from "@/services/permission-repository";
+import { Lock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 const ENVS: PermissionEnvironment[] = ["production", "staging", "development"];
 const RISKS: PermissionRiskLevel[] = ["low", "medium", "high", "critical"];
@@ -40,6 +42,26 @@ export function RegisterPermissionDialog({
   const [ownerRole, setOwnerRole] = useState<string>(editing?.owner_role ?? "");
   const [status, setStatus] = useState<"active"|"suspended"|"deprecated">((editing?.status ?? "active") as any);
   const [envs, setEnvs] = useState<PermissionEnvironment[]>(["production","staging","development"]);
+  const [deps, setDeps] = useState<string[]>([]);
+  const [conflicts, setConflicts] = useState<string[]>([]);
+
+  const depsQuery = useQuery({
+    queryKey: ["register-perm", "deps", editingKey],
+    queryFn: async () => editingKey ? (await permissionRepo.listPermissionDependencies()).filter((d) => d.permission_key === editingKey).map((d) => d.requires_key) : [],
+    enabled: open && !!editingKey,
+  });
+  const conflictsQuery = useQuery({
+    queryKey: ["register-perm", "conflicts", editingKey],
+    queryFn: async () => editingKey ? (await permissionRepo.listPermissionConflicts()).filter((c) => c.a_key === editingKey).map((c) => c.b_key) : [],
+    enabled: open && !!editingKey,
+  });
+
+  useEffect(() => {
+    if (depsQuery.data) setDeps(depsQuery.data);
+  }, [depsQuery.data]);
+  useEffect(() => {
+    if (conflictsQuery.data) setConflicts(conflictsQuery.data);
+  }, [conflictsQuery.data]);
 
   useEffect(() => {
     if (!open) return;
@@ -64,6 +86,8 @@ export function RegisterPermissionDialog({
         risk_level: risk, approval_required: approvalRequired,
         owner_role: ownerRole || null,
         environments: envs,
+        dependencies: deps,
+        conflicts: conflicts.map((b) => ({ b_key: b, severity: "medium" as const, rationale: null })),
       });
     },
     onSuccess: () => {
@@ -84,6 +108,8 @@ export function RegisterPermissionDialog({
         status,
       });
       if (envs.length) await permissionRepo.setPermissionEnvironments(key, envs);
+      await permissionRepo.setPermissionDependencies(key, deps);
+      await permissionRepo.setPermissionConflicts(key, conflicts.map((b) => ({ b_key: b, severity: "medium", rationale: null })));
     },
     onSuccess: () => {
       toast({ title: "Permission updated", description: key });
@@ -117,7 +143,10 @@ export function RegisterPermissionDialog({
               </select>
             </label>
           </div>
-          <div className="rounded-md border border-border/60 bg-muted/30 px-2 py-1 font-mono text-xs text-muted-foreground">{key}</div>
+          <div className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2 py-1 font-mono text-xs text-muted-foreground">
+            {!!editing && <Lock className="h-3 w-3" />}<span>{key}</span>
+            {!!editing && <span className="ml-auto text-[10px] italic">Key is immutable after creation</span>}
+          </div>
           <label className="block">
             <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Label</span>
             <input value={label} onChange={(e) => setLabel(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2" placeholder="Human-readable name" />
@@ -173,6 +202,8 @@ export function RegisterPermissionDialog({
               })}
             </div>
           </div>
+          <MultiPermSelect label="Dependencies (this permission requires)" excludeKey={key} value={deps} onChange={setDeps} />
+          <MultiPermSelect label="Conflicting permissions" excludeKey={key} value={conflicts} onChange={setConflicts} />
           <p className="text-[11px] text-muted-foreground">
             Permissions are never permanently deleted. Use <span className="font-semibold">Deprecated</span> to retire.
           </p>
