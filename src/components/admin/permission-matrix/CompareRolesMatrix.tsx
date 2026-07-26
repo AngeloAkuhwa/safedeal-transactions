@@ -1,5 +1,8 @@
-import { useMemo } from "react";
-import { Check, X, AlertTriangle, ShieldAlert, GitCompare } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Check, X, AlertTriangle, ShieldAlert, GitCompare, ArrowRight,
+  Copy, Wand2, CircleCheck, CircleAlert, Users,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   INTERNAL_ROLES,
@@ -14,6 +17,8 @@ import type { RoleGrantMap } from "@/services/permission-workspace.service";
 import { computeRoleDiff, computeMissingDependencies, computeConflicts } from "@/services/permission-dependencies";
 import type { RoleMatrixFilters } from "@/hooks/useRoleMatrixFilters";
 import type { StagedOp } from "@/hooks/useStagedPermissionChanges";
+import { PermissionPanel } from "./PermissionPanel";
+import { CopyPermissionsPreview } from "./CopyPermissionsPreview";
 
 interface Props {
   roleMap: RoleGrantMap;
@@ -42,10 +47,22 @@ function riskChip(key: string) {
   return <span className={cn("rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase", map[r])}>{r}</span>;
 }
 
+function riskDot(key: string) {
+  const r = getPermissionRisk(key);
+  const cls = r === "critical" ? "bg-rose-400"
+    : r === "high" ? "bg-amber-400"
+    : r === "medium" ? "bg-sky-400" : "bg-muted-foreground/50";
+  return <span className={cn("inline-block h-1.5 w-1.5 rounded-full", cls)} aria-hidden />;
+}
+
 export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRoles, onStageMany }: Props) {
   const selected = filters.compareRoles;
   const canAdd = selected.length < 4;
   const canRemove = selected.length > 2;
+
+  const [copySource, setCopySource] = useState<InternalRoleKey | null>(selected[0] ?? null);
+  const [copyTarget, setCopyTarget] = useState<InternalRoleKey | null>(selected[1] ?? null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const q = filters.search.trim().toLowerCase();
   const filterKey = (k: string): boolean => {
@@ -76,25 +93,24 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRol
     };
   });
 
-  const copyFrom = (source: InternalRoleKey, target: InternalRoleKey) => {
-    if (!canWrite || isProtectedRole(target)) return;
-    const src = roleMap.map.get(source) ?? new Set<string>();
-    const tgt = roleMap.map.get(target) ?? new Set<string>();
-    const changes: Array<{ permissionKey: string; op: StagedOp }> = [];
-    for (const k of src) if (!tgt.has(k)) changes.push({ permissionKey: k, op: "grant" });
-    for (const k of tgt) if (!src.has(k)) changes.push({ permissionKey: k, op: "revoke" });
-    if (!changes.length) return;
-    if (!confirm(`Copy ${ROLE_LABEL[source]} permissions to ${ROLE_LABEL[target]}?\n\n${changes.length} change(s) will be staged for review.`)) return;
-    onStageMany(target, changes);
+  const openCopyPreview = () => {
+    if (!canWrite || !copySource || !copyTarget || copySource === copyTarget) return;
+    setPreviewOpen(true);
+  };
+
+  const stageMissingDependency = (role: InternalRoleKey, needs: string) => {
+    if (!canWrite || isProtectedRole(role)) return;
+    onStageMany(role, [{ permissionKey: needs, op: "grant" }]);
   };
 
   return (
     <div className="space-y-4">
       {/* Role picker */}
-      <div className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-sm">
-        <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-          <GitCompare className="h-4 w-4 text-primary" /> Compare 2–4 roles
-        </div>
+      <PermissionPanel
+        icon={<GitCompare className="h-4 w-4" />}
+        title="Compare 2–4 roles"
+        subtitle="Select the roles you want to compare side-by-side."
+      >
         <div className="flex flex-wrap gap-2">
           {INTERNAL_ROLES.map((r) => {
             const on = selected.includes(r.key);
@@ -121,37 +137,68 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRol
             );
           })}
         </div>
-      </div>
+      </PermissionPanel>
 
-      {/* Side-by-side header + copy actions */}
+      {/* Copy permissions */}
       {canWrite && selected.length >= 2 && (
-        <div className="rounded-2xl border border-border/50 bg-card/60 p-4 backdrop-blur-sm">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Copy permissions
+        <PermissionPanel
+          icon={<Copy className="h-4 w-4" />}
+          title="Copy permissions"
+          subtitle="Preview adds and removes before anything is staged."
+        >
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[180px] flex-1">
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">From</label>
+              <select
+                value={copySource ?? ""}
+                onChange={(e) => setCopySource(e.target.value as InternalRoleKey)}
+                className="h-9 w-full rounded-md border border-border bg-background/60 px-3 text-xs outline-none focus:border-primary"
+              >
+                {selected.map((r) => (
+                  <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+                ))}
+              </select>
+            </div>
+            <ArrowRight className="mb-2 h-4 w-4 text-muted-foreground" />
+            <div className="min-w-[180px] flex-1">
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">To</label>
+              <select
+                value={copyTarget ?? ""}
+                onChange={(e) => setCopyTarget(e.target.value as InternalRoleKey)}
+                className="h-9 w-full rounded-md border border-border bg-background/60 px-3 text-xs outline-none focus:border-primary"
+              >
+                {selected.filter((r) => r !== copySource).map((r) => (
+                  <option key={r} value={r} disabled={isProtectedRole(r)}>
+                    {ROLE_LABEL[r]}{isProtectedRole(r) ? " (protected)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              disabled={!copySource || !copyTarget || copySource === copyTarget || isProtectedRole(copyTarget ?? "" as InternalRoleKey)}
+              onClick={openCopyPreview}
+              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              Preview & stage
+            </button>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs">
-            {selected.map((source) => selected
-              .filter((t) => t !== source && !isProtectedRole(t))
-              .map((target) => (
-                <button
-                  key={`${source}->${target}`}
-                  type="button"
-                  onClick={() => copyFrom(source, target)}
-                  className="rounded-md border border-border/60 bg-background/40 px-2.5 py-1 hover:border-primary/40 hover:text-foreground"
-                >
-                  {ROLE_LABEL[source]} → {ROLE_LABEL[target]}
-                </button>
-              )))}
-          </div>
-        </div>
+        </PermissionPanel>
       )}
 
       {/* Privileged differences */}
-      <Section title="Privileged permission differences" count={privilegedDiffs.length} tone="danger">
+      <Section
+        icon={<ShieldAlert className="h-4 w-4" />}
+        tone="danger"
+        title="Privileged permission differences"
+        count={privilegedDiffs.length}
+      >
         {privilegedDiffs.length === 0 ? (
-          <div className="p-3 text-xs text-muted-foreground">No privileged permission differences.</div>
+          <EmptyRow icon={<CircleCheck className="h-4 w-4 text-emerald-400" />}
+            title="No privileged permission differences"
+            body="Selected roles have identical high-risk access." />
         ) : (
-          <DiffTable keys={privilegedDiffs} selected={selected} roleMap={roleMap} />
+          <DiffCardList keys={privilegedDiffs} selected={selected} roleMap={roleMap} />
         )}
       </Section>
 
@@ -159,16 +206,22 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRol
       {selected.map((role) => {
         const unique = (diff.uniqueByRole.get(role) ?? []).filter(filterKey);
         return (
-          <Section key={role} title={`Unique to ${ROLE_LABEL[role]}`} count={unique.length}>
+          <Section
+            key={role}
+            icon={<Users className="h-4 w-4" />}
+            title={`Unique to ${ROLE_LABEL[role]}`}
+            count={unique.length}
+          >
             {unique.length === 0 ? (
-              <div className="p-3 text-xs text-muted-foreground">None.</div>
+              <EmptyRow title="None"
+                body="Every permission this role holds is also held by at least one other selected role." />
             ) : (
-              <ul className="p-2">
+              <ul className="grid grid-cols-1 gap-1 md:grid-cols-2">
                 {unique.map((k) => (
-                  <li key={k} className="flex items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-muted/40">
+                  <li key={k} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs hover:bg-muted/30">
                     {riskChip(k)}
-                    <span className="font-medium">{permLabel(k).label}</span>
-                    <code className="ml-auto text-[10px] text-muted-foreground">{k}</code>
+                    <span className="min-w-0 flex-1 truncate font-medium">{permLabel(k).label}</span>
+                    <code className="text-[10px] text-muted-foreground">{k}</code>
                   </li>
                 ))}
               </ul>
@@ -178,122 +231,232 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRol
       })}
 
       {/* Missing dependencies + conflicts */}
-      <Section title="Missing dependencies" count={perRoleAnalysis.reduce((n, x) => n + x.missing.length, 0)} tone="warn">
+      <Section
+        icon={<AlertTriangle className="h-4 w-4" />}
+        tone="warn"
+        title="Missing dependencies"
+        count={perRoleAnalysis.reduce((n, x) => n + x.missing.length, 0)}
+      >
         {perRoleAnalysis.every((x) => x.missing.length === 0) ? (
-          <div className="p-3 text-xs text-muted-foreground">All required dependencies are satisfied.</div>
+          <EmptyRow icon={<CircleCheck className="h-4 w-4 text-emerald-400" />}
+            title="All required dependencies are satisfied"
+            body="Every write/approve permission on these roles has its matching view permission." />
         ) : (
-          <div className="space-y-3 p-2">
+          <div className="space-y-3">
             {perRoleAnalysis.filter((x) => x.missing.length > 0).map((x) => (
-              <div key={x.role}>
-                <div className="text-xs font-semibold text-foreground/90">{ROLE_LABEL[x.role]}</div>
-                <ul className="mt-1 space-y-1">
-                  {x.missing.map((m, i) => (
-                    <li key={i} className="flex items-center gap-2 text-xs text-amber-200">
-                      <AlertTriangle className="h-3 w-3" />
-                      <code>{m.have}</code> needs <code>{m.needs}</code>
+              <RoleSubGroup key={x.role} role={x.role} count={x.missing.length}>
+                {x.missing.map((m, i) => {
+                  const have = permLabel(m.have);
+                  const needs = permLabel(m.needs);
+                  const protectedRole = isProtectedRole(x.role);
+                  return (
+                    <li key={i} className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/30">
+                      <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+                      <div className="min-w-0 flex-1 text-xs">
+                        <div className="text-foreground/90">
+                          <span className="font-semibold">{have.label}</span>
+                          <span className="text-muted-foreground"> requires </span>
+                          <span className="font-semibold">{needs.label}</span>
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap gap-x-2 text-[10px] text-muted-foreground">
+                          <code>{m.have}</code>
+                          <span>→</span>
+                          <code>{m.needs}</code>
+                        </div>
+                      </div>
+                      {canWrite && !protectedRole && (
+                        <button
+                          type="button"
+                          onClick={() => stageMissingDependency(x.role, m.needs)}
+                          className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[10px] font-semibold text-emerald-300 hover:border-emerald-500/40"
+                        >
+                          <Wand2 className="h-3 w-3" /> Fix by staging
+                        </button>
+                      )}
                     </li>
-                  ))}
-                </ul>
-              </div>
+                  );
+                })}
+              </RoleSubGroup>
             ))}
           </div>
         )}
       </Section>
 
-      <Section title="Conflicting financial responsibilities" count={perRoleAnalysis.reduce((n, x) => n + x.conflicts.length, 0)} tone="danger">
+      <Section
+        icon={<CircleAlert className="h-4 w-4" />}
+        tone="danger"
+        title="Conflicting financial responsibilities"
+        count={perRoleAnalysis.reduce((n, x) => n + x.conflicts.length, 0)}
+      >
         {perRoleAnalysis.every((x) => x.conflicts.length === 0) ? (
-          <div className="p-3 text-xs text-muted-foreground">No segregation-of-duties conflicts detected.</div>
+          <EmptyRow icon={<CircleCheck className="h-4 w-4 text-emerald-400" />}
+            title="No segregation-of-duties conflicts detected"
+            body="No selected role can both initiate and approve the same sensitive financial action." />
         ) : (
-          <div className="space-y-3 p-2">
+          <div className="space-y-3">
             {perRoleAnalysis.filter((x) => x.conflicts.length > 0).map((x) => (
-              <div key={x.role}>
-                <div className="text-xs font-semibold text-foreground/90">{ROLE_LABEL[x.role]}</div>
-                <ul className="mt-1 space-y-1">
-                  {x.conflicts.map((c, i) => (
-                    <li key={i} className="flex items-center gap-2 text-xs text-rose-300">
-                      <ShieldAlert className="h-3 w-3" />
-                      <code>{c.a}</code> conflicts with <code>{c.b}</code>
+              <RoleSubGroup key={x.role} role={x.role} count={x.conflicts.length} tone="danger">
+                {x.conflicts.map((c, i) => {
+                  const a = permLabel(c.a);
+                  const b = permLabel(c.b);
+                  return (
+                    <li key={i} className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/30">
+                      <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400" />
+                      <div className="min-w-0 flex-1 text-xs">
+                        <div className="text-foreground/90">
+                          <span className="font-semibold">{a.label}</span>
+                          <span className="text-muted-foreground"> conflicts with </span>
+                          <span className="font-semibold">{b.label}</span>
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap gap-x-2 text-[10px] text-muted-foreground">
+                          <code>{c.a}</code>
+                          <span>↔</span>
+                          <code>{c.b}</code>
+                        </div>
+                      </div>
                     </li>
-                  ))}
-                </ul>
-              </div>
+                  );
+                })}
+              </RoleSubGroup>
             ))}
           </div>
         )}
       </Section>
 
       {/* Shared */}
-      <Section title="Shared by all selected roles" count={sharedFiltered.length} collapsedByDefault>
+      <Section
+        icon={<Check className="h-4 w-4" />}
+        title="Shared by all selected roles"
+        count={sharedFiltered.length}
+        collapsedByDefault
+      >
         {sharedFiltered.length === 0 ? (
-          <div className="p-3 text-xs text-muted-foreground">No shared permissions.</div>
+          <EmptyRow title="No shared permissions" body="These roles do not share any common access." />
         ) : (
-          <ul className="grid grid-cols-1 gap-1 p-2 md:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-wrap gap-1.5">
             {sharedFiltered.map((k) => (
-              <li key={k} className="flex items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-muted/40">
-                <Check className="h-3 w-3 text-emerald-400" />
-                <span className="truncate">{permLabel(k).label}</span>
-              </li>
+              <span
+                key={k}
+                title={k}
+                className="inline-flex items-center gap-1.5 rounded-full bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+              >
+                {riskDot(k)}
+                {permLabel(k).label}
+              </span>
             ))}
-          </ul>
+          </div>
         )}
       </Section>
+
+      <CopyPermissionsPreview
+        open={previewOpen}
+        source={copySource}
+        target={copyTarget}
+        roleMap={roleMap}
+        onClose={() => setPreviewOpen(false)}
+        onStage={(t, changes) => onStageMany(t, changes)}
+      />
     </div>
   );
 }
 
 function Section({
-  title, count, children, tone, collapsedByDefault,
+  title, count, children, tone, icon, collapsedByDefault,
 }: {
-  title: string; count: number; children: React.ReactNode;
-  tone?: "warn" | "danger"; collapsedByDefault?: boolean;
+  title: string;
+  count: number;
+  children: React.ReactNode;
+  tone?: "warn" | "danger";
+  icon?: React.ReactNode;
+  collapsedByDefault?: boolean;
 }) {
+  const [open, setOpen] = useState(!collapsedByDefault);
+  const iconTone = tone === "danger"
+    ? "bg-rose-500/15 text-rose-300"
+    : tone === "warn"
+    ? "bg-amber-500/15 text-amber-300"
+    : "bg-primary/10 text-primary";
   return (
-    <details open={!collapsedByDefault} className="rounded-2xl border border-border/50 bg-card/60 backdrop-blur-sm">
-      <summary className="flex cursor-pointer items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold hover:bg-muted/20">
-        {tone === "danger" && <ShieldAlert className="h-3.5 w-3.5 text-rose-400" />}
-        {tone === "warn" && <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />}
-        {title}
-        <span className="rounded-full bg-muted/60 px-2 text-[10px] font-medium text-muted-foreground">{count}</span>
-      </summary>
-      <div className="border-t border-border/40">{children}</div>
-    </details>
+    <PermissionPanel
+      icon={<span className={cn("flex h-9 w-9 items-center justify-center rounded-full", iconTone)}>{icon}</span>}
+      title={
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex items-center gap-2 text-left text-base font-semibold hover:text-foreground/80"
+        >
+          {title}
+          <span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{count}</span>
+        </button>
+      }
+      headerClassName="items-center"
+    >
+      {open && children}
+    </PermissionPanel>
   );
 }
 
-function DiffTable({ keys, selected, roleMap }: { keys: string[]; selected: InternalRoleKey[]; roleMap: RoleGrantMap }) {
+function EmptyRow({ icon, title, body }: { icon?: React.ReactNode; title: string; body?: string }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            <th className="px-3 py-2 text-left">Permission</th>
-            {selected.map((r) => <th key={r} className="px-2 py-2 text-center">{ROLE_LABEL[r]}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {keys.map((k) => (
-            <tr key={k} className="hover:bg-muted/20">
-              <td className="px-3 py-1.5">
-                <div className="flex items-center gap-2">
-                  {riskChip(k)}
-                  <span className="text-xs">{permLabel(k).label}</span>
-                </div>
-                <code className="text-[10px] text-muted-foreground">{k}</code>
-              </td>
-              {selected.map((r) => {
-                const held = roleMap.map.get(r)?.has(k) ?? false;
-                return (
-                  <td key={r} className="px-2 py-1.5 text-center">
-                    {held
-                      ? <Check className="mx-auto h-3.5 w-3.5 text-emerald-400" />
-                      : <X className="mx-auto h-3 w-3 text-muted-foreground/60" />}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="flex flex-col items-center justify-center gap-1.5 rounded-xl bg-background/30 px-4 py-6 text-center">
+      {icon}
+      <div className="text-xs font-medium text-foreground/80">{title}</div>
+      {body && <div className="max-w-md text-[11px] text-muted-foreground">{body}</div>}
+    </div>
+  );
+}
+
+function RoleSubGroup({
+  role, count, tone, children,
+}: { role: InternalRoleKey; count: number; tone?: "danger"; children: React.ReactNode }) {
+  const chipCls = tone === "danger"
+    ? "bg-rose-500/15 text-rose-200"
+    : "bg-amber-500/15 text-amber-200";
+  return (
+    <div>
+      <div className="mb-1 flex items-center gap-2">
+        <span className="text-xs font-semibold text-foreground/90">{ROLE_LABEL[role]}</span>
+        <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold", chipCls)}>{count}</span>
+      </div>
+      <ul className="space-y-0.5">{children}</ul>
+    </div>
+  );
+}
+
+function DiffCardList({ keys, selected, roleMap }: { keys: string[]; selected: InternalRoleKey[]; roleMap: RoleGrantMap }) {
+  return (
+    <div className="space-y-1">
+      {/* Sub-header */}
+      <div className="flex items-center gap-2 px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <span className="flex-1">Permission</span>
+        {selected.map((r) => (
+          <span key={r} className="w-14 text-center">{ROLE_LABEL[r]}</span>
+        ))}
+      </div>
+      {keys.map((k) => (
+        <div key={k} className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-muted/30">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              {riskChip(k)}
+              <span className="truncate text-xs font-medium text-foreground/90">{permLabel(k).label}</span>
+            </div>
+            <code className="mt-0.5 block truncate text-[10px] text-muted-foreground">{k}</code>
+          </div>
+          {selected.map((r) => {
+            const held = roleMap.map.get(r)?.has(k) ?? false;
+            return (
+              <div key={r} className="w-14 text-center">
+                <span className={cn(
+                  "inline-flex h-6 w-6 items-center justify-center rounded-full",
+                  held ? "bg-emerald-500/15 text-emerald-300" : "bg-muted/40 text-muted-foreground/60",
+                )}>
+                  {held ? <Check className="h-3.5 w-3.5" /> : <X className="h-3 w-3" />}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }
