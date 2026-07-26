@@ -29,6 +29,30 @@ Deno.serve(async (req) => {
 
   const client = ctx.adminClient;
 
+  // Idempotent promotion: if this teammate is still marked "invited" but has
+  // already signed in, flip them to "active". Guarded by `.eq("status","invited")`
+  // so it never clobbers suspended/deactivated rows and only writes once.
+  try {
+    const { data: iu } = await client
+      .from("internal_users")
+      .select("status")
+      .eq("id", ctx.userId)
+      .maybeSingle();
+    if (iu && (iu as any).status === "invited") {
+      await client
+        .from("internal_users")
+        .update({
+          status: "active",
+          invitation_status: "accepted",
+          activated_at: new Date().toISOString(),
+        })
+        .eq("id", ctx.userId)
+        .eq("status", "invited");
+    }
+  } catch (_e) {
+    // non-fatal — permissions load must not be blocked by promotion
+  }
+
   const [{ data: internalRoles }, { data: consumerRoles }, { data: perms }, { data: level }] = await Promise.all([
     client.from("internal_user_roles").select("role_key").eq("user_id", ctx.userId),
     client.from("user_roles").select("role").eq("user_id", ctx.userId),

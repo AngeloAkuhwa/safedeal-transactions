@@ -2129,6 +2129,7 @@ export type Database = {
       internal_users: {
         Row: {
           access_expires_at: string | null
+          activated_at: string | null
           created_at: string
           created_by: string | null
           department: string | null
@@ -2151,6 +2152,7 @@ export type Database = {
         }
         Insert: {
           access_expires_at?: string | null
+          activated_at?: string | null
           created_at?: string
           created_by?: string | null
           department?: string | null
@@ -2173,6 +2175,7 @@ export type Database = {
         }
         Update: {
           access_expires_at?: string | null
+          activated_at?: string | null
           created_at?: string
           created_by?: string | null
           department?: string | null
