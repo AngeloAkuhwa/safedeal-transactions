@@ -8,9 +8,9 @@ const STYLES: Record<CellState, string> = {
 };
 
 const LABELS: Record<CellState, string> = {
-  full: "Full",
-  partial: "Limited",
-  none: "None",
+  full: "Full Access",
+  partial: "Partial Access",
+  none: "No Access",
 };
 
 export function PermissionStateCell({
