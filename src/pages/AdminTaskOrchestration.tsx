@@ -29,17 +29,12 @@ import {
   type LiveTask,
   type AssignmentRulesConfig,
 } from "@/services/task-orchestration.service";
-import { useAdminPermissions } from "@/context/AdminPermissionsContext";
+import { useOrchestrationPerms } from "@/hooks/useOrchestrationPerms";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function AdminTaskOrchestration() {
-  const perms = useAdminPermissions();
-  const isSenior = perms.isSuper || perms.hasAny([
-    "task_orchestration.assign",
-    "task_orchestration.rebalance",
-    "task_orchestration.escalate",
-    "task_orchestration.manage",
-  ]);
+  const perms = useOrchestrationPerms();
+  const { isSenior } = perms;
 
   const [data, setData] = useState<OrchestrationOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -235,6 +230,7 @@ export default function AdminTaskOrchestration() {
               onEscalate={handleEscalate}
               onBulkExport={handleBulkExport}
               isSenior={isSenior}
+              perms={perms}
               selectedCount={selectedIds.size}
               busy={busy}
             />
@@ -271,7 +267,7 @@ export default function AdminTaskOrchestration() {
               saving={savingRules}
               testing={testingRules}
               lastSavedAt={data.rules?.updated_at ?? null}
-              canManage={isSenior}
+              canManage={perms.canManageRules}
             />
           </>
         )}
