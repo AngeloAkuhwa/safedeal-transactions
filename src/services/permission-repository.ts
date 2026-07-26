@@ -254,6 +254,48 @@ class SupabasePermissionRepository implements PermissionRepository {
     return (data ?? []) as PermissionDependencyRow[];
   }
 
+  async listPermissionConflicts(): Promise<PermissionConflictRow[]> {
+    const { data, error } = await (supabase as any)
+      .from("permission_conflicts")
+      .select("a_key,b_key,severity,rationale")
+      .order("a_key");
+    if (error) throw error;
+    return (data ?? []) as PermissionConflictRow[];
+  }
+
+  async listConflictAcknowledgements(): Promise<ConflictAcknowledgementRow[]> {
+    const { data, error } = await (supabase as any)
+      .from("permission_conflict_acknowledgements")
+      .select("id,role_key,a_key,b_key,reason,actor_id,created_at,expires_at")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []) as ConflictAcknowledgementRow[];
+  }
+
+  async acknowledgeConflict(input: AcknowledgeConflictInput): Promise<void> {
+    const { data: userRes } = await supabase.auth.getUser();
+    if (!userRes.user) throw new Error("Not authenticated");
+    const { error } = await (supabase as any)
+      .from("permission_conflict_acknowledgements")
+      .insert({
+        role_key: input.role_key,
+        a_key: input.a_key,
+        b_key: input.b_key,
+        reason: input.reason,
+        expires_at: input.expires_at ?? null,
+        actor_id: userRes.user.id,
+      });
+    if (error) throw error;
+  }
+
+  async revokeConflictAcknowledgement(id: string): Promise<void> {
+    const { error } = await (supabase as any)
+      .from("permission_conflict_acknowledgements")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+  }
+
   async submitChangeSet(input: SubmitChangeSetInput): Promise<ChangeSetRow> {
     const { data: userRes } = await supabase.auth.getUser();
     const { data, error } = await supabase
