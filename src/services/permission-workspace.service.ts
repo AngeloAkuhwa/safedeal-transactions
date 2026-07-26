@@ -100,8 +100,8 @@ export async function fetchOverrides(): Promise<OverrideRow[]> {
   const [ovRes, usersRes, rolesRes] = await Promise.all([
     supabase
       .from("user_permission_overrides")
-      .select("user_id,permission_key,mode,reason,created_at")
-      .order("created_at", { ascending: false }),
+      .select("user_id,permission_key,mode,reason,granted_by,granted_at")
+      .order("granted_at", { ascending: false }),
     supabase.from("internal_users").select("id,full_name,email"),
     supabase.from("internal_user_roles").select("user_id,role_key,is_primary"),
   ]);
@@ -138,7 +138,7 @@ export async function fetchOverrides(): Promise<OverrideRow[]> {
       module_label: meta?.module ?? "—",
       mode: row.mode as "grant" | "revoke",
       reason: row.reason ?? null,
-      created_at: row.created_at,
+      created_at: row.granted_at,
       privileged: isPrivilegedPermission(row.permission_key),
     };
   });
@@ -186,7 +186,7 @@ const HISTORY_ACTION_TYPES = [
 export async function fetchChangeHistory(limit = 100, sinceHours?: number): Promise<HistoryRow[]> {
   let q = supabase
     .from("admin_actions")
-    .select("id,admin_id,target_user_id,action_type,description,metadata,created_at")
+    .select("id,admin_user_id,target_user_id,action_type,action_notes,created_at")
     .in("action_type", HISTORY_ACTION_TYPES)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -197,7 +197,7 @@ export async function fetchChangeHistory(limit = 100, sinceHours?: number): Prom
   const { data, error } = await q;
   if (error) throw error;
   const rows = (data ?? []) as any[];
-  const ids = Array.from(new Set(rows.flatMap((r) => [r.admin_id, r.target_user_id].filter(Boolean))));
+  const ids = Array.from(new Set(rows.flatMap((r) => [r.admin_user_id, r.target_user_id].filter(Boolean))));
   const names = new Map<string, string>();
   if (ids.length) {
     const { data: users } = await supabase.from("internal_users").select("id,full_name").in("id", ids);
@@ -205,13 +205,13 @@ export async function fetchChangeHistory(limit = 100, sinceHours?: number): Prom
   }
   return rows.map((r): HistoryRow => ({
     id: r.id,
-    actor_id: r.admin_id ?? null,
-    actor_name: r.admin_id ? (names.get(r.admin_id) ?? null) : null,
+    actor_id: r.admin_user_id ?? null,
+    actor_name: r.admin_user_id ? (names.get(r.admin_user_id) ?? null) : null,
     target_user_id: r.target_user_id ?? null,
     target_user_name: r.target_user_id ? (names.get(r.target_user_id) ?? null) : null,
     action_type: r.action_type,
-    summary: r.description ?? null,
-    metadata: r.metadata ?? null,
+    summary: r.action_notes ?? null,
+    metadata: null,
     created_at: r.created_at,
   }));
 }
@@ -220,7 +220,7 @@ export async function fetchWorkspaceSummary(): Promise<WorkspaceSummary> {
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const [roleMap, overrides, pending, recent] = await Promise.all([
     fetchRoleGrantMap(),
-    supabase.from("user_permission_overrides").select("id", { count: "exact", head: true }),
+    supabase.from("user_permission_overrides").select("user_id", { count: "exact", head: true }),
     supabase.from("access_change_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("admin_actions").select("id", { count: "exact", head: true }).in("action_type", HISTORY_ACTION_TYPES).gte("created_at", since24h),
   ]);
