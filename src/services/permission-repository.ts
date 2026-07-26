@@ -211,6 +211,7 @@ export interface PermissionRepository {
     approval_required?: boolean; owner_role?: string | null;
     status?: "active" | "suspended" | "deprecated";
   }): Promise<void>;
+  setPermissionAssignable(key: string, assignable: boolean, reason: string): Promise<void>;
   listRoles(): Promise<RoleRow[]>;
   listRoleGrants(env?: PermissionEnvironment): Promise<RoleGrantRow[]>;
   listOverrides(env?: PermissionEnvironment): Promise<OverrideRepoRow[]>;
