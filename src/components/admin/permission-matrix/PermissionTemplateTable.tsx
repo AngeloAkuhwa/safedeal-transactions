@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useCurrentEnvironment } from "./EnvironmentSwitcher";
+import { TemplateCompareDialog } from "./TemplateCompareDialog";
 
 export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
   const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
@@ -27,6 +28,7 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
   const [view, setView] = useState<PermissionTemplate | null>(null);
   const [applyFor, setApplyFor] = useState<PermissionTemplate | null>(null);
   const [cloneFor, setCloneFor] = useState<PermissionTemplate | null>(null);
+  const [compareFor, setCompareFor] = useState<PermissionTemplate | null>(null);
   const env = useCurrentEnvironment();
 
   const reload = () => {
@@ -147,6 +149,7 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
                       <td className="px-4 py-3 text-right">
                         <div className="flex flex-wrap justify-end gap-1">
                           <IconBtn onClick={() => setView(t)} icon={<Eye className="h-3 w-3" />} label="View" />
+                          <IconBtn onClick={() => setCompareFor(t)} icon={<GitCompare className="h-3 w-3" />} label="Compare" />
                           {canEdit && <IconBtn onClick={() => setApplyFor(t)} icon={<ArrowRightLeft className="h-3 w-3" />} label="Apply" />}
                           {canEdit && <IconBtn onClick={() => setCloneFor(t)} icon={<Copy className="h-3 w-3" />} label="Clone" />}
                           <IconBtn onClick={() => exportTemplate(t)} icon={<Download className="h-3 w-3" />} label="Export" />
@@ -163,6 +166,7 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
       )}
 
       <ViewTemplateSheet template={view} onOpenChange={(v) => !v && setView(null)} />
+      <TemplateCompareDialog template={compareFor} open={!!compareFor} onOpenChange={(v) => !v && setCompareFor(null)} />
       <ApplyTemplateDialog template={applyFor} onOpenChange={(v) => !v && setApplyFor(null)} env={env} onDone={reload} />
       <CloneTemplateDialog request={cloneFor} onOpenChange={(v) => !v && setCloneFor(null)} onDone={reload} />
     </div>
