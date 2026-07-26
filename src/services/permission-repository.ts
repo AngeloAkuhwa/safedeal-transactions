@@ -347,6 +347,26 @@ class SupabasePermissionRepository implements PermissionRepository {
     if (error) throw error;
   }
 
+  async setPermissionAssignable(key: string, assignable: boolean, reason: string): Promise<void> {
+    // Flips permissions.assignable; existing role_permissions and user_permission_overrides
+    // are intentionally left in place — only *new* assignments are blocked.
+    const { error } = await (supabase as any)
+      .from("permissions")
+      .update({ assignable })
+      .eq("key", key);
+    if (error) throw error;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) {
+      await (supabase as any).from("admin_actions").insert({
+        actor_id: session.user.id,
+        action_type: assignable ? "unsuspend_permission_assignment" : "suspend_permission_assignment",
+        resource: "permissions",
+        resource_id: key,
+        metadata: { permission_key: key, assignable, reason },
+      });
+    }
+  }
+
   async listRoles(): Promise<RoleRow[]> {
     const { data, error } = await supabase
       .from("internal_roles")
