@@ -22,12 +22,17 @@ Deno.serve(async (req) => {
   }
 
   const admin = ctx.adminClient;
-  // Derive scope from the caller's permissions.
-  const perms = new Set<string>(ctx.permissions ?? []);
-  const isSuper = !!ctx.isSuper;
-  const canViewAll = isSuper || perms.has("task_orchestration.view_all");
-  const canAssign = isSuper || perms.has("task_orchestration.assign") || perms.has("task_orchestration.bulk_assign");
-  const canViewLoad = isSuper || perms.has("task_orchestration.view_agent_load");
+  // Derive scope from the caller's effective permissions.
+  const [{ data: isSuper }, { data: isConsumerAdmin }, { data: permRows }] = await Promise.all([
+    admin.rpc("has_any_internal_role", { _user_id: ctx.userId, _role_keys: ["super_admin"] }),
+    admin.rpc("has_role", { _user_id: ctx.userId, _role: "admin" }),
+    admin.rpc("internal_effective_permissions", { _user_id: ctx.userId }),
+  ]);
+  const perms = new Set<string>(Array.isArray(permRows) ? (permRows as string[]) : []);
+  const isSuperCaller = !!isSuper || !!isConsumerAdmin;
+  const canViewAll = isSuperCaller || perms.has("task_orchestration.view_all");
+  const canAssign = isSuperCaller || perms.has("task_orchestration.assign") || perms.has("task_orchestration.bulk_assign");
+  const canViewLoad = isSuperCaller || perms.has("task_orchestration.view_agent_load");
 
   // Helper to scope a query on assigned_agent_id when the caller can only see
   // their own tasks.
