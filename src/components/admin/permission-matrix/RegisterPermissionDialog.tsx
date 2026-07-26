@@ -221,3 +221,41 @@ export function RegisterPermissionDialog({
     </Dialog>
   );
 }
+
+function MultiPermSelect({ label, value, onChange, excludeKey }: {
+  label: string; value: string[]; onChange: (v: string[]) => void; excludeKey?: string;
+}) {
+  const all = PERMISSION_MODULES.flatMap((m) => m.permissions.map((p) => ({ key: p.key, label: `${m.label} · ${p.label.split("—")[1]?.trim() ?? p.label}` })))
+    .filter((p) => p.key !== excludeKey);
+  const [q, setQ] = useState("");
+  const filtered = q ? all.filter((p) => p.key.toLowerCase().includes(q.toLowerCase()) || p.label.toLowerCase().includes(q.toLowerCase())) : all.slice(0, 30);
+  const toggle = (k: string) => onChange(value.includes(k) ? value.filter((x) => x !== k) : [...value, k]);
+  return (
+    <div>
+      <div className="mb-1 text-[11px] uppercase text-muted-foreground">{label}</div>
+      {value.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1">
+          {value.map((k) => (
+            <span key={k} className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 font-mono text-[10px] text-primary">
+              {k}
+              <button type="button" onClick={() => toggle(k)} className="text-primary hover:text-destructive">×</button>
+            </span>
+          ))}
+        </div>
+      )}
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search permission…" className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs" />
+      <div className="mt-1 max-h-32 overflow-y-auto rounded-md border border-border/60 bg-background/50">
+        {filtered.map((p) => (
+          <button
+            key={p.key} type="button" onClick={() => toggle(p.key)}
+            className={`flex w-full items-center gap-2 px-2 py-1 text-left text-[11px] hover:bg-muted ${value.includes(p.key) ? "bg-primary/5" : ""}`}
+          >
+            <input type="checkbox" readOnly checked={value.includes(p.key)} className="pointer-events-none" />
+            <span className="font-mono text-muted-foreground">{p.key}</span>
+            <span className="ml-auto truncate text-muted-foreground">{p.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
