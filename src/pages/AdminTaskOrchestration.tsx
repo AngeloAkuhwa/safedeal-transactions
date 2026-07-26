@@ -310,7 +310,7 @@ export default function AdminTaskOrchestration() {
         />
       )}
     >
-      <div className="mx-auto max-w-[1600px] space-y-6 p-4 lg:p-8">
+      <div className="relative mx-auto max-w-[1600px] space-y-6 p-4 lg:p-8 bg-[radial-gradient(ellipse_at_top_left,hsl(var(--primary)/0.06),transparent_60%)]">
         {loading && !data && <LoadingSkeleton />}
         {error && !loading && <ErrorState message={error} onRetry={load} />}
 
