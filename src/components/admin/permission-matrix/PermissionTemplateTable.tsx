@@ -6,7 +6,7 @@ import {
 import {
   cloneRoleAsTemplate, deleteTemplate, listTemplates,
   computeApplyTemplateDiff, stageApplyTemplateToRole,
-  fetchRoleUserCounts,
+  fetchRoleUserCounts, fetchTemplateRoleUsage,
   type PermissionTemplate, type ApplyTemplateDiff,
 } from "@/services/permission-workspace.service";
 import { permissionRepo } from "@/services/permission-repository";
@@ -20,6 +20,7 @@ import { useCurrentEnvironment } from "./EnvironmentSwitcher";
 
 export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
   const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
+  const [usage, setUsage] = useState<Map<string, string[]>>(new Map());
   const [scope, setScope] = useState<"all"|"system"|"custom">("all");
   const [statusFilter, setStatusFilter] = useState<"active"|"archived"|"all">("active");
   const [search, setSearch] = useState("");
@@ -28,8 +29,11 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
   const [cloneFor, setCloneFor] = useState<PermissionTemplate | null>(null);
   const env = useCurrentEnvironment();
 
-  const reload = () => { listTemplates().then(setTemplates).catch(() => setTemplates([])); };
-  useEffect(() => { reload(); }, []);
+  const reload = () => {
+    listTemplates().then(setTemplates).catch(() => setTemplates([]));
+    fetchTemplateRoleUsage(env).then((m) => setUsage(m as Map<string, string[]>)).catch(() => setUsage(new Map()));
+  };
+  useEffect(() => { reload(); }, [env]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -98,6 +102,7 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
                   <th className="px-4 py-2 text-right font-medium">Perms</th>
                   <th className="px-4 py-2 text-right font-medium">Privileged</th>
                   <th className="px-4 py-2 text-left font-medium">Status</th>
+                  <th className="px-4 py-2 text-left font-medium">Roles using</th>
                   <th className="px-4 py-2 text-left font-medium">Updated</th>
                   <th className="px-4 py-2 text-right font-medium">Actions</th>
                 </tr>
@@ -125,6 +130,18 @@ export function PermissionTemplateTable({ canEdit }: { canEdit: boolean }) {
                       <td className="px-4 py-3">
                         <span className={`rounded-full border px-2 py-0.5 text-[10px] uppercase ${t.status === "active" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-border bg-muted/40 text-muted-foreground"}`}>{t.status}</span>
                         {t.is_system && <span className="ml-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] uppercase text-primary">System</span>}
+                      </td>
+                      <td className="px-4 py-3 text-[11px] text-muted-foreground">
+                        {(() => {
+                          const roles = usage.get(t.id) ?? [];
+                          if (!roles.length) return <span className="italic text-muted-foreground/60">None</span>;
+                          const label = (k: string) => (ROLE_LABEL as any)[k] ?? k;
+                          return (
+                            <span title={roles.map(label).join(", ")}>
+                              {roles.length} · {roles.slice(0, 2).map(label).join(", ")}{roles.length > 2 ? ` +${roles.length - 2}` : ""}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3 text-[11px] text-muted-foreground">{new Date(t.updated_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3 text-right">
@@ -247,6 +264,23 @@ function ApplyTemplateDialog({ template, onOpenChange, env, onDone }: {
               <div className="flex items-center justify-between">
                 <span>Privileged introduced</span><span className="font-mono text-amber-300">{diff.privileged_added.length}</span>
               </div>
+              <div className="flex items-center justify-between">
+                <span>Dependencies pulled in</span><span className="font-mono">{diff.dependencies_added.length}</span>
+              </div>
+              {diff.dependencies_added.length > 0 && (
+                <details className="rounded-md border border-border/40 bg-background/40 p-2">
+                  <summary className="cursor-pointer text-[10px] uppercase text-muted-foreground">Show dependencies</summary>
+                  <ul className="mt-1 space-y-1">
+                    {diff.dependencies_added.slice(0, 10).map((d) => (
+                      <li key={d.key} className="font-mono text-[10px]">
+                        <span className="text-emerald-400">+ {d.key}</span>
+                        <span className="text-muted-foreground"> · required by {d.from.join(", ")}</span>
+                      </li>
+                    ))}
+                    {diff.dependencies_added.length > 10 && <li className="text-[10px] text-muted-foreground">…{diff.dependencies_added.length - 10} more</li>}
+                  </ul>
+                </details>
+              )}
               <div className="flex items-center justify-between">
                 <span>Users affected</span><span className="font-mono">{counts?.get(role) ?? 0}</span>
               </div>
