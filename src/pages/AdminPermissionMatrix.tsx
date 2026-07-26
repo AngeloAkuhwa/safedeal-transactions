@@ -440,7 +440,20 @@ export default function AdminPermissionMatrix() {
           roleMap={rolesQuery.data}
           environment={environment}
           onDiscard={staged.discardAll}
+          onReview={() => setReviewOpen(true)}
+        />
+      )}
+
+      {rolesQuery.data && (
+        <ReviewChangesDrawer
+          mode="staged"
+          open={reviewOpen}
+          onOpenChange={setReviewOpen}
+          changes={staged.flat}
+          roleMap={rolesQuery.data}
+          environment={environment}
           onSubmitted={() => { staged.discardAll(); rolesQuery.refetch(); approvalsQuery.refetch(); historyQuery.refetch(); }}
+          onDiscard={staged.discardAll}
         />
       )}
 
