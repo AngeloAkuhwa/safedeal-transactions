@@ -106,13 +106,18 @@ export async function fetchOrchestrationOverview(): Promise<OrchestrationOvervie
 export interface OrchestrationActionPayload {
   action:
     | "assign" | "assign_selected" | "auto_assign" | "assign_to_me"
-    | "rebalance" | "escalate" | "complete" | "save_rules" | "test_rules";
+    | "rebalance" | "escalate" | "complete" | "save_rules" | "test_rules"
+    | "add_comment" | "send_for_approval"
+    | "preview_auto_assign" | "preview_rebalance"
+    | "task_detail";
   task_id?: string;
   task_ids?: string[];
   agent_id?: string;
   mode?: string;
   reason?: string;
   resolution?: string;
+  body_text?: string;
+  expected_version?: number;
   rules?: AssignmentRulesConfig;
 }
 
@@ -120,4 +125,46 @@ export async function runOrchestrationAction<T = unknown>(payload: Orchestration
   const { data, error } = await supabase.functions.invoke("admin-task-orchestration-action", { body: payload });
   if (error) throw error;
   return data as T;
+}
+
+// -------- Task detail --------
+
+export interface TaskStatusHistoryRow {
+  id: string; task_id: string;
+  from_status: string | null; to_status: string;
+  from_stage: string | null; to_stage: string | null;
+  actor_id: string | null; reason: string | null; created_at: string;
+}
+export interface TaskAssignmentHistoryRow {
+  id: string; task_id: string;
+  from_agent_id: string | null; to_agent_id: string | null;
+  mode: string; reason: string | null; actor_id: string | null; created_at: string;
+}
+export interface TaskCommentRow {
+  id: string; task_id: string; author_id: string | null; body: string; created_at: string;
+}
+export interface TaskDetail {
+  task: Record<string, any>;
+  status_history: TaskStatusHistoryRow[];
+  assignment_history: TaskAssignmentHistoryRow[];
+  comments: TaskCommentRow[];
+  actor_names: Record<string, string>;
+}
+export async function fetchTaskDetail(taskId: string): Promise<TaskDetail> {
+  return await runOrchestrationAction<TaskDetail>({ action: "task_detail", task_id: taskId });
+}
+
+// -------- Preview dry-runs --------
+
+export interface AutoAssignPreview {
+  ok: boolean;
+  mode: string;
+  pending: number;
+  would_assign: number;
+  plan: Array<{ task_id: string; task_code: string; agent_id: string; reason: string }>;
+}
+export interface RebalancePreview {
+  ok: boolean;
+  moves: number;
+  plan: Array<{ task_id: string; from: string; to: string }>;
 }
