@@ -1,19 +1,30 @@
-import { Ban, Eye, UserPlus } from "lucide-react";
+import { Ban, Eye, UserPlus, Flame, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { availabilityDot, availabilityLabel, availabilityTextColor, availabilityRing, initialsOf, nameOf } from "./helpers";
+import {
+  availabilityDot, availabilityLabel, availabilityTextColor, availabilityRing,
+  initialsOf, isEligibleAvailability, nameOf, relativeShort, humanize,
+} from "./helpers";
 import type { AgentRosterEntry } from "@/services/task-orchestration.service";
 
 export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; onSelect: () => void }) {
   const offline = agent.availability === "offline";
   const atCap = agent.availability === "at_capacity";
+  const eligible = isEligibleAvailability(agent.availability);
   const loadPct = agent.max_active > 0
     ? Math.min(100, Math.round((agent.active / agent.max_active) * 100))
     : 0;
+  const slaTone =
+    agent.sla_risk === "high" ? "text-rose-300 bg-rose-500/10 ring-rose-500/30" :
+    agent.sla_risk === "medium" ? "text-amber-300 bg-amber-500/10 ring-amber-500/30" :
+    "text-emerald-300 bg-emerald-500/10 ring-emerald-500/30";
+  const roleText = agent.role ? humanize(agent.role) : agent.job_title ?? null;
+  const teamText = agent.team ?? null;
+  const lastActivity = agent.last_activity_at ?? agent.last_heartbeat ?? null;
 
   return (
     <div className={cn(
-      "rounded-xl border border-border/60 bg-background/40 p-3 backdrop-blur-sm transition",
-      offline ? "opacity-60" : "hover:border-primary/40",
+      "group rounded-xl border border-border/60 bg-background/40 p-3 backdrop-blur-sm transition-all duration-150",
+      offline ? "opacity-60" : "hover:-translate-y-px hover:border-primary/40 hover:shadow-[0_8px_24px_-12px_hsl(var(--primary)/0.25)]",
     )}>
       <div className="mb-2 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
@@ -27,21 +38,51 @@ export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; on
           </div>
           <div className="min-w-0">
             <div className="truncate text-sm font-medium text-foreground">{nameOf(agent)}</div>
-            <div className={cn("text-[11px] font-medium", availabilityTextColor(agent.availability))}>
-              {availabilityLabel(agent.availability)}
+            <div className="flex items-center gap-1.5 text-[11px]">
+              <span className={cn("font-medium", availabilityTextColor(agent.availability))}>
+                {availabilityLabel(agent.availability)}
+              </span>
+              {!eligible && !offline && (
+                <span className="rounded-full bg-muted/60 px-1.5 py-0 text-[9px] uppercase tracking-wider text-muted-foreground">
+                  Ineligible
+                </span>
+              )}
             </div>
+            {(roleText || teamText) && (
+              <div className="truncate text-[10px] text-muted-foreground">
+                {[roleText, teamText].filter(Boolean).join(" · ")}
+              </div>
+            )}
           </div>
         </div>
-        <button
-          type="button" onClick={onSelect} disabled={offline}
-          className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-lg border border-border/60 bg-background/60 text-muted-foreground transition hover:border-primary/40 hover:text-foreground",
-            offline && "cursor-not-allowed opacity-50",
+        <div className="flex items-center gap-1">
+          {(agent.critical_active ?? 0) > 0 && (
+            <span
+              title={`${agent.critical_active} critical task${agent.critical_active === 1 ? "" : "s"}`}
+              className="inline-flex items-center gap-0.5 rounded-full bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-300 ring-1 ring-inset ring-rose-500/30"
+            >
+              <Flame className="h-2.5 w-2.5" /> {agent.critical_active}
+            </span>
           )}
-          aria-label="Agent details"
-        >
-          {offline ? <Ban className="h-3 w-3" /> : atCap ? <Eye className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
-        </button>
+          {agent.sla_risk && agent.sla_risk !== "low" && (
+            <span
+              title={`${humanize(agent.sla_risk)} SLA risk`}
+              className={cn("inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset", slaTone)}
+            >
+              <AlertCircle className="h-2.5 w-2.5" />
+            </span>
+          )}
+          <button
+            type="button" onClick={onSelect} disabled={offline}
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-lg border border-border/60 bg-background/60 text-muted-foreground transition hover:border-primary/40 hover:text-foreground",
+              offline && "cursor-not-allowed opacity-50",
+            )}
+            aria-label="Agent details"
+          >
+            {offline ? <Ban className="h-3 w-3" /> : atCap ? <Eye className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
+          </button>
+        </div>
       </div>
 
       <div className={cn("grid grid-cols-3 gap-2 text-[11px]", offline && "opacity-70")}>
@@ -72,6 +113,12 @@ export function AgentLoadCard({ agent, onSelect }: { agent: AgentRosterEntry; on
           style={{ width: `${loadPct}%` }}
         />
       </div>
+
+      {lastActivity && (
+        <div className="mt-2 text-right text-[10px] text-muted-foreground">
+          Last active {relativeShort(lastActivity)}
+        </div>
+      )}
     </div>
   );
 }
