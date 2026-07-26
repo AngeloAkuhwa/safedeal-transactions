@@ -106,19 +106,23 @@ export async function fetchOrchestrationOverview(): Promise<OrchestrationOvervie
 export interface OrchestrationActionPayload {
   action:
     | "assign" | "assign_selected" | "auto_assign" | "assign_to_me"
-    | "rebalance" | "escalate" | "complete" | "save_rules" | "test_rules"
+    | "reassign" | "rebalance" | "escalate" | "complete" | "save_rules" | "test_rules"
     | "add_comment" | "send_for_approval"
     | "preview_auto_assign" | "preview_rebalance"
     | "task_detail";
   task_id?: string;
   task_ids?: string[];
   agent_id?: string;
+  from_agent_id?: string;
   mode?: string;
   reason?: string;
   resolution?: string;
   body_text?: string;
   expected_version?: number;
   rules?: AssignmentRulesConfig;
+  exclude_task_ids?: string[];
+  exclude_agent_ids?: string[];
+  override_capacity?: boolean;
 }
 
 export async function runOrchestrationAction<T = unknown>(payload: OrchestrationActionPayload): Promise<T> {
