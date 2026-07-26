@@ -7,14 +7,16 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminMobileHeader } from "@/components/admin/AdminMobileHeader";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 import {
-  fetchChangeHistory,
   fetchOverrides,
-  fetchPendingApprovals,
   fetchRoleGrantMap,
   fetchWorkspaceSummary,
+  fetchPermissionApprovalItems,
+  fetchPermissionHistoryItems,
   type ApprovalRow,
   type HistoryRow,
   type OverrideRow,
+  type PermissionApprovalItem,
+  type PermissionHistoryItem,
 } from "@/services/permission-workspace.service";
 import type { InternalRoleKey } from "@/services/permission-catalog";
 import { hydratePermissionCatalog } from "@/services/permission-catalog";
