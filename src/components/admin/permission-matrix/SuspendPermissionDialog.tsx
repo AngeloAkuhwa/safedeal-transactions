@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ChevronsUpDown, ShieldOff } from "lucide-react";
+import { ChevronsUpDown, ShieldOff, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
@@ -21,10 +20,12 @@ import { permissionRepo } from "@/services/permission-repository";
 import { invalidateRoleGrantMap } from "@/services/permission-workspace.service";
 
 /**
- * Marks a permission's status = 'suspended'. Route/UI gates hide the
- * permission afterwards, but existing grants remain in place until they're
- * explicitly removed via the matrix. Requires an approver-eligible reason and
- * writes to admin_actions for audit.
+ * Flips permissions.assignable so the permission is no longer offered in
+ * pickers (matrix "grant", override drawer). Existing role_permissions and
+ * user_permission_overrides remain in place so the underlying product feature
+ * stays available until explicitly removed. Requires an approver-eligible
+ * reason and writes to admin_actions for audit. Reversible via the same
+ * dialog when the target permission is already non-assignable.
  */
 export function SuspendPermissionDialog({
   open,
@@ -44,17 +45,43 @@ export function SuspendPermissionDialog({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [assignableByKey, setAssignableByKey] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!open) { setPermKey(""); setReason(""); }
   }, [open]);
 
+  // Load current assignable flags so the dialog can render either "Suspend" or
+  // "Un-suspend" for the selected permission.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("permissions")
+        .select("key,assignable");
+      if (cancelled || !data) return;
+      const map: Record<string, boolean> = {};
+      for (const row of data as Array<{ key: string; assignable: boolean | null }>) {
+        map[row.key] = row.assignable !== false;
+      }
+      setAssignableByKey(map);
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
+
   const options = useMemo(() => {
     return getAllPermissionKeys().map((k) => {
       const e = findPermissionEntry(k);
-      return { key: k, label: e?.label ?? k, module: e?.moduleLabel ?? "", status: e?.status ?? "active" };
+      return {
+        key: k,
+        label: e?.label ?? k,
+        module: e?.moduleLabel ?? "",
+        status: e?.status ?? "active",
+        assignable: assignableByKey[k] !== false,
+      };
     }).filter((o) => o.status === "active");
-  }, [open]);
+  }, [open, assignableByKey]);
 
   const usage = useMemo(() => {
     if (!permKey || !roleMap) return [] as string[];
@@ -65,33 +92,33 @@ export function SuspendPermissionDialog({
     return roles;
   }, [permKey, roleMap]);
 
+  const currentlyAssignable = permKey ? assignableByKey[permKey] !== false : true;
+  const nextAssignable = !currentlyAssignable; // toggle
+  const actionLabel = currentlyAssignable ? "Suspend assignment" : "Un-suspend assignment";
+
   const submit = async () => {
     if (!canManage) return;
     if (!permKey) { toast.error("Choose a permission"); return; }
     if (reason.trim().length < 20) { toast.error("Reason must be at least 20 characters"); return; }
     setBusy(true);
     try {
-      await permissionRepo.updatePermission(permKey, { status: "suspended" });
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) {
-        await supabase.from("admin_actions").insert({
-          actor_id: session.user.id,
-          action_type: "suspend_permission",
-          resource: "permissions",
-          resource_id: permKey,
-          metadata: { permission_key: permKey, reason, roles_previously_holding: usage },
-        } as any);
-      }
+      await permissionRepo.setPermissionAssignable(permKey, nextAssignable, reason.trim());
       invalidateRoleGrantMap();
-      toast.success("Permission suspended", {
-        description: usage.length
-          ? `${usage.length} role(s) still hold this permission; existing grants remain until removed.`
-          : "No roles currently hold this permission.",
-      });
+      toast.success(
+        nextAssignable ? "Permission is now assignable again" : "New assignment suspended",
+        {
+          description: nextAssignable
+            ? "The permission is available in role and override pickers again."
+            : (usage.length
+                ? `${usage.length} role(s) still hold this permission; existing grants remain until removed.`
+                : "No roles currently hold this permission; new grants are blocked."),
+        },
+      );
+      setAssignableByKey((m) => ({ ...m, [permKey]: nextAssignable }));
       onSuspended?.();
       onOpenChange(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to suspend");
+      toast.error(e instanceof Error ? e.message : "Action failed");
     } finally {
       setBusy(false);
     }
@@ -103,10 +130,14 @@ export function SuspendPermissionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><ShieldOff className="h-4 w-4" /> Suspend permission</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {currentlyAssignable ? <ShieldOff className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+            {currentlyAssignable ? "Suspend permission assignment" : "Un-suspend permission assignment"}
+          </DialogTitle>
           <DialogDescription className="text-xs">
-            A suspended permission is hidden from role assignments and UI gates.
-            Existing grants remain until removed. This action is audited and reversible.
+            Prevents new assignment of this permission. Existing grants remain
+            in place and the underlying product feature stays available. This
+            action is audited and reversible.
           </DialogDescription>
         </DialogHeader>
 
@@ -135,7 +166,12 @@ export function SuspendPermissionDialog({
                           <CommandItem key={o.key} value={`${o.label} ${o.key} ${o.module}`} onSelect={() => { setPermKey(o.key); setPickerOpen(false); }}>
                             <div className="flex w-full items-center justify-between gap-2">
                               <span className="truncate">{o.label}</span>
-                              <span className="text-[10px] text-muted-foreground">{o.key}</span>
+                              <span className="flex items-center gap-2">
+                                {!o.assignable && (
+                                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-amber-300">Suspended</span>
+                                )}
+                                <span className="text-[10px] text-muted-foreground">{o.key}</span>
+                              </span>
                             </div>
                           </CommandItem>
                         ))}
@@ -148,6 +184,12 @@ export function SuspendPermissionDialog({
 
             {permKey && (
               <div className="rounded-md border border-border/60 bg-background/40 p-2 text-xs">
+                <div className="mb-1 flex items-center gap-2">
+                  <span className="text-muted-foreground">Assignable</span>
+                  <span className={`rounded-full border px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${currentlyAssignable ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-amber-500/30 bg-amber-500/10 text-amber-300"}`}>
+                    {currentlyAssignable ? "Yes" : "No"}
+                  </span>
+                </div>
                 <div className="text-muted-foreground">Currently held by</div>
                 <div className="mt-1 font-medium">
                   {usage.length === 0 ? "No roles" : usage.join(", ")}
@@ -157,7 +199,8 @@ export function SuspendPermissionDialog({
 
             <div className="space-y-1.5">
               <Label className="text-xs uppercase text-muted-foreground">Reason (min 20 chars, audited)</Label>
-              <Textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why is this permission being suspended?" />
+              <Textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)}
+                placeholder={currentlyAssignable ? "Why is new assignment being suspended?" : "Why is this permission being reinstated?"} />
               <div className="text-[10px] text-muted-foreground">{reason.trim().length}/20</div>
             </div>
           </div>
@@ -165,8 +208,13 @@ export function SuspendPermissionDialog({
 
         <DialogFooter>
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button size="sm" variant="destructive" disabled={!canManage || busy || !permKey || reason.trim().length < 20} onClick={submit}>
-            {busy ? "Suspending…" : "Suspend permission"}
+          <Button
+            size="sm"
+            variant={currentlyAssignable ? "destructive" : "default"}
+            disabled={!canManage || busy || !permKey || reason.trim().length < 20}
+            onClick={submit}
+          >
+            {busy ? "Working…" : actionLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
