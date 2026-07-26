@@ -10,7 +10,9 @@ import { permissionRepo } from "@/services/permission-repository";
 import { canApproveChangeSet, changeStateTone, normalizeChangeState } from "@/services/permission-approval-rules";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
-import { getPermissionRisk } from "@/services/permission-catalog";
+import { getPermissionRisk, ROLE_LABEL, findPermissionEntry } from "@/services/permission-catalog";
+import { computeMissingDependencies, computeConflicts } from "@/services/permission-dependencies";
+import { format } from "date-fns";
 
 export function ApprovalDetailsDrawer({
   item,
@@ -35,6 +37,17 @@ export function ApprovalDetailsDrawer({
     for (const k of item.removed_keys) rows.push({ permissionKey: k, op: "revoke" });
     return rows;
   }, [item]);
+
+  const projected = useMemo(() => {
+    if (!item) return { deps: [] as Array<{ have: string; needs: string }>, conflicts: [] as Array<{ a: string; b: string; severity: string; rationale?: string | null }> };
+    const after = new Set<string>(item.after_keys ?? []);
+    return {
+      deps: computeMissingDependencies(after),
+      conflicts: computeConflicts(after),
+    };
+  }, [item]);
+
+  const impactedRoleLabel = item?.target_scope === "role" ? (ROLE_LABEL[item.target_key as keyof typeof ROLE_LABEL] ?? item.target_key) : null;
 
   const guard = useMemo(() => {
     if (!item || !actorId) return { allowed: false, reason: "Loading actor…" };
@@ -119,6 +132,60 @@ export function ApprovalDetailsDrawer({
             <PermissionDiffTable rows={diff} />
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-md border border-border/60 bg-background/40 p-3">
+              <div className="mb-1 text-[10px] uppercase text-muted-foreground">Impacted role</div>
+              <div className="text-xs">{impactedRoleLabel ?? <span className="italic text-muted-foreground">n/a</span>}</div>
+            </div>
+            <div className="rounded-md border border-border/60 bg-background/40 p-3">
+              <div className="mb-1 text-[10px] uppercase text-muted-foreground">Impacted users (est.)</div>
+              <div className="text-xs">{(item as any).impacted_users ?? "—"}</div>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-1 text-xs uppercase text-muted-foreground">Dependencies</div>
+            {projected.deps.length === 0 ? (
+              <div className="rounded-md border border-border/60 bg-background/40 p-3 text-xs text-muted-foreground">No missing dependencies after apply.</div>
+            ) : (
+              <ul className="space-y-1 text-xs">
+                {projected.deps.map((d, i) => (
+                  <li key={i} className="rounded border border-amber-500/40 bg-amber-500/10 p-2 text-amber-200">
+                    <span className="font-mono">{d.have}</span> requires <span className="font-mono">{d.needs}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div>
+            <div className="mb-1 text-xs uppercase text-muted-foreground">Conflicts &amp; security warnings</div>
+            {projected.conflicts.length === 0 ? (
+              <div className="rounded-md border border-border/60 bg-background/40 p-3 text-xs text-muted-foreground">No segregation-of-duty conflicts detected.</div>
+            ) : (
+              <ul className="space-y-1 text-xs">
+                {projected.conflicts.map((c, i) => (
+                  <li key={i} className="rounded border border-rose-500/40 bg-rose-500/10 p-2 text-rose-200">
+                    <span className="font-mono">{c.a}</span> ⚠ <span className="font-mono">{c.b}</span>
+                    <span className="ml-2 uppercase text-[10px]">{c.severity}</span>
+                    {c.rationale && <div className="mt-1 text-[11px] opacity-80">{c.rationale}</div>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div>
+            <div className="mb-1 text-xs uppercase text-muted-foreground">Approval history</div>
+            <ul className="space-y-1 text-xs">
+              <TimelineRow label="Submitted" when={(item as any).requested_at} who={item.requested_by_name} />
+              {(item.review_comments ?? []).map((c: any, i: number) => (
+                <TimelineRow key={i} label={c.action ?? "Reviewed"} when={c.at} who={c.actor_name ?? c.actor} comment={c.comment} />
+              ))}
+              {isTerminal && <TimelineRow label={item.status === "applied" ? "Applied" : item.status === "rejected" ? "Rejected" : "Closed"} when={(item as any).applied_at ?? null} who={null} />}
+            </ul>
+          </div>
+
           {item.review_comments?.length ? (
             <div>
               <div className="mb-1 text-xs uppercase text-muted-foreground">Review history</div>
@@ -167,5 +234,18 @@ function Meta({ label, value, mono }: { label: string; value: string; mono?: boo
       <div className="text-[10px] uppercase text-muted-foreground">{label}</div>
       <div className={`text-xs ${mono ? "font-mono" : ""}`}>{value}</div>
     </div>
+  );
+}
+
+function TimelineRow({ label, when, who, comment }: { label: string; when: string | null; who: string | null | undefined; comment?: string }) {
+  return (
+    <li className="flex items-start gap-2 rounded border border-border/40 bg-background/40 p-2">
+      <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-sky-400" />
+      <div className="flex-1">
+        <div className="text-[11px] font-medium capitalize">{label}{who ? <span className="ml-1 text-muted-foreground">· {who}</span> : null}</div>
+        {when && <div className="text-[10px] text-muted-foreground">{format(new Date(when), "PPpp")}</div>}
+        {comment && <div className="mt-1 text-[11px] text-muted-foreground">{comment}</div>}
+      </div>
+    </li>
   );
 }

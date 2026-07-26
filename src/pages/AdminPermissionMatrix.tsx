@@ -214,7 +214,32 @@ export default function AdminPermissionMatrix() {
   const openFeature = (k: string) => { setFeatureKey(k); setFeatureOpen(true); };
   const openOverride = (o: OverrideRow) => setOverride(o);
   const openApproval = (a: PermissionApprovalItem) => { setApproval(a); setApprovalOpen(true); };
-  const openHistory = (_h: PermissionHistoryItem) => { /* details drawer TBD; keep no-op */ };
+  const openHistory = (h: PermissionHistoryItem) => {
+    // Reuse the Approval Details drawer in read-only mode by projecting the
+    // history row into a terminal PermissionApprovalItem shape.
+    const projected: PermissionApprovalItem = {
+      id: h.id,
+      requested_by: null,
+      requested_by_name: h.actor_name,
+      requested_at: h.when,
+      target_scope: h.target_scope,
+      target_key: h.target_key,
+      target_label: h.target_label,
+      added_keys: h.added_keys,
+      removed_keys: h.removed_keys,
+      before_keys: h.before_keys,
+      after_keys: h.after_keys,
+      reason: h.reason,
+      status: h.result,
+      requires_approval: false,
+      environment: h.environment,
+      risk: "low",
+      required_approver: null,
+      review_comments: [],
+    };
+    setApproval(projected);
+    setApprovalOpen(true);
+  };
   const recreateFromHistory = (h: PermissionHistoryItem) => {
     if (h.target_scope !== "role") return;
     // Inverse of the applied change: re-stage previously-removed keys as grants

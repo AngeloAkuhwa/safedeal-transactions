@@ -25,13 +25,33 @@ export function PendingApprovalTable({
   const [risk, setRisk] = useState<string>("any");
   const [scope, setScope] = useState<string>("any");
   const [status, setStatus] = useState<string>("any");
+  const [requester, setRequester] = useState<string>("any");
+  const [approver, setApprover] = useState<string>("any");
+  const [range, setRange] = useState<string>("any");
+
+  const requesterOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    rows.forEach((r) => { if (r.requested_by) m.set(r.requested_by, r.requested_by_name ?? r.requested_by); });
+    return Array.from(m.entries()).map(([v, l]) => ({ v, l }));
+  }, [rows]);
+  const approverOptions = useMemo(() => {
+    const s = new Set<string>();
+    rows.forEach((r) => { if (r.required_approver) s.add(r.required_approver); });
+    return Array.from(s.values()).map((v) => ({ v, l: v }));
+  }, [rows]);
+
+  const rangeMs: number | null = range === "1d" ? 86_400_000 : range === "7d" ? 7 * 86_400_000 : range === "30d" ? 30 * 86_400_000 : null;
 
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
+    const cutoff = rangeMs ? Date.now() - rangeMs : null;
     return rows.filter((r) => {
       if (risk !== "any" && r.risk !== risk) return false;
       if (scope !== "any" && r.target_scope !== scope) return false;
       if (status !== "any" && normalizeChangeState(r.status) !== status) return false;
+      if (requester !== "any" && r.requested_by !== requester) return false;
+      if (approver !== "any" && (r.required_approver ?? "") !== approver) return false;
+      if (cutoff !== null && new Date(r.requested_at).getTime() < cutoff) return false;
       if (!ql) return true;
       return (
         r.target_label.toLowerCase().includes(ql) ||
@@ -41,7 +61,7 @@ export function PendingApprovalTable({
         r.id.toLowerCase().includes(ql)
       );
     });
-  }, [rows, q, risk, scope, status]);
+  }, [rows, q, risk, scope, status, requester, approver, rangeMs]);
 
   return (
     <div className="space-y-3">
@@ -58,6 +78,11 @@ export function PendingApprovalTable({
         ]} />
         <FilterSelect value={status} onChange={setStatus} label="Status" items={[
           { v: "any", l: "All statuses" }, { v: "pending_approval", l: "Pending" }, { v: "requested_changes", l: "Changes requested" }, { v: "approved", l: "Approved" }, { v: "applied", l: "Applied" }, { v: "rejected", l: "Rejected" }, { v: "cancelled", l: "Cancelled" }, { v: "failed", l: "Failed" },
+        ]} />
+        <FilterSelect value={requester} onChange={setRequester} label="Requester" items={[{ v: "any", l: "Any requester" }, ...requesterOptions]} />
+        <FilterSelect value={approver} onChange={setApprover} label="Approver" items={[{ v: "any", l: "Any approver" }, ...approverOptions]} />
+        <FilterSelect value={range} onChange={setRange} label="Date" items={[
+          { v: "any", l: "Any time" }, { v: "1d", l: "Last 24h" }, { v: "7d", l: "Last 7 days" }, { v: "30d", l: "Last 30 days" },
         ]} />
       </div>
 
