@@ -22,6 +22,20 @@ Deno.serve(async (req) => {
   }
 
   const admin = ctx.adminClient;
+  // Derive scope from the caller's permissions.
+  const perms = new Set<string>(ctx.permissions ?? []);
+  const isSuper = !!ctx.isSuper;
+  const canViewAll = isSuper || perms.has("task_orchestration.view_all");
+  const canAssign = isSuper || perms.has("task_orchestration.assign") || perms.has("task_orchestration.bulk_assign");
+  const canViewLoad = isSuper || perms.has("task_orchestration.view_agent_load");
+
+  // Helper to scope a query on assigned_agent_id when the caller can only see
+  // their own tasks.
+  const scopeAssigned = <T,>(qb: T): T => {
+    if (canViewAll) return qb;
+    // deno-lint-ignore no-explicit-any
+    return (qb as any).eq("assigned_agent_id", ctx.userId);
+  };
 
   const [
     { data: allTasks },
@@ -32,17 +46,20 @@ Deno.serve(async (req) => {
     { data: rules },
     { data: internalUsers },
   ] = await Promise.all([
-    admin.from("orchestration_tasks").select("id,status,priority,sla_status,created_at,first_action_at,assigned_at"),
-    admin.from("orchestration_tasks")
-      .select("id,task_code,type,title,priority,amount,currency,created_at,dispute_id,suggested_agent_id,required_permissions")
-      .eq("status", "unassigned")
-      .order("created_at", { ascending: false })
-      .limit(50),
-    admin.from("orchestration_tasks")
+    scopeAssigned(admin.from("orchestration_tasks").select("id,status,priority,sla_status,created_at,first_action_at,assigned_at,assigned_agent_id")),
+    // Unassigned queue is only visible to callers who can assign.
+    canAssign
+      ? admin.from("orchestration_tasks")
+          .select("id,task_code,type,title,priority,amount,currency,created_at,dispute_id,suggested_agent_id,required_permissions")
+          .eq("status", "unassigned")
+          .order("created_at", { ascending: false })
+          .limit(50)
+      : Promise.resolve({ data: [] as any[] }),
+    scopeAssigned(admin.from("orchestration_tasks")
       .select("id,task_code,stage,status,started_at,updated_at,sla_status,assigned_agent_id,dispute_id")
       .in("status", ["assigned","in_progress","waiting_on_buyer","waiting_on_seller","waiting_on_evidence","pending_approval","escalated"])
       .order("updated_at", { ascending: false })
-      .limit(50),
+      .limit(50)),
     admin.from("agent_capacity").select("*"),
     admin.from("agent_availability").select("*"),
     admin.from("assignment_rules").select("*").eq("scope","global").maybeSingle(),
@@ -105,6 +122,7 @@ Deno.serve(async (req) => {
   };
 
   return new Response(JSON.stringify({
+    scope: { can_view_all: canViewAll, can_assign: canAssign, can_view_load: canViewLoad, user_id: ctx.userId },
     kpis: {
       unassigned: unassignedCount,
       unassigned_last_hour: unassignedLastHour,
@@ -118,8 +136,11 @@ Deno.serve(async (req) => {
     },
     unassigned_queue: unassigned ?? [],
     live_progression: liveTasks ?? [],
-    roster,
-    insights,
+    roster: canViewLoad ? roster : [],
+    insights: canViewLoad ? insights : {
+      most_active: null, most_resolved: null, least_loaded: null,
+      highest_overdue: null, fastest_response: null,
+    },
     rules: rules ?? null,
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
