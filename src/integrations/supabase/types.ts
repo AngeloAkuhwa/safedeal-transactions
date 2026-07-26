@@ -3107,6 +3107,7 @@ export type Database = {
         Row: {
           action: string
           approval_required: boolean
+          assignable: boolean
           created_at: string
           description: string
           is_system_default: boolean
@@ -3122,6 +3123,7 @@ export type Database = {
         Insert: {
           action: string
           approval_required?: boolean
+          assignable?: boolean
           created_at?: string
           description?: string
           is_system_default?: boolean
@@ -3137,6 +3139,7 @@ export type Database = {
         Update: {
           action?: string
           approval_required?: boolean
+          assignable?: boolean
           created_at?: string
           description?: string
           is_system_default?: boolean
@@ -5799,6 +5802,10 @@ export type Database = {
       compute_verification_level: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["verification_level_type"]
+      }
+      count_pending_approvals_for_actor: {
+        Args: { _actor: string }
+        Returns: number
       }
       derive_target_user_id: {
         Args: { p_dispute_id: string; p_transaction_id: string }

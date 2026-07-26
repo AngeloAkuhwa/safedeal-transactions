@@ -25,6 +25,9 @@ import {
   BarChart3,
   FileBarChart,
   Undo2,
+  Inbox,
+  ListChecks,
+  Gauge,
 } from "lucide-react";
 import { useLocation } from "react-router";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -33,6 +36,7 @@ import { signOut } from "@/services/auth.service";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 import { permissionForPath } from "@/services/admin-route-permissions";
 import type { AdminDashboardResponse } from "@/services/admin-dashboard.service";
+import { usePendingApprovalsBadge } from "@/hooks/usePendingApprovalsBadge";
 
 type Badge = {
   count: number;
@@ -59,7 +63,9 @@ const BADGE_TONE: Record<Badge["tone"], string> = {
   cyan: "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30",
 };
 
-function buildGroups(badges?: AdminDashboardResponse["sidebar_badges"]): NavGroup[] {
+type SidebarBadges = AdminDashboardResponse["sidebar_badges"] & { access_approvals?: number };
+
+function buildGroups(badges?: SidebarBadges): NavGroup[] {
   return [
     {
       label: "Overview",
@@ -142,7 +148,15 @@ function buildGroups(badges?: AdminDashboardResponse["sidebar_badges"]): NavGrou
       label: "Administration",
       items: [
         { label: "Users & Access", href: "/admin/access-control", icon: KeyRound },
+        {
+          label: "Access Approvals",
+          href: "/admin/access-approvals",
+          icon: Inbox,
+          badge: badges?.access_approvals ? { count: badges.access_approvals, tone: "orange" } : undefined,
+        },
         { label: "Permission Matrix", href: "/admin/permission-matrix", icon: ShieldCheck },
+        { label: "Task Orchestration", href: "/admin/task-orchestration", icon: ListChecks },
+        { label: "Agent Performance", href: "/admin/agent-performance", icon: Gauge },
         { label: "Audit Logs", href: "/admin/audit-logs", icon: ScrollText },
       ],
     },
@@ -158,7 +172,11 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
   const { go } = useAdminNav();
   const { pathname } = useLocation();
   const { has, isSuper, loading } = useAdminPermissions();
-  const rawGroups = buildGroups(badges);
+  const { count: pendingApprovals } = usePendingApprovalsBadge();
+  const badgesWithApprovals: SidebarBadges | undefined = badges
+    ? { ...badges, access_approvals: pendingApprovals }
+    : (pendingApprovals > 0 ? ({ access_approvals: pendingApprovals } as SidebarBadges) : undefined);
+  const rawGroups = buildGroups(badgesWithApprovals);
 
   // Filter each group by permission: hide items the user can't visit, and
   // drop groups that become empty. During the initial permissions fetch we

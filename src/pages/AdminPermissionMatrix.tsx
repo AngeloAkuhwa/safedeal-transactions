@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Shield, ShieldAlert, History, ArrowUpRight } from "lucide-react";
+import { Shield, ShieldAlert, ArrowUpRight } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminMobileHeader } from "@/components/admin/AdminMobileHeader";
@@ -21,6 +21,7 @@ import { hydratePermissionCatalog } from "@/services/permission-catalog";
 import { hydratePermissionDependencies, hydratePermissionConflicts } from "@/services/permission-dependencies";
 import { permissionRepo } from "@/services/permission-repository";
 import { EnvironmentSwitcher, EnvironmentRibbon, useCurrentEnvironment } from "@/components/admin/permission-matrix/EnvironmentSwitcher";
+import { QuickActionsMenu } from "@/components/admin/permission-matrix/QuickActionsMenu";
 import { PermissionSummaryCards } from "@/components/admin/permission-matrix/PermissionSummaryCards";
 import { HowPermissionsWorkPanel } from "@/components/admin/permission-matrix/HowPermissionsWorkPanel";
 import { AccessStateDefinitionsPanel } from "@/components/admin/permission-matrix/AccessStateDefinitionsPanel";
@@ -297,13 +298,13 @@ export default function AdminPermissionMatrix() {
         </div>
         <div className="ml-auto flex items-center gap-2">
           <EnvironmentSwitcher />
-          <button
-            type="button"
-            onClick={() => setTab("change-history")}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
-          >
-            <History className="h-3.5 w-3.5" /> History
-          </button>
+          <QuickActionsMenu
+            environment={environment}
+            roleMap={rolesQuery.data}
+            activeFilter={{ role: filters.role, module: filters.module }}
+            onOpenHistory={() => setTab("change-history")}
+            onChanged={() => { rolesQuery.refetch(); historyQuery.refetch(); approvalsQuery.refetch(); }}
+          />
           <button
             type="button"
             disabled={!canManage}
