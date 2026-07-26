@@ -2991,6 +2991,32 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_environments: {
+        Row: {
+          created_at: string
+          environment: string
+          permission_key: string
+        }
+        Insert: {
+          created_at?: string
+          environment: string
+          permission_key: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          permission_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_environments_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       permission_template_items: {
         Row: {
           permission_key: string
@@ -3065,36 +3091,48 @@ export type Database = {
       permissions: {
         Row: {
           action: string
+          approval_required: boolean
           created_at: string
           description: string
           is_system_default: boolean
           key: string
           label: string
           module: string
+          owner_role: string | null
           risk_level: string
           sort_order: number
+          status: string
+          updated_at: string
         }
         Insert: {
           action: string
+          approval_required?: boolean
           created_at?: string
           description?: string
           is_system_default?: boolean
           key: string
           label: string
           module: string
+          owner_role?: string | null
           risk_level?: string
           sort_order?: number
+          status?: string
+          updated_at?: string
         }
         Update: {
           action?: string
+          approval_required?: boolean
           created_at?: string
           description?: string
           is_system_default?: boolean
           key?: string
           label?: string
           module?: string
+          owner_role?: string | null
           risk_level?: string
           sort_order?: number
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -6039,6 +6077,10 @@ export type Database = {
         | "user_deactivated"
         | "session_revoked"
         | "task_reassigned"
+        | "permission_registered"
+        | "permission_updated"
+        | "permission_status_changed"
+        | "permission_deprecated"
       admin_investigation_priority: "low" | "medium" | "high" | "critical"
       admin_investigation_status:
         | "open"
@@ -6454,6 +6496,10 @@ export const Constants = {
         "user_deactivated",
         "session_revoked",
         "task_reassigned",
+        "permission_registered",
+        "permission_updated",
+        "permission_status_changed",
+        "permission_deprecated",
       ],
       admin_investigation_priority: ["low", "medium", "high", "critical"],
       admin_investigation_status: [
