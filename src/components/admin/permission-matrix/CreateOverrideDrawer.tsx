@@ -220,10 +220,10 @@ export function CreateOverrideDrawer({
               <Row label="Privileged" value={privileged ? "Yes" : "No"} tone={privileged ? "amber" : undefined} />
               <Row label="Approval required" value={privileged ? "Yes" : "No"} tone={privileged ? "amber" : undefined} />
             </div>
-            {!guard.ok && guard.message && (
+            {!guard.ok && (guard as any).message && (
               <div className={`flex items-start gap-2 rounded-md border p-2 text-[11px] ${(guard as any).blocked ? "border-rose-500/40 bg-rose-500/10 text-rose-200" : "border-amber-500/30 bg-amber-500/10 text-amber-200"}`}>
                 <ShieldAlert className="mt-0.5 h-3 w-3" />
-                <span>{guard.message}</span>
+                <span>{(guard as any).message}</span>
               </div>
             )}
           </section>
