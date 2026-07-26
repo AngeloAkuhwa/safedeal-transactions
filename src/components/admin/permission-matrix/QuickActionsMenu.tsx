@@ -6,8 +6,11 @@ import { ExportConfigDialog } from "./ExportConfigDialog";
 import { AlertSettingsDrawer } from "./AlertSettingsDrawer";
 import { SuspendPermissionDialog } from "./SuspendPermissionDialog";
 import { ResetRoleToDefaultDialog } from "./ResetRoleToDefaultDialog";
-import type { RoleGrantMap } from "@/services/permission-workspace.service";
+import type { RoleGrantMap, PermissionEnvironment } from "@/services/permission-workspace.service";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
+import { INTERNAL_ROLES, ROLE_LABEL, type InternalRoleKey } from "@/services/permission-catalog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function QuickActionsMenu({
   environment,
@@ -28,8 +31,17 @@ export function QuickActionsMenu({
 
   const [exportOpen, setExportOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
-  const [resetOpen, setResetOpen] = useState(false);
+  const [resetPickerOpen, setResetPickerOpen] = useState(false);
+  const [resetRole, setResetRole] = useState<InternalRoleKey | null>(null);
   const [suspendOpen, setSuspendOpen] = useState(false);
+
+  const openResetPicker = () => {
+    const preset = activeFilter.role !== "all"
+      ? (INTERNAL_ROLES.find((r) => r.key === activeFilter.role)?.key ?? null)
+      : null;
+    setResetRole(preset);
+    setResetPickerOpen(true);
+  };
 
   return (
     <>
@@ -41,7 +53,7 @@ export function QuickActionsMenu({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
           <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">Actions</DropdownMenuLabel>
-          <DropdownMenuItem disabled={!canManage} onSelect={() => setResetOpen(true)}>
+          <DropdownMenuItem disabled={!canManage} onSelect={openResetPicker}>
             <RotateCcw className="mr-2 h-4 w-4" /> Reset role to default…
           </DropdownMenuItem>
           <DropdownMenuItem disabled={!canExport} onSelect={() => setExportOpen(true)}>
@@ -61,11 +73,40 @@ export function QuickActionsMenu({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <ResetRoleToDefaultDialog
-        open={resetOpen}
-        onOpenChange={setResetOpen}
-        onDone={onChanged}
-      />
+      <Dialog open={resetPickerOpen} onOpenChange={setResetPickerOpen}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Reset role to default</DialogTitle>
+            <DialogDescription className="text-xs">
+              Choose which role to reset in the <b>{environment}</b> environment. The next step shows the diff, impacted users, and requires a reason.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Select value={resetRole ?? ""} onValueChange={(v) => setResetRole(v as InternalRoleKey)}>
+              <SelectTrigger><SelectValue placeholder="Pick a role…" /></SelectTrigger>
+              <SelectContent>
+                {INTERNAL_ROLES.map((r) => (
+                  <SelectItem key={r.key} value={r.key}>{ROLE_LABEL[r.key] ?? r.key}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setResetPickerOpen(false)}>Cancel</Button>
+            <Button size="sm" disabled={!resetRole} onClick={() => setResetPickerOpen(false)}>Continue…</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {resetRole && !resetPickerOpen && (
+        <ResetRoleToDefaultDialog
+          open={!!resetRole}
+          onOpenChange={(v) => { if (!v) setResetRole(null); }}
+          role={resetRole}
+          environment={environment as PermissionEnvironment}
+          onDone={() => { setResetRole(null); onChanged(); }}
+        />
+      )}
       <ExportConfigDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
