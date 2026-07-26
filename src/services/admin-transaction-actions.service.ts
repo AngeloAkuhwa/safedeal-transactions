@@ -30,37 +30,34 @@ async function invokeAction(action: string, transactionId: string, payload?: Rec
     if (typeof window !== "undefined") window.location.replace("/auth");
     return new Promise(() => {});
   }
-  const { data, error } = await supabase.functions.invoke("admin-transaction-actions", {
-    body: { action, transactionId, payload },
-    headers: { Authorization: `Bearer ${session.access_token}` },
+  // Use direct fetch instead of supabase.functions.invoke to avoid the
+  // SDK's built-in console.error on non-2xx responses (which the runtime
+  // error tracker misreports as a blank-screen crash for expected 403s
+  // like `escalation_required`).
+  const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
+  const url = `https://${projectId}.supabase.co/functions/v1/admin-transaction-actions`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
+    },
+    body: JSON.stringify({ action, transactionId, payload }),
   });
-  if (error) {
-    const ctx = (error as unknown as { context?: Response }).context;
-    // Parse body first so 403s with a specific `error` code (e.g.
-    // `escalation_required`) surface as typed exceptions instead of a
-    // generic "Admin access required".
-    let body: any = null;
-    try {
-      body = ctx && typeof (ctx as any).clone === "function"
-        ? await (ctx as Response).clone().json()
-        : null;
-    } catch { /* ignore parse errors */ }
-    if (ctx?.status === 403 && body?.error === "escalation_required") {
+  let body: any = null;
+  try { body = await res.json(); } catch { /* ignore */ }
+  if (!res.ok) {
+    if (res.status === 403 && body?.error === "escalation_required") {
       throw new DisputeEscalationRequiredError(
         Array.isArray(body.reasons) ? body.reasons : [],
         typeof body.cap_ngn === "number" ? body.cap_ngn : null,
       );
     }
-    if (ctx?.status === 403) throw new AdminAccessRequiredError();
-    try {
-      throw new Error(body?.error ?? error.message ?? "Action failed");
-    } catch (e) {
-      if (e instanceof AdminAccessRequiredError) throw e;
-      if (e instanceof DisputeEscalationRequiredError) throw e;
-      throw new Error((e as Error)?.message ?? error.message ?? "Action failed");
-    }
+    if (res.status === 403) throw new AdminAccessRequiredError();
+    throw new Error(body?.error ?? `Action failed (${res.status})`);
   }
-  return data;
+  return body;
 }
 
 export const addInternalNote = (transactionId: string, note: string) =>
