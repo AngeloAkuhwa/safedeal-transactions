@@ -3,7 +3,7 @@
 
 export type PermissionAction =
   | "view" | "create" | "update" | "assign" | "reassign"
-  | "approve" | "reject" | "resolve" | "escalate" | "suspend"
+  | "approve" | "reject" | "resolve" | "escalate" | "suspend" | "reactivate"
   | "export" | "configure" | "manage_permissions"
   | "view_assigned" | "add_internal_note" | "request_information"
   | "request_evidence" | "update_status" | "resolve_assigned"
@@ -14,6 +14,7 @@ export interface PermissionEntry {
   module: string;
   action: PermissionAction;
   label: string;
+  risk?: PermissionRiskLevel;
 }
 
 export interface PermissionModule {
@@ -22,27 +23,79 @@ export interface PermissionModule {
   permissions: PermissionEntry[];
 }
 
+// ---------------------------------------------------------------------------
+// Risk levels and effective-permission source (mirrors DB columns)
+// ---------------------------------------------------------------------------
+
+export type PermissionRiskLevel = "low" | "medium" | "high" | "critical";
+
+export const RISK_ORDER: Record<PermissionRiskLevel, number> = {
+  low: 0, medium: 1, high: 2, critical: 3,
+};
+
+export type PermissionSource =
+  | "system_default"
+  | "role_template"
+  | "direct_role"
+  | "user_override"
+  | "temporary_access"
+  | "system_restriction";
+
+export const PERMISSION_SOURCE_LABEL: Record<PermissionSource, string> = {
+  system_default: "System Default",
+  role_template: "Role Template",
+  direct_role: "Direct Role Configuration",
+  user_override: "User Override",
+  temporary_access: "Temporary Access",
+  system_restriction: "System Restriction",
+};
+
+// Row-level state used for INDIVIDUAL permission rows (never module summaries).
+export type PermissionRowState =
+  | "granted"
+  | "denied"
+  | "override_granted"
+  | "override_denied"
+  | "pending"
+  | "restricted";
+
+export const PERMISSION_ROW_STATE_LABEL: Record<PermissionRowState, string> = {
+  granted: "Granted",
+  denied: "Denied",
+  override_granted: "Override Granted",
+  override_denied: "Override Denied",
+  pending: "Pending",
+  restricted: "Restricted",
+};
+
 const MODULES: Array<{ key: string; label: string; actions: PermissionAction[] }> = [
   { key: "dashboard",              label: "Dashboard",              actions: ["view", "export"] },
+  { key: "analytics",              label: "Analytics",              actions: ["view", "export", "configure"] },
+  { key: "reports",                label: "Reports & Exports",      actions: ["view", "export", "configure"] },
   { key: "transactions",           label: "Transactions",           actions: ["view", "update", "export", "escalate"] },
   { key: "escrow",                 label: "Escrow",                 actions: ["view", "update", "approve", "configure", "export"] },
+  { key: "payouts",                label: "Payouts",                actions: ["view", "create", "approve", "reject", "export"] },
+  { key: "payments",               label: "Payments",               actions: ["view", "update", "export"] },
+  { key: "refunds",                label: "Refunds",                actions: ["view", "create", "approve", "reject", "export"] },
+  { key: "money_tracing",          label: "Money Tracing",          actions: ["view", "export"] },
   { key: "disputes",               label: "Disputes",               actions: ["view", "view_assigned", "create", "update", "update_status", "add_internal_note", "request_information", "request_evidence", "assign", "reassign", "resolve", "resolve_assigned", "resolve_all", "escalate", "approve", "reject", "export"] },
   { key: "identity_verification",  label: "Identity Verification",  actions: ["view", "approve", "reject", "escalate", "export"] },
+  { key: "users",                  label: "Users",                  actions: ["view", "update", "suspend", "reactivate", "export"] },
+  { key: "investigations",         label: "Investigations",         actions: ["view", "create", "update", "assign", "reassign", "escalate", "resolve", "export"] },
   { key: "task_orchestration",     label: "Task Orchestration",     actions: ["view", "assign", "reassign", "configure"] },
   { key: "agent_performance",      label: "Agent Performance",      actions: ["view", "export"] },
   { key: "flagged_users",          label: "Flagged Users",          actions: ["view", "update", "remove_flag", "suspend", "export"] },
-  { key: "users_and_access",       label: "Users & Access",         actions: ["view", "create", "update", "suspend", "manage_permissions", "export"] },
+  { key: "users_and_access",       label: "Users & Access",         actions: ["view", "create", "update", "suspend", "reactivate", "manage_permissions", "export"] },
   { key: "permissions",            label: "Permission Management",  actions: ["view", "manage_permissions"] },
   { key: "financial_controls",     label: "Financial Controls",     actions: ["view", "create", "approve", "reject", "configure", "export"] },
   { key: "audit_logs",             label: "Audit Logs",             actions: ["view", "export"] },
-  { key: "reports",                label: "Reports & Exports",      actions: ["view", "export", "configure"] },
   { key: "platform_configuration", label: "Platform Configuration", actions: ["view", "configure"] },
 ];
 
 const ACTION_LABEL: Record<PermissionAction, string> = {
   view: "View", create: "Create", update: "Update", assign: "Assign",
   reassign: "Reassign", approve: "Approve", reject: "Reject", resolve: "Resolve",
-  escalate: "Escalate", suspend: "Suspend", export: "Export", configure: "Configure",
+  escalate: "Escalate", suspend: "Suspend", reactivate: "Reactivate", export: "Export", configure: "Configure",
   manage_permissions: "Manage Permissions",
   view_assigned: "View Assigned", add_internal_note: "Add Internal Note",
   request_information: "Request Information", request_evidence: "Request Evidence",
@@ -50,7 +103,10 @@ const ACTION_LABEL: Record<PermissionAction, string> = {
   resolve_all: "Resolve Any", remove_flag: "Remove Flag",
 };
 
-export const PERMISSION_MODULES: PermissionModule[] = MODULES.map((m) => ({
+// Static fallback catalog (used until the DB hydrator resolves).
+// After `hydratePermissionCatalog()` runs, `PERMISSION_MODULES` is replaced
+// in-place with the DB truth (risk levels + any new keys).
+export let PERMISSION_MODULES: PermissionModule[] = MODULES.map((m) => ({
   key: m.key,
   label: m.label,
   permissions: m.actions.map((action) => ({
@@ -61,8 +117,49 @@ export const PERMISSION_MODULES: PermissionModule[] = MODULES.map((m) => ({
   })),
 }));
 
-export const ALL_PERMISSION_KEYS: string[] =
-  PERMISSION_MODULES.flatMap((m) => m.permissions.map((p) => p.key));
+export function getAllPermissionKeys(): string[] {
+  return PERMISSION_MODULES.flatMap((m) => m.permissions.map((p) => p.key));
+}
+
+// Kept for backwards compatibility with existing callers.
+export const ALL_PERMISSION_KEYS: string[] = getAllPermissionKeys();
+
+// Risk lookup — hydrated from DB alongside the module catalog.
+const RISK_BY_KEY = new Map<string, PermissionRiskLevel>();
+export function getPermissionRisk(key: string): PermissionRiskLevel {
+  return RISK_BY_KEY.get(key) ?? "low";
+}
+
+/**
+ * Hydrate the module catalog and risk lookup from DB rows returned by
+ * permissionRepo.listFeatures(). Safe to call multiple times.
+ */
+export function hydratePermissionCatalog(rows: Array<{
+  key: string; module: string; action: string; label: string;
+  risk_level: PermissionRiskLevel; module_label?: string;
+}>) {
+  if (!rows || rows.length === 0) return;
+  RISK_BY_KEY.clear();
+  const byModule = new Map<string, { key: string; label: string; perms: PermissionEntry[] }>();
+  // seed module labels from the static catalog first for stable order
+  for (const m of MODULES) byModule.set(m.key, { key: m.key, label: m.label, perms: [] });
+  for (const r of rows) {
+    RISK_BY_KEY.set(r.key, r.risk_level ?? "low");
+    const modLabel = r.module_label ?? MODULES.find((m) => m.key === r.module)?.label ?? r.module;
+    if (!byModule.has(r.module)) byModule.set(r.module, { key: r.module, label: modLabel, perms: [] });
+    const bucket = byModule.get(r.module)!;
+    bucket.perms.push({
+      key: r.key,
+      module: r.module,
+      action: r.action as PermissionAction,
+      label: r.label,
+      risk: r.risk_level ?? "low",
+    });
+  }
+  PERMISSION_MODULES = Array.from(byModule.values())
+    .filter((m) => m.perms.length > 0)
+    .map((m) => ({ key: m.key, label: m.label, permissions: m.perms }));
+}
 
 /**
  * Union of role→permission arrays. Callers pass the map loaded from the
@@ -81,12 +178,17 @@ export function permissionsForRoles(
 /**
  * High-signal / dangerous action list. Used to flag "privileged permissions
  * being introduced" in the Change Role diff and "restricted" listings.
+ *
+ * NOTE: this heuristic is retained for legacy call sites. Prefer
+ * `getPermissionRisk(key)` which reads the real DB risk level.
  */
 export const PRIVILEGED_ACTIONS: PermissionAction[] = [
   "approve", "manage_permissions", "configure", "suspend",
 ];
 
 export function isPrivilegedPermission(key: string): boolean {
+  const risk = RISK_BY_KEY.get(key);
+  if (risk === "high" || risk === "critical") return true;
   const action = key.split(".")[1] as PermissionAction | undefined;
   return !!action && PRIVILEGED_ACTIONS.includes(action);
 }
