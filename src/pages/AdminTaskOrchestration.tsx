@@ -13,9 +13,11 @@ import {
   AssignTaskDrawer,
   EscalateTaskDialog,
   AgentDetailsDrawer,
+  TaskDetailsDrawer,
   LoadingSkeleton,
   ErrorState,
 } from "@/components/admin/task-orchestration";
+import type { QueueFilters } from "@/components/admin/task-orchestration";
 import {
   fetchOrchestrationOverview,
   runOrchestrationAction,
@@ -41,7 +43,10 @@ export default function AdminTaskOrchestration() {
   const [error, setError] = useState<string | null>(null);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [queueFilters, setQueueFilters] = useState<QueueFilters>({
+    search: "", priority: "all", type: "all", ageBucket: "all",
+  });
+  const [detailTask, setDetailTask] = useState<UnassignedTask | null>(null);
   const [assignTarget, setAssignTarget] = useState<UnassignedTask | null>(null);
   const [assignBulk, setAssignBulk] = useState(false);
   const [escalateOpen, setEscalateOpen] = useState(false);
@@ -163,11 +168,10 @@ export default function AdminTaskOrchestration() {
       title="Task Orchestration"
       subtitle="Senior admin workforce control · Real-time assignment operations"
       hideDefaultHeaders
-      headerSlot={({ onOpenMenu }) => (
+      headerSlot={() => (
         <TaskOrchestrationHeader
           autoAssignActive={!!data?.rules?.active}
           onExport={exportReport}
-          onOpenMenu={onOpenMenu}
         />
       )}
     >
@@ -201,8 +205,9 @@ export default function AdminTaskOrchestration() {
                   onToggle={toggleId}
                   onToggleAll={toggleAll}
                   onAssignRow={handleAssignRow}
-                  priorityFilter={priorityFilter}
-                  onPriorityChange={setPriorityFilter}
+                  onOpenDetail={setDetailTask}
+                  filters={queueFilters}
+                  onFiltersChange={patch => setQueueFilters(f => ({ ...f, ...patch }))}
                   roster={data.roster}
                 />
               </div>
@@ -224,6 +229,7 @@ export default function AdminTaskOrchestration() {
               saving={savingRules}
               testing={testingRules}
               lastSavedAt={data.rules?.updated_at ?? null}
+              canManage={isSenior}
             />
           </>
         )}
@@ -248,6 +254,14 @@ export default function AdminTaskOrchestration() {
         open={!!agentDetail}
         onOpenChange={o => { if (!o) setAgentDetail(null); }}
         agent={agentDetail}
+      />
+      <TaskDetailsDrawer
+        open={!!detailTask}
+        onOpenChange={o => { if (!o) setDetailTask(null); }}
+        task={detailTask}
+        roster={data?.roster ?? []}
+        onAssign={t => { setDetailTask(null); handleAssignRow(t); }}
+        onEscalate={t => { setSelectedIds(new Set([t.id])); setDetailTask(null); setEscalateOpen(true); }}
       />
     </AdminLayout>
   );
