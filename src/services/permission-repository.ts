@@ -98,15 +98,27 @@ export interface TemplateRow {
 export interface ChangeSetRow {
   id: string;
   requested_by: string | null;
-  target_scope: "role" | "user" | "template";
+  target_scope: "role" | "user" | "template" | "permission";
   target_key: string;
   before: unknown;
   after: unknown;
   reason: string | null;
-  status: "pending" | "approved" | "rejected" | "applied" | "cancelled";
+  status: "draft" | "pending" | "pending_approval" | "approved" | "rejected" | "applied" | "cancelled" | "requested_changes" | "failed";
   applied_at: string | null;
   applied_by: string | null;
   created_at: string;
+  submitted_at?: string | null;
+  requires_approval?: boolean;
+  review_comments?: ReviewComment[];
+  environment?: PermissionEnvironment;
+}
+
+export interface ReviewComment {
+  actor: string;
+  actor_name?: string | null;
+  action: "approved" | "rejected" | "requested_changes" | "commented" | "submitted" | "cancelled";
+  comment: string;
+  at: string;
 }
 
 export interface PermissionDependencyRow {
@@ -144,12 +156,15 @@ export interface AcknowledgeConflictInput {
 }
 
 export interface SubmitChangeSetInput {
-  target_scope: "role" | "user" | "template";
+  target_scope: "role" | "user" | "template" | "permission";
   target_key: string;
   before: unknown;
   after: unknown;
   reason?: string | null;
   environment?: PermissionEnvironment;
+  requires_approval?: boolean;
+  /** Auto-apply immediately when the actor is allowed and no approval is required. */
+  autoApply?: boolean;
 }
 
 export interface CreateTemplateInput {
