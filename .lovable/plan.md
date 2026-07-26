@@ -1,75 +1,57 @@
-## Support Agent RBAC — Finalization Plan (6 Gaps)
+## Problem
+Two related bugs on `/admin/access-control`:
+1. After the invited Support Agent accepted the invite and signed in, the row still shows **Invited** instead of **Active**.
+2. The summary stat cards don't reflect reality either — that same signed-in Support Agent isn't counted in **Active Agents** (shows `0`), and **Pending Invitations** still counts them (shows `1`).
 
-Close the remaining gaps from the Support Agent access + nested-route authorization spec so it hits 100%.
+Both stem from the same root cause: `internal_users.status` is never flipped from `invited` → `active` reliably after first sign-in.
 
-### 1. Route map — explicit leaf entries
-File: `src/services/admin-route-permissions.ts`
+## Root cause (to confirm on entering build mode)
+Promotion currently only runs inside `src/pages/AcceptInvite.tsx` via a client `UPDATE internal_users` after `updatePassword` succeeds. It fails silently when:
+- The recovery link lands the user already-authenticated and they bypass the password form.
+- RLS on `internal_users` blocks the self-`UPDATE` from the user's own JWT.
+- The invited user was an already-existing auth user (recovery flow) and skipped the AcceptInvite screen entirely.
 
-Add leaf-first entries so nested action routes are gated independently of their parent detail page:
-- `/admin/transactions/:id/update` → `transactions.update`
-- `/admin/disputes/:id/resolve` → any of [`disputes.resolve_all`, `disputes.resolve_assigned`, `financial_controls.approve`]
-- `/admin/disputes/:id/escalate` → `disputes.escalate`
-- `/admin/flagged-users/:id/remove-flag` → `flagged_users.remove_flag`
+Presence heartbeat writes `last_active` on a separate path, which is why the row can show "Just now" while `status` stays `invited`.
 
-Confirm `permissionForPath` matches most-specific first; add unit fixtures for each.
+Confirm with `supabase--read_query` before writing code: inspect the Support Agent's `internal_users` row + matching `auth.users.last_sign_in_at` to prove the row is stuck at `invited` despite a real sign-in.
 
-### 2. Server-side escalation policy
-File: `supabase/functions/admin-transaction-actions/index.ts` (`resolve_dispute` branch)
+## Fix plan
 
-Before allowing a `support_agent` to resolve:
-- Load transaction: `amount`, `risk_level`, `compliance_flag`.
-- Load platform setting `support_agent_resolution_cap` (₦, default e.g. 500,000) via `get_effective_setting`.
-- Force escalation (return `escalation_required` + reason) when any of:
-  - `risk_level in ('high','critical')`
-  - `compliance_flag = true`
-  - `amount > cap`
-  - actor lacks `disputes.resolve_all` / `financial_controls.approve` and target is not assigned to actor.
-- Only `financial_controls.approve` or `disputes.resolve_all` holders bypass the cap.
-- Emit `admin_actions` row with reason code for audit.
+### 1. Server-authoritative promotion (source of truth)
+Extend `admin-me` (already called on every admin page load) with a small, idempotent step:
+- Look up `internal_users` row for `auth.uid()`.
+- If `status = 'invited'` **and** `auth.users.last_sign_in_at IS NOT NULL`, update to:
+  - `status = 'active'`
+  - `invitation_status = 'accepted'`
+  - `activated_at = now()` (new nullable column, additive)
+- Write one `admin_audit_logs` entry: `action = 'internal_user.activated'`, `actor_id = self`, `reason = 'invite_accepted'`. Idempotent because the update is gated on `status = 'invited'`.
 
-Add `support_agent_resolution_cap` to system settings seed if absent.
+### 2. Keep AcceptInvite as a fast path
+Leave the existing client update in place so the badge flips instantly after password-set for users who go through that flow. The server path in step 1 is the guarantee.
 
-### 3. Frontend hide/disable gating
-Wire `useAdminPermissions().has(...)` on:
-- `src/pages/AdminTransactionDetail.tsx` — hide/disable Update, Resolve Dispute, Escalate, Add Note, Request Info buttons per matching permission.
-- `src/pages/AdminDisputeDetail.tsx` (or equivalent drawer) — Resolve, Escalate, Request Evidence, Update Status, Internal Note.
-- `src/pages/AdminFlaggedUsers.tsx` row actions — Suspend vs Remove Flag split.
-- Show a tooltip ("Requires escalation" / "Insufficient permission") on disabled controls.
+### 3. Backfill existing stuck rows
+One-time migration: for every `internal_users` row where `status = 'invited'` AND matching `auth.users.last_sign_in_at IS NOT NULL`, set `status='active'`, `invitation_status='accepted'`, `activated_at = coalesce(activated_at, last_sign_in_at)`. Resolves the Support Agent row visible in the screenshot without waiting for their next login.
 
-### 4. Export gating in `admin-run-export`
-File: `supabase/functions/admin-run-export/index.ts`
+### 4. Stat cards on `/admin/access-control`
+The card values come from the same directory dataset — once the underlying `status` flips, the cards recompute correctly on next fetch. Additionally:
+- Audit `admin-access-control` (or the equivalent stats query) to confirm the six cards use these definitions and fix any mismatch found:
+  - **Active Admins** — `status='active'` AND role bucket ∈ admin family.
+  - **Active Agents** — `status='active'` AND role bucket ∈ operational agents (support agent, ops agent, etc.).
+  - **Pending Invitations** — `status='invited'` (i.e. never signed in).
+  - **Pending Access Approvals** — pending rows in the approvals queue.
+  - **Suspended or Locked Users** — `status IN ('suspended','locked')`.
+  - **Privileged Access Users** — role bucket ∈ privileged set (super admin, owner, etc.).
+- If the cards are currently cached separately, ensure they refetch after `admin-me` promotes the row (invalidate the relevant query keys on the access-control page load).
 
-Map each export `type` to a required permission and enforce via `requirePermission`:
-- `users_directory` → `users_and_access.export`
-- `flagged_users` → `flagged_users.export`
-- `transactions` → `transactions.export`
-- `audit_logs` → `audit_logs.export`
-- `escrow` → `escrow.export`
+### 5. UI
+No component redesign — cards and table already render `status`/counts from the dataset. Only the numeric values will change.
 
-Reject with `403 { error: 'permission_denied', permission: '...' }` on miss.
+### 6. Verification
+- Pre/post `supabase--read_query` on `internal_users` + `auth.users` for the Support Agent row.
+- Sign in as an invited user (or curl `admin-me` with their JWT) and confirm the row flips and one audit log is written.
+- Reload `/admin/access-control` and confirm: table row → **Active**, **Active Agents** → `1`, **Pending Invitations** → `0`.
 
-### 5. Decision: `users_and_access.suspend` vs `flagged_users.suspend`
-Recommendation: **keep `flagged_users.suspend`** for suspensions initiated from the Flagged Users queue (contextual, already wired), and reserve `users_and_access.suspend` for suspensions from the Users & Access directory. Both map to the same DB mutation but audit with distinct source.
-
-Action:
-- Leave `admin-flagged-users-action` on `flagged_users.suspend`.
-- Ensure directory-side suspend endpoint (`admin-suspend-user` or equivalent) checks `users_and_access.suspend`.
-- Document the split in `src/services/permission-catalog.ts` comments.
-
-### 6. Tests + QA
-- **Contract tests** (`src/__tests__/support-agent.contract.test.ts`):
-  - Positive: support_agent can call `admin-transaction-detail`, `admin-dispute-transition` (update_status on assigned), `admin-transaction-actions` (add_internal_note, request_info), `admin-flagged-users-action` (remove_flag).
-  - Negative: support_agent rejected on escalate without `disputes.escalate`, resolve over cap, export without `*.export`, suspend from directory without `users_and_access.suspend`.
-- **Unit test** for `permissionForPath` covering all new leaf routes.
-- **Manual QA pass** logged in as support_agent: dashboard → transactions → disputes → flagged users; verify hidden/disabled buttons and 403 shapes.
-
-### Deploy
-Redeploy: `admin-transaction-actions`, `admin-run-export`, and any directory suspend function touched.
-
-### Next actions (execution order)
-1. Route map leaves + `permissionForPath` unit test.
-2. `admin-run-export` gating + deploy.
-3. Escalation policy in `admin-transaction-actions` + deploy.
-4. Frontend gating on 3 detail pages.
-5. Directory suspend permission wiring.
-6. Contract test suite + QA walk-through.
+## Technical notes
+- New column: `internal_users.activated_at timestamptz null`. Additive, safe.
+- No changes to invite-send / accept-link URLs, RBAC, or route guards.
+- No frontend behavior changes beyond values updating.
