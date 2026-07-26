@@ -2859,7 +2859,10 @@ export type Database = {
           id: string
           reason: string | null
           requested_by: string | null
+          requires_approval: boolean
+          review_comments: Json
           status: string
+          submitted_at: string | null
           target_key: string
           target_scope: string
         }
@@ -2873,7 +2876,10 @@ export type Database = {
           id?: string
           reason?: string | null
           requested_by?: string | null
+          requires_approval?: boolean
+          review_comments?: Json
           status?: string
+          submitted_at?: string | null
           target_key: string
           target_scope: string
         }
@@ -2887,7 +2893,10 @@ export type Database = {
           id?: string
           reason?: string | null
           requested_by?: string | null
+          requires_approval?: boolean
+          review_comments?: Json
           status?: string
+          submitted_at?: string | null
           target_key?: string
           target_scope?: string
         }
@@ -5730,7 +5739,10 @@ export type Database = {
               id: string
               reason: string | null
               requested_by: string | null
+              requires_approval: boolean
+              review_comments: Json
               status: string
+              submitted_at: string | null
               target_key: string
               target_scope: string
             }
@@ -5753,7 +5765,10 @@ export type Database = {
               id: string
               reason: string | null
               requested_by: string | null
+              requires_approval: boolean
+              review_comments: Json
               status: string
+              submitted_at: string | null
               target_key: string
               target_scope: string
             }
@@ -5900,7 +5915,10 @@ export type Database = {
               id: string
               reason: string | null
               requested_by: string | null
+              requires_approval: boolean
+              review_comments: Json
               status: string
+              submitted_at: string | null
               target_key: string
               target_scope: string
             }
@@ -5923,7 +5941,10 @@ export type Database = {
               id: string
               reason: string | null
               requested_by: string | null
+              requires_approval: boolean
+              review_comments: Json
               status: string
+              submitted_at: string | null
               target_key: string
               target_scope: string
             }
