@@ -82,6 +82,8 @@ export interface PermissionTemplate {
   permission_keys: string[];
   created_at: string;
   updated_at: string;
+  is_system: boolean;
+  status: "active" | "archived";
 }
 
 const roleMapCache = new Map<PermissionEnvironment, RoleGrantMap>();
@@ -475,8 +477,65 @@ export async function listTemplates(): Promise<PermissionTemplate[]> {
       permission_keys: r.permission_keys,
       created_at: r.created_at,
       updated_at: r.updated_at,
+      is_system: !!r.is_system,
+      status: (r.status ?? "active") as "active" | "archived",
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Compute the diff of applying a template to a role and return an object
+ * suitable for review + staging (via submitChangeSet).
+ */
+export interface ApplyTemplateDiff {
+  add: string[];
+  remove: string[];
+  privileged_added: string[];
+  approval_required: boolean;
+  before: string[];
+  after: string[];
+}
+
+export async function computeApplyTemplateDiff(
+  templateId: string,
+  role: InternalRoleKey,
+  env: PermissionEnvironment = DEFAULT_ENVIRONMENT,
+): Promise<ApplyTemplateDiff> {
+  const [templates, roleMap] = await Promise.all([
+    listTemplates(),
+    fetchRoleGrantMap(true, env),
+  ]);
+  const tpl = templates.find((t) => t.id === templateId);
+  if (!tpl) throw new Error("Template not found");
+  const current = new Set(roleMap.map.get(role) ?? []);
+  const target = new Set(tpl.permission_keys);
+  const add = [...target].filter((k) => !current.has(k));
+  const remove = [...current].filter((k) => !target.has(k));
+  const privileged_added = add.filter(isPrivilegedPermission);
+  return {
+    add, remove, privileged_added,
+    approval_required: privileged_added.length > 0,
+    before: [...current].sort(),
+    after: [...target].sort(),
+  };
+}
+
+export async function stageApplyTemplateToRole(
+  templateId: string,
+  role: InternalRoleKey,
+  env: PermissionEnvironment = DEFAULT_ENVIRONMENT,
+  reason?: string,
+) {
+  const diff = await computeApplyTemplateDiff(templateId, role, env);
+  await permissionRepo.submitChangeSet({
+    target_scope: "role",
+    target_key: role,
+    before: diff.before,
+    after: diff.after,
+    reason: reason ?? `Apply template ${templateId} to ${role}`,
+    environment: env,
+  });
+  return diff;
 }
 
 export async function cloneRoleAsTemplate(
