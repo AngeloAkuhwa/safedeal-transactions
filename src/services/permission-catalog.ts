@@ -130,6 +130,12 @@ export function getPermissionRisk(key: string): PermissionRiskLevel {
   return RISK_BY_KEY.get(key) ?? "low";
 }
 
+// System-default lookup — permissions inserted by the base seed migration.
+const SYSTEM_DEFAULT_KEYS = new Set<string>();
+export function isSystemDefaultPermission(key: string): boolean {
+  return SYSTEM_DEFAULT_KEYS.has(key);
+}
+
 /**
  * Hydrate the module catalog and risk lookup from DB rows returned by
  * permissionRepo.listFeatures(). Safe to call multiple times.
@@ -137,14 +143,17 @@ export function getPermissionRisk(key: string): PermissionRiskLevel {
 export function hydratePermissionCatalog(rows: Array<{
   key: string; module: string; action: string; label: string;
   risk_level: PermissionRiskLevel; module_label?: string;
+  is_system_default?: boolean;
 }>) {
   if (!rows || rows.length === 0) return;
   RISK_BY_KEY.clear();
+  SYSTEM_DEFAULT_KEYS.clear();
   const byModule = new Map<string, { key: string; label: string; perms: PermissionEntry[] }>();
   // seed module labels from the static catalog first for stable order
   for (const m of MODULES) byModule.set(m.key, { key: m.key, label: m.label, perms: [] });
   for (const r of rows) {
     RISK_BY_KEY.set(r.key, r.risk_level ?? "low");
+    if (r.is_system_default) SYSTEM_DEFAULT_KEYS.add(r.key);
     const modLabel = r.module_label ?? MODULES.find((m) => m.key === r.module)?.label ?? r.module;
     if (!byModule.has(r.module)) byModule.set(r.module, { key: r.module, label: modLabel, perms: [] });
     const bucket = byModule.get(r.module)!;
@@ -179,18 +188,84 @@ export function permissionsForRoles(
  * High-signal / dangerous action list. Used to flag "privileged permissions
  * being introduced" in the Change Role diff and "restricted" listings.
  *
- * NOTE: this heuristic is retained for legacy call sites. Prefer
- * `getPermissionRisk(key)` which reads the real DB risk level.
+ * @deprecated Use `getPermissionRisk(key)` — this heuristic pre-dates the
+ * `permissions.risk_level` column and is only kept for legacy call sites.
  */
 export const PRIVILEGED_ACTIONS: PermissionAction[] = [
   "approve", "manage_permissions", "configure", "suspend",
 ];
 
+/**
+ * @deprecated Prefer `getPermissionRisk(key)` and compare against `"high"`
+ * or `"critical"`. Kept as a shim so old call sites keep working while the
+ * catalog hydrates from the DB.
+ */
 export function isPrivilegedPermission(key: string): boolean {
   const risk = RISK_BY_KEY.get(key);
   if (risk === "high" || risk === "critical") return true;
   const action = key.split(".")[1] as PermissionAction | undefined;
   return !!action && PRIVILEGED_ACTIONS.includes(action);
+}
+
+// ---------------------------------------------------------------------------
+// Row-state derivation
+// ---------------------------------------------------------------------------
+
+export interface DeriveRowStateArgs {
+  permissionKey: string;
+  userId?: string | null;
+  userRoleKeys?: string[];
+  viewerCanManagePermissions?: boolean;
+  roleGrantMap?: Map<string, Set<string>>;
+  override?: { mode: "grant" | "revoke"; expires_at?: string | null } | null;
+  pendingKeysForUser?: Set<string>;
+}
+
+/**
+ * Derive the effective row-state for a single (permission, user) pair using
+ * the model from the spec (§4). Order matters:
+ *   restricted  → critical + viewer lacks manage
+ *   pending     → open access_change_requests row
+ *   override_*  → user_permission_overrides row
+ *   granted     → any of the user's roles grants it
+ *   denied      → default
+ */
+export function derivePermissionRowState(a: DeriveRowStateArgs): PermissionRowState {
+  const risk = getPermissionRisk(a.permissionKey);
+  if (risk === "critical" && a.viewerCanManagePermissions === false) return "restricted";
+  if (a.pendingKeysForUser?.has(a.permissionKey)) return "pending";
+  if (a.override) return a.override.mode === "grant" ? "override_granted" : "override_denied";
+  if (a.roleGrantMap && a.userRoleKeys?.length) {
+    for (const role of a.userRoleKeys) {
+      if (a.roleGrantMap.get(role)?.has(a.permissionKey)) return "granted";
+    }
+  }
+  return "denied";
+}
+
+/**
+ * Derive the "source of truth" chip for an effective permission.
+ * Used by drawers to explain WHY the user has (or lacks) an action.
+ */
+export function derivePermissionSource(a: {
+  permissionKey: string;
+  override?: { mode: "grant" | "revoke"; expires_at?: string | null } | null;
+  matchedTemplateName?: string | null;
+  grantedByRole?: boolean;
+  viewerCanManagePermissions?: boolean;
+}): PermissionSource {
+  if (a.override) {
+    if (a.override.expires_at && new Date(a.override.expires_at) > new Date()) return "temporary_access";
+    return "user_override";
+  }
+  const risk = getPermissionRisk(a.permissionKey);
+  if (risk === "critical" && a.viewerCanManagePermissions === false && !a.grantedByRole) {
+    return "system_restriction";
+  }
+  if (a.matchedTemplateName) return "role_template";
+  if (a.grantedByRole) return "direct_role";
+  if (isSystemDefaultPermission(a.permissionKey)) return "system_default";
+  return "direct_role";
 }
 
 // ---------------------------------------------------------------------------
