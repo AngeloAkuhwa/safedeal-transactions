@@ -49,8 +49,10 @@ import { CloneRoleAsTemplateDialog } from "@/components/admin/permission-matrix/
 import { ResetRoleToDefaultDialog } from "@/components/admin/permission-matrix/ResetRoleToDefaultDialog";
 import { CreateOverrideDrawer } from "@/components/admin/permission-matrix/CreateOverrideDrawer";
 import { ViewOverrideAuditDialog } from "@/components/admin/permission-matrix/ViewOverrideAuditDialog";
+import { ApprovalDetailsDrawer } from "@/components/admin/permission-matrix/ApprovalDetailsDrawer";
 import { ErrorState, LoadingSkeleton } from "@/components/admin/permission-matrix/EmptyState";
 import { fetchPermissionEnvironments } from "@/services/permission-workspace.service";
+import { useUnsavedNavigationGuard } from "@/hooks/useUnsavedNavigationGuard";
 import { Plus } from "lucide-react";
 
 const VALID_TABS = new Set<WorkspaceTab>(TAB_DEFS.map((t) => t.key));
@@ -201,8 +203,8 @@ export default function AdminPermissionMatrix() {
   const [editKey, setEditKey] = useState<string | null>(null);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [override, setOverride] = useState<OverrideRow | null>(null);
-  const [approval, setApproval] = useState<ApprovalRow | null>(null);
-  const [history, setHistory] = useState<HistoryRow | null>(null);
+  const [approval, setApproval] = useState<PermissionApprovalItem | null>(null);
+  const [approvalOpen, setApprovalOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [stagedReviewOpen, setStagedReviewOpen] = useState(false);
   const [cloneRoleFor, setCloneRoleFor] = useState<InternalRoleKey | null>(null);
@@ -213,8 +215,24 @@ export default function AdminPermissionMatrix() {
 
   const openFeature = (k: string) => { setFeatureKey(k); setFeatureOpen(true); };
   const openOverride = (o: OverrideRow) => setOverride(o);
-  const openApproval = (a: ApprovalRow) => { setApproval(a); setHistory(null); setReviewOpen(true); };
-  const openHistory = (h: HistoryRow) => { setHistory(h); setApproval(null); setReviewOpen(true); };
+  const openApproval = (a: PermissionApprovalItem) => { setApproval(a); setApprovalOpen(true); };
+  const openHistory = (_h: PermissionHistoryItem) => { /* details drawer TBD; keep no-op */ };
+  const recreateFromHistory = (h: PermissionHistoryItem) => {
+    if (h.target_scope !== "role") return;
+    // Inverse of the applied change: re-stage previously-removed keys as grants
+    // and previously-added keys as revokes. Runs through the normal Review flow.
+    staged.stageMany(h.target_key as InternalRoleKey, [
+      ...h.removed_keys.map((k) => ({ permissionKey: k, op: "grant" as const })),
+      ...h.added_keys.map((k) => ({ permissionKey: k, op: "revoke" as const })),
+    ]);
+    setTab("role-detail");
+    setStagedReviewOpen(true);
+  };
+
+  useUnsavedNavigationGuard(
+    staged.totalChanges > 0,
+    "You have unsaved permission changes. Leave without submitting them for review?",
+  );
 
   const handleOpenFromCard = (target: Parameters<React.ComponentProps<typeof PermissionSummaryCards>["onOpen"]>[0], filter?: string) => {
     if (target === "feature-registry" && filter === "privileged") {
@@ -423,7 +441,7 @@ export default function AdminPermissionMatrix() {
           <>
             {approvalsQuery.isLoading && <LoadingSkeleton rows={5} />}
             {approvalsQuery.error && <ErrorState message={(approvalsQuery.error as Error).message} onRetry={() => approvalsQuery.refetch()} />}
-            {approvalsQuery.data && <PendingApprovalTable rows={approvalsQuery.data} />}
+            {approvalsQuery.data && <PendingApprovalTable rows={approvalsQuery.data} onRowClick={openApproval} />}
           </>
         )}
 
@@ -432,7 +450,7 @@ export default function AdminPermissionMatrix() {
           <>
             {historyQuery.isLoading && <LoadingSkeleton rows={6} />}
             {historyQuery.error && <ErrorState message={(historyQuery.error as Error).message} onRetry={() => historyQuery.refetch()} />}
-            {historyQuery.data && <PermissionHistoryTable rows={historyQuery.data} onRowClick={openHistory} />}
+            {historyQuery.data && <PermissionHistoryTable rows={historyQuery.data} onRowClick={openHistory} onRecreate={recreateFromHistory} />}
           </>
         )}
       </div>
@@ -494,10 +512,14 @@ export default function AdminPermissionMatrix() {
         onOpenChange={(v) => { if (!v) setOverride(null); }}
       />
       <ReviewChangesDrawer
-        approval={approval}
-        history={history}
         open={reviewOpen}
-        onOpenChange={(v) => { setReviewOpen(v); if (!v) { setApproval(null); setHistory(null); } }}
+        onOpenChange={setReviewOpen}
+      />
+      <ApprovalDetailsDrawer
+        item={approval}
+        open={approvalOpen}
+        onOpenChange={(v) => { setApprovalOpen(v); if (!v) setApproval(null); }}
+        onChanged={() => { approvalsQuery.refetch(); historyQuery.refetch(); rolesQuery.refetch(); }}
       />
       <CloneRoleAsTemplateDialog
         open={!!cloneRoleFor}
