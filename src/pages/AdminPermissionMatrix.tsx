@@ -18,7 +18,7 @@ import {
 } from "@/services/permission-workspace.service";
 import type { InternalRoleKey } from "@/services/permission-catalog";
 import { hydratePermissionCatalog } from "@/services/permission-catalog";
-import { hydratePermissionDependencies } from "@/services/permission-dependencies";
+import { hydratePermissionDependencies, hydratePermissionConflicts } from "@/services/permission-dependencies";
 import { permissionRepo } from "@/services/permission-repository";
 import { PermissionSummaryCards } from "@/components/admin/permission-matrix/PermissionSummaryCards";
 import { HowPermissionsWorkPanel } from "@/components/admin/permission-matrix/HowPermissionsWorkPanel";
@@ -118,6 +118,20 @@ export default function AdminPermissionMatrix() {
         return rows;
       } catch {
         // Fallback to compiled defaults if the table is unreachable.
+        return [];
+      }
+    },
+    staleTime: 5 * 60_000,
+  });
+  // Hydrate SoD conflict rules from DB (permission_conflicts).
+  useQuery({
+    queryKey: ["perm-workspace", "conflict-catalog"],
+    queryFn: async () => {
+      try {
+        const rows = await permissionRepo.listPermissionConflicts();
+        hydratePermissionConflicts(rows);
+        return rows;
+      } catch {
         return [];
       }
     },

@@ -2890,6 +2890,77 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_conflict_acknowledgements: {
+        Row: {
+          a_key: string
+          actor_id: string
+          b_key: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          reason: string
+          role_key: string
+        }
+        Insert: {
+          a_key: string
+          actor_id: string
+          b_key: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          reason: string
+          role_key: string
+        }
+        Update: {
+          a_key?: string
+          actor_id?: string
+          b_key?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          reason?: string
+          role_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_conflict_acknowledgements_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "internal_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permission_conflicts: {
+        Row: {
+          a_key: string
+          b_key: string
+          created_at: string
+          id: string
+          rationale: string | null
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          a_key: string
+          b_key: string
+          created_at?: string
+          id?: string
+          rationale?: string | null
+          severity?: string
+          updated_at?: string
+        }
+        Update: {
+          a_key?: string
+          b_key?: string
+          created_at?: string
+          id?: string
+          rationale?: string | null
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       permission_dependencies: {
         Row: {
           created_at: string

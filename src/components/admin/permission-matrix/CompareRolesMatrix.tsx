@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Check, X, AlertTriangle, ShieldAlert, GitCompare, ArrowRight,
-  Copy, Wand2, CircleCheck, CircleAlert, Users,
+  Copy, Wand2, CircleCheck, CircleAlert, Users, ShieldCheck, BellOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   INTERNAL_ROLES,
   PERMISSION_MODULES,
@@ -14,11 +16,15 @@ import {
   type InternalRoleKey,
 } from "@/services/permission-catalog";
 import type { RoleGrantMap } from "@/services/permission-workspace.service";
-import { computeRoleDiff, computeMissingDependencies, computeConflicts } from "@/services/permission-dependencies";
+import {
+  computeRoleDiff, computeMissingDependencies, computeConflicts, isSodExempt,
+} from "@/services/permission-dependencies";
+import { permissionRepo, type ConflictAcknowledgementRow } from "@/services/permission-repository";
 import type { RoleMatrixFilters } from "@/hooks/useRoleMatrixFilters";
 import type { StagedOp } from "@/hooks/useStagedPermissionChanges";
 import { PermissionPanel } from "./PermissionPanel";
 import { CopyPermissionsPreview } from "./CopyPermissionsPreview";
+import { AcknowledgeConflictDialog } from "./AcknowledgeConflictDialog";
 
 interface Props {
   roleMap: RoleGrantMap;
@@ -63,6 +69,51 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRol
   const [copySource, setCopySource] = useState<InternalRoleKey | null>(selected[0] ?? null);
   const [copyTarget, setCopyTarget] = useState<InternalRoleKey | null>(selected[1] ?? null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [ackTarget, setAckTarget] = useState<{ role: InternalRoleKey; a: string; b: string } | null>(null);
+
+  const qc = useQueryClient();
+  const ackQuery = useQuery({
+    queryKey: ["permission-conflict-acks"],
+    queryFn: () => permissionRepo.listConflictAcknowledgements(),
+    staleTime: 60_000,
+  });
+  const acks = ackQuery.data ?? [];
+
+  const ackKey = (role: string, a: string, b: string) => {
+    // Pair is directionless; match either order.
+    return acks.find((r) =>
+      r.role_key === role
+      && ((r.a_key === a && r.b_key === b) || (r.a_key === b && r.b_key === a))
+      && (!r.expires_at || new Date(r.expires_at) > new Date()),
+    ) ?? null;
+  };
+
+  const ackMutation = useMutation({
+    mutationFn: async (input: { role: string; a: string; b: string; reason: string; expiresAt: string | null }) => {
+      await permissionRepo.acknowledgeConflict({
+        role_key: input.role,
+        a_key: input.a,
+        b_key: input.b,
+        reason: input.reason,
+        expires_at: input.expiresAt,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Conflict acknowledged");
+      qc.invalidateQueries({ queryKey: ["permission-conflict-acks"] });
+      setAckTarget(null);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to acknowledge conflict"),
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (id: string) => permissionRepo.revokeConflictAcknowledgement(id),
+    onSuccess: () => {
+      toast.success("Acknowledgement revoked");
+      qc.invalidateQueries({ queryKey: ["permission-conflict-acks"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to revoke acknowledgement"),
+  });
 
   const q = filters.search.trim().toLowerCase();
   const filterKey = (k: string): boolean => {
@@ -84,14 +135,22 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRol
   const differingFiltered = diff.differing.filter(filterKey);
   const privilegedDiffs = differingFiltered.filter(isPrivilegedPermission);
 
+  // Exempt roles (Super Admin) hold every permission by design; skip SoD +
+  // missing-dependency scans on them entirely so the noise doesn't hide real
+  // findings on other roles.
   const perRoleAnalysis = selected.map((role) => {
+    if (isSodExempt(role)) {
+      return { role, missing: [], conflicts: [], exempt: true };
+    }
     const bag = roleMap.map.get(role) ?? new Set<string>();
     return {
       role,
       missing: computeMissingDependencies(bag),
       conflicts: computeConflicts(bag),
+      exempt: false,
     };
   });
+  const exemptRolesInView = perRoleAnalysis.filter((x) => x.exempt).map((x) => x.role);
 
   const openCopyPreview = () => {
     if (!canWrite || !copySource || !copyTarget || copySource === copyTarget) return;
@@ -288,6 +347,17 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRol
         title="Conflicting financial responsibilities"
         count={perRoleAnalysis.reduce((n, x) => n + x.conflicts.length, 0)}
       >
+        {exemptRolesInView.length > 0 && (
+          <div className="mb-3 flex items-start gap-2 rounded-lg border border-border/40 bg-background/40 p-2.5 text-[11px] text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+            <span>
+              <span className="font-semibold text-foreground/80">
+                {exemptRolesInView.map((r) => ROLE_LABEL[r]).join(", ")}
+              </span>{" "}
+              {exemptRolesInView.length === 1 ? "is" : "are"} exempt from segregation-of-duties checks by design.
+            </span>
+          </div>
+        )}
         {perRoleAnalysis.every((x) => x.conflicts.length === 0) ? (
           <EmptyRow icon={<CircleCheck className="h-4 w-4 text-emerald-400" />}
             title="No segregation-of-duties conflicts detected"
@@ -299,21 +369,67 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRol
                 {x.conflicts.map((c, i) => {
                   const a = permLabel(c.a);
                   const b = permLabel(c.b);
+                  const ack = ackKey(x.role, c.a, c.b);
                   return (
-                    <li key={i} className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/30">
-                      <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400" />
+                    <li
+                      key={i}
+                      className={cn(
+                        "flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/30",
+                        ack && "opacity-70",
+                      )}
+                    >
+                      <span className={cn(
+                        "mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full",
+                        ack ? "bg-muted-foreground/50" : "bg-rose-400",
+                      )} />
                       <div className="min-w-0 flex-1 text-xs">
-                        <div className="text-foreground/90">
+                        <div className={cn("text-foreground/90", ack && "line-through decoration-muted-foreground/40")}>
                           <span className="font-semibold">{a.label}</span>
                           <span className="text-muted-foreground"> conflicts with </span>
                           <span className="font-semibold">{b.label}</span>
                         </div>
-                        <div className="mt-0.5 flex flex-wrap gap-x-2 text-[10px] text-muted-foreground">
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] text-muted-foreground">
                           <code>{c.a}</code>
                           <span>↔</span>
                           <code>{c.b}</code>
+                          {ack && (
+                            <span
+                              title={ack.reason}
+                              className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300"
+                            >
+                              <ShieldCheck className="h-3 w-3" /> Acknowledged
+                            </span>
+                          )}
                         </div>
+                        {ack && (
+                          <div className="mt-0.5 line-clamp-2 text-[10px] italic text-muted-foreground">
+                            “{ack.reason}”
+                          </div>
+                        )}
                       </div>
+                      {canWrite && (
+                        ack ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`Revoke acknowledgement of "${a.label} ↔ ${b.label}" for ${ROLE_LABEL[x.role]}?`)) {
+                                revokeMutation.mutate(ack.id);
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:border-rose-500/40 hover:text-rose-300"
+                          >
+                            <BellOff className="h-3 w-3" /> Revoke ack
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setAckTarget({ role: x.role, a: c.a, b: c.b })}
+                            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[10px] font-semibold text-amber-300 hover:border-amber-500/40"
+                          >
+                            <ShieldCheck className="h-3 w-3" /> Acknowledge
+                          </button>
+                        )
+                      )}
                     </li>
                   );
                 })}
@@ -355,6 +471,19 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRol
         roleMap={roleMap}
         onClose={() => setPreviewOpen(false)}
         onStage={(t, changes) => onStageMany(t, changes)}
+      />
+
+      <AcknowledgeConflictDialog
+        open={ackTarget !== null}
+        role={ackTarget?.role ?? null}
+        aKey={ackTarget?.a ?? null}
+        bKey={ackTarget?.b ?? null}
+        submitting={ackMutation.isPending}
+        onClose={() => setAckTarget(null)}
+        onSubmit={(reason, expiresAt) => {
+          if (!ackTarget) return;
+          ackMutation.mutate({ role: ackTarget.role, a: ackTarget.a, b: ackTarget.b, reason, expiresAt });
+        }}
       />
     </div>
   );

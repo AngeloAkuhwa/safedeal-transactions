@@ -1,8 +1,8 @@
-import { useEffect } from "react";
 import { Shield } from "lucide-react";
 import type { RoleGrantMap } from "@/services/permission-workspace.service";
 import { useRoleMatrixFilters } from "@/hooks/useRoleMatrixFilters";
 import { useStagedPermissionChanges } from "@/hooks/useStagedPermissionChanges";
+import { useUnsavedNavigationGuard } from "@/hooks/useUnsavedNavigationGuard";
 import { RoleMatrixToolbar } from "./RoleMatrixToolbar";
 import { AllRolesMatrix } from "./AllRolesMatrix";
 import { CompareRolesMatrix } from "./CompareRolesMatrix";
@@ -20,16 +20,24 @@ export function RoleMatrix({
   const { state: filters, set, toggleModule, expandAll, collapseAll, reset, isModuleExpanded, activeFilterCount } = useRoleMatrixFilters();
   const staged = useStagedPermissionChanges();
 
-  // Unsaved-changes guard: warn before the tab closes / hard-navigates.
-  useEffect(() => {
-    if (staged.totalChanges === 0) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [staged.totalChanges]);
+  // Unsaved-changes guard: intercepts in-app link clicks and hard closes/reloads
+  // while staged edits exist.
+  useUnsavedNavigationGuard(
+    staged.totalChanges > 0,
+    `You have ${staged.totalChanges} staged permission change${staged.totalChanges === 1 ? "" : "s"}. Leave without submitting?`,
+  );
+
+  // Guard the mode switcher too (in-tab navigation doesn't trigger anchor clicks).
+  const handleModeChange = (mode: "all" | "compare") => {
+    if (staged.totalChanges > 0 && mode !== filters.mode) {
+      const ok = window.confirm(
+        `You have ${staged.totalChanges} staged permission change${staged.totalChanges === 1 ? "" : "s"}. Switch modes and discard them?`,
+      );
+      if (!ok) return;
+      staged.discardAll();
+    }
+    set("mode", mode);
+  };
 
   return (
     <div className="space-y-4">
@@ -40,7 +48,7 @@ export function RoleMatrix({
         expandAll={expandAll}
         collapseAll={collapseAll}
         activeFilterCount={activeFilterCount}
-        onModeChange={(mode) => set("mode", mode)}
+        onModeChange={handleModeChange}
       />
 
       {!canWrite && (
