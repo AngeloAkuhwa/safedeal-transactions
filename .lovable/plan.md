@@ -1,57 +1,67 @@
-## Problem
-Two related bugs on `/admin/access-control`:
-1. After the invited Support Agent accepted the invite and signed in, the row still shows **Invited** instead of **Active**.
-2. The summary stat cards don't reflect reality either — that same signed-in Support Agent isn't counted in **Active Agents** (shows `0`), and **Pending Invitations** still counts them (shows `1`).
+## Feature Registry & Permission Matrix — production upgrade
 
-Both stem from the same root cause: `internal_users.status` is never flipped from `invited` → `active` reliably after first sign-in.
+Rebuild the existing `/admin/permission-matrix` page into a full workspace styled after the supplied Feature Registry HTML, while reusing SafeDeal's sidebar, header, theme, RBAC context and existing DB tables (`internal_roles`, `role_permissions`, `permissions`, `user_permission_overrides`, `access_change_requests`, `admin_actions`). No new app shell, no duplicate roles, no hardcoded records — all data comes from the same services that Users & Access already uses.
 
-## Root cause (to confirm on entering build mode)
-Promotion currently only runs inside `src/pages/AcceptInvite.tsx` via a client `UPDATE internal_users` after `updatePassword` succeeds. It fails silently when:
-- The recovery link lands the user already-authenticated and they bypass the password form.
-- RLS on `internal_users` blocks the self-`UPDATE` from the user's own JWT.
-- The invited user was an already-existing auth user (recovery flow) and skipped the AcceptInvite screen entirely.
+### Route & shell
+- Keep `/admin/permission-matrix` as canonical. `/admin/permissions` continues to redirect there (already wired in `App.tsx`).
+- Continue using `AdminLayout`. Title → **"Feature Registry & Permission Matrix"**, subtitle → **"Configure platform features, role permissions, individual overrides and privileged access controls."**
+- Sticky sub-header inside the page hosts: Security Level badge (derived from viewer role), History button (deep-links Change History tab), Save Changes (enabled only when dirty edits + user has `permissions.manage_permissions`).
 
-Presence heartbeat writes `last_active` on a separate path, which is why the row can show "Just now" while `status` stays `invited`.
+### Information architecture (tabs)
+Tabs live in a new `PermissionWorkspaceTabs` component, URL-synced via `?tab=`:
+1. **Role Matrix** — desktop grid (features × roles) fed by `role_permissions`. Horizontal scroll confined to matrix container. Cells render via `PermissionStateCell` (Full / Partial / None / Override / Restricted / Pending) matching the reference palette.
+2. **Role Detail** — single-role deep view (default on tablet/mobile). Role picker + grouped feature list with per-action toggles. Used as the mobile fallback for the matrix.
+3. **Feature Registry** — table of every module/permission from `PERMISSION_MODULES` joined with live `permissions` rows; shows risk (`isPrivilegedPermission`), roles granting it, override count. Row → `FeatureDetailsDrawer`.
+4. **User Overrides** — reads `user_permission_overrides` joined with `internal_users`; filters by user/role/permission/mode. Row → `PermissionDetailsDrawer` (reuses existing override edit path in `admin-access-control.service.ts`).
+5. **Permission Templates** — CRUD over a new lightweight `permission_templates` concept stored as JSON snapshots on `system_settings` (key `permissions.templates`) so we avoid new tables; Clone Template button in header hydrates from here.
+6. **Pending Approvals** — reads `access_change_requests` where `status='pending'` scoped to permission/role changes; opens `ReviewChangesDrawer` (reuses existing approval RPC).
+7. **Change History** — reads `admin_actions` filtered to `role_changed`, `permission_override_*`, `role_change_*`; rendered via `PermissionHistoryTable` with diff drawer.
 
-Confirm with `supabase--read_query` before writing code: inspect the Support Agent's `internal_users` row + matching `auth.users.last_sign_in_at` to prove the row is stuck at `invited` despite a real sign-in.
+### Overview & summary
+- Replace the giant "Permission System Overview" + "Access State Definitions" blocks with one collapsible **"How permissions work"** panel (persist dismissed state in `localStorage: safedeal.permMatrix.helpDismissed`). Collapsed by default once dismissed.
+- New `PermissionSummaryCards` row (6 cards, same glass-card styling as reference):
+  - Active Roles → filters Role Matrix by non-empty roles
+  - Registered Permissions → opens Feature Registry
+  - Privileged Permissions → Feature Registry pre-filtered `risk=privileged`
+  - User Overrides → opens User Overrides tab
+  - Pending Approvals → opens Pending Approvals tab (with count badge)
+  - Recent Changes → opens Change History tab (last 24h)
+- Counts sourced from a single `usePermissionWorkspaceSummary` hook (parallel queries, cached via React Query).
 
-## Fix plan
+### Filters
+`PermissionFilters` row (View Mode, Role Filter, Feature Group, Environment placeholder disabled for now, plus legend). Shared across Role Matrix / Feature Registry / User Overrides via a small Zustand-less context.
 
-### 1. Server-authoritative promotion (source of truth)
-Extend `admin-me` (already called on every admin page load) with a small, idempotent step:
-- Look up `internal_users` row for `auth.uid()`.
-- If `status = 'invited'` **and** `auth.users.last_sign_in_at IS NOT NULL`, update to:
-  - `status = 'active'`
-  - `invitation_status = 'accepted'`
-  - `activated_at = now()` (new nullable column, additive)
-- Write one `admin_audit_logs` entry: `action = 'internal_user.activated'`, `actor_id = self`, `reason = 'invite_accepted'`. Idempotent because the update is gated on `status = 'invited'`.
+### Components (all new under `src/components/admin/permission-matrix/`)
+PermissionSummaryCards, PermissionWorkspaceTabs, PermissionFilters, RoleMatrix, RoleDetailPanel, FeatureRegistryTable, UserOverrideTable, PermissionTemplateTable, PendingApprovalTable, PermissionHistoryTable, PermissionStateCell, PermissionRiskBadge, ReviewChangesDrawer, PermissionDetailsDrawer, FeatureDetailsDrawer, EmptyState, ErrorState, LoadingSkeleton.
 
-### 2. Keep AcceptInvite as a fast path
-Leave the existing client update in place so the badge flips instantly after password-set for users who go through that flow. The server path in step 1 is the guarantee.
+Drawers reuse `useDrawerSafety` and existing services — no duplicate mutation paths.
 
-### 3. Backfill existing stuck rows
-One-time migration: for every `internal_users` row where `status = 'invited'` AND matching `auth.users.last_sign_in_at IS NOT NULL`, set `status='active'`, `invitation_status='accepted'`, `activated_at = coalesce(activated_at, last_sign_in_at)`. Resolves the Support Agent row visible in the screenshot without waiting for their next login.
+### Data & services
+- New `src/services/permission-workspace.service.ts` wraps existing queries: role map, override list, approvals, admin_actions history, templates read/write via `system_settings`. No new client-side Supabase calls in components.
+- All mutations go through existing `admin-access-control.service.ts` and `admin-log-access-action` edge function so audit + safeguards (self-lock, outrank checks) stay intact.
+- RBAC: page-level gate `permissions.view`; edit affordances gated on `permissions.manage_permissions` via `useAdminPermissions()`; unauthorized viewers get read-only cells + hidden Save button.
 
-### 4. Stat cards on `/admin/access-control`
-The card values come from the same directory dataset — once the underlying `status` flips, the cards recompute correctly on next fetch. Additionally:
-- Audit `admin-access-control` (or the equivalent stats query) to confirm the six cards use these definitions and fix any mismatch found:
-  - **Active Admins** — `status='active'` AND role bucket ∈ admin family.
-  - **Active Agents** — `status='active'` AND role bucket ∈ operational agents (support agent, ops agent, etc.).
-  - **Pending Invitations** — `status='invited'` (i.e. never signed in).
-  - **Pending Access Approvals** — pending rows in the approvals queue.
-  - **Suspended or Locked Users** — `status IN ('suspended','locked')`.
-  - **Privileged Access Users** — role bucket ∈ privileged set (super admin, owner, etc.).
-- If the cards are currently cached separately, ensure they refetch after `admin-me` promotes the row (invalidate the relevant query keys on the access-control page load).
+### Responsive rules
+- ≥`lg`: full Role Matrix with matrix-only horizontal scroll (`overflow-x-auto` inside a `max-w-full` container; page itself uses `overflow-x-hidden`).
+- `<lg`: `PermissionWorkspaceTabs` swaps Role Matrix tab for Role Detail automatically; other tables become stacked cards.
+- Summary cards: 6/3/2/1 columns across breakpoints.
 
-### 5. UI
-No component redesign — cards and table already render `status`/counts from the dataset. Only the numeric values will change.
+### Visual fidelity
+- Tokens from reference: surface `hsl(var(--card))`, borders `hsl(var(--border))`, blue accent = existing `--primary`, success/warning/danger reuse existing semantic tokens. State pill colors mapped: Full=success, Partial=warning, None=muted, Override=primary, Restricted=destructive, Pending=warning-outline.
+- Inter font already global; icons via `lucide-react` (no FontAwesome).
 
-### 6. Verification
-- Pre/post `supabase--read_query` on `internal_users` + `auth.users` for the Support Agent row.
-- Sign in as an invited user (or curl `admin-me` with their JWT) and confirm the row flips and one audit log is written.
-- Reload `/admin/access-control` and confirm: table row → **Active**, **Active Agents** → `1`, **Pending Invitations** → `0`.
+### Out of scope (not touched)
+- Users & Access screens, existing role seed data, existing edge functions' logic.
+- No schema changes beyond storing template JSON in `system_settings` (no migration needed if key already usable; otherwise one tiny insert).
 
-## Technical notes
-- New column: `internal_users.activated_at timestamptz null`. Additive, safe.
-- No changes to invite-send / accept-link URLs, RBAC, or route guards.
-- No frontend behavior changes beyond values updating.
+### Implementation sequence
+1. Scaffold folder + shared types + `permission-workspace.service.ts` + summary hook.
+2. Build `PermissionSummaryCards`, collapsible help panel, tab shell with URL sync.
+3. Port RoleMatrix (from current page) into new `PermissionStateCell` styling; add filters.
+4. RoleDetailPanel + mobile fallback.
+5. FeatureRegistryTable + FeatureDetailsDrawer.
+6. UserOverrideTable + PermissionDetailsDrawer (wired to existing override service).
+7. PermissionTemplateTable (Clone Template action in header hooks here).
+8. PendingApprovalTable + ReviewChangesDrawer (reuses approval service).
+9. PermissionHistoryTable (admin_actions query + diff view).
+10. Wire summary card clicks → tab/filter deep links; add empty/error/loading states everywhere; verify horizontal-overflow discipline and RBAC gating.
