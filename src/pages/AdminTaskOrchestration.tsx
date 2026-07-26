@@ -361,7 +361,7 @@ export default function AdminTaskOrchestration() {
         onOpenChange={o => { if (!o) setReassignTarget(null); }}
         task={reassignTarget}
         roster={data?.roster ?? []}
-        canOverride={perms.has("task_orchestration.override_capacity")}
+        canOverride={perms.canOverrideCapacity}
         onConfirm={handleConfirmReassign}
         submitting={busy === "reassign"}
       />
