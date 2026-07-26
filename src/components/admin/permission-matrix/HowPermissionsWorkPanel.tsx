@@ -5,12 +5,12 @@ import { cn } from "@/lib/utils";
 const DISMISS_KEY = "safedeal.permMatrix.helpDismissed";
 
 const STATES = [
-  { icon: CheckCircle2, tone: "text-emerald-400 bg-emerald-500/10", title: "Full Access", desc: "Complete control over all features and actions" },
-  { icon: AlertTriangle, tone: "text-amber-400 bg-amber-500/10", title: "Partial Access", desc: "Limited functionality with specific restrictions" },
-  { icon: Lock, tone: "text-muted-foreground bg-muted", title: "No Access", desc: "Complete restriction of all features and actions" },
-  { icon: User, tone: "text-primary bg-primary/10", title: "User Override", desc: "Individual user permissions beyond role defaults" },
-  { icon: Shield, tone: "text-destructive bg-destructive/10", title: "Restricted", desc: "Specific actions disabled or limited" },
-  { icon: Clock, tone: "text-amber-400 bg-amber-500/10", title: "Pending Review", desc: "Changes awaiting approval or audit" },
+  { icon: CheckCircle2, dot: "bg-emerald-500", title: "Full",       desc: "Complete control over all actions" },
+  { icon: AlertTriangle, dot: "bg-amber-500",  title: "Limited",    desc: "Partial access with restrictions" },
+  { icon: Lock,          dot: "bg-muted-foreground/60", title: "None", desc: "No access to this feature" },
+  { icon: User,          dot: "bg-primary",     title: "Override",   desc: "User-specific grant beyond role" },
+  { icon: Shield,        dot: "bg-destructive", title: "Restricted", desc: "Actions disabled by policy" },
+  { icon: Clock,         dot: "bg-amber-400",   title: "Pending",    desc: "Awaiting approval or audit" },
 ];
 
 export function HowPermissionsWorkPanel() {
@@ -35,7 +35,7 @@ export function HowPermissionsWorkPanel() {
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card">
+    <div className="rounded-xl border border-border/70 bg-card/60 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset]">
       <button
         type="button"
         onClick={toggle}
@@ -55,21 +55,19 @@ export function HowPermissionsWorkPanel() {
         <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition", open && "rotate-180")} />
       </button>
       {open && (
-        <div className="border-t border-border p-4">
-          <p className="mb-4 text-xs text-muted-foreground">
+        <div className="border-t border-border/60 p-4">
+          <p className="mb-3 text-xs leading-relaxed text-muted-foreground text-balance">
             This workspace controls all security and access permissions across the SafeDeal platform. Configure what each role can access, what actions they can perform, and create user-specific overrides when needed. All changes are audited; privileged actions require Super Admin approval.
           </p>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+          <ul className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-3">
             {STATES.map((s) => (
-              <div key={s.title} className="rounded-lg border border-border/60 bg-card/50 p-3 text-center">
-                <div className={cn("mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full", s.tone)}>
-                  <s.icon className="h-4 w-4" />
-                </div>
-                <div className="text-xs font-semibold text-foreground">{s.title}</div>
-                <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">{s.desc}</p>
-              </div>
+              <li key={s.title} className="flex items-center gap-2 text-xs">
+                <span className={cn("h-2 w-2 shrink-0 rounded-full", s.dot)} />
+                <span className="font-semibold text-foreground">{s.title}</span>
+                <span className="text-muted-foreground">— {s.desc}</span>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
     </div>

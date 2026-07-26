@@ -183,13 +183,18 @@ const HISTORY_ACTION_TYPES = [
   "role_change_rejected",
 ] as const;
 
-export async function fetchChangeHistory(limit = 100): Promise<HistoryRow[]> {
-  const { data, error } = await supabase
+export async function fetchChangeHistory(limit = 100, sinceHours?: number): Promise<HistoryRow[]> {
+  let q = supabase
     .from("admin_actions")
     .select("id,admin_id,target_user_id,action_type,description,metadata,created_at")
     .in("action_type", HISTORY_ACTION_TYPES)
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (sinceHours && sinceHours > 0) {
+    const since = new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
+    q = q.gte("created_at", since);
+  }
+  const { data, error } = await q;
   if (error) throw error;
   const rows = (data ?? []) as any[];
   const ids = Array.from(new Set(rows.flatMap((r) => [r.admin_id, r.target_user_id].filter(Boolean))));
@@ -236,6 +241,7 @@ export async function fetchWorkspaceSummary(): Promise<WorkspaceSummary> {
 }
 
 const TEMPLATE_STORE_KEY = "safedeal.permMatrix.templates.v1";
+const TEMPLATE_SETTING_KEY = "permissions.templates";
 
 function readTemplates(): PermissionTemplate[] {
   if (typeof localStorage === "undefined") return [];
@@ -250,8 +256,40 @@ function writeTemplates(t: PermissionTemplate[]) {
   localStorage.setItem(TEMPLATE_STORE_KEY, JSON.stringify(t));
 }
 
-export function listTemplates(): PermissionTemplate[] {
-  return readTemplates().sort((a, b) => a.name.localeCompare(b.name));
+// Templates persist to `system_settings` (shared across teammates) with a
+// per-browser localStorage fallback so the workspace remains usable even if
+// the platform_settings row hasn't been seeded yet.
+async function readTemplatesRemote(): Promise<PermissionTemplate[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from("system_settings")
+      .select("setting_value")
+      .eq("setting_key", TEMPLATE_SETTING_KEY)
+      .maybeSingle();
+    if (error) return null;
+    const val = (data as any)?.setting_value;
+    if (Array.isArray(val)) return val as PermissionTemplate[];
+    if (val && Array.isArray((val as any).templates)) return (val as any).templates as PermissionTemplate[];
+    return [];
+  } catch { return null; }
+}
+
+async function writeTemplatesRemote(t: PermissionTemplate[]): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from("system_settings")
+      .upsert(
+        { setting_key: TEMPLATE_SETTING_KEY, setting_value: t as any, updated_at: new Date().toISOString() } as any,
+        { onConflict: "setting_key,scope,vendor_id" },
+      );
+    return !error;
+  } catch { return false; }
+}
+
+export async function listTemplates(): Promise<PermissionTemplate[]> {
+  const remote = await readTemplatesRemote();
+  const source = remote && remote.length ? remote : readTemplates();
+  return [...source].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function cloneRoleAsTemplate(role: InternalRoleKey, name: string, description = ""): Promise<PermissionTemplate> {
@@ -267,12 +305,18 @@ export async function cloneRoleAsTemplate(role: InternalRoleKey, name: string, d
     created_at: now,
     updated_at: now,
   };
-  writeTemplates([...readTemplates(), tpl]);
+  const remote = (await readTemplatesRemote()) ?? readTemplates();
+  const next = [...remote, tpl];
+  const ok = await writeTemplatesRemote(next);
+  if (!ok) writeTemplates(next);
   return tpl;
 }
 
-export function deleteTemplate(id: string) {
-  writeTemplates(readTemplates().filter((t) => t.id !== id));
+export async function deleteTemplate(id: string) {
+  const remote = (await readTemplatesRemote()) ?? readTemplates();
+  const next = remote.filter((t) => t.id !== id);
+  const ok = await writeTemplatesRemote(next);
+  if (!ok) writeTemplates(next);
 }
 
 export type CellState = "full" | "partial" | "none";

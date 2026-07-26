@@ -12,11 +12,11 @@ interface Card {
 }
 
 const TONE: Record<Card["tone"], string> = {
-  primary: "text-primary bg-primary/10",
-  success: "text-emerald-400 bg-emerald-500/10",
-  warning: "text-amber-400 bg-amber-500/10",
-  info: "text-sky-400 bg-sky-500/10",
-  muted: "text-muted-foreground bg-muted",
+  primary: "text-primary bg-primary/10 ring-1 ring-inset ring-primary/20",
+  success: "text-emerald-300 bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/20",
+  warning: "text-amber-300 bg-amber-500/10 ring-1 ring-inset ring-amber-500/20",
+  info: "text-sky-300 bg-sky-500/10 ring-1 ring-inset ring-sky-500/20",
+  muted: "text-muted-foreground bg-muted/60 ring-1 ring-inset ring-border",
 };
 
 export function PermissionSummaryCards({
@@ -44,14 +44,14 @@ export function PermissionSummaryCards({
           key={c.key}
           type="button"
           onClick={c.onClick}
-          className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/50 hover:bg-card/80"
+          className="group flex items-center gap-3 rounded-xl border border-border/70 bg-card/60 p-3.5 text-left backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset] transition hover:-translate-y-0.5 hover:border-primary/50 hover:bg-card/80"
         >
           <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", TONE[c.tone])}>
-            <c.icon className="h-5 w-5" />
+            <c.icon className="h-4.5 w-4.5" />
           </div>
           <div className="min-w-0">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{c.label}</div>
-            <div className="mt-0.5 text-xl font-bold text-foreground">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{c.label}</div>
+            <div className="mt-0.5 text-2xl font-bold leading-none text-foreground">
               {loading ? <span className="inline-block h-5 w-8 animate-pulse rounded bg-muted" /> : c.value}
             </div>
           </div>
