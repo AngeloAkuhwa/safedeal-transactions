@@ -20,6 +20,7 @@ import type { InternalRoleKey } from "@/services/permission-catalog";
 import { hydratePermissionCatalog } from "@/services/permission-catalog";
 import { hydratePermissionDependencies, hydratePermissionConflicts } from "@/services/permission-dependencies";
 import { permissionRepo } from "@/services/permission-repository";
+import { EnvironmentSwitcher, EnvironmentRibbon, useCurrentEnvironment } from "@/components/admin/permission-matrix/EnvironmentSwitcher";
 import { PermissionSummaryCards } from "@/components/admin/permission-matrix/PermissionSummaryCards";
 import { HowPermissionsWorkPanel } from "@/components/admin/permission-matrix/HowPermissionsWorkPanel";
 import { AccessStateDefinitionsPanel } from "@/components/admin/permission-matrix/AccessStateDefinitionsPanel";
@@ -65,6 +66,7 @@ export default function AdminPermissionMatrix() {
   const isMobile = useIsMobile();
 
   const [params, setParams] = useSearchParams();
+  const environment = useCurrentEnvironment();
   const rawTab = params.get("tab") as WorkspaceTab | null;
   const activeTab: WorkspaceTab = rawTab && VALID_TABS.has(rawTab)
     ? rawTab
@@ -91,8 +93,8 @@ export default function AdminPermissionMatrix() {
   }, [params]);
 
   const rolesQuery = useQuery({
-    queryKey: ["perm-workspace", "role-map"],
-    queryFn: () => fetchRoleGrantMap(true),
+    queryKey: ["perm-workspace", "role-map", environment],
+    queryFn: () => fetchRoleGrantMap(true, environment),
     staleTime: 60_000,
   });
   // Hydrate module catalog + risk levels from DB (permissions table).
@@ -220,6 +222,7 @@ export default function AdminPermissionMatrix() {
           )}
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <EnvironmentSwitcher />
           <button
             type="button"
             onClick={() => setTab("change-history")}
@@ -267,6 +270,8 @@ export default function AdminPermissionMatrix() {
       }
     >
       <div className="relative w-full max-w-full space-y-6 overflow-x-hidden bg-[radial-gradient(ellipse_at_top_left,hsl(var(--primary)/0.06),transparent_60%)]">
+        <EnvironmentRibbon />
+
         <HowPermissionsWorkPanel />
 
         <AccessStateDefinitionsPanel />
@@ -294,6 +299,7 @@ export default function AdminPermissionMatrix() {
               <RoleMatrix
                 roleMap={rolesQuery.data}
                 canWrite={canManage}
+                environment={environment}
                 onSubmitted={() => { rolesQuery.refetch(); approvalsQuery.refetch(); historyQuery.refetch(); }}
               />
             )}

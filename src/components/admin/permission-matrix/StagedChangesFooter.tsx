@@ -3,7 +3,7 @@ import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { InternalRoleKey } from "@/services/permission-catalog";
 import { ROLE_LABEL } from "@/services/permission-catalog";
-import { permissionRepo } from "@/services/permission-repository";
+import { permissionRepo, type PermissionEnvironment, DEFAULT_ENVIRONMENT } from "@/services/permission-repository";
 import type { RoleGrantMap } from "@/services/permission-workspace.service";
 import type { StagedChange } from "@/hooks/useStagedPermissionChanges";
 import { toast } from "sonner";
@@ -11,11 +11,12 @@ import { toast } from "sonner";
 interface Props {
   changes: StagedChange[];
   roleMap: RoleGrantMap;
+  environment?: PermissionEnvironment;
   onDiscard: () => void;
   onSubmitted: () => void;
 }
 
-export function StagedChangesFooter({ changes, roleMap, onDiscard, onSubmitted }: Props) {
+export function StagedChangesFooter({ changes, roleMap, environment = DEFAULT_ENVIRONMENT, onDiscard, onSubmitted }: Props) {
   const [busy, setBusy] = useState(false);
   const [reason, setReason] = useState("");
   const [expanded, setExpanded] = useState(false);
@@ -45,9 +46,10 @@ export function StagedChangesFooter({ changes, roleMap, onDiscard, onSubmitted }
           before: { permission_keys: before },
           after: { permission_keys: Array.from(after).sort() },
           reason: reason.trim() || `Bulk edit: ${list.length} change(s) on ${ROLE_LABEL[role]}`,
+          environment,
         });
       }
-      toast.success(`Submitted ${byRole.size} change set(s) for approval`);
+      toast.success(`Submitted ${byRole.size} change set(s) for approval (${environment})`);
       onSubmitted();
     } catch (e) {
       toast.error((e as Error).message || "Failed to submit changes");

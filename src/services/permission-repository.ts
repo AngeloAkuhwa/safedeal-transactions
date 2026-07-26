@@ -5,6 +5,21 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { PermissionRiskLevel } from "./permission-catalog";
 
+/**
+ * Environment scope for all permission-config tables. Every row is written
+ * with an environment tag; reads filter to a single environment so admins
+ * can experiment in Staging/Dev without polluting Production truth.
+ */
+export type PermissionEnvironment = "production" | "staging" | "development";
+
+export const DEFAULT_ENVIRONMENT: PermissionEnvironment = "production";
+
+export const PERMISSION_ENVIRONMENTS: readonly PermissionEnvironment[] = [
+  "production",
+  "staging",
+  "development",
+];
+
 export interface FeatureRow {
   key: string;
   module: string;
@@ -27,6 +42,7 @@ export interface RoleRow {
 export interface RoleGrantRow {
   role_key: string;
   permission_key: string;
+  environment?: PermissionEnvironment;
 }
 
 export interface OverrideRepoRow {
@@ -37,6 +53,7 @@ export interface OverrideRepoRow {
   granted_by: string | null;
   granted_at: string;
   expires_at: string | null;
+  environment?: PermissionEnvironment;
 }
 
 export interface ApprovalRepoRow {
@@ -106,6 +123,7 @@ export interface ConflictAcknowledgementRow {
   actor_id: string;
   created_at: string;
   expires_at: string | null;
+  environment?: PermissionEnvironment;
 }
 
 export interface AcknowledgeConflictInput {
@@ -114,6 +132,7 @@ export interface AcknowledgeConflictInput {
   b_key: string;
   reason: string;
   expires_at?: string | null;
+  environment?: PermissionEnvironment;
 }
 
 export interface SubmitChangeSetInput {
@@ -122,6 +141,7 @@ export interface SubmitChangeSetInput {
   before: unknown;
   after: unknown;
   reason?: string | null;
+  environment?: PermissionEnvironment;
 }
 
 export interface CreateTemplateInput {
@@ -133,20 +153,20 @@ export interface CreateTemplateInput {
 export interface PermissionRepository {
   listFeatures(): Promise<FeatureRow[]>;
   listRoles(): Promise<RoleRow[]>;
-  listRoleGrants(): Promise<RoleGrantRow[]>;
-  listOverrides(): Promise<OverrideRepoRow[]>;
+  listRoleGrants(env?: PermissionEnvironment): Promise<RoleGrantRow[]>;
+  listOverrides(env?: PermissionEnvironment): Promise<OverrideRepoRow[]>;
   listTemplates(): Promise<TemplateRow[]>;
-  listChangeSets(status?: ChangeSetRow["status"]): Promise<ChangeSetRow[]>;
+  listChangeSets(status?: ChangeSetRow["status"], env?: PermissionEnvironment): Promise<ChangeSetRow[]>;
   listApprovals(): Promise<ApprovalRepoRow[]>;
   listHistory(limit: number, sinceHours?: number, actionTypes?: string[]): Promise<AdminActionHistoryRow[]>;
   listPermissionDependencies(): Promise<PermissionDependencyRow[]>;
   listPermissionConflicts(): Promise<PermissionConflictRow[]>;
-  listConflictAcknowledgements(): Promise<ConflictAcknowledgementRow[]>;
+  listConflictAcknowledgements(env?: PermissionEnvironment): Promise<ConflictAcknowledgementRow[]>;
   acknowledgeConflict(input: AcknowledgeConflictInput): Promise<void>;
   revokeConflictAcknowledgement(id: string): Promise<void>;
   submitChangeSet(input: SubmitChangeSetInput): Promise<ChangeSetRow>;
-  approveChangeSet(id: string, reason?: string | null): Promise<ChangeSetRow>;
-  rejectChangeSet(id: string, reason?: string | null): Promise<ChangeSetRow>;
+  approveChangeSet(id: string, reason?: string | null, env?: PermissionEnvironment): Promise<ChangeSetRow>;
+  rejectChangeSet(id: string, reason?: string | null, env?: PermissionEnvironment): Promise<ChangeSetRow>;
   createTemplate(input: CreateTemplateInput, permissionKeys: string[]): Promise<TemplateRow>;
   updateTemplate(id: string, patch: Partial<CreateTemplateInput>): Promise<void>;
   deleteTemplate(id: string): Promise<void>;
@@ -173,18 +193,20 @@ class SupabasePermissionRepository implements PermissionRepository {
     return (data ?? []) as RoleRow[];
   }
 
-  async listRoleGrants(): Promise<RoleGrantRow[]> {
+  async listRoleGrants(env: PermissionEnvironment = DEFAULT_ENVIRONMENT): Promise<RoleGrantRow[]> {
     const { data, error } = await supabase
       .from("role_permissions")
-      .select("role_key,permission_key");
+      .select("role_key,permission_key,environment")
+      .eq("environment", env);
     if (error) throw error;
     return (data ?? []) as RoleGrantRow[];
   }
 
-  async listOverrides(): Promise<OverrideRepoRow[]> {
+  async listOverrides(env: PermissionEnvironment = DEFAULT_ENVIRONMENT): Promise<OverrideRepoRow[]> {
     const { data, error } = await supabase
       .from("user_permission_overrides")
-      .select("user_id,permission_key,mode,reason,granted_by,granted_at,expires_at")
+      .select("user_id,permission_key,mode,reason,granted_by,granted_at,expires_at,environment")
+      .eq("environment", env)
       .order("granted_at", { ascending: false });
     if (error) throw error;
     return (data ?? []) as OverrideRepoRow[];
@@ -211,8 +233,9 @@ class SupabasePermissionRepository implements PermissionRepository {
     }));
   }
 
-  async listChangeSets(status?: ChangeSetRow["status"]): Promise<ChangeSetRow[]> {
+  async listChangeSets(status?: ChangeSetRow["status"], env: PermissionEnvironment = DEFAULT_ENVIRONMENT): Promise<ChangeSetRow[]> {
     let q = supabase.from("permission_change_sets").select("*").order("created_at", { ascending: false }).limit(200);
+    q = q.eq("environment", env);
     if (status) q = q.eq("status", status);
     const { data, error } = await q;
     if (error) throw error;
@@ -263,10 +286,11 @@ class SupabasePermissionRepository implements PermissionRepository {
     return (data ?? []) as PermissionConflictRow[];
   }
 
-  async listConflictAcknowledgements(): Promise<ConflictAcknowledgementRow[]> {
+  async listConflictAcknowledgements(env: PermissionEnvironment = DEFAULT_ENVIRONMENT): Promise<ConflictAcknowledgementRow[]> {
     const { data, error } = await (supabase as any)
       .from("permission_conflict_acknowledgements")
-      .select("id,role_key,a_key,b_key,reason,actor_id,created_at,expires_at")
+      .select("id,role_key,a_key,b_key,reason,actor_id,created_at,expires_at,environment")
+      .eq("environment", env)
       .order("created_at", { ascending: false });
     if (error) throw error;
     return (data ?? []) as ConflictAcknowledgementRow[];
@@ -284,6 +308,7 @@ class SupabasePermissionRepository implements PermissionRepository {
         reason: input.reason,
         expires_at: input.expires_at ?? null,
         actor_id: userRes.user.id,
+        environment: input.environment ?? DEFAULT_ENVIRONMENT,
       });
     if (error) throw error;
   }
@@ -307,6 +332,7 @@ class SupabasePermissionRepository implements PermissionRepository {
         after: input.after as any,
         reason: input.reason ?? null,
         requested_by: userRes.user?.id ?? null,
+        environment: input.environment ?? DEFAULT_ENVIRONMENT,
       })
       .select("*")
       .single();
@@ -314,20 +340,22 @@ class SupabasePermissionRepository implements PermissionRepository {
     return data as ChangeSetRow;
   }
 
-  async approveChangeSet(id: string, reason?: string | null): Promise<ChangeSetRow> {
+  async approveChangeSet(id: string, reason?: string | null, env: PermissionEnvironment = DEFAULT_ENVIRONMENT): Promise<ChangeSetRow> {
     const { data, error } = await supabase.rpc("apply_permission_change_set", {
       _id: id,
       _reason: reason ?? null,
-    });
+      _environment: env,
+    } as any);
     if (error) throw error;
     return data as unknown as ChangeSetRow;
   }
 
-  async rejectChangeSet(id: string, reason?: string | null): Promise<ChangeSetRow> {
+  async rejectChangeSet(id: string, reason?: string | null, env: PermissionEnvironment = DEFAULT_ENVIRONMENT): Promise<ChangeSetRow> {
     const { data, error } = await supabase.rpc("reject_permission_change_set", {
       _id: id,
       _reason: reason ?? null,
-    });
+      _environment: env,
+    } as any);
     if (error) throw error;
     return data as unknown as ChangeSetRow;
   }

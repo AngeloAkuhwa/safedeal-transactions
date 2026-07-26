@@ -1,5 +1,6 @@
 import { Shield } from "lucide-react";
 import type { RoleGrantMap } from "@/services/permission-workspace.service";
+import type { PermissionEnvironment } from "@/services/permission-repository";
 import { useRoleMatrixFilters } from "@/hooks/useRoleMatrixFilters";
 import { useStagedPermissionChanges } from "@/hooks/useStagedPermissionChanges";
 import { useUnsavedNavigationGuard } from "@/hooks/useUnsavedNavigationGuard";
@@ -11,10 +12,12 @@ import { StagedChangesFooter } from "./StagedChangesFooter";
 export function RoleMatrix({
   roleMap,
   canWrite,
+  environment,
   onSubmitted,
 }: {
   roleMap: RoleGrantMap;
   canWrite: boolean;
+  environment: PermissionEnvironment;
   onSubmitted?: () => void;
 }) {
   const { state: filters, set, toggleModule, expandAll, collapseAll, reset, isModuleExpanded, activeFilterCount } = useRoleMatrixFilters();
@@ -73,6 +76,7 @@ export function RoleMatrix({
           roleMap={roleMap}
           filters={filters}
           canWrite={canWrite}
+          environment={environment}
           onSetCompareRoles={(roles) => set("compareRoles", roles)}
           onStageMany={staged.stageMany}
         />
@@ -82,6 +86,7 @@ export function RoleMatrix({
         <StagedChangesFooter
           changes={staged.flat}
           roleMap={roleMap}
+          environment={environment}
           onDiscard={staged.discardAll}
           onSubmitted={() => { staged.discardAll(); onSubmitted?.(); }}
         />

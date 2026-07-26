@@ -1,7 +1,17 @@
 import { useCallback, useMemo, useState } from "react";
+import { useEffect } from "react";
 import type { InternalRoleKey } from "@/services/permission-catalog";
 
 export type StagedOp = "grant" | "revoke";
+
+/**
+ * Module-level snapshot of the current staged-change count. Consumed by
+ * cross-component guards (e.g. `EnvironmentSwitcher.beforeChange`) that
+ * can't hold a reference to the owning hook instance. Kept intentionally
+ * simple — a single writer (RoleMatrix) mirrors `totalChanges` here.
+ */
+let _stagedCount = 0;
+export function getStagedPermissionChangeCount(): number { return _stagedCount; }
 
 export interface StagedChange {
   role: InternalRoleKey;
@@ -65,6 +75,11 @@ export function useStagedPermissionChanges() {
 
   const totalChanges = flat.length;
   const affectedRoles = staged.size;
+
+  useEffect(() => {
+    _stagedCount = totalChanges;
+    return () => { _stagedCount = 0; };
+  }, [totalChanges]);
 
   const getStaged = useCallback((role: InternalRoleKey, permissionKey: string): StagedOp | undefined => {
     return staged.get(role)?.get(permissionKey);

@@ -20,6 +20,7 @@ import {
   computeRoleDiff, computeMissingDependencies, computeConflicts, isSodExempt,
 } from "@/services/permission-dependencies";
 import { permissionRepo, type ConflictAcknowledgementRow } from "@/services/permission-repository";
+import { DEFAULT_ENVIRONMENT, type PermissionEnvironment } from "@/services/permission-repository";
 import type { RoleMatrixFilters } from "@/hooks/useRoleMatrixFilters";
 import type { StagedOp } from "@/hooks/useStagedPermissionChanges";
 import { PermissionPanel } from "./PermissionPanel";
@@ -30,6 +31,7 @@ interface Props {
   roleMap: RoleGrantMap;
   filters: RoleMatrixFilters;
   canWrite: boolean;
+  environment?: PermissionEnvironment;
   onSetCompareRoles: (roles: InternalRoleKey[]) => void;
   onStageMany: (role: InternalRoleKey, changes: Array<{ permissionKey: string; op: StagedOp }>) => void;
 }
@@ -61,7 +63,7 @@ function riskDot(key: string) {
   return <span className={cn("inline-block h-1.5 w-1.5 rounded-full", cls)} aria-hidden />;
 }
 
-export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRoles, onStageMany }: Props) {
+export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = DEFAULT_ENVIRONMENT, onSetCompareRoles, onStageMany }: Props) {
   const selected = filters.compareRoles;
   const canAdd = selected.length < 4;
   const canRemove = selected.length > 2;
@@ -73,8 +75,8 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRol
 
   const qc = useQueryClient();
   const ackQuery = useQuery({
-    queryKey: ["permission-conflict-acks"],
-    queryFn: () => permissionRepo.listConflictAcknowledgements(),
+    queryKey: ["permission-conflict-acks", environment],
+    queryFn: () => permissionRepo.listConflictAcknowledgements(environment),
     staleTime: 60_000,
   });
   const acks = ackQuery.data ?? [];
@@ -96,11 +98,12 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRol
         b_key: input.b,
         reason: input.reason,
         expires_at: input.expiresAt,
+        environment,
       });
     },
     onSuccess: () => {
       toast.success("Conflict acknowledged");
-      qc.invalidateQueries({ queryKey: ["permission-conflict-acks"] });
+      qc.invalidateQueries({ queryKey: ["permission-conflict-acks", environment] });
       setAckTarget(null);
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to acknowledge conflict"),
@@ -110,7 +113,7 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRol
     mutationFn: (id: string) => permissionRepo.revokeConflictAcknowledgement(id),
     onSuccess: () => {
       toast.success("Acknowledgement revoked");
-      qc.invalidateQueries({ queryKey: ["permission-conflict-acks"] });
+      qc.invalidateQueries({ queryKey: ["permission-conflict-acks", environment] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to revoke acknowledgement"),
   });
