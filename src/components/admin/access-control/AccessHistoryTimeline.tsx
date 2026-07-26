@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { relativeTime, type AccessAuditEntry } from "@/services/admin-access-control.service";
 
 const SEVERITY_TINT: Record<string, string> = {

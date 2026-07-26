@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { useSavedProducts, useToggleSave } from "@/hooks/useSavedProducts";
 import { Input } from "@/components/ui/input";

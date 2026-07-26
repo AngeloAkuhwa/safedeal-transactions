@@ -1,6 +1,6 @@
 import { FileText, Clock, Shield, TrendingUp, CheckCircle, Eye, Info, CheckCircle2, Scale, AlertOctagon, ShieldAlert } from "lucide-react";
 import { formatMoney } from "@/lib/format";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Tooltip,

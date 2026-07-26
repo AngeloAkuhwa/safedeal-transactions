@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Plus, FileText, BarChart3, Settings, Store } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 

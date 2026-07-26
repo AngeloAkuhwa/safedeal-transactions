@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Store, PackagePlus, ArrowRight, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { SellerSummary, SellerMetrics } from "@/services/seller-dashboard.service";

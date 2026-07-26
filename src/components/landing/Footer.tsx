@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Shield, MapPin, Twitter, Facebook, Linkedin, Instagram } from "lucide-react";
 
 const productLinks = [

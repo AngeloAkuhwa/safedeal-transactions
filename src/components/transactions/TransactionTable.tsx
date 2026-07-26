@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { formatMoney } from "@/lib/format";
 import { format } from "date-fns";
 import { Package } from "lucide-react";

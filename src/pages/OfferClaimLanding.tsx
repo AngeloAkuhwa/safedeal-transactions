@@ -1,7 +1,7 @@
 // Thin resolver: validates token, redirects into the existing buyer flow.
 // Renders only loading + error states — the happy path always navigates away.
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import { Loader2, Shield, Lock, Clock, AlertTriangle, Mail, ArrowRight, XCircle, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

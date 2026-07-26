@@ -1,6 +1,6 @@
 import { TriangleAlert, Clock, Hourglass, Pause, GitCompare, Lock, AlertTriangle, PauseCircle, AlertCircle, Bell, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { formatMoney } from "@/lib/format";
 import type { EscrowAlerts } from "@/services/admin-escrow.service";
 import { canConfigureEscrowAlerts } from "@/services/admin-escrow-alerts.service";

@@ -1,6 +1,6 @@
 import { ShoppingBag, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 interface TransactionsEmptyStateProps {
   variant: "no-data" | "no-filter-match";

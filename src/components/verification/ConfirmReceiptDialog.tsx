@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import {
   AlertDialog,

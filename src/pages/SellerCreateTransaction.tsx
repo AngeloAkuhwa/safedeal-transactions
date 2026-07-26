@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Loader2, ArrowLeft, Save, ArrowRight, Send, Shield, Lock,

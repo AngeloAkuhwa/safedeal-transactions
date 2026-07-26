@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import {
   Ban, Check, Clock, ExternalLink, FileClock, KeyRound, Layers, Loader2,
   Minus, Plus, ShieldCheck, X,

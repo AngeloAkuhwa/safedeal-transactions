@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router";
 import {
   ArrowLeft, AlertTriangle, Download, Scale, ShieldCheck,
   Snowflake, MoreVertical, ExternalLink, Truck, Package,

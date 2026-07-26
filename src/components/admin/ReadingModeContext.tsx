@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import { useAutoScroll, type ScrollDirection, type ScrollSpeed } from "@/hooks/useAutoScroll";
 import { useToast } from "@/hooks/use-toast";
 

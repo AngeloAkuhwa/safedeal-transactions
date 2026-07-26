@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Wallet, Lock, ArrowLeftRight, AlertTriangle, ExternalLink, Info } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";

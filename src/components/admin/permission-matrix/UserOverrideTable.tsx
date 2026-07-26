@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { INTERNAL_ROLES, PERMISSION_MODULES, ROLE_LABEL, type InternalRoleKey } from "@/services/permission-catalog";
 import { permissionRepo } from "@/services/permission-repository";
 import { useCurrentEnvironment } from "./EnvironmentSwitcher";

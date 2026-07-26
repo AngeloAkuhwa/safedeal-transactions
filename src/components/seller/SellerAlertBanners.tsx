@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { AlertTriangle, X, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { SellerAlert, AlertSeverity } from "@/services/seller-dashboard.service";

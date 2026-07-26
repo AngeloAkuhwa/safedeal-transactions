@@ -1,4 +1,4 @@
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 import { Layers, FlaskConical, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {

@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2, Shield, ArrowLeft, Package, ShieldCheck, Truck, Clock,
@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { Footer } from "@/components/landing/Footer";
 import { PurchaseAuthModal } from "@/components/storefront/PurchaseAuthModal";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import { useIsProductSaved, useToggleSave } from "@/hooks/useSavedProducts";
 import { formatMoney } from "@/lib/format";
 import { resolveDeliveryMethod, resolveItemCondition } from "@/lib/status-labels";

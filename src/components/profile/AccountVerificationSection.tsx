@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import {
   ShieldCheck, Mail, Phone, MapPin, CreditCard,
   CheckCircle2, Lock, ArrowRight, AlertTriangle, Clock,

@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { formatDistanceToNow } from "date-fns";
 import {
   Clock, Package, Truck, Scale, Lock, CreditCard, Info,

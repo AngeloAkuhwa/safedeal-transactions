@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import {
   ArrowLeft, Printer, AlertTriangle, Loader2, Phone, Mail, User as UserIcon,
   ExternalLink, FileText, Image as ImageIcon, Video, Receipt, Truck, Scale,

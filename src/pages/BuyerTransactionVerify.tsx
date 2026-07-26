@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { formatMoney } from "@/lib/format";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   Loader2,

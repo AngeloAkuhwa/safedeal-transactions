@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router";
 import {
   Shield, LayoutDashboard, Store, ArrowLeftRight, Wallet, Scale, Settings, LogOut, Menu,
 } from "lucide-react";

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 import type { PermissionRiskLevel, PermissionRowState, InternalRoleKey } from "@/services/permission-catalog";
 import { INTERNAL_ROLES } from "@/services/permission-catalog";
 

@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import type { ApprovalRow } from "@/services/permission-workspace.service";
 import { EmptyState } from "./EmptyState";
 import { ArrowUpRight } from "lucide-react";

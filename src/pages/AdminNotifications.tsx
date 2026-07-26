@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import {
   Send, AlertTriangle, Smartphone, Mail, Bell, RefreshCw, RotateCw, Search,
   Filter, Megaphone, Eye, Receipt, Scale, User, CheckCircle2, XCircle, Info, Download,

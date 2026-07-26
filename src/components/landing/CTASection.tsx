@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Rocket, Store, Shield, Handshake, Lock, BadgeCheck, Camera } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
