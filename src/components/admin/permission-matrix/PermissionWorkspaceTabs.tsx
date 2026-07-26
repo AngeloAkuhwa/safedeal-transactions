@@ -29,7 +29,7 @@ export function PermissionWorkspaceTabs({
   counts?: Partial<Record<WorkspaceTab, number>>;
 }) {
   return (
-    <div className="flex w-full items-center gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1">
+    <div className="flex w-full items-center gap-1 overflow-x-auto rounded-full border border-border/70 bg-card/60 p-1 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset]">
       {TAB_DEFS.map((t) => {
         const isActive = active === t.key;
         const count = counts?.[t.key];
@@ -39,9 +39,9 @@ export function PermissionWorkspaceTabs({
             type="button"
             onClick={() => onChange(t.key)}
             className={cn(
-              "relative shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition",
+              "relative shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition",
               isActive
-                ? "bg-primary text-primary-foreground shadow"
+                ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/40"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
@@ -49,8 +49,8 @@ export function PermissionWorkspaceTabs({
             <span className="sm:hidden">{t.short}</span>
             {count != null && count > 0 && (
               <span className={cn(
-                "ml-2 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold",
-                isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/15 text-primary",
+                "ml-2 inline-flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 font-mono text-[10px] font-semibold",
+                isActive ? "bg-primary/25 text-primary" : "bg-muted text-muted-foreground",
               )}>
                 {count}
               </span>
