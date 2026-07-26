@@ -16,6 +16,8 @@ import {
   type InternalRoleKey,
 } from "./permission-catalog";
 import { permissionRepo } from "./permission-repository";
+import type { PermissionEnvironment } from "./permission-repository";
+import { DEFAULT_ENVIRONMENT } from "./permission-repository";
 
 export interface RoleGrantMap {
   map: Map<string, Set<string>>;
@@ -82,11 +84,15 @@ export interface PermissionTemplate {
   updated_at: string;
 }
 
-let cachedRoleMap: RoleGrantMap | null = null;
+const roleMapCache = new Map<PermissionEnvironment, RoleGrantMap>();
 
-export async function fetchRoleGrantMap(force = false): Promise<RoleGrantMap> {
-  if (cachedRoleMap && !force) return cachedRoleMap;
-  const rows = await permissionRepo.listRoleGrants();
+export async function fetchRoleGrantMap(
+  force = false,
+  env: PermissionEnvironment = DEFAULT_ENVIRONMENT,
+): Promise<RoleGrantMap> {
+  const cached = roleMapCache.get(env);
+  if (cached && !force) return cached;
+  const rows = await permissionRepo.listRoleGrants(env);
   const map = new Map<string, Set<string>>();
   for (const r of INTERNAL_ROLES) map.set(r.key, new Set());
   for (const row of rows) {
@@ -94,11 +100,15 @@ export async function fetchRoleGrantMap(force = false): Promise<RoleGrantMap> {
     bag.add(row.permission_key);
     map.set(row.role_key, bag);
   }
-  cachedRoleMap = { map };
-  return cachedRoleMap;
+  const built: RoleGrantMap = { map };
+  roleMapCache.set(env, built);
+  return built;
 }
 
-export function invalidateRoleGrantMap() { cachedRoleMap = null; }
+export function invalidateRoleGrantMap(env?: PermissionEnvironment) {
+  if (env) roleMapCache.delete(env);
+  else roleMapCache.clear();
+}
 
 export async function fetchOverrides(): Promise<OverrideRow[]> {
   const [overrides, usersRes, rolesRes] = await Promise.all([
