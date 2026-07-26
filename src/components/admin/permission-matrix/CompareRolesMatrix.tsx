@@ -377,21 +377,17 @@ function Section({
     ? "bg-amber-500/15 text-amber-300"
     : "bg-primary/10 text-primary";
   return (
-    <PermissionPanel
-      icon={<span className={cn("flex h-9 w-9 items-center justify-center rounded-full", iconTone)}>{icon}</span>}
-      title={
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="flex items-center gap-2 text-left text-base font-semibold hover:text-foreground/80"
-        >
-          {title}
-          <span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{count}</span>
-        </button>
-      }
-      headerClassName="items-center"
-    >
-      {open && children}
+    <PermissionPanel>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-3 text-left"
+      >
+        <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", iconTone)}>{icon}</span>
+        <span className="min-w-0 flex-1 text-base font-semibold text-foreground">{title}</span>
+        <span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{count}</span>
+      </button>
+      {open && <div className="mt-4">{children}</div>}
     </PermissionPanel>
   );
 }
