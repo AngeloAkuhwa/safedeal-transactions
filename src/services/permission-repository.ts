@@ -213,8 +213,12 @@ export interface PermissionRepository {
   acknowledgeConflict(input: AcknowledgeConflictInput): Promise<void>;
   revokeConflictAcknowledgement(id: string): Promise<void>;
   submitChangeSet(input: SubmitChangeSetInput): Promise<ChangeSetRow>;
+  submitChangeSets(inputs: SubmitChangeSetInput[]): Promise<ChangeSetRow[]>;
   approveChangeSet(id: string, reason?: string | null, env?: PermissionEnvironment): Promise<ChangeSetRow>;
   rejectChangeSet(id: string, reason?: string | null, env?: PermissionEnvironment): Promise<ChangeSetRow>;
+  requestChangesOnChangeSet(id: string, comment: string): Promise<void>;
+  cancelChangeSet(id: string, reason?: string | null): Promise<void>;
+  listAllChangeSets(filter?: ChangeSetFilter): Promise<ChangeSetRow[]>;
   createTemplate(input: CreateTemplateInput, permissionKeys: string[]): Promise<TemplateRow>;
   updateTemplate(id: string, patch: Partial<CreateTemplateInput>): Promise<void>;
   deleteTemplate(id: string): Promise<void>;
