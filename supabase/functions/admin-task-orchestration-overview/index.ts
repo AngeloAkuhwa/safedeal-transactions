@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     admin.from("agent_capacity").select("*"),
     admin.from("agent_availability").select("*"),
     admin.from("assignment_rules").select("*").eq("scope","global").maybeSingle(),
-    admin.from("internal_users").select("id, user_id, first_name, last_name, email, avatar_url, status").eq("status","active"),
+    admin.from("internal_users").select("id, first_name, last_name, full_name, email, status, team, job_title").eq("status","active"),
   ]);
 
   const nowMs = Date.now();
@@ -85,11 +85,13 @@ Deno.serve(async (req) => {
 
   const availMap = new Map((availability ?? []).map(a => [a.user_id, a]));
   const capMap = new Map((capacity ?? []).map(c => [c.user_id, c]));
+  const HEARTBEAT_ONLINE_MS = 5 * 60 * 1000;
+  const isRecent = (a: any) => a?.last_heartbeat && (nowMs - new Date(a.last_heartbeat).getTime()) < HEARTBEAT_ONLINE_MS;
   const activeAgents = (internalUsers ?? []).filter(u => {
-    const a = availMap.get(u.user_id);
-    return a && a.status !== "offline";
+    const a = availMap.get(u.id);
+    return a && (a.status !== "offline" || isRecent(a));
   }).length;
-  const availableAgents = (internalUsers ?? []).filter(u => availMap.get(u.user_id)?.status === "available").length;
+  const availableAgents = (internalUsers ?? []).filter(u => availMap.get(u.id)?.status === "available").length;
   const atCapacityCount = (capacity ?? []).filter(c => c.current_active >= c.max_active_tasks).length;
 
   const firstActionSecs = tasks
@@ -100,15 +102,19 @@ Deno.serve(async (req) => {
     : 0;
 
   const roster = (internalUsers ?? []).map(u => {
-    const cap = capMap.get(u.user_id);
-    const avail = availMap.get(u.user_id);
+    const cap = capMap.get(u.id);
+    const avail = availMap.get(u.id);
+    const effectiveStatus = avail?.status === "offline" && isRecent(avail) ? "available" : (avail?.status ?? "offline");
     return {
-      user_id: u.user_id,
-      first_name: u.first_name,
-      last_name: u.last_name,
+      user_id: u.id,
+      first_name: u.first_name ?? (u.full_name?.split(" ")[0] ?? ""),
+      last_name: u.last_name ?? (u.full_name?.split(" ").slice(1).join(" ") ?? ""),
       email: u.email,
-      avatar_url: u.avatar_url,
-      availability: avail?.status ?? "offline",
+      avatar_url: null,
+      team: u.team ?? null,
+      job_title: u.job_title ?? null,
+      last_heartbeat: avail?.last_heartbeat ?? null,
+      availability: effectiveStatus,
       max_active: cap?.max_active_tasks ?? 5,
       active: cap?.current_active ?? 0,
       overdue: cap?.overdue_count ?? 0,
@@ -141,8 +147,8 @@ Deno.serve(async (req) => {
     },
     unassigned_queue: unassigned ?? [],
     live_progression: liveTasks ?? [],
-    roster: canViewLoad ? roster : [],
-    insights: canViewLoad ? insights : {
+    roster: (canViewLoad || canViewAll) ? roster : [],
+    insights: (canViewLoad || canViewAll) ? insights : {
       most_active: null, most_resolved: null, least_loaded: null,
       highest_overdue: null, fastest_response: null,
     },
