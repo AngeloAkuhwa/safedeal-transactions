@@ -46,6 +46,7 @@ import { RegisterPermissionDialog } from "@/components/admin/permission-matrix/R
 import { CloneRoleAsTemplateDialog } from "@/components/admin/permission-matrix/CloneRoleAsTemplateDialog";
 import { ResetRoleToDefaultDialog } from "@/components/admin/permission-matrix/ResetRoleToDefaultDialog";
 import { CreateOverrideDrawer } from "@/components/admin/permission-matrix/CreateOverrideDrawer";
+import { ViewOverrideAuditDialog } from "@/components/admin/permission-matrix/ViewOverrideAuditDialog";
 import { ErrorState, LoadingSkeleton } from "@/components/admin/permission-matrix/EmptyState";
 import { fetchPermissionEnvironments } from "@/services/permission-workspace.service";
 import { Plus } from "lucide-react";
