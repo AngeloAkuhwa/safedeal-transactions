@@ -467,6 +467,51 @@ Deno.serve(async (req) => {
           actor_names: nameMap,
         });
       }
+      case "export_queue": {
+        const scope = body.scope ?? "queue";
+        let rows: Record<string, unknown>[] = [];
+        let filename = "task-orchestration";
+        if (scope === "queue") {
+          const { data } = await admin.from("orchestration_tasks")
+            .select("task_code,type,priority,status,stage,amount,currency,created_at,dispute_id,transaction_id,assigned_agent_id,sla_due_at")
+            .eq("status","unassigned").order("created_at",{ ascending: true }).limit(5000);
+          rows = data ?? [];
+          filename = "task-queue";
+        } else if (scope === "live") {
+          const { data } = await admin.from("orchestration_tasks")
+            .select("task_code,type,priority,status,stage,assigned_agent_id,started_at,updated_at,sla_status,dispute_id")
+            .not("status","in","(unassigned,resolved,closed,cancelled)")
+            .order("updated_at",{ ascending: false }).limit(5000);
+          rows = data ?? [];
+          filename = "task-live";
+        } else if (scope === "roster") {
+          const { data: cap } = await admin.from("agent_capacity").select("*");
+          const { data: avail } = await admin.from("agent_availability").select("*");
+          const availMap = new Map((avail ?? []).map((a: any) => [a.user_id, a]));
+          rows = (cap ?? []).map((c: any) => {
+            const a: any = availMap.get(c.user_id) ?? {};
+            return {
+              user_id: c.user_id, status: a.status ?? "offline", last_heartbeat: a.last_heartbeat ?? null,
+              current_active: c.current_active, max_active_tasks: c.max_active_tasks,
+              overdue_count: c.overdue_count, resolved_today: c.resolved_today,
+            };
+          });
+          filename = "task-roster";
+        }
+        const headers = rows.length ? Object.keys(rows[0]) : [];
+        const escape = (v: unknown) => {
+          if (v === null || v === undefined) return "";
+          const s = typeof v === "string" ? v : JSON.stringify(v);
+          return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        };
+        const csv = [headers.join(","), ...rows.map(r => headers.map(h => escape((r as any)[h])).join(","))].join("\n");
+        await logAdminAction({
+          actorId: ctx.userId, action: "orchestration_export",
+          targetType: "system", metadata: { scope, rows: rows.length }, mirrorToAuditLogs: true,
+          ip: meta.ip, userAgent: meta.userAgent,
+        }, admin);
+        return respond({ ok: true, filename: `${filename}-${new Date().toISOString().slice(0,10)}.csv`, csv, rows: rows.length });
+      }
     }
     return respond({ error: "unknown_action" }, 400);
   } catch (e) {
