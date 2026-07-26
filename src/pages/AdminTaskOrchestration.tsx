@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { useNavigate } from "react-router";
 import {
   TaskOrchestrationHeader,
   OrchestrationSummaryCards,
@@ -44,6 +45,7 @@ import { useOrchestrationPerms } from "@/hooks/useOrchestrationPerms";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function AdminTaskOrchestration() {
+  const navigate = useNavigate();
   const perms = useOrchestrationPerms();
   const { isSenior } = perms;
 
@@ -310,7 +312,7 @@ export default function AdminTaskOrchestration() {
         />
       )}
     >
-      <div className="mx-auto max-w-[1600px] space-y-6 p-4 lg:p-8">
+      <div className="relative mx-auto max-w-[1600px] space-y-6 p-4 lg:p-8 bg-[radial-gradient(ellipse_at_top_left,hsl(var(--primary)/0.06),transparent_60%)]">
         {loading && !data && <LoadingSkeleton />}
         {error && !loading && <ErrorState message={error} onRetry={load} />}
 
@@ -395,6 +397,10 @@ export default function AdminTaskOrchestration() {
         open={!!agentDetail}
         onOpenChange={o => { if (!o) setAgentDetail(null); }}
         agent={agentDetail}
+        onReassign={a => {
+          setAgentDetail(null);
+          navigate(`/admin/task-orchestration?tab=queue&assignee=${a.user_id}&view=reassign`);
+        }}
       />
       <TaskDetailsDrawer
         open={!!detailTask}
