@@ -69,6 +69,51 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRol
   const [copySource, setCopySource] = useState<InternalRoleKey | null>(selected[0] ?? null);
   const [copyTarget, setCopyTarget] = useState<InternalRoleKey | null>(selected[1] ?? null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [ackTarget, setAckTarget] = useState<{ role: InternalRoleKey; a: string; b: string } | null>(null);
+
+  const qc = useQueryClient();
+  const ackQuery = useQuery({
+    queryKey: ["permission-conflict-acks"],
+    queryFn: () => permissionRepo.listConflictAcknowledgements(),
+    staleTime: 60_000,
+  });
+  const acks = ackQuery.data ?? [];
+
+  const ackKey = (role: string, a: string, b: string) => {
+    // Pair is directionless; match either order.
+    return acks.find((r) =>
+      r.role_key === role
+      && ((r.a_key === a && r.b_key === b) || (r.a_key === b && r.b_key === a))
+      && (!r.expires_at || new Date(r.expires_at) > new Date()),
+    ) ?? null;
+  };
+
+  const ackMutation = useMutation({
+    mutationFn: async (input: { role: string; a: string; b: string; reason: string; expiresAt: string | null }) => {
+      await permissionRepo.acknowledgeConflict({
+        role_key: input.role,
+        a_key: input.a,
+        b_key: input.b,
+        reason: input.reason,
+        expires_at: input.expiresAt,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Conflict acknowledged");
+      qc.invalidateQueries({ queryKey: ["permission-conflict-acks"] });
+      setAckTarget(null);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to acknowledge conflict"),
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (id: string) => permissionRepo.revokeConflictAcknowledgement(id),
+    onSuccess: () => {
+      toast.success("Acknowledgement revoked");
+      qc.invalidateQueries({ queryKey: ["permission-conflict-acks"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to revoke acknowledgement"),
+  });
 
   const q = filters.search.trim().toLowerCase();
   const filterKey = (k: string): boolean => {
@@ -90,14 +135,22 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, onSetCompareRol
   const differingFiltered = diff.differing.filter(filterKey);
   const privilegedDiffs = differingFiltered.filter(isPrivilegedPermission);
 
+  // Exempt roles (Super Admin) hold every permission by design; skip SoD +
+  // missing-dependency scans on them entirely so the noise doesn't hide real
+  // findings on other roles.
   const perRoleAnalysis = selected.map((role) => {
+    if (isSodExempt(role)) {
+      return { role, missing: [], conflicts: [], exempt: true };
+    }
     const bag = roleMap.map.get(role) ?? new Set<string>();
     return {
       role,
       missing: computeMissingDependencies(bag),
       conflicts: computeConflicts(bag),
+      exempt: false,
     };
   });
+  const exemptRolesInView = perRoleAnalysis.filter((x) => x.exempt).map((x) => x.role);
 
   const openCopyPreview = () => {
     if (!canWrite || !copySource || !copyTarget || copySource === copyTarget) return;
