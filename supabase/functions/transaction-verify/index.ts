@@ -597,6 +597,23 @@ async function raiseDispute(
 
   await Promise.all(sideEffects);
 
+  // Orchestration: enqueue a dispute review task (idempotent per dispute).
+  await enqueueOrchestrationTask(admin, {
+    type: "dispute_review",
+    title: `Review dispute for ${tx.transaction_code}`,
+    description: `Buyer opened dispute — reason: ${reason}`,
+    priority: "high",
+    queue: "disputes",
+    disputeId: dispute.id,
+    transactionId: transactionId,
+    buyerId: userId,
+    sellerId: tx.seller_id,
+    amount: (tx as any).total_amount ?? null,
+    currency: (tx as any).currency_code ?? "NGN",
+    requiredPermissions: ["disputes.view", "disputes.resolve"],
+    sourceEventKey: `dispute_opened:${dispute.id}`,
+  });
+
   return jsonResponse(
     {
       success: true,
