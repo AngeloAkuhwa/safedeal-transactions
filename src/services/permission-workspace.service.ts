@@ -263,11 +263,11 @@ async function readTemplatesRemote(): Promise<PermissionTemplate[] | null> {
   try {
     const { data, error } = await supabase
       .from("system_settings")
-      .select("value")
-      .eq("key", TEMPLATE_SETTING_KEY)
+      .select("setting_value")
+      .eq("setting_key", TEMPLATE_SETTING_KEY)
       .maybeSingle();
     if (error) return null;
-    const val = (data as any)?.value;
+    const val = (data as any)?.setting_value;
     if (Array.isArray(val)) return val as PermissionTemplate[];
     if (val && Array.isArray((val as any).templates)) return (val as any).templates as PermissionTemplate[];
     return [];
@@ -278,7 +278,10 @@ async function writeTemplatesRemote(t: PermissionTemplate[]): Promise<boolean> {
   try {
     const { error } = await supabase
       .from("system_settings")
-      .upsert({ key: TEMPLATE_SETTING_KEY, value: t as any, updated_at: new Date().toISOString() } as any, { onConflict: "key" });
+      .upsert(
+        { setting_key: TEMPLATE_SETTING_KEY, setting_value: t as any, updated_at: new Date().toISOString() } as any,
+        { onConflict: "setting_key,scope,vendor_id" },
+      );
     return !error;
   } catch { return false; }
 }
