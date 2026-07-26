@@ -1,10 +1,11 @@
-// Seed set of permission dependencies + conflicts used by Compare Roles.
-// Kept in code (not DB) for this pass to avoid a migration; move to a
-// `permission_dependencies` table once the ruleset stabilises.
+// Permission dependencies + segregation-of-duty conflict rules used by
+// Compare Roles. Seeded from the `permission_dependencies` DB table on
+// workspace hydration (see `hydratePermissionDependencies`); the constant
+// below acts as a build-time fallback if the DB read hasn't run yet.
 
 // A permission on the LEFT logically requires the one on the RIGHT.
 // Missing a requirement is surfaced in Compare Roles as "missing dependency".
-export const PERMISSION_DEPENDENCIES: Array<[string, string]> = [
+const FALLBACK_DEPENDENCIES: Array<[string, string]> = [
   // view is required for any write action on the same module
   ["payouts.approve", "payouts.view"],
   ["payouts.create", "payouts.view"],
@@ -33,6 +34,19 @@ export const PERMISSION_DEPENDENCIES: Array<[string, string]> = [
   ["flagged_users.remove_flag", "flagged_users.view"],
   ["flagged_users.suspend", "flagged_users.view"],
 ];
+
+export let PERMISSION_DEPENDENCIES: Array<[string, string]> = [...FALLBACK_DEPENDENCIES];
+
+/**
+ * Replace the in-memory dependency list with rows fetched from
+ * `permission_dependencies`. Called from the workspace hydrator.
+ */
+export function hydratePermissionDependencies(
+  rows: Array<{ permission_key: string; requires_key: string }>,
+) {
+  if (!rows || rows.length === 0) return;
+  PERMISSION_DEPENDENCIES = rows.map((r) => [r.permission_key, r.requires_key] as [string, string]);
+}
 
 // Pairs of permissions that must NOT co-exist on a single role
 // (segregation of duties for financial responsibilities).
