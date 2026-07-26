@@ -1,127 +1,96 @@
-## Draft → Review → Approve workflow (matrix + approvals + history)
 
-Turn the current one-shot "stage → submit" flow into a full draft/review/approval lifecycle across the Permission Matrix, the Pending Approvals queue, and the Change History tab. No permission edit ever mutates live grants without going through Review Changes; privileged edits always require a separate approver.
+# Draft-and-review workflow — remaining gaps
 
-### Current state (verified)
-- `permission_change_sets` already carries `status ∈ {pending, approved, rejected, applied, cancelled}`, `before`/`after` JSONB, `environment`, `requested_by`, `applied_by`. RPCs `apply_permission_change_set` / `reject_permission_change_set` exist and are env-scoped.
-- `useStagedPermissionChanges` stages cell edits in memory; `StagedChangesFooter` posts one change set per role via `permissionRepo.submitChangeSet` with just a reason field.
-- `ReviewChangesDrawer` is a thin JSON viewer; `PendingApprovalTable` has 6 columns, no filters, no inline approve/reject; `PermissionHistoryTable` has 5 columns, no filters, no recreate action.
+The staging + `ReviewChangesDrawer` half is in place, but the **Pending Approvals** and **Change History** tabs plus several policy/UX guarantees from the spec are still missing. Below is the audited gap list, grouped by spec section, with the exact fix each one needs.
 
-### 1. Change-state model (shared vocabulary)
-- Add `ChangeState = 'unchanged' | 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'applied' | 'cancelled'` in `src/services/permission-workspace.service.ts`.
-- New column `permission_change_sets.state text` (mirrors lifecycle for the UI) with a default of `'draft'` and a check constraint matching the enum above; kept in sync by the RPCs. Legacy `status` column stays for backwards compatibility (mapped 1:1).
-- New column `permission_change_sets.requires_approval boolean` — set at submission time from the rules in §5.
-- New column `permission_change_sets.review_comments jsonb` — append-only log `[{actor, action:'approved'|'rejected'|'requested_changes'|'commented', comment, at}]`.
-- New column `submitted_at timestamptz` (distinct from `created_at`, which becomes the draft-created timestamp).
+---
 
-### 2. Staging surface (Matrix, Templates, Overrides, Feature Registry)
-- Extend `useStagedPermissionChanges` to track user overrides and template edits (currently role-only) via a discriminated `StagedChange` union: `{ scope:'role'|'user'|'template', targetKey, permissionKey, op:'grant'|'revoke'|'deny', prevValue, nextValue, reason? }`.
-- Replace direct write paths that still bypass staging:
-  - `CreateOverrideDrawer` → stage instead of `createOverride` when `canManage && !privileged`; privileged always stages + flags approval.
-  - `ApplyTemplateDialog` already stages — keep.
-  - `PermissionToggleRow` in `RoleDetailPanel`, `RoleMatrix`, `CompareRolesMatrix` — already stages.
-  - `FeatureDetailsDrawer` Suspend/Deprecate on High/Critical permissions → stage as a "feature status change" change set (new `target_scope='permission'`).
-- Cell/row visual states driven by shared helper `getCellChangeState(prev, staged, changeSet)`:
-  - Unchanged: default.
-  - Draft (local): amber ring + amber dot.
-  - Pending approval: blue ring + clock icon.
-  - Approved: emerald ring + check.
-  - Rejected: red ring + x.
-  - Applied: subtle emerald tint that clears on next refresh.
-  - Cancelled: strikethrough neutral.
-- Global "Unsaved Changes" counter in the sticky sub-header (already partial via footer) plus per-row Undo (revert single cell) and per-role Discard (existing `discardRole`) — expose Undo from `PermissionToggleRow` overflow.
+## 1. Data source mismatch (root cause for most tab gaps)
 
-### 3. Replace footer actions
-- `StagedChangesFooter` gains two primary buttons: **Review Changes** (opens the new drawer) and **Discard Changes** (confirm). The inline reason field goes away — it moves into the drawer where a real audit reason is required.
-- `useUnsavedNavigationGuard` already blocks nav; extend copy to say "You have N unsaved permission changes across M targets".
+The **Review Changes drawer** submits into `permission_change_sets` via `permissionRepo.submitChangeSets`, but the **Pending Approvals** tab on `/admin/permission-matrix` still reads `permissionRepo.listApprovals()` — which loads the legacy `access_change_requests` table. New staged changes therefore never appear in the queue, and the queue can never surface change-set fields like risk, environment, or before/after diffs.
 
-### 4. Review Changes drawer (rewrite `ReviewChangesDrawer.tsx`)
-Wide right-side sheet grouped by target (role / template / user / permission). Per target:
-- Header: scope label, target name/avatar, environment ribbon, count of adds/removes, computed risk badge (`max(riskLevel of touched permissions)`).
-- Diff table: `Permission key | Module | Risk | Previous | New | Impacted users | Dependencies | Conflicts` (dependencies come from `permission_dependencies`, conflicts from `permission_conflicts`, impacted users from `fetchRoleUserCounts` / override user).
-- Security warnings block: privileged introductions, SoD violations, self-approval risk (see §5), Auditor/Finance/ops guardrails from `role-guardrails`.
-- "Requires approval" pill computed live from §5 rules; explanation line names which rule triggered it.
-- **Reason for change** — textarea, min 20 chars, required; blocks submit until satisfied.
+**Fix**
+- Add `permissionRepo.listAllChangeSets` (already exists) as the source for the Pending Approvals tab, filtered by status ∈ {`pending_approval`, `requested_changes`}.
+- Keep `access_change_requests` visible on the standalone `/admin/access-approvals` page (that stream is used by role/user drawers) but stop mixing them.
+- Provide one unified list function `fetchPermissionApprovals(filter)` in `permission-workspace.service.ts` so both tabs read the same rows.
 
-Footer actions (context-dependent, all disabled while `busy`):
-- **Apply Changes** — only shown when `!requires_approval` AND actor has all touched keys. Calls `apply_permission_change_set` directly with `_state='applied'`; atomic (any target failure rolls back the whole submission via a single new RPC `submit_and_apply_change_sets(_sets jsonb[])` wrapping the writes in one transaction).
-- **Submit for Approval** — shown when `requires_approval`. Writes all sets with `state='pending_approval'`, `submitted_at=now()`. Idempotency guard: a client-side `submittingRef` + a server-side unique advisory lock on `(requested_by, hash(payload))` to prevent duplicate submissions on double-click.
-- **Return to Editing** — closes drawer, keeps staging intact.
-- **Discard Changes** — clears buffer with confirm.
+---
 
-On success: toast, refresh `permission-workspace.service` caches for the affected env, refresh effective permissions for impacted users (invalidate `admin-me` cache for each), write an `admin_actions` row via `logAdminAction('permission_change_submitted' | 'permission_change_applied')`, and clear the local staging buffer for that target scope.
+## 2. Pending Approvals tab — missing columns, filters, and drawer
 
-### 5. Approval-required rules (`src/services/permission-approval-rules.ts` — new)
-`requiresApproval(changeSet)` returns true if any of these hit:
-1. Any touched key belongs to a Super Admin role change.
-2. Touches any key in module `permissions` or `users` (permission-management / user-management).
-3. Touches `user.impersonate`.
-4. Touches `escrow.release`, `payouts.initiate`, `payouts.approve`, `refunds.approve`.
-5. Touches any `*.export` key flagged `risk_level in ('high','critical')` (sensitive exports).
-6. Touches `audit.read_full`.
-7. Touches any key in module `platform_security`.
-8. Any override on a `risk_level in ('high','critical')` permission (critical user overrides).
-9. Suspending or deprecating a permission whose `risk_level in ('high','critical')`.
+Current `PendingApprovalTable.tsx` is a 53-line stub with only Target / Change type / Requester / Reason / Age / a Review link that navigates away. Spec requires a full queue with an in-page **Approval Details drawer**.
 
-Additional invariants enforced client-side + in a new SECURITY DEFINER guard function `permission_change_can_submit(_actor, _payload) returns text`:
-- Actor cannot grant a key they do not effectively hold (unless they are `super_admin`).
-- Actor cannot modify a role at or above their own authority tier (tier map: super_admin > senior_admin > admin > ops/finance/support).
-- Requesters cannot approve their own change sets — enforced by RPC (existing `apply_permission_change_set` gets a `_actor_check` guard that rejects when `applied_by = requested_by` unless the rule is non-privileged auto-apply).
+**Fix**
+- Rebuild `PendingApprovalTable` to render: Request ID, Request Type, Target (scope + key with link), Requested Changes (adds/removes summary), Risk Level (max risk across touched keys via `getPermissionRisk`), Requested By, Requested Date, Required Approver (from `evaluateApproval` hits), Status pill, Actions.
+- Support statuses: `pending_approval`, `approved`, `rejected`, `cancelled`, `expired`, `applied`, `failed` (already in `ChangeState`; add `expired` handling if not present).
+- Add a filter bar (`PermissionFilters` pattern): Request type, Risk level, Requester, Approver, Status, Date range. URL-sync via search params.
+- Add an **Approval Details drawer** (new `ApprovalDetailsDrawer.tsx`) that opens on row click and shows: full `PermissionDiffTable`, reason, impacted roles + user count, dependencies, conflicts, security warnings, related audit events, requester profile, approval history for the change set. Actions: Approve, Reject, Request Changes; Reject/Request-changes require a comment ≥ 20 chars.
+- Wire actions to `permissionRepo.approveChangeSet`, `rejectChangeSet`, `requestChangesOnChangeSet`.
 
-### 6. Pending Approvals tab (rewrite `PendingApprovalTable.tsx` + `AdminAccessApprovals.tsx`)
-Columns: Request ID (short hash), Type (role/template/user/permission), Target, Requested Changes (n add / n remove summary), Risk, Requested By, Requested Date, Required Approver (role hint from rule engine), Status, Actions.
+---
 
-Filters bar: type, risk, requester (searchable), approver, status (Pending/Approved/Rejected/Cancelled/Expired/Applied/Failed), date range. Filters URL-synced via `useSearchParams`.
+## 3. Change History tab — missing columns, filters, and Recreate
 
-Row click opens **Approval Details drawer** (new component `ApprovalDetailsDrawer.tsx`) showing: complete diff (same renderer as Review drawer), reason, impacted roles/users, dependencies, conflicts, security warnings, related `admin_actions` entries, requester profile card, and approval history from `review_comments`.
+Current `PermissionHistoryTable.tsx` is 43 lines with When / Action / Target / Actor / Summary and no filters. Spec requires a complete history table plus a non-destructive Recreate Change action.
 
-Approver actions in the drawer:
-- **Approve** → confirm dialog, writes `state='approved'` then triggers atomic apply via `apply_permission_change_set`; toast on success.
-- **Reject** → requires comment ≥10 chars.
-- **Request Changes** → requires comment; sets `state='draft'`, returns ownership to requester with a notification row in `notifications`.
+**Fix**
+- Extend `HistoryRow` (in `permission-workspace.service.ts`) to include: `previous_value`, `new_value`, `reason`, `approval_ref` (change_set id), `result` (applied/failed), `environment`, `audit_event_ref`. Source these from `permission_change_sets` joined with `audit_logs` / `admin_actions`.
+- Rewrite `PermissionHistoryTable` columns to: When, Actor, Action, Target, Previous value, New value, Reason, Approval ref, Result, Environment, Audit ref.
+- Add filters: Role, User, Permission, Module, Actor, Action, Result, Date range — URL-synced.
+- Add row action **Recreate Change** that opens the Review Changes drawer pre-populated with the inverse (or duplicate) staged changes — never a direct write. Explicitly disable destructive delete/edit on historical rows.
 
-Guards: hide/disable Approve+Reject when `auth.uid() = requested_by` with tooltip "You cannot approve your own request".
+---
 
-Expired status: computed for pending sets older than 7 days (config in `system_settings.permission_approval_ttl_days`); scheduled cron is out of scope, so a lightweight client-side derivation + one-off SQL updater triggered by any approver action.
+## 4. Cell-level draft marker + counter surface
 
-### 7. Change History tab (rewrite `PermissionHistoryTable.tsx`)
-Columns: Date/time, Actor, Action, Target, Previous, New, Reason, Approval ref (link back to approval drawer), Result (applied/failed/rolled_back), Environment, Audit-event ref (`admin_actions.id` link).
+`useStagedPermissionChanges` and `StagedChangesFooter` count staged edits, but the spec also requires each **changed cell** to be visually marked with its `ChangeState` and to show pending/applied/rejected states pulled from `permission_change_sets`.
 
-Filters: role, user, permission, module, actor, action, result, date range (URL synced).
+**Fix**
+- In `PermissionStateCell` / `PermissionToggleRow`, overlay a `PermissionRowStateBadge` when the cell is staged (`draft`), or when there's an open change-set touching `(role|user, permission_key)` (states `pending_approval`, `requested_changes`, `approved`, `applied`, `rejected`, `failed`).
+- Add `fetchOpenChangeSetsByCell()` returning `Map<${role|user}:${key}, ChangeState>` for the current environment, cached and refreshed on approval events.
 
-New action per row: **Recreate Change** — opens the Review Changes drawer prefilled with a *reversal* (or *reapply*) draft staged in the buffer. It's a new draft; goes through full review/approval like any other change. No destructive rollback path; historical rows remain read-only (a DB `prevent_delete` trigger on `permission_change_sets` + `admin_actions` for the permission scope).
+---
 
-### 8. Success + notification wiring
-On successful apply:
-- Refresh `permission-workspace.service` env-keyed caches.
-- Invalidate per-user effective permission caches (broadcast on the existing `admin_actions` realtime channel; `usePermissions()` re-fetches on the affected user).
-- `admin_actions` event with `action_type='permission_change_applied'`, payload includes full before/after and change-set id.
-- Success toast + inline banner on the source tab.
-- On failure of any target during atomic apply: whole transaction rolls back, change set state becomes `failed`, toast lists which target failed, no partial writes.
+## 5. Approval rule enforcement gaps
 
-### 9. Technical scope
-- **New files**
-  - `src/services/permission-approval-rules.ts`
-  - `src/components/admin/permission-matrix/ApprovalDetailsDrawer.tsx`
-  - `src/components/admin/permission-matrix/PermissionDiffTable.tsx` (shared by Review + Approval drawers)
-  - `src/components/admin/permission-matrix/RecreateChangeAction.tsx`
-- **Rewrites**
-  - `ReviewChangesDrawer.tsx` (full rebuild per §4)
-  - `PendingApprovalTable.tsx` + `AdminAccessApprovals.tsx` (columns, filters, drawer wiring, inline approve/reject)
-  - `PermissionHistoryTable.tsx` (columns, filters, Recreate)
-  - `StagedChangesFooter.tsx` (Review + Discard actions only)
-  - `useStagedPermissionChanges.ts` (scope discriminator)
-  - `permission-repository.ts` (`submitChangeSets` batch, `approveChangeSet`, `rejectChangeSet`, `requestChangesOnChangeSet`, `recreateChangeSet`)
-- **Migrations**
-  - Add `state`, `requires_approval`, `review_comments`, `submitted_at` columns.
-  - New RPC `submit_and_apply_change_sets` for atomic multi-target apply and `permission_change_can_submit` guard.
-  - `prevent_delete` trigger on `permission_change_sets`.
-  - New `system_settings.permission_approval_ttl_days` (default 7).
+`evaluateApproval` covers the *what*. The spec also mandates *who*:
 
-### Out of scope
-- Server-side cron for TTL expiry (derived client-side + best-effort updater).
-- Email notifications for approvers (uses in-app notifications only).
-- Role-authority tier configuration UI (uses fixed map in code).
-- Per-approver quorum / multi-approver flows beyond the "separate approver" rule.
+- Requesters cannot approve their own change sets.
+- Users cannot grant permissions they do not currently hold.
+- Users cannot change roles above their authority.
+- Critical (`risk_level in ('high','critical')`) changes require a distinct approver.
 
-Approve to implement in a single pass across the three tabs and the supporting migrations.
+**Fix**
+- Add `canApproveChangeSet(changeSet, actor)` in `permission-approval-rules.ts` returning `{ allowed, reason }`. Enforce (a) `changeSet.requested_by !== actor.id`, (b) actor holds every key in `after \ before`, (c) actor's `role_rank ≥ target_role_rank` from `permission-catalog`, (d) for `hits.some(critical)` require a fresh approver even if actor is Super Admin.
+- Mirror the same guard in the `apply_permission_change_set` RPC (server side, authoritative) — reject with a specific error code the drawer can render.
+- Hide/disable Approve/Reject buttons in the Approval Details drawer when the guard blocks.
+
+---
+
+## 6. Duplicate-submission + unsaved-navigation guards
+
+`useUnsavedNavigationGuard` exists but is only wired to the environment switcher inside `RoleMatrix`. The spec asks for a global unsaved warning and idempotent submission.
+
+**Fix**
+- Wrap `AdminPermissionMatrix` in a `useUnsavedNavigationGuard(staged.totalChanges > 0)` block that intercepts router navigation and `beforeunload` while any change is staged.
+- Add an idempotency key (`crypto.randomUUID()`) to each `SubmitChangeSetInput`, dedupe at both the drawer level (disable button during `busy`) and the RPC level (unique index on `(idempotency_key, requested_by)`).
+
+---
+
+## 7. Post-apply refresh + audit trail
+
+`ReviewChangesDrawer.onSubmitted` currently refetches roles/approvals/history but doesn't invalidate impacted user permission caches or emit the "success" toast contract described in the spec.
+
+**Fix**
+- On successful apply, additionally invalidate: `internal_effective_permissions` for every impacted user, `useCurrentUser` if the actor is impacted, and `EnvironmentSwitcher`'s workspace cache for the current env.
+- Ensure `apply_permission_change_set` writes a paired row into `audit_logs` (`action_type = 'permission_change_applied'`) with `metadata = { change_set_id, before, after, hits }`. Verify persistence, then link that audit id back into the change-set row so the History tab's "Audit ref" column can deep-link.
+
+---
+
+## Out of scope for this pass (still deferred, unchanged)
+
+- Server-side cron to hard-flip expired change sets and overrides.
+- `/admin/users` route rename.
+- Table virtualization on the History / Approvals tabs (target after row count exceeds 500).
+
+Approve this and I'll implement §1–§7 in order (data source unification first so §2 and §3 can share it).
