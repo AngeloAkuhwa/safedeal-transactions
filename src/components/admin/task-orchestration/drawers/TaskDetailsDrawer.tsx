@@ -87,7 +87,7 @@ export function TaskDetailsDrawer({
     if (!task) return;
     try {
       setBusy(actionLabel);
-      await runOrchestrationAction({ ...payload, task_id: task.id, expected_version: version });
+      await runOrchestrationAction({ ...payload, task_id: task.id, expected_version: version } as any);
       toast.success(successMsg);
       if (closeAfter) { onAfterMutate?.(); onOpenChange(false); }
       else { await refresh(); onAfterMutate?.(); }
