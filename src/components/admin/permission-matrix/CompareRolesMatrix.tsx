@@ -117,12 +117,6 @@ export function CompareRolesMatrix({ roleMap, filters, canWrite, environment = D
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to revoke acknowledgement"),
   });
-    onSuccess: () => {
-      toast.success("Acknowledgement revoked");
-      qc.invalidateQueries({ queryKey: ["permission-conflict-acks"] });
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to revoke acknowledgement"),
-  });
 
   const q = filters.search.trim().toLowerCase();
   const filterKey = (k: string): boolean => {
