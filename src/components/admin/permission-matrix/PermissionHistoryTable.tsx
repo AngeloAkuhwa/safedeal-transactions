@@ -1,43 +1,130 @@
+import { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { HISTORY_ACTION_LABEL, type HistoryRow } from "@/services/permission-workspace.service";
+import type { PermissionHistoryItem } from "@/services/permission-workspace.service";
 import { EmptyState } from "./EmptyState";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, RotateCcw } from "lucide-react";
+import { changeStateTone, normalizeChangeState } from "@/services/permission-approval-rules";
 
-export function PermissionHistoryTable({ rows, onRowClick }: { rows: HistoryRow[]; onRowClick?: (r: HistoryRow) => void }) {
-  if (!rows.length) return <EmptyState title="No recorded changes" description="Role assignments and override activity will appear here." />;
+export function PermissionHistoryTable({
+  rows,
+  onRowClick,
+  onRecreate,
+}: {
+  rows: PermissionHistoryItem[];
+  onRowClick?: (r: PermissionHistoryItem) => void;
+  onRecreate?: (r: PermissionHistoryItem) => void;
+}) {
+  const [q, setQ] = useState("");
+  const [scope, setScope] = useState("any");
+  const [result, setResult] = useState("any");
+
+  const filtered = useMemo(() => {
+    const ql = q.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (scope !== "any" && r.target_scope !== scope) return false;
+      if (result !== "any" && r.result !== result) return false;
+      if (!ql) return true;
+      return (
+        r.target_label.toLowerCase().includes(ql) ||
+        r.target_key.toLowerCase().includes(ql) ||
+        (r.actor_name ?? "").toLowerCase().includes(ql) ||
+        (r.reason ?? "").toLowerCase().includes(ql) ||
+        r.id.toLowerCase().includes(ql)
+      );
+    });
+  }, [rows, q, scope, result]);
+
   return (
-    <div className="rounded-2xl border border-border/50 bg-card/60 p-2 backdrop-blur-sm">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-separate border-spacing-y-1 text-sm">
-          <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              <th className="px-4 py-2 text-left font-medium">When</th>
-              <th className="px-4 py-2 text-left font-medium">Action</th>
-              <th className="px-4 py-2 text-left font-medium">Target</th>
-              <th className="px-4 py-2 text-left font-medium">Actor</th>
-              <th className="px-4 py-2 text-left font-medium">Summary</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr
-                key={r.id}
-                className="cursor-pointer transition hover:bg-muted/30 [&>td]:bg-background/30 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
-                onClick={() => onRowClick?.(r)}
-              >
-                <td className="px-4 py-3 align-middle text-xs text-muted-foreground whitespace-nowrap">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</td>
-                <td className="px-4 py-3 align-middle">
-                  <span className="inline-flex rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
-                    {HISTORY_ACTION_LABEL[r.action_type] ?? r.action_type}
-                  </span>
-                </td>
-                <td className="px-4 py-3 align-middle text-xs">{r.target_user_name ?? <span className="text-muted-foreground italic">—</span>}</td>
-                <td className="px-4 py-3 align-middle text-xs">{r.actor_name ?? <span className="text-muted-foreground italic">System</span>}</td>
-                <td className="px-4 py-3 align-middle text-xs text-muted-foreground">{r.summary ?? "—"}</td>
-              </tr>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/40 bg-card/40 p-2 backdrop-blur-sm">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search target, actor, reason, or ref" className="h-8 pl-7 text-xs" />
+        </div>
+        <Select value={scope} onValueChange={setScope}>
+          <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Scope" /></SelectTrigger>
+          <SelectContent>
+            {[{ v: "any", l: "All scopes" }, { v: "role", l: "Role" }, { v: "user", l: "User" }, { v: "template", l: "Template" }, { v: "permission", l: "Permission" }].map((i) => (
+              <SelectItem key={i.v} value={i.v} className="text-xs">{i.l}</SelectItem>
             ))}
-          </tbody>
-        </table>
+          </SelectContent>
+        </Select>
+        <Select value={result} onValueChange={setResult}>
+          <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Result" /></SelectTrigger>
+          <SelectContent>
+            {[{ v: "any", l: "All results" }, { v: "applied", l: "Applied" }, { v: "rejected", l: "Rejected" }, { v: "cancelled", l: "Cancelled" }, { v: "failed", l: "Failed" }].map((i) => (
+              <SelectItem key={i.v} value={i.v} className="text-xs">{i.l}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
+      {!filtered.length ? (
+        <EmptyState title="No recorded changes" description="Applied and rejected change sets will appear here." />
+      ) : (
+        <div className="rounded-2xl border border-border/50 bg-card/60 p-2 backdrop-blur-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1100px] border-separate border-spacing-y-1 text-sm">
+              <thead>
+                <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <th className="px-3 py-2 text-left font-medium">When</th>
+                  <th className="px-3 py-2 text-left font-medium">Actor</th>
+                  <th className="px-3 py-2 text-left font-medium">Action</th>
+                  <th className="px-3 py-2 text-left font-medium">Target</th>
+                  <th className="px-3 py-2 text-left font-medium">Previous</th>
+                  <th className="px-3 py-2 text-left font-medium">New</th>
+                  <th className="px-3 py-2 text-left font-medium">Reason</th>
+                  <th className="px-3 py-2 text-left font-medium">Approval ref</th>
+                  <th className="px-3 py-2 text-left font-medium">Result</th>
+                  <th className="px-3 py-2 text-left font-medium">Env</th>
+                  <th className="px-3 py-2 text-right font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((r) => {
+                  const tone = changeStateTone(normalizeChangeState(r.result));
+                  return (
+                    <tr
+                      key={r.id}
+                      className="cursor-pointer transition hover:bg-muted/30 [&>td]:bg-background/30 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
+                      onClick={() => onRowClick?.(r)}
+                    >
+                      <td className="px-3 py-3 align-middle whitespace-nowrap text-xs text-muted-foreground">{formatDistanceToNow(new Date(r.when), { addSuffix: true })}</td>
+                      <td className="px-3 py-3 align-middle text-xs">{r.actor_name ?? <span className="italic text-muted-foreground">System</span>}</td>
+                      <td className="px-3 py-3 align-middle text-xs">{r.action}</td>
+                      <td className="px-3 py-3 align-middle text-xs font-medium">{r.target_label}</td>
+                      <td className="px-3 py-3 align-middle text-xs text-muted-foreground">{r.previous_summary}</td>
+                      <td className="px-3 py-3 align-middle text-xs text-muted-foreground">
+                        <span className="text-emerald-400">+{r.added_keys.length}</span>{" / "}<span className="text-rose-400">−{r.removed_keys.length}</span>
+                      </td>
+                      <td className="px-3 py-3 align-middle text-xs text-muted-foreground max-w-[220px] truncate" title={r.reason ?? ""}>{r.reason ?? "—"}</td>
+                      <td className="px-3 py-3 align-middle font-mono text-[11px] text-muted-foreground">{r.approval_ref.slice(0, 8)}…</td>
+                      <td className="px-3 py-3 align-middle">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${tone.bg} ${tone.text} ${tone.ring}`}>{tone.label}</span>
+                      </td>
+                      <td className="px-3 py-3 align-middle text-[11px] uppercase text-muted-foreground">{r.environment}</td>
+                      <td className="px-3 py-3 align-middle text-right">
+                        {onRecreate && r.target_scope === "role" ? (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onRecreate(r); }}
+                            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-muted"
+                            title="Stage the inverse of this change as a draft for review"
+                          >
+                            <RotateCcw className="h-3 w-3" /> Recreate
+                          </button>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
