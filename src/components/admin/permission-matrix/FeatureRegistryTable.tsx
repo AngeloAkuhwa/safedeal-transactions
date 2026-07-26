@@ -73,11 +73,11 @@ export function FeatureRegistryTable({
   if (!rows.length) return <EmptyState title="No permissions match" description="Adjust filters to see more results." />;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="rounded-2xl border border-border/50 bg-card/60 p-2 backdrop-blur-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[720px] border-separate border-spacing-y-1 text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+            <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
               <th className="px-4 py-2 text-left font-medium">Permission</th>
               <th className="px-4 py-2 text-left font-medium">Module</th>
               <th className="px-4 py-2 text-left font-medium">Risk</th>
@@ -90,20 +90,20 @@ export function FeatureRegistryTable({
             {rows.map((r) => (
               <tr
                 key={r.key}
-                className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted/30"
+                className="cursor-pointer transition hover:bg-muted/30 [&>td]:bg-background/30 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
                 onClick={() => onRowClick?.(r.key)}
               >
-                <td className="px-4 py-2">
+                <td className="px-4 py-3 align-middle">
                   <div className="text-sm font-medium text-foreground">{r.label.split("—")[1]?.trim() ?? r.label}</div>
                   <div className="text-[11px] font-mono text-muted-foreground">{r.key}</div>
                 </td>
-                <td className="px-4 py-2 text-sm text-muted-foreground">{r.module}</td>
-                <td className="px-4 py-2"><PermissionRiskBadge risk={r.risk} /></td>
-                <td className="px-4 py-2"><PermissionRowStateBadge state={r.state} /></td>
-                <td className="px-4 py-2 text-xs text-muted-foreground">
+                <td className="px-4 py-3 align-middle text-sm text-muted-foreground">{r.module}</td>
+                <td className="px-4 py-3 align-middle"><PermissionRiskBadge risk={r.risk} /></td>
+                <td className="px-4 py-3 align-middle"><PermissionRowStateBadge state={r.state} /></td>
+                <td className="px-4 py-3 align-middle text-xs text-muted-foreground">
                   {r.grantedRoles.length ? r.grantedRoles.slice(0, 3).join(", ") + (r.grantedRoles.length > 3 ? ` +${r.grantedRoles.length - 3}` : "") : <span className="italic">No roles</span>}
                 </td>
-                <td className="px-4 py-2 text-right font-mono text-xs">{r.overrideCount}</td>
+                <td className="px-4 py-3 align-middle text-right font-mono text-xs">{r.overrideCount}</td>
               </tr>
             ))}
           </tbody>

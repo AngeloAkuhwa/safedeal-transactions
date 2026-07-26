@@ -1,125 +1,129 @@
-# Permission Matrix — Finish-line plan (10 gaps)
+# Permission Matrix — Finish-line plan (v3)
 
-Additive only. No key/role renames. No visual regressions beyond the new chips.
+Additive only. No key/role renames. v3 keeps every v2 item and adds a visual-language pass inspired by the reference screenshots: sectioned panels, no horizontal divider lines across rows or sections, pill-shaped state chips with generous padding.
 
-## 1. Verify + patch RLS/GRANTs on new tables (spec §7)
+---
 
-Run a read query against `information_schema` + `pg_policies` for `permission_templates`, `permission_template_items`, `permission_change_sets`. If anything is missing, ship one migration:
+## Part A — Original 10 gaps: status vs. remaining
 
-- `GRANT SELECT` to `authenticated`, `GRANT ALL` to `service_role` on all three.
-- `ENABLE ROW LEVEL SECURITY` on all three.
-- Policies (using existing `has_internal_role` / `internal_effective_permissions`, non-recursive):
-  - SELECT: viewer has `permissions.view` OR is super_admin.
-  - INSERT/UPDATE/DELETE on templates + change_sets: viewer has `permissions.manage_permissions`.
-  - `permission_change_sets` UPDATE to `status='approved'|'applied'`: super_admin only (enforced in the RPC in §3, but also gated at policy level).
+| # | Item | Status | Remaining work |
+|---|---|---|---|
+| 1 | RLS/GRANTs on new tables | Done | — |
+| 2 | Repository write surface | Done | — |
+| 3 | Atomic apply RPC | Done | — |
+| 4 | Workspace service → thin aggregator | Done | — |
+| 5 | Real row-state derivation (`restricted`, `pending`, `is_system_default`) | Partial | Extract `derivePermissionRowState()` helper; load `access_change_requests` once at page level; feed `FeatureRegistryTable`, `PermissionDetailsDrawer`, `UserOverrideTable` |
+| 6 | Source chips everywhere | Partial | Chip lives in drawer + override table. Still missing: `FeatureDetailsDrawer` per-role/user breakdown; role-vs-template auto-detection (`role_template` vs `direct_role`) |
+| 7 | Templates via real tables | Partial | `PermissionTemplateTable` still uses `system_settings` fallback. Rewrite to repo CRUD + `submitChangeSet({target_scope:'template'})`; one-shot JSON→table migration on first load |
+| 8 | Change-set write path from bulk edits | Not done | `RoleMatrix` is read-only; wire "Save changes" → `submitChangeSet` per role. Drawer add/remove override → `submitChangeSet({target_scope:'user'})`. Remove any direct writes to `role_permissions` / `user_permission_overrides` |
+| 9 | Label rename (Full/Partial/No Access) | Done | — |
+| 10 | Deprecate `PRIVILEGED_ACTIONS` | Partial | Sweep remaining callers → `getPermissionRisk(key)`; keep shim with `@deprecated` |
 
-## 2. Repository — complete the write surface (spec §6, §8)
+Plus: contract test `src/__tests__/permission-matrix.contract.test.ts` — asserts repo covers the interface and no non-repo file imports `supabase` for permission tables.
 
-Extend `SupabasePermissionRepository` in `src/services/permission-repository.ts`:
+---
 
-- `approveChangeSet(id, reason)` → calls new RPC `apply_permission_change_set(id, reason)`.
-- `rejectChangeSet(id, reason)` → updates `status='rejected'`, stamps `applied_by=auth.uid()`, writes `audit_logs` row.
-- Template CRUD: `createTemplate`, `updateTemplate`, `deleteTemplate`, `setTemplateItems(template_id, keys[])` — the last as an atomic delete+insert inside a transaction via RPC `set_permission_template_items`.
+## Part B — Screenshot-driven UI items
 
-## 3. Atomic apply RPC (spec §6)
+### B1. Fix "Partial Access" chip padding + wrapping
 
-New security-definer function `public.apply_permission_change_set(_id uuid, _reason text)`:
+Symptom: "Partial Access 1/2" wraps across two lines and sits unevenly next to Full/No Access.
 
-1. Load change set; assert `status='pending'`; assert caller is super_admin via `has_internal_role`.
-2. Branch on `target_scope`:
-   - `role` — diff `before` vs `after` (arrays of permission_keys). Delete removed grants and insert added grants in `role_permissions` for `target_key`.
-   - `user` — diff overrides; upsert/delete `user_permission_overrides` rows for `target_key` (user id).
-   - `template` — replace `permission_template_items` for `target_key`.
-3. Insert `audit_logs` row (action_type: config change, actor, before/after JSONB, reason); store its id in `permission_change_sets.audit_ref`.
-4. Mark `status='applied'`, `applied_at=now()`, `applied_by=auth.uid()`.
+Fix in `PermissionStateCell`:
+- `inline-flex items-center gap-1.5 whitespace-nowrap`, `px-2.5 py-1`, min-height `h-7`.
+- Fraction badge: `ml-1 rounded-md bg-black/25 px-1.5 py-0.5 text-[10px] font-mono leading-none`.
+- `<td>` gets `align-middle`; drop column `max-w` so the row height stays uniform and the table scrolls horizontally.
+- Same treatment in `FeatureRegistryTable` and `FeatureDetailsDrawer`.
 
-## 4. Workspace service → thin aggregator (spec §8)
+### B2. Environment switcher (Production / Staging / Development)
 
-Refactor `src/services/permission-workspace.service.ts` so every DB call routes through `permissionRepo`:
+- Additive nullable `environment text` columns on `role_permissions`, `user_permission_overrides`, `permission_change_sets` (CHECK in `('production','staging','development')`, NULL = applies to all). Update `apply_permission_change_set` to carry env through.
+- Repo: add `environment` filter to `listRoleGrantMap`, `listOverrides`, `submitChangeSet`.
+- UI: replace the static "SOON" pill with a real segmented control `[Production | Staging | Development]` — persisted to `?env=` + `sessionStorage`, default `production`. Matrix, Feature Registry, User Overrides, Templates, Approvals all consume it; History adds an env column.
+- Only super_admin or holders of `permissions.manage_permissions` may switch off production; others see the control disabled with a tooltip.
 
-- Replace direct `supabase.from("user_permission_overrides")` with `permissionRepo.listOverrides()`.
-- Replace direct reads of `internal_roles`, `role_permissions`, `access_change_requests`, `audit_logs` with repo methods (add `listApprovals`, `listHistory` to the repo).
-- Keep the existing `OverrideRow` / `ApprovalRow` shapes so callers don't change.
-- Keep the aggregator's join/derivation logic (user names, primary role, permission label) here — the repo returns raw rows only.
+Out of scope: promotion/copy flow between environments.
 
-## 5. Real row-state derivation (spec §4)
+---
 
-Move state derivation out of `FeatureRegistryTable` into a shared helper `derivePermissionRowState({ permission, viewer, roleGrantMap, overrides, pendingRequests })`:
+## Part C — Visual language pass (new)
 
-- `restricted` — `risk_level='critical'` AND viewer lacks `permissions.manage_permissions`.
-- `pending` — `(target_user_id, permission_key)` present in `access_change_requests` with status `pending`.
-- `override_granted` / `override_denied` — from `user_permission_overrides.mode`.
-- `granted` / `denied` — fall back to role grants.
+Reference: uploaded screenshots. Copy the **feel** (sectioned rounded panels, generous spacing, chip-based state, no divider lines between rows or sections) — do not port colors, copy, or component structure. All colors continue to come from existing semantic tokens.
 
-Load `access_change_requests` (already read for the Approvals tab) once at the page level, index by `permission_key`, and pass into the table and drawers. In the Feature Registry (which is not user-scoped) collapse `pending`/`override_*` counts into a single per-row summary; per-user state stays in `UserOverrideTable` and `PermissionDetailsDrawer`.
+### C1. Kill horizontal divider lines everywhere
 
-Also: implement `is_system_default` consumption in the same helper — a permission with `is_system_default=true` and no user override contributes `source='system_default'`.
+Global rule for this screen: no `border-b`, no `divide-y`, no `<Separator />` between feature rows, between section headers, or between panels. Spacing replaces lines.
 
-## 6. Source chips everywhere effective permissions render (spec §5, §9)
+- `FeatureRegistryTable`, `RoleMatrix`, `UserOverrideTable`, History table:
+  - Replace `border-b border-border/60` on rows with `space-y-1` (or `[&>tr]:my-1`) and give each row `rounded-lg bg-background/40` on hover only.
+  - Section group headers (e.g. `DASHBOARD & ANALYTICS`) become uppercase muted labels with `pt-4 pb-2` spacing — no rule underneath.
+  - `<thead>` uses `bg-transparent`; header cells rely on `text-[11px] uppercase tracking-wider text-muted-foreground` for separation, no bottom border.
+- Panels (`How permissions work`, `Access State Definitions`, filter row, `Permission Matrix`, `Quick Actions`) stack with `gap-6`, each a self-contained card — no `<Separator />` between them.
 
-Add a `PermissionSourceBadge` component (6 chips: System Default / Role Template / Direct Role Config / User Override / Temporary Access / System Restriction).
+### C2. Panel shell shared component
 
-Wire it into:
+Introduce `PermissionPanel` wrapper used by every section on the page:
+- `rounded-2xl border border-border/50 bg-card/60 backdrop-blur-sm p-5 md:p-6`
+- Header row: optional icon tile (circular, `h-9 w-9 bg-primary/10 text-primary`), title (`text-base font-semibold`), subtitle muted, right-slot for actions.
+- No internal divider between header and body — spacing `mt-4` handles it.
+- Consumed by `HowPermissionsWorkPanel`, `AccessStateDefinitionsPanel`, `FiltersPanel`, `PermissionMatrixPanel`, `QuickActionsPanel`.
 
-- `PermissionDetailsDrawer` — show source next to Mode.
-- `FeatureDetailsDrawer` — show source in the per-role/per-user breakdown row.
-- `UserOverrideTable` — new column between "Mode" and "Reason".
+### C3. Redesigned "How permissions work" panel
 
-Add role-vs-template detection: compare each role's grant set (sorted keys) to every template's items. Exact match → `role_template` with the template name; otherwise `direct_role`. Compute once per page load and pass down.
+Replaces the current thin band. Uses `PermissionPanel`.
+- Header: `Info` icon tile, title `How permissions work`, subtitle "Overview of access states, roles and override behavior", collapse chevron on the right (state persisted to localStorage). Collapsed shows a one-line summary.
+- Intro paragraph: `text-sm text-muted-foreground leading-relaxed max-w-3xl`.
+- Legend: **3-column responsive grid** (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3`) of legend cards. Each card:
+  - `flex items-start gap-3 rounded-xl border border-border/50 bg-background/40 p-3`
+  - Reuses `PermissionRowStateBadge` so legend + table never drift.
+  - Bold label + one-line muted description.
+- Six cards: Full, Limited, None, Override, Restricted, Pending.
 
-## 7. Templates persisted against real tables (spec §5)
+### C4. Access State Definitions panel (new, mirrors screenshot feel)
 
-Rewrite `PermissionTemplateTable` to read/write via the repo:
+New sibling panel below "How permissions work" — a **6-up card grid** styled like the reference. Purely presentational, backed by `PermissionRowStateBadge` values so nothing forks:
+- `grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3`
+- Each cell: circular icon (`h-10 w-10`) in that state's tinted background, label under it, one-line description muted. No dividers between cells; only gap.
+- No new colors; reuses the state palette already tokenised.
 
-- List from `permissionRepo.listTemplates()` (already implemented).
-- Create/rename/delete via new repo methods (§2).
-- "Save items" runs through `submitChangeSet({ target_scope: 'template', target_key: templateId, before, after })` so template edits are audited too.
-- Remove the `system_settings` JSON fallback path.
+### C5. Filters row as a panel
 
-Data migration (one-shot): if a `system_settings` row with the templates JSON exists, migrate it into `permission_templates` + `permission_template_items` on first load of the page (idempotent, keyed by name), then leave the JSON in place for one release cycle.
+Wrap the filters (Search / Role / Feature Group / Environment) in `PermissionPanel` with no header. Replace the "legend" (Full / Limited / None) inline chips with the same `PermissionRowStateBadge` mini-chips for consistency. No border below the panel.
 
-## 8. Change-set write path from bulk edits (spec §6)
+### C6. Matrix body — chip cells, not filled rectangles
 
-Any surface that mutates role grants funnels through `submitChangeSet`:
+Match the reference chip aesthetic while keeping the fraction badge:
+- Cell chip: `rounded-full`, `px-3 py-1`, tinted background (`bg-<state>/15 text-<state>-foreground`), no border.
+- Rows separated by `space-y-1` and hover `bg-muted/30 rounded-lg`, not by a border.
+- Group headers (`DASHBOARD & ANALYTICS` etc.) become uppercase muted section labels sitting inside the same panel with `pt-5 pb-2`, no underline.
 
-- `RoleMatrix` "Save changes" — build `before` from current `roleMap`, `after` from the edited state, submit one change set per role touched with `target_scope='role'`.
-- `PermissionDetailsDrawer` / `UserOverrideTable` add/remove — `target_scope='user'`.
-- Show a toast "Submitted for approval" and refresh the Approvals tab.
+### C7. Quick Actions panel
 
-Direct writes to `role_permissions` / `user_permission_overrides` from UI paths are removed; only the apply RPC (§3) writes to those tables going forward.
-
-## 9. Module-summary label rename (spec §4)
-
-Rename `PermissionStateCell` labels: `Full` → "Full Access", `Partial` → "Partial Access", `None` → "No Access". Fraction badge and colors unchanged.
-
-## 10. Deprecate `PRIVILEGED_ACTIONS` heuristic (spec §3)
-
-- Audit callers of `PRIVILEGED_ACTIONS` and `isPrivilegedPermission()`; switch any risk-based UI decision to `getPermissionRisk(key)` returning the 4-tier value.
-- Keep `isPrivilegedPermission()` as a shim returning `risk in ('high','critical')` for backward compat, with a `@deprecated` JSDoc.
+Optional (renders if page has slot content): 4-up grid of action cards — icon tile + title + subtitle — using `PermissionPanel` shell. No dividers between cards, just gap.
 
 ---
 
 ## Implementation sequence
 
-1. RLS/GRANT audit + patch migration (§1).
-2. Apply-RPC + repository writes (§2, §3).
-3. Workspace service → repo aggregator (§4).
-4. Row-state helper + `is_system_default` (§5).
-5. Source badge + role-vs-template detection (§6).
-6. Templates CRUD via repo + one-shot JSON migration (§7).
-7. Change-set write path from RoleMatrix + drawers (§8).
-8. Label rename + `PRIVILEGED_ACTIONS` cleanup (§9, §10).
-9. Contract test: `src/__tests__/permission-matrix.contract.test.ts` — asserts repo interface is fully implemented and no non-repo file imports `supabase` for permission tables.
+1. C1 kill divider lines + C2 `PermissionPanel` shell (pure presentation, zero risk).
+2. B1 chip padding + C6 chip cells.
+3. C3 "How permissions work" redesign + C4 Access State Definitions panel + C5 filter panel.
+4. Gap #5 row-state helper + `access_change_requests` page-level load.
+5. Gap #6 role-vs-template detection + `FeatureDetailsDrawer` source chip.
+6. Gap #7 template CRUD via repo + one-shot JSON migration.
+7. Gap #8 `RoleMatrix` + drawer writes routed through `submitChangeSet`.
+8. B2 environment column migration + repo/UI wiring.
+9. Gap #10 sweep + contract test.
 
-## Out of scope (unchanged)
+## Out of scope
 
 - Impersonation module.
-- Any theming beyond the new chips.
+- Multi-environment promotion/copy flow.
 - Users & Access screen rewrite.
+- Any color/token additions — visual pass reuses existing tokens only.
 
 ## Technical details
 
-- New RPC: `public.apply_permission_change_set(uuid, text)` — SECURITY DEFINER, `SET search_path = public`, super_admin guard via `has_internal_role`.
-- New RPC: `public.set_permission_template_items(uuid, text[])` — SECURITY DEFINER, `permissions.manage_permissions` guard.
-- Files touched: `src/services/permission-repository.ts`, `src/services/permission-workspace.service.ts`, `src/services/permission-catalog.ts`, `src/components/admin/permission-matrix/{FeatureRegistryTable,PermissionDetailsDrawer,FeatureDetailsDrawer,PermissionTemplateTable,UserOverrideTable,RoleMatrix,PermissionStateCell}.tsx`, plus new `PermissionSourceBadge.tsx` and `derive-row-state.ts`.
-- Migrations: two additive SQL files (RLS patch + RPCs). No column drops, no key renames.
+- New shared components: `PermissionPanel`, `HowPermissionsWorkPanel`, `AccessStateDefinitionsPanel`, `EnvironmentSwitcher`, `derive-row-state.ts`.
+- Migrations (additive): `role_permissions.environment`, `user_permission_overrides.environment`, `permission_change_sets.environment`; update `apply_permission_change_set` to carry env.
+- Files touched: `src/pages/AdminPermissionMatrix.tsx`, `src/components/admin/permission-matrix/{PermissionStateCell,FeatureRegistryTable,FeatureDetailsDrawer,PermissionDetailsDrawer,UserOverrideTable,PermissionTemplateTable,RoleMatrix}.tsx`, `src/services/{permission-repository,permission-workspace.service,permission-catalog}.ts`.

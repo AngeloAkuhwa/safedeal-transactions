@@ -9,11 +9,11 @@ import { ArrowUpRight } from "lucide-react";
 export function UserOverrideTable({ rows, onRowClick }: { rows: OverrideRow[]; onRowClick?: (r: OverrideRow) => void }) {
   if (!rows.length) return <EmptyState title="No overrides recorded" description="User-specific grants and revokes will show up here." />;
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="rounded-2xl border border-border/50 bg-card/60 p-2 backdrop-blur-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[720px] border-separate border-spacing-y-1 text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+            <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
               <th className="px-4 py-2 text-left font-medium">User</th>
               <th className="px-4 py-2 text-left font-medium">Role</th>
               <th className="px-4 py-2 text-left font-medium">Permission</th>
@@ -25,13 +25,16 @@ export function UserOverrideTable({ rows, onRowClick }: { rows: OverrideRow[]; o
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={r.user_id + r.permission_key + i} className="border-b border-border/60 last:border-0 hover:bg-muted/30">
-                <td className="px-4 py-2">
+              <tr
+                key={r.user_id + r.permission_key + i}
+                className="transition hover:bg-muted/30 [&>td]:bg-background/30 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
+              >
+                <td className="px-4 py-3 align-middle">
                   <div className="text-sm font-medium text-foreground">{r.user_name}</div>
                   <div className="text-[11px] text-muted-foreground">{r.user_email}</div>
                 </td>
-                <td className="px-4 py-2 text-xs text-muted-foreground">{r.user_role ? ROLE_LABEL[r.user_role] : "—"}</td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-3 align-middle text-xs text-muted-foreground">{r.user_role ? ROLE_LABEL[r.user_role] : "—"}</td>
+                <td className="px-4 py-3 align-middle">
                   <div className="flex items-center gap-2">
                     <div>
                       <div className="text-sm">{r.permission_label.split("—")[1]?.trim() ?? r.permission_label}</div>
@@ -40,20 +43,20 @@ export function UserOverrideTable({ rows, onRowClick }: { rows: OverrideRow[]; o
                     {r.privileged && <PermissionRiskBadge privileged size="xs" />}
                   </div>
                 </td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-3 align-middle">
                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${r.mode === "grant" ? "bg-emerald-500/15 text-emerald-300" : "bg-destructive/15 text-destructive"}`}>
                     {r.mode === "grant" ? "+ Grant" : "− Revoke"}
                   </span>
                 </td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-3 align-middle">
                   <PermissionSourceBadge
                     source={r.source}
                     size="xs"
                     title={r.expires_at ? `Expires ${new Date(r.expires_at).toLocaleString()}` : undefined}
                   />
                 </td>
-                <td className="px-4 py-2 text-xs text-muted-foreground">{r.reason ?? <span className="italic">—</span>}</td>
-                <td className="px-4 py-2 text-right">
+                <td className="px-4 py-3 align-middle text-xs text-muted-foreground">{r.reason ?? <span className="italic">—</span>}</td>
+                <td className="px-4 py-3 align-middle text-right">
                   <Link
                     to={`/admin/access-control?user=${r.user_id}`}
                     className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"

@@ -21,6 +21,7 @@ import { hydratePermissionCatalog } from "@/services/permission-catalog";
 import { permissionRepo } from "@/services/permission-repository";
 import { PermissionSummaryCards } from "@/components/admin/permission-matrix/PermissionSummaryCards";
 import { HowPermissionsWorkPanel } from "@/components/admin/permission-matrix/HowPermissionsWorkPanel";
+import { AccessStateDefinitionsPanel } from "@/components/admin/permission-matrix/AccessStateDefinitionsPanel";
 import {
   PermissionWorkspaceTabs,
   TAB_DEFS,
@@ -237,6 +238,8 @@ export default function AdminPermissionMatrix() {
     >
       <div className="relative w-full max-w-full space-y-6 overflow-x-hidden bg-[radial-gradient(ellipse_at_top_left,hsl(var(--primary)/0.06),transparent_60%)]">
         <HowPermissionsWorkPanel />
+
+        <AccessStateDefinitionsPanel />
 
         <PermissionSummaryCards
           summary={summaryQuery.data ?? null}
