@@ -253,7 +253,7 @@ export default function AdminPermissionMatrix() {
           counts={tabCounts}
         />
 
-        {(activeTabResolved === "role-matrix" || activeTabResolved === "feature-registry") && filterBar}
+        {activeTabResolved === "feature-registry" && filterBar}
 
         {/* Role Matrix */}
         {activeTabResolved === "role-matrix" && (
@@ -263,8 +263,8 @@ export default function AdminPermissionMatrix() {
             {rolesQuery.data && (
               <RoleMatrix
                 roleMap={rolesQuery.data}
-                filters={filters}
-                onCellClick={(role) => { setFilters((f) => ({ ...f, role })); setTab("role-detail", { role }); }}
+                canWrite={canManage}
+                onSubmitted={() => { rolesQuery.refetch(); approvalsQuery.refetch(); historyQuery.refetch(); }}
               />
             )}
           </>
