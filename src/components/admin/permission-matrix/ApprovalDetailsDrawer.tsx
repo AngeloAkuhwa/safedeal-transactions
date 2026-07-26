@@ -30,18 +30,15 @@ export function ApprovalDetailsDrawer({
 
   const diff: DiffRow[] = useMemo(() => {
     if (!item) return [];
-    const keys = Array.from(new Set([...item.added_keys, ...item.removed_keys]));
-    return keys.map((k) => ({
-      permission_key: k,
-      before: item.before_keys.includes(k),
-      after: item.after_keys.includes(k),
-      risk: getPermissionRisk(k),
-    }));
+    const rows: DiffRow[] = [];
+    for (const k of item.added_keys) rows.push({ permissionKey: k, op: "grant" });
+    for (const k of item.removed_keys) rows.push({ permissionKey: k, op: "revoke" });
+    return rows;
   }, [item]);
 
   const guard = useMemo(() => {
     if (!item || !actorId) return { allowed: false, reason: "Loading actor…" };
-    const actorKeys = new Set(perms.effectivePermissions ?? []);
+    const actorKeys = new Set<string>(perms.permissions ?? []);
     return canApproveChangeSet(
       {
         id: item.id,
@@ -54,7 +51,7 @@ export function ApprovalDetailsDrawer({
       },
       { id: actorId, roleKeys: (perms.roles ?? []) as any, effectivePermissionKeys: actorKeys },
     );
-  }, [item, actorId, perms.effectivePermissions, perms.roles]);
+  }, [item, actorId, perms.permissions, perms.roles]);
 
   if (!item) return null;
   const tone = changeStateTone(normalizeChangeState(item.status));
