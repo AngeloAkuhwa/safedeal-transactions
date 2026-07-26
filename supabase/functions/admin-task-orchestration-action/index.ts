@@ -16,7 +16,7 @@ type Body = {
     | "reassign" | "rebalance" | "escalate" | "complete" | "save_rules" | "test_rules"
     | "add_comment" | "send_for_approval"
     | "preview_auto_assign" | "preview_rebalance"
-    | "task_detail";
+    | "task_detail" | "export_queue";
   task_id?: string;
   task_ids?: string[];
   agent_id?: string;
@@ -30,6 +30,7 @@ type Body = {
   exclude_task_ids?: string[];
   exclude_agent_ids?: string[];
   override_capacity?: boolean;
+  scope?: "queue" | "live" | "roster";
 };
 
 Deno.serve(async (req) => {
