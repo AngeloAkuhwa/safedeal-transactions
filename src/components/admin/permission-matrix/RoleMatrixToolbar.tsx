@@ -22,7 +22,6 @@ interface Props {
   expandAll: () => void;
   collapseAll: () => void;
   activeFilterCount: number;
-  environmentSupported?: boolean;
   onModeChange: (mode: "all" | "compare") => void;
 }
 
@@ -99,7 +98,7 @@ function MultiPopover<T extends string>({
 }
 
 export function RoleMatrixToolbar({
-  filters, set, reset, expandAll, collapseAll, activeFilterCount, environmentSupported, onModeChange,
+  filters, set, reset, expandAll, collapseAll, activeFilterCount, onModeChange,
 }: Props) {
   const toggle = <T,>(arr: T[], v: T): T[] => arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
@@ -173,14 +172,6 @@ export function RoleMatrixToolbar({
           }}
           renderLabel={(v) => ROLE_LABEL[v as InternalRoleKey]}
         />
-        {environmentSupported ? (
-          <MultiPopover
-            label="Environment"
-            values={["production", "staging", "development"]}
-            selected={[]}
-            onToggle={() => { /* wired in follow-up */ }}
-          />
-        ) : null}
 
         {activeFilterCount > 0 && (
           <button
