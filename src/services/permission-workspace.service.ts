@@ -10,6 +10,10 @@ import {
   PERMISSION_MODULES,
   ROLE_LABEL,
   isPrivilegedPermission,
+  hydratePermissionCatalog,
+  getPermissionRisk,
+  type PermissionRiskLevel,
+  type PermissionSource,
   type InternalRoleKey,
 } from "./permission-catalog";
 
@@ -28,6 +32,9 @@ export interface OverrideRow {
   mode: "grant" | "revoke";
   reason: string | null;
   created_at: string;
+  expires_at: string | null;
+  source: PermissionSource;
+  risk: PermissionRiskLevel;
   privileged: boolean;
 }
 
@@ -100,7 +107,7 @@ export async function fetchOverrides(): Promise<OverrideRow[]> {
   const [ovRes, usersRes, rolesRes] = await Promise.all([
     supabase
       .from("user_permission_overrides")
-      .select("user_id,permission_key,mode,reason,granted_by,granted_at")
+      .select("user_id,permission_key,mode,reason,granted_by,granted_at,expires_at")
       .order("granted_at", { ascending: false }),
     supabase.from("internal_users").select("id,full_name,email"),
     supabase.from("internal_user_roles").select("user_id,role_key,is_primary"),
@@ -128,6 +135,12 @@ export async function fetchOverrides(): Promise<OverrideRow[]> {
   return (ovRes.data ?? []).map((row: any): OverrideRow => {
     const u = userById.get(row.user_id);
     const meta = permIndex.get(row.permission_key);
+    const expires = row.expires_at ?? null;
+    const stillActive = expires ? new Date(expires) > new Date() : true;
+    const source: PermissionSource = expires && stillActive
+      ? "temporary_access"
+      : "user_override";
+    const risk = getPermissionRisk(row.permission_key);
     return {
       user_id: row.user_id,
       user_name: u?.name ?? "Unknown user",
@@ -139,6 +152,9 @@ export async function fetchOverrides(): Promise<OverrideRow[]> {
       mode: row.mode as "grant" | "revoke",
       reason: row.reason ?? null,
       created_at: row.granted_at,
+      expires_at: expires,
+      source,
+      risk,
       privileged: isPrivilegedPermission(row.permission_key),
     };
   });
