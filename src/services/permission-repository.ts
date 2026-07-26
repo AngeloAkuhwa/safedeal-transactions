@@ -26,8 +26,14 @@ export interface FeatureRow {
   module_label?: string;
   action: string;
   label: string;
+  description?: string;
   risk_level: PermissionRiskLevel;
   is_system_default: boolean;
+  status?: "active" | "suspended" | "deprecated";
+  approval_required?: boolean;
+  owner_role?: string | null;
+  updated_at?: string;
+  created_at?: string;
 }
 
 export interface RoleRow {
@@ -152,6 +158,20 @@ export interface CreateTemplateInput {
 
 export interface PermissionRepository {
   listFeatures(): Promise<FeatureRow[]>;
+  listPermissionEnvironments(): Promise<Array<{ permission_key: string; environment: PermissionEnvironment }>>;
+  setPermissionEnvironments(key: string, envs: PermissionEnvironment[]): Promise<void>;
+  createPermission(input: {
+    key: string; module: string; action: string; label: string;
+    description: string; risk_level: PermissionRiskLevel;
+    approval_required?: boolean; owner_role?: string | null;
+    environments?: PermissionEnvironment[];
+    dependencies?: string[]; conflicts?: Array<{ b_key: string; severity: "low"|"medium"|"high"|"critical"; rationale?: string | null }>;
+  }): Promise<FeatureRow>;
+  updatePermission(key: string, patch: {
+    label?: string; description?: string; risk_level?: PermissionRiskLevel;
+    approval_required?: boolean; owner_role?: string | null;
+    status?: "active" | "suspended" | "deprecated";
+  }): Promise<void>;
   listRoles(): Promise<RoleRow[]>;
   listRoleGrants(env?: PermissionEnvironment): Promise<RoleGrantRow[]>;
   listOverrides(env?: PermissionEnvironment): Promise<OverrideRepoRow[]>;
@@ -177,11 +197,83 @@ class SupabasePermissionRepository implements PermissionRepository {
   async listFeatures(): Promise<FeatureRow[]> {
     const { data, error } = await supabase
       .from("permissions")
-      .select("key,module,action,label,risk_level,is_system_default")
+      .select("key,module,action,label,description,risk_level,is_system_default,status,approval_required,owner_role,updated_at,created_at")
       .order("module")
       .order("action");
     if (error) throw error;
     return (data ?? []) as FeatureRow[];
+  }
+
+  async listPermissionEnvironments(): Promise<Array<{ permission_key: string; environment: PermissionEnvironment }>> {
+    const { data, error } = await (supabase as any)
+      .from("permission_environments")
+      .select("permission_key,environment");
+    if (error) throw error;
+    return (data ?? []) as Array<{ permission_key: string; environment: PermissionEnvironment }>;
+  }
+
+  async setPermissionEnvironments(key: string, envs: PermissionEnvironment[]): Promise<void> {
+    const uniq = Array.from(new Set(envs));
+    const del = await (supabase as any).from("permission_environments").delete().eq("permission_key", key);
+    if (del.error) throw del.error;
+    if (uniq.length === 0) return;
+    const rows = uniq.map((e) => ({ permission_key: key, environment: e }));
+    const ins = await (supabase as any).from("permission_environments").insert(rows);
+    if (ins.error) throw ins.error;
+  }
+
+  async createPermission(input: {
+    key: string; module: string; action: string; label: string;
+    description: string; risk_level: PermissionRiskLevel;
+    approval_required?: boolean; owner_role?: string | null;
+    environments?: PermissionEnvironment[];
+    dependencies?: string[];
+    conflicts?: Array<{ b_key: string; severity: "low"|"medium"|"high"|"critical"; rationale?: string | null }>;
+  }): Promise<FeatureRow> {
+    const { data, error } = await (supabase as any)
+      .from("permissions")
+      .insert({
+        key: input.key,
+        module: input.module,
+        action: input.action,
+        label: input.label,
+        description: input.description,
+        risk_level: input.risk_level,
+        approval_required: input.approval_required ?? false,
+        owner_role: input.owner_role ?? null,
+        is_system_default: false,
+        status: "active",
+      })
+      .select("key,module,action,label,description,risk_level,is_system_default,status,approval_required,owner_role,updated_at,created_at")
+      .single();
+    if (error) throw error;
+    const envs = input.environments && input.environments.length ? input.environments : (["production","staging","development"] as PermissionEnvironment[]);
+    await this.setPermissionEnvironments(input.key, envs);
+    if (input.dependencies?.length) {
+      const rows = input.dependencies.map((d) => ({ permission_key: input.key, requires_key: d }));
+      const dRes = await (supabase as any).from("permission_dependencies").insert(rows);
+      if (dRes.error) throw dRes.error;
+    }
+    if (input.conflicts?.length) {
+      const rows = input.conflicts.map((c) => ({ a_key: input.key, b_key: c.b_key, severity: c.severity, rationale: c.rationale ?? null }));
+      const cRes = await (supabase as any).from("permission_conflicts").insert(rows);
+      if (cRes.error) throw cRes.error;
+    }
+    return data as FeatureRow;
+  }
+
+  async updatePermission(key: string, patch: {
+    label?: string; description?: string; risk_level?: PermissionRiskLevel;
+    approval_required?: boolean; owner_role?: string | null;
+    status?: "active" | "suspended" | "deprecated";
+  }): Promise<void> {
+    const upd: Record<string, unknown> = {};
+    for (const k of ["label","description","risk_level","approval_required","owner_role","status"] as const) {
+      if ((patch as any)[k] !== undefined) upd[k] = (patch as any)[k];
+    }
+    if (Object.keys(upd).length === 0) return;
+    const { error } = await (supabase as any).from("permissions").update(upd).eq("key", key);
+    if (error) throw error;
   }
 
   async listRoles(): Promise<RoleRow[]> {

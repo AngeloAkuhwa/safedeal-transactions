@@ -40,7 +40,10 @@ import { PermissionHistoryTable } from "@/components/admin/permission-matrix/Per
 import { FeatureDetailsDrawer } from "@/components/admin/permission-matrix/FeatureDetailsDrawer";
 import { PermissionDetailsDrawer } from "@/components/admin/permission-matrix/PermissionDetailsDrawer";
 import { ReviewChangesDrawer } from "@/components/admin/permission-matrix/ReviewChangesDrawer";
+import { RegisterPermissionDialog } from "@/components/admin/permission-matrix/RegisterPermissionDialog";
 import { ErrorState, LoadingSkeleton } from "@/components/admin/permission-matrix/EmptyState";
+import { fetchPermissionEnvironments } from "@/services/permission-workspace.service";
+import { Plus } from "lucide-react";
 
 const VALID_TABS = new Set<WorkspaceTab>(TAB_DEFS.map((t) => t.key));
 
@@ -84,6 +87,9 @@ export default function AdminPermissionMatrix() {
     module: params.get("module") ?? "all",
     risk: params.get("risk") ?? "all",
     search: "",
+    action: "all",
+    status: "all",
+    approval: "all",
   });
 
   useEffect(() => {
@@ -105,9 +111,20 @@ export default function AdminPermissionMatrix() {
       hydratePermissionCatalog(rows.map((r) => ({
         key: r.key, module: r.module, action: r.action, label: r.label,
         risk_level: r.risk_level, module_label: r.module_label,
+        description: r.description,
+        status: r.status ?? "active",
+        approval_required: r.approval_required ?? false,
+        owner_role: r.owner_role ?? null,
+        updated_at: r.updated_at,
+        created_at: r.created_at,
       })));
       return rows;
     },
+    staleTime: 5 * 60_000,
+  });
+  const environmentsQuery = useQuery({
+    queryKey: ["perm-workspace", "permission-environments"],
+    queryFn: fetchPermissionEnvironments,
     staleTime: 5 * 60_000,
   });
   // Hydrate permission dependency graph from DB (permission_dependencies).
@@ -173,6 +190,8 @@ export default function AdminPermissionMatrix() {
 
   const [featureKey, setFeatureKey] = useState<string | null>(null);
   const [featureOpen, setFeatureOpen] = useState(false);
+  const [editKey, setEditKey] = useState<string | null>(null);
+  const [registerOpen, setRegisterOpen] = useState(false);
   const [override, setOverride] = useState<OverrideRow | null>(null);
   const [approval, setApproval] = useState<ApprovalRow | null>(null);
   const [history, setHistory] = useState<HistoryRow | null>(null);
@@ -251,6 +270,9 @@ export default function AdminPermissionMatrix() {
       showModule={activeTabResolved !== "user-overrides" && activeTabResolved !== "pending-approvals" && activeTabResolved !== "change-history"}
       showRisk={activeTabResolved === "feature-registry"}
       showRole={activeTabResolved === "role-matrix" || activeTabResolved === "feature-registry"}
+      showAction={activeTabResolved === "feature-registry"}
+      showStatus={activeTabResolved === "feature-registry"}
+      showApproval={activeTabResolved === "feature-registry"}
     />
   );
 
@@ -288,7 +310,22 @@ export default function AdminPermissionMatrix() {
           counts={tabCounts}
         />
 
-        {activeTabResolved === "feature-registry" && filterBar}
+        {activeTabResolved === "feature-registry" && (
+          <div className="flex flex-col gap-3">
+            {filterBar}
+            {canManage && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => { setEditKey(null); setRegisterOpen(true); }}
+                  className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Register new permission
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Role Matrix */}
         {activeTabResolved === "role-matrix" && (
@@ -315,6 +352,8 @@ export default function AdminPermissionMatrix() {
                 roleMap={rolesQuery.data}
                 role={((params.get("role") as InternalRoleKey) || undefined)}
                 onRoleChange={(r) => setParams((p) => { p.set("role", r); return p; }, { replace: true })}
+                environment={environment}
+                onCompare={(r) => setTab("role-matrix", { rm_mode: "compare", rm_pri: r })}
               />
             )}
           </>
@@ -329,6 +368,8 @@ export default function AdminPermissionMatrix() {
                 roleMap={rolesQuery.data}
                 filters={filters}
                 overrideCountByPerm={overrideCountByPerm}
+                environmentMap={environmentsQuery.data}
+                currentEnvironment={environment}
                 onRowClick={openFeature}
               />
             )}
@@ -375,8 +416,18 @@ export default function AdminPermissionMatrix() {
           onOpenChange={setFeatureOpen}
           roleMap={rolesQuery.data}
           overrideCount={featureKey ? (overrideCountByPerm.get(featureKey) ?? 0) : 0}
+          environmentMap={environmentsQuery.data}
+          currentEnvironment={environment}
+          canManage={canManage}
+          onEdit={(k) => { setEditKey(k); setFeatureOpen(false); setRegisterOpen(true); }}
         />
       )}
+      <RegisterPermissionDialog
+        open={registerOpen}
+        onOpenChange={(v) => { setRegisterOpen(v); if (!v) setEditKey(null); }}
+        editingKey={editKey}
+        onSaved={() => environmentsQuery.refetch()}
+      />
       <PermissionDetailsDrawer
         override={override}
         open={!!override}
