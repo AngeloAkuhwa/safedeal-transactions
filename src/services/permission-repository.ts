@@ -26,8 +26,14 @@ export interface FeatureRow {
   module_label?: string;
   action: string;
   label: string;
+  description?: string;
   risk_level: PermissionRiskLevel;
   is_system_default: boolean;
+  status?: "active" | "suspended" | "deprecated";
+  approval_required?: boolean;
+  owner_role?: string | null;
+  updated_at?: string;
+  created_at?: string;
 }
 
 export interface RoleRow {
@@ -152,6 +158,20 @@ export interface CreateTemplateInput {
 
 export interface PermissionRepository {
   listFeatures(): Promise<FeatureRow[]>;
+  listPermissionEnvironments(): Promise<Array<{ permission_key: string; environment: PermissionEnvironment }>>;
+  setPermissionEnvironments(key: string, envs: PermissionEnvironment[]): Promise<void>;
+  createPermission(input: {
+    key: string; module: string; action: string; label: string;
+    description: string; risk_level: PermissionRiskLevel;
+    approval_required?: boolean; owner_role?: string | null;
+    environments?: PermissionEnvironment[];
+    dependencies?: string[]; conflicts?: Array<{ b_key: string; severity: "low"|"medium"|"high"|"critical"; rationale?: string | null }>;
+  }): Promise<FeatureRow>;
+  updatePermission(key: string, patch: {
+    label?: string; description?: string; risk_level?: PermissionRiskLevel;
+    approval_required?: boolean; owner_role?: string | null;
+    status?: "active" | "suspended" | "deprecated";
+  }): Promise<void>;
   listRoles(): Promise<RoleRow[]>;
   listRoleGrants(env?: PermissionEnvironment): Promise<RoleGrantRow[]>;
   listOverrides(env?: PermissionEnvironment): Promise<OverrideRepoRow[]>;
