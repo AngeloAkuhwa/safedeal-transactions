@@ -7,8 +7,14 @@ import {
 import type { AgentRosterEntry, LiveTask } from "@/services/task-orchestration.service";
 
 export function LiveTaskProgression({
-  tasks, roster, onView,
-}: { tasks: LiveTask[]; roster: AgentRosterEntry[]; onView: (t: LiveTask) => void }) {
+  tasks, roster, onView, onReassign, canReassign,
+}: {
+  tasks: LiveTask[];
+  roster: AgentRosterEntry[];
+  onView: (t: LiveTask) => void;
+  onReassign?: (t: LiveTask) => void;
+  canReassign?: boolean;
+}) {
   const rosterById = useMemo(() => new Map(roster.map(r => [r.user_id, r])), [roster]);
   return (
     <section className={CARD_CLASS}>
@@ -65,9 +71,19 @@ export function LiveTaskProgression({
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => onView(t)} className="text-xs font-medium text-primary transition-colors hover:text-foreground">
-                      View
-                    </button>
+                    <div className="inline-flex items-center gap-3">
+                      {canReassign && onReassign && t.assigned_agent_id && (
+                        <button
+                          onClick={() => onReassign(t)}
+                          className="text-xs font-medium text-amber-300 transition-colors hover:text-amber-200"
+                        >
+                          Reassign
+                        </button>
+                      )}
+                      <button onClick={() => onView(t)} className="text-xs font-medium text-primary transition-colors hover:text-foreground">
+                        View
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

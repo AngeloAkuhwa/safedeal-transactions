@@ -16,6 +16,8 @@ export { AgentDetailsDrawer } from "./drawers/AgentDetailsDrawer";
 export { TaskDetailsDrawer } from "./drawers/TaskDetailsDrawer";
 export { AutoAssignPreviewDrawer } from "./drawers/AutoAssignPreviewDrawer";
 export { RebalancePreviewDrawer } from "./drawers/RebalancePreviewDrawer";
+export { ReassignTaskDrawer } from "./drawers/ReassignTaskDrawer";
+export { BulkAssignResultDialog } from "./drawers/BulkAssignResultDialog";
 export { AssignmentHistoryDrawer, type HistoryEntry } from "./drawers/AssignmentHistoryDrawer";
 export { LoadingSkeleton } from "./states/LoadingSkeleton";
 export { EmptyState } from "./states/EmptyState";

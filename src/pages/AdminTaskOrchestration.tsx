@@ -16,6 +16,8 @@ import {
   TaskDetailsDrawer,
   AutoAssignPreviewDrawer,
   RebalancePreviewDrawer,
+  ReassignTaskDrawer,
+  BulkAssignResultDialog,
   LoadingSkeleton,
   ErrorState,
 } from "@/components/admin/task-orchestration";
@@ -23,12 +25,15 @@ import type { QueueFilters } from "@/components/admin/task-orchestration";
 import {
   fetchOrchestrationOverview,
   runOrchestrationAction,
+  exportOrchestrationCsv,
   type OrchestrationOverview,
   type UnassignedTask,
   type AgentRosterEntry,
   type LiveTask,
   type AssignmentRulesConfig,
+  type BulkAssignRowResult,
 } from "@/services/task-orchestration.service";
+import type { AutoAssignPlanRow } from "@/components/admin/task-orchestration/drawers/AutoAssignPreviewDrawer";
 import { useOrchestrationPerms } from "@/hooks/useOrchestrationPerms";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -53,8 +58,10 @@ export default function AdminTaskOrchestration() {
   const [savingRules, setSavingRules] = useState(false);
   const [testingRules, setTestingRules] = useState(false);
   const [mode, setMode] = useState("round_robin");
-  const [autoPreview, setAutoPreview] = useState<{ pending: number; seats: number; wouldAssign: number } | null>(null);
+  const [autoPreview, setAutoPreview] = useState<{ pending: number; plan: AutoAssignPlanRow[] } | null>(null);
   const [rebalancePreview, setRebalancePreview] = useState<{ moves: number } | null>(null);
+  const [reassignTarget, setReassignTarget] = useState<LiveTask | null>(null);
+  const [bulkResults, setBulkResults] = useState<BulkAssignRowResult[] | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -78,13 +85,22 @@ export default function AdminTaskOrchestration() {
       pending = true;
       setTimeout(() => { pending = false; void load(); }, 800);
     };
-    const ch = supabase.channel("task-orchestration-live")
-      .on("postgres_changes" as any, { event: "*", schema: "public", table: "orchestration_tasks" }, debounced)
+    // Scope realtime: broad listeners only for viewers of all tasks; otherwise
+    // subscribe to the caller's assigned rows only to avoid leaking rows they
+    // cannot see (server RLS still filters, but this reduces bus chatter).
+    const canViewAll = perms.canViewAll;
+    const uid = perms.userId;
+    const filter = canViewAll ? undefined : (uid ? `assigned_agent_id=eq.${uid}` : undefined);
+    if (!canViewAll && !uid) return; // nothing scoped, nothing to subscribe to
+    const ch = supabase.channel(`task-orchestration-live-${canViewAll ? "all" : uid}`)
+      .on("postgres_changes" as any,
+        { event: "*", schema: "public", table: "orchestration_tasks", ...(filter ? { filter } : {}) },
+        debounced)
       .on("postgres_changes" as any, { event: "*", schema: "public", table: "task_status_history" }, debounced)
       .on("postgres_changes" as any, { event: "*", schema: "public", table: "task_assignment_history" }, debounced)
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
-  }, [load]);
+  }, [load, perms.canViewAll, perms.userId]);
 
   const toggleId = (id: string) => setSelectedIds(s => {
     const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n;
@@ -115,25 +131,42 @@ export default function AdminTaskOrchestration() {
   const handleConfirmAssign = async (agentId: string, reason: string) => {
     const ids = assignBulk ? Array.from(selectedIds) : (assignTarget ? [assignTarget.id] : []);
     if (!ids.length || !agentId) return;
-    await runAction("assign", () => runOrchestrationAction({
-      action: "assign_selected", task_ids: ids, agent_id: agentId, mode, reason,
-    }));
-    setAssignTarget(null); setAssignBulk(false);
+    try {
+      setBusy("assign");
+      const res = await runOrchestrationAction<{ ok: boolean; count: number; total: number; results: BulkAssignRowResult[] }>({
+        action: "assign_selected", task_ids: ids, agent_id: agentId, mode, reason,
+      });
+      if (assignBulk && res?.results?.length) {
+        setBulkResults(res.results);
+        const fail = res.results.filter(r => !r.ok).length;
+        if (fail) toast.warning(`${res.count}/${res.total} assigned — ${fail} failed`);
+        else toast.success(`${res.count}/${res.total} assigned`);
+      } else {
+        toast.success("Assigned");
+      }
+      setSelectedIds(new Set());
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Assign failed");
+    } finally {
+      setBusy(null); setAssignTarget(null); setAssignBulk(false);
+    }
   };
 
   const handleAutoAssign = async () => {
     try {
-      const res = await runOrchestrationAction<{ pending: number; would_assign: number; plan: unknown[] }>({
+      const res = await runOrchestrationAction<{ pending: number; would_assign: number; plan: AutoAssignPlanRow[] }>({
         action: "preview_auto_assign", mode,
       });
-      setAutoPreview({ pending: res.pending, seats: res.plan.length, wouldAssign: res.would_assign });
+      setAutoPreview({ pending: res.pending, plan: res.plan ?? [] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Preview failed");
     }
   };
-  const confirmAutoAssign = async () => {
+  const confirmAutoAssign = async (excludeTaskIds: string[]) => {
     setAutoPreview(null);
-    await runAction("auto_assign", () => runOrchestrationAction({ action: "auto_assign", mode }));
+    await runAction("auto_assign",
+      () => runOrchestrationAction({ action: "auto_assign", mode, exclude_task_ids: excludeTaskIds }));
   };
   const handleAssignToMe = () => {
     if (!selectedIds.size) return;
@@ -157,17 +190,23 @@ export default function AdminTaskOrchestration() {
     await runOrchestrationAction({ action: "escalate", task_ids: Array.from(selectedIds), reason });
     setEscalateOpen(false);
   });
-  const handleBulkExport = () => {
-    if (!data) return;
-    const rows = data.unassigned_queue.map(t => ({
-      code: t.task_code, type: t.type, priority: t.priority, amount: t.amount, currency: t.currency,
-      created_at: t.created_at, dispute_id: t.dispute_id,
+  const handleBulkExport = async () => {
+    try { await exportOrchestrationCsv("queue"); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Export failed"); }
+  };
+
+  const handleConfirmReassign = async (params: { agentId: string; reason: string; note: string; override: boolean }) => {
+    if (!reassignTarget) return;
+    await runAction("reassign", () => runOrchestrationAction({
+      action: "reassign",
+      task_id: reassignTarget.id,
+      agent_id: params.agentId,
+      reason: params.reason,
+      body_text: params.note || undefined,
+      override_capacity: params.override,
+      expected_version: (reassignTarget as any).version,
     }));
-    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `task-queue-${Date.now()}.json`; a.click();
-    URL.revokeObjectURL(url);
+    setReassignTarget(null);
   };
 
   const handleSaveRules = async (next: AssignmentRulesConfig) => {
@@ -191,13 +230,9 @@ export default function AdminTaskOrchestration() {
     } finally { setTestingRules(false); }
   };
 
-  const exportReport = () => {
-    if (!data) return;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `task-orchestration-report-${Date.now()}.json`; a.click();
-    URL.revokeObjectURL(url);
+  const exportReport = async () => {
+    try { await exportOrchestrationCsv("live"); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Export failed"); }
   };
 
   return (
@@ -256,6 +291,8 @@ export default function AdminTaskOrchestration() {
               tasks={data.live_progression}
               roster={data.roster}
               onView={(t: LiveTask) => toast.message(`Task #${t.task_code} · ${t.status}`)}
+              canReassign={perms.canReassign}
+              onReassign={(t) => setReassignTarget(t)}
             />
 
             <ProductivityInsights insights={data.insights} />
@@ -306,8 +343,9 @@ export default function AdminTaskOrchestration() {
         open={!!autoPreview}
         onOpenChange={o => { if (!o) setAutoPreview(null); }}
         pending={autoPreview?.pending ?? 0}
-        seats={autoPreview?.seats ?? 0}
-        wouldAssign={autoPreview?.wouldAssign ?? 0}
+        plan={autoPreview?.plan ?? []}
+        roster={data?.roster ?? []}
+        mode={mode}
         onConfirm={confirmAutoAssign}
         submitting={busy === "auto_assign"}
       />
@@ -317,6 +355,25 @@ export default function AdminTaskOrchestration() {
         roster={data?.roster ?? []}
         onConfirm={confirmRebalance}
         submitting={busy === "rebalance"}
+      />
+      <ReassignTaskDrawer
+        open={!!reassignTarget}
+        onOpenChange={o => { if (!o) setReassignTarget(null); }}
+        task={reassignTarget}
+        roster={data?.roster ?? []}
+        canOverride={perms.canOverrideCapacity}
+        onConfirm={handleConfirmReassign}
+        submitting={busy === "reassign"}
+      />
+      <BulkAssignResultDialog
+        open={!!bulkResults}
+        onOpenChange={o => { if (!o) setBulkResults(null); }}
+        results={bulkResults ?? []}
+        taskCodeById={
+          data
+            ? Object.fromEntries(data.unassigned_queue.map(t => [t.id, t.task_code]))
+            : {}
+        }
       />
     </AdminLayout>
   );

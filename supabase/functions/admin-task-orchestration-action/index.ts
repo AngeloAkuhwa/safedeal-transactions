@@ -16,7 +16,7 @@ type Body = {
     | "reassign" | "rebalance" | "escalate" | "complete" | "save_rules" | "test_rules"
     | "add_comment" | "send_for_approval"
     | "preview_auto_assign" | "preview_rebalance"
-    | "task_detail";
+    | "task_detail" | "export_queue";
   task_id?: string;
   task_ids?: string[];
   agent_id?: string;
@@ -30,6 +30,7 @@ type Body = {
   exclude_task_ids?: string[];
   exclude_agent_ids?: string[];
   override_capacity?: boolean;
+  scope?: "queue" | "live" | "roster";
 };
 
 Deno.serve(async (req) => {
@@ -52,6 +53,7 @@ Deno.serve(async (req) => {
     preview_auto_assign: "task_orchestration.view",
     preview_rebalance: "task_orchestration.view",
     task_detail: "task_orchestration.view",
+    export_queue: "task_orchestration.export",
   };
   const permission = permMap[body.action] ?? "task_orchestration.view";
 
@@ -257,7 +259,9 @@ Deno.serve(async (req) => {
       case "auto_assign": {
         const { data: rules } = await admin.from("assignment_rules").select("config").eq("scope","global").maybeSingle();
         const mode = (rules?.config as any)?.mode ?? body.mode ?? "round_robin";
-        const plan = await buildAutoAssignPlan(mode);
+        const fullPlan = await buildAutoAssignPlan(mode);
+        const excluded = new Set(body.exclude_task_ids ?? []);
+        const plan = fullPlan.filter(p => !excluded.has(p.task_id));
         let count = 0;
         for (const p of plan) {
           await admin.rpc("assign_task", {
@@ -267,7 +271,7 @@ Deno.serve(async (req) => {
         }
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_auto_assign",
-          targetType: "system", metadata: { count, mode }, mirrorToAuditLogs: true,
+          targetType: "system", metadata: { count, mode, excluded: [...excluded] }, mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
         return respond({ ok: true, count });
@@ -371,6 +375,22 @@ Deno.serve(async (req) => {
       }
       case "save_rules": {
         if (!body.rules) return respond({ error: "missing_rules" }, 400);
+        const r = body.rules as Record<string, unknown>;
+        const bounded = (k: string, min: number, max: number) => {
+          if (r[k] === undefined || r[k] === null) return null;
+          const v = Number(r[k]);
+          if (!Number.isFinite(v) || v < min || v > max) return `${k} must be between ${min} and ${max}`;
+          return null;
+        };
+        const errs = [
+          bounded("max_active_per_agent", 1, 200),
+          bounded("max_overdue_before_skip", 0, 100),
+        ].filter(Boolean) as string[];
+        const allowedModes = ["round_robin","least_loaded","priority_weighted","skill_match","manual_only"];
+        if (r.mode !== undefined && !allowedModes.includes(String(r.mode))) {
+          errs.push(`mode must be one of ${allowedModes.join(", ")}`);
+        }
+        if (errs.length) return respond({ error: "invalid_rules", details: errs }, 400);
         const { data: existing } = await admin.from("assignment_rules").select("id, config").eq("scope","global").maybeSingle();
         const before = existing?.config ?? null;
         const nextConfig = { ...(before as object ?? {}), ...body.rules };
@@ -389,7 +409,7 @@ Deno.serve(async (req) => {
           targetType: "setting", before, after: nextConfig, mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
-        return respond({ ok: true, rules: saved });
+        return respond({ ok: true, rules: saved, version: nextVer });
       }
       case "test_rules": {
         const { data: pending } = await admin.from("orchestration_tasks").select("id").eq("status","unassigned").limit(50);
@@ -446,6 +466,51 @@ Deno.serve(async (req) => {
           comments: comments ?? [],
           actor_names: nameMap,
         });
+      }
+      case "export_queue": {
+        const scope = body.scope ?? "queue";
+        let rows: Record<string, unknown>[] = [];
+        let filename = "task-orchestration";
+        if (scope === "queue") {
+          const { data } = await admin.from("orchestration_tasks")
+            .select("task_code,type,priority,status,stage,amount,currency,created_at,dispute_id,transaction_id,assigned_agent_id,sla_due_at")
+            .eq("status","unassigned").order("created_at",{ ascending: true }).limit(5000);
+          rows = data ?? [];
+          filename = "task-queue";
+        } else if (scope === "live") {
+          const { data } = await admin.from("orchestration_tasks")
+            .select("task_code,type,priority,status,stage,assigned_agent_id,started_at,updated_at,sla_status,dispute_id")
+            .not("status","in","(unassigned,resolved,closed,cancelled)")
+            .order("updated_at",{ ascending: false }).limit(5000);
+          rows = data ?? [];
+          filename = "task-live";
+        } else if (scope === "roster") {
+          const { data: cap } = await admin.from("agent_capacity").select("*");
+          const { data: avail } = await admin.from("agent_availability").select("*");
+          const availMap = new Map((avail ?? []).map((a: any) => [a.user_id, a]));
+          rows = (cap ?? []).map((c: any) => {
+            const a: any = availMap.get(c.user_id) ?? {};
+            return {
+              user_id: c.user_id, status: a.status ?? "offline", last_heartbeat: a.last_heartbeat ?? null,
+              current_active: c.current_active, max_active_tasks: c.max_active_tasks,
+              overdue_count: c.overdue_count, resolved_today: c.resolved_today,
+            };
+          });
+          filename = "task-roster";
+        }
+        const headers = rows.length ? Object.keys(rows[0]) : [];
+        const escape = (v: unknown) => {
+          if (v === null || v === undefined) return "";
+          const s = typeof v === "string" ? v : JSON.stringify(v);
+          return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        };
+        const csv = [headers.join(","), ...rows.map(r => headers.map(h => escape((r as any)[h])).join(","))].join("\n");
+        await logAdminAction({
+          actorId: ctx.userId, action: "orchestration_export",
+          targetType: "system", metadata: { scope, rows: rows.length }, mirrorToAuditLogs: true,
+          ip: meta.ip, userAgent: meta.userAgent,
+        }, admin);
+        return respond({ ok: true, filename: `${filename}-${new Date().toISOString().slice(0,10)}.csv`, csv, rows: rows.length });
       }
     }
     return respond({ error: "unknown_action" }, 400);

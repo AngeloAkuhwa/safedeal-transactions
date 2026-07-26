@@ -112,7 +112,7 @@ export interface OrchestrationActionPayload {
     | "reassign" | "rebalance" | "escalate" | "complete" | "save_rules" | "test_rules"
     | "add_comment" | "send_for_approval"
     | "preview_auto_assign" | "preview_rebalance"
-    | "task_detail";
+    | "task_detail" | "export_queue";
   task_id?: string;
   task_ids?: string[];
   agent_id?: string;
@@ -126,6 +126,23 @@ export interface OrchestrationActionPayload {
   exclude_task_ids?: string[];
   exclude_agent_ids?: string[];
   override_capacity?: boolean;
+  scope?: "queue" | "live" | "roster";
+}
+
+export interface BulkAssignRowResult { task_id: string; ok: boolean; error?: string }
+export interface BulkAssignResponse {
+  ok: boolean; count: number; total: number; results: BulkAssignRowResult[];
+}
+
+export async function exportOrchestrationCsv(scope: "queue" | "live" | "roster"): Promise<void> {
+  const res = await runOrchestrationAction<{ ok: boolean; filename: string; csv: string }>({
+    action: "export_queue", scope,
+  });
+  const blob = new Blob([res.csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = res.filename; a.click();
+  URL.revokeObjectURL(url);
 }
 
 export async function runOrchestrationAction<T = unknown>(payload: OrchestrationActionPayload): Promise<T> {
