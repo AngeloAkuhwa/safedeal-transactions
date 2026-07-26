@@ -1,181 +1,78 @@
-## Goal
+## Feature Registry / Permission Matrix — finish-line plan (all 4 tabs)
 
-Bring the **Role Detail** and **Feature Registry** tabs on `/admin/permission-matrix` up to the spec. Role Detail becomes a full read/stage surface for one role. Feature Registry becomes a real searchable catalog with per-feature governance metadata (status, owner, approval, environments) and a rich details drawer that Super Admins can extend by registering new permissions.
-
-Everything sits inside the existing workspace (URL-synced tabs, staged-changes footer, environment scope). No new tab, no new page.
+Rewrites the earlier plan to cover Role Detail, Feature Registry, Permission Templates and User Overrides in one pass.
 
 ---
 
-## 1. Database migration — extend `permissions` + add supporting tables
+### 1. Role Detail tab — remaining gaps
 
-Current `permissions` has `key, module, action, label, description, sort_order, created_at, risk_level, is_system_default`. We add the governance columns and support tables.
+1. **Inline staging from Role Detail.** Granted / Denied / Privileged lists become toggleable when `canManage`. Every change routes through `useStagedPermissionChanges` + `role-guardrails.checkRoleStageAllowed`, so guardrail messages (Super Admin mandatory keys, Auditor read-only, Finance SoD, ops-agent platform lock) show inline and the shared `StagedChangesFooter` picks them up.
+2. **Clone as Template action.** Opens a `CloneRoleAsTemplateDialog` prefilled with the role's granted keys → writes via `permissionRepo.createTemplate` and switches to the Templates tab.
+3. **Reset to Default action.** Diffs current role bag against seeded defaults from `permission-catalog`; opens a confirm drawer that stages the diff as a change set. Disabled for protected roles.
+4. **View Change History button.** Top-action button scrolls to the inline history section and also links to `?tab=change-history&role=<key>`.
+5. **View Assigned Users route.** Keep `/admin/access-control?role=…` (canonical alias in this project); no route rename.
 
-**`permissions` — new columns**
-- `status text not null default 'active'` with check `('active','suspended','deprecated')`
-- `approval_required boolean not null default false`
-- `owner_role text` (nullable FK-lookup to `internal_roles.key`; free-form label if role deleted)
-- `updated_at timestamptz not null default now()` + update trigger
-- Data backfill: leave existing rows at `active` / `approval_required=false`.
+### 2. Feature Registry tab — remaining gaps
 
-**`permission_environments`** (join table — a permission may be enabled in a subset of envs)
-```
-permission_key text references permissions(key) on delete cascade
-environment    text check in ('production','staging','development')
-primary key (permission_key, environment)
-```
-Backfill every existing permission with all three environments.
+6. **Register / Edit form gains Dependencies + Conflicting permissions.** Two multi-select fields backed by the current catalog; on submit call new `permissionRepo.setPermissionDependencies` and `setPermissionConflicts`.
+7. **Permission key is immutable after creation.** In edit mode the key input is disabled with a lock icon + tooltip.
+8. **Deprecate / Suspend / Reactivate actions.** Added to `FeatureDetailsDrawer` header (Super Admin only), wired to `updatePermission({ status })`. Hard delete stays disabled.
+9. **Environment filter.** Already satisfied globally via `EnvironmentSwitcher` — call it out, don't duplicate.
 
-Grants + RLS: authenticated read; insert/update restricted to `super_admin` via existing `has_internal_role` helper. Deletes on `permissions` blocked once the key appears in `role_permissions`, `user_permission_overrides`, `permission_change_sets`, or `admin_actions` (trigger — never hard-delete assigned/audited keys; use `status='deprecated'` instead).
+### 3. Permission Templates tab — new work
 
-**`admin_action_type` enum** — add: `permission_registered`, `permission_updated`, `permission_status_changed`, `permission_deprecated`.
+10. **Seed the 10 system templates** via migration: System Super Administrator, Senior Operations Administration, Dispute Management, Dispute Agent, Customer Support, Identity Verification, Finance Operations, Finance Approval, Compliance Review, Read-Only Audit. Each row: `is_system=true`, `status='active'`, description, and a permission_key set derived from the role catalog.
+11. **Table columns.** Name, Description, Included modules (chips), # permissions, # privileged, Roles using it, Last updated, Status pill, Actions menu. Add filters: status (active / archived), scope (system / custom), search.
+12. **Actions menu per row.**
+    - **View Template** → `TemplateDetailsDrawer` with full metadata + permission list grouped by module.
+    - **Compare Template** → side-by-side vs another template or a role (reuses `CompareRolesMatrix` layout).
+    - **Clone Template** → creates an editable custom copy (`is_system=false`).
+    - **Apply Template to Role** → opens `ApplyTemplateDialog` (see #13).
+    - **Export Template** → downloads JSON `{name, description, permissions[], modules[]}`.
+    - **Archive Custom Template** → sets `status='archived'`. System templates cannot be deleted or archived; buttons disabled with tooltip.
+13. **Apply Template to Role dialog.** Shows: permissions being added, permissions being removed, privileged permissions introduced (highlighted), dependencies affected (from `permission_dependencies`), number of users affected (via `fetchRoleUserCounts`), and whether approval is required (any privileged add → true). Submitting **stages** a change set via `apply_permission_change_set` in draft mode; never writes production directly. Guardrails run per delta.
 
-**Repository (`permission-repository.ts`)** — extend `FeatureRow` with the new columns; add:
-- `createPermission(input)`
-- `updatePermission(key, patch)` (blocks changing `key`, `module`, `action` post-creation)
-- `setPermissionEnvironments(key, envs[])`
-- `listPermissionEnvironments()` → `Map<key, PermissionEnvironment[]>`
+### 4. User Overrides tab — new work
 
-Each write records an entry in `admin_actions` via existing `logAdminAction` helper.
-
----
-
-## 2. Role Detail tab — full redesign (`RoleDetailPanel.tsx`)
-
-Replace the current 87-line placeholder with a proper detail surface. Keeps the top role `<select>` but adds:
-
-**Header card**
-- Role name, description, protected-role badge (`Shield` when `isProtectedRole(key)`)
-- Derived access level pill (`deriveAccessLevel(perms, [key])`)
-- KPI strip (compact, 5-up): Active users, Granted permissions, Privileged permissions, Pending changes, Last modified (date + actor)
-- Right-side action cluster:
-  - **Compare Role** → sets `tab=role-matrix&mode=compare&roles=<key>,<other>` via router
-  - **Clone as Template** → opens existing template dialog pre-filled with role perms (reuses `cloneRoleAsTemplate`)
-  - **Reset to Default** → stages a change set that reverts to `is_system_default` snapshot (disabled for `super_admin`)
-  - **View Assigned Users** → navigates to `/admin/users-access?role=<key>`
-  - **View Change History** → sets `tab=change-history&target_scope=role&target_key=<key>`
-
-**Sections (accordion, borderless-card aesthetic per project memory)**
-1. **Module Access** — reuse `computeCell` per module with `Full / Partial / None` pill + counts
-2. **Granted Permissions** — grouped by module, risk chip, source badge
-3. **Denied Permissions** — everything not in the bag (collapsed by default)
-4. **Privileged Permissions** — filter of Granted where `getPermissionRisk in {high, critical}`
-5. **Users with this Role** — list from `internal_user_roles` join `internal_users`; each row links to `/admin/users/:id/profile`; overflow → "View all in Users & Access"
-6. **Pending Changes** — rows from `permission_change_sets` where `target_scope='role' and target_key=<key> and status='pending'`, with inline Approve/Reject for authorised admins (reuses existing `apply_permission_change_set`)
-7. **Change History** — last 20 `admin_actions` where target maps to this role
-
-**Staging**
-- Each permission row inside Granted / Denied has a compact stage toggle when `canWrite` and role is not `super_admin`-protected on mandatory keys. Wires into the existing `useStagedPermissionChanges` (same footer already mounted on Role Matrix). To keep one staging buffer, hoist the hook up in `AdminPermissionMatrix.tsx` and pass `staged` + `stageMany` down to both `RoleMatrix` and `RoleDetailPanel`; render `StagedChangesFooter` once at page level.
-
-**Protected-role guardrails (client-side; also enforced by DB triggers)**
-- `super_admin`: mandatory keys (`permissions.manage_permissions`, `users_and_access.manage_permissions`, `audit_logs.view`) are locked. If a stage attempt would leave zero active Super Admins with the critical set, toast blocks with "Last active Super Admin — critical access cannot be reduced".
-- `auditor`: any stage that adds a non-read action (regex `.(create|update|approve|reject|configure|suspend|reactivate|manage_permissions|escalate|resolve|assign|reassign)$`) is blocked with a warning.
-- `finance_operator`: staging `financial_controls.approve` / `payouts.approve` / `refunds.approve` is blocked (initiator ≠ approver).
-- `finance_approver`: staging `financial_controls.create` / `payouts.create` / `refunds.create` is blocked.
-- Operational roles (`dispute_agent`, `dispute_manager`, `support_agent`, `identity_officer`): staging any `platform_configuration.*` or `permissions.manage_permissions` shows a "requires Super Admin approval" warning and forces `approval_required` reason on the change set.
-
-All guardrails live in a new `role-guardrails.ts` service so the same rules run in `RoleDetailPanel`, `RoleMatrix`, and the change-set enforcement RPC-side later if needed.
+14. **Table columns.** User (name + avatar), Employee ID, Primary Role, Override Type (Grant / Deny / Temporary), Permission (key + label), Module, Effective Date, Expiry Date, Status (Active / Pending / Expired / Revoked), Requested By, Approved By, Actions menu. Filters: type, status, module, role, expiring-soon.
+15. **Create Override drawer.** Required: user (searchable), permission (searchable), reason (min 20 chars), effective date. Optional/required: expiry date — **required** when override introduces a privileged permission (Temporary Privileged Access). Fields:
+    - Override type radio (Grant / Deny / Temporary).
+    - Live "Impact preview" panel showing: current role-based value for that user+permission (from `RoleGrantMap`), proposed effective value, dependencies auto-pulled in, any SoD conflicts, whether approval is required.
+16. **Guardrail enforcement.** Reuses `role-guardrails.checkRoleStageAllowed` semantics adapted to overrides: blocks overrides that would bypass mandatory Super Admin keys, Auditor write lock, Finance SoD, or platform-security-for-ops-agents. Blocks are hard; approval-required cases route through the existing change-set queue.
+17. **Row actions menu.**
+    - **View User** → `/admin/access-control?tab=role-access&user=<id>` (Role and Access tab in Users & Access).
+    - **Review Override** → drawer with full audit fields + approve/reject if pending.
+    - **Extend Temporary Access** → date picker; writes new `expires_at`, appends audit entry.
+    - **Revoke Override** → sets `status='revoked'`, captures reason.
+    - **View Audit History** → filtered admin_actions list for `(user_id, permission_key)`.
+18. **Expiry lifecycle.** A lightweight client-side derivation flags `expires_at < now()` as `Expired`; a follow-up cron (out of scope this pass) will hard-flip status server-side.
 
 ---
 
-## 3. Feature Registry tab — expand table + filters (`FeatureRegistryTable.tsx`, `PermissionFilters.tsx`)
+### Technical details
 
-**Columns** (drop the current 6-col table for a 10-col one, condensed rows):
-1. Permission — label + mono key + `Deprecated`/`Suspended` badge when applicable
-2. Module
-3. Action
-4. Description (truncate + tooltip)
-5. Risk
-6. Approval Required (Yes/No pill)
-7. Status (Active / Suspended / Deprecated)
-8. Environments (three-dot indicator: prod, staging, dev)
-9. Owner (role label chip or `—`)
-10. Roles Using / Overrides / Last Updated (compact stacked column)
-11. Actions (`⋯` menu: Open details, Edit metadata, Change status, Deprecate — gated to `permissions.manage_permissions`)
+- **DB additions**
+  - Migration seeds 10 system templates into `permission_templates` + `permission_template_items` with `is_system=true`.
+  - `permission_templates` gains `status` (active / archived) if not already present; system rows have delete/archive blocked by trigger.
+  - `user_permission_overrides` already has `mode`, `expires_at`, `reason`, `created_at`; no schema change needed. Add index on `(expires_at) where expires_at is not null` for expiring-soon queries.
+- **Repository (`permission-repository.ts`)**
+  - `setPermissionDependencies(key, requires[])`, `setPermissionConflicts(key, entries[])`.
+  - `listTemplates({includeArchived})`, `getTemplate(id)`, `cloneTemplate(id, name)`, `archiveTemplate(id)`, `applyTemplateToRole(id, role, environment, {stage:true})`.
+  - `listOverrides({filters})`, `createOverride(payload)`, `extendOverride(id, expires_at)`, `revokeOverride(id, reason)`.
+- **New components**
+  - `CloneRoleAsTemplateDialog`, `ResetRoleToDefaultDialog`.
+  - `TemplateDetailsDrawer`, `ApplyTemplateDialog`, `TemplateCompareView`.
+  - `CreateOverrideDrawer`, `OverrideImpactPreview`, `ReviewOverrideDrawer`, `ExtendOverrideDialog`.
+- **Guardrails** unified in `role-guardrails.ts`: add `checkOverrideAllowed(userRole, permissionKey, mode)` reusing existing rule constants.
+- **Feature Registry drawer** gets `Deprecate` / `Suspend` / `Reactivate` buttons; `RegisterPermissionDialog` locks the key field in edit mode and adds deps/conflicts multi-selects.
+- **Role Detail** switches list rows to `PermissionToggleRow` when `canManage`, pushing into the shared staging buffer.
 
-**Filters** (extend `PermissionFilters` state to include `action`, `status`, `approval`, `env`; sync to URL). Also keep search across label / key / description.
+### Out of scope
 
-- Module (existing)
-- Action (from the catalog’s distinct actions)
-- Risk (existing)
-- Status (Active / Suspended / Deprecated / All)
-- Approval Required (Any / Yes / No)
-- Environment (Any / Prod / Staging / Dev) — filters rows whose `permission_environments` don't include the selection; also drives which environment’s role grants power the "Roles Using" count
-
-Row click opens the drawer.
+- Server-side cron for auto-expiring overrides.
+- Rewriting the Access Control users route naming.
+- Virtualizing tables (catalog still ~90 keys).
 
 ---
 
-## 4. Feature Details drawer — rebuild (`FeatureDetailsDrawer.tsx`)
-
-Replace the current thin sheet with sections (using the shared `PermissionPanel` card):
-
-- **Header**: label, mono key, status badge, risk chip, environment dots
-- **Description** (from `permissions.description`)
-- **Module / Action** stack
-- **Governance**: approval-required, owner, last updated, created_at, `is_system_default`
-- **Dependencies**: from `PERMISSION_DEPENDENCIES`, each row shows the required key + note; missing-dependency warning if enabled for a role that lacks the required key
-- **Conflicting permissions**: from `PERMISSION_CONFLICTS`
-- **Roles using**: existing role list, but tinted by whether the permission is in that role's grant for the current environment
-- **Users via override**: join `user_permission_overrides` → `internal_users`; link to `/admin/users/:id/profile`
-- **Pending changes**: `permission_change_sets` where the payload references this permission key (search JSONB `after`/`before`)
-- **Change history**: `admin_actions` filtered to this key (metadata JSON contains `permission_key`)
-
-**Footer actions (Super Admins only)**: Edit metadata · Change status · Deprecate.
-
----
-
-## 5. Register-permission dialog (Super Admins only)
-
-New component `RegisterPermissionDialog.tsx` opened from a **+ Register Permission** button in the Feature Registry toolbar. Form fields:
-
-- Display name (`label`)
-- Stable permission key (`module.action`) — regex-validated `^[a-z_]+\.[a-z_]+$`; live uniqueness check against `permissions.key`; read-only after save
-- Module (existing catalog + free-form for new module)
-- Action (typed against enum, allow new via free-form)
-- Description (required, min 20 chars)
-- Risk level (radio: low / medium / high / critical)
-- Approval required (toggle)
-- Dependencies (multi-select of existing keys)
-- Conflicting permissions (multi-select of existing keys)
-- Supported environments (three checkboxes, default all)
-- Owner (role select, optional)
-
-On submit: `createPermission` → inserts dependency + conflict rows → sets environments → writes `admin_actions` with `action_type='permission_registered'`. Toast + refetch.
-
-Editing an existing permission opens the same dialog with `key/module/action` fields disabled.
-
----
-
-## 6. Wiring in `AdminPermissionMatrix.tsx`
-
-- Hoist `useStagedPermissionChanges()` here; pass to both `RoleMatrix` and `RoleDetailPanel`; render one `StagedChangesFooter` at page level.
-- Extend `useQuery` set with:
-  - `["perm-workspace", "role-users", env]` → grouped counts + users list per role
-  - `["perm-workspace", "permission-envs"]`
-  - `["perm-workspace", "pending-by-role", env]` and `["perm-workspace", "pending-by-key", env]`
-- Add `permission-registered` refetch on dialog success.
-
----
-
-## 7. Technical notes
-
-**Files created**
-- `supabase/migrations/<ts>_permission_governance.sql` (columns + envs table + admin_action_type enum values + triggers)
-- `src/services/role-guardrails.ts`
-- `src/components/admin/permission-matrix/RegisterPermissionDialog.tsx`
-
-**Files edited**
-- `src/services/permission-repository.ts` (new methods + extended `FeatureRow`)
-- `src/services/permission-catalog.ts` (hydrator reads `status`, `approval_required`, `owner`, `environments`)
-- `src/services/permission-workspace.service.ts` (add `fetchRoleUsers`, `fetchPermissionEnvironments`, `fetchPendingByRole`, `fetchPendingByPermission`)
-- `src/hooks/useRoleMatrixFilters.ts` (add `action`, `status`, `approval`, `env` filters + URL sync)
-- `src/components/admin/permission-matrix/PermissionFilters.tsx` (new filter chips)
-- `src/components/admin/permission-matrix/RoleDetailPanel.tsx` (full redesign)
-- `src/components/admin/permission-matrix/FeatureRegistryTable.tsx` (new columns + row menu)
-- `src/components/admin/permission-matrix/FeatureDetailsDrawer.tsx` (full redesign)
-- `src/pages/AdminPermissionMatrix.tsx` (hoisted staging, new toolbar button, extra queries)
-- `src/pages/AdminUsersAccess.tsx` — read `?role=` query param and pre-apply the role filter (small change so **View Assigned Users** lands filtered)
-
-**Deferred / not in this plan**
-- Server-side enforcement of guardrails inside `apply_permission_change_set` (currently client-only; DB triggers still block role delete + last-super-admin). Can land in a follow-up if you want defence-in-depth.
-- Bulk permission edit from Feature Registry (row menu still opens the dialog per row).
+Approve to implement in one pass: Role Detail gaps (1–5), Feature Registry gaps (6–8), Templates tab (10–13), Overrides tab (14–18).

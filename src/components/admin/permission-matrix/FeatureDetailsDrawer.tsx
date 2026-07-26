@@ -11,8 +11,11 @@ import {
   fetchPendingChangesForPermission,
 } from "@/services/permission-workspace.service";
 import { permissionRepo } from "@/services/permission-repository";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
 import { PermissionRiskBadge } from "./PermissionRiskBadge";
 import { Check, Minus, ShieldAlert, KeyRound, GitBranch, History as HistoryIcon, Settings2 } from "lucide-react";
+import { Ban, Pause, Play } from "lucide-react";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -45,6 +48,18 @@ export function FeatureDetailsDrawer({
   onEdit?: (key: string) => void;
 }) {
   const meta = permissionKey ? findPermissionEntry(permissionKey) : null;
+  const qc = useQueryClient();
+  const setStatus = useMutation({
+    mutationFn: async (status: "active"|"suspended"|"deprecated") => {
+      if (!permissionKey) return;
+      await permissionRepo.updatePermission(permissionKey, { status });
+    },
+    onSuccess: (_d, status) => {
+      toast({ title: `Permission ${status}` });
+      qc.invalidateQueries({ queryKey: ["perm-workspace"] });
+    },
+    onError: (e: any) => toast({ title: "Could not change status", description: e?.message ?? String(e), variant: "destructive" }),
+  });
 
   const overridesQuery = useQuery({
     queryKey: ["feature-drawer", "overrides", permissionKey, currentEnvironment],
@@ -106,6 +121,30 @@ export function FeatureDetailsDrawer({
                 </button>
               )}
             </div>
+
+            {canManage && (
+              <div className="flex flex-wrap gap-2">
+                {meta.status !== "active" && (
+                  <button type="button" onClick={() => setStatus.mutate("active")} disabled={setStatus.isPending}
+                    className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300 hover:bg-emerald-500/20">
+                    <Play className="h-3 w-3" /> Reactivate
+                  </button>
+                )}
+                {meta.status !== "suspended" && (
+                  <button type="button" onClick={() => setStatus.mutate("suspended")} disabled={setStatus.isPending}
+                    className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300 hover:bg-amber-500/20">
+                    <Pause className="h-3 w-3" /> Suspend
+                  </button>
+                )}
+                {meta.status !== "deprecated" && (
+                  <button type="button" onClick={() => setStatus.mutate("deprecated")} disabled={setStatus.isPending}
+                    className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-300 hover:bg-rose-500/20">
+                    <Ban className="h-3 w-3" /> Deprecate
+                  </button>
+                )}
+                <span className="ml-auto text-[10px] italic text-muted-foreground">Hard delete disabled — use Deprecated</span>
+              </div>
+            )}
 
             {meta.description && <p className="text-muted-foreground">{meta.description}</p>}
 

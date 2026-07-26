@@ -91,6 +91,8 @@ export interface TemplateRow {
   created_at: string;
   updated_at: string;
   permission_keys: string[];
+  is_system?: boolean;
+  status?: "active" | "archived";
 }
 
 export interface ChangeSetRow {
@@ -156,10 +158,21 @@ export interface CreateTemplateInput {
   role_source?: string | null;
 }
 
+export interface CreateOverrideInput {
+  user_id: string;
+  permission_key: string;
+  mode: "grant" | "revoke";
+  reason: string;
+  expires_at?: string | null;
+  environment?: PermissionEnvironment;
+}
+
 export interface PermissionRepository {
   listFeatures(): Promise<FeatureRow[]>;
   listPermissionEnvironments(): Promise<Array<{ permission_key: string; environment: PermissionEnvironment }>>;
   setPermissionEnvironments(key: string, envs: PermissionEnvironment[]): Promise<void>;
+  setPermissionDependencies(key: string, requires: string[]): Promise<void>;
+  setPermissionConflicts(key: string, entries: Array<{ b_key: string; severity: "low"|"medium"|"high"|"critical"; rationale?: string | null }>): Promise<void>;
   createPermission(input: {
     key: string; module: string; action: string; label: string;
     description: string; risk_level: PermissionRiskLevel;
@@ -191,6 +204,11 @@ export interface PermissionRepository {
   updateTemplate(id: string, patch: Partial<CreateTemplateInput>): Promise<void>;
   deleteTemplate(id: string): Promise<void>;
   setTemplateItems(templateId: string, keys: string[]): Promise<void>;
+  archiveTemplate(id: string): Promise<void>;
+  cloneTemplate(id: string, newName: string): Promise<TemplateRow>;
+  createOverride(input: CreateOverrideInput): Promise<void>;
+  extendOverride(user_id: string, permission_key: string, env: PermissionEnvironment, expires_at: string | null): Promise<void>;
+  revokeOverride(user_id: string, permission_key: string, env: PermissionEnvironment, reason: string): Promise<void>;
 }
 
 class SupabasePermissionRepository implements PermissionRepository {
@@ -219,6 +237,28 @@ class SupabasePermissionRepository implements PermissionRepository {
     if (uniq.length === 0) return;
     const rows = uniq.map((e) => ({ permission_key: key, environment: e }));
     const ins = await (supabase as any).from("permission_environments").insert(rows);
+    if (ins.error) throw ins.error;
+  }
+
+  async setPermissionDependencies(key: string, requires: string[]): Promise<void> {
+    const del = await (supabase as any).from("permission_dependencies").delete().eq("permission_key", key);
+    if (del.error) throw del.error;
+    const uniq = Array.from(new Set(requires));
+    if (!uniq.length) return;
+    const rows = uniq.map((r) => ({ permission_key: key, requires_key: r }));
+    const ins = await (supabase as any).from("permission_dependencies").insert(rows);
+    if (ins.error) throw ins.error;
+  }
+
+  async setPermissionConflicts(
+    key: string,
+    entries: Array<{ b_key: string; severity: "low"|"medium"|"high"|"critical"; rationale?: string | null }>,
+  ): Promise<void> {
+    const del = await (supabase as any).from("permission_conflicts").delete().eq("a_key", key);
+    if (del.error) throw del.error;
+    if (!entries.length) return;
+    const rows = entries.map((c) => ({ a_key: key, b_key: c.b_key, severity: c.severity, rationale: c.rationale ?? null }));
+    const ins = await (supabase as any).from("permission_conflicts").insert(rows);
     if (ins.error) throw ins.error;
   }
 
@@ -306,7 +346,7 @@ class SupabasePermissionRepository implements PermissionRepository {
 
   async listTemplates(): Promise<TemplateRow[]> {
     const [tRes, iRes] = await Promise.all([
-      supabase.from("permission_templates").select("id,name,description,role_source,created_by,created_at,updated_at").order("name"),
+      supabase.from("permission_templates").select("id,name,description,role_source,created_by,created_at,updated_at,is_system,status").order("name"),
       supabase.from("permission_template_items").select("template_id,permission_key"),
     ]);
     if (tRes.error) throw tRes.error;
@@ -322,6 +362,8 @@ class SupabasePermissionRepository implements PermissionRepository {
       role_source: t.role_source ?? null, created_by: t.created_by ?? null,
       created_at: t.created_at, updated_at: t.updated_at,
       permission_keys: byId.get(t.id) ?? [],
+      is_system: !!t.is_system,
+      status: (t.status ?? "active") as "active" | "archived",
     }));
   }
 
@@ -499,6 +541,57 @@ class SupabasePermissionRepository implements PermissionRepository {
       _template_id: templateId,
       _keys: keys,
     });
+    if (error) throw error;
+  }
+
+  async archiveTemplate(id: string): Promise<void> {
+    const { error } = await (supabase as any)
+      .from("permission_templates")
+      .update({ status: "archived", updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) throw error;
+  }
+
+  async cloneTemplate(id: string, newName: string): Promise<TemplateRow> {
+    const templates = await this.listTemplates();
+    const src = templates.find((t) => t.id === id);
+    if (!src) throw new Error("Template not found");
+    const created = await this.createTemplate(
+      { name: newName, description: src.description, role_source: src.role_source },
+      src.permission_keys,
+    );
+    return created;
+  }
+
+  async createOverride(input: CreateOverrideInput): Promise<void> {
+    const { data: userRes } = await supabase.auth.getUser();
+    const { error } = await (supabase as any)
+      .from("user_permission_overrides")
+      .insert({
+        user_id: input.user_id,
+        permission_key: input.permission_key,
+        mode: input.mode,
+        reason: input.reason,
+        expires_at: input.expires_at ?? null,
+        granted_by: userRes.user?.id ?? null,
+        environment: input.environment ?? DEFAULT_ENVIRONMENT,
+      });
+    if (error) throw error;
+  }
+
+  async extendOverride(user_id: string, permission_key: string, env: PermissionEnvironment, expires_at: string | null): Promise<void> {
+    const { error } = await (supabase as any)
+      .from("user_permission_overrides")
+      .update({ expires_at })
+      .eq("user_id", user_id).eq("permission_key", permission_key).eq("environment", env);
+    if (error) throw error;
+  }
+
+  async revokeOverride(user_id: string, permission_key: string, env: PermissionEnvironment, _reason: string): Promise<void> {
+    const { error } = await (supabase as any)
+      .from("user_permission_overrides")
+      .delete()
+      .eq("user_id", user_id).eq("permission_key", permission_key).eq("environment", env);
     if (error) throw error;
   }
 }

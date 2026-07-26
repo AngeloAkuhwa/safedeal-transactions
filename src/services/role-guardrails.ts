@@ -95,3 +95,35 @@ export function isProtectedRoleKey(key: string): boolean {
 export function listProtectedRoles(): InternalRoleKey[] {
   return INTERNAL_ROLES.filter((r) => r.protected).map((r) => r.key);
 }
+
+/**
+ * Guardrail for creating a user-permission override. Mirrors the role-stage
+ * rules so overrides cannot bypass mandatory system restrictions, auditor
+ * read-only, or Finance separation of duties.
+ */
+export function checkOverrideAllowed(
+  userRole: InternalRoleKey | null,
+  permissionKey: string,
+  mode: "grant" | "revoke",
+  ctx: { expiresAt?: string | null; isPrivileged?: boolean } = {},
+): GuardResult {
+  // Temporary privileged access must have an expiry.
+  if (mode === "grant" && ctx.isPrivileged && !ctx.expiresAt) {
+    return {
+      ok: false, blocked: true,
+      message: "Temporary privileged access requires an expiry date.",
+    };
+  }
+
+  // Mandatory Super Admin keys cannot be denied via override.
+  if (mode === "revoke" && SUPER_ADMIN_MANDATORY.has(permissionKey) && userRole === "super_admin") {
+    return { ok: false, blocked: true,
+      message: "Mandatory Super Admin permissions cannot be removed via override." };
+  }
+
+  if (!userRole) return { ok: true };
+
+  // Delegate to the same rules used for role staging, but only when the
+  // override actually flips a role's baseline.
+  return checkRoleStageAllowed(userRole, permissionKey, mode);
+}

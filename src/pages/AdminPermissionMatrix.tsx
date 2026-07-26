@@ -381,7 +381,14 @@ export default function AdminPermissionMatrix() {
           <>
             {overridesQuery.isLoading && <LoadingSkeleton rows={6} />}
             {overridesQuery.error && <ErrorState message={(overridesQuery.error as Error).message} onRetry={() => overridesQuery.refetch()} />}
-            {overridesQuery.data && <UserOverrideTable rows={overridesQuery.data} onRowClick={openOverride} />}
+            {overridesQuery.data && (
+              <UserOverrideTable
+                rows={overridesQuery.data}
+                onRowClick={openOverride}
+                canEdit={canManage}
+                onChanged={() => overridesQuery.refetch()}
+              />
+            )}
           </>
         )}
 
