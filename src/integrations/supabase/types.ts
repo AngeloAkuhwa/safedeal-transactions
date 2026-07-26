@@ -3054,8 +3054,10 @@ export type Database = {
           description: string | null
           environment: string
           id: string
+          is_system: boolean
           name: string
           role_source: string | null
+          status: string
           updated_at: string
         }
         Insert: {
@@ -3064,8 +3066,10 @@ export type Database = {
           description?: string | null
           environment?: string
           id?: string
+          is_system?: boolean
           name: string
           role_source?: string | null
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -3074,8 +3078,10 @@ export type Database = {
           description?: string | null
           environment?: string
           id?: string
+          is_system?: boolean
           name?: string
           role_source?: string | null
+          status?: string
           updated_at?: string
         }
         Relationships: [
