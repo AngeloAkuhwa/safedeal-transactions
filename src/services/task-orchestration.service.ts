@@ -5,7 +5,8 @@ export type OrchestrationStatus =
   | "unassigned" | "assigned" | "in_progress"
   | "waiting_on_buyer" | "waiting_on_seller" | "waiting_on_evidence"
   | "escalated" | "pending_approval" | "resolved" | "closed" | "cancelled";
-export type AgentAvailability = "available" | "active" | "busy" | "at_capacity" | "offline";
+export type AgentAvailability =
+  | "available" | "active" | "busy" | "at_capacity" | "offline" | "on_leave" | "suspended";
 
 export interface OrchestrationKpis {
   unassigned: number;
@@ -30,6 +31,15 @@ export interface UnassignedTask {
   created_at: string;
   dispute_id: string | null;
   suggested_agent_id: string | null;
+  stage?: string | null;
+  status?: string | null;
+  sla_status?: string | null;
+  sla_due_at?: string | null;
+  queue?: string | null;
+  required_role?: string | null;
+  required_permissions?: string[] | null;
+  transaction_id?: string | null;
+  version?: number;
 }
 
 export interface LiveTask {
@@ -52,12 +62,19 @@ export interface AgentRosterEntry {
   avatar_url: string | null;
   team?: string | null;
   job_title?: string | null;
+  role?: string | null;
+  role_key?: string | null;
+  skills?: string[];
+  critical_active?: number;
+  sla_risk?: "low" | "medium" | "high";
+  last_activity_at?: string | null;
   last_heartbeat?: string | null;
   availability: AgentAvailability;
   max_active: number;
   active: number;
   overdue: number;
   avg_first_action_seconds: number;
+  avg_resolution_seconds?: number;
   resolved_today: number;
   tasks_today: number;
 }
@@ -85,9 +102,39 @@ export interface AssignmentRulesRow {
   updated_at: string;
 }
 
+export interface QueueFiltersPayload {
+  search?: string;
+  priority?: string;
+  type?: string;
+  status?: string;
+  stage?: string;
+  sla?: string;
+  queue?: string;
+  team?: string;
+  required_role?: string;
+  amount_min?: number | null;
+  amount_max?: number | null;
+  date_from?: string | null;
+  date_to?: string | null;
+  age_bucket?: string;
+  sort_by?: string;
+  sort_dir?: "asc" | "desc";
+  page?: number;
+  per_page?: number;
+}
+
+export interface QueuePage {
+  rows: UnassignedTask[];
+  total: number;
+  page: number;
+  per_page: number;
+  matching_ids?: string[];
+}
+
 export interface OrchestrationOverview {
   kpis: OrchestrationKpis;
   unassigned_queue: UnassignedTask[];
+  unassigned_page?: QueuePage;
   live_progression: LiveTask[];
   roster: AgentRosterEntry[];
   insights: {
@@ -98,10 +145,16 @@ export interface OrchestrationOverview {
     fastest_response: AgentRosterEntry | null;
   };
   rules: AssignmentRulesRow | null;
+  scope?: { can_view_all: boolean; can_assign: boolean; can_view_load: boolean; user_id: string };
 }
 
-export async function fetchOrchestrationOverview(): Promise<OrchestrationOverview> {
-  const { data, error } = await supabase.functions.invoke("admin-task-orchestration-overview", { body: {} });
+export async function fetchOrchestrationOverview(
+  queueFilters?: QueueFiltersPayload,
+): Promise<OrchestrationOverview> {
+  const { data, error } = await supabase.functions.invoke(
+    "admin-task-orchestration-overview",
+    { body: { queue_filters: queueFilters ?? {} } },
+  );
   if (error) throw error;
   return data as OrchestrationOverview;
 }
@@ -112,7 +165,10 @@ export interface OrchestrationActionPayload {
     | "reassign" | "rebalance" | "escalate" | "complete" | "save_rules" | "test_rules"
     | "add_comment" | "send_for_approval"
     | "preview_auto_assign" | "preview_rebalance"
-    | "task_detail" | "export_queue";
+    | "task_detail" | "export_queue"
+    | "start" | "update_stage" | "add_internal_note"
+    | "request_info" | "request_evidence"
+    | "submit_resolution" | "close";
   task_id?: string;
   task_ids?: string[];
   agent_id?: string;
@@ -121,12 +177,16 @@ export interface OrchestrationActionPayload {
   reason?: string;
   resolution?: string;
   body_text?: string;
+  stage?: string;
+  target?: "buyer" | "seller" | "both";
   expected_version?: number;
   rules?: AssignmentRulesConfig;
   exclude_task_ids?: string[];
   exclude_agent_ids?: string[];
+  exclude_move_ids?: string[];
   override_capacity?: boolean;
   scope?: "queue" | "live" | "roster";
+  queue_filters?: QueueFiltersPayload;
 }
 
 export interface BulkAssignRowResult { task_id: string; ok: boolean; error?: string }
@@ -166,12 +226,29 @@ export interface TaskAssignmentHistoryRow {
 }
 export interface TaskCommentRow {
   id: string; task_id: string; author_id: string | null; body: string; created_at: string;
+  visibility?: "public" | "internal";
+}
+export interface TaskEvidenceRow {
+  id: string; kind: string; label?: string | null; url?: string | null; created_at: string; submitted_by?: string | null;
+}
+export interface TaskMessageRow {
+  id: string; author: string | null; role?: string | null; body: string; created_at: string;
+}
+export interface TaskLinkedContext {
+  transaction?: Record<string, any> | null;
+  dispute?: Record<string, any> | null;
+  buyer?: Record<string, any> | null;
+  seller?: Record<string, any> | null;
 }
 export interface TaskDetail {
   task: Record<string, any>;
   status_history: TaskStatusHistoryRow[];
   assignment_history: TaskAssignmentHistoryRow[];
   comments: TaskCommentRow[];
+  internal_notes?: TaskCommentRow[];
+  evidence?: TaskEvidenceRow[];
+  messages?: TaskMessageRow[];
+  context?: TaskLinkedContext;
   actor_names: Record<string, string>;
 }
 export async function fetchTaskDetail(taskId: string): Promise<TaskDetail> {
@@ -186,9 +263,22 @@ export interface AutoAssignPreview {
   pending: number;
   would_assign: number;
   plan: Array<{ task_id: string; task_code: string; agent_id: string; reason: string }>;
+  agent_loads?: Array<{ agent_id: string; current: number; projected: number; max: number }>;
+  unmatched?: Array<{ task_id: string; task_code: string; reason: string }>;
+}
+
+export interface RebalanceMove {
+  task_id: string;
+  task_code: string;
+  from: string;
+  to: string;
+  reason: string;
+  priority: string;
+  sla_delta?: string | null;
 }
 export interface RebalancePreview {
   ok: boolean;
   moves: number;
-  plan: Array<{ task_id: string; from: string; to: string }>;
+  plan: RebalanceMove[];
+  skipped?: Array<{ task_id: string; task_code: string; reason: string }>;
 }
