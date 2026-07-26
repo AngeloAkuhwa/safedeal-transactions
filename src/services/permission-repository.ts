@@ -109,7 +109,7 @@ export interface ChangeSetRow {
   created_at: string;
   submitted_at?: string | null;
   requires_approval?: boolean;
-  review_comments?: ReviewComment[];
+  review_comments?: ReviewComment[] | unknown;
   environment?: PermissionEnvironment;
 }
 
