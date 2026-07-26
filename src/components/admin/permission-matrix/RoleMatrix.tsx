@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Shield } from "lucide-react";
 import type { RoleGrantMap } from "@/services/permission-workspace.service";
 import { useRoleMatrixFilters } from "@/hooks/useRoleMatrixFilters";
@@ -19,6 +20,17 @@ export function RoleMatrix({
   const { state: filters, set, toggleModule, expandAll, collapseAll, reset, isModuleExpanded, activeFilterCount } = useRoleMatrixFilters();
   const staged = useStagedPermissionChanges();
 
+  // Unsaved-changes guard: warn before the tab closes / hard-navigates.
+  useEffect(() => {
+    if (staged.totalChanges === 0) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [staged.totalChanges]);
+
   return (
     <div className="space-y-4">
       <RoleMatrixToolbar
@@ -28,7 +40,6 @@ export function RoleMatrix({
         expandAll={expandAll}
         collapseAll={collapseAll}
         activeFilterCount={activeFilterCount}
-        environmentSupported={false}
         onModeChange={(mode) => set("mode", mode)}
       />
 
