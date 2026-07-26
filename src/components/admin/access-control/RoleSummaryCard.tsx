@@ -58,7 +58,7 @@ function statusWord(granted: number, total: number): string {
 const ACTION_WORD: Record<PermissionAction, string> = {
   view: "view", create: "create", update: "update", assign: "assign",
   reassign: "reassign", approve: "approve", reject: "reject", resolve: "resolve",
-  escalate: "escalate", suspend: "suspend", export: "export", configure: "configure",
+  escalate: "escalate", suspend: "suspend", reactivate: "reactivate", export: "export", configure: "configure",
   manage_permissions: "manage perms",
   view_assigned: "view assigned", add_internal_note: "add note",
   request_information: "request info", request_evidence: "request evidence",
