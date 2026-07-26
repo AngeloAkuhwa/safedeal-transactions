@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Check, X, AlertTriangle, ShieldAlert, GitCompare, ArrowRight,
-  Copy, Wand2, CircleCheck, CircleAlert, Users,
+  Copy, Wand2, CircleCheck, CircleAlert, Users, ShieldCheck, BellOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   INTERNAL_ROLES,
   PERMISSION_MODULES,
@@ -14,11 +16,15 @@ import {
   type InternalRoleKey,
 } from "@/services/permission-catalog";
 import type { RoleGrantMap } from "@/services/permission-workspace.service";
-import { computeRoleDiff, computeMissingDependencies, computeConflicts } from "@/services/permission-dependencies";
+import {
+  computeRoleDiff, computeMissingDependencies, computeConflicts, isSodExempt,
+} from "@/services/permission-dependencies";
+import { permissionRepo, type ConflictAcknowledgementRow } from "@/services/permission-repository";
 import type { RoleMatrixFilters } from "@/hooks/useRoleMatrixFilters";
 import type { StagedOp } from "@/hooks/useStagedPermissionChanges";
 import { PermissionPanel } from "./PermissionPanel";
 import { CopyPermissionsPreview } from "./CopyPermissionsPreview";
+import { AcknowledgeConflictDialog } from "./AcknowledgeConflictDialog";
 
 interface Props {
   roleMap: RoleGrantMap;
