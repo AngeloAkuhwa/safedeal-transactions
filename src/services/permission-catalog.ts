@@ -15,6 +15,12 @@ export interface PermissionEntry {
   action: PermissionAction;
   label: string;
   risk?: PermissionRiskLevel;
+  description?: string;
+  status?: "active" | "suspended" | "deprecated";
+  approval_required?: boolean;
+  owner_role?: string | null;
+  updated_at?: string;
+  created_at?: string;
 }
 
 export interface PermissionModule {
@@ -144,6 +150,12 @@ export function hydratePermissionCatalog(rows: Array<{
   key: string; module: string; action: string; label: string;
   risk_level: PermissionRiskLevel; module_label?: string;
   is_system_default?: boolean;
+  description?: string;
+  status?: "active" | "suspended" | "deprecated";
+  approval_required?: boolean;
+  owner_role?: string | null;
+  updated_at?: string;
+  created_at?: string;
 }>) {
   if (!rows || rows.length === 0) return;
   RISK_BY_KEY.clear();
@@ -163,11 +175,28 @@ export function hydratePermissionCatalog(rows: Array<{
       action: r.action as PermissionAction,
       label: r.label,
       risk: r.risk_level ?? "low",
+      description: r.description,
+      status: r.status ?? "active",
+      approval_required: r.approval_required ?? false,
+      owner_role: r.owner_role ?? null,
+      updated_at: r.updated_at,
+      created_at: r.created_at,
     });
   }
   PERMISSION_MODULES = Array.from(byModule.values())
     .filter((m) => m.perms.length > 0)
     .map((m) => ({ key: m.key, label: m.label, permissions: m.perms }));
+}
+
+/**
+ * Lookup helper: find a permission entry by its key across all modules.
+ */
+export function findPermissionEntry(key: string): (PermissionEntry & { moduleLabel: string }) | null {
+  for (const m of PERMISSION_MODULES) {
+    const p = m.permissions.find((x) => x.key === key);
+    if (p) return { ...p, moduleLabel: m.label };
+  }
+  return null;
 }
 
 /**
