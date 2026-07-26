@@ -543,6 +543,57 @@ class SupabasePermissionRepository implements PermissionRepository {
     });
     if (error) throw error;
   }
+
+  async archiveTemplate(id: string): Promise<void> {
+    const { error } = await (supabase as any)
+      .from("permission_templates")
+      .update({ status: "archived", updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) throw error;
+  }
+
+  async cloneTemplate(id: string, newName: string): Promise<TemplateRow> {
+    const templates = await this.listTemplates();
+    const src = templates.find((t) => t.id === id);
+    if (!src) throw new Error("Template not found");
+    const created = await this.createTemplate(
+      { name: newName, description: src.description, role_source: src.role_source },
+      src.permission_keys,
+    );
+    return created;
+  }
+
+  async createOverride(input: CreateOverrideInput): Promise<void> {
+    const { data: userRes } = await supabase.auth.getUser();
+    const { error } = await (supabase as any)
+      .from("user_permission_overrides")
+      .insert({
+        user_id: input.user_id,
+        permission_key: input.permission_key,
+        mode: input.mode,
+        reason: input.reason,
+        expires_at: input.expires_at ?? null,
+        granted_by: userRes.user?.id ?? null,
+        environment: input.environment ?? DEFAULT_ENVIRONMENT,
+      });
+    if (error) throw error;
+  }
+
+  async extendOverride(user_id: string, permission_key: string, env: PermissionEnvironment, expires_at: string | null): Promise<void> {
+    const { error } = await (supabase as any)
+      .from("user_permission_overrides")
+      .update({ expires_at })
+      .eq("user_id", user_id).eq("permission_key", permission_key).eq("environment", env);
+    if (error) throw error;
+  }
+
+  async revokeOverride(user_id: string, permission_key: string, env: PermissionEnvironment, _reason: string): Promise<void> {
+    const { error } = await (supabase as any)
+      .from("user_permission_overrides")
+      .delete()
+      .eq("user_id", user_id).eq("permission_key", permission_key).eq("environment", env);
+    if (error) throw error;
+  }
 }
 
 export const permissionRepo: PermissionRepository = new SupabasePermissionRepository();
