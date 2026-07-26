@@ -97,6 +97,18 @@ export default function AdminAccessControl() {
     staleTime: 15_000,
   });
 
+  // Deep-link support: `?user=<id>` (or `?userId=<id>`) auto-opens the
+  // Details drawer for that user once they appear in the current directory
+  // page. Falls back silently if the id is not in the current filter view.
+  const deepLinkUserId = searchParams.get("userId") ?? searchParams.get("user");
+  useEffect(() => {
+    if (!deepLinkUserId || !data?.rows?.length) return;
+    const target = data.rows.find((u) => u.id === deepLinkUserId);
+    if (target && detailsUser?.id !== target.id) {
+      setDetailsUser(target);
+    }
+  }, [deepLinkUserId, data, detailsUser?.id]);
+
   const isPermissionDenied = (err: unknown): boolean => {
     if (!err) return false;
     const anyErr = err as { code?: string; message?: string };
