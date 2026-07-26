@@ -49,13 +49,43 @@ export function hydratePermissionDependencies(
 }
 
 // Pairs of permissions that must NOT co-exist on a single role
-// (segregation of duties for financial responsibilities).
-export const PERMISSION_CONFLICTS: Array<[string, string]> = [
-  ["payouts.create", "payouts.approve"],
-  ["refunds.create", "refunds.approve"],
-  ["financial_controls.approve", "disputes.resolve_all"],
-  ["escrow.update", "escrow.approve"],
+// (segregation of duties for financial responsibilities). Seeded from
+// `permission_conflicts` on hydration; the constant below is the fallback.
+export type ConflictRule = { a: string; b: string; severity: "low" | "medium" | "high" | "critical"; rationale?: string | null };
+
+const FALLBACK_CONFLICTS: ConflictRule[] = [
+  { a: "payouts.create",             b: "payouts.approve",      severity: "high" },
+  { a: "refunds.create",             b: "refunds.approve",      severity: "high" },
+  { a: "financial_controls.approve", b: "disputes.resolve_all", severity: "critical" },
+  { a: "escrow.update",              b: "escrow.approve",       severity: "high" },
 ];
+
+export let PERMISSION_CONFLICTS: ConflictRule[] = [...FALLBACK_CONFLICTS];
+
+export function hydratePermissionConflicts(
+  rows: Array<{ a_key: string; b_key: string; severity?: string | null; rationale?: string | null }>,
+) {
+  if (!rows || rows.length === 0) return;
+  PERMISSION_CONFLICTS = rows.map((r) => ({
+    a: r.a_key,
+    b: r.b_key,
+    severity: (r.severity as ConflictRule["severity"]) ?? "high",
+    rationale: r.rationale ?? null,
+  }));
+}
+
+/**
+ * Roles that legitimately hold every permission (e.g. Super Admin) are
+ * exempted from segregation-of-duties + missing-dependency flagging.
+ * The caller should skip invoking `computeConflicts` / `computeMissingDependencies`
+ * for those roles entirely; this list is exported so UI can render an
+ * explanatory chip.
+ */
+export const SOD_EXEMPT_ROLES: ReadonlySet<string> = new Set(["super_admin"]);
+
+export function isSodExempt(roleKey: string): boolean {
+  return SOD_EXEMPT_ROLES.has(roleKey);
+}
 
 export function computeMissingDependencies(granted: Set<string>): Array<{ have: string; needs: string }> {
   const out: Array<{ have: string; needs: string }> = [];
@@ -65,10 +95,12 @@ export function computeMissingDependencies(granted: Set<string>): Array<{ have: 
   return out;
 }
 
-export function computeConflicts(granted: Set<string>): Array<{ a: string; b: string }> {
-  const out: Array<{ a: string; b: string }> = [];
-  for (const [a, b] of PERMISSION_CONFLICTS) {
-    if (granted.has(a) && granted.has(b)) out.push({ a, b });
+export function computeConflicts(granted: Set<string>): Array<{ a: string; b: string; severity: ConflictRule["severity"]; rationale?: string | null }> {
+  const out: Array<{ a: string; b: string; severity: ConflictRule["severity"]; rationale?: string | null }> = [];
+  for (const rule of PERMISSION_CONFLICTS) {
+    if (granted.has(rule.a) && granted.has(rule.b)) {
+      out.push({ a: rule.a, b: rule.b, severity: rule.severity, rationale: rule.rationale });
+    }
   }
   return out;
 }
