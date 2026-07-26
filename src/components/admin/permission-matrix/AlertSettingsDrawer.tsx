@@ -1,0 +1,92 @@
+import { useEffect, useState } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { useCurrentUserId } from "@/hooks/useCurrentUserId";
+import { useAdminPermissions } from "@/context/AdminPermissionsContext";
+
+const ALERT_KEYS = [
+  { key: "critical_permission_changed", label: "Critical permission changes", desc: "Notify when Privileged / Critical permissions are granted, revoked, or applied." },
+  { key: "change_set_rejected_or_failed", label: "Rejected or failed change-sets", desc: "Notify when an approver rejects a request, or when an apply fails." },
+  { key: "temporary_access_expiring", label: "Temporary access expiring", desc: "Notify 72h before any temporary override you own or approved reaches its expiry." },
+  { key: "protected_role_modified", label: "Protected role modifications", desc: "Notify on any change touching Super Admin, Senior Admin, or Auditor." },
+] as const;
+
+type AlertSettings = Record<string, boolean>;
+
+function storageKey(uid: string) { return `safedeal:matrix-alerts:${uid}`; }
+
+function loadSettings(uid: string): AlertSettings {
+  try {
+    const raw = localStorage.getItem(storageKey(uid));
+    if (!raw) return Object.fromEntries(ALERT_KEYS.map((a) => [a.key, true]));
+    return { ...Object.fromEntries(ALERT_KEYS.map((a) => [a.key, true])), ...JSON.parse(raw) };
+  } catch {
+    return Object.fromEntries(ALERT_KEYS.map((a) => [a.key, true]));
+  }
+}
+
+export function AlertSettingsDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const uid = useCurrentUserId();
+  const perms = useAdminPermissions();
+  const canReceiveCritical = perms.has("permissions.view");
+  const [state, setState] = useState<AlertSettings>({});
+
+  useEffect(() => {
+    if (!uid || !open) return;
+    setState(loadSettings(uid));
+  }, [uid, open]);
+
+  const save = () => {
+    if (!uid) return;
+    try {
+      localStorage.setItem(storageKey(uid), JSON.stringify(state));
+      toast.success("Alert preferences saved");
+      onOpenChange(false);
+    } catch {
+      toast.error("Could not save preferences");
+    }
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-[420px] sm:max-w-[420px]">
+        <SheetHeader>
+          <SheetTitle>Alert settings</SheetTitle>
+          <SheetDescription className="text-xs">
+            Choose which permission-matrix events raise notifications for you. Applies to in-app and email delivery.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="mt-6 space-y-4">
+          {ALERT_KEYS.map((a) => {
+            const disabled = a.key === "critical_permission_changed" && !canReceiveCritical;
+            return (
+              <div key={a.key} className="flex items-start justify-between gap-3 rounded-lg border border-border/60 bg-card/50 p-3">
+                <div className="flex-1">
+                  <Label className="text-sm font-medium">{a.label}</Label>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">{a.desc}</p>
+                  {disabled && (
+                    <p className="mt-1 text-[11px] text-amber-400">You need permissions.view to receive this alert.</p>
+                  )}
+                </div>
+                <Switch
+                  checked={!!state[a.key]}
+                  disabled={disabled}
+                  onCheckedChange={(v) => setState((s) => ({ ...s, [a.key]: v }))}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button size="sm" onClick={save}>Save preferences</Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
