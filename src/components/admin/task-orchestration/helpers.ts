@@ -55,9 +55,9 @@ export const TONE = {
 export type ToneKey = keyof typeof TONE;
 
 export const CARD_CLASS =
-  "rounded-2xl border border-border/50 bg-card/60 p-5 backdrop-blur-sm md:p-6";
+  "rounded-2xl border border-border/60 bg-card/60 p-5 backdrop-blur-sm md:p-6 shadow-[0_1px_0_hsl(var(--border)/0.4)_inset] transition hover:border-border/80";
 export const INNER_CARD_CLASS =
-  "rounded-xl border border-border/60 bg-card/40 p-4 backdrop-blur-sm";
+  "rounded-xl border border-border/60 bg-card/40 p-4 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset]";
 export const FILTER_BAR_CLASS =
   "flex flex-wrap items-end gap-3 rounded-xl border border-border/70 bg-card/60 p-3 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset]";
 
