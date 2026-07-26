@@ -16,7 +16,10 @@ type Body = {
     | "reassign" | "rebalance" | "escalate" | "complete" | "save_rules" | "test_rules"
     | "add_comment" | "send_for_approval"
     | "preview_auto_assign" | "preview_rebalance"
-    | "task_detail" | "export_queue";
+    | "task_detail" | "export_queue"
+    | "start" | "update_stage" | "add_internal_note"
+    | "request_info" | "request_evidence"
+    | "submit_resolution" | "close";
   task_id?: string;
   task_ids?: string[];
   agent_id?: string;
@@ -25,10 +28,13 @@ type Body = {
   reason?: string;
   resolution?: string;
   body_text?: string;
+  stage?: string;
+  target?: "buyer" | "seller" | "both";
   expected_version?: number;
   rules?: Record<string, unknown>;
   exclude_task_ids?: string[];
   exclude_agent_ids?: string[];
+  exclude_move_ids?: string[];
   override_capacity?: boolean;
   scope?: "queue" | "live" | "roster";
 };
@@ -54,6 +60,13 @@ Deno.serve(async (req) => {
     preview_rebalance: "task_orchestration.view",
     task_detail: "task_orchestration.view",
     export_queue: "task_orchestration.export",
+    start: "task_orchestration.view",
+    update_stage: "task_orchestration.view",
+    add_internal_note: "task_orchestration.view",
+    request_info: "task_orchestration.view",
+    request_evidence: "task_orchestration.view",
+    submit_resolution: "task_orchestration.view",
+    close: "task_orchestration.view",
   };
   const permission = permMap[body.action] ?? "task_orchestration.view";
 
@@ -70,14 +83,17 @@ Deno.serve(async (req) => {
   const respond = (payload: unknown, status = 200) =>
     new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-  async function pickBestAgent(): Promise<string | null> {
+  const INELIGIBLE = new Set(["offline", "on_leave", "suspended"]);
+
+  async function pickBestAgent(exclude: Set<string> = new Set()): Promise<string | null> {
     const [{ data: cap }, { data: avail }] = await Promise.all([
       admin.from("agent_capacity").select("*"),
       admin.from("agent_availability").select("*"),
     ]);
     const availMap = new Map((avail ?? []).map((a: any) => [a.user_id, a.status]));
     const eligible = (cap ?? [])
-      .filter((c: any) => (availMap.get(c.user_id) ?? "offline") !== "offline")
+      .filter((c: any) => !INELIGIBLE.has(availMap.get(c.user_id) ?? "offline"))
+      .filter((c: any) => !exclude.has(c.user_id))
       .filter((c: any) => c.current_active < c.max_active_tasks)
       .sort((a: any, b: any) => a.current_active - b.current_active);
     return eligible[0]?.user_id ?? null;
@@ -99,49 +115,160 @@ Deno.serve(async (req) => {
   }
 
   async function buildAutoAssignPlan(mode: string) {
-    const [{ data: pending }, { data: cap }, { data: avail }] = await Promise.all([
+    const [{ data: pending }, { data: cap }, { data: avail }, { data: skillRows }] = await Promise.all([
       admin.from("orchestration_tasks")
-        .select("id, task_code, priority")
+        .select("id, task_code, priority, required_permissions")
         .eq("status","unassigned")
         .order("priority",{ ascending: false })
         .order("created_at",{ ascending: true }).limit(50),
       admin.from("agent_capacity").select("*"),
       admin.from("agent_availability").select("*"),
+      admin.from("agent_skills").select("user_id, permission_key"),
     ]);
     const availMap = new Map((avail ?? []).map((a: any) => [a.user_id, a.status]));
-    const seats = new Map(
-      (cap ?? []).filter((c: any) => (availMap.get(c.user_id) ?? "offline") !== "offline")
-        .map((c: any) => [c.user_id, Math.max(0, (c.max_active_tasks ?? 0) - (c.current_active ?? 0))]),
-    );
+    const skillsByAgent = new Map<string, Set<string>>();
+    (skillRows ?? []).forEach((s: any) => {
+      const set = skillsByAgent.get(s.user_id) ?? new Set<string>();
+      set.add(s.permission_key);
+      skillsByAgent.set(s.user_id, set);
+    });
+    const initialSeats = (cap ?? [])
+      .filter((c: any) => !INELIGIBLE.has(availMap.get(c.user_id) ?? "offline"))
+      .map((c: any) => [c.user_id, Math.max(0, (c.max_active_tasks ?? 0) - (c.current_active ?? 0))] as [string, number]);
+    const seats = new Map<string, number>(initialSeats);
+    const initialCurrent = new Map((cap ?? []).map((c: any) => [c.user_id, c.current_active ?? 0]));
+    const projected = new Map(initialCurrent);
     const plan: Array<{ task_id: string; task_code: string; agent_id: string; reason: string }> = [];
+    const unmatched: Array<{ task_id: string; task_code: string; reason: string }> = [];
     for (const t of pending ?? []) {
-      const candidate = [...seats.entries()].filter(([, s]) => s > 0)
-        .sort((a, b) => b[1] - a[1])[0];
-      if (!candidate) break;
-      const [agentId, s] = candidate;
+      const req = new Set<string>(((t as any).required_permissions ?? []) as string[]);
+      const candidates = [...seats.entries()]
+        .filter(([, s]) => s > 0)
+        .filter(([aid]) => {
+          if (req.size === 0) return true;
+          const held = skillsByAgent.get(aid) ?? new Set();
+          for (const p of req) if (!held.has(p)) return false;
+          return true;
+        })
+        .sort((a, b) => b[1] - a[1]);
+      if (candidates.length === 0) {
+        const reason = req.size > 0 ? "no_eligible_agent_with_skill" : "no_available_seats";
+        unmatched.push({ task_id: (t as any).id, task_code: (t as any).task_code, reason });
+        continue;
+      }
+      const [agentId, s] = candidates[0];
       seats.set(agentId, s - 1);
+      projected.set(agentId, (projected.get(agentId) ?? 0) + 1);
       plan.push({ task_id: (t as any).id, task_code: (t as any).task_code, agent_id: agentId, reason: `auto:${mode}` });
     }
-    return plan;
+    const agentLoads = (cap ?? [])
+      .filter((c: any) => !INELIGIBLE.has(availMap.get(c.user_id) ?? "offline"))
+      .map((c: any) => ({
+        agent_id: c.user_id,
+        current: c.current_active ?? 0,
+        projected: projected.get(c.user_id) ?? c.current_active ?? 0,
+        max: c.max_active_tasks ?? 0,
+      }));
+    return { plan, unmatched, agent_loads: agentLoads };
   }
 
+  // Rebalance with safety rails: skips final decision, pending approval,
+  // escalated, locked, or continuity-required tasks, and moves that would
+  // violate the target agent's skill requirements.
   async function buildRebalancePlan() {
-    const { data: overloaded } = await admin.from("agent_capacity").select("*");
-    const plan: Array<{ task_id: string; from: string; to: string }> = [];
+    const [{ data: overloaded }, { data: skillRows }] = await Promise.all([
+      admin.from("agent_capacity").select("*"),
+      admin.from("agent_skills").select("user_id, permission_key"),
+    ]);
+    const skillsByAgent = new Map<string, Set<string>>();
+    (skillRows ?? []).forEach((s: any) => {
+      const set = skillsByAgent.get(s.user_id) ?? new Set<string>();
+      set.add(s.permission_key);
+      skillsByAgent.set(s.user_id, set);
+    });
+    const plan: Array<{ task_id: string; task_code: string; from: string; to: string; reason: string; priority: string; sla_delta: string | null }> = [];
+    const skipped: Array<{ task_id: string; task_code: string; reason: string }> = [];
     for (const a of overloaded ?? []) {
-      if (a.current_active > a.max_active_tasks) {
-        const excess = a.current_active - a.max_active_tasks;
-        const { data: taskRows } = await admin.from("orchestration_tasks")
-          .select("id").eq("assigned_agent_id", a.user_id).in("status", ["assigned","in_progress"])
-          .order("priority", { ascending: true }).limit(excess);
-        for (const t of taskRows ?? []) {
-          const to = await pickBestAgent();
-          if (!to || to === a.user_id) continue;
-          plan.push({ task_id: (t as any).id, from: a.user_id, to });
-        }
+      if (a.current_active <= a.max_active_tasks) continue;
+      const excess = a.current_active - a.max_active_tasks;
+      const { data: taskRows } = await admin.from("orchestration_tasks")
+        .select("id, task_code, priority, required_permissions, stage, status, sla_status, locked_by_action_id, continuity_required")
+        .eq("assigned_agent_id", a.user_id)
+        .in("status", ["assigned", "in_progress"])
+        .order("priority", { ascending: true }).limit(excess * 2);
+      for (const t of (taskRows ?? [])) {
+        const row: any = t;
+        if (row.stage === "final_decision") { skipped.push({ task_id: row.id, task_code: row.task_code, reason: "final_decision_locked" }); continue; }
+        if (row.status === "pending_approval" || row.status === "escalated") { skipped.push({ task_id: row.id, task_code: row.task_code, reason: "approval_or_escalated" }); continue; }
+        if (row.locked_by_action_id) { skipped.push({ task_id: row.id, task_code: row.task_code, reason: "locked_by_action" }); continue; }
+        if (row.continuity_required) { skipped.push({ task_id: row.id, task_code: row.task_code, reason: "continuity_required" }); continue; }
+        const req = new Set<string>((row.required_permissions ?? []) as string[]);
+        // Pick a target that also holds required skills.
+        const { data: caps } = await admin.from("agent_capacity").select("*");
+        const { data: avails } = await admin.from("agent_availability").select("*");
+        const availMap = new Map((avails ?? []).map((v: any) => [v.user_id, v.status]));
+        const target = (caps ?? [])
+          .filter((c: any) => c.user_id !== a.user_id)
+          .filter((c: any) => !INELIGIBLE.has(availMap.get(c.user_id) ?? "offline"))
+          .filter((c: any) => c.current_active < c.max_active_tasks)
+          .filter((c: any) => {
+            if (req.size === 0) return true;
+            const held = skillsByAgent.get(c.user_id) ?? new Set();
+            for (const p of req) if (!held.has(p)) return false;
+            return true;
+          })
+          .sort((x: any, y: any) => x.current_active - y.current_active)[0];
+        if (!target) { skipped.push({ task_id: row.id, task_code: row.task_code, reason: "no_eligible_target" }); continue; }
+        plan.push({
+          task_id: row.id,
+          task_code: row.task_code,
+          from: a.user_id,
+          to: target.user_id,
+          reason: "load_balance",
+          priority: row.priority,
+          sla_delta: row.sla_status ?? null,
+        });
+        if (plan.filter((p) => p.from === a.user_id).length >= excess) break;
       }
     }
-    return plan;
+    return { plan, skipped };
+  }
+
+  // Separation-of-duty: target agent must not be the task's initiator/originator
+  // for financial task types unless override_capacity is held + reason ≥ 8 chars.
+  const financialTypes = new Set(["refund_request", "escrow_release_review", "payment_hold_review", "payout_review"]);
+  async function sodViolations(agentId: string, taskIds: string[], overrideAllowed: boolean, overrideReason?: string): Promise<string[]> {
+    if (!taskIds.length) return [];
+    const { data: rows } = await admin.from("orchestration_tasks")
+      .select("id, type, created_by, originator_id").in("id", taskIds);
+    const conflicts: string[] = [];
+    for (const r of rows ?? []) {
+      const row: any = r;
+      if (!financialTypes.has(row.type)) continue;
+      const originator = row.originator_id ?? row.created_by;
+      if (originator && originator === agentId) conflicts.push(row.id);
+    }
+    if (!conflicts.length) return [];
+    if (overrideAllowed && overrideReason && overrideReason.trim().length >= 8) return [];
+    return conflicts;
+  }
+
+  // Fire a notification for both sides of a reassignment / move.
+  async function notifyReassignment(taskId: string, fromAgentId: string | null, toAgentId: string, reason: string | null) {
+    const rows: any[] = [];
+    if (fromAgentId) rows.push({
+      user_id: fromAgentId, type: "task_reassigned_from", channel: "in_app",
+      title: "Task removed from your queue",
+      body: reason ?? "A task was reassigned to another agent.",
+      data: { task_id: taskId, to_agent: toAgentId },
+    });
+    rows.push({
+      user_id: toAgentId, type: "task_reassigned_to", channel: "in_app",
+      title: "New task assigned to you",
+      body: reason ?? "You have been assigned an orchestration task.",
+      data: { task_id: taskId, from_agent: fromAgentId },
+    });
+    if (rows.length) await admin.from("notifications").insert(rows);
   }
 
   try {
@@ -158,6 +285,10 @@ Deno.serve(async (req) => {
             return respond({ error: "override_reason_required" }, 400);
           }
         }
+        // Separation-of-duty guard for financial tasks.
+        const canOverrideSod = ctx.hasPermission?.("task_orchestration.override_capacity") ?? false;
+        const sod = await sodViolations(body.agent_id, ids, !!body.override_capacity && canOverrideSod, body.reason);
+        if (sod.length) return respond({ error: "sod_conflict", tasks: sod }, 409);
         if (ids.length === 1 && typeof body.expected_version === "number") {
           const v = await checkVersion(ids[0], body.expected_version);
           if (!v.ok) return respond({ error: "version_conflict", current: v.current, expected: body.expected_version }, 409);
@@ -167,8 +298,8 @@ Deno.serve(async (req) => {
           admin.from("agent_availability").select("status").eq("user_id", body.agent_id).maybeSingle(),
           admin.from("orchestration_tasks").select("id, required_permissions").in("id", ids),
         ]);
-        if (!body.override_capacity && availRow && availRow.status === "offline") {
-          return respond({ error: "agent_offline" }, 409);
+        if (!body.override_capacity && availRow && INELIGIBLE.has(availRow.status)) {
+          return respond({ error: "agent_ineligible", availability: availRow.status }, 409);
         }
         const current = capRow?.current_active ?? 0;
         const max = capRow?.max_active_tasks ?? 0;
@@ -217,7 +348,7 @@ Deno.serve(async (req) => {
             admin.from("agent_capacity").select("current_active, max_active_tasks").eq("user_id", body.agent_id).maybeSingle(),
             admin.from("agent_availability").select("status").eq("user_id", body.agent_id).maybeSingle(),
           ]);
-          if (availRow?.status === "offline") return respond({ error: "agent_offline" }, 409);
+          if (availRow && INELIGIBLE.has(availRow.status)) return respond({ error: "agent_ineligible", availability: availRow.status }, 409);
           if (capRow && capRow.max_active_tasks > 0 && capRow.current_active >= capRow.max_active_tasks) {
             return respond({ error: "agent_over_capacity" }, 409);
           }
@@ -233,6 +364,8 @@ Deno.serve(async (req) => {
           _mode: "reassign", _reason: body.reason ?? "reassigned", _actor_id: ctx.userId,
         });
         if (rpcErr) return respond({ error: "reassign_failed", detail: rpcErr.message }, 500);
+        // Notify previous & new agent.
+        try { await notifyReassignment(body.task_id, from, body.agent_id, body.reason ?? null); } catch { /* best effort */ }
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_reassign",
           targetType: "system", metadata: { task_id: body.task_id, from, to: body.agent_id, reason: body.reason, override: !!body.override_capacity },
@@ -243,6 +376,9 @@ Deno.serve(async (req) => {
       case "assign_to_me": {
         const ids = body.task_ids ?? (body.task_id ? [body.task_id] : []);
         if (!ids.length) return respond({ error: "missing_task_ids" }, 400);
+        const canOverrideSod = ctx.hasPermission?.("task_orchestration.override_capacity") ?? false;
+        const sod = await sodViolations(ctx.userId, ids, canOverrideSod, body.reason);
+        if (sod.length) return respond({ error: "sod_conflict", tasks: sod }, 409);
         for (const id of ids) {
           await admin.rpc("assign_task", {
             _task_id: id, _agent_id: ctx.userId,
@@ -259,7 +395,7 @@ Deno.serve(async (req) => {
       case "auto_assign": {
         const { data: rules } = await admin.from("assignment_rules").select("config").eq("scope","global").maybeSingle();
         const mode = (rules?.config as any)?.mode ?? body.mode ?? "round_robin";
-        const fullPlan = await buildAutoAssignPlan(mode);
+        const { plan: fullPlan } = await buildAutoAssignPlan(mode);
         const excluded = new Set(body.exclude_task_ids ?? []);
         const plan = fullPlan.filter(p => !excluded.has(p.task_id));
         let count = 0;
@@ -277,17 +413,23 @@ Deno.serve(async (req) => {
         return respond({ ok: true, count });
       }
       case "rebalance": {
-        const plan = await buildRebalancePlan();
+        const { plan: fullPlan } = await buildRebalancePlan();
+        const excluded = new Set(body.exclude_move_ids ?? []);
+        const plan = fullPlan.filter((m) => !excluded.has(m.task_id));
+        if (plan.length && (!body.reason || body.reason.trim().length < 8)) {
+          return respond({ error: "rebalance_reason_required" }, 400);
+        }
         let moved = 0;
         for (const m of plan) {
           await admin.rpc("assign_task", {
             _task_id: m.task_id, _agent_id: m.to, _mode: "rebalance", _reason: "load rebalance", _actor_id: ctx.userId,
           });
+          try { await notifyReassignment(m.task_id, m.from, m.to, body.reason ?? "load rebalance"); } catch { /* best effort */ }
           moved++;
         }
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_rebalance",
-          targetType: "system", metadata: { moved }, mirrorToAuditLogs: true,
+          targetType: "system", metadata: { moved, reason: body.reason, excluded: [...excluded] }, mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
         return respond({ ok: true, moved });
@@ -425,24 +567,61 @@ Deno.serve(async (req) => {
       case "preview_auto_assign": {
         const { data: rules } = await admin.from("assignment_rules").select("config").eq("scope","global").maybeSingle();
         const mode = (rules?.config as any)?.mode ?? body.mode ?? "round_robin";
-        const plan = await buildAutoAssignPlan(mode);
+        const { plan, unmatched, agent_loads } = await buildAutoAssignPlan(mode);
         const { count: pending } = await admin.from("orchestration_tasks")
           .select("id", { count: "exact", head: true }).eq("status","unassigned");
-        return respond({ ok: true, mode, pending: pending ?? 0, would_assign: plan.length, plan });
+        return respond({ ok: true, mode, pending: pending ?? 0, would_assign: plan.length, plan, unmatched, agent_loads });
       }
       case "preview_rebalance": {
-        const plan = await buildRebalancePlan();
-        return respond({ ok: true, moves: plan.length, plan });
+        const { plan, skipped } = await buildRebalancePlan();
+        return respond({ ok: true, moves: plan.length, plan, skipped });
       }
       case "task_detail": {
         if (!body.task_id) return respond({ error: "missing_task_id" }, 400);
-        const [{ data: task }, { data: statusHist }, { data: assignHist }, { data: comments }] = await Promise.all([
+        const [{ data: task }, { data: statusHist }, { data: assignHist }, { data: allComments }] = await Promise.all([
           admin.from("orchestration_tasks").select("*").eq("id", body.task_id).maybeSingle(),
           admin.from("task_status_history").select("*").eq("task_id", body.task_id).order("created_at",{ ascending: false }).limit(50),
           admin.from("task_assignment_history").select("*").eq("task_id", body.task_id).order("created_at",{ ascending: false }).limit(50),
           admin.from("task_comments").select("*").eq("task_id", body.task_id).order("created_at",{ ascending: false }).limit(100),
         ]);
         if (!task) return respond({ error: "task_not_found" }, 404);
+        // Split public comments vs internal notes.
+        const comments = (allComments ?? []).filter((c: any) => (c.visibility ?? "public") !== "internal");
+        const internal_notes = (allComments ?? []).filter((c: any) => c.visibility === "internal");
+
+        // Linked context: transaction, dispute, buyer, seller, evidence, messages.
+        const context: any = { transaction: null, dispute: null, buyer: null, seller: null };
+        let evidence: any[] = [];
+        let messages: any[] = [];
+        const txId = (task as any).transaction_id;
+        const disputeId = (task as any).dispute_id;
+        if (txId) {
+          const { data: tx } = await admin.from("transactions")
+            .select("id, transaction_code, status, amount, currency, buyer_id, seller_id, created_at, updated_at").eq("id", txId).maybeSingle();
+          context.transaction = tx ?? null;
+          if (tx?.buyer_id) {
+            const { data: b } = await admin.from("profiles").select("id, first_name, last_name, email, phone_number, verification_level").eq("id", tx.buyer_id).maybeSingle();
+            context.buyer = b ?? null;
+          }
+          if (tx?.seller_id) {
+            const { data: s } = await admin.from("profiles").select("id, first_name, last_name, email, phone_number, verification_level").eq("id", tx.seller_id).maybeSingle();
+            context.seller = s ?? null;
+          }
+          const { data: msgs } = await admin.from("transaction_messages")
+            .select("id, body, sender_id, created_at").eq("transaction_id", txId).order("created_at", { ascending: false }).limit(50);
+          messages = (msgs ?? []).map((m: any) => ({ id: m.id, author: m.sender_id, body: m.body, created_at: m.created_at }));
+        }
+        if (disputeId) {
+          const { data: d } = await admin.from("disputes")
+            .select("id, dispute_code, status, reason_type, opened_by, created_at, updated_at, description").eq("id", disputeId).maybeSingle();
+          context.dispute = d ?? null;
+          const { data: ev } = await admin.from("dispute_evidence")
+            .select("id, evidence_type, description, file_url, submitted_by, created_at").eq("dispute_id", disputeId).order("created_at", { ascending: false }).limit(50);
+          evidence = (ev ?? []).map((e: any) => ({
+            id: e.id, kind: e.evidence_type, label: e.description, url: e.file_url, created_at: e.created_at, submitted_by: e.submitted_by,
+          }));
+        }
+
         const actorIds = new Set<string>();
         (statusHist ?? []).forEach((r: any) => r.actor_id && actorIds.add(r.actor_id));
         (assignHist ?? []).forEach((r: any) => {
@@ -450,7 +629,7 @@ Deno.serve(async (req) => {
           r.from_agent_id && actorIds.add(r.from_agent_id);
           r.to_agent_id && actorIds.add(r.to_agent_id);
         });
-        (comments ?? []).forEach((r: any) => r.author_id && actorIds.add(r.author_id));
+        (allComments ?? []).forEach((r: any) => r.author_id && actorIds.add(r.author_id));
         const { data: users } = actorIds.size
           ? await admin.from("internal_users").select("user_id, first_name, last_name, email").in("user_id", [...actorIds])
           : { data: [] as any[] };
@@ -463,9 +642,91 @@ Deno.serve(async (req) => {
           task,
           status_history: statusHist ?? [],
           assignment_history: assignHist ?? [],
-          comments: comments ?? [],
+          comments,
+          internal_notes,
+          evidence,
+          messages,
+          context,
           actor_names: nameMap,
         });
+      }
+      case "start": {
+        if (!body.task_id) return respond({ error: "missing_task_id" }, 400);
+        const v = await checkVersion(body.task_id, body.expected_version);
+        if (!v.ok) return respond({ error: "version_conflict", current: v.current, expected: body.expected_version }, 409);
+        const { data: t } = await admin.from("orchestration_tasks").select("status, version, first_action_at").eq("id", body.task_id).maybeSingle();
+        if (!t) return respond({ error: "task_not_found" }, 404);
+        const patch: any = { status: "in_progress", version: (t.version ?? 0) + 1 };
+        if (!t.first_action_at) patch.first_action_at = new Date().toISOString();
+        const { error: uErr } = await admin.from("orchestration_tasks").update(patch).eq("id", body.task_id);
+        if (uErr) return respond({ error: "update_failed", detail: uErr.message }, 500);
+        await admin.from("task_status_history").insert({ task_id: body.task_id, from_status: t.status, to_status: "in_progress", actor_id: ctx.userId, reason: body.reason ?? "started" });
+        await logAdminAction({ actorId: ctx.userId, action: "orchestration_start", targetType: "system", metadata: { task_id: body.task_id }, mirrorToAuditLogs: true, ip: meta.ip, userAgent: meta.userAgent }, admin);
+        return respond({ ok: true });
+      }
+      case "update_stage": {
+        if (!body.task_id || !body.stage) return respond({ error: "missing_fields" }, 400);
+        const v = await checkVersion(body.task_id, body.expected_version);
+        if (!v.ok) return respond({ error: "version_conflict", current: v.current, expected: body.expected_version }, 409);
+        const { data: t } = await admin.from("orchestration_tasks").select("stage, version").eq("id", body.task_id).maybeSingle();
+        if (!t) return respond({ error: "task_not_found" }, 404);
+        const { error: uErr } = await admin.from("orchestration_tasks").update({ stage: body.stage, version: (t.version ?? 0) + 1 }).eq("id", body.task_id);
+        if (uErr) return respond({ error: "update_failed", detail: uErr.message }, 500);
+        await admin.from("task_status_history").insert({ task_id: body.task_id, from_stage: t.stage, to_stage: body.stage, to_status: "in_progress", actor_id: ctx.userId, reason: body.reason ?? "stage updated" });
+        await logAdminAction({ actorId: ctx.userId, action: "orchestration_update_stage", targetType: "system", metadata: { task_id: body.task_id, from: t.stage, to: body.stage }, mirrorToAuditLogs: true, ip: meta.ip, userAgent: meta.userAgent }, admin);
+        return respond({ ok: true });
+      }
+      case "add_internal_note": {
+        if (!body.task_id || !body.body_text?.trim()) return respond({ error: "missing_fields" }, 400);
+        const text = body.body_text.trim().slice(0, 4000);
+        const { data: inserted, error: insErr } = await admin.from("task_comments")
+          .insert({ task_id: body.task_id, author_id: ctx.userId, body: text, visibility: "internal" })
+          .select("id, task_id, body, created_at, author_id, visibility").single();
+        if (insErr) return respond({ error: "insert_failed", detail: insErr.message }, 500);
+        await logAdminAction({ actorId: ctx.userId, action: "orchestration_internal_note", targetType: "system", metadata: { task_id: body.task_id, length: text.length }, ip: meta.ip, userAgent: meta.userAgent }, admin);
+        return respond({ ok: true, note: inserted });
+      }
+      case "request_info":
+      case "request_evidence": {
+        if (!body.task_id) return respond({ error: "missing_task_id" }, 400);
+        const v = await checkVersion(body.task_id, body.expected_version);
+        if (!v.ok) return respond({ error: "version_conflict", current: v.current, expected: body.expected_version }, 409);
+        const target = body.target ?? "buyer";
+        const nextStatus = target === "seller" ? "waiting_on_seller" : target === "both" ? "waiting_on_evidence" : "waiting_on_buyer";
+        const { data: t } = await admin.from("orchestration_tasks").select("status, version").eq("id", body.task_id).maybeSingle();
+        if (!t) return respond({ error: "task_not_found" }, 404);
+        await admin.from("orchestration_tasks").update({ status: nextStatus, version: (t.version ?? 0) + 1 }).eq("id", body.task_id);
+        await admin.from("task_status_history").insert({ task_id: body.task_id, from_status: t.status, to_status: nextStatus, actor_id: ctx.userId, reason: body.reason ?? (body.action === "request_evidence" ? "evidence requested" : "info requested") });
+        await logAdminAction({ actorId: ctx.userId, action: `orchestration_${body.action}`, targetType: "system", metadata: { task_id: body.task_id, target, reason: body.reason }, mirrorToAuditLogs: true, ip: meta.ip, userAgent: meta.userAgent }, admin);
+        return respond({ ok: true, status: nextStatus });
+      }
+      case "submit_resolution": {
+        if (!body.task_id) return respond({ error: "missing_task_id" }, 400);
+        const v = await checkVersion(body.task_id, body.expected_version);
+        if (!v.ok) return respond({ error: "version_conflict", current: v.current, expected: body.expected_version }, 409);
+        const { data: t } = await admin.from("orchestration_tasks").select("status, version, type").eq("id", body.task_id).maybeSingle();
+        if (!t) return respond({ error: "task_not_found" }, 404);
+        // Financial types must go through send_for_approval when caller lacks the permission.
+        const needed = t.type ? financialTaskPerm[t.type as string] : undefined;
+        if (needed) {
+          try { await requireAnyPermission(req, [needed], ctx); }
+          catch { return respond({ error: "financial_permission_required", required: needed, suggestion: "send_for_approval" }, 403); }
+        }
+        await admin.from("orchestration_tasks").update({ status: "resolved", resolution_text: body.resolution ?? null, version: (t.version ?? 0) + 1, resolved_at: new Date().toISOString() }).eq("id", body.task_id);
+        await admin.from("task_status_history").insert({ task_id: body.task_id, from_status: t.status, to_status: "resolved", actor_id: ctx.userId, reason: body.resolution ?? "resolved" });
+        await logAdminAction({ actorId: ctx.userId, action: "orchestration_submit_resolution", targetType: "system", metadata: { task_id: body.task_id, resolution: body.resolution }, mirrorToAuditLogs: true, ip: meta.ip, userAgent: meta.userAgent }, admin);
+        return respond({ ok: true });
+      }
+      case "close": {
+        if (!body.task_id) return respond({ error: "missing_task_id" }, 400);
+        const v = await checkVersion(body.task_id, body.expected_version);
+        if (!v.ok) return respond({ error: "version_conflict", current: v.current, expected: body.expected_version }, 409);
+        const { data: t } = await admin.from("orchestration_tasks").select("status, version").eq("id", body.task_id).maybeSingle();
+        if (!t) return respond({ error: "task_not_found" }, 404);
+        await admin.from("orchestration_tasks").update({ status: "closed", version: (t.version ?? 0) + 1, closed_at: new Date().toISOString() }).eq("id", body.task_id);
+        await admin.from("task_status_history").insert({ task_id: body.task_id, from_status: t.status, to_status: "closed", actor_id: ctx.userId, reason: body.reason ?? "closed" });
+        await logAdminAction({ actorId: ctx.userId, action: "orchestration_close", targetType: "system", metadata: { task_id: body.task_id }, mirrorToAuditLogs: true, ip: meta.ip, userAgent: meta.userAgent }, admin);
+        return respond({ ok: true });
       }
       case "export_queue": {
         const scope = body.scope ?? "queue";
