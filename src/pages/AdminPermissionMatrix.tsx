@@ -12,8 +12,6 @@ import {
   fetchWorkspaceSummary,
   fetchPermissionApprovalItems,
   fetchPermissionHistoryItems,
-  type ApprovalRow,
-  type HistoryRow,
   type OverrideRow,
   type PermissionApprovalItem,
   type PermissionHistoryItem,
