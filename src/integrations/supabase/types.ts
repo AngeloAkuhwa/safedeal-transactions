@@ -6454,6 +6454,10 @@ export type Database = {
       }
       is_user_region_allowed: { Args: { _user_id: string }; Returns: boolean }
       orch_generate_task_code: { Args: never; Returns: string }
+      recompute_agent_capacity: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
       recompute_needs_admin_review: {
         Args: { p_tx_id: string }
         Returns: undefined
