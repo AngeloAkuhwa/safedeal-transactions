@@ -201,3 +201,55 @@ export function changeStateTone(state: ChangeState): { bg: string; text: string;
       return { bg: "bg-muted/40", text: "text-muted-foreground", ring: "ring-border", label };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Approver guard (spec §5). The DB `apply_permission_change_set` RPC is the
+// authoritative check; this UI helper mirrors it so buttons can be disabled
+// with a clear reason before the network round-trip.
+// ---------------------------------------------------------------------------
+
+export interface ApproverActor {
+  id: string;
+  roleKeys: InternalRoleKey[];
+  effectivePermissionKeys: Set<string>;
+}
+
+export interface ChangeSetForApproval {
+  id: string;
+  requested_by: string | null;
+  target_scope: "role" | "user" | "template" | "permission";
+  target_key: string;
+  added_keys: string[];
+  removed_keys: string[];
+  risk: "low" | "medium" | "high" | "critical";
+}
+
+function roleRank(key: string): number {
+  const idx = INTERNAL_ROLES.findIndex((r) => r.key === key);
+  return idx < 0 ? -1 : INTERNAL_ROLES.length - idx; // earlier = higher rank
+}
+
+export function canApproveChangeSet(
+  cs: ChangeSetForApproval,
+  actor: ApproverActor,
+): { allowed: boolean; reason?: string } {
+  if (cs.requested_by && cs.requested_by === actor.id) {
+    return { allowed: false, reason: "Requesters cannot approve their own change set." };
+  }
+  for (const k of cs.added_keys) {
+    if (!actor.effectivePermissionKeys.has(k)) {
+      return { allowed: false, reason: `You cannot grant '${k}' because you do not hold it.` };
+    }
+  }
+  if (cs.target_scope === "role") {
+    const targetRank = roleRank(cs.target_key);
+    const actorMaxRank = Math.max(-1, ...actor.roleKeys.map((r) => roleRank(r)));
+    if (targetRank > actorMaxRank) {
+      return { allowed: false, reason: "You cannot change a role above your authority." };
+    }
+  }
+  if ((cs.risk === "high" || cs.risk === "critical") && cs.requested_by === actor.id) {
+    return { allowed: false, reason: "Critical changes require a separate approver." };
+  }
+  return { allowed: true };
+}
