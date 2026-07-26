@@ -6,15 +6,16 @@ import { toast } from "@/hooks/use-toast";
 import {
   INTERNAL_ROLES, PERMISSION_MODULES, ROLE_LABEL,
   findPermissionEntry,
+  type PermissionAction, type PermissionRiskLevel,
 } from "@/services/permission-catalog";
-import { permissionRepo, type PermissionEnvironment, type PermissionRiskLevel } from "@/services/permission-repository";
+import { permissionRepo, type PermissionEnvironment } from "@/services/permission-repository";
 
 const ENVS: PermissionEnvironment[] = ["production", "staging", "development"];
 const RISKS: PermissionRiskLevel[] = ["low", "medium", "high", "critical"];
-const ACTIONS = [
+const ACTIONS: PermissionAction[] = [
   "view","view_assigned","create","update","approve","reject","escalate","resolve",
   "assign","reassign","export","configure","manage_permissions","suspend","reactivate","remove_flag",
-];
+] as PermissionAction[];
 
 export function RegisterPermissionDialog({
   open,
@@ -31,7 +32,7 @@ export function RegisterPermissionDialog({
   const editing = editingKey ? findPermissionEntry(editingKey) : null;
 
   const [moduleKey, setModuleKey] = useState(editing?.module ?? PERMISSION_MODULES[0]?.key ?? "");
-  const [action, setAction] = useState(editing?.action ?? "view");
+  const [action, setAction] = useState<PermissionAction>((editing?.action ?? "view") as PermissionAction);
   const [label, setLabel] = useState(editing?.label ?? "");
   const [description, setDescription] = useState(editing?.description ?? "");
   const [risk, setRisk] = useState<PermissionRiskLevel>(editing?.risk ?? "low");
@@ -111,7 +112,7 @@ export function RegisterPermissionDialog({
             </label>
             <label className="block">
               <span className="mb-1 block text-[11px] uppercase text-muted-foreground">Action</span>
-              <select disabled={!!editing} value={action} onChange={(e) => setAction(e.target.value)} className="h-9 w-full rounded-md border border-border bg-background px-2">
+              <select disabled={!!editing} value={action} onChange={(e) => setAction(e.target.value as PermissionAction)} className="h-9 w-full rounded-md border border-border bg-background px-2">
                 {ACTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
               </select>
             </label>
