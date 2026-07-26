@@ -181,7 +181,7 @@ const HISTORY_ACTION_TYPES = [
   "permission_override_rejected",
   "role_change_approved",
   "role_change_rejected",
-];
+] as const;
 
 export async function fetchChangeHistory(limit = 100): Promise<HistoryRow[]> {
   const { data, error } = await supabase
