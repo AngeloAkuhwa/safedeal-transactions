@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { toast } from "@/hooks/use-toast";
@@ -41,9 +42,26 @@ const EMPTY_ADVANCED: AdvancedFilterState = {
 
 export default function AdminAccessControl() {
   const qc = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filter, setFilter] = useState<AccessFilter>("all");
   const [q, setQ] = useState("");
-  const [advanced, setAdvanced] = useState<AdvancedFilterState>(EMPTY_ADVANCED);
+  const [advanced, setAdvanced] = useState<AdvancedFilterState>(() => ({
+    ...EMPTY_ADVANCED,
+    role: searchParams.get("role") ?? null,
+  }));
+
+  // Keep the role filter in sync with the `?role=` query param (e.g. when
+  // navigating from the Role Detail panel's "View users" button).
+  useEffect(() => {
+    const paramRole = searchParams.get("role");
+    if (paramRole && paramRole !== (advanced.role ?? "")) {
+      setAdvanced((a) => ({ ...a, role: paramRole }));
+      setPage(1);
+    }
+    if (!paramRole && advanced.role) {
+      // param cleared elsewhere — leave advanced.role alone (user cleared it here).
+    }
+  }, [searchParams]);
   const [sortBy, setSortBy] = useState<SortBy>("last_active");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
