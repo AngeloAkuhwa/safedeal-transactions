@@ -278,7 +278,7 @@ class SupabasePermissionRepository implements PermissionRepository {
     if (patch.name !== undefined) upd.name = patch.name;
     if (patch.description !== undefined) upd.description = patch.description;
     if (patch.role_source !== undefined) upd.role_source = patch.role_source;
-    const { error } = await supabase.from("permission_templates").update(upd).eq("id", id);
+    const { error } = await supabase.from("permission_templates").update(upd as any).eq("id", id);
     if (error) throw error;
   }
 
