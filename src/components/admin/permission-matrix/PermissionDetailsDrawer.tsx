@@ -1,6 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { OverrideRow } from "@/services/permission-workspace.service";
 import { PermissionRiskBadge } from "./PermissionRiskBadge";
+import { PermissionSourceBadge } from "./PermissionSourceBadge";
 import { ROLE_LABEL } from "@/services/permission-catalog";
 import { Link } from "react-router-dom";
 
@@ -41,6 +42,17 @@ export function PermissionDetailsDrawer({
             <div>
               <div className="text-xs uppercase text-muted-foreground">Mode</div>
               <div>{override.mode === "grant" ? "+ Grant" : "− Revoke"}</div>
+            </div>
+            <div>
+              <div className="text-xs uppercase text-muted-foreground">Source</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <PermissionSourceBadge source={override.source} />
+                {override.expires_at && (
+                  <span className="text-[11px] text-muted-foreground">
+                    Expires {new Date(override.expires_at).toLocaleString()}
+                  </span>
+                )}
+              </div>
             </div>
             <div>
               <div className="text-xs uppercase text-muted-foreground">Reason</div>
