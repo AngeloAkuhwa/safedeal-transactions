@@ -89,6 +89,8 @@ export function availabilityDot(a: string): string {
     busy:        "bg-amber-400",
     at_capacity: "bg-rose-400",
     offline:     "bg-muted-foreground",
+    on_leave:    "bg-sky-400",
+    suspended:   "bg-rose-500",
   }[a] ?? "bg-muted-foreground";
 }
 
@@ -96,6 +98,7 @@ export function availabilityLabel(a: string): string {
   return {
     available: "Available", active: "Active", busy: "Busy",
     at_capacity: "At Capacity", offline: "Offline",
+    on_leave: "On Leave", suspended: "Suspended",
   }[a] ?? humanize(a);
 }
 
@@ -103,6 +106,7 @@ export function availabilityTextColor(a: string): string {
   return {
     available: "text-emerald-300", active: "text-primary", busy: "text-amber-300",
     at_capacity: "text-rose-300", offline: "text-muted-foreground",
+    on_leave: "text-sky-300", suspended: "text-rose-400",
   }[a] ?? "text-muted-foreground";
 }
 
@@ -113,5 +117,27 @@ export function availabilityRing(a: string): string {
     busy:        "ring-amber-500/30",
     at_capacity: "ring-rose-500/30",
     offline:     "ring-border",
+    on_leave:    "ring-sky-500/30",
+    suspended:   "ring-rose-500/40",
   }[a] ?? "ring-border";
+}
+
+/** Availability values that are treated as ineligible for new work. */
+export const INELIGIBLE_AVAILABILITY = new Set<string>(["offline", "on_leave", "suspended"]);
+export function isEligibleAvailability(a: string): boolean {
+  return !INELIGIBLE_AVAILABILITY.has(a);
+}
+
+/** Live progression status chip (distinct from SLA badge). */
+export function statusChip(status: string): { label: string; className: string } | null {
+  if (status === "waiting_on_buyer" || status === "waiting_on_seller" || status === "waiting_on_evidence") {
+    return { label: "Waiting on External", className: "bg-sky-500/10 text-sky-300 ring-1 ring-inset ring-sky-500/30" };
+  }
+  if (status === "escalated") {
+    return { label: "Escalated", className: "bg-rose-500/10 text-rose-300 ring-1 ring-inset ring-rose-500/30" };
+  }
+  if (status === "pending_approval") {
+    return { label: "Pending Approval", className: "bg-amber-500/10 text-amber-300 ring-1 ring-inset ring-amber-500/30" };
+  }
+  return null;
 }
