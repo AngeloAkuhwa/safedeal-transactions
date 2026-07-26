@@ -1761,8 +1761,8 @@ export default function AdminTransactionDetail() {
               toast.error("Escalation required", { description: e.reasons.join(" • ") || e.message });
             } else {
               toast.error((e as Error).message ?? "Failed to resolve dispute");
+              throw e;
             }
-            throw e;
           }
         }}
         onRequestMoreInfo={async (payload) => {
@@ -1771,7 +1771,7 @@ export default function AdminTransactionDetail() {
             await disputeRequestMoreInfo(transactionId, payload);
             toast.success("Request sent to seller");
             setReloadKey((k) => k + 1);
-          } catch (e) { toast.error((e as Error).message ?? "Failed to send request"); throw e; }
+          } catch (e) { toast.error((e as Error).message ?? "Failed to send request"); }
         }}
       />
       <ExportDataDialog
