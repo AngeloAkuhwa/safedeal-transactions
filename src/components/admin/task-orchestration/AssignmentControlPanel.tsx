@@ -2,6 +2,7 @@ import { Info, Lock } from "lucide-react";
 import { AssignmentModeSelector } from "./AssignmentModeSelector";
 import { AssignmentQuickActions } from "./AssignmentQuickActions";
 import { CARD_CLASS } from "./helpers";
+import type { OrchestrationPerms } from "@/hooks/useOrchestrationPerms";
 
 export function AssignmentControlPanel(props: {
   mode: string;
@@ -13,6 +14,7 @@ export function AssignmentControlPanel(props: {
   onEscalate: () => void;
   onBulkExport: () => void;
   isSenior: boolean;
+  perms?: OrchestrationPerms;
   selectedCount: number;
   busy: string | null;
 }) {
@@ -38,6 +40,7 @@ export function AssignmentControlPanel(props: {
           onEscalate={props.onEscalate}
           onBulkExport={props.onBulkExport}
           isSenior={props.isSenior}
+          perms={props.perms}
           selectedCount={props.selectedCount}
           busy={props.busy}
         />

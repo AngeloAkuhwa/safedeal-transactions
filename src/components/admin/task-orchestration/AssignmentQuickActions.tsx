@@ -1,6 +1,7 @@
 import { Bolt, UserCheck, RotateCw, UserPlus, ArrowLeftRight, ArrowUpRightFromSquare, Download, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TONE } from "./helpers";
+import type { OrchestrationPerms } from "@/hooks/useOrchestrationPerms";
 
 interface Action {
   id: string;
@@ -15,7 +16,7 @@ interface Action {
 
 export function AssignmentQuickActions({
   onAssignSelected, onAutoAssign, onAssignToMe, onRebalance, onEscalate, onBulkExport,
-  isSenior, selectedCount, busy,
+  isSenior, perms, selectedCount, busy,
 }: {
   onAssignSelected: () => void;
   onAutoAssign: () => void;
@@ -24,17 +25,19 @@ export function AssignmentQuickActions({
   onEscalate: () => void;
   onBulkExport: () => void;
   isSenior: boolean;
+  perms?: OrchestrationPerms;
   selectedCount: number;
   busy: string | null;
 }) {
-  const gated = !isSenior;
+  // Prefer granular flags when provided; fall back to the isSenior gate.
+  const gate = (flag: boolean | undefined) => (perms ? !flag : !isSenior);
   const actions: Action[] = [
-    { id: "assign_selected", icon: UserCheck, label: `Assign Selected${selectedCount ? ` (${selectedCount})` : ""}`, desc: "Manually assign checked tasks to chosen agent", onClick: onAssignSelected, primary: true, disabled: gated || selectedCount === 0 },
-    { id: "auto_assign", icon: RotateCw, label: "Auto Assign", desc: "Distribute using active assignment mode", onClick: onAutoAssign, disabled: gated },
-    { id: "assign_to_me", icon: UserPlus, label: "Assign To Me", desc: "Take ownership of selected tasks", onClick: onAssignToMe, disabled: gated || selectedCount === 0 },
-    { id: "rebalance", icon: ArrowLeftRight, label: "Rebalance", desc: "Redistribute load across all agents", onClick: onRebalance, disabled: gated },
-    { id: "escalate", icon: ArrowUpRightFromSquare, label: "Escalate", desc: "Move to senior agent pool", onClick: onEscalate, tone: "warning", disabled: gated || selectedCount === 0 },
-    { id: "bulk_export", icon: Download, label: "Bulk Export", desc: "Export assignment data & logs", onClick: onBulkExport, disabled: gated },
+    { id: "assign_selected", icon: UserCheck, label: `Assign Selected${selectedCount ? ` (${selectedCount})` : ""}`, desc: "Manually assign checked tasks to chosen agent", onClick: onAssignSelected, primary: true, disabled: gate(perms?.canBulkAssign ?? perms?.canAssign) || selectedCount === 0 },
+    { id: "auto_assign", icon: RotateCw, label: "Auto Assign", desc: "Distribute using active assignment mode", onClick: onAutoAssign, disabled: gate(perms?.canAssign) },
+    { id: "assign_to_me", icon: UserPlus, label: "Assign To Me", desc: "Take ownership of selected tasks", onClick: onAssignToMe, disabled: gate(perms?.canAssignSelf) || selectedCount === 0 },
+    { id: "rebalance", icon: ArrowLeftRight, label: "Rebalance", desc: "Redistribute load across all agents", onClick: onRebalance, disabled: gate(perms?.canRebalance) },
+    { id: "escalate", icon: ArrowUpRightFromSquare, label: "Escalate", desc: "Move to senior agent pool", onClick: onEscalate, tone: "warning", disabled: gate(perms?.canEscalate) || selectedCount === 0 },
+    { id: "bulk_export", icon: Download, label: "Bulk Export", desc: "Export assignment data & logs", onClick: onBulkExport, disabled: gate(perms?.canExport) },
   ];
   return (
     <div className="rounded-xl border border-border/60 bg-card/40 p-4 lg:col-span-2">
