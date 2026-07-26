@@ -6,15 +6,20 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
-import type { RoleGrantMap } from "@/services/permission-repository";
-import type { PermissionCatalogEntry } from "@/services/permission-catalog";
-import { PERMISSION_CATALOG, ROLE_LABEL, INTERNAL_ROLES } from "@/services/permission-catalog";
+import type { RoleGrantMap } from "@/services/permission-workspace.service";
+import {
+  ROLE_LABEL,
+  INTERNAL_ROLES,
+  getAllPermissionKeys,
+  findPermissionEntry,
+  getPermissionRisk,
+} from "@/services/permission-catalog";
 
 type Format = "csv" | "json";
 type Scope = "filtered" | "full";
 
 function rolePermissionState(map: RoleGrantMap | undefined, role: string, key: string) {
-  const set = map?.[role as keyof typeof map];
+  const set = map?.map.get(role);
   if (!set) return "no_access";
   return set.has(key) ? "granted" : "no_access";
 }
@@ -39,22 +44,24 @@ export function ExportConfigDialog({
   const [busy, setBusy] = useState(false);
 
   const rows = useMemo(() => {
-    const catalogEntries: PermissionCatalogEntry[] = Object.values(PERMISSION_CATALOG);
     const includeRole = (r: string) => scope === "full" || activeFilter.role === "all" || activeFilter.role === r;
     const includeModule = (m: string) => scope === "full" || activeFilter.module === "all" || activeFilter.module === m;
     const out: Array<Record<string, string>> = [];
+    const keys = getAllPermissionKeys();
     for (const role of INTERNAL_ROLES) {
       if (!includeRole(role.key)) continue;
-      for (const entry of catalogEntries) {
+      for (const key of keys) {
+        const entry = findPermissionEntry(key);
+        if (!entry) continue;
         if (!includeModule(entry.module)) continue;
         out.push({
           role_key: role.key,
           role_label: ROLE_LABEL[role.key] ?? role.key,
-          permission_key: entry.key,
+          permission_key: key,
           module: entry.moduleLabel ?? entry.module,
-          state: rolePermissionState(roleMap, role.key, entry.key),
+          state: rolePermissionState(roleMap, role.key, key),
           environment,
-          risk: entry.risk ?? "low",
+          risk: getPermissionRisk(key),
           source: "role_permissions",
         });
       }
