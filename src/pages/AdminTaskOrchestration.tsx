@@ -34,7 +34,12 @@ import {
   type AssignmentRulesConfig,
   type BulkAssignRowResult,
 } from "@/services/task-orchestration.service";
-import type { AutoAssignPlanRow } from "@/components/admin/task-orchestration/drawers/AutoAssignPreviewDrawer";
+import type {
+  AutoAssignPlanRow,
+  AgentLoadRow,
+  UnmatchedRow,
+} from "@/components/admin/task-orchestration/drawers/AutoAssignPreviewDrawer";
+import type { RebalanceMove } from "@/services/task-orchestration.service";
 import { useOrchestrationPerms } from "@/hooks/useOrchestrationPerms";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -58,8 +63,17 @@ export default function AdminTaskOrchestration() {
   const [savingRules, setSavingRules] = useState(false);
   const [testingRules, setTestingRules] = useState(false);
   const [mode, setMode] = useState("round_robin");
-  const [autoPreview, setAutoPreview] = useState<{ pending: number; plan: AutoAssignPlanRow[] } | null>(null);
-  const [rebalancePreview, setRebalancePreview] = useState<{ moves: number } | null>(null);
+  const [autoPreview, setAutoPreview] = useState<{
+    pending: number;
+    plan: AutoAssignPlanRow[];
+    agent_loads: AgentLoadRow[];
+    unmatched: UnmatchedRow[];
+    scope: "queue" | "selection";
+  } | null>(null);
+  const [rebalancePreview, setRebalancePreview] = useState<{
+    plan: RebalanceMove[];
+    skipped: Array<{ task_id: string; task_code: string; reason: string }>;
+  } | null>(null);
   const [reassignTarget, setReassignTarget] = useState<LiveTask | null>(null);
   const [bulkResults, setBulkResults] = useState<BulkAssignRowResult[] | null>(null);
 
@@ -179,18 +193,35 @@ export default function AdminTaskOrchestration() {
 
   const handleAutoAssign = async () => {
     try {
-      const res = await runOrchestrationAction<{ pending: number; would_assign: number; plan: AutoAssignPlanRow[] }>({
+      const selection = Array.from(selectedIds);
+      const res = await runOrchestrationAction<{
+        pending: number; would_assign: number; plan: AutoAssignPlanRow[];
+        agent_loads?: AgentLoadRow[]; unmatched?: UnmatchedRow[];
+      }>({
         action: "preview_auto_assign", mode,
+        ...(selection.length ? { task_ids: selection } : {}),
       });
-      setAutoPreview({ pending: res.pending, plan: res.plan ?? [] });
+      setAutoPreview({
+        pending: res.pending,
+        plan: res.plan ?? [],
+        agent_loads: res.agent_loads ?? [],
+        unmatched: res.unmatched ?? [],
+        scope: selection.length ? "selection" : "queue",
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Preview failed");
     }
   };
   const confirmAutoAssign = async (excludeTaskIds: string[]) => {
+    const selectionScope = autoPreview?.scope === "selection";
+    const selection = selectionScope ? Array.from(selectedIds) : null;
     setAutoPreview(null);
     await runAction("auto_assign",
-      () => runOrchestrationAction({ action: "auto_assign", mode, exclude_task_ids: excludeTaskIds }));
+      () => runOrchestrationAction({
+        action: "auto_assign", mode,
+        exclude_task_ids: excludeTaskIds,
+        ...(selection && selection.length ? { task_ids: selection } : {}),
+      }));
   };
   const handleAssignToMe = () => {
     if (!selectedIds.size) return;
@@ -199,15 +230,23 @@ export default function AdminTaskOrchestration() {
   };
   const handleRebalance = async () => {
     try {
-      const res = await runOrchestrationAction<{ moves: number }>({ action: "preview_rebalance" });
-      setRebalancePreview({ moves: res.moves });
+      const res = await runOrchestrationAction<{
+        moves: number;
+        plan: RebalanceMove[];
+        skipped?: Array<{ task_id: string; task_code: string; reason: string }>;
+      }>({ action: "preview_rebalance" });
+      setRebalancePreview({ plan: res.plan ?? [], skipped: res.skipped ?? [] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Preview failed");
     }
   };
-  const confirmRebalance = async () => {
+  const confirmRebalance = async ({ excludeMoveIds, reason }: { excludeMoveIds: string[]; reason: string }) => {
     setRebalancePreview(null);
-    await runAction("rebalance", () => runOrchestrationAction({ action: "rebalance" }));
+    await runAction("rebalance", () => runOrchestrationAction({
+      action: "rebalance",
+      exclude_move_ids: excludeMoveIds,
+      reason,
+    }));
   };
   const handleEscalate = () => setEscalateOpen(true);
   const handleConfirmEscalate = (reason: string) => runAction("escalate", async () => {
@@ -371,8 +410,11 @@ export default function AdminTaskOrchestration() {
         onOpenChange={o => { if (!o) setAutoPreview(null); }}
         pending={autoPreview?.pending ?? 0}
         plan={autoPreview?.plan ?? []}
+        agentLoads={autoPreview?.agent_loads ?? []}
+        unmatched={autoPreview?.unmatched ?? []}
         roster={data?.roster ?? []}
         mode={mode}
+        scope={autoPreview?.scope ?? "queue"}
         onConfirm={confirmAutoAssign}
         submitting={busy === "auto_assign"}
       />
@@ -380,6 +422,8 @@ export default function AdminTaskOrchestration() {
         open={!!rebalancePreview}
         onOpenChange={o => { if (!o) setRebalancePreview(null); }}
         roster={data?.roster ?? []}
+        plan={rebalancePreview?.plan ?? []}
+        skipped={rebalancePreview?.skipped ?? []}
         onConfirm={confirmRebalance}
         submitting={busy === "rebalance"}
       />
