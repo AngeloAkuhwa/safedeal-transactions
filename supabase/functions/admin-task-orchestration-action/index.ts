@@ -13,19 +13,23 @@ const corsHeaders = {
 type Body = {
   action:
     | "assign" | "assign_selected" | "auto_assign" | "assign_to_me"
-    | "rebalance" | "escalate" | "complete" | "save_rules" | "test_rules"
+    | "reassign" | "rebalance" | "escalate" | "complete" | "save_rules" | "test_rules"
     | "add_comment" | "send_for_approval"
     | "preview_auto_assign" | "preview_rebalance"
     | "task_detail";
   task_id?: string;
   task_ids?: string[];
   agent_id?: string;
+  from_agent_id?: string;
   mode?: string;
   reason?: string;
   resolution?: string;
   body_text?: string;
   expected_version?: number;
   rules?: Record<string, unknown>;
+  exclude_task_ids?: string[];
+  exclude_agent_ids?: string[];
+  override_capacity?: boolean;
 };
 
 Deno.serve(async (req) => {
@@ -34,16 +38,17 @@ Deno.serve(async (req) => {
   const body = (await req.json().catch(() => ({}))) as Body;
   const permMap: Record<Body["action"], string> = {
     assign: "task_orchestration.assign",
-    assign_selected: "task_orchestration.assign",
+    assign_selected: "task_orchestration.bulk_assign",
     auto_assign: "task_orchestration.assign",
-    assign_to_me: "task_orchestration.assign",
+    assign_to_me: "task_orchestration.assign_self",
+    reassign: "task_orchestration.reassign",
     rebalance: "task_orchestration.rebalance",
     escalate: "task_orchestration.escalate",
-    complete: "task_orchestration.manage",
-    save_rules: "task_orchestration.manage",
+    complete: "task_orchestration.view",
+    save_rules: "task_orchestration.manage_rules",
     test_rules: "task_orchestration.view",
     add_comment: "task_orchestration.view",
-    send_for_approval: "task_orchestration.manage",
+    send_for_approval: "task_orchestration.view",
     preview_auto_assign: "task_orchestration.view",
     preview_rebalance: "task_orchestration.view",
     task_detail: "task_orchestration.view",
@@ -143,6 +148,14 @@ Deno.serve(async (req) => {
       case "assign_selected": {
         const ids = body.task_ids ?? (body.task_id ? [body.task_id] : []);
         if (!ids.length || !body.agent_id) return respond({ error: "missing_fields" }, 400);
+        // Override capacity requires the override permission and a reason.
+        if (body.override_capacity) {
+          try { await requireAnyPermission(req, ["task_orchestration.override_capacity"], ctx); }
+          catch { return respond({ error: "override_permission_required" }, 403); }
+          if (!body.reason || body.reason.trim().length < 8) {
+            return respond({ error: "override_reason_required" }, 400);
+          }
+        }
         if (ids.length === 1 && typeof body.expected_version === "number") {
           const v = await checkVersion(ids[0], body.expected_version);
           if (!v.ok) return respond({ error: "version_conflict", current: v.current, expected: body.expected_version }, 409);
@@ -152,12 +165,12 @@ Deno.serve(async (req) => {
           admin.from("agent_availability").select("status").eq("user_id", body.agent_id).maybeSingle(),
           admin.from("orchestration_tasks").select("id, required_permissions").in("id", ids),
         ]);
-        if (availRow && availRow.status === "offline") {
+        if (!body.override_capacity && availRow && availRow.status === "offline") {
           return respond({ error: "agent_offline" }, 409);
         }
         const current = capRow?.current_active ?? 0;
         const max = capRow?.max_active_tasks ?? 0;
-        if (max > 0 && current + ids.length > max) {
+        if (!body.override_capacity && max > 0 && current + ids.length > max) {
           return respond({ error: "agent_over_capacity", current, max, requested: ids.length }, 409);
         }
         const requiredSet = new Set<string>();
@@ -166,22 +179,64 @@ Deno.serve(async (req) => {
           const { data: skills } = await admin.from("agent_skills").select("permission_key").eq("user_id", body.agent_id);
           const held = new Set((skills ?? []).map((s: any) => s.permission_key));
           const missing = [...requiredSet].filter((p) => !held.has(p));
-          if (missing.length > 0) {
+          if (!body.override_capacity && missing.length > 0) {
             return respond({ error: "agent_missing_skills", missing }, 409);
           }
         }
+        const results: Array<{ task_id: string; ok: boolean; error?: string }> = [];
         for (const id of ids) {
-          await admin.rpc("assign_task", {
+          const { error: rpcErr } = await admin.rpc("assign_task", {
             _task_id: id, _agent_id: body.agent_id,
             _mode: body.mode ?? "manual", _reason: body.reason ?? null, _actor_id: ctx.userId,
           });
+          results.push({ task_id: id, ok: !rpcErr, error: rpcErr?.message });
         }
+        const succeeded = results.filter(r => r.ok).length;
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_assign",
-          targetType: "system", metadata: { task_ids: ids, agent_id: body.agent_id, mode: body.mode }, mirrorToAuditLogs: true,
+          targetType: "system",
+          metadata: { task_ids: ids, agent_id: body.agent_id, mode: body.mode, override: !!body.override_capacity, reason: body.reason, results },
+          mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
-        return respond({ ok: true, count: ids.length });
+        return respond({ ok: true, count: succeeded, total: ids.length, results });
+      }
+      case "reassign": {
+        if (!body.task_id || !body.agent_id) return respond({ error: "missing_fields" }, 400);
+        const v = await checkVersion(body.task_id, body.expected_version);
+        if (!v.ok) return respond({ error: "version_conflict", current: v.current, expected: body.expected_version }, 409);
+        const { data: task } = await admin.from("orchestration_tasks")
+          .select("id, assigned_agent_id, required_permissions").eq("id", body.task_id).maybeSingle();
+        if (!task) return respond({ error: "task_not_found" }, 404);
+        const from = task.assigned_agent_id as string | null;
+        if (from === body.agent_id) return respond({ error: "same_agent" }, 400);
+        if (!body.override_capacity) {
+          const [{ data: capRow }, { data: availRow }] = await Promise.all([
+            admin.from("agent_capacity").select("current_active, max_active_tasks").eq("user_id", body.agent_id).maybeSingle(),
+            admin.from("agent_availability").select("status").eq("user_id", body.agent_id).maybeSingle(),
+          ]);
+          if (availRow?.status === "offline") return respond({ error: "agent_offline" }, 409);
+          if (capRow && capRow.max_active_tasks > 0 && capRow.current_active >= capRow.max_active_tasks) {
+            return respond({ error: "agent_over_capacity" }, 409);
+          }
+        } else {
+          try { await requireAnyPermission(req, ["task_orchestration.override_capacity"], ctx); }
+          catch { return respond({ error: "override_permission_required" }, 403); }
+          if (!body.reason || body.reason.trim().length < 8) {
+            return respond({ error: "override_reason_required" }, 400);
+          }
+        }
+        const { error: rpcErr } = await admin.rpc("assign_task", {
+          _task_id: body.task_id, _agent_id: body.agent_id,
+          _mode: "reassign", _reason: body.reason ?? "reassigned", _actor_id: ctx.userId,
+        });
+        if (rpcErr) return respond({ error: "reassign_failed", detail: rpcErr.message }, 500);
+        await logAdminAction({
+          actorId: ctx.userId, action: "orchestration_reassign",
+          targetType: "system", metadata: { task_id: body.task_id, from, to: body.agent_id, reason: body.reason, override: !!body.override_capacity },
+          mirrorToAuditLogs: true, ip: meta.ip, userAgent: meta.userAgent,
+        }, admin);
+        return respond({ ok: true, from, to: body.agent_id });
       }
       case "assign_to_me": {
         const ids = body.task_ids ?? (body.task_id ? [body.task_id] : []);
