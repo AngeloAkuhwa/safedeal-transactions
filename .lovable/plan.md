@@ -1,73 +1,86 @@
-## Part A — The Super Admin conflicts in the screenshot
+# Finish-line plan v5 — Environment switcher & SoD resolution
 
-**Short answer:** yes, they should be cleaned up. What you're seeing is not a data bug — it's the intelligence layer telling the truth: Super Admin holds `payouts.create` AND `payouts.approve`, `refunds.create` AND `refunds.approve`, etc. That's a real segregation-of-duties violation *for any normal role*, but Super Admin exists precisely to hold everything. Flagging it every time creates noise that hides the one line that actually matters (`Senior Admin — escrow.update conflicts with escrow.approve`).
-
-Two things wrong today:
-1. `computeConflicts()` runs against every role, including protected ones (Super Admin is marked `protected: true` in the catalog).
-2. The Senior Admin `escrow.update` ↔ `escrow.approve` finding is legitimate and needs a product decision — is that intentional, or should Senior Admin lose one side of the pair?
-
-### A1. Exempt protected roles from SoD flagging, with an explanatory chip
-- Update `computeConflicts` / the Compare panel to skip roles where `isProtectedRole(role) === true` AND add a small inline note in the section: *"Super Admin is exempt from segregation-of-duties checks by design."*
-- Same treatment for Missing Dependencies on protected roles (Super Admin can never be "missing" a dependency).
-- Result: the screenshot's "Super Admin" block disappears; only Senior Admin's one legitimate conflict remains — clearly visible and actionable.
-
-### A2. Add an "Acknowledge" affordance for non-protected roles
-- Some conflicts on non-protected roles are intentional (small teams, controlled scopes). Add a per-conflict "Acknowledge & mute" button that writes to a new `permission_conflict_acknowledgements` table (role, pair, reason, actor, timestamp).
-- Acknowledged conflicts render as a muted grey row with the reason as a tooltip; unacknowledged conflicts stay red.
-- Acknowledgements are auditable and reversible.
-
-### A3. Decide on Senior Admin's `escrow.update` + `escrow.approve`
-- I will not silently change this. In build mode I'll surface it in the plan output and ask which side to remove, or whether to acknowledge it.
-
-### A4. Promote conflict rules from hardcoded to DB
-- Currently `PERMISSION_CONFLICTS` is a hardcoded array in `permission-dependencies.ts`. Move it to a new `permission_conflicts (a_key, b_key, severity, rationale)` table, seed the existing 4 pairs, hydrate at app start (mirroring what we just did for `permission_dependencies`), keep the hardcoded array as a fallback if the table is unreachable.
-- Lets ops add/remove SoD rules without a code deploy.
+Two tracks. Both land the same turn.
 
 ---
 
-## Part B — Remaining Role Matrix finish-line gaps
+## Track 1 — B3 Environment switcher (Production / Staging / Development)
 
-### B1. In-app unsaved staged changes prompt
-Today only `beforeunload` (tab close / hard reload) guards staged edits. Route changes inside the app do NOT prompt.
-- Wire a React Router `useBlocker` (v6.4+) inside `RoleMatrix.tsx` that intercepts navigation when `stagedChanges.size > 0`.
-- Show a small confirmation dialog: *"You have N staged changes across M roles. Leave without submitting?"* with Discard / Stay actions.
-- Also block the tab switcher between Role Matrix / Feature Registry when staged.
+**Goal.** Let admins scope the Feature Registry & Permission Matrix to an environment so Staging/Dev experiments don't pollute Production truth. Production stays the default and the only environment writable without a feature flag.
 
-### B2. Virtualization for the All Roles matrix
-Not needed at today's ~90 permissions, but worth landing before the catalog grows.
-- Add `@tanstack/react-virtual` (already in the ecosystem) to `AllRolesMatrix.tsx`.
-- Virtualize permission rows only; module header rows stay outside the virtualizer so sticky headers and per-module bulk menus keep working.
-- Turn virtualization on unconditionally (removing the earlier "threshold" idea — a single code path is simpler than branching at 120 rows).
-- Preserve sticky-first-column behaviour by using absolute-positioned rows inside the virtualizer with the first cell also `sticky left-0`.
+### Migration
+- Add `environment TEXT NOT NULL DEFAULT 'production'` to:
+  - `role_permissions`
+  - `user_permission_overrides`
+  - `permission_templates`
+  - `permission_change_sets`
+  - `permission_conflict_acknowledgements`
+- Add a CHECK enforcing `environment IN ('production','staging','development')`.
+- Recreate the relevant UNIQUE constraints to include `environment` (e.g. `role_permissions (role_key, permission_key, environment)`), so the same permission can be granted per env independently.
+- Backfill: every existing row = `'production'` (default already covers this).
+- Extend `apply_permission_change_set` and `reject_permission_change_set` RPCs to accept `p_environment` and scope every read/write to it.
+- No GRANT changes needed (columns only).
 
-### B3. Environment switcher
-Still deferred. Explicit decision needed:
-- **Option 1 (recommended):** ship the migration this pass. Add `environment` column (`prod` / `staging` / `dev`, default `prod`) to `role_permissions`, `user_permission_overrides`, `permission_change_sets`. Add a segmented control in the toolbar. Every read/write filters by the active environment. URL param `rm_env=`.
-- **Option 2:** keep it hidden. Note it in a follow-up.
+### Repository
+- `permission-repository.ts`: every list/mutation function gains an `environment` argument, defaulting to `'production'`. All Supabase queries add `.eq('environment', env)`.
+- `permission-workspace.service.ts` `buildRoleGrantMap` takes `environment` and only reads matching rows.
 
----
+### UI
+- New `EnvironmentSwitcher.tsx` — segmented control (Production / Staging / Development) rendered in the matrix hero band, right of the KPIs.
+- Sync selection to URL as `?env=staging` via `useRoleMatrixFilters` (already URL-synced).
+- Persist last selection to `localStorage` as fallback.
+- Non-production envs render a subtle amber ribbon strip above the tabs: "Viewing Staging environment — changes here do not affect Production."
+- All matrix tables, staged changes footer, Copy preview, Acknowledge dialog receive the current env and pass it into repo calls.
+- Change-set submissions include the env; the review queue shows an env pill next to each request.
 
-## Technical details (for the record)
-
-**Files to edit**
-- `src/services/permission-dependencies.ts` — add `hydratePermissionConflicts`, `listPermissionConflicts`; skip protected roles in `computeConflicts` and `computeMissingDependencies`
-- `src/services/permission-repository.ts` — add `listPermissionConflicts()` and `acknowledgeConflict()`
-- `src/components/admin/permission-matrix/CompareRolesMatrix.tsx` — render the "Super Admin is exempt" chip; add Acknowledge button + acknowledged-state row styling
-- `src/components/admin/permission-matrix/RoleMatrix.tsx` — `useBlocker` for staged changes; guard tab switcher
-- `src/components/admin/permission-matrix/AllRolesMatrix.tsx` — wire `@tanstack/react-virtual`
-
-**Files to add**
-- (Optional) `src/components/admin/permission-matrix/AcknowledgeConflictDialog.tsx`
-
-**Migrations**
-1. `permission_conflicts (id, a_key, b_key, severity text, rationale text, created_at)` + grants + RLS + seed 4 existing pairs
-2. `permission_conflict_acknowledgements (id, role_key, a_key, b_key, reason, actor_id, created_at, expires_at nullable)` + grants + RLS + trigger to write an `admin_actions` audit row
-3. (Only if you approve B3-Option-1) `environment` column on `role_permissions`, `user_permission_overrides`, `permission_change_sets` + backfill `'prod'` for existing rows
+### Guardrails
+- Staged edits are per-env; switching envs with pending staged changes triggers the existing unsaved-guard confirm ("Discard N staged changes and switch to Staging?").
+- Read-only users see the switcher (view-only across envs).
+- Acknowledgements are per-env — a mute in Staging never suppresses a Production finding.
 
 ---
 
-## Decisions I need before building
+## Track 2 — Resolve Senior Admin escrow SoD conflict
 
-1. **Senior Admin `escrow.update` + `escrow.approve`** — remove one side (which?), acknowledge with a reason, or leave flagged?
-2. **Environment switcher** — ship the migration now (Option 1) or keep hidden (Option 2)?
-3. **Acknowledgements** — do you want expiring acknowledgements (auto-re-flag after N days) or permanent-until-reversed?
+**Decision (approved):** Remove `escrow.approve` from `senior_admin`. Escrow approval stays with Escrow Manager and Super Admin.
+
+### Steps
+- Data migration in `role_permissions`: `DELETE WHERE role_key='senior_admin' AND permission_key='escrow.approve' AND environment='production'`.
+- Log via `admin_actions` (`role_changed`, actor = system migration, target = `senior_admin`, before/after diff) so the change appears in Audit Logs.
+- After Track 1 lands, apply the same delete for `staging` and `development` rows if they exist (they will, from the backfill).
+- Compare Roles will now show 0 conflicts across all default roles.
+
+### Verification
+1. Hard-reload `/admin/permission-matrix`, open Compare Roles, select `senior_admin` + `super_admin` — no conflict rows.
+2. Audit Logs shows a `role_changed` entry with `{ removed: ['escrow.approve'] }` diff.
+3. All Roles matrix: Senior Admin column shows `escrow.update` still granted, `escrow.approve` cleared.
+
+---
+
+## Track 3 — B2 Virtualization
+
+No work this turn. Revisit when the permission catalog exceeds ~250 entries or the All Roles matrix exceeds ~40 rows per module. Documented as a follow-up in `permission-workspace.service.ts` header comment.
+
+---
+
+## Technical details
+
+Files touched:
+- `supabase/migrations/*` — one migration for env columns + unique reshapes, one data migration for the Senior Admin cleanup.
+- `src/services/permission-repository.ts`, `src/services/permission-workspace.service.ts` — env parameter threading.
+- `src/hooks/useRoleMatrixFilters.ts` — add `env: 'production' | 'staging' | 'development'` to URL state (default omitted for prod).
+- `src/pages/AdminPermissionMatrix.tsx` — hydrate current env, pass down.
+- `src/components/admin/permission-matrix/EnvironmentSwitcher.tsx` — new.
+- `src/components/admin/permission-matrix/RoleMatrix.tsx`, `AllRolesMatrix.tsx`, `CompareRolesMatrix.tsx`, `StagedChangesFooter.tsx`, `CopyPermissionsPreview.tsx`, `AcknowledgeConflictDialog.tsx` — env-aware.
+- `AdminAccessApprovals.tsx` — env pill on each queued change set.
+
+RPC updates:
+- `apply_permission_change_set(p_change_set_id uuid, p_actor uuid, p_environment text)`
+- `reject_permission_change_set(p_change_set_id uuid, p_actor uuid, p_reason text, p_environment text)`
+
+Order of operations (single turn):
+1. Migration for env columns + Senior Admin cleanup (one call, both statements).
+2. Wait for approval + Supabase types regeneration.
+3. Repository/service updates.
+4. UI: switcher, ribbon, URL sync, downstream env plumbing.
+5. Typecheck.
