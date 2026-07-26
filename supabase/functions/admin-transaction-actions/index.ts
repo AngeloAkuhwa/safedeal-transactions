@@ -502,6 +502,26 @@ Deno.serve(async (req) => {
           return json({ error: "already_resolved" }, 409);
         }
 
+        // Sync the linked orchestration task (if any) with the dispute
+        // resolution so the Task Orchestration board stays in step.
+        try {
+          const { data: linkedTask } = await admin
+            .from("orchestration_tasks")
+            .select("id, status")
+            .eq("dispute_id", disputeRow.id)
+            .not("status", "in", "(resolved,closed,cancelled)")
+            .maybeSingle();
+          if (linkedTask?.id) {
+            await admin.rpc("complete_orchestration_task", {
+              _task_id: linkedTask.id,
+              _resolution: `dispute_${outcome}`,
+              _actor_id: userId,
+            });
+          }
+        } catch (e) {
+          console.warn("[resolve_dispute] orchestration task sync skipped:", e);
+        }
+
         if (internalNote.length > 0) {
           await admin.from("admin_transaction_notes").insert({
             transaction_id: txId,
