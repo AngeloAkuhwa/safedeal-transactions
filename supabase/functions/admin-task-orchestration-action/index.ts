@@ -71,6 +71,31 @@ Deno.serve(async (req) => {
       case "assign_selected": {
         const ids = body.task_ids ?? (body.task_id ? [body.task_id] : []);
         if (!ids.length || !body.agent_id) return respond({ error: "missing_fields" }, 400);
+        // Enforce capacity + required-permission (skill) for the target agent.
+        const [{ data: capRow }, { data: availRow }, { data: taskRows }] = await Promise.all([
+          admin.from("agent_capacity").select("current_active, max_active_tasks").eq("user_id", body.agent_id).maybeSingle(),
+          admin.from("agent_availability").select("status").eq("user_id", body.agent_id).maybeSingle(),
+          admin.from("orchestration_tasks").select("id, required_permissions").in("id", ids),
+        ]);
+        if (availRow && availRow.status === "offline") {
+          return respond({ error: "agent_offline" }, 409);
+        }
+        const current = capRow?.current_active ?? 0;
+        const max = capRow?.max_active_tasks ?? 0;
+        if (max > 0 && current + ids.length > max) {
+          return respond({ error: "agent_over_capacity", current, max, requested: ids.length }, 409);
+        }
+        // Skill check: agent must hold every required permission across selected tasks.
+        const requiredSet = new Set<string>();
+        (taskRows ?? []).forEach((t: any) => (t.required_permissions ?? []).forEach((p: string) => requiredSet.add(p)));
+        if (requiredSet.size > 0) {
+          const { data: skills } = await admin.from("agent_skills").select("permission_key").eq("user_id", body.agent_id);
+          const held = new Set((skills ?? []).map((s: any) => s.permission_key));
+          const missing = [...requiredSet].filter((p) => !held.has(p));
+          if (missing.length > 0) {
+            return respond({ error: "agent_missing_skills", missing }, 409);
+          }
+        }
         for (const id of ids) {
           await admin.rpc("assign_task", {
             _task_id: id, _agent_id: body.agent_id,
