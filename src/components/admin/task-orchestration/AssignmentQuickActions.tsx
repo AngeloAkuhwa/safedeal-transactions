@@ -1,0 +1,79 @@
+import { Bolt, UserCheck, RotateCw, UserPlus, ArrowLeftRight, ArrowUpRightFromSquare, Download, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { TONE } from "./helpers";
+
+interface Action {
+  id: string;
+  icon: any;
+  label: string;
+  desc: string;
+  onClick: () => void;
+  primary?: boolean;
+  tone?: "primary" | "warning" | "muted";
+  disabled?: boolean;
+}
+
+export function AssignmentQuickActions({
+  onAssignSelected, onAutoAssign, onAssignToMe, onRebalance, onEscalate, onBulkExport,
+  isSenior, selectedCount, busy,
+}: {
+  onAssignSelected: () => void;
+  onAutoAssign: () => void;
+  onAssignToMe: () => void;
+  onRebalance: () => void;
+  onEscalate: () => void;
+  onBulkExport: () => void;
+  isSenior: boolean;
+  selectedCount: number;
+  busy: string | null;
+}) {
+  const gated = !isSenior;
+  const actions: Action[] = [
+    { id: "assign_selected", icon: UserCheck, label: `Assign Selected${selectedCount ? ` (${selectedCount})` : ""}`, desc: "Manually assign checked tasks to chosen agent", onClick: onAssignSelected, primary: true, disabled: gated || selectedCount === 0 },
+    { id: "auto_assign", icon: RotateCw, label: "Auto Assign", desc: "Distribute using active assignment mode", onClick: onAutoAssign, disabled: gated },
+    { id: "assign_to_me", icon: UserPlus, label: "Assign To Me", desc: "Take ownership of selected tasks", onClick: onAssignToMe, disabled: gated || selectedCount === 0 },
+    { id: "rebalance", icon: ArrowLeftRight, label: "Rebalance", desc: "Redistribute load across all agents", onClick: onRebalance, disabled: gated },
+    { id: "escalate", icon: ArrowUpRightFromSquare, label: "Escalate", desc: "Move to senior agent pool", onClick: onEscalate, tone: "warning", disabled: gated || selectedCount === 0 },
+    { id: "bulk_export", icon: Download, label: "Bulk Export", desc: "Export assignment data & logs", onClick: onBulkExport, disabled: gated },
+  ];
+  return (
+    <div className="rounded-xl border border-border/60 bg-card/40 p-4 lg:col-span-2">
+      <div className="mb-4 flex items-center gap-2">
+        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${TONE.success}`}>
+          <Bolt className="h-4 w-4" />
+        </div>
+        <div>
+          <div className="text-sm font-semibold text-foreground">Quick Actions</div>
+          <div className="text-xs text-muted-foreground">Execute assignment operations</div>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {actions.map(a => (
+          <button
+            key={a.id}
+            type="button"
+            onClick={a.onClick}
+            disabled={a.disabled}
+            className={cn(
+              "group flex flex-col items-start gap-1 rounded-xl border px-4 py-3 text-left text-sm font-medium backdrop-blur-sm transition",
+              a.primary
+                ? "border-primary/40 bg-primary/15 text-primary-foreground hover:bg-primary/25"
+                : a.tone === "warning"
+                ? "border-amber-500/30 bg-amber-500/10 text-amber-100 hover:bg-amber-500/15"
+                : "border-border/60 bg-background/60 text-foreground hover:border-primary/40 hover:bg-card/80",
+              a.disabled && "cursor-not-allowed opacity-50 hover:bg-inherit",
+            )}
+          >
+            <div className="flex items-center gap-2">
+              {busy === a.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <a.icon className="h-4 w-4" />}
+              <span>{a.label}</span>
+            </div>
+            <span className={cn("text-[11px] font-normal", a.primary ? "text-primary-foreground/80" : "text-muted-foreground")}>
+              {a.desc}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
