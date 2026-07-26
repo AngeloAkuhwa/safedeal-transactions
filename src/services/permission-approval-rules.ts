@@ -14,6 +14,8 @@
  *  9. suspending or deprecating a high/critical permission
  */
 import { getPermissionRisk, isPrivilegedPermission } from "./permission-catalog";
+import type { InternalRoleKey } from "./permission-catalog";
+import { INTERNAL_ROLES } from "./permission-catalog";
 
 export type ChangeState =
   | "unchanged"
