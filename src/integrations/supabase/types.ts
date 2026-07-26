@@ -5563,6 +5563,28 @@ export type Database = {
           total_users: number
         }[]
       }
+      apply_permission_change_set: {
+        Args: { _id: string; _reason?: string }
+        Returns: {
+          after: Json
+          applied_at: string | null
+          applied_by: string | null
+          before: Json
+          created_at: string
+          id: string
+          reason: string | null
+          requested_by: string | null
+          status: string
+          target_key: string
+          target_scope: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "permission_change_sets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       check_admin_rate_limit: {
         Args: { _action_key: string; _admin_id: string; _max_per_hour: number }
         Returns: {
@@ -5686,6 +5708,28 @@ export type Database = {
         }[]
       }
       refresh_admin_flagged_users_mv: { Args: never; Returns: undefined }
+      reject_permission_change_set: {
+        Args: { _id: string; _reason?: string }
+        Returns: {
+          after: Json
+          applied_at: string | null
+          applied_by: string | null
+          before: Json
+          created_at: string
+          id: string
+          reason: string | null
+          requested_by: string | null
+          status: string
+          target_key: string
+          target_scope: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "permission_change_sets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       release_expired_awaiting_payment: {
         Args: { _cutoff: string }
         Returns: {
@@ -5736,6 +5780,19 @@ export type Database = {
       reverse_payout_atomic: {
         Args: { p_amount: number; p_payout_id: string; p_reason: string }
         Returns: Json
+      }
+      set_permission_template_items: {
+        Args: { _keys: string[]; _template_id: string }
+        Returns: {
+          permission_key: string
+          template_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "permission_template_items"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
