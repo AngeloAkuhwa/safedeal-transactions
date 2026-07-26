@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { enqueueOrchestrationTask } from "../_shared/orchestration.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -499,6 +500,20 @@ async function handleSubmitResponse(
       new_status: "under_review",
       changed_by_user_id: userId,
       reason: "Seller submitted initial response",
+    });
+
+    // Orchestration: enqueue a review task for admins/agents.
+    await enqueueOrchestrationTask(adminClient, {
+      type: "dispute_response_review",
+      title: `Review seller response for dispute ${disputeId.slice(0, 8)}`,
+      description: "Seller submitted their initial response — review evidence and progress the case.",
+      priority: "high",
+      queue: "disputes",
+      disputeId,
+      transactionId: dispute.transaction_id as string,
+      sellerId: userId,
+      requiredPermissions: ["disputes.view", "disputes.resolve"],
+      sourceEventKey: `dispute_response_first:${disputeId}`,
     });
   }
 
