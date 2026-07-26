@@ -167,6 +167,17 @@ export interface SubmitChangeSetInput {
   autoApply?: boolean;
 }
 
+export interface ChangeSetFilter {
+  env?: PermissionEnvironment;
+  states?: Array<ChangeSetRow["status"]>;
+  scope?: ChangeSetRow["target_scope"];
+  requestedBy?: string;
+  since?: string;
+  until?: string;
+  limit?: number;
+  targetKey?: string;
+}
+
 export interface CreateTemplateInput {
   name: string;
   description?: string | null;
