@@ -114,6 +114,10 @@ export interface PermissionRepository {
   listApprovals(): Promise<ApprovalRepoRow[]>;
   listHistory(limit: number, sinceHours?: number, actionTypes?: string[]): Promise<AdminActionHistoryRow[]>;
   listPermissionDependencies(): Promise<PermissionDependencyRow[]>;
+  listPermissionConflicts(): Promise<PermissionConflictRow[]>;
+  listConflictAcknowledgements(): Promise<ConflictAcknowledgementRow[]>;
+  acknowledgeConflict(input: AcknowledgeConflictInput): Promise<void>;
+  revokeConflictAcknowledgement(id: string): Promise<void>;
   submitChangeSet(input: SubmitChangeSetInput): Promise<ChangeSetRow>;
   approveChangeSet(id: string, reason?: string | null): Promise<ChangeSetRow>;
   rejectChangeSet(id: string, reason?: string | null): Promise<ChangeSetRow>;
