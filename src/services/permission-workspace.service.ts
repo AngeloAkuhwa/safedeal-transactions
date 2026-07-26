@@ -725,3 +725,247 @@ export const HISTORY_ACTION_LABEL: Record<string, string> = {
   role_change_approved: "Role change approved",
   role_change_rejected: "Role change rejected",
 };
+
+// ---------------------------------------------------------------------------
+// Change-set derived items (Pending Approvals + Change History tabs)
+// Reads from `permission_change_sets` — the same table `ReviewChangesDrawer`
+// writes into — so staged submissions surface in the queue immediately.
+// ---------------------------------------------------------------------------
+
+const RISK_ORDER: PermissionRiskLevel[] = ["low", "medium", "high", "critical"];
+
+export interface PermissionApprovalItem {
+  id: string;
+  requested_by: string | null;
+  requested_by_name: string | null;
+  requested_at: string;
+  target_scope: string;
+  target_key: string;
+  target_label: string;
+  added_keys: string[];
+  removed_keys: string[];
+  before_keys: string[];
+  after_keys: string[];
+  reason: string | null;
+  status: string;
+  requires_approval: boolean;
+  environment: PermissionEnvironment;
+  risk: PermissionRiskLevel;
+  required_approver: string | null;
+  review_comments: any[];
+}
+
+export interface PermissionApprovalFilter {
+  env?: PermissionEnvironment;
+  scope?: string;
+  risk?: PermissionRiskLevel | "any";
+  status?: string;
+  requestedBy?: string;
+  since?: string;
+  until?: string;
+  search?: string;
+}
+
+export interface PermissionHistoryItem {
+  id: string;
+  when: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: string;
+  target_scope: string;
+  target_key: string;
+  target_label: string;
+  previous_summary: string;
+  new_summary: string;
+  added_keys: string[];
+  removed_keys: string[];
+  before_keys: string[];
+  after_keys: string[];
+  reason: string | null;
+  approval_ref: string;
+  result: string;
+  environment: PermissionEnvironment;
+  audit_event_ref: string | null;
+}
+
+export interface PermissionHistoryFilter {
+  env?: PermissionEnvironment;
+  scope?: string;
+  actorId?: string;
+  since?: string;
+  until?: string;
+  result?: string;
+  search?: string;
+}
+
+function scopeLabel(scope: string, key: string): string {
+  if (scope === "role") return ROLE_LABEL[key as InternalRoleKey] ?? key;
+  return key;
+}
+
+function maxRiskLevel(keys: string[]): PermissionRiskLevel {
+  let m: PermissionRiskLevel = "low";
+  for (const k of keys) {
+    const r = getPermissionRisk(k);
+    if (RISK_ORDER.indexOf(r) > RISK_ORDER.indexOf(m)) m = r;
+  }
+  return m;
+}
+
+function diffKeys(before: any, after: any) {
+  const b = new Set(normaliseKeys(before));
+  const a = new Set(normaliseKeys(after));
+  const added: string[] = [];
+  const removed: string[] = [];
+  for (const k of a) if (!b.has(k)) added.push(k);
+  for (const k of b) if (!a.has(k)) removed.push(k);
+  return { added, removed, before: [...b], after: [...a] };
+}
+
+async function hydrateInternalUserNames(ids: (string | null)[]): Promise<Map<string, string>> {
+  const clean = Array.from(new Set(ids.filter((x): x is string => !!x)));
+  if (!clean.length) return new Map();
+  const { data } = await supabase.from("internal_users").select("id,full_name").in("id", clean);
+  return new Map((data ?? []).map((u: any) => [u.id, u.full_name ?? "—"]));
+}
+
+export async function fetchPermissionApprovalItems(
+  filter: PermissionApprovalFilter = {},
+): Promise<PermissionApprovalItem[]> {
+  const env = filter.env ?? DEFAULT_ENVIRONMENT;
+  const rows = await permissionRepo.listAllChangeSets({
+    env,
+    states: filter.status
+      ? [filter.status as any]
+      : (["pending_approval", "requested_changes", "approved"] as any),
+    scope: filter.scope as any,
+    requestedBy: filter.requestedBy,
+    since: filter.since,
+    until: filter.until,
+    limit: 300,
+  });
+  const names = await hydrateInternalUserNames(rows.map((r) => r.requested_by));
+  const items = rows.map((r): PermissionApprovalItem => {
+    const d = diffKeys(r.before, r.after);
+    const risk = maxRiskLevel([...d.added, ...d.removed]);
+    const evalRes = evaluateApproval({
+      targetScope: r.target_scope,
+      targetKey: r.target_key,
+      addedKeys: d.added,
+      removedKeys: d.removed,
+    });
+    return {
+      id: r.id,
+      requested_by: r.requested_by,
+      requested_by_name: r.requested_by ? (names.get(r.requested_by) ?? "Unknown user") : null,
+      requested_at: r.submitted_at ?? r.created_at,
+      target_scope: r.target_scope,
+      target_key: r.target_key,
+      target_label: scopeLabel(r.target_scope, r.target_key),
+      added_keys: d.added,
+      removed_keys: d.removed,
+      before_keys: d.before,
+      after_keys: d.after,
+      reason: r.reason ?? null,
+      status: r.status,
+      requires_approval: !!r.requires_approval,
+      environment: (r.environment ?? env) as PermissionEnvironment,
+      risk,
+      required_approver: evalRes.hits[0]?.message ?? (r.requires_approval ? "Approval required" : null),
+      review_comments: Array.isArray(r.review_comments) ? (r.review_comments as any[]) : [],
+    };
+  });
+  const filtered = filter.risk && filter.risk !== "any" ? items.filter((i) => i.risk === filter.risk) : items;
+  if (!filter.search) return filtered;
+  const q = filter.search.toLowerCase();
+  return filtered.filter((i) =>
+    i.target_label.toLowerCase().includes(q) ||
+    i.target_key.toLowerCase().includes(q) ||
+    (i.requested_by_name ?? "").toLowerCase().includes(q) ||
+    (i.reason ?? "").toLowerCase().includes(q) ||
+    i.id.toLowerCase().includes(q),
+  );
+}
+
+export async function fetchPermissionHistoryItems(
+  filter: PermissionHistoryFilter = {},
+): Promise<PermissionHistoryItem[]> {
+  const env = filter.env ?? DEFAULT_ENVIRONMENT;
+  const rows = await permissionRepo.listAllChangeSets({
+    env,
+    states: filter.result
+      ? [filter.result as any]
+      : (["applied", "rejected", "cancelled", "failed"] as any),
+    scope: filter.scope as any,
+    since: filter.since,
+    until: filter.until,
+    limit: 300,
+  });
+  const names = await hydrateInternalUserNames(rows.map((r) => r.applied_by ?? r.requested_by));
+  const items = rows.map((r): PermissionHistoryItem => {
+    const d = diffKeys(r.before, r.after);
+    const actorId = r.applied_by ?? r.requested_by ?? null;
+    const action =
+      r.status === "applied" ? "Applied change" :
+      r.status === "rejected" ? "Rejected" :
+      r.status === "cancelled" ? "Cancelled" :
+      r.status === "failed" ? "Failed" : r.status;
+    return {
+      id: r.id,
+      when: r.applied_at ?? r.created_at,
+      actor_id: actorId,
+      actor_name: actorId ? (names.get(actorId) ?? "Unknown user") : null,
+      action,
+      target_scope: r.target_scope,
+      target_key: r.target_key,
+      target_label: scopeLabel(r.target_scope, r.target_key),
+      previous_summary: `${d.before.length} keys`,
+      new_summary: `${d.after.length} keys`,
+      added_keys: d.added,
+      removed_keys: d.removed,
+      before_keys: d.before,
+      after_keys: d.after,
+      reason: r.reason ?? null,
+      approval_ref: r.id,
+      result: r.status,
+      environment: (r.environment ?? env) as PermissionEnvironment,
+      audit_event_ref: null,
+    };
+  });
+  if (filter.actorId) {
+    return items.filter((i) => i.actor_id === filter.actorId);
+  }
+  if (!filter.search) return items;
+  const q = filter.search.toLowerCase();
+  return items.filter((i) =>
+    i.target_label.toLowerCase().includes(q) ||
+    i.target_key.toLowerCase().includes(q) ||
+    (i.actor_name ?? "").toLowerCase().includes(q) ||
+    (i.reason ?? "").toLowerCase().includes(q) ||
+    i.id.toLowerCase().includes(q),
+  );
+}
+
+/**
+ * Map of `${scope}:${targetKey}:${permissionKey}` -> latest open change-set
+ * status for the given environment. Used by cell-level markers to show a
+ * pending/applied/rejected pill in the matrix without polling per cell.
+ */
+export async function fetchOpenChangeSetsByCell(
+  env: PermissionEnvironment = DEFAULT_ENVIRONMENT,
+): Promise<Map<string, string>> {
+  const rows = await permissionRepo.listAllChangeSets({
+    env,
+    states: ["pending_approval", "requested_changes", "approved", "failed"] as any,
+    limit: 300,
+  });
+  const out = new Map<string, string>();
+  for (const r of rows) {
+    const d = diffKeys(r.before, r.after);
+    for (const k of [...d.added, ...d.removed]) {
+      const cell = `${r.target_scope}:${r.target_key}:${k}`;
+      if (!out.has(cell)) out.set(cell, r.status);
+    }
+  }
+  return out;
+}
