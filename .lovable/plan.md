@@ -1,78 +1,57 @@
-## Feature Registry / Permission Matrix — finish-line plan (all 4 tabs)
+## Remaining gaps vs the finish-line plan
 
-Rewrites the earlier plan to cover Role Detail, Feature Registry, Permission Templates and User Overrides in one pass.
+Audit of what's actually in the repo against the 18-item plan. Landed pieces are called out so we don't re-do them; everything else is a real gap.
 
----
+### 1. Role Detail tab
 
-### 1. Role Detail tab — remaining gaps
+- **Landed**: KPI header, 7 accordions, "Clone as template" and "Reset to default" buttons (with protected-role tooltip), inline Change History section, `?role=…` deep link to Access Control.
+- **Gap 1a — No inline staging.** `RoleDetailPanel` still renders the Granted / Denied / Privileged lists as static chips. Nothing pushes into `useStagedPermissionChanges`, so `role-guardrails.checkRoleStageAllowed` never runs from this tab and the `StagedChangesFooter` stays empty when admins work from here.
+- **Gap 1b — Clone button is a stub.** `onCloneAsTemplate` is an optional prop that the page doesn't pass an implementation for. There is no `CloneRoleAsTemplateDialog` component; nothing calls `permissionRepo.createTemplate` from Role Detail; no post-save tab switch to Templates.
+- **Gap 1c — Reset to Default is a stub.** No diff against seeded catalog defaults, no confirm drawer, no change-set staging. Button currently does nothing beyond the disabled/tooltip state.
+- **Gap 1d — "View Change History" top action.** Only the inline accordion exists. No top-action button that scrolls to it or opens `?tab=change-history&role=<key>`.
 
-1. **Inline staging from Role Detail.** Granted / Denied / Privileged lists become toggleable when `canManage`. Every change routes through `useStagedPermissionChanges` + `role-guardrails.checkRoleStageAllowed`, so guardrail messages (Super Admin mandatory keys, Auditor read-only, Finance SoD, ops-agent platform lock) show inline and the shared `StagedChangesFooter` picks them up.
-2. **Clone as Template action.** Opens a `CloneRoleAsTemplateDialog` prefilled with the role's granted keys → writes via `permissionRepo.createTemplate` and switches to the Templates tab.
-3. **Reset to Default action.** Diffs current role bag against seeded defaults from `permission-catalog`; opens a confirm drawer that stages the diff as a change set. Disabled for protected roles.
-4. **View Change History button.** Top-action button scrolls to the inline history section and also links to `?tab=change-history&role=<key>`.
-5. **View Assigned Users route.** Keep `/admin/access-control?role=…` (canonical alias in this project); no route rename.
+### 2. Feature Registry tab
 
-### 2. Feature Registry tab — remaining gaps
+- **Landed**: Dependencies + Conflicts multi-selects in `RegisterPermissionDialog`, key locked with `<Lock/>` icon in edit mode, Suspend / Reactivate / Deprecate buttons in `FeatureDetailsDrawer`, hard delete disabled, env filter via global `EnvironmentSwitcher`.
+- **No open gaps.** This tab is done per the plan.
 
-6. **Register / Edit form gains Dependencies + Conflicting permissions.** Two multi-select fields backed by the current catalog; on submit call new `permissionRepo.setPermissionDependencies` and `setPermissionConflicts`.
-7. **Permission key is immutable after creation.** In edit mode the key input is disabled with a lock icon + tooltip.
-8. **Deprecate / Suspend / Reactivate actions.** Added to `FeatureDetailsDrawer` header (Super Admin only), wired to `updatePermission({ status })`. Hard delete stays disabled.
-9. **Environment filter.** Already satisfied globally via `EnvironmentSwitcher` — call it out, don't duplicate.
+### 3. Permission Templates tab
 
-### 3. Permission Templates tab — new work
+- **Landed**: 10 system templates seeded (`is_system=true`, `status='active'`), archive/system-protection trigger, filters (search / scope / status), rich table with Modules chips / # perms / # privileged / status pills, per-row actions (View, Apply, Clone, Export, Archive), `ApplyTemplateDialog` with add/remove/privileged/user-impact/approval-required and staging via change set, `CloneTemplateDialog`, in-drawer view grouped by module.
+- **Gap 3a — "Roles using it" column missing.** Table has no count of roles whose grant set matches (or is a superset of) the template. Requires a small aggregation over `role_permissions` per env.
+- **Gap 3b — Compare Template action missing.** Plan calls for a "Compare Template" row action that reuses `CompareRolesMatrix` layout to diff template↔template or template↔role. No `TemplateCompareView` component exists.
+- **Gap 3c — Dedicated `TemplateDetailsDrawer`.** Current viewer is an inline `ViewTemplateSheet` inside `PermissionTemplateTable.tsx`. Plan calls for a standalone `TemplateDetailsDrawer` with full metadata (source role, created/updated by, is_system, status history) plus the grouped permission list. Cosmetic-but-listed.
+- **Gap 3d — Dependencies-affected line in Apply dialog.** Diff panel shows add/remove/privileged/users/approval, but does not surface which `permission_dependencies` are pulled in by the additions. Plan #13 lists this explicitly.
 
-10. **Seed the 10 system templates** via migration: System Super Administrator, Senior Operations Administration, Dispute Management, Dispute Agent, Customer Support, Identity Verification, Finance Operations, Finance Approval, Compliance Review, Read-Only Audit. Each row: `is_system=true`, `status='active'`, description, and a permission_key set derived from the role catalog.
-11. **Table columns.** Name, Description, Included modules (chips), # permissions, # privileged, Roles using it, Last updated, Status pill, Actions menu. Add filters: status (active / archived), scope (system / custom), search.
-12. **Actions menu per row.**
-    - **View Template** → `TemplateDetailsDrawer` with full metadata + permission list grouped by module.
-    - **Compare Template** → side-by-side vs another template or a role (reuses `CompareRolesMatrix` layout).
-    - **Clone Template** → creates an editable custom copy (`is_system=false`).
-    - **Apply Template to Role** → opens `ApplyTemplateDialog` (see #13).
-    - **Export Template** → downloads JSON `{name, description, permissions[], modules[]}`.
-    - **Archive Custom Template** → sets `status='archived'`. System templates cannot be deleted or archived; buttons disabled with tooltip.
-13. **Apply Template to Role dialog.** Shows: permissions being added, permissions being removed, privileged permissions introduced (highlighted), dependencies affected (from `permission_dependencies`), number of users affected (via `fetchRoleUserCounts`), and whether approval is required (any privileged add → true). Submitting **stages** a change set via `apply_permission_change_set` in draft mode; never writes production directly. Guardrails run per delta.
+### 4. User Overrides tab
 
-### 4. User Overrides tab — new work
+- **Landed**: Env-aware table with expiry column + tone, Extend and Revoke dialogs (guardrail-checked via `checkOverrideAllowed`), Source badge, "Open" deep link to Access Control, expired-vs-soon derivation client-side.
+- **Gap 4a — Create Override drawer missing.** No `CreateOverrideDrawer`, no `OverrideImpactPreview`. Admins cannot create an override from this tab today; the only creation path is the Access Control user drawer.
+- **Gap 4b — Column set is thin.** Missing: Employee ID, Override Type pill (Grant / Deny / Temporary — Temporary derived from `expires_at != null` + privileged), Effective Date column, Status pill (Active / Pending / Expired / Revoked), Requested By, Approved By. Only User / Role / Perm / Mode / Source / Expires / Reason are present.
+- **Gap 4c — Filters missing.** No filters for type, status, module, role, or "expiring soon". Table renders the raw list.
+- **Gap 4d — Review Override drawer missing.** No dedicated `ReviewOverrideDrawer` for pending items with approve / reject and full audit fields. Pending overrides currently only flow through the generic `ReviewChangesDrawer` on the Approvals tab.
+- **Gap 4e — "View Audit History" row action missing.** No filtered `admin_actions` view scoped to `(user_id, permission_key)` from the overrides row.
+- **Gap 4f — Row actions menu shape.** Extend and Revoke exist as inline buttons; plan asks for a unified actions menu including View User, Review Override, Extend, Revoke, View Audit History.
 
-14. **Table columns.** User (name + avatar), Employee ID, Primary Role, Override Type (Grant / Deny / Temporary), Permission (key + label), Module, Effective Date, Expiry Date, Status (Active / Pending / Expired / Revoked), Requested By, Approved By, Actions menu. Filters: type, status, module, role, expiring-soon.
-15. **Create Override drawer.** Required: user (searchable), permission (searchable), reason (min 20 chars), effective date. Optional/required: expiry date — **required** when override introduces a privileged permission (Temporary Privileged Access). Fields:
-    - Override type radio (Grant / Deny / Temporary).
-    - Live "Impact preview" panel showing: current role-based value for that user+permission (from `RoleGrantMap`), proposed effective value, dependencies auto-pulled in, any SoD conflicts, whether approval is required.
-16. **Guardrail enforcement.** Reuses `role-guardrails.checkRoleStageAllowed` semantics adapted to overrides: blocks overrides that would bypass mandatory Super Admin keys, Auditor write lock, Finance SoD, or platform-security-for-ops-agents. Blocks are hard; approval-required cases route through the existing change-set queue.
-17. **Row actions menu.**
-    - **View User** → `/admin/access-control?tab=role-access&user=<id>` (Role and Access tab in Users & Access).
-    - **Review Override** → drawer with full audit fields + approve/reject if pending.
-    - **Extend Temporary Access** → date picker; writes new `expires_at`, appends audit entry.
-    - **Revoke Override** → sets `status='revoked'`, captures reason.
-    - **View Audit History** → filtered admin_actions list for `(user_id, permission_key)`.
-18. **Expiry lifecycle.** A lightweight client-side derivation flags `expires_at < now()` as `Expired`; a follow-up cron (out of scope this pass) will hard-flip status server-side.
+### 5. Cross-cutting / repository
 
----
+- **Gap 5a — `applyTemplateToRole` repo method not exposed.** Apply flow goes through `stageApplyTemplateToRole` in the workspace service and calls `submitChangeSet` directly. Plan asked for a single `permissionRepo.applyTemplateToRole(id, role, env, {stage:true})` seam. Small refactor.
+- **Gap 5b — `permission_templates.status` archived filter is client-side.** Repo `listTemplates` doesn't accept `{includeArchived}` yet; the table just filters after fetch. Fine for ~10 rows, but the plan called it out.
+- **Gap 5c — Expiring-soon index on `user_permission_overrides`.** Plan asked for a partial index on `(expires_at) where expires_at is not null` to support the "expiring soon" filter (Gap 4c). Not created.
 
-### Technical details
-
-- **DB additions**
-  - Migration seeds 10 system templates into `permission_templates` + `permission_template_items` with `is_system=true`.
-  - `permission_templates` gains `status` (active / archived) if not already present; system rows have delete/archive blocked by trigger.
-  - `user_permission_overrides` already has `mode`, `expires_at`, `reason`, `created_at`; no schema change needed. Add index on `(expires_at) where expires_at is not null` for expiring-soon queries.
-- **Repository (`permission-repository.ts`)**
-  - `setPermissionDependencies(key, requires[])`, `setPermissionConflicts(key, entries[])`.
-  - `listTemplates({includeArchived})`, `getTemplate(id)`, `cloneTemplate(id, name)`, `archiveTemplate(id)`, `applyTemplateToRole(id, role, environment, {stage:true})`.
-  - `listOverrides({filters})`, `createOverride(payload)`, `extendOverride(id, expires_at)`, `revokeOverride(id, reason)`.
-- **New components**
-  - `CloneRoleAsTemplateDialog`, `ResetRoleToDefaultDialog`.
-  - `TemplateDetailsDrawer`, `ApplyTemplateDialog`, `TemplateCompareView`.
-  - `CreateOverrideDrawer`, `OverrideImpactPreview`, `ReviewOverrideDrawer`, `ExtendOverrideDialog`.
-- **Guardrails** unified in `role-guardrails.ts`: add `checkOverrideAllowed(userRole, permissionKey, mode)` reusing existing rule constants.
-- **Feature Registry drawer** gets `Deprecate` / `Suspend` / `Reactivate` buttons; `RegisterPermissionDialog` locks the key field in edit mode and adds deps/conflicts multi-selects.
-- **Role Detail** switches list rows to `PermissionToggleRow` when `canManage`, pushing into the shared staging buffer.
-
-### Out of scope
+### Out of scope (already agreed)
 
 - Server-side cron for auto-expiring overrides.
-- Rewriting the Access Control users route naming.
-- Virtualizing tables (catalog still ~90 keys).
+- Access Control route renaming.
+- Virtualizing tables.
 
 ---
 
-Approve to implement in one pass: Role Detail gaps (1–5), Feature Registry gaps (6–8), Templates tab (10–13), Overrides tab (14–18).
+### Suggested execution order if you approve
+
+1. Templates: 3a "Roles using it" column, 3d dependencies line in Apply dialog, 3b TemplateCompareView, 3c standalone TemplateDetailsDrawer.
+2. Overrides: 4b columns + 4c filters + 4f actions menu (same file), then 4a CreateOverrideDrawer + OverrideImpactPreview, then 4d ReviewOverrideDrawer, then 4e audit history view.
+3. Role Detail: 1b CloneRoleAsTemplateDialog wired to Templates tab, 1c ResetRoleToDefaultDialog + staged diff, 1a inline staging via `PermissionToggleRow`, 1d top-action button.
+4. Repo/DB: 5a `applyTemplateToRole` seam, 5b `listTemplates({includeArchived})`, 5c partial index migration.
+
+Approve to proceed and I'll implement in that order.
