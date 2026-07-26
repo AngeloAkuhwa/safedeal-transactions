@@ -53,6 +53,7 @@ Deno.serve(async (req) => {
     preview_auto_assign: "task_orchestration.view",
     preview_rebalance: "task_orchestration.view",
     task_detail: "task_orchestration.view",
+    export_queue: "task_orchestration.export",
   };
   const permission = permMap[body.action] ?? "task_orchestration.view";
 
