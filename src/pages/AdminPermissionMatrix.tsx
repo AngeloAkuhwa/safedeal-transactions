@@ -202,6 +202,7 @@ export default function AdminPermissionMatrix() {
   const [approval, setApproval] = useState<ApprovalRow | null>(null);
   const [history, setHistory] = useState<HistoryRow | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [stagedReviewOpen, setStagedReviewOpen] = useState(false);
   const [cloneRoleFor, setCloneRoleFor] = useState<InternalRoleKey | null>(null);
   const [resetRoleFor, setResetRoleFor] = useState<InternalRoleKey | null>(null);
   const [createOverrideOpen, setCreateOverrideOpen] = useState(false);
@@ -440,15 +441,15 @@ export default function AdminPermissionMatrix() {
           roleMap={rolesQuery.data}
           environment={environment}
           onDiscard={staged.discardAll}
-          onReview={() => setReviewOpen(true)}
+          onReview={() => setStagedReviewOpen(true)}
         />
       )}
 
       {rolesQuery.data && (
         <ReviewChangesDrawer
           mode="staged"
-          open={reviewOpen}
-          onOpenChange={setReviewOpen}
+          open={stagedReviewOpen}
+          onOpenChange={setStagedReviewOpen}
           changes={staged.flat}
           roleMap={rolesQuery.data}
           environment={environment}
