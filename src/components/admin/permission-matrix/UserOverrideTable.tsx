@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ROLE_LABEL } from "@/services/permission-catalog";
+import { INTERNAL_ROLES, PERMISSION_MODULES, ROLE_LABEL, type InternalRoleKey } from "@/services/permission-catalog";
 import { permissionRepo } from "@/services/permission-repository";
 import { useCurrentEnvironment } from "./EnvironmentSwitcher";
 import { checkOverrideAllowed } from "@/services/role-guardrails";
@@ -11,15 +11,57 @@ import type { OverrideRow } from "@/services/permission-workspace.service";
 import { PermissionRiskBadge } from "./PermissionRiskBadge";
 import { PermissionSourceBadge } from "./PermissionSourceBadge";
 import { EmptyState } from "./EmptyState";
-import { ArrowUpRight, CalendarClock, ShieldOff, TimerReset } from "lucide-react";
+import { ArrowUpRight, ShieldOff, TimerReset, Filter } from "lucide-react";
 
-export function UserOverrideTable({ rows, onRowClick, canEdit = false, onChanged }: {
+type OverrideType = "grant" | "deny" | "temporary";
+type OverrideStatus = "active" | "expired";
+function classifyType(r: OverrideRow): OverrideType {
+  if (r.mode === "revoke") return "deny";
+  if (r.expires_at) return "temporary";
+  return "grant";
+}
+function classifyStatus(r: OverrideRow): OverrideStatus {
+  if (r.expires_at && new Date(r.expires_at).getTime() < Date.now()) return "expired";
+  return "active";
+}
+
+interface Filters {
+  type: "all" | OverrideType;
+  status: "all" | OverrideStatus | "expiring";
+  module: string;
+  role: "all" | InternalRoleKey;
+  q: string;
+}
+const DEFAULT_FILTERS: Filters = { type: "all", status: "all", module: "all", role: "all", q: "" };
+
+export function UserOverrideTable({ rows, onRowClick, canEdit = false, onChanged, onCreate }: {
   rows: OverrideRow[]; onRowClick?: (r: OverrideRow) => void; canEdit?: boolean; onChanged?: () => void;
+  onCreate?: () => void;
 }) {
   const env = useCurrentEnvironment();
   const [extendFor, setExtendFor] = useState<OverrideRow | null>(null);
   const [revokeFor, setRevokeFor] = useState<OverrideRow | null>(null);
-  if (!rows.length) return <EmptyState title="No overrides recorded" description="User-specific grants and revokes will show up here." />;
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+
+  const filtered = useMemo(() => {
+    return rows.filter((r) => {
+      const t = classifyType(r);
+      const s = classifyStatus(r);
+      if (filters.type !== "all" && t !== filters.type) return false;
+      if (filters.status === "expiring") {
+        if (!r.expires_at) return false;
+        const days = (new Date(r.expires_at).getTime() - Date.now()) / 86_400_000;
+        if (days < 0 || days > 7) return false;
+      } else if (filters.status !== "all" && s !== filters.status) return false;
+      if (filters.module !== "all" && r.module_label !== filters.module) return false;
+      if (filters.role !== "all" && r.user_role !== filters.role) return false;
+      if (filters.q) {
+        const q = filters.q.toLowerCase();
+        if (!`${r.user_name} ${r.user_email} ${r.permission_key}`.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }, [rows, filters]);
 
   const fmtExpiry = (iso: string | null) => {
     if (!iso) return { label: "Never", tone: "muted" as const };
@@ -30,25 +72,75 @@ export function UserOverrideTable({ rows, onRowClick, canEdit = false, onChanged
     return { label: days <= 3 ? `In ${days}d` : new Date(iso).toLocaleDateString(), tone: days <= 3 ? "amber" as const : "muted" as const };
   };
 
+  const typePill = (t: OverrideType) => t === "grant"
+    ? { label: "Grant", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" }
+    : t === "deny" ? { label: "Deny", cls: "bg-destructive/15 text-destructive border-destructive/30" }
+    : { label: "Temporary", cls: "bg-amber-500/15 text-amber-300 border-amber-500/30" };
+  const statusPill = (s: OverrideStatus) => s === "expired"
+    ? { label: "Expired", cls: "bg-muted/40 text-muted-foreground border-border" }
+    : { label: "Active", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" };
+
   return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-card/40 p-3">
+        <div className="flex items-center gap-1 text-[11px] uppercase text-muted-foreground"><Filter className="h-3 w-3" /> Filter</div>
+        <input value={filters.q} onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+          placeholder="Search user, email, key…"
+          className="h-8 min-w-[220px] flex-1 rounded-md border border-border bg-background px-2 text-xs" />
+        <select value={filters.type} onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value as any }))}
+          className="h-8 rounded-md border border-border bg-background px-2 text-xs">
+          <option value="all">All types</option><option value="grant">Grant</option><option value="deny">Deny</option><option value="temporary">Temporary</option>
+        </select>
+        <select value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value as any }))}
+          className="h-8 rounded-md border border-border bg-background px-2 text-xs">
+          <option value="all">All statuses</option><option value="active">Active</option><option value="expired">Expired</option><option value="expiring">Expiring ≤7d</option>
+        </select>
+        <select value={filters.role} onChange={(e) => setFilters((f) => ({ ...f, role: e.target.value as any }))}
+          className="h-8 rounded-md border border-border bg-background px-2 text-xs">
+          <option value="all">All roles</option>
+          {INTERNAL_ROLES.map((r) => <option key={r.key} value={r.key}>{ROLE_LABEL[r.key]}</option>)}
+        </select>
+        <select value={filters.module} onChange={(e) => setFilters((f) => ({ ...f, module: e.target.value }))}
+          className="h-8 rounded-md border border-border bg-background px-2 text-xs">
+          <option value="all">All modules</option>
+          {PERMISSION_MODULES.map((m) => <option key={m.key} value={m.label}>{m.label}</option>)}
+        </select>
+        {(filters.q || filters.type !== "all" || filters.status !== "all" || filters.role !== "all" || filters.module !== "all") && (
+          <button type="button" onClick={() => setFilters(DEFAULT_FILTERS)} className="text-[11px] text-muted-foreground hover:text-foreground">Clear</button>
+        )}
+        {canEdit && onCreate && (
+          <button type="button" onClick={onCreate}
+            className="ml-auto inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90">
+            New override
+          </button>
+        )}
+      </div>
+
+      {filtered.length === 0
+        ? <EmptyState title="No overrides match" description={rows.length ? "Adjust filters to see more." : "User-specific grants and revokes will show up here."} />
+        : (
     <div className="rounded-2xl border border-border/50 bg-card/60 p-2 backdrop-blur-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] border-separate border-spacing-y-1 text-sm">
+        <table className="w-full min-w-[960px] border-separate border-spacing-y-1 text-sm">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
               <th className="px-4 py-2 text-left font-medium">User</th>
               <th className="px-4 py-2 text-left font-medium">Role</th>
               <th className="px-4 py-2 text-left font-medium">Permission</th>
-              <th className="px-4 py-2 text-left font-medium">Mode</th>
+              <th className="px-4 py-2 text-left font-medium">Type</th>
               <th className="px-4 py-2 text-left font-medium">Source</th>
+              <th className="px-4 py-2 text-left font-medium">Effective</th>
               <th className="px-4 py-2 text-left font-medium">Expires</th>
+              <th className="px-4 py-2 text-left font-medium">Status</th>
               <th className="px-4 py-2 text-left font-medium">Reason</th>
               <th className="px-4 py-2 text-right font-medium">Manage</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => {
+            {filtered.map((r, i) => {
               const exp = fmtExpiry(r.expires_at);
+              const t = typePill(classifyType(r));
+              const s = statusPill(classifyStatus(r));
               return (
               <tr
                 key={r.user_id + r.permission_key + i}
@@ -69,9 +161,7 @@ export function UserOverrideTable({ rows, onRowClick, canEdit = false, onChanged
                   </div>
                 </td>
                 <td className="px-4 py-3 align-middle">
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${r.mode === "grant" ? "bg-emerald-500/15 text-emerald-300" : "bg-destructive/15 text-destructive"}`}>
-                    {r.mode === "grant" ? "+ Grant" : "− Revoke"}
-                  </span>
+                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${t.cls}`}>{t.label}</span>
                 </td>
                 <td className="px-4 py-3 align-middle">
                   <PermissionSourceBadge
@@ -80,12 +170,16 @@ export function UserOverrideTable({ rows, onRowClick, canEdit = false, onChanged
                     title={r.expires_at ? `Expires ${new Date(r.expires_at).toLocaleString()}` : undefined}
                   />
                 </td>
+                <td className="px-4 py-3 align-middle text-[11px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
                 <td className="px-4 py-3 align-middle text-[11px]">
                   <span className={
                     exp.tone === "rose" ? "text-rose-400"
                     : exp.tone === "amber" ? "text-amber-300"
                     : "text-muted-foreground"
                   }>{exp.label}</span>
+                </td>
+                <td className="px-4 py-3 align-middle">
+                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] ${s.cls}`}>{s.label}</span>
                 </td>
                 <td className="px-4 py-3 align-middle text-xs text-muted-foreground">{r.reason ?? <span className="italic">—</span>}</td>
                 <td className="px-4 py-3 align-middle text-right">
@@ -116,6 +210,8 @@ export function UserOverrideTable({ rows, onRowClick, canEdit = false, onChanged
           </tbody>
         </table>
       </div>
+    </div>
+        )}
       <ExtendOverrideDialog row={extendFor} env={env} onOpenChange={(v) => !v && setExtendFor(null)} onDone={onChanged} />
       <RevokeOverrideDialog row={revokeFor} env={env} onOpenChange={(v) => !v && setRevokeFor(null)} onDone={onChanged} />
     </div>

@@ -60,6 +60,8 @@ export function RoleDetailPanel({
   environment = "production",
   onCompare,
   onCloneAsTemplate,
+  onResetToDefault,
+  onViewHistory,
 }: {
   roleMap: RoleGrantMap;
   role?: InternalRoleKey;
@@ -67,6 +69,8 @@ export function RoleDetailPanel({
   environment?: PermissionEnvironment;
   onCompare?: (r: InternalRoleKey) => void;
   onCloneAsTemplate?: (r: InternalRoleKey) => void;
+  onResetToDefault?: (r: InternalRoleKey) => void;
+  onViewHistory?: (r: InternalRoleKey) => void;
 }) {
   const navigate = useNavigate();
   const [internal, setInternal] = useState<InternalRoleKey>(roleProp ?? "super_admin");
@@ -177,10 +181,18 @@ export function RoleDetailPanel({
             <button
               type="button"
               disabled={protectedRole}
+              onClick={() => !protectedRole && onResetToDefault?.(role)}
               title={protectedRole ? "Protected roles cannot be reset" : "Reset to default"}
               className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-40"
             >
               <RotateCcw className="h-3.5 w-3.5" /> Reset to default
+            </button>
+            <button
+              type="button"
+              onClick={() => onViewHistory?.(role)}
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted"
+            >
+              <History className="h-3.5 w-3.5" /> View change history
             </button>
             <button
               type="button"
