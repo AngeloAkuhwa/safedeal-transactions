@@ -39,6 +39,26 @@ export interface OverrideRepoRow {
   expires_at: string | null;
 }
 
+export interface ApprovalRepoRow {
+  id: string;
+  target_user_id: string;
+  requested_by: string;
+  change_type: string;
+  payload: unknown;
+  reason: string | null;
+  status: string;
+  created_at: string;
+}
+
+export interface AdminActionHistoryRow {
+  id: string;
+  admin_user_id: string | null;
+  target_user_id: string | null;
+  action_type: string;
+  action_notes: string | null;
+  created_at: string;
+}
+
 export interface TemplateRow {
   id: string;
   name: string;
@@ -72,6 +92,12 @@ export interface SubmitChangeSetInput {
   reason?: string | null;
 }
 
+export interface CreateTemplateInput {
+  name: string;
+  description?: string | null;
+  role_source?: string | null;
+}
+
 export interface PermissionRepository {
   listFeatures(): Promise<FeatureRow[]>;
   listRoles(): Promise<RoleRow[]>;
@@ -79,7 +105,15 @@ export interface PermissionRepository {
   listOverrides(): Promise<OverrideRepoRow[]>;
   listTemplates(): Promise<TemplateRow[]>;
   listChangeSets(status?: ChangeSetRow["status"]): Promise<ChangeSetRow[]>;
+  listApprovals(): Promise<ApprovalRepoRow[]>;
+  listHistory(limit: number, sinceHours?: number, actionTypes?: string[]): Promise<AdminActionHistoryRow[]>;
   submitChangeSet(input: SubmitChangeSetInput): Promise<ChangeSetRow>;
+  approveChangeSet(id: string, reason?: string | null): Promise<ChangeSetRow>;
+  rejectChangeSet(id: string, reason?: string | null): Promise<ChangeSetRow>;
+  createTemplate(input: CreateTemplateInput, permissionKeys: string[]): Promise<TemplateRow>;
+  updateTemplate(id: string, patch: Partial<CreateTemplateInput>): Promise<void>;
+  deleteTemplate(id: string): Promise<void>;
+  setTemplateItems(templateId: string, keys: string[]): Promise<void>;
 }
 
 class SupabasePermissionRepository implements PermissionRepository {
@@ -148,6 +182,33 @@ class SupabasePermissionRepository implements PermissionRepository {
     return (data ?? []) as ChangeSetRow[];
   }
 
+  async listApprovals(): Promise<ApprovalRepoRow[]> {
+    const { data, error } = await supabase
+      .from("access_change_requests")
+      .select("id,target_user_id,requested_by,change_type,payload,reason,status,created_at")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    return (data ?? []) as ApprovalRepoRow[];
+  }
+
+  async listHistory(limit: number, sinceHours?: number, actionTypes?: string[]): Promise<AdminActionHistoryRow[]> {
+    let q = supabase
+      .from("admin_actions")
+      .select("id,admin_user_id,target_user_id,action_type,action_notes,created_at")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (actionTypes?.length) q = q.in("action_type", actionTypes as any);
+    if (sinceHours && sinceHours > 0) {
+      const since = new Date(Date.now() - sinceHours * 3600_000).toISOString();
+      q = q.gte("created_at", since);
+    }
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []) as AdminActionHistoryRow[];
+  }
+
   async submitChangeSet(input: SubmitChangeSetInput): Promise<ChangeSetRow> {
     const { data: userRes } = await supabase.auth.getUser();
     const { data, error } = await supabase
@@ -164,6 +225,74 @@ class SupabasePermissionRepository implements PermissionRepository {
       .single();
     if (error) throw error;
     return data as ChangeSetRow;
+  }
+
+  async approveChangeSet(id: string, reason?: string | null): Promise<ChangeSetRow> {
+    const { data, error } = await supabase.rpc("apply_permission_change_set", {
+      _id: id,
+      _reason: reason ?? null,
+    });
+    if (error) throw error;
+    return data as unknown as ChangeSetRow;
+  }
+
+  async rejectChangeSet(id: string, reason?: string | null): Promise<ChangeSetRow> {
+    const { data, error } = await supabase.rpc("reject_permission_change_set", {
+      _id: id,
+      _reason: reason ?? null,
+    });
+    if (error) throw error;
+    return data as unknown as ChangeSetRow;
+  }
+
+  async createTemplate(input: CreateTemplateInput, permissionKeys: string[]): Promise<TemplateRow> {
+    const { data: userRes } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from("permission_templates")
+      .insert({
+        name: input.name,
+        description: input.description ?? null,
+        role_source: input.role_source ?? null,
+        created_by: userRes.user?.id ?? null,
+      })
+      .select("id,name,description,role_source,created_by,created_at,updated_at")
+      .single();
+    if (error) throw error;
+    if (permissionKeys.length) {
+      await this.setTemplateItems(data.id, permissionKeys);
+    }
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description ?? null,
+      role_source: data.role_source ?? null,
+      created_by: data.created_by ?? null,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      permission_keys: permissionKeys,
+    };
+  }
+
+  async updateTemplate(id: string, patch: Partial<CreateTemplateInput>): Promise<void> {
+    const upd: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (patch.name !== undefined) upd.name = patch.name;
+    if (patch.description !== undefined) upd.description = patch.description;
+    if (patch.role_source !== undefined) upd.role_source = patch.role_source;
+    const { error } = await supabase.from("permission_templates").update(upd).eq("id", id);
+    if (error) throw error;
+  }
+
+  async deleteTemplate(id: string): Promise<void> {
+    const { error } = await supabase.from("permission_templates").delete().eq("id", id);
+    if (error) throw error;
+  }
+
+  async setTemplateItems(templateId: string, keys: string[]): Promise<void> {
+    const { error } = await supabase.rpc("set_permission_template_items", {
+      _template_id: templateId,
+      _keys: keys,
+    });
+    if (error) throw error;
   }
 }
 
