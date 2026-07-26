@@ -90,6 +90,32 @@ export interface PermissionDependencyRow {
   note: string | null;
 }
 
+export interface PermissionConflictRow {
+  a_key: string;
+  b_key: string;
+  severity: "low" | "medium" | "high" | "critical";
+  rationale: string | null;
+}
+
+export interface ConflictAcknowledgementRow {
+  id: string;
+  role_key: string;
+  a_key: string;
+  b_key: string;
+  reason: string;
+  actor_id: string;
+  created_at: string;
+  expires_at: string | null;
+}
+
+export interface AcknowledgeConflictInput {
+  role_key: string;
+  a_key: string;
+  b_key: string;
+  reason: string;
+  expires_at?: string | null;
+}
+
 export interface SubmitChangeSetInput {
   target_scope: "role" | "user" | "template";
   target_key: string;
