@@ -14,6 +14,7 @@ interface AdminMePayload {
 interface AdminPermissionsValue {
   loading: boolean;
   error: string | null;
+  userId: string | null;
   roles: string[];
   permissions: string[];
   accessLevel: string;
@@ -107,6 +108,7 @@ export function AdminPermissionsProvider({ children }: { children: ReactNode }) 
     return {
       loading,
       error,
+      userId: data?.user_id ?? null,
       roles: data?.roles ?? [],
       permissions,
       accessLevel: data?.access_level ?? "limited",
@@ -131,6 +133,7 @@ export function useAdminPermissions(): AdminPermissionsValue {
     return {
       loading: false,
       error: null,
+      userId: null,
       roles: [],
       permissions: [],
       accessLevel: "limited",
