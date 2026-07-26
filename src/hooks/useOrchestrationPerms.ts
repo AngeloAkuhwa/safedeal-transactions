@@ -20,6 +20,8 @@ export interface OrchestrationPerms {
   canViewAgentLoad: boolean;
   canOverrideCapacity: boolean;
   canViewHistory: boolean;
+  /** Current admin user id (auth uuid) — for scoped realtime filters. */
+  userId: string | null;
   /** Legacy convenience flag — true when the caller can do broad operational actions. */
   isSenior: boolean;
 }
@@ -49,6 +51,7 @@ export function useOrchestrationPerms(): OrchestrationPerms {
       canViewAgentLoad:    has("task_orchestration.view_agent_load"),
       canOverrideCapacity: has("task_orchestration.override_capacity"),
       canViewHistory:      has("task_orchestration.view_history"),
+      userId:              p.userId,
       isSenior:            canAssign || canBulkAssign || canReassign || canRebalance || canEscalate || canManageRules,
     };
   }, [p]);
