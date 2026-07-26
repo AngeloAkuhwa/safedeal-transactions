@@ -62,18 +62,6 @@ export default function AdminAccessControl() {
     setAdvanced((a) => ({ ...a, role: raw as InternalRoleKey }));
     setPage(1);
   }, [searchParams]);
-
-  // Deep-link support: `?user=<id>` (or `?userId=<id>`) auto-opens the
-  // Details drawer for that user once they appear in the current directory
-  // page. Falls back silently if the id is not present in the current filter.
-  const deepLinkUserId = searchParams.get("userId") ?? searchParams.get("user");
-  useEffect(() => {
-    if (!deepLinkUserId || !data?.users?.length) return;
-    const target = data.users.find((u) => u.id === deepLinkUserId);
-    if (target && detailsUser?.id !== target.id) {
-      setDetailsUser(target);
-    }
-  }, [deepLinkUserId, data, detailsUser?.id]);
   const [sortBy, setSortBy] = useState<SortBy>("last_active");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
