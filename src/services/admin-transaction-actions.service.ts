@@ -47,13 +47,14 @@ async function invokeAction(action: string, transactionId: string, payload?: Rec
   });
   let body: any = null;
   try { body = await res.json(); } catch { /* ignore */ }
+  const isEscalationRequired = body?.error === "escalation_required";
+  if (isEscalationRequired) {
+    throw new DisputeEscalationRequiredError(
+      Array.isArray(body.reasons) ? body.reasons : [],
+      typeof body.cap_ngn === "number" ? body.cap_ngn : null,
+    );
+  }
   if (!res.ok) {
-    if (res.status === 403 && body?.error === "escalation_required") {
-      throw new DisputeEscalationRequiredError(
-        Array.isArray(body.reasons) ? body.reasons : [],
-        typeof body.cap_ngn === "number" ? body.cap_ngn : null,
-      );
-    }
     if (res.status === 403) throw new AdminAccessRequiredError();
     throw new Error(body?.error ?? `Action failed (${res.status})`);
   }

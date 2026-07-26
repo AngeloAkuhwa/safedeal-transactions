@@ -446,11 +446,15 @@ Deno.serve(async (req) => {
               escalationReasons.push(`outcome_amount_over_cap:${cap}`);
             }
             if (escalationReasons.length > 0) {
+              // This is an expected business-rule denial, not a transport/auth failure.
+              // Return 200 so the preview/runtime monitor does not classify the handled
+              // support-agent escalation path as a blank-screen edge-function crash.
               return json({
+                ok: false,
                 error: "escalation_required",
                 reasons: escalationReasons,
                 cap_ngn: cap,
-              }, 403);
+              }, 200);
             }
           }
         } catch (e) {
