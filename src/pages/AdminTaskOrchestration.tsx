@@ -395,6 +395,10 @@ export default function AdminTaskOrchestration() {
         open={!!agentDetail}
         onOpenChange={o => { if (!o) setAgentDetail(null); }}
         agent={agentDetail}
+        onReassign={a => {
+          setAgentDetail(null);
+          navigate(`/admin/task-orchestration?tab=queue&assignee=${a.user_id}&view=reassign`);
+        }}
       />
       <TaskDetailsDrawer
         open={!!detailTask}
