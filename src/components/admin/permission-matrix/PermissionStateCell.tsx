@@ -2,9 +2,15 @@ import { cn } from "@/lib/utils";
 import type { CellState } from "@/services/permission-workspace.service";
 
 const STYLES: Record<CellState, string> = {
-  full: "bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-500/30",
-  partial: "bg-amber-500/15 text-amber-200 ring-1 ring-inset ring-amber-500/30",
-  none: "bg-muted/30 text-muted-foreground ring-1 ring-inset ring-border/60",
+  full: "bg-emerald-500/15 text-emerald-300",
+  partial: "bg-amber-500/15 text-amber-200",
+  none: "bg-muted/40 text-muted-foreground",
+};
+
+const BADGE_STYLES: Record<CellState, string> = {
+  full: "bg-emerald-500/25 text-emerald-100",
+  partial: "bg-amber-500/25 text-amber-100",
+  none: "bg-muted-foreground/15 text-muted-foreground",
 };
 
 const LABELS: Record<CellState, string> = {
@@ -24,23 +30,25 @@ export function PermissionStateCell({
   total?: number;
   onClick?: () => void;
 }) {
-  const label = state === "partial" && granted != null && total != null
-    ? `${granted}/${total}`
-    : LABELS[state];
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-7 min-w-[92px] w-full items-center justify-center gap-1.5 rounded-full px-2.5 text-[11px] font-semibold tracking-wide transition",
+        "inline-flex h-7 min-w-[110px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[11px] font-semibold tracking-wide transition",
         STYLES[state],
-        onClick && "hover:brightness-110 hover:ring-primary/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+        onClick && "hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
       )}
       title={total != null ? `${granted}/${total} permissions granted` : LABELS[state]}
     >
       <span>{LABELS[state]}</span>
       {state === "partial" && total != null && (
-        <span className="rounded-sm bg-amber-500/20 px-1 font-mono text-[10px] leading-none text-amber-100">
+        <span
+          className={cn(
+            "ml-1 rounded-md px-1.5 py-0.5 font-mono text-[10px] leading-none",
+            BADGE_STYLES[state],
+          )}
+        >
           {granted}/{total}
         </span>
       )}

@@ -1,21 +1,24 @@
-import { useState, useEffect } from "react";
-import { ChevronDown, Info, CheckCircle2, AlertTriangle, Lock, User, Shield, Clock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, Info, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PermissionPanel } from "./PermissionPanel";
+import { PermissionRowStateBadge } from "./PermissionRowStateBadge";
+import type { PermissionRowState } from "@/services/permission-catalog";
 
 const DISMISS_KEY = "safedeal.permMatrix.helpDismissed";
 
-const STATES = [
-  { icon: CheckCircle2, dot: "bg-emerald-500", title: "Full",       desc: "Complete control over all actions" },
-  { icon: AlertTriangle, dot: "bg-amber-500",  title: "Limited",    desc: "Partial access with restrictions" },
-  { icon: Lock,          dot: "bg-muted-foreground/60", title: "None", desc: "No access to this feature" },
-  { icon: User,          dot: "bg-primary",     title: "Override",   desc: "User-specific grant beyond role" },
-  { icon: Shield,        dot: "bg-destructive", title: "Restricted", desc: "Actions disabled by policy" },
-  { icon: Clock,         dot: "bg-amber-400",   title: "Pending",    desc: "Awaiting approval or audit" },
+const LEGEND: Array<{ state: PermissionRowState; title: string; desc: string }> = [
+  { state: "granted",          title: "Full",       desc: "Complete control over all actions in the module." },
+  { state: "override_granted", title: "Override",   desc: "User-specific grant that extends beyond the role." },
+  { state: "pending",          title: "Pending",    desc: "Change awaiting approval or audit review." },
+  { state: "denied",           title: "None",       desc: "No access to this feature for the selected role." },
+  { state: "override_denied",  title: "Limited",    desc: "Partial access — some actions removed by override." },
+  { state: "restricted",       title: "Restricted", desc: "Disabled by policy; cannot be granted from this screen." },
 ];
 
 export function HowPermissionsWorkPanel() {
-  const [dismissed, setDismissed] = useState<boolean>(false);
-  const [open, setOpen] = useState<boolean>(true);
+  const [dismissed, setDismissed] = useState(false);
+  const [open, setOpen] = useState(true);
 
   useEffect(() => {
     const d = typeof localStorage !== "undefined" && localStorage.getItem(DISMISS_KEY) === "1";
@@ -26,50 +29,61 @@ export function HowPermissionsWorkPanel() {
   const toggle = () => {
     setOpen((prev) => {
       const next = !prev;
-      if (!next && typeof localStorage !== "undefined") {
-        localStorage.setItem(DISMISS_KEY, "1");
-        setDismissed(true);
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(DISMISS_KEY, next ? "0" : "1");
+        setDismissed(!next);
       }
       return next;
     });
   };
 
   return (
-    <div className="rounded-xl border border-border/70 bg-card/60 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset]">
-      <button
-        type="button"
-        onClick={toggle}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-      >
-        <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Info className="h-4 w-4" />
-          </span>
-          <div>
-            <div className="text-sm font-semibold text-foreground">How permissions work</div>
-            <div className="text-xs text-muted-foreground">
-              {open ? "Overview of access states, roles and override behavior." : dismissed ? "Dismissed — click to review again." : "Click to expand."}
-            </div>
-          </div>
-        </div>
-        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition", open && "rotate-180")} />
-      </button>
-      {open && (
-        <div className="border-t border-border/60 p-4">
-          <p className="mb-3 text-xs leading-relaxed text-muted-foreground text-balance">
+    <PermissionPanel
+      className="bg-gradient-to-br from-sky-500/[0.06] via-card/60 to-transparent"
+      icon={<Info className="h-4 w-4" />}
+      title="How permissions work"
+      subtitle={open ? "Overview of access states, roles and override behavior." : dismissed ? "Collapsed — click to expand again." : "Click to expand."}
+      actions={
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={open ? "Collapse" : "Expand"}
+          className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/60"
+        >
+          <ChevronDown className={cn("h-4 w-4 transition", open && "rotate-180")} />
+        </button>
+      }
+    >
+      {!open ? (
+        <p className="text-xs text-muted-foreground">6 access states · role-based · override-capable</p>
+      ) : (
+        <div className="space-y-5">
+          <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
             This workspace controls all security and access permissions across the SafeDeal platform. Configure what each role can access, what actions they can perform, and create user-specific overrides when needed. All changes are audited; privileged actions require Super Admin approval.
           </p>
-          <ul className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-3">
-            {STATES.map((s) => (
-              <li key={s.title} className="flex items-center gap-2 text-xs">
-                <span className={cn("h-2 w-2 shrink-0 rounded-full", s.dot)} />
-                <span className="font-semibold text-foreground">{s.title}</span>
-                <span className="text-muted-foreground">— {s.desc}</span>
-              </li>
+          <div className="flex items-start gap-2 rounded-xl bg-amber-500/[0.06] p-3 text-xs text-amber-200/90">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+            <div>
+              <span className="font-semibold text-amber-200">Security notice.</span>{" "}
+              All permission changes are automatically logged and audited. Changes to privileged actions (Export, Impersonate, Financial Controls) require approval from a Super Admin before taking effect.
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {LEGEND.map((l) => (
+              <div
+                key={l.title}
+                className="flex items-start gap-3 rounded-xl bg-background/40 p-3"
+              >
+                <PermissionRowStateBadge state={l.state} />
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-foreground">{l.title}</div>
+                  <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{l.desc}</div>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       )}
-    </div>
+    </PermissionPanel>
   );
 }
