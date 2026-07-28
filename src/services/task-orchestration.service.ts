@@ -91,6 +91,11 @@ export interface AssignmentRulesConfig {
   max_overdue_before_skip?: number;
   fallback_target?: string;
   super_admin_self_assign?: boolean;
+  stale_after_minutes?: number;
+  stale_escalation_queue?: string;
+  offline_reassign_after_minutes?: number;
+  senior_pool_queue?: string;
+  senior_pool_role_key?: string;
 }
 
 export interface AssignmentRulesRow {
@@ -187,6 +192,16 @@ export interface OrchestrationActionPayload {
   override_capacity?: boolean;
   scope?: "queue" | "live" | "roster";
   queue_filters?: QueueFiltersPayload;
+  // Escalate drawer extras
+  target_queue?: string;
+  target_team?: string;
+  escalate_priority?: "high" | "critical";
+  internal_note?: string;
+  requested_reviewer_id?: string;
+  // Export report extras
+  export_scope?: "queue" | "live" | "assignment_history" | "agent_load" | "automation_rules";
+  include_pii?: boolean;
+  include_financial?: boolean;
 }
 
 export interface BulkAssignRowResult { task_id: string; ok: boolean; error?: string }
@@ -197,6 +212,26 @@ export interface BulkAssignResponse {
 export async function exportOrchestrationCsv(scope: "queue" | "live" | "roster"): Promise<void> {
   const res = await runOrchestrationAction<{ ok: boolean; filename: string; csv: string }>({
     action: "export_queue", scope,
+  });
+  const blob = new Blob([res.csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = res.filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function exportOrchestrationReport(opts: {
+  scope: "queue" | "live" | "assignment_history" | "agent_load" | "automation_rules";
+  includePii?: boolean;
+  includeFinancial?: boolean;
+  filters?: QueueFiltersPayload;
+}): Promise<void> {
+  const res = await runOrchestrationAction<{ ok: boolean; filename: string; csv: string }>({
+    action: "export_queue",
+    export_scope: opts.scope,
+    include_pii: opts.includePii,
+    include_financial: opts.includeFinancial,
+    queue_filters: opts.filters,
   });
   const blob = new Blob([res.csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -265,6 +300,26 @@ export interface AutoAssignPreview {
   plan: Array<{ task_id: string; task_code: string; agent_id: string; reason: string }>;
   agent_loads?: Array<{ agent_id: string; current: number; projected: number; max: number }>;
   unmatched?: Array<{ task_id: string; task_code: string; reason: string }>;
+}
+
+export interface TestConfigResult {
+  ok: boolean;
+  mode: string;
+  pending: number;
+  would_assign: number;
+  sample: Array<{
+    task_id: string; task_code: string; priority: string;
+    proposed_agent: string | null; rule_used: string; reason?: string;
+  }>;
+  unassigned: Array<{ task_id: string; task_code: string; reason: string }>;
+  capacity_impact: Array<{ agent_id: string; current: number; projected: number; max: number }>;
+  distribution_summary: {
+    mode: string; assigned: number; unassigned: number; per_agent_average: number;
+  };
+}
+
+export async function testRules(rules?: AssignmentRulesConfig): Promise<TestConfigResult> {
+  return await runOrchestrationAction<TestConfigResult>({ action: "test_rules", rules });
 }
 
 export interface RebalanceMove {
