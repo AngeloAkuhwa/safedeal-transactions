@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Loader2, RefreshCcw, Save, Gauge } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2, RefreshCcw, Gauge, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,10 +42,10 @@ function RuleNumber({ label, hint, value, unit, onChange, disabled }: { label: s
 }
 
 export function AssignmentRulesPanel({
-  config, onSave, onTest, saving, testing, lastSavedAt, canManage,
+  config, onReview, onTest, saving, testing, lastSavedAt, canManage,
 }: {
   config: AssignmentRulesConfig;
-  onSave: (next: AssignmentRulesConfig) => void;
+  onReview: (next: AssignmentRulesConfig) => void;
   onTest: () => void;
   saving: boolean;
   testing: boolean;
@@ -55,6 +55,7 @@ export function AssignmentRulesPanel({
   const [draft, setDraft] = useState<AssignmentRulesConfig>(config);
   useEffect(() => setDraft(config), [config]);
   const set = <K extends keyof AssignmentRulesConfig>(k: K, v: AssignmentRulesConfig[K]) => setDraft(d => ({ ...d, [k]: v }));
+  const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(config), [draft, config]);
 
   const toggles = [
     { key: "round_robin", label: "Round Robin Assignment", desc: "Distribute tasks evenly across all agents" },
@@ -96,6 +97,26 @@ export function AssignmentRulesPanel({
             <RuleToggle key={t.key} label={t.label} desc={t.desc}
               value={!!draft[t.key]} onChange={v => set(t.key as any, v as any)} disabled={!canManage} />
           ))}
+          {draft.auto_escalate_stale && (
+            <div className="grid grid-cols-2 gap-3">
+              <RuleNumber label="Stale after" hint="Escalate tasks unassigned this long"
+                value={draft.stale_after_minutes ?? 30} unit="minutes"
+                onChange={v => set("stale_after_minutes", v)} disabled={!canManage} />
+              <div className="rounded-xl border border-border/60 bg-background/40 p-4 backdrop-blur-sm">
+                <Label className="mb-2 block text-sm font-medium text-foreground">Escalation queue</Label>
+                <Input value={draft.stale_escalation_queue ?? ""}
+                  onChange={e => set("stale_escalation_queue", e.target.value)}
+                  placeholder="senior_pool" disabled={!canManage} className="h-9 bg-background/60" />
+                <p className="mt-2 text-[11px] text-muted-foreground">Target queue for stale-task escalation</p>
+              </div>
+            </div>
+          )}
+          {draft.auto_reassign_on_offline && (
+            <RuleNumber label="Reassign after agent offline for"
+              hint="Reassign tasks when the assignee has been offline this long"
+              value={draft.offline_reassign_after_minutes ?? 15} unit="minutes"
+              onChange={v => set("offline_reassign_after_minutes", v)} disabled={!canManage} />
+          )}
           <div className="rounded-xl border border-border/60 bg-background/40 p-4 backdrop-blur-sm">
             <Label className="mb-2 block text-sm font-medium text-foreground">Fallback Assignment Target</Label>
             <Select value={draft.fallback_target ?? "senior_agent_pool"} onValueChange={v => set("fallback_target", v)} disabled={!canManage}>
@@ -106,15 +127,22 @@ export function AssignmentRulesPanel({
             </Select>
             <p className="mt-2 text-[11px] text-muted-foreground">Where to assign when no eligible agents are available</p>
           </div>
+          <div className="rounded-xl border border-border/60 bg-background/40 p-4 backdrop-blur-sm">
+            <Label className="mb-2 block text-sm font-medium text-foreground">Senior pool queue</Label>
+            <Input value={draft.senior_pool_queue ?? ""}
+              onChange={e => set("senior_pool_queue", e.target.value)}
+              placeholder="senior_pool" disabled={!canManage} className="h-9 bg-background/60" />
+            <p className="mt-2 text-[11px] text-muted-foreground">Queue key used by Priority Cases &amp; escalation routing</p>
+          </div>
           <RuleToggle label="Super Admin Self-Assignment" desc="Allow super admin to override and assign to self"
             value={!!draft.super_admin_self_assign} onChange={v => set("super_admin_self_assign", v)} disabled={!canManage} />
         </div>
       </div>
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border/50 pt-5">
         <div className="flex items-center gap-2">
-          <Button onClick={() => onSave(draft)} disabled={saving || !canManage}>
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save Assignment
+          <Button onClick={() => onReview(draft)} disabled={saving || !canManage || !dirty}>
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+            Review and Save Rules
           </Button>
           <Button variant="outline" onClick={onTest} disabled={testing || !canManage}>
             {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
@@ -122,7 +150,7 @@ export function AssignmentRulesPanel({
           </Button>
         </div>
         <div className="text-[11px] text-muted-foreground">
-          {lastSavedAt ? `Last saved: ${relative(lastSavedAt)}` : "Not saved yet"}
+          {dirty ? "Unsaved changes" : lastSavedAt ? `Last saved: ${relative(lastSavedAt)}` : "Not saved yet"}
         </div>
       </div>
     </section>
