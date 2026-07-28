@@ -85,6 +85,67 @@ Deno.serve(async (req) => {
 
   const INELIGIBLE = new Set(["offline", "on_leave", "suspended"]);
 
+  // -------- Notification helper with lightweight dedupe --------
+  // Prevents identical unchanged conditions from re-firing within a window
+  // by scanning the last hour of notifications for a matching dedupe_key.
+  async function notifyEvent(opts: {
+    event: string;
+    recipients: string[];
+    title: string;
+    body: string;
+    dedupeKey?: string;
+    dedupeMinutes?: number;
+    data?: Record<string, unknown>;
+    channel?: string;
+  }) {
+    const recipients = [...new Set(opts.recipients.filter(Boolean))];
+    if (!recipients.length) return;
+    const windowMin = opts.dedupeMinutes ?? 60;
+    const cutoff = new Date(Date.now() - windowMin * 60_000).toISOString();
+    if (opts.dedupeKey) {
+      const { data: recent } = await admin
+        .from("notifications")
+        .select("id, user_id, metadata")
+        .gte("created_at", cutoff)
+        .eq("type", opts.event)
+        .in("user_id", recipients);
+      const dedup = new Set(
+        (recent ?? [])
+          .filter((r: any) => (r.metadata?.dedupe_key ?? null) === opts.dedupeKey)
+          .map((r: any) => r.user_id),
+      );
+      const remaining = recipients.filter((u) => !dedup.has(u));
+      if (!remaining.length) return;
+      const rows = remaining.map((uid) => ({
+        user_id: uid,
+        type: opts.event,
+        channel: opts.channel ?? "in_app",
+        title: opts.title,
+        message: opts.body,
+        metadata: { ...(opts.data ?? {}), dedupe_key: opts.dedupeKey },
+      }));
+      await admin.from("notifications").insert(rows);
+      return;
+    }
+    const rows = recipients.map((uid) => ({
+      user_id: uid,
+      type: opts.event,
+      channel: opts.channel ?? "in_app",
+      title: opts.title,
+      message: opts.body,
+      metadata: opts.data ?? {},
+    }));
+    await admin.from("notifications").insert(rows);
+  }
+
+  async function seniorAdmins(): Promise<string[]> {
+    const { data } = await admin
+      .from("user_roles")
+      .select("user_id")
+      .in("role", ["super_admin", "senior_admin"]);
+    return (data ?? []).map((r: any) => r.user_id);
+  }
+
   async function pickBestAgent(exclude: Set<string> = new Set()): Promise<string | null> {
     const [{ data: cap }, { data: avail }] = await Promise.all([
       admin.from("agent_capacity").select("*"),
@@ -255,20 +316,24 @@ Deno.serve(async (req) => {
 
   // Fire a notification for both sides of a reassignment / move.
   async function notifyReassignment(taskId: string, fromAgentId: string | null, toAgentId: string, reason: string | null) {
-    const rows: any[] = [];
-    if (fromAgentId) rows.push({
-      user_id: fromAgentId, type: "task_reassigned_from", channel: "in_app",
-      title: "Task removed from your queue",
-      body: reason ?? "A task was reassigned to another agent.",
-      data: { task_id: taskId, to_agent: toAgentId },
-    });
-    rows.push({
-      user_id: toAgentId, type: "task_reassigned_to", channel: "in_app",
+    if (fromAgentId) {
+      await notifyEvent({
+        event: "task_reassigned",
+        recipients: [fromAgentId],
+        title: "Task removed from your queue",
+        body: reason ?? "A task was reassigned to another agent.",
+        dedupeKey: `reassign_from:${taskId}`,
+        data: { task_id: taskId, to_agent: toAgentId, direction: "from" },
+      });
+    }
+    await notifyEvent({
+      event: "task_assigned",
+      recipients: [toAgentId],
       title: "New task assigned to you",
       body: reason ?? "You have been assigned an orchestration task.",
-      data: { task_id: taskId, from_agent: fromAgentId },
+      dedupeKey: `assign_to:${taskId}`,
+      data: { task_id: taskId, from_agent: fromAgentId, direction: "to" },
     });
-    if (rows.length) await admin.from("notifications").insert(rows);
   }
 
   try {
