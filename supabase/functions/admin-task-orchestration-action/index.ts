@@ -390,6 +390,32 @@ Deno.serve(async (req) => {
           results.push({ task_id: id, ok: !rpcErr, error: rpcErr?.message });
         }
         const succeeded = results.filter(r => r.ok).length;
+        // Notify the assignee once per batch and warn if they crossed capacity.
+        try {
+          const ok = results.filter(r => r.ok).map(r => r.task_id);
+          if (ok.length) {
+            await notifyEvent({
+              event: "task_assigned",
+              recipients: [body.agent_id],
+              title: `${ok.length} task${ok.length === 1 ? "" : "s"} assigned to you`,
+              body: body.reason ?? "New work in your queue.",
+              dedupeKey: `assign:${ok.slice().sort().join(",")}`,
+              data: { task_ids: ok, mode: body.mode ?? "manual" },
+            });
+            if (max > 0 && current + ok.length >= max) {
+              const seniors = await seniorAdmins();
+              await notifyEvent({
+                event: "agent_at_capacity",
+                recipients: [body.agent_id, ...seniors],
+                title: "Agent at capacity",
+                body: `Agent load reached ${current + ok.length}/${max}.`,
+                dedupeKey: `at_capacity:${body.agent_id}:${max}`,
+                dedupeMinutes: 180,
+                data: { agent_id: body.agent_id, current: current + ok.length, max },
+              });
+            }
+          }
+        } catch { /* best effort */ }
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_assign",
           targetType: "system",
