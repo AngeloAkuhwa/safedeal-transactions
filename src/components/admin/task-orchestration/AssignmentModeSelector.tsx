@@ -4,11 +4,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TONE } from "./helpers";
 
 const MODES = [
-  { value: "manual", label: "Manual Assignment", desc: "Senior admin picks the agent for every task" },
-  { value: "round_robin", label: "Round Robin", desc: "Distribute tasks evenly across eligible agents" },
-  { value: "next_available", label: "Next Available", desc: "Pick the least-loaded online agent" },
-  { value: "priority_based", label: "Priority-Based", desc: "Route critical/high to senior pool first" },
-  { value: "self", label: "Assign To Self", desc: "Route new work to the acting senior admin" },
+  { value: "manual",         label: "Manual Assignment", desc: "Senior admin picks the agent for every task" },
+  { value: "round_robin",    label: "Round Robin",       desc: "Distribute tasks evenly across eligible agents" },
+  { value: "least_loaded",   label: "Least Loaded",      desc: "Pick the agent with the most free capacity" },
+  { value: "skill_based",    label: "Skill Based",       desc: "Match tasks to agents that hold required skills" },
+  { value: "priority_based", label: "Priority Based",    desc: "Route critical/high to the senior pool first" },
 ];
 
 export function AssignmentModeSelector({

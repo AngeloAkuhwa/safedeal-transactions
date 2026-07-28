@@ -85,6 +85,67 @@ Deno.serve(async (req) => {
 
   const INELIGIBLE = new Set(["offline", "on_leave", "suspended"]);
 
+  // -------- Notification helper with lightweight dedupe --------
+  // Prevents identical unchanged conditions from re-firing within a window
+  // by scanning the last hour of notifications for a matching dedupe_key.
+  async function notifyEvent(opts: {
+    event: string;
+    recipients: string[];
+    title: string;
+    body: string;
+    dedupeKey?: string;
+    dedupeMinutes?: number;
+    data?: Record<string, unknown>;
+    channel?: string;
+  }) {
+    const recipients = [...new Set(opts.recipients.filter(Boolean))];
+    if (!recipients.length) return;
+    const windowMin = opts.dedupeMinutes ?? 60;
+    const cutoff = new Date(Date.now() - windowMin * 60_000).toISOString();
+    if (opts.dedupeKey) {
+      const { data: recent } = await admin
+        .from("notifications")
+        .select("id, user_id, metadata")
+        .gte("created_at", cutoff)
+        .eq("type", opts.event)
+        .in("user_id", recipients);
+      const dedup = new Set(
+        (recent ?? [])
+          .filter((r: any) => (r.metadata?.dedupe_key ?? null) === opts.dedupeKey)
+          .map((r: any) => r.user_id),
+      );
+      const remaining = recipients.filter((u) => !dedup.has(u));
+      if (!remaining.length) return;
+      const rows = remaining.map((uid) => ({
+        user_id: uid,
+        type: opts.event,
+        channel: opts.channel ?? "in_app",
+        title: opts.title,
+        message: opts.body,
+        metadata: { ...(opts.data ?? {}), dedupe_key: opts.dedupeKey },
+      }));
+      await admin.from("notifications").insert(rows);
+      return;
+    }
+    const rows = recipients.map((uid) => ({
+      user_id: uid,
+      type: opts.event,
+      channel: opts.channel ?? "in_app",
+      title: opts.title,
+      message: opts.body,
+      metadata: opts.data ?? {},
+    }));
+    await admin.from("notifications").insert(rows);
+  }
+
+  async function seniorAdmins(): Promise<string[]> {
+    const { data } = await admin
+      .from("user_roles")
+      .select("user_id")
+      .in("role", ["super_admin", "senior_admin"]);
+    return (data ?? []).map((r: any) => r.user_id);
+  }
+
   async function pickBestAgent(exclude: Set<string> = new Set()): Promise<string | null> {
     const [{ data: cap }, { data: avail }] = await Promise.all([
       admin.from("agent_capacity").select("*"),
@@ -255,20 +316,24 @@ Deno.serve(async (req) => {
 
   // Fire a notification for both sides of a reassignment / move.
   async function notifyReassignment(taskId: string, fromAgentId: string | null, toAgentId: string, reason: string | null) {
-    const rows: any[] = [];
-    if (fromAgentId) rows.push({
-      user_id: fromAgentId, type: "task_reassigned_from", channel: "in_app",
-      title: "Task removed from your queue",
-      body: reason ?? "A task was reassigned to another agent.",
-      data: { task_id: taskId, to_agent: toAgentId },
-    });
-    rows.push({
-      user_id: toAgentId, type: "task_reassigned_to", channel: "in_app",
+    if (fromAgentId) {
+      await notifyEvent({
+        event: "task_reassigned",
+        recipients: [fromAgentId],
+        title: "Task removed from your queue",
+        body: reason ?? "A task was reassigned to another agent.",
+        dedupeKey: `reassign_from:${taskId}`,
+        data: { task_id: taskId, to_agent: toAgentId, direction: "from" },
+      });
+    }
+    await notifyEvent({
+      event: "task_assigned",
+      recipients: [toAgentId],
       title: "New task assigned to you",
       body: reason ?? "You have been assigned an orchestration task.",
-      data: { task_id: taskId, from_agent: fromAgentId },
+      dedupeKey: `assign_to:${taskId}`,
+      data: { task_id: taskId, from_agent: fromAgentId, direction: "to" },
     });
-    if (rows.length) await admin.from("notifications").insert(rows);
   }
 
   try {
@@ -325,6 +390,32 @@ Deno.serve(async (req) => {
           results.push({ task_id: id, ok: !rpcErr, error: rpcErr?.message });
         }
         const succeeded = results.filter(r => r.ok).length;
+        // Notify the assignee once per batch and warn if they crossed capacity.
+        try {
+          const ok = results.filter(r => r.ok).map(r => r.task_id);
+          if (ok.length) {
+            await notifyEvent({
+              event: "task_assigned",
+              recipients: [body.agent_id],
+              title: `${ok.length} task${ok.length === 1 ? "" : "s"} assigned to you`,
+              body: body.reason ?? "New work in your queue.",
+              dedupeKey: `assign:${ok.slice().sort().join(",")}`,
+              data: { task_ids: ok, mode: body.mode ?? "manual" },
+            });
+            if (max > 0 && current + ok.length >= max) {
+              const seniors = await seniorAdmins();
+              await notifyEvent({
+                event: "agent_at_capacity",
+                recipients: [body.agent_id, ...seniors],
+                title: "Agent at capacity",
+                body: `Agent load reached ${current + ok.length}/${max}.`,
+                dedupeKey: `at_capacity:${body.agent_id}:${max}`,
+                dedupeMinutes: 180,
+                data: { agent_id: body.agent_id, current: current + ok.length, max },
+              });
+            }
+          }
+        } catch { /* best effort */ }
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_assign",
           targetType: "system",
@@ -437,16 +528,82 @@ Deno.serve(async (req) => {
       case "escalate": {
         const ids = body.task_ids ?? (body.task_id ? [body.task_id] : []);
         if (!ids.length) return respond({ error: "missing_task_ids" }, 400);
+        if (!body.reason || body.reason.trim().length < 20) {
+          return respond({ error: "escalation_reason_required" }, 400);
+        }
         if (ids.length === 1 && typeof body.expected_version === "number") {
           const v = await checkVersion(ids[0], body.expected_version);
           if (!v.ok) return respond({ error: "version_conflict", current: v.current, expected: body.expected_version }, 409);
         }
-        for (const id of ids) {
-          await admin.rpc("escalate_task", { _task_id: id, _reason: body.reason ?? "escalated", _actor_id: ctx.userId });
+        // Financial / compliance targets restricted to queues that route to
+        // roles holding the necessary permission. When target_queue is set,
+        // verify no task in the batch violates that constraint.
+        const financialQueuePerm: Record<string, string> = {
+          refunds: "refunds.process",
+          escrow: "escrow.release",
+          payouts: "payouts.release",
+          compliance: "compliance.review",
+        };
+        const targetQueue = body.target_queue?.trim();
+        if (targetQueue && financialQueuePerm[targetQueue]) {
+          const { data: tasksBatch } = await admin
+            .from("orchestration_tasks")
+            .select("id, type, required_permissions").in("id", ids);
+          const missing = (tasksBatch ?? []).filter((t: any) => {
+            const req = new Set<string>([...(t.required_permissions ?? [])]);
+            req.add(financialQueuePerm[targetQueue]);
+            return req.size > (t.required_permissions?.length ?? 0);
+          });
+          if (missing.length && !financialTypes.has(String((missing[0] as any).type))) {
+            // Non-financial task cannot land in a financial queue.
+            return respond({
+              error: "target_queue_type_mismatch",
+              tasks: missing.map((m: any) => m.id),
+            }, 409);
+          }
         }
+        for (const id of ids) {
+          await admin.rpc("escalate_task", { _task_id: id, _reason: body.reason, _actor_id: ctx.userId });
+          const patch: Record<string, unknown> = {};
+          if (targetQueue) patch.queue = targetQueue;
+          if (body.target_team) patch.team = body.target_team;
+          if (body.escalate_priority) patch.priority = body.escalate_priority;
+          if (body.requested_reviewer_id) patch.suggested_agent_id = body.requested_reviewer_id;
+          if (Object.keys(patch).length) {
+            await admin.from("orchestration_tasks").update(patch).eq("id", id);
+          }
+          if (body.internal_note?.trim()) {
+            await admin.from("task_comments").insert({
+              task_id: id, author_id: ctx.userId,
+              body: body.internal_note.trim().slice(0, 4000),
+              visibility: "internal",
+            });
+          }
+        }
+        // Fan-out notifications: prior owners + senior admins.
+        const { data: escalated } = await admin
+          .from("orchestration_tasks").select("id, task_code, assigned_agent_id").in("id", ids);
+        const priorOwners = [...new Set((escalated ?? []).map((t: any) => t.assigned_agent_id).filter(Boolean))] as string[];
+        const seniors = await seniorAdmins();
+        await notifyEvent({
+          event: "task_escalated",
+          recipients: [...priorOwners, ...seniors],
+          title: `${ids.length} task${ids.length === 1 ? "" : "s"} escalated`,
+          body: body.reason,
+          dedupeKey: `escalate:${ids.slice().sort().join(",")}`,
+          data: { task_ids: ids, target_queue: targetQueue ?? null, priority: body.escalate_priority ?? null },
+        });
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_escalate",
-          targetType: "system", metadata: { task_ids: ids, reason: body.reason }, mirrorToAuditLogs: true,
+          targetType: "system",
+          metadata: {
+            task_ids: ids, reason: body.reason,
+            target_queue: targetQueue ?? null, target_team: body.target_team ?? null,
+            priority: body.escalate_priority ?? null,
+            requested_reviewer_id: body.requested_reviewer_id ?? null,
+            has_internal_note: !!body.internal_note?.trim(),
+          },
+          mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
         return respond({ ok: true, count: ids.length });
@@ -527,10 +684,15 @@ Deno.serve(async (req) => {
         const errs = [
           bounded("max_active_per_agent", 1, 200),
           bounded("max_overdue_before_skip", 0, 100),
+          bounded("stale_after_minutes", 5, 1440),
+          bounded("offline_reassign_after_minutes", 1, 720),
         ].filter(Boolean) as string[];
-        const allowedModes = ["round_robin","least_loaded","priority_weighted","skill_match","manual_only"];
+        const allowedModes = ["manual","round_robin","least_loaded","skill_based","priority_based"];
         if (r.mode !== undefined && !allowedModes.includes(String(r.mode))) {
           errs.push(`mode must be one of ${allowedModes.join(", ")}`);
+        }
+        if (!body.reason || body.reason.trim().length < 20) {
+          errs.push("reason must be at least 20 characters");
         }
         if (errs.length) return respond({ error: "invalid_rules", details: errs }, 400);
         const { data: existing } = await admin.from("assignment_rules").select("id, config").eq("scope","global").maybeSingle();
@@ -544,25 +706,114 @@ Deno.serve(async (req) => {
         const { data: versions } = await admin.from("assignment_rule_versions").select("version").eq("rule_id", saved.id).order("version",{ ascending: false }).limit(1);
         const nextVer = ((versions?.[0]?.version as number) ?? 0) + 1;
         await admin.from("assignment_rule_versions").insert({
-          rule_id: saved.id, version: nextVer, config: nextConfig, actor_id: ctx.userId, note: body.reason ?? null,
+          rule_id: saved.id, version: nextVer, config: nextConfig, actor_id: ctx.userId, note: body.reason,
         });
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_save_rules",
-          targetType: "setting", before, after: nextConfig, mirrorToAuditLogs: true,
+          targetType: "setting", before, after: nextConfig,
+          metadata: { reason: body.reason, version: nextVer },
+          mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
         return respond({ ok: true, rules: saved, version: nextVer });
       }
       case "test_rules": {
-        const { data: pending } = await admin.from("orchestration_tasks").select("id").eq("status","unassigned").limit(50);
-        const { data: cap } = await admin.from("agent_capacity").select("*");
-        const { data: avail } = await admin.from("agent_availability").select("*");
+        // Real dry-run against the current queue using the DRAFT rules payload
+        // (or the stored rules when the caller sends nothing). Nothing is
+        // persisted or assigned.
+        const draftRules = (body.rules ?? {}) as Record<string, unknown>;
+        const { data: savedRules } = await admin
+          .from("assignment_rules").select("config").eq("scope","global").maybeSingle();
+        const effective: any = { ...(savedRules?.config ?? {}), ...draftRules };
+        const mode = String(effective.mode ?? "round_robin");
+        const [{ data: pending }, { data: cap }, { data: avail }, { data: skillRows }] = await Promise.all([
+          admin.from("orchestration_tasks")
+            .select("id, task_code, priority, required_permissions, type")
+            .eq("status","unassigned")
+            .order("priority",{ ascending: false })
+            .order("created_at",{ ascending: true }).limit(50),
+          admin.from("agent_capacity").select("*"),
+          admin.from("agent_availability").select("*"),
+          admin.from("agent_skills").select("user_id, permission_key"),
+        ]);
         const availMap = new Map((avail ?? []).map((a: any) => [a.user_id, a.status]));
-        const seats = (cap ?? [])
-          .filter((c: any) => (availMap.get(c.user_id) ?? "offline") !== "offline")
-          .reduce((sum: number, c: any) => sum + Math.max(0, c.max_active_tasks - c.current_active), 0);
-        const wouldAssign = Math.min(seats, pending?.length ?? 0);
-        return respond({ ok: true, would_assign: wouldAssign, pending: pending?.length ?? 0, seats });
+        const skillsByAgent = new Map<string, Set<string>>();
+        (skillRows ?? []).forEach((s: any) => {
+          const set = skillsByAgent.get(s.user_id) ?? new Set<string>();
+          set.add(s.permission_key); skillsByAgent.set(s.user_id, set);
+        });
+        const maxPerAgent = Number(effective.max_active_per_agent) || Infinity;
+        const maxOverdue = Number(effective.max_overdue_before_skip);
+        const onlineOnly = !!effective.online_only;
+        const skipCap = effective.skip_at_capacity !== false;
+        const seats = new Map<string, number>();
+        (cap ?? []).forEach((c: any) => {
+          const status = availMap.get(c.user_id) ?? "offline";
+          if (INELIGIBLE.has(status)) return;
+          if (onlineOnly && status === "offline") return;
+          if (!Number.isNaN(maxOverdue) && (c.overdue_count ?? 0) >= maxOverdue) return;
+          const cap0 = Math.min(c.max_active_tasks ?? 0, maxPerAgent);
+          const free = Math.max(0, cap0 - (c.current_active ?? 0));
+          seats.set(c.user_id, free);
+        });
+        const projected = new Map((cap ?? []).map((c: any) => [c.user_id, c.current_active ?? 0]));
+        const sample: Array<{ task_id: string; task_code: string; priority: string; proposed_agent: string | null; rule_used: string; reason?: string }> = [];
+        const unassigned: Array<{ task_id: string; task_code: string; reason: string }> = [];
+        for (const t of pending ?? []) {
+          const row: any = t;
+          const req = new Set<string>((row.required_permissions ?? []) as string[]);
+          const eligible = [...seats.entries()]
+            .filter(([, s]) => (skipCap ? s > 0 : true))
+            .filter(([aid]) => {
+              if (req.size === 0) return true;
+              const held = skillsByAgent.get(aid) ?? new Set();
+              for (const p of req) if (!held.has(p)) return false;
+              return true;
+            });
+          let ruleUsed = mode;
+          let chosen: string | null = null;
+          if (eligible.length === 0) {
+            unassigned.push({ task_id: row.id, task_code: row.task_code, reason: req.size > 0 ? "no_eligible_agent_with_skill" : "no_available_seats" });
+            continue;
+          }
+          if (mode === "priority_based" && (row.priority === "critical" || row.priority === "high")) {
+            ruleUsed = "priority_to_senior";
+            chosen = eligible.sort((a, b) => b[1] - a[1])[0][0];
+          } else if (mode === "skill_based") {
+            chosen = eligible.sort((a, b) => b[1] - a[1])[0][0];
+          } else if (mode === "least_loaded") {
+            chosen = eligible.sort((a, b) => b[1] - a[1])[0][0];
+          } else {
+            // round_robin fallback: pick agent with most free seats (approximation)
+            chosen = eligible.sort((a, b) => b[1] - a[1])[0][0];
+          }
+          if (chosen) {
+            seats.set(chosen, (seats.get(chosen) ?? 0) - 1);
+            projected.set(chosen, (projected.get(chosen) ?? 0) + 1);
+            sample.push({ task_id: row.id, task_code: row.task_code, priority: row.priority, proposed_agent: chosen, rule_used: ruleUsed });
+          }
+        }
+        const capacityImpact = (cap ?? [])
+          .filter((c: any) => !INELIGIBLE.has(availMap.get(c.user_id) ?? "offline"))
+          .map((c: any) => ({
+            agent_id: c.user_id,
+            current: c.current_active ?? 0,
+            projected: projected.get(c.user_id) ?? c.current_active ?? 0,
+            max: c.max_active_tasks ?? 0,
+          }));
+        const perAgent = sample.length && capacityImpact.length
+          ? Math.round((sample.length / capacityImpact.length) * 10) / 10 : 0;
+        return respond({
+          ok: true, mode,
+          pending: pending?.length ?? 0,
+          would_assign: sample.length,
+          sample, unassigned,
+          capacity_impact: capacityImpact,
+          distribution_summary: {
+            mode, assigned: sample.length,
+            unassigned: unassigned.length, per_agent_average: perAgent,
+          },
+        });
       }
       case "preview_auto_assign": {
         const { data: rules } = await admin.from("assignment_rules").select("config").eq("scope","global").maybeSingle();
@@ -729,14 +980,27 @@ Deno.serve(async (req) => {
         return respond({ ok: true });
       }
       case "export_queue": {
-        const scope = body.scope ?? "queue";
+        // task_orchestration.export gate is already applied via permMap.
+        // PII / financial columns require additional data.export.* permissions.
+        const scope = body.export_scope ?? body.scope ?? "queue";
+        const canPii = ctx.hasPermission?.("data.export.pii") ?? false;
+        const canFin = ctx.hasPermission?.("data.export.financial") ?? false;
+        const wantPii = !!body.include_pii && canPii;
+        const wantFin = !!body.include_financial && canFin;
+        const mask = (want: boolean, value: unknown) => (want ? value : "***");
         let rows: Record<string, unknown>[] = [];
         let filename = "task-orchestration";
         if (scope === "queue") {
           const { data } = await admin.from("orchestration_tasks")
-            .select("task_code,type,priority,status,stage,amount,currency,created_at,dispute_id,transaction_id,assigned_agent_id,sla_due_at")
+            .select("task_code,type,priority,status,stage,amount,currency,created_at,dispute_id,transaction_id,assigned_agent_id,sla_due_at,buyer_id,seller_id")
             .eq("status","unassigned").order("created_at",{ ascending: true }).limit(5000);
-          rows = data ?? [];
+          rows = (data ?? []).map((r: any) => ({
+            task_code: r.task_code, type: r.type, priority: r.priority, status: r.status, stage: r.stage,
+            amount: mask(wantFin, r.amount), currency: mask(wantFin, r.currency),
+            created_at: r.created_at, dispute_id: r.dispute_id, transaction_id: r.transaction_id,
+            assigned_agent_id: r.assigned_agent_id, sla_due_at: r.sla_due_at,
+            buyer_id: mask(wantPii, r.buyer_id), seller_id: mask(wantPii, r.seller_id),
+          }));
           filename = "task-queue";
         } else if (scope === "live") {
           const { data } = await admin.from("orchestration_tasks")
@@ -745,19 +1009,43 @@ Deno.serve(async (req) => {
             .order("updated_at",{ ascending: false }).limit(5000);
           rows = data ?? [];
           filename = "task-live";
-        } else if (scope === "roster") {
+        } else if (scope === "roster" || scope === "agent_load") {
           const { data: cap } = await admin.from("agent_capacity").select("*");
           const { data: avail } = await admin.from("agent_availability").select("*");
           const availMap = new Map((avail ?? []).map((a: any) => [a.user_id, a]));
           rows = (cap ?? []).map((c: any) => {
             const a: any = availMap.get(c.user_id) ?? {};
             return {
-              user_id: c.user_id, status: a.status ?? "offline", last_heartbeat: a.last_heartbeat ?? null,
+              user_id: mask(wantPii, c.user_id), status: a.status ?? "offline", last_heartbeat: a.last_heartbeat ?? null,
               current_active: c.current_active, max_active_tasks: c.max_active_tasks,
               overdue_count: c.overdue_count, resolved_today: c.resolved_today,
             };
           });
-          filename = "task-roster";
+          filename = scope === "agent_load" ? "task-agent-load" : "task-roster";
+        } else if (scope === "assignment_history") {
+          const { data } = await admin.from("task_assignment_history")
+            .select("task_id, from_agent_id, to_agent_id, mode, reason, actor_id, created_at")
+            .order("created_at", { ascending: false }).limit(5000);
+          rows = (data ?? []).map((r: any) => ({
+            task_id: r.task_id,
+            from_agent_id: mask(wantPii, r.from_agent_id),
+            to_agent_id: mask(wantPii, r.to_agent_id),
+            mode: r.mode, reason: r.reason,
+            actor_id: mask(wantPii, r.actor_id),
+            created_at: r.created_at,
+          }));
+          filename = "task-assignment-history";
+        } else if (scope === "automation_rules") {
+          const { data: rules } = await admin.from("assignment_rules")
+            .select("scope, mode, active, config, updated_at, updated_by");
+          const { data: versions } = await admin.from("assignment_rule_versions")
+            .select("rule_id, version, actor_id, note, created_at")
+            .order("created_at", { ascending: false }).limit(500);
+          rows = [
+            ...(rules ?? []).map((r: any) => ({ record: "rule", scope: r.scope, mode: r.mode, active: r.active, config: r.config, updated_at: r.updated_at, updated_by: mask(wantPii, r.updated_by) })),
+            ...(versions ?? []).map((v: any) => ({ record: "version", rule_id: v.rule_id, version: v.version, actor_id: mask(wantPii, v.actor_id), note: v.note, created_at: v.created_at })),
+          ];
+          filename = "task-automation-rules";
         }
         const headers = rows.length ? Object.keys(rows[0]) : [];
         const escape = (v: unknown) => {
@@ -768,7 +1056,9 @@ Deno.serve(async (req) => {
         const csv = [headers.join(","), ...rows.map(r => headers.map(h => escape((r as any)[h])).join(","))].join("\n");
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_export",
-          targetType: "system", metadata: { scope, rows: rows.length }, mirrorToAuditLogs: true,
+          targetType: "system",
+          metadata: { scope, rows: rows.length, include_pii: wantPii, include_financial: wantFin },
+          mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
         return respond({ ok: true, filename: `${filename}-${new Date().toISOString().slice(0,10)}.csv`, csv, rows: rows.length });
