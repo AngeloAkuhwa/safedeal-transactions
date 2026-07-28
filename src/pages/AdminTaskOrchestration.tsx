@@ -11,8 +11,11 @@ import {
   LiveTaskProgression,
   ProductivityInsights,
   AssignmentRulesPanel,
+  ReviewRulesDrawer,
+  TestConfigurationDialog,
+  ExportScopePopover,
   AssignTaskDrawer,
-  EscalateTaskDialog,
+  EscalateTaskDrawer,
   AgentDetailsDrawer,
   TaskDetailsDrawer,
   AutoAssignPreviewDrawer,
@@ -22,18 +25,22 @@ import {
   LoadingSkeleton,
   ErrorState,
 } from "@/components/admin/task-orchestration";
+import type { EscalatePayload } from "@/components/admin/task-orchestration";
 import type { QueueFilters } from "@/components/admin/task-orchestration";
 import { DEFAULT_QUEUE_FILTERS } from "@/components/admin/task-orchestration/TaskQueueFilters";
 import {
   fetchOrchestrationOverview,
   runOrchestrationAction,
   exportOrchestrationCsv,
+  exportOrchestrationReport,
+  testRules,
   type OrchestrationOverview,
   type UnassignedTask,
   type AgentRosterEntry,
   type LiveTask,
   type AssignmentRulesConfig,
   type BulkAssignRowResult,
+  type TestConfigResult,
 } from "@/services/task-orchestration.service";
 import type {
   AutoAssignPlanRow,
@@ -65,6 +72,17 @@ export default function AdminTaskOrchestration() {
   const [savingRules, setSavingRules] = useState(false);
   const [testingRules, setTestingRules] = useState(false);
   const [mode, setMode] = useState("round_robin");
+  const [reviewDraft, setReviewDraft] = useState<AssignmentRulesConfig | null>(null);
+  const [reviewImpact, setReviewImpact] = useState<{ pending: number; would_assign: number; unmatched: number } | null>(null);
+  const [testResult, setTestResult] = useState<TestConfigResult | null>(null);
+  const [testOpen, setTestOpen] = useState(false);
+  const { canPii, canFinancial } = useMemo(() => {
+    const has = (k: string) => (perms as any).has?.(k) ?? false;
+    return {
+      canPii: has("data.export.pii") || (perms as any).isSuper,
+      canFinancial: has("data.export.financial") || (perms as any).isSuper,
+    };
+  }, [perms]);
   const [autoPreview, setAutoPreview] = useState<{
     pending: number;
     plan: AutoAssignPlanRow[];
@@ -251,13 +269,33 @@ export default function AdminTaskOrchestration() {
     }));
   };
   const handleEscalate = () => setEscalateOpen(true);
-  const handleConfirmEscalate = (reason: string) => runAction("escalate", async () => {
-    await runOrchestrationAction({ action: "escalate", task_ids: Array.from(selectedIds), reason });
+  const handleConfirmEscalate = (p: EscalatePayload) => runAction("escalate", async () => {
+    await runOrchestrationAction({
+      action: "escalate",
+      task_ids: Array.from(selectedIds),
+      reason: p.reason,
+      target_queue: p.target_queue,
+      target_team: p.target_team,
+      escalate_priority: p.escalate_priority,
+      internal_note: p.internal_note,
+      requested_reviewer_id: p.requested_reviewer_id,
+    });
     setEscalateOpen(false);
   });
   const handleBulkExport = async () => {
     try { await exportOrchestrationCsv("queue"); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Export failed"); }
+  };
+
+  const handleExportReport = async (opts: { scope: any; includePii: boolean; includeFinancial: boolean }) => {
+    try {
+      await exportOrchestrationReport({
+        scope: opts.scope,
+        includePii: opts.includePii,
+        includeFinancial: opts.includeFinancial,
+      });
+      toast.success("Export ready");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Export failed"); }
   };
 
   const handleConfirmReassign = async (params: { agentId: string; reason: string; note: string; override: boolean }) => {
@@ -274,11 +312,27 @@ export default function AdminTaskOrchestration() {
     setReassignTarget(null);
   };
 
-  const handleSaveRules = async (next: AssignmentRulesConfig) => {
+  const openReview = async (draft: AssignmentRulesConfig) => {
+    setReviewDraft({ ...draft, mode });
+    setReviewImpact(null);
+    try {
+      const preview = await runOrchestrationAction<{ pending: number; would_assign: number; unmatched?: any[] }>({
+        action: "preview_auto_assign", mode,
+      });
+      setReviewImpact({
+        pending: preview.pending,
+        would_assign: preview.would_assign,
+        unmatched: preview.unmatched?.length ?? 0,
+      });
+    } catch { /* impact is optional */ }
+  };
+  const handleConfirmSaveRules = async (reason: string) => {
+    if (!reviewDraft) return;
     try {
       setSavingRules(true);
-      await runOrchestrationAction({ action: "save_rules", rules: { ...next, mode } });
+      await runOrchestrationAction({ action: "save_rules", rules: { ...reviewDraft, mode }, reason });
       toast.success("Assignment rules saved");
+      setReviewDraft(null);
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Save failed");
@@ -287,11 +341,12 @@ export default function AdminTaskOrchestration() {
   const handleTestRules = async () => {
     try {
       setTestingRules(true);
-      const res = await runOrchestrationAction<{ would_assign: number; pending: number; seats: number }>(
-        { action: "test_rules" });
-      toast.success(`Would assign ${res.would_assign} of ${res.pending} pending (${res.seats} open seats)`);
+      setTestOpen(true);
+      const res = await testRules({ mode });
+      setTestResult(res);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Test failed");
+      setTestOpen(false);
     } finally { setTestingRules(false); }
   };
 
@@ -365,9 +420,18 @@ export default function AdminTaskOrchestration() {
 
             <ProductivityInsights insights={data.insights} />
 
+            <div className="flex justify-end">
+              <ExportScopePopover
+                onExport={handleExportReport}
+                canPii={canPii}
+                canFinancial={canFinancial}
+                disabled={!perms.canExport}
+              />
+            </div>
+
             <AssignmentRulesPanel
               config={data.rules?.config ?? {}}
-              onSave={handleSaveRules}
+              onReview={openReview}
               onTest={handleTestRules}
               saving={savingRules}
               testing={testingRules}
@@ -386,10 +450,21 @@ export default function AdminTaskOrchestration() {
         onConfirm={handleConfirmAssign}
         submitting={busy === "assign"}
       />
-      <EscalateTaskDialog
+      <EscalateTaskDrawer
         open={escalateOpen}
         onOpenChange={setEscalateOpen}
         count={selectedIds.size}
+        roster={data?.roster ?? []}
+        currentOwners={
+          data
+            ? Array.from(new Set(
+                data.unassigned_queue
+                  .filter(t => selectedIds.has(t.id))
+                  .map(t => (t as any).assigned_agent_id)
+                  .filter(Boolean),
+              )) as string[]
+            : []
+        }
         onConfirm={handleConfirmEscalate}
         submitting={busy === "escalate"}
       />
@@ -400,6 +475,27 @@ export default function AdminTaskOrchestration() {
         onReassign={a => {
           setAgentDetail(null);
           navigate(`/admin/task-orchestration?tab=queue&assignee=${a.user_id}&view=reassign`);
+        }}
+      />
+      <ReviewRulesDrawer
+        open={!!reviewDraft}
+        onOpenChange={(o) => { if (!o) setReviewDraft(null); }}
+        current={data?.rules?.config ?? {}}
+        draft={reviewDraft}
+        impact={reviewImpact}
+        onConfirm={handleConfirmSaveRules}
+        submitting={savingRules}
+      />
+      <TestConfigurationDialog
+        open={testOpen}
+        onOpenChange={(o) => { setTestOpen(o); if (!o) setTestResult(null); }}
+        result={testResult}
+        running={testingRules}
+        roster={data?.roster ?? []}
+        onBackToEdit={() => { setTestOpen(false); setTestResult(null); }}
+        onSave={() => {
+          setTestOpen(false);
+          if (data?.rules?.config) openReview({ ...data.rules.config, mode });
         }}
       />
       <TaskDetailsDrawer
