@@ -954,14 +954,27 @@ Deno.serve(async (req) => {
         return respond({ ok: true });
       }
       case "export_queue": {
-        const scope = body.scope ?? "queue";
+        // task_orchestration.export gate is already applied via permMap.
+        // PII / financial columns require additional data.export.* permissions.
+        const scope = body.export_scope ?? body.scope ?? "queue";
+        const canPii = ctx.hasPermission?.("data.export.pii") ?? false;
+        const canFin = ctx.hasPermission?.("data.export.financial") ?? false;
+        const wantPii = !!body.include_pii && canPii;
+        const wantFin = !!body.include_financial && canFin;
+        const mask = (want: boolean, value: unknown) => (want ? value : "***");
         let rows: Record<string, unknown>[] = [];
         let filename = "task-orchestration";
         if (scope === "queue") {
           const { data } = await admin.from("orchestration_tasks")
-            .select("task_code,type,priority,status,stage,amount,currency,created_at,dispute_id,transaction_id,assigned_agent_id,sla_due_at")
+            .select("task_code,type,priority,status,stage,amount,currency,created_at,dispute_id,transaction_id,assigned_agent_id,sla_due_at,buyer_id,seller_id")
             .eq("status","unassigned").order("created_at",{ ascending: true }).limit(5000);
-          rows = data ?? [];
+          rows = (data ?? []).map((r: any) => ({
+            task_code: r.task_code, type: r.type, priority: r.priority, status: r.status, stage: r.stage,
+            amount: mask(wantFin, r.amount), currency: mask(wantFin, r.currency),
+            created_at: r.created_at, dispute_id: r.dispute_id, transaction_id: r.transaction_id,
+            assigned_agent_id: r.assigned_agent_id, sla_due_at: r.sla_due_at,
+            buyer_id: mask(wantPii, r.buyer_id), seller_id: mask(wantPii, r.seller_id),
+          }));
           filename = "task-queue";
         } else if (scope === "live") {
           const { data } = await admin.from("orchestration_tasks")
@@ -970,19 +983,43 @@ Deno.serve(async (req) => {
             .order("updated_at",{ ascending: false }).limit(5000);
           rows = data ?? [];
           filename = "task-live";
-        } else if (scope === "roster") {
+        } else if (scope === "roster" || scope === "agent_load") {
           const { data: cap } = await admin.from("agent_capacity").select("*");
           const { data: avail } = await admin.from("agent_availability").select("*");
           const availMap = new Map((avail ?? []).map((a: any) => [a.user_id, a]));
           rows = (cap ?? []).map((c: any) => {
             const a: any = availMap.get(c.user_id) ?? {};
             return {
-              user_id: c.user_id, status: a.status ?? "offline", last_heartbeat: a.last_heartbeat ?? null,
+              user_id: mask(wantPii, c.user_id), status: a.status ?? "offline", last_heartbeat: a.last_heartbeat ?? null,
               current_active: c.current_active, max_active_tasks: c.max_active_tasks,
               overdue_count: c.overdue_count, resolved_today: c.resolved_today,
             };
           });
-          filename = "task-roster";
+          filename = scope === "agent_load" ? "task-agent-load" : "task-roster";
+        } else if (scope === "assignment_history") {
+          const { data } = await admin.from("task_assignment_history")
+            .select("task_id, from_agent_id, to_agent_id, mode, reason, actor_id, created_at")
+            .order("created_at", { ascending: false }).limit(5000);
+          rows = (data ?? []).map((r: any) => ({
+            task_id: r.task_id,
+            from_agent_id: mask(wantPii, r.from_agent_id),
+            to_agent_id: mask(wantPii, r.to_agent_id),
+            mode: r.mode, reason: r.reason,
+            actor_id: mask(wantPii, r.actor_id),
+            created_at: r.created_at,
+          }));
+          filename = "task-assignment-history";
+        } else if (scope === "automation_rules") {
+          const { data: rules } = await admin.from("assignment_rules")
+            .select("scope, mode, active, config, updated_at, updated_by");
+          const { data: versions } = await admin.from("assignment_rule_versions")
+            .select("rule_id, version, actor_id, note, created_at")
+            .order("created_at", { ascending: false }).limit(500);
+          rows = [
+            ...(rules ?? []).map((r: any) => ({ record: "rule", scope: r.scope, mode: r.mode, active: r.active, config: r.config, updated_at: r.updated_at, updated_by: mask(wantPii, r.updated_by) })),
+            ...(versions ?? []).map((v: any) => ({ record: "version", rule_id: v.rule_id, version: v.version, actor_id: mask(wantPii, v.actor_id), note: v.note, created_at: v.created_at })),
+          ];
+          filename = "task-automation-rules";
         }
         const headers = rows.length ? Object.keys(rows[0]) : [];
         const escape = (v: unknown) => {
@@ -993,7 +1030,9 @@ Deno.serve(async (req) => {
         const csv = [headers.join(","), ...rows.map(r => headers.map(h => escape((r as any)[h])).join(","))].join("\n");
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_export",
-          targetType: "system", metadata: { scope, rows: rows.length }, mirrorToAuditLogs: true,
+          targetType: "system",
+          metadata: { scope, rows: rows.length, include_pii: wantPii, include_financial: wantFin },
+          mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
         return respond({ ok: true, filename: `${filename}-${new Date().toISOString().slice(0,10)}.csv`, csv, rows: rows.length });
