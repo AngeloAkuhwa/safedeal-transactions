@@ -425,7 +425,16 @@ export default function AdminTaskOrchestration() {
 
         {data && (
           <>
-            <OrchestrationSummaryCards kpis={data.kpis} />
+            <OrchestrationSummaryCards
+              kpis={data.kpis}
+              onOpenUnassigned={openUnassigned}
+              onOpenOverdue={openOverdue}
+              onOpenAtCapacity={openAtCapacity}
+              onOpenRoster={openRoster}
+              onOpenAssignedToday={openAssignedToday}
+              teamLabel={queueFilters.team || "All"}
+              rangeLabel="last 24h"
+            />
 
             <AssignmentControlPanel
               mode={mode}
@@ -443,7 +452,7 @@ export default function AdminTaskOrchestration() {
             />
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2" id="orchestration-queue">
                 <UnassignedTaskQueue
                   tasks={data.unassigned_queue}
                   page={data.unassigned_page}
@@ -459,16 +468,16 @@ export default function AdminTaskOrchestration() {
                   roster={data.roster}
                 />
               </div>
-              <AgentRoster roster={data.roster} onSelect={setAgentDetail} />
+              <div id="orchestration-roster"><AgentRoster roster={data.roster} onSelect={setAgentDetail} /></div>
             </div>
 
-            <LiveTaskProgression
+            <div id="orchestration-live"><LiveTaskProgression
               tasks={data.live_progression}
               roster={data.roster}
               onView={(t: LiveTask) => toast.message(`Task #${t.task_code} · ${t.status}`)}
               canReassign={perms.canReassign}
               onReassign={(t) => setReassignTarget(t)}
-            />
+            /></div>
 
             <ProductivityInsights insights={data.insights} />
 
@@ -489,6 +498,9 @@ export default function AdminTaskOrchestration() {
               testing={testingRules}
               lastSavedAt={data.rules?.updated_at ?? null}
               canManage={perms.canManageRules}
+              onRunAutoEscalate={() => runEnforcement("escalate")}
+              onRunAutoReassign={() => runEnforcement("reassign")}
+              runningEnforcement={runningEnforcement}
             />
           </>
         )}
@@ -531,12 +543,14 @@ export default function AdminTaskOrchestration() {
       />
       <ReviewRulesDrawer
         open={!!reviewDraft}
-        onOpenChange={(o) => { if (!o) setReviewDraft(null); }}
+        onOpenChange={(o) => { if (!o) { setReviewDraft(null); setReviewError(null); } }}
         current={data?.rules?.config ?? {}}
         draft={reviewDraft}
         impact={reviewImpact}
         onConfirm={handleConfirmSaveRules}
         submitting={savingRules}
+        requiresApproval={reviewRequiresApproval}
+        serverError={reviewError}
       />
       <TestConfigurationDialog
         open={testOpen}
