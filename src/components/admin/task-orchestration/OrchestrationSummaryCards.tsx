@@ -23,12 +23,16 @@ const DELTA_COLOR: Record<NonNullable<Card["deltaTone"]>, string> = {
 
 export function OrchestrationSummaryCards({
   kpis, onOpenUnassigned, onOpenOverdue, onOpenAtCapacity, onOpenRoster,
+  onOpenAssignedToday, teamLabel = "All", rangeLabel = "last 24h",
 }: {
   kpis: OrchestrationOverview["kpis"];
   onOpenUnassigned?: () => void;
   onOpenOverdue?: () => void;
   onOpenAtCapacity?: () => void;
   onOpenRoster?: () => void;
+  onOpenAssignedToday?: () => void;
+  teamLabel?: string;
+  rangeLabel?: string;
 }) {
   const cards: Card[] = [
     {
@@ -52,7 +56,7 @@ export function OrchestrationSummaryCards({
       key: "today", label: "Assigned Today", value: kpis.assigned_today,
       delta: kpis.assigned_delta_pct == null ? "no comparison" : `${kpis.assigned_delta_pct >= 0 ? "+" : ""}${kpis.assigned_delta_pct}% vs yesterday`,
       deltaTone: (kpis.assigned_delta_pct ?? 0) >= 0 ? "success" : "danger",
-      icon: ArrowUpRight, tone: "info",
+      icon: ArrowUpRight, tone: "info", onClick: onOpenAssignedToday,
     },
     {
       key: "overdue", label: "Overdue Tasks", value: kpis.overdue,
@@ -68,6 +72,10 @@ export function OrchestrationSummaryCards({
   ];
 
   return (
+    <div className="space-y-2">
+    <div className="text-[11px] text-muted-foreground">
+      Range: <span className="text-foreground">{rangeLabel}</span> · Team: <span className="text-foreground">{teamLabel}</span>
+    </div>
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
       {cards.map((c) => (
         <button
@@ -92,6 +100,7 @@ export function OrchestrationSummaryCards({
           </div>
         </button>
       ))}
+    </div>
     </div>
   );
 }

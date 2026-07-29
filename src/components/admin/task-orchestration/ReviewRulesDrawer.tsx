@@ -19,6 +19,7 @@ function fmt(v: unknown): string {
 
 export function ReviewRulesDrawer({
   open, onOpenChange, current, draft, impact, onConfirm, submitting,
+  requiresApproval: requiresApprovalProp, serverError,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -27,6 +28,8 @@ export function ReviewRulesDrawer({
   impact: { pending: number; would_assign: number; unmatched: number } | null;
   onConfirm: (reason: string) => void;
   submitting: boolean;
+  requiresApproval?: boolean;
+  serverError?: string | null;
 }) {
   const [reason, setReason] = useState("");
   useEffect(() => { if (open) setReason(""); }, [open]);
@@ -48,7 +51,9 @@ export function ReviewRulesDrawer({
     }
     return w;
   }, [current, draft]);
-  const requiresApproval = diffs.includes("mode") || (draft?.super_admin_self_assign && !current?.super_admin_self_assign);
+  const requiresApproval = requiresApprovalProp ?? (
+    diffs.includes("mode") || (draft?.super_admin_self_assign && !current?.super_admin_self_assign)
+  );
   const short = reason.trim().length < 20;
 
   const affectedQueues = [draft?.stale_escalation_queue, draft?.senior_pool_queue].filter(Boolean) as string[];
@@ -122,6 +127,12 @@ export function ReviewRulesDrawer({
             </div>
           )}
 
+          {serverError && (
+            <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-300">
+              {serverError}
+            </div>
+          )}
+
           <section>
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Reason for change (required)
@@ -138,7 +149,8 @@ export function ReviewRulesDrawer({
         <SheetFooter className="mt-6">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Back to Edit</Button>
           <Button onClick={() => onConfirm(reason)} disabled={submitting || short || diffs.length === 0}>
-            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save Rules
+            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {requiresApproval ? "Submit for approval" : "Save Rules"}
           </Button>
         </SheetFooter>
       </SheetContent>
