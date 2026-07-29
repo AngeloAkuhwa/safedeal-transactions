@@ -19,7 +19,8 @@ type Body = {
     | "task_detail" | "export_queue"
     | "start" | "update_stage" | "add_internal_note"
     | "request_info" | "request_evidence"
-    | "submit_resolution" | "close";
+    | "submit_resolution" | "close"
+    | "auto_escalate_stale_tasks" | "auto_reassign_offline_agents";
   task_id?: string;
   task_ids?: string[];
   agent_id?: string;
@@ -37,6 +38,16 @@ type Body = {
   exclude_move_ids?: string[];
   override_capacity?: boolean;
   scope?: "queue" | "live" | "roster";
+  export_scope?: "queue" | "live" | "assignment_history" | "agent_load" | "automation_rules";
+  include_pii?: boolean;
+  include_financial?: boolean;
+  queue_filters?: Record<string, unknown>;
+  queue_scope?: string;
+  target_queue?: string;
+  target_team?: string;
+  escalate_priority?: "high" | "critical";
+  internal_note?: string;
+  requested_reviewer_id?: string;
 };
 
 Deno.serve(async (req) => {
@@ -67,6 +78,8 @@ Deno.serve(async (req) => {
     request_evidence: "task_orchestration.view",
     submit_resolution: "task_orchestration.view",
     close: "task_orchestration.view",
+    auto_escalate_stale_tasks: "task_orchestration.manage_rules",
+    auto_reassign_offline_agents: "task_orchestration.manage_rules",
   };
   const permission = permMap[body.action] ?? "task_orchestration.view";
 
