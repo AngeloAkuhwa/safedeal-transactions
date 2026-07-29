@@ -173,7 +173,8 @@ export interface OrchestrationActionPayload {
     | "task_detail" | "export_queue"
     | "start" | "update_stage" | "add_internal_note"
     | "request_info" | "request_evidence"
-    | "submit_resolution" | "close";
+    | "submit_resolution" | "close"
+    | "auto_escalate_stale_tasks" | "auto_reassign_offline_agents";
   task_id?: string;
   task_ids?: string[];
   agent_id?: string;
@@ -192,6 +193,7 @@ export interface OrchestrationActionPayload {
   override_capacity?: boolean;
   scope?: "queue" | "live" | "roster";
   queue_filters?: QueueFiltersPayload;
+  queue_scope?: string;
   // Escalate drawer extras
   target_queue?: string;
   target_team?: string;
