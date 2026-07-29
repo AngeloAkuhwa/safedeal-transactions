@@ -708,11 +708,21 @@ Deno.serve(async (req) => {
           errs.push("reason must be at least 20 characters");
         }
         if (errs.length) return respond({ error: "invalid_rules", details: errs }, 400);
-        const { data: existing } = await admin.from("assignment_rules").select("id, config").eq("scope","global").maybeSingle();
+        const scopeKey = String(body.queue_scope ?? r.queue_scope ?? "global").trim() || "global";
+        const { data: existing } = await admin.from("assignment_rules").select("id, config").eq("scope", scopeKey).maybeSingle();
         const before = existing?.config ?? null;
         const nextConfig = { ...(before as object ?? {}), ...body.rules };
+        // Approval-required signals: mode change, cap decrease, self-assign enable,
+        // fallback set to leave-unassigned.
+        const beforeObj = (before as any) ?? {};
+        const requiresApproval = (
+          (beforeObj.mode ?? null) !== ((nextConfig as any).mode ?? null) ||
+          (Number((nextConfig as any).max_active_per_agent ?? Infinity) < Number(beforeObj.max_active_per_agent ?? 0)) ||
+          (!!(nextConfig as any).super_admin_self_assign && !beforeObj.super_admin_self_assign) ||
+          ((nextConfig as any).fallback_target === "leave_unassigned" && beforeObj.fallback_target !== "leave_unassigned")
+        );
         const { data: saved, error: saveErr } = await admin.from("assignment_rules")
-          .upsert({ scope: "global", mode: (nextConfig as any).mode ?? "round_robin", config: nextConfig, updated_by: ctx.userId },
+          .upsert({ scope: scopeKey, mode: (nextConfig as any).mode ?? "round_robin", config: nextConfig, updated_by: ctx.userId },
                   { onConflict: "scope" })
           .select().single();
         if (saveErr) return respond({ error: "save_failed", detail: saveErr.message }, 500);
@@ -724,11 +734,11 @@ Deno.serve(async (req) => {
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_save_rules",
           targetType: "setting", before, after: nextConfig,
-          metadata: { reason: body.reason, version: nextVer },
+          metadata: { reason: body.reason, version: nextVer, scope: scopeKey, requires_approval: requiresApproval },
           mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
-        return respond({ ok: true, rules: saved, version: nextVer });
+        return respond({ ok: true, rules: saved, version: nextVer, requires_approval: requiresApproval, scope: scopeKey });
       }
       case "test_rules": {
         // Real dry-run against the current queue using the DRAFT rules payload
@@ -816,6 +826,14 @@ Deno.serve(async (req) => {
           }));
         const perAgent = sample.length && capacityImpact.length
           ? Math.round((sample.length / capacityImpact.length) * 10) / 10 : 0;
+        try {
+          await logAdminAction({
+            actorId: ctx.userId, action: "orchestration_test_rules",
+            targetType: "system",
+            metadata: { mode, pending: pending?.length ?? 0, would_assign: sample.length, unassigned: unassigned.length },
+            ip: meta.ip, userAgent: meta.userAgent,
+          }, admin);
+        } catch { /* best effort */ }
         return respond({
           ok: true, mode,
           pending: pending?.length ?? 0,
@@ -834,6 +852,35 @@ Deno.serve(async (req) => {
         const { plan, unmatched, agent_loads } = await buildAutoAssignPlan(mode);
         const { count: pending } = await admin.from("orchestration_tasks")
           .select("id", { count: "exact", head: true }).eq("status","unassigned");
+        // Emit senior-admin alerts when the queue exposes serious eligibility gaps.
+        try {
+          if (unmatched && unmatched.length) {
+            const seniors = await seniorAdmins();
+            await notifyEvent({
+              event: "no_eligible_agent",
+              recipients: seniors,
+              title: `${unmatched.length} task${unmatched.length === 1 ? "" : "s"} without an eligible agent`,
+              body: "Auto-assign preview left tasks unmatched — check skills, capacity, or availability.",
+              dedupeKey: `no_eligible:${new Date().toISOString().slice(0,13)}`,
+              dedupeMinutes: 60,
+              data: { count: unmatched.length, mode },
+            });
+            // Look up critical/unassigned tasks explicitly.
+            const { data: crit } = await admin.from("orchestration_tasks")
+              .select("id, task_code").eq("status","unassigned").eq("priority","critical").limit(20);
+            if ((crit ?? []).length > 0) {
+              await notifyEvent({
+                event: "critical_unassigned",
+                recipients: seniors,
+                title: `${crit!.length} critical task${crit!.length === 1 ? "" : "s"} still unassigned`,
+                body: "Critical priority tasks require attention.",
+                dedupeKey: `critical_unassigned:${crit!.map((c:any)=>c.task_code).sort().join(",")}`,
+                dedupeMinutes: 30,
+                data: { count: crit!.length },
+              });
+            }
+          }
+        } catch { /* best effort */ }
         return respond({ ok: true, mode, pending: pending ?? 0, would_assign: plan.length, plan, unmatched, agent_loads });
       }
       case "preview_rebalance": {
