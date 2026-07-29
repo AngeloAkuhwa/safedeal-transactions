@@ -74,8 +74,11 @@ export default function AdminTaskOrchestration() {
   const [mode, setMode] = useState("round_robin");
   const [reviewDraft, setReviewDraft] = useState<AssignmentRulesConfig | null>(null);
   const [reviewImpact, setReviewImpact] = useState<{ pending: number; would_assign: number; unmatched: number } | null>(null);
+  const [reviewRequiresApproval, setReviewRequiresApproval] = useState<boolean | undefined>(undefined);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<TestConfigResult | null>(null);
   const [testOpen, setTestOpen] = useState(false);
+  const [runningEnforcement, setRunningEnforcement] = useState<string | null>(null);
   const { canPii, canFinancial } = useMemo(() => {
     const has = (k: string) => (perms as any).has?.(k) ?? false;
     return {
@@ -315,6 +318,15 @@ export default function AdminTaskOrchestration() {
   const openReview = async (draft: AssignmentRulesConfig) => {
     setReviewDraft({ ...draft, mode });
     setReviewImpact(null);
+    setReviewError(null);
+    // Heuristic — server sets the authoritative flag on save.
+    const curr = (data?.rules?.config ?? {}) as AssignmentRulesConfig;
+    setReviewRequiresApproval(
+      (curr.mode ?? null) !== ((draft.mode ?? mode) ?? null) ||
+      Number(draft.max_active_per_agent ?? Infinity) < Number(curr.max_active_per_agent ?? 0) ||
+      (!!draft.super_admin_self_assign && !curr.super_admin_self_assign) ||
+      (draft.fallback_target === "leave_unassigned" && curr.fallback_target !== "leave_unassigned"),
+    );
     try {
       const preview = await runOrchestrationAction<{ pending: number; would_assign: number; unmatched?: any[] }>({
         action: "preview_auto_assign", mode,
@@ -330,14 +342,54 @@ export default function AdminTaskOrchestration() {
     if (!reviewDraft) return;
     try {
       setSavingRules(true);
-      await runOrchestrationAction({ action: "save_rules", rules: { ...reviewDraft, mode }, reason });
-      toast.success("Assignment rules saved");
+      setReviewError(null);
+      const res = await runOrchestrationAction<{ ok: boolean; requires_approval?: boolean }>({
+        action: "save_rules", rules: { ...reviewDraft, mode }, reason,
+      });
+      toast.success(res?.requires_approval ? "Change submitted for approval" : "Assignment rules saved");
       setReviewDraft(null);
       await load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed");
+      const msg = e instanceof Error ? e.message : "Save failed";
+      setReviewError(msg);
+      toast.error(msg);
     } finally { setSavingRules(false); }
   };
+
+  const runEnforcement = async (which: "escalate" | "reassign") => {
+    try {
+      setRunningEnforcement(which);
+      const action = which === "escalate" ? "auto_escalate_stale_tasks" : "auto_reassign_offline_agents";
+      const res = await runOrchestrationAction<any>({ action });
+      toast.success(
+        which === "escalate"
+          ? `Escalated ${res?.escalated ?? 0} of ${res?.candidates ?? 0} stale task${(res?.candidates ?? 0) === 1 ? "" : "s"}`
+          : `Reassigned ${res?.moved ?? 0} task${(res?.moved ?? 0) === 1 ? "" : "s"} from offline agents`,
+      );
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Enforcement run failed");
+    } finally { setRunningEnforcement(null); }
+  };
+
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const openUnassigned = () => {
+    setQueueFilters(f => ({ ...f, status: "unassigned", sla: undefined as any }));
+    scrollTo("orchestration-queue");
+  };
+  const openOverdue = () => {
+    setQueueFilters(f => ({ ...f, sla: "overdue" }));
+    scrollTo("orchestration-queue");
+  };
+  const openAssignedToday = () => {
+    setQueueFilters(f => ({ ...f, status: "assigned" }));
+    scrollTo("orchestration-live");
+  };
+  const openAtCapacity = () => scrollTo("orchestration-roster");
+  const openRoster = () => scrollTo("orchestration-roster");
   const handleTestRules = async () => {
     try {
       setTestingRules(true);
