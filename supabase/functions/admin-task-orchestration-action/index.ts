@@ -19,7 +19,8 @@ type Body = {
     | "task_detail" | "export_queue"
     | "start" | "update_stage" | "add_internal_note"
     | "request_info" | "request_evidence"
-    | "submit_resolution" | "close";
+    | "submit_resolution" | "close"
+    | "auto_escalate_stale_tasks" | "auto_reassign_offline_agents";
   task_id?: string;
   task_ids?: string[];
   agent_id?: string;
@@ -37,6 +38,16 @@ type Body = {
   exclude_move_ids?: string[];
   override_capacity?: boolean;
   scope?: "queue" | "live" | "roster";
+  export_scope?: "queue" | "live" | "assignment_history" | "agent_load" | "automation_rules";
+  include_pii?: boolean;
+  include_financial?: boolean;
+  queue_filters?: Record<string, unknown>;
+  queue_scope?: string;
+  target_queue?: string;
+  target_team?: string;
+  escalate_priority?: "high" | "critical";
+  internal_note?: string;
+  requested_reviewer_id?: string;
 };
 
 Deno.serve(async (req) => {
@@ -67,6 +78,8 @@ Deno.serve(async (req) => {
     request_evidence: "task_orchestration.view",
     submit_resolution: "task_orchestration.view",
     close: "task_orchestration.view",
+    auto_escalate_stale_tasks: "task_orchestration.manage_rules",
+    auto_reassign_offline_agents: "task_orchestration.manage_rules",
   };
   const permission = permMap[body.action] ?? "task_orchestration.view";
 
@@ -695,11 +708,21 @@ Deno.serve(async (req) => {
           errs.push("reason must be at least 20 characters");
         }
         if (errs.length) return respond({ error: "invalid_rules", details: errs }, 400);
-        const { data: existing } = await admin.from("assignment_rules").select("id, config").eq("scope","global").maybeSingle();
+        const scopeKey = String(body.queue_scope ?? r.queue_scope ?? "global").trim() || "global";
+        const { data: existing } = await admin.from("assignment_rules").select("id, config").eq("scope", scopeKey).maybeSingle();
         const before = existing?.config ?? null;
         const nextConfig = { ...(before as object ?? {}), ...body.rules };
+        // Approval-required signals: mode change, cap decrease, self-assign enable,
+        // fallback set to leave-unassigned.
+        const beforeObj = (before as any) ?? {};
+        const requiresApproval = (
+          (beforeObj.mode ?? null) !== ((nextConfig as any).mode ?? null) ||
+          (Number((nextConfig as any).max_active_per_agent ?? Infinity) < Number(beforeObj.max_active_per_agent ?? 0)) ||
+          (!!(nextConfig as any).super_admin_self_assign && !beforeObj.super_admin_self_assign) ||
+          ((nextConfig as any).fallback_target === "leave_unassigned" && beforeObj.fallback_target !== "leave_unassigned")
+        );
         const { data: saved, error: saveErr } = await admin.from("assignment_rules")
-          .upsert({ scope: "global", mode: (nextConfig as any).mode ?? "round_robin", config: nextConfig, updated_by: ctx.userId },
+          .upsert({ scope: scopeKey, mode: (nextConfig as any).mode ?? "round_robin", config: nextConfig, updated_by: ctx.userId },
                   { onConflict: "scope" })
           .select().single();
         if (saveErr) return respond({ error: "save_failed", detail: saveErr.message }, 500);
@@ -711,11 +734,11 @@ Deno.serve(async (req) => {
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_save_rules",
           targetType: "setting", before, after: nextConfig,
-          metadata: { reason: body.reason, version: nextVer },
+          metadata: { reason: body.reason, version: nextVer, scope: scopeKey, requires_approval: requiresApproval },
           mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
-        return respond({ ok: true, rules: saved, version: nextVer });
+        return respond({ ok: true, rules: saved, version: nextVer, requires_approval: requiresApproval, scope: scopeKey });
       }
       case "test_rules": {
         // Real dry-run against the current queue using the DRAFT rules payload
@@ -803,6 +826,14 @@ Deno.serve(async (req) => {
           }));
         const perAgent = sample.length && capacityImpact.length
           ? Math.round((sample.length / capacityImpact.length) * 10) / 10 : 0;
+        try {
+          await logAdminAction({
+            actorId: ctx.userId, action: "orchestration_test_rules",
+            targetType: "system",
+            metadata: { mode, pending: pending?.length ?? 0, would_assign: sample.length, unassigned: unassigned.length },
+            ip: meta.ip, userAgent: meta.userAgent,
+          }, admin);
+        } catch { /* best effort */ }
         return respond({
           ok: true, mode,
           pending: pending?.length ?? 0,
@@ -821,6 +852,35 @@ Deno.serve(async (req) => {
         const { plan, unmatched, agent_loads } = await buildAutoAssignPlan(mode);
         const { count: pending } = await admin.from("orchestration_tasks")
           .select("id", { count: "exact", head: true }).eq("status","unassigned");
+        // Emit senior-admin alerts when the queue exposes serious eligibility gaps.
+        try {
+          if (unmatched && unmatched.length) {
+            const seniors = await seniorAdmins();
+            await notifyEvent({
+              event: "no_eligible_agent",
+              recipients: seniors,
+              title: `${unmatched.length} task${unmatched.length === 1 ? "" : "s"} without an eligible agent`,
+              body: "Auto-assign preview left tasks unmatched — check skills, capacity, or availability.",
+              dedupeKey: `no_eligible:${new Date().toISOString().slice(0,13)}`,
+              dedupeMinutes: 60,
+              data: { count: unmatched.length, mode },
+            });
+            // Look up critical/unassigned tasks explicitly.
+            const { data: crit } = await admin.from("orchestration_tasks")
+              .select("id, task_code").eq("status","unassigned").eq("priority","critical").limit(20);
+            if ((crit ?? []).length > 0) {
+              await notifyEvent({
+                event: "critical_unassigned",
+                recipients: seniors,
+                title: `${crit!.length} critical task${crit!.length === 1 ? "" : "s"} still unassigned`,
+                body: "Critical priority tasks require attention.",
+                dedupeKey: `critical_unassigned:${crit!.map((c:any)=>c.task_code).sort().join(",")}`,
+                dedupeMinutes: 30,
+                data: { count: crit!.length },
+              });
+            }
+          }
+        } catch { /* best effort */ }
         return respond({ ok: true, mode, pending: pending ?? 0, would_assign: plan.length, plan, unmatched, agent_loads });
       }
       case "preview_rebalance": {
@@ -1062,6 +1122,117 @@ Deno.serve(async (req) => {
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
         return respond({ ok: true, filename: `${filename}-${new Date().toISOString().slice(0,10)}.csv`, csv, rows: rows.length });
+      }
+      case "auto_escalate_stale_tasks": {
+        // Idempotent: escalate unassigned tasks older than stale_after_minutes.
+        // Skips continuity_required or awaiting-final-approval work.
+        try {
+          const { data: rules } = await admin.from("assignment_rules").select("config").eq("scope","global").maybeSingle();
+          const cfg = (rules?.config as any) ?? {};
+          const staleMin = Math.max(5, Number(cfg.stale_after_minutes) || 30);
+          const targetQueue = String(cfg.stale_escalation_queue ?? "").trim() || null;
+          const cutoff = new Date(Date.now() - staleMin * 60_000).toISOString();
+          const { data: stale } = await admin.from("orchestration_tasks")
+            .select("id, task_code, priority, stage, continuity_required, status")
+            .eq("status","unassigned")
+            .lte("created_at", cutoff).limit(200);
+          const candidates = (stale ?? []).filter((t: any) =>
+            !t.continuity_required && t.stage !== "final_decision" && t.status !== "pending_approval");
+          let escalated = 0;
+          const seniors = await seniorAdmins();
+          for (const t of candidates) {
+            try {
+              await admin.rpc("escalate_task", { _task_id: (t as any).id, _reason: `Auto-escalated after ${staleMin} min stale`, _actor_id: ctx.userId });
+              if (targetQueue) await admin.from("orchestration_tasks").update({ queue: targetQueue }).eq("id", (t as any).id);
+              escalated++;
+            } catch (err) {
+              await notifyEvent({
+                event: "automation_rule_failed", recipients: seniors,
+                title: "Auto-escalation error",
+                body: `Task ${(t as any).task_code}: ${err instanceof Error ? err.message : "unknown"}`,
+                dedupeKey: `auto_esc_fail:${(t as any).id}`,
+                dedupeMinutes: 60,
+                data: { task_id: (t as any).id, rule: "auto_escalate_stale" },
+              });
+            }
+          }
+          await logAdminAction({
+            actorId: ctx.userId, action: "orchestration_auto_escalate_run",
+            targetType: "system",
+            metadata: { candidates: candidates.length, escalated, stale_after_minutes: staleMin, target_queue: targetQueue },
+            mirrorToAuditLogs: true,
+            ip: meta.ip, userAgent: meta.userAgent,
+          }, admin);
+          return respond({ ok: true, candidates: candidates.length, escalated });
+        } catch (err) {
+          const seniors = await seniorAdmins();
+          await notifyEvent({
+            event: "automation_rule_failed", recipients: seniors,
+            title: "Auto-escalation batch failed",
+            body: err instanceof Error ? err.message : "unknown",
+            dedupeKey: `auto_esc_batch_fail:${new Date().toISOString().slice(0,13)}`,
+            data: { rule: "auto_escalate_stale" },
+          });
+          return respond({ error: "auto_escalate_failed", detail: err instanceof Error ? err.message : String(err) }, 500);
+        }
+      }
+      case "auto_reassign_offline_agents": {
+        try {
+          const { data: rules } = await admin.from("assignment_rules").select("config").eq("scope","global").maybeSingle();
+          const cfg = (rules?.config as any) ?? {};
+          const offlineMin = Math.max(1, Number(cfg.offline_reassign_after_minutes) || 15);
+          const cutoff = new Date(Date.now() - offlineMin * 60_000).toISOString();
+          const { data: offline } = await admin.from("agent_availability")
+            .select("user_id, status, last_heartbeat")
+            .in("status", ["offline", "on_leave", "suspended"])
+            .lte("last_heartbeat", cutoff);
+          let moved = 0;
+          const seniors = await seniorAdmins();
+          for (const a of offline ?? []) {
+            const { data: theirTasks } = await admin.from("orchestration_tasks")
+              .select("id, task_code, stage, status, continuity_required")
+              .eq("assigned_agent_id", (a as any).user_id)
+              .in("status", ["assigned", "in_progress"]);
+            const eligible = (theirTasks ?? []).filter((t: any) =>
+              !t.continuity_required && t.stage !== "final_decision" && t.status !== "pending_approval");
+            for (const t of eligible) {
+              const target = await pickBestAgent(new Set([(a as any).user_id]));
+              if (!target) {
+                await notifyEvent({
+                  event: "no_eligible_agent", recipients: seniors,
+                  title: "Offline reassign — no eligible target",
+                  body: `Task ${(t as any).task_code} could not be moved off offline agent.`,
+                  dedupeKey: `offline_reassign_no_target:${(t as any).id}`,
+                  data: { task_id: (t as any).id, rule: "auto_reassign_offline" },
+                });
+                continue;
+              }
+              try {
+                await admin.rpc("assign_task", { _task_id: (t as any).id, _agent_id: target, _mode: "reassign", _reason: "auto-reassign: assignee offline", _actor_id: ctx.userId });
+                await notifyReassignment((t as any).id, (a as any).user_id, target, "auto-reassign: agent offline");
+                moved++;
+              } catch (err) {
+                await notifyEvent({
+                  event: "automation_rule_failed", recipients: seniors,
+                  title: "Auto-reassign error",
+                  body: `Task ${(t as any).task_code}: ${err instanceof Error ? err.message : "unknown"}`,
+                  dedupeKey: `auto_reassign_fail:${(t as any).id}`,
+                  data: { task_id: (t as any).id, rule: "auto_reassign_offline" },
+                });
+              }
+            }
+          }
+          await logAdminAction({
+            actorId: ctx.userId, action: "orchestration_auto_reassign_run",
+            targetType: "system",
+            metadata: { offline_agents: (offline ?? []).length, moved, offline_after_minutes: offlineMin },
+            mirrorToAuditLogs: true,
+            ip: meta.ip, userAgent: meta.userAgent,
+          }, admin);
+          return respond({ ok: true, offline_agents: (offline ?? []).length, moved });
+        } catch (err) {
+          return respond({ error: "auto_reassign_failed", detail: err instanceof Error ? err.message : String(err) }, 500);
+        }
       }
     }
     return respond({ error: "unknown_action" }, 400);

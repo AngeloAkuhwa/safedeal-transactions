@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCcw, Gauge, ShieldCheck } from "lucide-react";
+import { Loader2, RefreshCcw, Gauge, ShieldCheck, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +43,7 @@ function RuleNumber({ label, hint, value, unit, onChange, disabled }: { label: s
 
 export function AssignmentRulesPanel({
   config, onReview, onTest, saving, testing, lastSavedAt, canManage,
+  onRunAutoEscalate, onRunAutoReassign, runningEnforcement,
 }: {
   config: AssignmentRulesConfig;
   onReview: (next: AssignmentRulesConfig) => void;
@@ -51,6 +52,9 @@ export function AssignmentRulesPanel({
   testing: boolean;
   lastSavedAt: string | null;
   canManage: boolean;
+  onRunAutoEscalate?: () => void;
+  onRunAutoReassign?: () => void;
+  runningEnforcement?: string | null;
 }) {
   const [draft, setDraft] = useState<AssignmentRulesConfig>(config);
   useEffect(() => setDraft(config), [config]);
@@ -80,6 +84,15 @@ export function AssignmentRulesPanel({
         </div>
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="lg:col-span-2 rounded-xl border border-border/60 bg-background/40 p-4 backdrop-blur-sm">
+          <Label className="mb-2 block text-sm font-medium text-foreground">Queue scope</Label>
+          <div className="flex items-center gap-3">
+            <Input value={(draft as any).queue_scope ?? "global"}
+              onChange={e => set("queue_scope" as any, e.target.value as any)}
+              placeholder="global" disabled={!canManage} className="h-9 max-w-[240px] bg-background/60" />
+            <span className="text-[11px] text-muted-foreground">Applies these rules to a specific queue key. Defaults to <code>global</code>.</span>
+          </div>
+        </div>
         <div className="space-y-3">
           {toggles.map(t => (
             <RuleToggle key={t.key} label={t.label} desc={t.desc}
@@ -148,6 +161,22 @@ export function AssignmentRulesPanel({
             {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
             Test Configuration
           </Button>
+          {onRunAutoEscalate && (
+            <Button variant="ghost" size="sm" onClick={onRunAutoEscalate}
+              disabled={!canManage || !draft.auto_escalate_stale || runningEnforcement === "escalate"}
+              title={!draft.auto_escalate_stale ? "Enable Auto-Escalate Stale first" : ""}>
+              {runningEnforcement === "escalate" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
+              Run stale-escalation now
+            </Button>
+          )}
+          {onRunAutoReassign && (
+            <Button variant="ghost" size="sm" onClick={onRunAutoReassign}
+              disabled={!canManage || !draft.auto_reassign_on_offline || runningEnforcement === "reassign"}
+              title={!draft.auto_reassign_on_offline ? "Enable Auto-Reassign on Offline first" : ""}>
+              {runningEnforcement === "reassign" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
+              Run offline-reassign now
+            </Button>
+          )}
         </div>
         <div className="text-[11px] text-muted-foreground">
           {dirty ? "Unsaved changes" : lastSavedAt ? `Last saved: ${relative(lastSavedAt)}` : "Not saved yet"}

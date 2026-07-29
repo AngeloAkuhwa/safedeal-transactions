@@ -14,7 +14,6 @@ export { ReviewRulesDrawer } from "./ReviewRulesDrawer";
 export { TestConfigurationDialog } from "./TestConfigurationDialog";
 export { ExportScopePopover, type ExportScope } from "./ExportScopePopover";
 export { AssignTaskDrawer } from "./drawers/AssignTaskDrawer";
-export { EscalateTaskDialog } from "./drawers/EscalateTaskDialog";
 export { EscalateTaskDrawer, type EscalatePayload } from "./drawers/EscalateTaskDrawer";
 export { AgentDetailsDrawer } from "./drawers/AgentDetailsDrawer";
 export { TaskDetailsDrawer } from "./drawers/TaskDetailsDrawer";
