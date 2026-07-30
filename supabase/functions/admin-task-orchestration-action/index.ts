@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
     return { ok: current === expected, current };
   }
 
-  async function buildAutoAssignPlan(mode: string) {
+  async function buildAutoAssignPlan(mode: string, rrCursor?: string | null) {
     const [{ data: pending }, { data: cap }, { data: avail }, { data: skillRows }] = await Promise.all([
       admin.from("orchestration_tasks")
         .select("id, task_code, priority, required_permissions")
@@ -214,9 +214,15 @@ Deno.serve(async (req) => {
     const projected = new Map(initialCurrent);
     const plan: Array<{ task_id: string; task_code: string; agent_id: string; reason: string }> = [];
     const unmatched: Array<{ task_id: string; task_code: string; reason: string }> = [];
+    // Round-robin cursor: the last agent picked for this queue scope. The
+    // eligible list is rotated so the scan resumes *after* that agent instead
+    // of restarting at the top of the roster on every run.
+    const rrOrder = [...seats.keys()];
+    let rrPointer = rrCursor ? rrOrder.indexOf(rrCursor) : -1;
+    let rrLastPicked: string | null = rrCursor ?? null;
     for (const t of pending ?? []) {
       const req = new Set<string>(((t as any).required_permissions ?? []) as string[]);
-      const candidates = [...seats.entries()]
+      let candidates = [...seats.entries()]
         .filter(([, s]) => s > 0)
         .filter(([aid]) => {
           if (req.size === 0) return true;
@@ -225,6 +231,15 @@ Deno.serve(async (req) => {
           return true;
         })
         .sort((a, b) => b[1] - a[1]);
+      if (mode === "round_robin" && candidates.length > 1) {
+        // Rotate the eligible agents so the one after the cursor comes first.
+        const rotated = rrOrder
+          .slice(rrPointer + 1)
+          .concat(rrOrder.slice(0, rrPointer + 1))
+          .map((aid) => candidates.find(([c]) => c === aid))
+          .filter(Boolean) as [string, number][];
+        if (rotated.length) candidates = rotated;
+      }
       if (candidates.length === 0) {
         const reason = req.size > 0 ? "no_eligible_agent_with_skill" : "no_available_seats";
         unmatched.push({ task_id: (t as any).id, task_code: (t as any).task_code, reason });
@@ -232,6 +247,10 @@ Deno.serve(async (req) => {
       }
       const [agentId, s] = candidates[0];
       seats.set(agentId, s - 1);
+      if (mode === "round_robin") {
+        rrLastPicked = agentId;
+        rrPointer = rrOrder.indexOf(agentId);
+      }
       projected.set(agentId, (projected.get(agentId) ?? 0) + 1);
       plan.push({ task_id: (t as any).id, task_code: (t as any).task_code, agent_id: agentId, reason: `auto:${mode}` });
     }
@@ -243,7 +262,7 @@ Deno.serve(async (req) => {
         projected: projected.get(c.user_id) ?? c.current_active ?? 0,
         max: c.max_active_tasks ?? 0,
       }));
-    return { plan, unmatched, agent_loads: agentLoads };
+    return { plan, unmatched, agent_loads: agentLoads, rr_last_picked: rrLastPicked };
   }
 
   // Rebalance with safety rails: skips final decision, pending approval,
