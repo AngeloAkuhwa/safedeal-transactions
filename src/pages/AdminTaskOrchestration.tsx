@@ -591,6 +591,18 @@ export default function AdminTaskOrchestration() {
         requiresApproval={reviewRequiresApproval}
         serverError={reviewError}
       />
+      <ReviewRulesDrawer
+        open={!!pendingChangeSet}
+        onOpenChange={(o) => { if (!o) closeRulesChange(); }}
+        current={pendingChangeSet?.before ?? {}}
+        draft={pendingChangeSet?.after ?? null}
+        impact={null}
+        onConfirm={() => { /* read-only */ }}
+        submitting={false}
+        requiresApproval
+        readOnly
+        changeSetId={pendingChangeSet?.id ?? null}
+      />
       <TestConfigurationDialog
         open={testOpen}
         onOpenChange={(o) => { setTestOpen(o); if (!o) setTestResult(null); }}
