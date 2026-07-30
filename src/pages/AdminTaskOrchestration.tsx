@@ -348,10 +348,16 @@ export default function AdminTaskOrchestration() {
     try {
       setSavingRules(true);
       setReviewError(null);
-      const res = await runOrchestrationAction<{ ok: boolean; requires_approval?: boolean }>({
+      const res = await runOrchestrationAction<{ ok: boolean; requires_approval?: boolean; status?: string; change_set_id?: string }>({
         action: "save_rules", rules: { ...reviewDraft, mode }, reason,
       });
-      toast.success(res?.requires_approval ? "Change submitted for approval" : "Assignment rules saved");
+      if (res?.status === "pending_approval") {
+        toast.success("Submitted for approval", {
+          description: `Change set ${res.change_set_id?.slice(0, 8) ?? ""} is waiting in Pending Approvals.`,
+        });
+      } else {
+        toast.success("Assignment rules saved");
+      }
       setReviewDraft(null);
       await load();
     } catch (e) {
