@@ -1,67 +1,42 @@
-# Assignment Rules & Automation — remaining gaps
+> Verified against the current code: `pickAgent`, `save_rules` validation + versioning, `test_rules` dry-run (with `rule_used`), `EscalateTaskDrawer` + financial-queue guard, `ExportScopePopover` with PII/financial gating, `ReviewRulesDrawer`, summary-card handlers, and the two enforcement actions (`auto_escalate_stale_tasks`, `auto_reassign_offline_agents`) are all in place. Five items are still open.
 
-Most of the plan landed (pickAgent, Review drawer, Test dialog, Escalate drawer, Export popover, notification dedupe helper, `assignment_rule_versions`, self-assign permission gate). What's still missing to reach 100%:
+## 1. Round-robin cursor is not persisted
+`round_robin_state` exists on `assignment_rules` but no code reads or writes it — round-robin currently restarts from the top of the roster on every run.
 
-## 1. Background enforcement RPCs (§1)
-- Add idempotent server actions `auto_escalate_stale_tasks` and `auto_reassign_offline_agents` inside `admin-task-orchestration-action`, both honouring `stale_after_minutes`, `stale_escalation_queue`, `offline_reassign_after_minutes`, and skipping `continuity_required` / `awaiting_final_approval` tasks. Logged via `logAdminAction` and callable ad-hoc from the UI (button in Assignment Rules panel: "Run now") so ops can trigger without cron.
-- Persist `round_robin_state` per `queue_scope` on `assignment_rules` (column exists — wire read/write in `pickAgent`).
+Fix: in `pickAgent`, read `round_robin_state[queue_scope]` (last picked agent id), start the eligible-agent scan after that agent, and write the new pointer back to `assignment_rules.round_robin_state` at the end of `auto_assign` / `auto_reassign_offline_agents` (never during previews/tests, so dry runs stay side-effect free).
 
-## 2. Rule schema hardening (§1, §2)
-- `save_rules`: validate every numeric (>0, sane upper bounds — e.g. stale ≤ 1440, offline ≤ 1440, max_active ≤ 200); reject with a clear error string surfaced by the Review drawer.
-- Enforce exactly one primary automatic mode server-side (reject if `mode` is auto but `round_robin` toggle disabled contradicts, etc.).
-- `queue_scope` UI switcher in `AssignmentRulesPanel` (defaults `global`; senior admins can pick per-queue).
+## 2. Approval routing writes no change-set row
+`save_rules` returns `requires_approval: true` and audits it, but it still applies the change immediately and never inserts a `permission_change_sets` row — so nothing lands in the Pending Approvals queue.
 
-## 3. Approval routing for rule changes (§2)
-- When a rule change crosses thresholds (mode change, `max_active_per_agent` decrease, `super_admin_self_assign` turned on, `fallback_target = leave_unassigned`), `save_rules` returns `pending_approval` and inserts a `permission_change_sets` row with `scope='orchestration_rules'`, `before`/`after` JSON, reason.
-- `ReviewRulesDrawer` shows the "Requires approval" badge from server response (currently only client-guessed) and switches Save button to **Submit for approval**.
-- Pending Approvals queue (existing) already renders scope-agnostic rows; add scope label + link back to `/admin/task-orchestration?rules_change=<id>` which re-opens the drawer read-only.
+Fix:
+- When thresholds are crossed (mode change, `max_active_per_agent` decrease, `super_admin_self_assign` turned on, `fallback_target = leave_unassigned`), do **not** write `assignment_rules.config`. Instead insert `permission_change_sets` with `scope='orchestration_rules'`, `before`/`after` JSON, reason, and return `{ status: 'pending_approval', change_set_id }`.
+- On approval, apply the stored `after` config and write the `assignment_rule_versions` row with `approved_by` / `approved_at`.
+- `ReviewRulesDrawer` shows the returned change-set id and a "submitted for approval" confirmation instead of a success toast.
 
-## 4. Test Configuration surfacing (§3)
-- Wire `TestConfigurationDialog` "Review and Save Rules" footer button to open `ReviewRulesDrawer` with the same draft (currently closes only).
-- Include `rule_used` per sample row in the server response so the Sample tab can show which rule matched (pickAgent already knows; return it).
+## 3. Pending Approvals surface for rules changes
+The approvals queue renders rows scope-agnostically. Add an `orchestration_rules` scope label and link each row to `/admin/task-orchestration?rules_change=<id>`; the page reads that param and reopens `ReviewRulesDrawer` read-only with the stored before/after diff.
 
-## 5. Escalate depth (§4)
-- Server `escalate`: enforce financial/compliance queue restriction — reject when `task_type ∈ {refund_request, escrow_release_review, payment_hold_review, payout_review}` and the target queue's configured role does not hold the matching permission (`refunds.process`, `escrow.release`, `payouts.release`, `compliance.review`).
-- Create an internal-visibility comment on each escalated task carrying the reason + requested reviewer.
-- Delete legacy `EscalateTaskDialog.tsx` (superseded by drawer) and remove any remaining imports.
+## 4. SLA notifications not emitted
+`sla_approaching` and `sla_overdue` are the two events from the spec table with no emitter.
 
-## 6. Summary + insights interactivity (§5)
-- `OrchestrationSummaryCards`: wire the six click handlers (Unassigned, Active Agents, At Capacity, Assigned Today, Overdue, Avg First Action-tooltip only) to update queue/roster filter state and scroll into view. Add the "Range: last 24h · Team: All" caption row above the KPI grid, bound to current filters.
-- `ProductivityInsights`: each card opens `AgentDetailsDrawer` on the Performance tab (entry-point only, no drawer redesign). Tooltips already added — verify all metrics have one.
+Fix: emit both from `auto_escalate_stale_tasks` (the pass that already walks tasks and their `sla_due_at`): approaching when `sla_due_at - now ≤ threshold` (assignee), overdue when past due (assignee + senior admins). Dedupe keys `sla_approaching:<task_id>:<15-min bucket>` and `sla_overdue:<task_id>:<hour bucket>`, matching the existing dedupe helper. Links use `?task=<id>` and `?queue=<key>&sla=overdue`.
 
-## 7. Export scope + redaction (§6)
-- Server `export_queue`: add `assignment_history`, `agent_load`, `automation_rules` scopes (currently supports queue/live only). Mask buyer/seller identity columns unless caller holds `data.export.pii`; mask financial columns unless `data.export.financial`. Log `admin_actions` row with `{scope, filters_hash, row_count}`.
-- `ExportScopePopover`: disable "Include PII" / "Include financial" checkboxes when the caller lacks the matching permission (fetched from `useAdminPermissions`).
+## 5. Escalation comment only on optional note
+The spec requires an internal comment on every escalated task; today one is written only when the operator fills the optional internal note.
 
-## 8. Notification event coverage (§7)
-Already wired: `task_assigned`, `task_reassigned`, `task_escalated`, `agent_at_capacity`. Missing:
-- `sla_approaching`, `sla_overdue` — emit inside the same code path that recomputes SLA (or from the new stale-tasks RPC).
-- `critical_unassigned` — emit from `auto_assign` / `preview_auto_assign` when a `priority=critical` task remains unassigned above threshold.
-- `automation_rule_failed` — emit when `auto_assign`/`auto_escalate`/`auto_reassign` throws or returns empty plan.
-- `no_eligible_agent` — emit when `pickAgent` returns null for any queued task.
-- Every notification `data.link` must be `/admin/task-orchestration?task=<id>` or `?queue=<key>&sla=overdue`. Dedupe key format `${event}:${task_id or queue}:${bucket}` (hour bucket for overdue, 15-min for approaching).
-
-## 9. Audit coverage (§8)
-- Add `logAdminAction` calls for: `test_rules` (audit-level `info`, no PII), `override_capacity`, `export_queue` (any scope), `assign_to_me` (already partial — verify reason recorded).
+Fix: always insert an internal-visibility `task_comments` row carrying the escalation reason, target queue/team, new priority, and requested reviewer — appending the operator note when provided.
 
 ## Technical notes
-
-- No new tables required beyond what already exists. Dedupe uses the existing notifications-scan approach (spec's `orchestration_notification_dedupe` table is optional; current approach is acceptable).
-- All new server branches remain inside `admin-task-orchestration-action` — no new edge functions.
+- No new tables. `orchestration_notification_dedupe` stays out; the existing notifications-scan dedupe is sufficient.
+- All server work stays inside `admin-task-orchestration-action`; no new edge functions.
+- Extracting `pickAgent` into `_shared/orchestration-rules.ts` is cosmetic and skipped — the logic is already single-sourced inside the action function.
 
 ## Files to edit
-
-- `supabase/functions/admin-task-orchestration-action/index.ts` — new actions, validation, approval routing, redaction, SLA/critical/no-eligible/rule-failed emitters.
-- `src/components/admin/task-orchestration/AssignmentRulesPanel.tsx` — `queue_scope` switcher, "Run now" buttons for the two enforcement RPCs.
-- `src/components/admin/task-orchestration/ReviewRulesDrawer.tsx` — read `requires_approval` + error strings from server response; swap Save label.
-- `src/components/admin/task-orchestration/TestConfigurationDialog.tsx` — footer → open ReviewRulesDrawer; render `rule_used` per sample.
-- `src/components/admin/task-orchestration/OrchestrationSummaryCards.tsx` — six click handlers + caption row.
-- `src/components/admin/task-orchestration/ProductivityInsights.tsx` — confirm AgentDetailsDrawer entry-point on all cards.
-- `src/components/admin/task-orchestration/ExportScopePopover.tsx` — permission-based disable of PII/financial toggles + new scopes.
-- `src/pages/AdminTaskOrchestration.tsx` — plumb summary-card filters, rules_change deep link, drawer wiring from TestConfig → Review.
-- `src/components/admin/task-orchestration/drawers/EscalateTaskDialog.tsx` — delete.
+- `supabase/functions/admin-task-orchestration-action/index.ts` — round-robin cursor, change-set routing, SLA emitters, always-on escalation comment.
+- `src/components/admin/task-orchestration/ReviewRulesDrawer.tsx` — pending-approval result state, read-only mode.
+- `src/pages/AdminTaskOrchestration.tsx` — `rules_change` deep link handling.
+- `src/pages/AdminAccessApprovals.tsx` — `orchestration_rules` scope label + back-link.
 
 ## Out of scope
-
-- Cron scheduling for the two enforcement RPCs (ad-hoc "Run now" only).
+- Cron scheduling for the enforcement RPCs (still "Run now" only).
 - AgentDetailsDrawer Performance-tab redesign.
