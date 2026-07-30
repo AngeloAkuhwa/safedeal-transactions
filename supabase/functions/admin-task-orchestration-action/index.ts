@@ -1242,7 +1242,55 @@ Deno.serve(async (req) => {
             mirrorToAuditLogs: true,
             ip: meta.ip, userAgent: meta.userAgent,
           }, admin);
-          return respond({ ok: true, candidates: candidates.length, escalated });
+          // --- SLA sweep: approaching + overdue notifications -------------
+          let slaApproaching = 0;
+          let slaOverdue = 0;
+          try {
+            const thresholdMin = Math.max(5, Number(cfg.sla_warning_minutes) || 60);
+            const now = Date.now();
+            const horizon = new Date(now + thresholdMin * 60_000).toISOString();
+            const { data: slaRows } = await admin.from("orchestration_tasks")
+              .select("id, task_code, queue, sla_due_at, assigned_agent_id, status")
+              .not("sla_due_at", "is", null)
+              .lte("sla_due_at", horizon)
+              .in("status", ["unassigned", "assigned", "in_progress", "escalated"])
+              .limit(300);
+            const seniorsForSla = await seniorAdmins();
+            const hourBucket = new Date(now).toISOString().slice(0, 13);
+            const quarterBucket = `${hourBucket}:${String(Math.floor(new Date(now).getUTCMinutes() / 15) * 15).padStart(2, "0")}`;
+            for (const row of slaRows ?? []) {
+              const r: any = row;
+              const due = new Date(r.sla_due_at).getTime();
+              const overdue = due <= now;
+              if (overdue) {
+                await notifyEvent({
+                  event: "sla_overdue",
+                  recipients: [r.assigned_agent_id, ...seniorsForSla].filter(Boolean) as string[],
+                  title: `SLA breached — ${r.task_code}`,
+                  body: "This task passed its SLA due date and needs immediate attention.",
+                  dedupeKey: `sla_overdue:${r.id}:${hourBucket}`,
+                  dedupeMinutes: 60,
+                  data: {
+                    task_id: r.id,
+                    link: r.queue ? `/admin/task-orchestration?queue=${r.queue}&sla=overdue` : `/admin/task-orchestration?task=${r.id}`,
+                  },
+                });
+                slaOverdue++;
+              } else if (r.assigned_agent_id) {
+                await notifyEvent({
+                  event: "sla_approaching",
+                  recipients: [r.assigned_agent_id],
+                  title: `SLA approaching — ${r.task_code}`,
+                  body: `Due in under ${thresholdMin} minutes.`,
+                  dedupeKey: `sla_approaching:${r.id}:${quarterBucket}`,
+                  dedupeMinutes: 15,
+                  data: { task_id: r.id, link: `/admin/task-orchestration?task=${r.id}` },
+                });
+                slaApproaching++;
+              }
+            }
+          } catch { /* best effort — SLA alerts never fail the run */ }
+          return respond({ ok: true, candidates: candidates.length, escalated, sla_approaching: slaApproaching, sla_overdue: slaOverdue });
         } catch (err) {
           const seniors = await seniorAdmins();
           await notifyEvent({
