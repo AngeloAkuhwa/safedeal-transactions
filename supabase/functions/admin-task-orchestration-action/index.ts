@@ -1131,13 +1131,13 @@ Deno.serve(async (req) => {
         let filename = "task-orchestration";
         if (scope === "queue") {
           const { data } = await admin.from("orchestration_tasks")
-            .select("task_code,type,priority,status,stage,amount,currency,created_at,dispute_id,transaction_id,assigned_agent_id,sla_due_at,buyer_id,seller_id")
+            .select("task_code,type,priority,status,stage,amount,currency,created_at,dispute_id,transaction_id,assigned_agent_id,due_at,buyer_id,seller_id")
             .eq("status","unassigned").order("created_at",{ ascending: true }).limit(5000);
           rows = (data ?? []).map((r: any) => ({
             task_code: r.task_code, type: r.type, priority: r.priority, status: r.status, stage: r.stage,
             amount: mask(wantFin, r.amount), currency: mask(wantFin, r.currency),
             created_at: r.created_at, dispute_id: r.dispute_id, transaction_id: r.transaction_id,
-            assigned_agent_id: r.assigned_agent_id, sla_due_at: r.sla_due_at,
+            assigned_agent_id: r.assigned_agent_id, due_at: r.due_at,
             buyer_id: mask(wantPii, r.buyer_id), seller_id: mask(wantPii, r.seller_id),
           }));
           filename = "task-queue";
@@ -1250,9 +1250,9 @@ Deno.serve(async (req) => {
             const now = Date.now();
             const horizon = new Date(now + thresholdMin * 60_000).toISOString();
             const { data: slaRows } = await admin.from("orchestration_tasks")
-              .select("id, task_code, queue, sla_due_at, assigned_agent_id, status")
-              .not("sla_due_at", "is", null)
-              .lte("sla_due_at", horizon)
+              .select("id, task_code, queue, due_at, assigned_agent_id, status")
+              .not("due_at", "is", null)
+              .lte("due_at", horizon)
               .in("status", ["unassigned", "assigned", "in_progress", "escalated"])
               .limit(300);
             const seniorsForSla = await seniorAdmins();
@@ -1260,7 +1260,7 @@ Deno.serve(async (req) => {
             const quarterBucket = `${hourBucket}:${String(Math.floor(new Date(now).getUTCMinutes() / 15) * 15).padStart(2, "0")}`;
             for (const row of slaRows ?? []) {
               const r: any = row;
-              const due = new Date(r.sla_due_at).getTime();
+              const due = new Date(r.due_at).getTime();
               const overdue = due <= now;
               if (overdue) {
                 await notifyEvent({
