@@ -751,6 +751,44 @@ Deno.serve(async (req) => {
           (!!(nextConfig as any).super_admin_self_assign && !beforeObj.super_admin_self_assign) ||
           ((nextConfig as any).fallback_target === "leave_unassigned" && beforeObj.fallback_target !== "leave_unassigned")
         );
+        // Approval-gated changes are parked as a change set and NOT applied.
+        if (requiresApproval) {
+          const { data: cs, error: csErr } = await admin.from("permission_change_sets")
+            .insert({
+              requested_by: ctx.userId,
+              target_scope: "orchestration_rules",
+              target_key: scopeKey,
+              before: (before as any) ?? {},
+              after: nextConfig,
+              reason: body.reason,
+              status: "pending",
+              requires_approval: true,
+              submitted_at: new Date().toISOString(),
+            })
+            .select("id").single();
+          if (csErr) return respond({ error: "change_set_failed", detail: csErr.message }, 500);
+          await logAdminAction({
+            actorId: ctx.userId, action: "orchestration_rules_submitted_for_approval",
+            targetType: "setting", before, after: nextConfig,
+            metadata: { reason: body.reason, scope: scopeKey, change_set_id: cs.id },
+            mirrorToAuditLogs: true,
+            ip: meta.ip, userAgent: meta.userAgent,
+          }, admin);
+          try {
+            await notifyEvent({
+              event: "orchestration_rules_pending_approval",
+              recipients: await seniorAdmins(),
+              title: "Assignment rules change needs approval",
+              body: `A rules change for scope "${scopeKey}" is awaiting review.`,
+              dedupeKey: `rules_change:${cs.id}`,
+              data: { change_set_id: cs.id, link: `/admin/task-orchestration?rules_change=${cs.id}` },
+            });
+          } catch { /* best effort */ }
+          return respond({
+            ok: true, status: "pending_approval", requires_approval: true,
+            change_set_id: cs.id, scope: scopeKey,
+          });
+        }
         const { data: saved, error: saveErr } = await admin.from("assignment_rules")
           .upsert({ scope: scopeKey, mode: (nextConfig as any).mode ?? "round_robin", config: nextConfig, updated_by: ctx.userId },
                   { onConflict: "scope" })
@@ -768,7 +806,7 @@ Deno.serve(async (req) => {
           mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
-        return respond({ ok: true, rules: saved, version: nextVer, requires_approval: requiresApproval, scope: scopeKey });
+        return respond({ ok: true, status: "applied", rules: saved, version: nextVer, requires_approval: false, scope: scopeKey });
       }
       case "test_rules": {
         // Real dry-run against the current queue using the DRAFT rules payload
