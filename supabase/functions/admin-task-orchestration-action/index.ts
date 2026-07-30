@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
     return { ok: current === expected, current };
   }
 
-  async function buildAutoAssignPlan(mode: string) {
+  async function buildAutoAssignPlan(mode: string, rrCursor?: string | null) {
     const [{ data: pending }, { data: cap }, { data: avail }, { data: skillRows }] = await Promise.all([
       admin.from("orchestration_tasks")
         .select("id, task_code, priority, required_permissions")
@@ -214,9 +214,15 @@ Deno.serve(async (req) => {
     const projected = new Map(initialCurrent);
     const plan: Array<{ task_id: string; task_code: string; agent_id: string; reason: string }> = [];
     const unmatched: Array<{ task_id: string; task_code: string; reason: string }> = [];
+    // Round-robin cursor: the last agent picked for this queue scope. The
+    // eligible list is rotated so the scan resumes *after* that agent instead
+    // of restarting at the top of the roster on every run.
+    const rrOrder = [...seats.keys()];
+    let rrPointer = rrCursor ? rrOrder.indexOf(rrCursor) : -1;
+    let rrLastPicked: string | null = rrCursor ?? null;
     for (const t of pending ?? []) {
       const req = new Set<string>(((t as any).required_permissions ?? []) as string[]);
-      const candidates = [...seats.entries()]
+      let candidates = [...seats.entries()]
         .filter(([, s]) => s > 0)
         .filter(([aid]) => {
           if (req.size === 0) return true;
@@ -225,6 +231,15 @@ Deno.serve(async (req) => {
           return true;
         })
         .sort((a, b) => b[1] - a[1]);
+      if (mode === "round_robin" && candidates.length > 1) {
+        // Rotate the eligible agents so the one after the cursor comes first.
+        const rotated = rrOrder
+          .slice(rrPointer + 1)
+          .concat(rrOrder.slice(0, rrPointer + 1))
+          .map((aid) => candidates.find(([c]) => c === aid))
+          .filter(Boolean) as [string, number][];
+        if (rotated.length) candidates = rotated;
+      }
       if (candidates.length === 0) {
         const reason = req.size > 0 ? "no_eligible_agent_with_skill" : "no_available_seats";
         unmatched.push({ task_id: (t as any).id, task_code: (t as any).task_code, reason });
@@ -232,6 +247,10 @@ Deno.serve(async (req) => {
       }
       const [agentId, s] = candidates[0];
       seats.set(agentId, s - 1);
+      if (mode === "round_robin") {
+        rrLastPicked = agentId;
+        rrPointer = rrOrder.indexOf(agentId);
+      }
       projected.set(agentId, (projected.get(agentId) ?? 0) + 1);
       plan.push({ task_id: (t as any).id, task_code: (t as any).task_code, agent_id: agentId, reason: `auto:${mode}` });
     }
@@ -243,7 +262,7 @@ Deno.serve(async (req) => {
         projected: projected.get(c.user_id) ?? c.current_active ?? 0,
         max: c.max_active_tasks ?? 0,
       }));
-    return { plan, unmatched, agent_loads: agentLoads };
+    return { plan, unmatched, agent_loads: agentLoads, rr_last_picked: rrLastPicked };
   }
 
   // Rebalance with safety rails: skips final decision, pending approval,
@@ -497,9 +516,12 @@ Deno.serve(async (req) => {
         return respond({ ok: true, count: ids.length });
       }
       case "auto_assign": {
-        const { data: rules } = await admin.from("assignment_rules").select("config").eq("scope","global").maybeSingle();
+        const scopeKey = String(body.queue_scope ?? "global");
+        const { data: rules } = await admin.from("assignment_rules")
+          .select("id, config, round_robin_state").eq("scope", scopeKey).maybeSingle();
         const mode = (rules?.config as any)?.mode ?? body.mode ?? "round_robin";
-        const { plan: fullPlan } = await buildAutoAssignPlan(mode);
+        const rrState = ((rules as any)?.round_robin_state ?? {}) as Record<string, string>;
+        const { plan: fullPlan, rr_last_picked } = await buildAutoAssignPlan(mode, rrState[scopeKey] ?? null);
         const excluded = new Set(body.exclude_task_ids ?? []);
         const plan = fullPlan.filter(p => !excluded.has(p.task_id));
         let count = 0;
@@ -509,9 +531,17 @@ Deno.serve(async (req) => {
           });
           count++;
         }
+        // Persist the round-robin pointer only after a real run (never previews).
+        if (mode === "round_robin" && rules?.id && rr_last_picked && count > 0) {
+          await admin.from("assignment_rules")
+            .update({ round_robin_state: { ...rrState, [scopeKey]: rr_last_picked } })
+            .eq("id", rules.id);
+        }
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_auto_assign",
-          targetType: "system", metadata: { count, mode, excluded: [...excluded] }, mirrorToAuditLogs: true,
+          targetType: "system",
+          metadata: { count, mode, excluded: [...excluded], scope: scopeKey, round_robin_cursor: rr_last_picked ?? null },
+          mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
         return respond({ ok: true, count });
@@ -585,13 +615,20 @@ Deno.serve(async (req) => {
           if (Object.keys(patch).length) {
             await admin.from("orchestration_tasks").update(patch).eq("id", id);
           }
-          if (body.internal_note?.trim()) {
-            await admin.from("task_comments").insert({
-              task_id: id, author_id: ctx.userId,
-              body: body.internal_note.trim().slice(0, 4000),
-              visibility: "internal",
-            });
-          }
+          // Every escalation leaves an internal audit comment, note or not.
+          const noteLines = [
+            `Escalated: ${body.reason.trim()}`,
+            targetQueue ? `Target queue: ${targetQueue}` : null,
+            body.target_team ? `Target team: ${body.target_team}` : null,
+            body.escalate_priority ? `Priority: ${body.escalate_priority}` : null,
+            body.requested_reviewer_id ? `Requested reviewer: ${body.requested_reviewer_id}` : null,
+            body.internal_note?.trim() ? `Note: ${body.internal_note.trim()}` : null,
+          ].filter(Boolean).join("\n");
+          await admin.from("task_comments").insert({
+            task_id: id, author_id: ctx.userId,
+            body: noteLines.slice(0, 4000),
+            visibility: "internal",
+          });
         }
         // Fan-out notifications: prior owners + senior admins.
         const { data: escalated } = await admin
@@ -721,6 +758,44 @@ Deno.serve(async (req) => {
           (!!(nextConfig as any).super_admin_self_assign && !beforeObj.super_admin_self_assign) ||
           ((nextConfig as any).fallback_target === "leave_unassigned" && beforeObj.fallback_target !== "leave_unassigned")
         );
+        // Approval-gated changes are parked as a change set and NOT applied.
+        if (requiresApproval) {
+          const { data: cs, error: csErr } = await admin.from("permission_change_sets")
+            .insert({
+              requested_by: ctx.userId,
+              target_scope: "orchestration_rules",
+              target_key: scopeKey,
+              before: (before as any) ?? {},
+              after: nextConfig,
+              reason: body.reason,
+              status: "pending",
+              requires_approval: true,
+              submitted_at: new Date().toISOString(),
+            })
+            .select("id").single();
+          if (csErr) return respond({ error: "change_set_failed", detail: csErr.message }, 500);
+          await logAdminAction({
+            actorId: ctx.userId, action: "orchestration_rules_submitted_for_approval",
+            targetType: "setting", before, after: nextConfig,
+            metadata: { reason: body.reason, scope: scopeKey, change_set_id: cs.id },
+            mirrorToAuditLogs: true,
+            ip: meta.ip, userAgent: meta.userAgent,
+          }, admin);
+          try {
+            await notifyEvent({
+              event: "orchestration_rules_pending_approval",
+              recipients: await seniorAdmins(),
+              title: "Assignment rules change needs approval",
+              body: `A rules change for scope "${scopeKey}" is awaiting review.`,
+              dedupeKey: `rules_change:${cs.id}`,
+              data: { change_set_id: cs.id, link: `/admin/task-orchestration?rules_change=${cs.id}` },
+            });
+          } catch { /* best effort */ }
+          return respond({
+            ok: true, status: "pending_approval", requires_approval: true,
+            change_set_id: cs.id, scope: scopeKey,
+          });
+        }
         const { data: saved, error: saveErr } = await admin.from("assignment_rules")
           .upsert({ scope: scopeKey, mode: (nextConfig as any).mode ?? "round_robin", config: nextConfig, updated_by: ctx.userId },
                   { onConflict: "scope" })
@@ -738,7 +813,7 @@ Deno.serve(async (req) => {
           mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
-        return respond({ ok: true, rules: saved, version: nextVer, requires_approval: requiresApproval, scope: scopeKey });
+        return respond({ ok: true, status: "applied", rules: saved, version: nextVer, requires_approval: false, scope: scopeKey });
       }
       case "test_rules": {
         // Real dry-run against the current queue using the DRAFT rules payload
@@ -847,9 +922,13 @@ Deno.serve(async (req) => {
         });
       }
       case "preview_auto_assign": {
-        const { data: rules } = await admin.from("assignment_rules").select("config").eq("scope","global").maybeSingle();
+        const previewScope = String(body.queue_scope ?? "global");
+        const { data: rules } = await admin.from("assignment_rules")
+          .select("config, round_robin_state").eq("scope", previewScope).maybeSingle();
         const mode = (rules?.config as any)?.mode ?? body.mode ?? "round_robin";
-        const { plan, unmatched, agent_loads } = await buildAutoAssignPlan(mode);
+        const rrState = ((rules as any)?.round_robin_state ?? {}) as Record<string, string>;
+        // Preview honours the stored cursor but never writes it back.
+        const { plan, unmatched, agent_loads } = await buildAutoAssignPlan(mode, rrState[previewScope] ?? null);
         const { count: pending } = await admin.from("orchestration_tasks")
           .select("id", { count: "exact", head: true }).eq("status","unassigned");
         // Emit senior-admin alerts when the queue exposes serious eligibility gaps.
@@ -1052,13 +1131,13 @@ Deno.serve(async (req) => {
         let filename = "task-orchestration";
         if (scope === "queue") {
           const { data } = await admin.from("orchestration_tasks")
-            .select("task_code,type,priority,status,stage,amount,currency,created_at,dispute_id,transaction_id,assigned_agent_id,sla_due_at,buyer_id,seller_id")
+            .select("task_code,type,priority,status,stage,amount,currency,created_at,dispute_id,transaction_id,assigned_agent_id,due_at,buyer_id,seller_id")
             .eq("status","unassigned").order("created_at",{ ascending: true }).limit(5000);
           rows = (data ?? []).map((r: any) => ({
             task_code: r.task_code, type: r.type, priority: r.priority, status: r.status, stage: r.stage,
             amount: mask(wantFin, r.amount), currency: mask(wantFin, r.currency),
             created_at: r.created_at, dispute_id: r.dispute_id, transaction_id: r.transaction_id,
-            assigned_agent_id: r.assigned_agent_id, sla_due_at: r.sla_due_at,
+            assigned_agent_id: r.assigned_agent_id, due_at: r.due_at,
             buyer_id: mask(wantPii, r.buyer_id), seller_id: mask(wantPii, r.seller_id),
           }));
           filename = "task-queue";
@@ -1163,7 +1242,55 @@ Deno.serve(async (req) => {
             mirrorToAuditLogs: true,
             ip: meta.ip, userAgent: meta.userAgent,
           }, admin);
-          return respond({ ok: true, candidates: candidates.length, escalated });
+          // --- SLA sweep: approaching + overdue notifications -------------
+          let slaApproaching = 0;
+          let slaOverdue = 0;
+          try {
+            const thresholdMin = Math.max(5, Number(cfg.sla_warning_minutes) || 60);
+            const now = Date.now();
+            const horizon = new Date(now + thresholdMin * 60_000).toISOString();
+            const { data: slaRows } = await admin.from("orchestration_tasks")
+              .select("id, task_code, queue, due_at, assigned_agent_id, status")
+              .not("due_at", "is", null)
+              .lte("due_at", horizon)
+              .in("status", ["unassigned", "assigned", "in_progress", "escalated"])
+              .limit(300);
+            const seniorsForSla = await seniorAdmins();
+            const hourBucket = new Date(now).toISOString().slice(0, 13);
+            const quarterBucket = `${hourBucket}:${String(Math.floor(new Date(now).getUTCMinutes() / 15) * 15).padStart(2, "0")}`;
+            for (const row of slaRows ?? []) {
+              const r: any = row;
+              const due = new Date(r.due_at).getTime();
+              const overdue = due <= now;
+              if (overdue) {
+                await notifyEvent({
+                  event: "sla_overdue",
+                  recipients: [r.assigned_agent_id, ...seniorsForSla].filter(Boolean) as string[],
+                  title: `SLA breached — ${r.task_code}`,
+                  body: "This task passed its SLA due date and needs immediate attention.",
+                  dedupeKey: `sla_overdue:${r.id}:${hourBucket}`,
+                  dedupeMinutes: 60,
+                  data: {
+                    task_id: r.id,
+                    link: r.queue ? `/admin/task-orchestration?queue=${r.queue}&sla=overdue` : `/admin/task-orchestration?task=${r.id}`,
+                  },
+                });
+                slaOverdue++;
+              } else if (r.assigned_agent_id) {
+                await notifyEvent({
+                  event: "sla_approaching",
+                  recipients: [r.assigned_agent_id],
+                  title: `SLA approaching — ${r.task_code}`,
+                  body: `Due in under ${thresholdMin} minutes.`,
+                  dedupeKey: `sla_approaching:${r.id}:${quarterBucket}`,
+                  dedupeMinutes: 15,
+                  data: { task_id: r.id, link: `/admin/task-orchestration?task=${r.id}` },
+                });
+                slaApproaching++;
+              }
+            }
+          } catch { /* best effort — SLA alerts never fail the run */ }
+          return respond({ ok: true, candidates: candidates.length, escalated, sla_approaching: slaApproaching, sla_overdue: slaOverdue });
         } catch (err) {
           const seniors = await seniorAdmins();
           await notifyEvent({

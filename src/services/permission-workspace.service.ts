@@ -800,6 +800,7 @@ export interface PermissionHistoryFilter {
 
 function scopeLabel(scope: string, key: string): string {
   if (scope === "role") return ROLE_LABEL[key as InternalRoleKey] ?? key;
+  if (scope === "orchestration_rules") return `Assignment rules · ${key || "global"}`;
   return key;
 }
 

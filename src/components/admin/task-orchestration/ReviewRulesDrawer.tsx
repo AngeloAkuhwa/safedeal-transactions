@@ -19,7 +19,7 @@ function fmt(v: unknown): string {
 
 export function ReviewRulesDrawer({
   open, onOpenChange, current, draft, impact, onConfirm, submitting,
-  requiresApproval: requiresApprovalProp, serverError,
+  requiresApproval: requiresApprovalProp, serverError, readOnly, changeSetId,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -30,6 +30,9 @@ export function ReviewRulesDrawer({
   submitting: boolean;
   requiresApproval?: boolean;
   serverError?: string | null;
+  /** Read-only review of an already-submitted change set (from the approvals queue). */
+  readOnly?: boolean;
+  changeSetId?: string | null;
 }) {
   const [reason, setReason] = useState("");
   useEffect(() => { if (open) setReason(""); }, [open]);
@@ -63,10 +66,21 @@ export function ReviewRulesDrawer({
       <SheetContent side="right" className="w-full max-w-2xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-primary" /> Review and Save Rules
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            {readOnly ? "Submitted rules change" : "Review and Save Rules"}
           </SheetTitle>
-          <SheetDescription>Confirm changes before they take effect. All saves are audited.</SheetDescription>
+          <SheetDescription>
+            {readOnly
+              ? "This change is awaiting approval. Approve or reject it from Pending Approvals."
+              : "Confirm changes before they take effect. All saves are audited."}
+          </SheetDescription>
         </SheetHeader>
+
+        {readOnly && changeSetId && (
+          <div className="mt-4 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs text-primary">
+            Change set <span className="font-mono">{changeSetId.slice(0, 8)}</span> — pending approval.
+          </div>
+        )}
 
         <div className="mt-5 space-y-5">
           <section>
@@ -133,6 +147,7 @@ export function ReviewRulesDrawer({
             </div>
           )}
 
+          {!readOnly && (
           <section>
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Reason for change (required)
@@ -144,14 +159,19 @@ export function ReviewRulesDrawer({
             />
             <div className="mt-1 text-[11px] text-muted-foreground">{reason.trim().length}/20 minimum</div>
           </section>
+          )}
         </div>
 
         <SheetFooter className="mt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Back to Edit</Button>
-          <Button onClick={() => onConfirm(reason)} disabled={submitting || short || diffs.length === 0}>
-            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {requiresApproval ? "Submit for approval" : "Save Rules"}
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {readOnly ? "Close" : "Back to Edit"}
           </Button>
+          {!readOnly && (
+            <Button onClick={() => onConfirm(reason)} disabled={submitting || short || diffs.length === 0}>
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {requiresApproval ? "Submit for approval" : "Save Rules"}
+            </Button>
+          )}
         </SheetFooter>
       </SheetContent>
     </Sheet>

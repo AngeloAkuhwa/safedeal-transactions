@@ -4,7 +4,8 @@ import type { PermissionApprovalItem } from "@/services/permission-workspace.ser
 import { EmptyState } from "./EmptyState";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, ExternalLink } from "lucide-react";
+import { Link } from "react-router";
 import { changeStateTone, normalizeChangeState } from "@/services/permission-approval-rules";
 
 const RISK_CLR: Record<string, string> = {
@@ -71,7 +72,7 @@ export function PendingApprovalTable({
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search target, requester, reason, or request ID" className="h-8 pl-7 text-xs" />
         </div>
         <FilterSelect value={scope} onChange={setScope} label="Type" items={[
-          { v: "any", l: "All types" }, { v: "role", l: "Role" }, { v: "user", l: "User override" }, { v: "template", l: "Template" }, { v: "permission", l: "Permission" },
+          { v: "any", l: "All types" }, { v: "role", l: "Role" }, { v: "user", l: "User override" }, { v: "template", l: "Template" }, { v: "permission", l: "Permission" }, { v: "orchestration_rules", l: "Assignment rules" },
         ]} />
         <FilterSelect value={risk} onChange={setRisk} label="Risk" items={[
           { v: "any", l: "Any risk" }, { v: "low", l: "Low" }, { v: "medium", l: "Medium" }, { v: "high", l: "High" }, { v: "critical", l: "Critical" },
@@ -115,8 +116,21 @@ export function PendingApprovalTable({
                       onClick={() => onRowClick?.(r)}
                     >
                       <td className="px-3 py-3 align-middle font-mono text-[11px] text-muted-foreground">{r.id.slice(0, 8)}…</td>
-                      <td className="px-3 py-3 align-middle text-xs capitalize">{r.target_scope}</td>
-                      <td className="px-3 py-3 align-middle text-xs font-medium">{r.target_label}</td>
+                      <td className="px-3 py-3 align-middle text-xs capitalize">
+                        {r.target_scope === "orchestration_rules" ? "Assignment rules" : r.target_scope}
+                      </td>
+                      <td className="px-3 py-3 align-middle text-xs font-medium">
+                        {r.target_scope === "orchestration_rules" ? (
+                          <Link
+                            to={`/admin/task-orchestration?rules_change=${r.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
+                          >
+                            {r.target_label}
+                            <ExternalLink className="h-3 w-3" />
+                          </Link>
+                        ) : r.target_label}
+                      </td>
                       <td className="px-3 py-3 align-middle text-xs text-muted-foreground">
                         <span className="text-emerald-400">+{r.added_keys.length}</span>
                         {" / "}

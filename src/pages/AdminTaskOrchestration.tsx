@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import {
   TaskOrchestrationHeader,
   OrchestrationSummaryCards,
@@ -53,6 +53,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function AdminTaskOrchestration() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const perms = useOrchestrationPerms();
   const { isSenior } = perms;
 
@@ -76,6 +77,10 @@ export default function AdminTaskOrchestration() {
   const [reviewImpact, setReviewImpact] = useState<{ pending: number; would_assign: number; unmatched: number } | null>(null);
   const [reviewRequiresApproval, setReviewRequiresApproval] = useState<boolean | undefined>(undefined);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  // Read-only review opened from Pending Approvals (?rules_change=<id>).
+  const [pendingChangeSet, setPendingChangeSet] = useState<
+    { id: string; before: AssignmentRulesConfig; after: AssignmentRulesConfig } | null
+  >(null);
   const [testResult, setTestResult] = useState<TestConfigResult | null>(null);
   const [testOpen, setTestOpen] = useState(false);
   const [runningEnforcement, setRunningEnforcement] = useState<string | null>(null);
@@ -343,10 +348,16 @@ export default function AdminTaskOrchestration() {
     try {
       setSavingRules(true);
       setReviewError(null);
-      const res = await runOrchestrationAction<{ ok: boolean; requires_approval?: boolean }>({
+      const res = await runOrchestrationAction<{ ok: boolean; requires_approval?: boolean; status?: string; change_set_id?: string }>({
         action: "save_rules", rules: { ...reviewDraft, mode }, reason,
       });
-      toast.success(res?.requires_approval ? "Change submitted for approval" : "Assignment rules saved");
+      if (res?.status === "pending_approval") {
+        toast.success("Submitted for approval", {
+          description: `Change set ${res.change_set_id?.slice(0, 8) ?? ""} is waiting in Pending Approvals.`,
+        });
+      } else {
+        toast.success("Assignment rules saved");
+      }
       setReviewDraft(null);
       await load();
     } catch (e) {
@@ -354,6 +365,34 @@ export default function AdminTaskOrchestration() {
       setReviewError(msg);
       toast.error(msg);
     } finally { setSavingRules(false); }
+  };
+
+  // Deep link from Pending Approvals: ?rules_change=<change_set_id>
+  const rulesChangeId = searchParams.get("rules_change");
+  useEffect(() => {
+    let cancelled = false;
+    if (!rulesChangeId) { setPendingChangeSet(null); return; }
+    (async () => {
+      const { data, error } = await supabase
+        .from("permission_change_sets")
+        .select("id, before, after, target_scope")
+        .eq("id", rulesChangeId)
+        .maybeSingle();
+      if (cancelled || error || !data || data.target_scope !== "orchestration_rules") return;
+      setPendingChangeSet({
+        id: data.id,
+        before: (data.before ?? {}) as AssignmentRulesConfig,
+        after: (data.after ?? {}) as AssignmentRulesConfig,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [rulesChangeId]);
+
+  const closeRulesChange = () => {
+    setPendingChangeSet(null);
+    const next = new URLSearchParams(searchParams);
+    next.delete("rules_change");
+    setSearchParams(next, { replace: true });
   };
 
   const runEnforcement = async (which: "escalate" | "reassign") => {
@@ -551,6 +590,18 @@ export default function AdminTaskOrchestration() {
         submitting={savingRules}
         requiresApproval={reviewRequiresApproval}
         serverError={reviewError}
+      />
+      <ReviewRulesDrawer
+        open={!!pendingChangeSet}
+        onOpenChange={(o) => { if (!o) closeRulesChange(); }}
+        current={pendingChangeSet?.before ?? {}}
+        draft={pendingChangeSet?.after ?? null}
+        impact={null}
+        onConfirm={() => { /* read-only */ }}
+        submitting={false}
+        requiresApproval
+        readOnly
+        changeSetId={pendingChangeSet?.id ?? null}
       />
       <TestConfigurationDialog
         open={testOpen}
