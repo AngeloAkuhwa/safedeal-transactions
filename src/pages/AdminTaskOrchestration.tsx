@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import {
   TaskOrchestrationHeader,
   OrchestrationSummaryCards,
@@ -53,6 +53,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function AdminTaskOrchestration() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const perms = useOrchestrationPerms();
   const { isSenior } = perms;
 
@@ -76,6 +77,10 @@ export default function AdminTaskOrchestration() {
   const [reviewImpact, setReviewImpact] = useState<{ pending: number; would_assign: number; unmatched: number } | null>(null);
   const [reviewRequiresApproval, setReviewRequiresApproval] = useState<boolean | undefined>(undefined);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  // Read-only review opened from Pending Approvals (?rules_change=<id>).
+  const [pendingChangeSet, setPendingChangeSet] = useState<
+    { id: string; before: AssignmentRulesConfig; after: AssignmentRulesConfig } | null
+  >(null);
   const [testResult, setTestResult] = useState<TestConfigResult | null>(null);
   const [testOpen, setTestOpen] = useState(false);
   const [runningEnforcement, setRunningEnforcement] = useState<string | null>(null);
