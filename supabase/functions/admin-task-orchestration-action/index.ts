@@ -516,9 +516,12 @@ Deno.serve(async (req) => {
         return respond({ ok: true, count: ids.length });
       }
       case "auto_assign": {
-        const { data: rules } = await admin.from("assignment_rules").select("config").eq("scope","global").maybeSingle();
+        const scopeKey = String(body.queue_scope ?? "global");
+        const { data: rules } = await admin.from("assignment_rules")
+          .select("id, config, round_robin_state").eq("scope", scopeKey).maybeSingle();
         const mode = (rules?.config as any)?.mode ?? body.mode ?? "round_robin";
-        const { plan: fullPlan } = await buildAutoAssignPlan(mode);
+        const rrState = ((rules as any)?.round_robin_state ?? {}) as Record<string, string>;
+        const { plan: fullPlan, rr_last_picked } = await buildAutoAssignPlan(mode, rrState[scopeKey] ?? null);
         const excluded = new Set(body.exclude_task_ids ?? []);
         const plan = fullPlan.filter(p => !excluded.has(p.task_id));
         let count = 0;
@@ -528,9 +531,17 @@ Deno.serve(async (req) => {
           });
           count++;
         }
+        // Persist the round-robin pointer only after a real run (never previews).
+        if (mode === "round_robin" && rules?.id && rr_last_picked && count > 0) {
+          await admin.from("assignment_rules")
+            .update({ round_robin_state: { ...rrState, [scopeKey]: rr_last_picked } })
+            .eq("id", rules.id);
+        }
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_auto_assign",
-          targetType: "system", metadata: { count, mode, excluded: [...excluded] }, mirrorToAuditLogs: true,
+          targetType: "system",
+          metadata: { count, mode, excluded: [...excluded], scope: scopeKey, round_robin_cursor: rr_last_picked ?? null },
+          mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
         return respond({ ok: true, count });
@@ -866,9 +877,13 @@ Deno.serve(async (req) => {
         });
       }
       case "preview_auto_assign": {
-        const { data: rules } = await admin.from("assignment_rules").select("config").eq("scope","global").maybeSingle();
+        const previewScope = String(body.queue_scope ?? "global");
+        const { data: rules } = await admin.from("assignment_rules")
+          .select("config, round_robin_state").eq("scope", previewScope).maybeSingle();
         const mode = (rules?.config as any)?.mode ?? body.mode ?? "round_robin";
-        const { plan, unmatched, agent_loads } = await buildAutoAssignPlan(mode);
+        const rrState = ((rules as any)?.round_robin_state ?? {}) as Record<string, string>;
+        // Preview honours the stored cursor but never writes it back.
+        const { plan, unmatched, agent_loads } = await buildAutoAssignPlan(mode, rrState[previewScope] ?? null);
         const { count: pending } = await admin.from("orchestration_tasks")
           .select("id", { count: "exact", head: true }).eq("status","unassigned");
         // Emit senior-admin alerts when the queue exposes serious eligibility gaps.
