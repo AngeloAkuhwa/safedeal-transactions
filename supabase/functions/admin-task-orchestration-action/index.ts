@@ -615,13 +615,20 @@ Deno.serve(async (req) => {
           if (Object.keys(patch).length) {
             await admin.from("orchestration_tasks").update(patch).eq("id", id);
           }
-          if (body.internal_note?.trim()) {
-            await admin.from("task_comments").insert({
-              task_id: id, author_id: ctx.userId,
-              body: body.internal_note.trim().slice(0, 4000),
-              visibility: "internal",
-            });
-          }
+          // Every escalation leaves an internal audit comment, note or not.
+          const noteLines = [
+            `Escalated: ${body.reason.trim()}`,
+            targetQueue ? `Target queue: ${targetQueue}` : null,
+            body.target_team ? `Target team: ${body.target_team}` : null,
+            body.escalate_priority ? `Priority: ${body.escalate_priority}` : null,
+            body.requested_reviewer_id ? `Requested reviewer: ${body.requested_reviewer_id}` : null,
+            body.internal_note?.trim() ? `Note: ${body.internal_note.trim()}` : null,
+          ].filter(Boolean).join("\n");
+          await admin.from("task_comments").insert({
+            task_id: id, author_id: ctx.userId,
+            body: noteLines.slice(0, 4000),
+            visibility: "internal",
+          });
         }
         // Fan-out notifications: prior owners + senior admins.
         const { data: escalated } = await admin
