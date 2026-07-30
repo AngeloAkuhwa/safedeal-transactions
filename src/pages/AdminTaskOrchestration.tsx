@@ -367,8 +367,35 @@ export default function AdminTaskOrchestration() {
     } finally { setSavingRules(false); }
   };
 
-  const runEnforcement = async (which: "escalate" | "reassign") => {
+  // Deep link from Pending Approvals: ?rules_change=<change_set_id>
+  const rulesChangeId = searchParams.get("rules_change");
+  useEffect(() => {
+    let cancelled = false;
+    if (!rulesChangeId) { setPendingChangeSet(null); return; }
+    (async () => {
+      const { data, error } = await supabase
+        .from("permission_change_sets")
+        .select("id, before, after, target_scope")
+        .eq("id", rulesChangeId)
+        .maybeSingle();
+      if (cancelled || error || !data || data.target_scope !== "orchestration_rules") return;
+      setPendingChangeSet({
+        id: data.id,
+        before: (data.before ?? {}) as AssignmentRulesConfig,
+        after: (data.after ?? {}) as AssignmentRulesConfig,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [rulesChangeId]);
 
+  const closeRulesChange = () => {
+    setPendingChangeSet(null);
+    const next = new URLSearchParams(searchParams);
+    next.delete("rules_change");
+    setSearchParams(next, { replace: true });
+  };
+
+  const runEnforcement = async (which: "escalate" | "reassign") => {
     try {
       setRunningEnforcement(which);
       const action = which === "escalate" ? "auto_escalate_stale_tasks" : "auto_reassign_offline_agents";
