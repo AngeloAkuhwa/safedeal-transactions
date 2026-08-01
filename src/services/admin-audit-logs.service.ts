@@ -14,6 +14,7 @@ export interface AuditActor {
 }
 export interface AuditTarget {
   user_id: string | null;
+  public_user_id?: string | null;
   user_email: string | null;
   user_name: string | null;
   transaction_id: string | null;

@@ -658,7 +658,7 @@ export default function AdminAuditLogs() {
                         <td className="p-3 align-top">
                           {r.target.user_id ? (
                             <div>
-                              <p className="text-emerald-400 text-sm font-medium">User #{r.target.user_id.slice(0, 8)}</p>
+                              <p className="text-emerald-400 text-sm font-medium">{r.target.public_user_id ?? "User"}</p>
                               <p className="text-muted-foreground text-xs">{r.target.user_email ?? r.target.user_name ?? "—"}</p>
                             </div>
                           ) : r.target.transaction_id ? (
