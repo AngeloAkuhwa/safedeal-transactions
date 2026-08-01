@@ -87,13 +87,17 @@ export function PerformanceCharts({
         </LineChart>
       </ChartCard>
 
-      <ChartCard title="SLA compliance trend" subtitle={`On-time share per ${bucketWord}`} empty={compliancePoints.length === 0}>
+      <ChartCard title="SLA compliance trend" subtitle={`On-time share, on-time and breached counts per ${bucketWord}`} empty={compliancePoints.length === 0}>
         <LineChart data={trend} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
           <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} />
-          <YAxis domain={[0, 100]} tick={AXIS} tickLine={false} axisLine={false} unit="%" />
+          <YAxis yAxisId="pct" domain={[0, 100]} tick={AXIS} tickLine={false} axisLine={false} unit="%" />
+          <YAxis yAxisId="count" orientation="right" tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false} />
           <RTooltip contentStyle={TOOLTIP_STYLE} />
-          <Line type="monotone" dataKey="compliance" name="Compliance %" stroke="hsl(152 60% 50%)" strokeWidth={2} dot={false} connectNulls />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Line yAxisId="pct" type="monotone" dataKey="compliance" name="Compliance %" stroke="hsl(152 60% 50%)" strokeWidth={2} dot={false} connectNulls />
+          <Line yAxisId="count" type="monotone" dataKey="on_time" name="On time" stroke="hsl(var(--primary))" strokeWidth={1.5} dot={false} />
+          <Line yAxisId="count" type="monotone" dataKey="breached" name="Breached" stroke="hsl(0 84% 65%)" strokeWidth={1.5} dot={false} />
         </LineChart>
       </ChartCard>
 
@@ -109,15 +113,26 @@ export function PerformanceCharts({
         </LineChart>
       </ChartCard>
 
-      <ChartCard title="Workload versus completion" subtitle="Open load and resolved output per agent" empty={workload.length === 0}>
+      <ChartCard title="Assigned versus completed" subtitle={`Cases assigned and completed per ${bucketWord} in the selected scope`} empty={trendEmpty}>
+        <BarChart data={trend} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+          <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} interval={0} angle={-20} textAnchor="end" height={48} />
+          <YAxis tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false} />
+          <RTooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted)/0.3)" }} />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Bar dataKey="assigned" name="Assigned" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="resolved" name="Completed" fill="hsl(152 60% 50%)" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ChartCard>
+
+      <ChartCard title="Open load per agent" subtitle="Active cases currently held by each agent" empty={workload.length === 0}>
         <BarChart data={workload} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
           <XAxis dataKey="name" tick={AXIS} tickLine={false} axisLine={false} interval={0} angle={-20} textAnchor="end" height={48} />
           <YAxis tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false} />
           <RTooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted)/0.3)" }} />
           <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Bar dataKey="active" name="Active" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="resolved" name="Resolved" fill="hsl(152 60% 50%)" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="active" name="Active now" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ChartCard>
 
