@@ -581,6 +581,13 @@ Deno.serve(async (req) => {
       const onTime = slaTracked.filter((t) => new Date(t.resolved_at!).getTime() <= new Date(t.due_at!).getTime());
       const breached = slaTracked.length - onTime.length;
       const slaCompliance = slaTracked.length ? pct(onTime.length, slaTracked.length) : null;
+      // Live SLA posture across the agent's open, SLA-tracked work.
+      const activeTracked = active.filter((t) => !!t.due_at && String(t.sla_status) !== "paused");
+      const atRisk = activeTracked.filter((t) => {
+        const left = new Date(t.due_at!).getTime() - now;
+        return left > 0 && left <= 2 * 60 * 60 * 1000;
+      }).length;
+      const onTrack = activeTracked.filter((t) => new Date(t.due_at!).getTime() - now > 2 * 60 * 60 * 1000).length;
 
       const windowHistory = (history ?? []).filter((h) => inWindow(h.created_at, range.from, range.to));
       const reassignedAway = windowHistory.filter((h) => h.from_agent_id === u.id).length;
@@ -645,6 +652,10 @@ Deno.serve(async (req) => {
         breached,
         on_time: onTime.length,
         sla_compliance: slaCompliance,
+        sla_on_track: onTrack,
+        sla_at_risk: atRisk,
+        sla_completed_within: onTime.length,
+        sla_completed_outside: breached,
         reassignments: reassignedAway + reassignedIn,
         reassignments_out: reassignedAway,
         reassignments_in: reassignedIn,
