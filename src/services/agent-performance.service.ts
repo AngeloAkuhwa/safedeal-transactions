@@ -181,7 +181,7 @@ export interface SlaSummary {
 }
 
 export interface AgentPerformanceFilters {
-  range: "week" | "7d" | "30d" | "month" | "custom";
+  range: "today" | "week" | "7d" | "30d" | "month" | "prev_month" | "quarter" | "custom";
   /** "range" = selected time frame, "all_time" = ignore the window entirely. */
   scope: "range" | "all_time";
   date_from?: string;
@@ -198,6 +198,7 @@ export interface AgentPerformanceFilters {
   case_priority: string;
   case_status: string;
   case_sla: string;
+  case_stage: string;
   workload_status: string;
   search: string;
   /** Minimum completed cases before a score is treated as comparable. */
@@ -221,6 +222,7 @@ export const DEFAULT_AGENT_FILTERS: AgentPerformanceFilters = {
   case_priority: "all",
   case_status: "all",
   case_sla: "all",
+  case_stage: "all",
   workload_status: "all",
   search: "",
   min_completed: 0,
@@ -314,10 +316,13 @@ async function assertResolvedCountsReconcile(
 
 export async function exportAgentPerformance(
   filters: AgentPerformanceFilters,
-  opts: { tab: string; maskPii: boolean; reason?: string },
+  opts: { tab: string; maskPii: boolean; reason?: string; agentId?: string | null },
 ): Promise<{ csv: string; filename: string }> {
   const { data, error } = await supabase.functions.invoke("admin-agent-performance", {
-    body: { ...filters, mode: "export", tab: opts.tab, mask_pii: opts.maskPii, reason: opts.reason },
+    body: {
+      ...filters, mode: "export", tab: opts.tab, mask_pii: opts.maskPii,
+      reason: opts.reason, agent_id: opts.agentId ?? null,
+    },
   });
   if (error) throw error;
   if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
@@ -391,6 +396,7 @@ export async function fetchAgentCases(
       case_priority: filters?.case_priority ?? "all",
       case_status: filters?.case_status ?? "all",
       case_sla: filters?.case_sla ?? "all",
+      case_stage: filters?.case_stage ?? "all",
       page,
       page_size: 100,
     },
