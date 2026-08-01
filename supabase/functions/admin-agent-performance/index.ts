@@ -616,7 +616,12 @@ Deno.serve(async (req) => {
             .map((r) => ({ key: r.key, name: r.name })),
         },
         range: { key: String(body.range ?? "7d"), label: range.label, from: range.from.toISOString(), to: range.to.toISOString() },
-        permissions: { can_export: canExport, can_rebalance: canRebalance },
+        permissions: {
+          can_export: canExport,
+          can_rebalance: canRebalance,
+          can_view_orchestration: canViewOrchestration,
+          can_view_disputes: canViewDisputes,
+        },
         generated_at: new Date().toISOString(),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
