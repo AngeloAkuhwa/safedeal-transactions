@@ -398,6 +398,74 @@ export default function AdminTaskOrchestration() {
     setSearchParams(next, { replace: true });
   };
 
+  // Deep link from Agent Performance (and notifications): ?task=<task_id>
+  const deepTaskId = searchParams.get("task");
+  useEffect(() => {
+    let cancelled = false;
+    if (!deepTaskId) return;
+    (async () => {
+      const local =
+        data?.unassigned_queue.find(t => t.id === deepTaskId) ?? null;
+      if (local) { if (!cancelled) setDetailTask(local); return; }
+      const { data: row, error } = await supabase
+        .from("orchestration_tasks")
+        .select(
+          "id, task_code, type, title, priority, amount, currency, created_at, dispute_id, transaction_id, stage, status, sla_status, sla_due_at, queue, required_role, required_permissions, suggested_agent_id, version",
+        )
+        .eq("id", deepTaskId)
+        .maybeSingle();
+      if (cancelled || error || !row) {
+        if (!cancelled && !error) toast.error("That task is no longer available");
+        return;
+      }
+      setDetailTask(row as unknown as UnassignedTask);
+    })();
+    return () => { cancelled = true; };
+  }, [deepTaskId, data]);
+
+  const clearParams = useCallback((keys: string[]) => {
+    const next = new URLSearchParams(searchParams);
+    let changed = false;
+    for (const k of keys) if (next.has(k)) { next.delete(k); changed = true; }
+    if (changed) setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  // Deep link from Agent Performance: ?rebalance=1&agent=<user_id>
+  const rebalanceFlag = searchParams.get("rebalance");
+  const rebalanceAgentId = searchParams.get("agent");
+  const rebalanceKickedRef = useRef(false);
+  useEffect(() => {
+    if (rebalanceFlag !== "1" || rebalanceKickedRef.current) return;
+    if (!perms.canRebalance) {
+      rebalanceKickedRef.current = true;
+      toast.error("You do not have permission to rebalance workload");
+      clearParams(["rebalance", "agent"]);
+      return;
+    }
+    rebalanceKickedRef.current = true;
+    void (async () => {
+      try {
+        const res = await runOrchestrationAction<{
+          moves: number;
+          plan: RebalanceMove[];
+          skipped?: Array<{ task_id: string; task_code: string; reason: string }>;
+        }>({ action: "preview_rebalance" });
+        const all = res.plan ?? [];
+        const scoped = rebalanceAgentId
+          ? all.filter(m => m.from === rebalanceAgentId || m.to === rebalanceAgentId)
+          : all;
+        if (rebalanceAgentId && scoped.length === 0) {
+          toast.info("No rebalance moves involve that agent right now");
+        }
+        setRebalancePreview({ plan: scoped, skipped: res.skipped ?? [] });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Rebalance preview failed");
+      } finally {
+        clearParams(["rebalance", "agent"]);
+      }
+    })();
+  }, [rebalanceFlag, rebalanceAgentId, perms.canRebalance, clearParams]);
+
   const runEnforcement = async (which: "escalate" | "reassign") => {
     try {
       setRunningEnforcement(which);
