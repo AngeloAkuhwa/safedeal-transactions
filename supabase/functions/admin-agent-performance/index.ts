@@ -414,6 +414,8 @@ Deno.serve(async (req) => {
       min_overdue: Number(body.min_overdue ?? 0) || 0,
       score_min: Number(body.score_min ?? 0) || 0,
       score_max: body.score_max == null ? 100 : (Number(body.score_max) || 100),
+      min_completed: Number(body.min_completed ?? 0) || 0,
+      performance_level: String(body.performance_level ?? "all"),
       case_priority: String(body.case_priority ?? "all"),
       case_status: String(body.case_status ?? "all"),
       case_sla: String(body.case_sla ?? "all"),
@@ -737,10 +739,17 @@ Deno.serve(async (req) => {
       r.insufficient_data = insufficient;
       r.score_band = insufficient ? "Insufficient Data" : scoreBand(r.score);
     }
-    rows.sort((a, b) => b.score - a.score || b.resolved - a.resolved);
+    // Insufficient-data agents always rank after comparable agents.
+    rows.sort((a, b) =>
+      Number(a.insufficient_data) - Number(b.insufficient_data) ||
+      b.score - a.score || b.resolved - a.resolved);
     const ranked = rows
       .map((r, i) => ({ ...r, rank: i + 1 }))
-      .filter((r) => r.score >= f.score_min && r.score <= f.score_max);
+      .filter((r) => r.score >= f.score_min && r.score <= f.score_max)
+      .filter((r) => f.min_completed <= 0 || r.resolved >= f.min_completed)
+      .filter((r) =>
+        f.performance_level === "all" ||
+        r.score_band.toLowerCase().replace(/\s+/g, "_") === f.performance_level);
 
     // ---- summary --------------------------------------------------------
     const liveAgents = ranked.filter((r) => r.is_live).length;
