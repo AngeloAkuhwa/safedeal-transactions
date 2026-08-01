@@ -36,7 +36,7 @@ const TAB_LABEL: Record<AgentTab, string> = {
 const URL_FILTER_KEYS: (keyof Filters)[] = [
   "range", "scope", "date_from", "date_to", "team", "role", "availability", "sla",
   "overdue_only", "min_active", "min_overdue", "score_min", "score_max", "case_priority",
-  "case_status", "case_sla", "workload_status", "search",
+  "case_status", "case_sla", "case_stage", "workload_status", "search",
   "min_completed", "performance_level", "hide_insufficient",
 ];
 
