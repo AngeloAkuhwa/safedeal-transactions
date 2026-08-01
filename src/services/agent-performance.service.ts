@@ -41,7 +41,44 @@ export interface AgentPerformanceRow {
   escalations: number;
   score: number;
   score_band: string;
+  first_action_sample?: number;
+  sla_sample?: number;
+  avoidable_reassignments?: number;
+  sla_on_track?: number;
+  sla_at_risk?: number;
+  sla_completed_within?: number;
+  sla_completed_outside?: number;
+  score_components?: ScoreComponent[];
+  score_penalties?: ScorePenalty[];
+  score_exclusions?: ScoreExclusion[];
+  score_included_cases?: number;
+  score_excluded_cases?: number;
+  insufficient_data?: boolean;
 }
+
+export interface ScoreComponent {
+  key: string;
+  label: string;
+  /** Effective weight in percent after untracked components are dropped. */
+  weight: number;
+  raw: number | null;
+  raw_label: string;
+  normalised: number | null;
+  contribution: number;
+  tracked: boolean;
+}
+
+export interface ScorePenalty { reason: string; points: number }
+export interface ScoreExclusion { reason: string; count: number }
+
+export const PERFORMANCE_LEVELS = [
+  { value: "all", label: "All levels" },
+  { value: "excellent", label: "Excellent" },
+  { value: "very_good", label: "Very Good" },
+  { value: "good", label: "Good" },
+  { value: "needs_attention", label: "Needs Attention" },
+  { value: "insufficient_data", label: "Insufficient Data" },
+] as const;
 
 export interface AgentPerformanceSummaryData {
   active_agents: number;
@@ -163,6 +200,10 @@ export interface AgentPerformanceFilters {
   case_sla: string;
   workload_status: string;
   search: string;
+  /** Minimum completed cases before a score is treated as comparable. */
+  min_completed: number;
+  performance_level: string;
+  hide_insufficient: boolean;
 }
 
 export const DEFAULT_AGENT_FILTERS: AgentPerformanceFilters = {
@@ -182,6 +223,9 @@ export const DEFAULT_AGENT_FILTERS: AgentPerformanceFilters = {
   case_sla: "all",
   workload_status: "all",
   search: "",
+  min_completed: 0,
+  performance_level: "all",
+  hide_insufficient: false,
 };
 
 export interface AgentPerformanceOverview {
