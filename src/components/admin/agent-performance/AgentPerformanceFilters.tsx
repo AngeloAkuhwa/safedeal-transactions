@@ -45,8 +45,15 @@ export function AgentPerformanceFilters({
         </SelectContent>
       </Select>
 
-      <Select value={filters.range} onValueChange={(v) => onChange({ range: v as Filters["range"] })}>
-        <SelectTrigger className="h-9 w-[150px] bg-card/60" aria-label="Filter by date range">
+      <Select
+        value={filters.range}
+        disabled={filters.scope === "all_time"}
+        onValueChange={(v) => onChange({ range: v as Filters["range"] })}
+      >
+        <SelectTrigger
+          className="h-9 w-[150px] bg-card/60 disabled:opacity-50"
+          aria-label="Filter by date range"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -56,6 +63,31 @@ export function AgentPerformanceFilters({
           <SelectItem value="month">This Month</SelectItem>
         </SelectContent>
       </Select>
+
+      {/* Scope: windowed stats vs lifetime stats. Drives cards, table, trend,
+          exports and drawers together so no mixed reading is possible. */}
+      <div
+        role="group"
+        aria-label="Statistics scope"
+        className="inline-flex h-9 items-center rounded-lg border border-border/60 bg-card/60 p-0.5"
+      >
+        {(["range", "all_time"] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            aria-pressed={filters.scope === s}
+            onClick={() => onChange({ scope: s })}
+            className={
+              "rounded-md px-3 py-1 text-xs font-medium transition " +
+              (filters.scope === s
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:text-foreground")
+            }
+          >
+            {s === "range" ? "In range" : "All time"}
+          </button>
+        ))}
+      </div>
 
       <Popover>
         <PopoverTrigger asChild>

@@ -8,7 +8,7 @@ import { ErrorState } from "../states/ErrorState";
 import { INNER_CARD_CLASS, hoursLabel, slaTone } from "../helpers";
 import {
   fetchAgentCases, agentName,
-  type AgentCaseRow, type AgentPerformanceRow,
+  type AgentCaseRow, type AgentPerformanceRow, type AgentPerformanceFilters,
 } from "@/services/agent-performance.service";
 import { ShieldCheck } from "lucide-react";
 
@@ -54,11 +54,13 @@ const BUCKET_BADGE: Record<SlaCase["bucket"], { label: string; className: string
  * breached split, and per-case target vs actual with hours past due.
  */
 export function AgentSLADrawer({
-  agent, open, onOpenChange,
+  agent, open, onOpenChange, filters,
 }: {
   agent: AgentPerformanceRow | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** Dashboard filters — keeps the SLA list on the same window as the KPIs. */
+  filters?: AgentPerformanceFilters;
 }) {
   const navigate = useNavigate();
   const [rows, setRows] = useState<AgentCaseRow[]>([]);
@@ -71,7 +73,7 @@ export function AgentSLADrawer({
     setLoading(true);
     setError(null);
     try {
-      setRows(await fetchAgentCases(agent.user_id));
+      setRows((await fetchAgentCases(agent.user_id, filters)).cases);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load SLA data");
     } finally {
@@ -82,7 +84,7 @@ export function AgentSLADrawer({
   useEffect(() => {
     if (open && agent) { setBucket("all"); void load(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, agent?.user_id]);
+  }, [open, agent?.user_id, filters?.scope, filters?.range, filters?.date_from, filters?.date_to]);
 
   const cases = useMemo(() => rows.map(classify), [rows]);
   const counts = useMemo(() => ({

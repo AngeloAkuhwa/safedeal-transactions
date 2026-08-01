@@ -43,10 +43,14 @@ export function AgentPerformanceSummary({
       key: "active",
       label: "Active Agents",
       value: String(summary.active_agents),
-      note: summary.active_agents_delta > 0
-        ? `+${summary.active_agents_delta} this period`
-        : summary.active_agents_delta < 0 ? `${summary.active_agents_delta} this period` : "No change",
-      noteTone: summary.active_agents_delta >= 0 ? "success" : "danger",
+      note: summary.active_agents_delta == null
+        ? "All-time roster"
+        : summary.active_agents_delta > 0
+          ? `+${summary.active_agents_delta} this period`
+          : summary.active_agents_delta < 0
+            ? `${summary.active_agents_delta} this period`
+            : "No change",
+      noteTone: (summary.active_agents_delta ?? 0) >= 0 ? "success" : "danger",
       onClick: onOpenRoster,
       title: "Show all agents",
     },

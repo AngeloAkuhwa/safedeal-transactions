@@ -5,28 +5,40 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "../states/EmptyState";
 import { ErrorState } from "../states/ErrorState";
-import { fetchAgentCases, agentName, type AgentCaseRow, type AgentPerformanceRow } from "@/services/agent-performance.service";
+import {
+  fetchAgentCases, agentName,
+  type AgentCaseRow, type AgentPerformanceRow, type AgentPerformanceFilters,
+} from "@/services/agent-performance.service";
 import { FileSearch } from "lucide-react";
 
 export function AgentCasesDrawer({
-  agent, open, onOpenChange, slaOnly = false,
+  agent, open, onOpenChange, slaOnly = false, filters,
 }: {
   agent: AgentPerformanceRow | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   slaOnly?: boolean;
+  /** Dashboard filters — inherited so the counts match the workload row. */
+  filters?: AgentPerformanceFilters;
 }) {
   const navigate = useNavigate();
   const [rows, setRows] = useState<AgentCaseRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [truncated, setTruncated] = useState(false);
+  const [rangeLabel, setRangeLabel] = useState<string>("");
+  const [scopeOverride, setScopeOverride] = useState<"range" | "all_time" | null>(null);
+  const scope = scopeOverride ?? filters?.scope ?? "range";
 
   const load = async () => {
     if (!agent) return;
     setLoading(true);
     setError(null);
     try {
-      setRows(await fetchAgentCases(agent.user_id));
+      const res = await fetchAgentCases(agent.user_id, { ...filters, scope });
+      setRows(res.cases);
+      setTruncated(res.truncated);
+      setRangeLabel(res.range.label);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load cases");
     } finally {
@@ -37,7 +49,11 @@ export function AgentCasesDrawer({
   useEffect(() => {
     if (open && agent) void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, agent?.user_id]);
+  }, [open, agent?.user_id, scope, filters?.range, filters?.date_from, filters?.date_to,
+      filters?.case_priority, filters?.case_status, filters?.case_sla]);
+
+  // Reset any local widening whenever the drawer opens on a new agent.
+  useEffect(() => { if (!open) setScopeOverride(null); }, [open]);
 
   const visible = slaOnly ? rows.filter((r) => r.is_overdue || r.sla_status === "breached") : rows;
   const activeRows = visible.filter((r) => r.is_active);
@@ -97,8 +113,30 @@ export function AgentCasesDrawer({
           <SheetDescription>
             {agent ? agentName(agent) : ""} · {visible.length} {visible.length === 1 ? "case" : "cases"}
             {slaOnly ? " breaching or overdue" : " in the current workload"}
+            {rangeLabel ? ` · ${rangeLabel}` : ""}
           </SheetDescription>
         </SheetHeader>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-lg border border-border/60 bg-background/60 p-0.5">
+            {(["range", "all_time"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setScopeOverride(s)}
+                className={cn(
+                  "rounded-md px-3 py-1 text-xs font-medium transition",
+                  scope === s ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {s === "range" ? "In range" : "All time"}
+              </button>
+            ))}
+          </div>
+          {truncated && (
+            <span className="text-[11px] text-amber-400">Showing the first 1,000 cases</span>
+          )}
+        </div>
 
         <div className="mt-6 space-y-3 pb-8">
           {loading && Array.from({ length: 5 }).map((_, i) => (
@@ -123,7 +161,7 @@ export function AgentCasesDrawer({
           {!loading && !error && resolvedRows.length > 0 && (
             <>
               <div className="pt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Resolved ({resolvedRows.length})
+                Resolved ({resolvedRows.length}){rangeLabel ? ` · ${rangeLabel}` : ""}
               </div>
               {resolvedRows.map((c) => <CaseCard key={`${c.source}-${c.id}`} c={c} />)}
             </>

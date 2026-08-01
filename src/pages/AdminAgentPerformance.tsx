@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AgentPerformanceHeader } from "@/components/admin/agent-performance/AgentPerformanceHeader";
 import { AgentPerformanceSummary } from "@/components/admin/agent-performance/AgentPerformanceSummary";
@@ -33,7 +33,11 @@ const TAB_LABEL: Record<AgentTab, string> = {
 
 export default function AdminAgentPerformance() {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<Filters>(DEFAULT_AGENT_FILTERS);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [filters, setFilters] = useState<Filters>(() => ({
+    ...DEFAULT_AGENT_FILTERS,
+    scope: searchParams.get("scope") === "all_time" ? "all_time" : "range",
+  }));
   const [activeCard, setActiveCard] = useState<string | null>(null);
   const [tab, setTab] = useState<AgentTab>("workload");
   const [data, setData] = useState<AgentPerformanceOverview | null>(null);
@@ -60,6 +64,17 @@ export default function AdminAgentPerformance() {
 
   useEffect(() => { void load(); }, [load]);
 
+  // Keep the scope in the URL so a shared link reproduces the exact view.
+  useEffect(() => {
+    const current = searchParams.get("scope") ?? "range";
+    if (current === filters.scope) return;
+    const next = new URLSearchParams(searchParams);
+    if (filters.scope === "all_time") next.set("scope", "all_time");
+    else next.delete("scope");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.scope]);
+
   // Workload status is derived from capacity + availability on the client,
   // so this one filter is applied here rather than server-side.
   const agents = (data?.agents ?? []).filter(
@@ -74,7 +89,10 @@ export default function AdminAgentPerformance() {
     () => JSON.stringify(filters) !== JSON.stringify(DEFAULT_AGENT_FILTERS),
     [filters],
   );
-  const clearFilters = () => { setFilters(DEFAULT_AGENT_FILTERS); setActiveCard(null); };
+  const clearFilters = () => {
+    setFilters({ ...DEFAULT_AGENT_FILTERS, scope: filters.scope });
+    setActiveCard(null);
+  };
 
   const patchFilters = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
 
@@ -193,7 +211,10 @@ export default function AdminAgentPerformance() {
                   filters={filters}
                   roles={data.facets.roles}
                   onChange={patchFilters}
-                  onClear={() => { setActiveCard(null); setFilters({ ...DEFAULT_AGENT_FILTERS, range: filters.range }); }}
+                  onClear={() => {
+                    setActiveCard(null);
+                    setFilters({ ...DEFAULT_AGENT_FILTERS, range: filters.range, scope: filters.scope });
+                  }}
                 />
               </div>
               <div className={loading ? "opacity-60 transition-opacity" : "transition-opacity"}>{body}</div>
@@ -220,12 +241,14 @@ export default function AdminAgentPerformance() {
         agent={casesAgent}
         open={!!casesAgent}
         onOpenChange={(v) => !v && setCasesAgent(null)}
+        filters={filters}
       />
 
       <AgentSLADrawer
         agent={slaAgent}
         open={!!slaAgent}
         onOpenChange={(v) => !v && setSlaAgent(null)}
+        filters={filters}
       />
 
       <ExportPerformanceDialog
