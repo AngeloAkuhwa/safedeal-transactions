@@ -1344,6 +1344,7 @@ Deno.serve(async (req) => {
             title: "Auto-escalation batch failed",
             body: err instanceof Error ? err.message : "unknown",
             dedupeKey: `auto_esc_batch_fail:${new Date().toISOString().slice(0,13)}`,
+            link: `/admin/task-orchestration?status=unassigned`,
             data: { rule: "auto_escalate_stale" },
           });
           return respond({ error: "auto_escalate_failed", detail: err instanceof Error ? err.message : String(err) }, 500);
@@ -1376,6 +1377,7 @@ Deno.serve(async (req) => {
                   title: "Offline reassign — no eligible target",
                   body: `Task ${(t as any).task_code} could not be moved off offline agent.`,
                   dedupeKey: `offline_reassign_no_target:${(t as any).id}`,
+                  link: `/admin/task-orchestration?status=unassigned`,
                   data: { task_id: (t as any).id, rule: "auto_reassign_offline" },
                 });
                 continue;
@@ -1390,6 +1392,7 @@ Deno.serve(async (req) => {
                   title: "Auto-reassign error",
                   body: `Task ${(t as any).task_code}: ${err instanceof Error ? err.message : "unknown"}`,
                   dedupeKey: `auto_reassign_fail:${(t as any).id}`,
+                  link: `/admin/task-orchestration?task=${(t as any).id}`,
                   data: { task_id: (t as any).id, rule: "auto_reassign_offline" },
                 });
               }
