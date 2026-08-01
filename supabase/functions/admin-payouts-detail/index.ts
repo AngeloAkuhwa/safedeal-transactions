@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     admin.from("disputes").select("id, status, opened_at, resolved_at").eq("transaction_id", payout.transaction_id).order("opened_at", { ascending: false }).maybeSingle(),
     admin.from("admin_investigations").select("id, status, priority").eq("transaction_id", payout.transaction_id).maybeSingle(),
     admin.from("refunds").select("id, status, refund_amount, created_at").eq("transaction_id", payout.transaction_id).order("created_at", { ascending: false }),
-    admin.from("payments").select("id, status, amount, provider_reference, paid_at").eq("transaction_id", payout.transaction_id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    admin.from("payments").select("id, status, amount, provider_reference, captured_at, authorized_at, created_at").eq("transaction_id", payout.transaction_id).eq("status", "succeeded").order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   const productTitle = (() => { return null; })();
@@ -80,8 +80,17 @@ Deno.serve(async (req) => {
     : (itemTotal != null && protectionFee != null && paymentProcessingFee != null
         ? itemTotal + protectionFee + paymentProcessingFee
         : null);
-  // Seller payout always comes from payouts.amount (single source of truth)
-  const sellerPayout = Number(payout.amount ?? 0);
+  // Canonical seller release amount = the immutable pricing snapshot.
+  // payouts.amount is the *recorded* movement; when the two disagree the
+  // record is flagged instead of silently showing a different number.
+  const snapshotSellerPayout = hasPricing && pricing!.seller_payout_amount != null
+    ? Number(pricing!.seller_payout_amount)
+    : null;
+  const recordedPayoutAmount = Number(payout.amount ?? 0);
+  const sellerPayout = snapshotSellerPayout ?? recordedPayoutAmount;
+  const releaseAmountMismatch =
+    snapshotSellerPayout != null &&
+    Math.abs(snapshotSellerPayout - recordedPayoutAmount) > 0.005;
 
   const investigationOpen = investigation && ["open","under_review","escalated"].includes(investigation.status);
   const refundInFlight = (refunds ?? []).some((r: any) => ["pending","processing"].includes(r.status));
@@ -211,6 +220,21 @@ Deno.serve(async (req) => {
       entered_queue_at: payout.created_at,
       released_at: payout.released_at,
       initiated_at: payout.initiated_at,
+      // A completed payout MUST carry a completion timestamp. When it is
+      // missing we surface "Unavailable" and flag the record for review
+      // instead of rendering a blank value.
+      completed_at: payout.completed_at ?? null,
+      completed_at_display:
+        payout.status === "completed" && !payout.completed_at
+          ? "Unavailable"
+          : payout.completed_at ?? null,
+      needs_review: payout.status === "completed" && !payout.completed_at,
+      needs_review_reason:
+        payout.status === "completed" && !payout.completed_at
+          ? "Completed payout has no completion timestamp."
+          : null,
+      transaction_id: payout.transaction_id,
+      seller_id: payout.seller_id,
       notes: payout.notes ?? null,
     },
     transaction: tx ? {
@@ -234,6 +258,9 @@ Deno.serve(async (req) => {
       payment_processing_fee: paymentProcessingFee,
       total_charged: totalCharged,
       seller_payout: sellerPayout,
+      seller_payout_source: snapshotSellerPayout != null ? "pricing_snapshot" : "payout_record",
+      recorded_payout_amount: recordedPayoutAmount,
+      release_amount_mismatch: releaseAmountMismatch,
       currency: pricing?.currency_code ?? "NGN",
       has_pricing_snapshot: hasPricing,
     },

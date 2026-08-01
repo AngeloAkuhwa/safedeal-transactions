@@ -129,6 +129,10 @@ export interface PayoutDetail {
     payment_processing_fee: number | null;
     total_charged: number | null;
     seller_payout: number;
+    /** Where the release figure came from — snapshot is canonical. */
+    seller_payout_source?: "pricing_snapshot" | "payout_record";
+    recorded_payout_amount?: number;
+    release_amount_mismatch?: boolean;
     currency: string;
     has_pricing_snapshot?: boolean;
   };

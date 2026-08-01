@@ -4,6 +4,7 @@
  * Admin → Escrow page. Admin-only.
  */
 import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
+import { fetchReconciliationRows, fetchReconciliationSummary, EMPTY_SUMMARY, type ReconciliationRow } from "../_shared/reconciliation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -229,22 +230,22 @@ Deno.serve(async (req) => {
     .filter((s) => Number(s.frozen_amount ?? 0) > 0 && new Date(s.last_changed_at as string).getTime() < frozenCutoff)
     .slice(0, 10);
 
-  // Provider mismatch — latest reconciliation drift
-  const { data: latestRun } = await admin
-    .from("escrow_reconciliation_results")
-    .select("run_id")
-    .order("run_at", { ascending: false })
-    .limit(1);
-  const runId = latestRun?.[0]?.run_id as string | undefined;
-  const { data: drift } = runId
-    ? await admin
-        .from("escrow_reconciliation_results")
-        .select("transaction_id, delta, status")
-        .eq("run_id", runId)
-        .neq("status", "ok")
-        .or(`delta.gte.${thresholds.mismatch_min_delta},delta.lte.${-thresholds.mismatch_min_delta}`)
-        .limit(10)
-    : { data: [] as Array<{ transaction_id: string; delta: number; status: string }> };
+  // Provider mismatch — canonical reconciliation (same routine the Dashboard
+  // and the Reconciliation hub call, so the counts always agree).
+  let reconSummary = { ...EMPTY_SUMMARY };
+  let reconRows: ReconciliationRow[] = [];
+  try {
+    [reconSummary, reconRows] = await Promise.all([
+      fetchReconciliationSummary(admin, null),
+      fetchReconciliationRows(admin, { onlyIssues: true }),
+    ]);
+  } catch (e) {
+    console.error("[admin-escrow-overview] reconciliation failed", e);
+  }
+  const drift = reconRows
+    .filter((r) => r.status === "mismatch" || r.status === "requires_review")
+    .slice(0, 10)
+    .map((r) => ({ transaction_id: r.transaction_id, delta: r.difference, status: r.status }));
 
   // High-value held — dynamic threshold (acts as "stuck/idle" candidates pool)
   const highValueRows = (states ?? [])
@@ -429,6 +430,7 @@ Deno.serve(async (req) => {
     },
     trends: { balance_30d: balance30d, state_distribution: stateDistribution, flow_14d: flow14d },
     alerts,
+    reconciliation: reconSummary,
     records: { total, page, page_size: pageSize, rows: records },
   });
 });

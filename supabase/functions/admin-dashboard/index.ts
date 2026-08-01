@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
+import { fetchReconciliationSummary, outstandingCount, EMPTY_SUMMARY } from "../_shared/reconciliation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -305,23 +306,14 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
   }
 
   // ---------- Reconciliation Mismatches ----------
-  // Rolls up three independent reconciliation checks over the last 30 days into
-  // a single count surfaced on the dashboard reconciliation card:
-  //   1. Successful payments without a matching payment_credit/escrow_hold ledger deposit.
-  //   2. Duplicate ledger entries for the same (transaction, reference, entry_type).
-  //   3. Completed payouts without a matching payout_debit ledger entry.
+  // Single source of truth: the same `admin_financial_reconciliation` routine
+  // the Escrow page and the Reconciliation hub call, over the same (all-time)
+  // scope, so the counts are identical by construction.
+  let reconSummary = { ...EMPTY_SUMMARY };
   let reconMismatchCount = 0;
   try {
-    // P1 #5: SQL-side counts (replaces prior JS-side scans).
-    const [mismatches, duplicates, orphans] = await Promise.all([
-      client.rpc("admin_reconciliation_mismatches", { _since: since30d }),
-      client.rpc("admin_duplicate_ledger_entries", { _since: since30d }),
-      client.rpc("admin_orphan_completed_payouts", { _since: since30d }),
-    ]);
-    reconMismatchCount =
-      (Number(mismatches.data ?? 0) || 0) +
-      (Number(duplicates.data ?? 0) || 0) +
-      (Number(orphans.data ?? 0) || 0);
+    reconSummary = await fetchReconciliationSummary(client, null);
+    reconMismatchCount = outstandingCount(reconSummary);
   } catch (e) {
     await logEdgeError(client, `recon_failed: ${(e as Error).message}`, userId);
   }
@@ -649,8 +641,16 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       high_severity_actions_24h: highSev24h,
       impersonation_sessions_24h: 0,
       failed_admin_logins_24h: 0,
-      compliance_status: highSev24h > 10 ? "amber" : "green",
+      // Compliance can only be "green" when reconciliation is clean — the
+      // same figure the Escrow page reports.
+      compliance_status:
+        reconSummary.mismatch > 0
+          ? "red"
+          : (reconSummary.requires_review > 0 || highSev24h > 10)
+            ? "amber"
+            : "green",
       compliance_last_check_iso: now.toISOString(),
+      reconciliation: reconSummary,
     },
     critical_alerts: criticalAlerts,
     recent_activity: recentActivity,

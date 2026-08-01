@@ -52,6 +52,53 @@ export interface ReconciliationOverview {
   drift: DriftRow[];
   coverage: CoverageRow[];
   pricing_audit: PricingAuditRow[];
+  /** Canonical financial remediation report (same routine as Dashboard/Escrow). */
+  remediation?: RemediationReport;
+}
+
+export type RecordFinancialStatus =
+  | "reconciled"
+  | "pending_settlement"
+  | "mismatch"
+  | "requires_review";
+
+export interface RemediationFinding {
+  key: string;
+  label: string;
+  cause: string;
+  action: string;
+}
+
+export interface RemediationRow {
+  transaction_id: string;
+  transaction_code: string;
+  currency: string;
+  money_status: string;
+  created_at: string;
+  captured: number;
+  escrowed: number;
+  refunded: number;
+  released: number;
+  payout_approved: number;
+  remaining: number;
+  ledger_balance: number;
+  expected_balance: number;
+  difference: number;
+  status: RecordFinancialStatus;
+  issues: string[];
+  findings: RemediationFinding[];
+}
+
+export interface RemediationReport {
+  summary: {
+    reconciled: number;
+    pending_settlement: number;
+    mismatch: number;
+    requires_review: number;
+    total: number;
+  };
+  rows: RemediationRow[];
+  issue_catalog: Record<string, { label: string; cause: string; action: string }>;
 }
 
 async function authHeaders(): Promise<Record<string, string>> {

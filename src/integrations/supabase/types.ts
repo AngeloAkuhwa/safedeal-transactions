@@ -1839,6 +1839,7 @@ export type Database = {
           currency_code: string
           entry_type: Database["public"]["Enums"]["escrow_ledger_entry_type"]
           id: string
+          is_cash_movement: boolean | null
           metadata: Json | null
           notes: string | null
           reference_id: string | null
@@ -1853,6 +1854,7 @@ export type Database = {
           currency_code: string
           entry_type: Database["public"]["Enums"]["escrow_ledger_entry_type"]
           id?: string
+          is_cash_movement?: boolean | null
           metadata?: Json | null
           notes?: string | null
           reference_id?: string | null
@@ -1867,6 +1869,7 @@ export type Database = {
           currency_code?: string
           entry_type?: Database["public"]["Enums"]["escrow_ledger_entry_type"]
           id?: string
+          is_cash_movement?: boolean | null
           metadata?: Json | null
           notes?: string | null
           reference_id?: string | null
@@ -6161,6 +6164,37 @@ export type Database = {
           transaction_id: string
         }[]
       }
+      admin_financial_reconciliation: {
+        Args: { _only_issues?: boolean; _since?: string }
+        Returns: {
+          captured: number
+          created_at: string
+          currency: string
+          difference: number
+          escrowed: number
+          expected_balance: number
+          issues: string[]
+          ledger_balance: number
+          money_status: string
+          payout_approved: number
+          refunded: number
+          released: number
+          remaining: number
+          status: string
+          transaction_code: string
+          transaction_id: string
+        }[]
+      }
+      admin_financial_reconciliation_summary: {
+        Args: { _since?: string }
+        Returns: {
+          mismatch: number
+          pending_settlement: number
+          reconciled: number
+          requires_review: number
+          total: number
+        }[]
+      }
       admin_flagged_users_count: { Args: { _since: string }; Returns: number }
       admin_flagged_users_page: {
         Args: {
@@ -6418,6 +6452,10 @@ export type Database = {
       escalate_task: {
         Args: { _actor_id: string; _reason: string; _task_id: string }
         Returns: undefined
+      }
+      escrow_available_balance: {
+        Args: { _transaction_id: string }
+        Returns: number
       }
       expire_stale_offers: { Args: never; Returns: number }
       fail_payout_atomic: {

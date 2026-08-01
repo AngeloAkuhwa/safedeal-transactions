@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { formatMoney } from "@/lib/format";
+import { FinancialRemediationTable } from "@/components/admin/reconciliation/FinancialRemediationTable";
 import {
   fetchReconciliationOverview,
   triggerReconciliationRun,
@@ -118,9 +119,16 @@ export default function AdminReconciliation() {
 
         <Tabs defaultValue="drift">
           <TabsList>
+            <TabsTrigger value="remediation">
+              Financial remediation ({data?.remediation?.rows.length ?? 0})
+            </TabsTrigger>
             <TabsTrigger value="drift">Escrow drift ({drift.length})</TabsTrigger>
             <TabsTrigger value="coverage">Pricing coverage ({audit.length})</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="remediation" className="mt-4">
+            <FinancialRemediationTable report={data?.remediation} loading={loading} />
+          </TabsContent>
 
           <TabsContent value="drift" className="mt-4">
             <Card className="p-0 overflow-hidden">

@@ -97,6 +97,41 @@ export async function releasePayoutCore(
     return { ok: false, status: 409, body: { error: "payout_account_unverified" } };
   }
 
+  // 5b. Canonical amount guard — the immutable pricing snapshot is the single
+  // source of truth for what the seller is owed. If the payout row drifted
+  // from the snapshot we refuse to transfer and flag the case for review
+  // rather than moving a number nobody agreed to.
+  const { data: pricingSnap } = await admin
+    .from("transaction_pricing")
+    .select("seller_payout_amount, currency_code")
+    .eq("transaction_id", transaction_id)
+    .maybeSingle();
+  const snapshotAmount = (pricingSnap as any)?.seller_payout_amount != null
+    ? Number((pricingSnap as any).seller_payout_amount)
+    : null;
+  const payoutAmount = Number((payout as any).amount ?? 0);
+  if (snapshotAmount != null && Math.abs(snapshotAmount - payoutAmount) > 0.005) {
+    try {
+      await admin.rpc("flag_for_release_review", {
+        p_transaction_id: transaction_id,
+        p_reason: "release_amount_mismatch",
+        p_actor_user_id: actor_user_id,
+        p_notes: `Payout record holds ${payoutAmount} but the agreement snapshot says ${snapshotAmount}.`,
+      });
+    } catch (e) {
+      console.error("releasePayoutCore: flag_for_release_review failed", e);
+    }
+    return {
+      ok: false,
+      status: 409,
+      body: {
+        error: "release_amount_mismatch",
+        payout_amount: payoutAmount,
+        snapshot_amount: snapshotAmount,
+      },
+    };
+  }
+
   // 6. Atomic state flip
   const { error: rpcErr } = await admin.rpc("release_payout_atomic", {
     p_transaction_id: transaction_id,
