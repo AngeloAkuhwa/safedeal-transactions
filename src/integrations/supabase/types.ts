@@ -6591,6 +6591,13 @@ export type Database = {
         Args: { p_reason: string; p_refund_id: string }
         Returns: Json
       }
+      financial_acl_violations: {
+        Args: never
+        Returns: {
+          issue: string
+          routine: string
+        }[]
+      }
       financial_lease_ttl_seconds: { Args: never; Returns: number }
       flag_for_release_review: {
         Args: {
@@ -6863,6 +6870,7 @@ export type Database = {
       }
       timeout_transaction_atomic: { Args: { p_tx_id: string }; Returns: Json }
       touch_internal_user_last_active: { Args: never; Returns: undefined }
+      trigger_reconcile_escrow: { Args: never; Returns: number }
       unfreeze_funds_atomic: {
         Args: {
           p_actor: string
@@ -6891,6 +6899,10 @@ export type Database = {
           _new_status: Database["public"]["Enums"]["transaction_status"]
           _old_status: Database["public"]["Enums"]["transaction_status"]
         }
+        Returns: boolean
+      }
+      verify_reconcile_cron_secret: {
+        Args: { p_secret: string }
         Returns: boolean
       }
     }
