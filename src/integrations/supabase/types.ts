@@ -6449,6 +6449,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      canonical_fingerprint_v1: { Args: { p: Json }; Returns: string }
+      canonical_payload_v1: { Args: { p: Json }; Returns: string }
       check_admin_rate_limit: {
         Args: { _action_key: string; _admin_id: string; _max_per_hour: number }
         Returns: {
@@ -6593,6 +6595,23 @@ export type Database = {
         Returns: boolean
       }
       is_user_region_allowed: { Args: { _user_id: string }; Returns: boolean }
+      ledger_write_guarded: {
+        Args: {
+          p_amount: number
+          p_correlation_id?: string
+          p_created_by: string
+          p_currency: string
+          p_entry_type: Database["public"]["Enums"]["escrow_ledger_entry_type"]
+          p_idempotency_key: string
+          p_metadata: Json
+          p_notes: string
+          p_payload: Json
+          p_reference_id: string
+          p_reference_type: string
+          p_transaction_id: string
+        }
+        Returns: Json
+      }
       orch_generate_task_code: { Args: never; Returns: string }
       recompute_agent_capacity: {
         Args: { _user_id: string }
@@ -6609,6 +6628,27 @@ export type Database = {
           old_reserved: number
           product_id: string
         }[]
+      }
+      record_completion_release_intent_atomic: {
+        Args: {
+          p_actor: string
+          p_amount: number
+          p_confirmation_id: string
+          p_currency: string
+          p_entry_type?: Database["public"]["Enums"]["escrow_ledger_entry_type"]
+          p_notes?: string
+          p_payout_id: string
+          p_transaction_id: string
+        }
+        Returns: Json
+      }
+      record_payment_capture_atomic: {
+        Args: {
+          p_payment_id: string
+          p_provider_event_id: string
+          p_raw_payload?: Json
+        }
+        Returns: Json
       }
       refresh_admin_flagged_users_mv: { Args: never; Returns: undefined }
       reject_permission_change_set:
