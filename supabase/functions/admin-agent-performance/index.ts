@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
     }
     const { data: caseRows, error: caseErr } = await admin
       .from("orchestration_tasks")
-      .select("id, task_code, title, type, priority, status, stage, sla_status, due_at, assigned_at, resolved_at, dispute_id, transaction_id, amount, currency, escalation_level")
+      .select("id, task_code, title, type, priority, status, stage, sla_status, due_at, created_at, assigned_at, resolved_at, dispute_id, transaction_id, amount, currency, escalation_level")
       .eq("assigned_agent_id", agentId)
       .order("created_at", { ascending: false })
       .limit(200);
