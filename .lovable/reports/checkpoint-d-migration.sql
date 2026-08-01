@@ -178,219 +178,73 @@ BEGIN
   RETURN jsonb_build_object('ok', true, 'ledger', v_res ->> 'status');
 END;
 $function$;
-CREATE OR REPLACE FUNCTION public.freeze_funds_atomic(p_transaction_id uuid, p_actor uuid, p_reason text)
- RETURNS money_status
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
+-- 3b) Route admin freeze/unfreeze ledger writes through the guarded writer.
+DO $do$
 DECLARE
-  v_cycle bigint;
-  v_lres jsonb;
-  v_old public.money_status;
-  v_new public.money_status := 'funds_frozen';
-  v_allowed boolean;
-  v_held numeric;
-  v_currency text;
-  v_frozen_after numeric;
+  r record; v_src text; v_new text; v_left int;
 BEGIN
-  SELECT money_status INTO v_old FROM public.transactions WHERE id = p_transaction_id FOR UPDATE;
-  IF v_old IS NULL THEN
-    RAISE EXCEPTION 'transaction_not_found';
-  END IF;
+  FOR r IN
+    SELECT p.oid, p.proname, pg_get_functiondef(p.oid) AS def
+    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname IN ('freeze_funds_atomic','unfreeze_funds_atomic')
+  LOOP
+    v_src := regexp_replace(r.def, 'DECLARE', 'DECLARE' || chr(10) || '  v_cycle bigint;' || chr(10) || '  v_lres jsonb;', 1);
 
-  IF v_old = v_new THEN
-    UPDATE public.transactions
-       SET needs_release_review = true,
-           release_review_reason = COALESCE(release_review_reason, 'manual_hold')
-     WHERE id = p_transaction_id;
-    RETURN v_new;
-  END IF;
-
-  IF v_old NOT IN ('funds_held_in_escrow','funds_pending_release') THEN
-    RAISE EXCEPTION 'invalid_source_status:%', v_old;
-  END IF;
-
-  SELECT public.validate_money_transition(v_old, v_new) INTO v_allowed;
-  IF NOT COALESCE(v_allowed, false) THEN
-    RAISE EXCEPTION 'transition_not_allowed: % -> %', v_old, v_new;
-  END IF;
-
-  SELECT currency_code INTO v_currency
-    FROM public.transaction_pricing
-   WHERE transaction_id = p_transaction_id
-   LIMIT 1;
-
-  SELECT COALESCE(held_amount, 0) INTO v_held
-    FROM public.escrow_states
-   WHERE transaction_id = p_transaction_id
-   FOR UPDATE;
-
-  UPDATE public.escrow_states
-     SET frozen_amount = COALESCE(frozen_amount, 0) + COALESCE(v_held, 0),
-         held_amount = 0,
-         state = 'frozen'::escrow_state,
-         last_changed_at = now(),
-         updated_at = now()
-   WHERE transaction_id = p_transaction_id
-   RETURNING frozen_amount INTO v_frozen_after;
-
-  UPDATE public.transactions
-     SET money_status = v_new,
-         needs_release_review = true,
-         release_review_reason = COALESCE(p_reason, 'manual_hold'),
-         updated_at = now()
-   WHERE id = p_transaction_id;
-
-  INSERT INTO public.money_status_history (transaction_id, old_status, new_status, changed_by_user_id, reason, changed_at)
-  VALUES (p_transaction_id, v_old, v_new, p_actor, COALESCE(p_reason, 'manual_hold'), now());
-
-  v_cycle := (SELECT count(*) FROM public.money_status_history h
+    IF r.proname = 'freeze_funds_atomic' THEN
+      v_new := regexp_replace(v_src,
+        'INSERT INTO public\.escrow_ledger_entries\([^;]*?''freeze_hold''[^;]*?;',
+        $r$v_cycle := (SELECT count(*) FROM public.money_status_history h
                 WHERE h.transaction_id = p_transaction_id AND h.new_status = 'funds_frozen'::money_status);
   v_lres := public.ledger_write_guarded(
     p_transaction_id, 'freeze_hold'::escrow_ledger_entry_type, COALESCE(v_held, 0), COALESCE(v_currency, 'NGN'),
     'admin_freeze', p_transaction_id,
     concat('Funds frozen by admin. Reason: ', COALESCE(p_reason, '')),
     p_actor,
-    jsonb_build_object(
-      'admin_freeze', true, 'from_bucket', 'held', 'to_bucket', 'frozen',
+    jsonb_build_object('admin_freeze', true, 'from_bucket', 'held', 'to_bucket', 'frozen',
       'moved_amount', COALESCE(v_held, 0), 'balance_after_held', 0,
       'balance_after_frozen', COALESCE(v_frozen_after, 0),
       'source_money_status', v_old::text, 'target_money_status', v_new::text, 'reason', p_reason),
-    'admin:freeze:' || p_transaction_id::text || ':cycle' || v_cycle::text || ':' || 'freeze_hold'::escrow_ledger_entry_type::text,
+    'admin:freeze:' || p_transaction_id::text || ':cycle' || v_cycle::text || ':freeze_hold',
     jsonb_build_object('transaction_id', p_transaction_id::text, 'operation', 'admin_freeze',
-      'cycle', v_cycle, 'entry_type', 'freeze_hold'::escrow_ledger_entry_type::text,
-      'amount_minor', round(COALESCE(v_held, 0) * 100)::bigint, 'currency', COALESCE(v_currency, 'NGN'))
-  );
+      'cycle', v_cycle, 'entry_type', 'freeze_hold',
+      'amount_minor', round(COALESCE(v_held, 0) * 100)::bigint, 'currency', COALESCE(v_currency, 'NGN')));
   IF (v_lres ->> 'status') = 'idempotency_conflict' THEN
     RAISE EXCEPTION 'idempotency_conflict_admin_freeze:%', p_transaction_id;
-  END IF;
-
-  RETURN v_new;
-END;
-$function$;
-
-CREATE OR REPLACE FUNCTION public.unfreeze_funds_atomic(p_transaction_id uuid, p_actor uuid, p_target money_status, p_reason text)
- RETURNS money_status
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-DECLARE
-  v_cycle bigint;
-  v_lres jsonb;
-  v_old money_status;
-  v_frozen numeric;
-  v_held_after numeric;
-  v_currency text;
-  v_has_dispute boolean;
-  v_has_investigation boolean;
-  v_dispute_overdue boolean;
-  v_admin_review_reason text;
-  v_admin_review_needed boolean;
-BEGIN
-  IF p_target NOT IN ('funds_held_in_escrow','funds_pending_release') THEN
-    RAISE EXCEPTION 'invalid_target:%', p_target;
-  END IF;
-
-  SELECT money_status INTO v_old
-    FROM public.transactions
-   WHERE id = p_transaction_id
-   FOR UPDATE;
-
-  IF v_old IS NULL THEN
-    RAISE EXCEPTION 'transaction_not_found';
-  END IF;
-  IF v_old <> 'funds_frozen' THEN
-    RAISE EXCEPTION 'not_frozen:%', v_old;
-  END IF;
-
-  SELECT currency_code INTO v_currency
-    FROM public.transaction_pricing
-   WHERE transaction_id = p_transaction_id
-   LIMIT 1;
-
-  SELECT COALESCE(frozen_amount, 0) INTO v_frozen
-    FROM public.escrow_states
-   WHERE transaction_id = p_transaction_id
-   FOR UPDATE;
-
-  UPDATE public.escrow_states
-     SET held_amount = COALESCE(held_amount, 0) + COALESCE(v_frozen, 0),
-         frozen_amount = 0,
-         state = 'held'::escrow_state,
-         last_changed_at = now(),
-         updated_at = now()
-   WHERE transaction_id = p_transaction_id
-   RETURNING held_amount INTO v_held_after;
-
-  -- Compute admin review status
-  SELECT EXISTS (
-    SELECT 1 FROM public.disputes
-    WHERE transaction_id = p_transaction_id
-      AND status IN ('open','seller_response_pending','under_review')
-  ) INTO v_has_dispute;
-
-  SELECT EXISTS (
-    SELECT 1 FROM public.admin_investigations
-    WHERE transaction_id = p_transaction_id
-      AND status IN ('open','under_review','escalated')
-  ) INTO v_has_investigation;
-
-  SELECT EXISTS (
-    SELECT 1 FROM public.disputes d
-    WHERE d.transaction_id = p_transaction_id
-      AND d.seller_response_due_at IS NOT NULL
-      AND d.seller_response_due_at < now()
-      AND d.status IN ('open','seller_response_pending')
-  ) INTO v_dispute_overdue;
-
-  v_admin_review_reason := CASE
-    WHEN v_has_dispute THEN 'dispute_open'
-    WHEN v_has_investigation THEN 'investigation_open'
-    WHEN v_dispute_overdue THEN 'dispute_response_overdue'
-    ELSE NULL
-  END;
-  v_admin_review_needed := v_admin_review_reason IS NOT NULL;
-
-  UPDATE public.transactions
-     SET money_status = p_target,
-         needs_release_review = false,
-         release_review_reason = NULL,
-         needs_admin_review = v_admin_review_needed,
-         admin_review_reason = v_admin_review_reason,
-         updated_at = now()
-   WHERE id = p_transaction_id;
-
-  INSERT INTO public.money_status_history(
-    transaction_id, old_status, new_status, changed_by_user_id, reason
-  ) VALUES (
-    p_transaction_id, v_old, p_target, p_actor, COALESCE(p_reason, 'admin_unfreeze')
-  );
-
-  v_cycle := (SELECT count(*) FROM public.money_status_history h
-                WHERE h.transaction_id = p_transaction_id AND h.new_status = p_target::money_status);
+  END IF;$r$,
+        'g');
+    ELSE
+      v_new := regexp_replace(v_src,
+        'INSERT INTO public\.escrow_ledger_entries\([^;]*?''admin_unfreeze''[^;]*?;',
+        $r$v_cycle := (SELECT count(*) FROM public.money_status_history h
+                WHERE h.transaction_id = p_transaction_id AND h.new_status = p_target);
   v_lres := public.ledger_write_guarded(
     p_transaction_id, 'adjustment'::escrow_ledger_entry_type, COALESCE(v_frozen, 0), COALESCE(v_currency, 'NGN'),
     'admin_unfreeze', p_transaction_id,
     concat('Funds unfrozen by admin to ', p_target::text, ' escrow. Reason: ', COALESCE(p_reason, '')),
     p_actor,
-    jsonb_build_object(
-      'admin_unfreeze', true, 'from_bucket', 'frozen', 'to_bucket', 'held',
+    jsonb_build_object('admin_unfreeze', true, 'from_bucket', 'frozen', 'to_bucket', 'held',
       'moved_amount', COALESCE(v_frozen, 0), 'balance_after_held', COALESCE(v_held_after, 0),
       'balance_after_frozen', 0, 'target_money_status', p_target::text, 'reason', p_reason),
-    'admin:unfreeze:' || p_transaction_id::text || ':cycle' || v_cycle::text || ':' || 'adjustment'::escrow_ledger_entry_type::text,
+    'admin:unfreeze:' || p_transaction_id::text || ':cycle' || v_cycle::text || ':adjustment',
     jsonb_build_object('transaction_id', p_transaction_id::text, 'operation', 'admin_unfreeze',
-      'cycle', v_cycle, 'entry_type', 'adjustment'::escrow_ledger_entry_type::text,
-      'amount_minor', round(COALESCE(v_frozen, 0) * 100)::bigint, 'currency', COALESCE(v_currency, 'NGN'))
-  );
+      'cycle', v_cycle, 'entry_type', 'adjustment',
+      'amount_minor', round(COALESCE(v_frozen, 0) * 100)::bigint, 'currency', COALESCE(v_currency, 'NGN')));
   IF (v_lres ->> 'status') = 'idempotency_conflict' THEN
     RAISE EXCEPTION 'idempotency_conflict_admin_unfreeze:%', p_transaction_id;
-  END IF;
+  END IF;$r$,
+        'g');
+    END IF;
 
-  RETURN p_target;
-END;
-$function$;
+    SELECT count(*) INTO v_left
+    FROM regexp_matches(v_new, 'INSERT INTO public\.escrow_ledger_entries', 'g');
+    IF v_left > 0 THEN
+      RAISE EXCEPTION 'freeze_rewrite_incomplete:% remaining in %', v_left, r.proname;
+    END IF;
+
+    EXECUTE v_new;
+  END LOOP;
+END
+$do$;
 -- 4) #7 complete_refund_atomic: guarded, idempotent debit
 DROP FUNCTION IF EXISTS public.complete_refund_atomic(uuid);
 CREATE OR REPLACE FUNCTION public.complete_refund_atomic(
