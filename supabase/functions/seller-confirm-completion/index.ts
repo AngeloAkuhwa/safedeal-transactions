@@ -253,6 +253,13 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!payoutAccount || (payoutAccount as any).account_state !== "verified_ready") {
+      // Retry-stable id for the release commitment (never a timestamp).
+      const { data: sellerConfirmation } = await admin
+        .from("transaction_completion_confirmations")
+        .select("id")
+        .eq("transaction_id", transactionId)
+        .eq("confirmed_by_role", "seller")
+        .maybeSingle();
       // Create payout in blocked state, queue review.
       const { data: blockedPayout, error: payoutErr } = await admin
         .from("payouts")
@@ -294,18 +301,18 @@ Deno.serve(async (req) => {
         }
       });
 
-      await admin.from("escrow_ledger_entries").insert({
-        transaction_id: transactionId,
-        entry_type: "payout_awaiting_release",
-        amount: sellerNet,
-        currency_code: currency,
-        balance_after: null,
-        created_by_user_id: userId,
-        reference_type: "payout",
-        reference_id: blockedPayout?.id ?? null,
-        notes:
+      const { error: intentErr } = await admin.rpc("record_completion_release_intent_atomic", {
+        p_transaction_id: transactionId,
+        p_actor: userId,
+        p_confirmation_id: sellerConfirmation?.id ?? null,
+        p_payout_id: blockedPayout?.id ?? null,
+        p_amount: sellerNet,
+        p_currency: currency,
+        p_entry_type: "payout_awaiting_release",
+        p_notes:
           "Both parties confirmed. Payout blocked: seller payout account missing. No funds transferred.",
       });
+      if (intentErr) console.error("release intent (blocked payout) failed:", intentErr);
 
       await admin.from("notifications").insert({
         user_id: tx.seller_id,
@@ -328,6 +335,13 @@ Deno.serve(async (req) => {
     }
 
     // ── Happy path ────────────────────────────────────────────────────────
+    const { data: sellerConfirmationRow } = await admin
+      .from("transaction_completion_confirmations")
+      .select("id")
+      .eq("transaction_id", transactionId)
+      .eq("confirmed_by_role", "seller")
+      .maybeSingle();
+
     const { data: payout, error: payoutErr } = await admin
       .from("payouts")
       .insert({
@@ -351,17 +365,19 @@ Deno.serve(async (req) => {
     }
 
     await Promise.all([
-      admin.from("escrow_ledger_entries").insert({
-        transaction_id: transactionId,
-        entry_type: "payout_awaiting_release",
-        amount: sellerNet,
-        currency_code: currency,
-        balance_after: null,
-        created_by_user_id: userId,
-        reference_type: "payout",
-        reference_id: payout.id,
-        notes:
+      // Commitment only — never a debit. Guarded + idempotent on the confirmation id.
+      admin.rpc("record_completion_release_intent_atomic", {
+        p_transaction_id: transactionId,
+        p_actor: userId,
+        p_confirmation_id: sellerConfirmationRow?.id ?? null,
+        p_payout_id: payout.id,
+        p_amount: sellerNet,
+        p_currency: currency,
+        p_entry_type: "payout_awaiting_release",
+        p_notes:
           "Both parties confirmed. Payout moved to Awaiting Release. No funds transferred yet.",
+      }).then(({ error }) => {
+        if (error) console.error("release intent failed:", error);
       }),
       admin.from("release_review_queue").insert({
         transaction_id: transactionId,

@@ -117,80 +117,21 @@ export async function processPaystackVerification(
   const now = new Date().toISOString();
 
   // 6. Atomic updates — all must succeed
-  // 6a. Update payment record
-  await supabase
-    .from("payments")
-    .update({
-      status: "succeeded",
-      captured_at: now,
-      authorized_at: psData.paid_at || now,
-      raw_payload: psData,
-    })
-    .eq("id", payment.id);
+  // 6a–6d. Payment capture is recorded through the single guarded routine:
+  // payment row, transaction/escrow state and the four authoritative ledger
+  // entries are written all-or-nothing, keyed on the Paystack event id so a
+  // retry can never produce a second set of money movements.
+  const providerEventId = String(psData.id ?? psData.reference ?? reference);
+  const { error: captureErr } = await supabase.rpc("record_payment_capture_atomic", {
+    p_payment_id: payment.id,
+    p_provider_event_id: providerEventId,
+    p_raw_payload: psData,
+  });
 
-  // 6b. Update transaction status + money_status
-  await supabase
-    .from("transactions")
-    .update({
-      status: "payment_secured",
-      money_status: "funds_held_in_escrow",
-      agreement_locked_at: now,
-    })
-    .eq("id", txId);
-
-  // 6c. Update escrow state
-  await supabase
-    .from("escrow_states")
-    .update({
-      state: "held",
-      held_amount: pricing.item_amount,
-      last_changed_at: now,
-    })
-    .eq("transaction_id", txId);
-
-  // 6d. Create 4 ledger entries
-  const ledgerEntries = [
-    {
-      transaction_id: txId,
-      entry_type: "payment_credit" as const,
-      currency_code: pricing.currency_code,
-      amount: pricing.total_amount,
-      balance_after: pricing.total_amount,
-      reference_type: "payment",
-      reference_id: payment.id,
-      notes: `Buyer payment received: ${pricing.currency_code} ${pricing.total_amount}`,
-      created_by_user_id: tx.buyer_id,
-    },
-    {
-      transaction_id: txId,
-      entry_type: "fee_record" as const,
-      currency_code: pricing.currency_code,
-      amount: pricing.paystack_fee_amount,
-      balance_after: pricing.total_amount - pricing.paystack_fee_amount,
-      reference_type: "paystack_fee",
-      notes: `Paystack processing fee: ${pricing.currency_code} ${pricing.paystack_fee_amount}`,
-    },
-    {
-      transaction_id: txId,
-      entry_type: "fee_record" as const,
-      currency_code: pricing.currency_code,
-      amount: pricing.platform_fee_amount,
-      balance_after: pricing.total_amount - pricing.paystack_fee_amount - pricing.platform_fee_amount,
-      reference_type: "platform_fee",
-      notes: `SafeDeal platform fee: ${pricing.currency_code} ${pricing.platform_fee_amount}`,
-    },
-    {
-      transaction_id: txId,
-      entry_type: "escrow_hold" as const,
-      currency_code: pricing.currency_code,
-      amount: pricing.item_amount,
-      balance_after: pricing.item_amount,
-      reference_type: "escrow",
-      notes: `Seller principal held in escrow: ${pricing.currency_code} ${pricing.item_amount}`,
-    },
-  ];
-
-  await supabase.from("escrow_ledger_entries").insert(ledgerEntries);
+  if (captureErr) {
+    console.error("record_payment_capture_atomic failed:", captureErr);
+    throw new Error(captureErr.message || "payment_capture_failed");
+  }
 
   // High-value flag emission (idempotent per transaction)
   await emitHighValueFlagIfNeeded({

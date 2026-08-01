@@ -8,7 +8,9 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    include: ["src/**/*.{test,spec}.{ts,tsx}", "supabase/functions/**/*.{test,spec}.ts"],
+    // Deno-only suites (remote https imports) cannot run under the Vite ESM loader.
+    exclude: ["**/node_modules/**", "**/dist/**", "supabase/functions/**/pricing.parity.test.ts"],
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },

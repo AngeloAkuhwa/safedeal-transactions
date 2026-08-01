@@ -160,71 +160,22 @@ Deno.serve(async (req) => {
         }
 
         const pricing = computePricing(Number(pricingRow.item_amount) || 0, pricingRow.currency_code || "NGN");
-        const now = new Date().toISOString();
 
-        // Update payment
-        await supabase.from("payments").update({
-          status: "succeeded",
-          captured_at: now,
-          authorized_at: psData.paid_at || now,
-          raw_payload: psData,
-        }).eq("id", payment.id);
+        // Payment capture goes through the same guarded routine the verify path
+        // uses. Keyed on the Paystack event id, so verify + webhook racing on the
+        // same payment records exactly one set of money movements.
+        const captureEventId = String(psData.id ?? providerEventId ?? providerReference);
+        const { error: captureErr } = await supabase.rpc("record_payment_capture_atomic", {
+          p_payment_id: payment.id,
+          p_provider_event_id: captureEventId,
+          p_raw_payload: psData,
+        });
 
-        // Update transaction
-        await supabase.from("transactions").update({
-          status: "payment_secured",
-          money_status: "funds_held_in_escrow",
-          agreement_locked_at: now,
-        }).eq("id", txId);
-
-        // Update escrow
-        await supabase.from("escrow_states").update({
-          state: "held",
-          held_amount: pricing.item_amount,
-          last_changed_at: now,
-        }).eq("transaction_id", txId);
-
-        // Ledger entries
-        await supabase.from("escrow_ledger_entries").insert([
-          {
-            transaction_id: txId,
-            entry_type: "payment_credit",
-            currency_code: pricing.currency_code,
-            amount: pricing.total_amount,
-            balance_after: pricing.total_amount,
-            reference_type: "payment",
-            reference_id: payment.id,
-            notes: `Buyer payment received (webhook): ${pricing.currency_code} ${pricing.total_amount}`,
-            created_by_user_id: tx.buyer_id,
-          },
-          {
-            transaction_id: txId,
-            entry_type: "fee_record",
-            currency_code: pricing.currency_code,
-            amount: pricing.paystack_fee_amount,
-            balance_after: pricing.total_amount - pricing.paystack_fee_amount,
-            reference_type: "paystack_fee",
-            notes: `Paystack processing fee: ${pricing.currency_code} ${pricing.paystack_fee_amount}`,
-          },
-          {
-            transaction_id: txId,
-            entry_type: "fee_record",
-            currency_code: pricing.currency_code,
-            amount: pricing.platform_fee_amount,
-            balance_after: pricing.total_amount - pricing.paystack_fee_amount - pricing.platform_fee_amount,
-            reference_type: "platform_fee",
-            notes: `SafeDeal platform fee: ${pricing.currency_code} ${pricing.platform_fee_amount}`,
-          },
-          {
-            transaction_id: txId,
-            entry_type: "escrow_hold",
-            currency_code: pricing.currency_code,
-            amount: pricing.item_amount,
-            balance_after: pricing.item_amount,
-            reference_type: "escrow",
-            notes: `Seller principal held in escrow: ${pricing.currency_code} ${pricing.item_amount}`,
-          },
-        ]);
+        if (captureErr) {
+          console.error("record_payment_capture_atomic failed (webhook):", captureErr);
+          await updateWebhookLog(supabase, providerReference, false, captureErr.message || "capture_failed");
+          return new Response("OK", { status: 200 });
+        }
 
         // Status history
         await supabase.from("transaction_status_history").insert({
