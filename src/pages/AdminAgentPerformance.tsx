@@ -39,7 +39,7 @@ export default function AdminAgentPerformance() {
 
   const [detailAgent, setDetailAgent] = useState<AgentPerformanceRow | null>(null);
   const [casesAgent, setCasesAgent] = useState<AgentPerformanceRow | null>(null);
-  const [casesSlaOnly, setCasesSlaOnly] = useState(false);
+  const [slaAgent, setSlaAgent] = useState<AgentPerformanceRow | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -97,8 +97,8 @@ export default function AdminAgentPerformance() {
             agents={agents}
             actions={{
               onViewDetail: setDetailAgent,
-              onViewCases: (a) => openCases(a, false),
-              onReviewSla: (a) => openCases(a, true),
+              onViewCases: openCases,
+              onReviewSla: openSla,
               onRebalance: openRebalance,
               canRebalance,
             }}
@@ -107,7 +107,7 @@ export default function AdminAgentPerformance() {
       case "performance":
         return <PerformanceDashboard agents={agents} trend={data.trend} onViewDetail={setDetailAgent} />;
       case "sla":
-        return <SLAComplianceTable agents={agents} onReviewSla={(a) => openCases(a, true)} />;
+        return <SLAComplianceTable agents={agents} onReviewSla={openSla} />;
       case "rankings":
         return <RankingsTable agents={agents} onViewDetail={setDetailAgent} />;
     }
