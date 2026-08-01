@@ -93,10 +93,24 @@ const avg = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.le
 const pct = (num: number, den: number) => (den > 0 ? Math.round((num / den) * 1000) / 10 : 0);
 
 function scoreBand(score: number): string {
-  if (score >= 97) return "Excellent";
-  if (score >= 93) return "Very Good";
-  if (score >= 85) return "Good";
-  return "Needs attention";
+  if (score >= 90) return "Excellent";
+  if (score >= 75) return "Very Good";
+  if (score >= 60) return "Good";
+  return "Needs Attention";
+}
+
+/** Default minimum completed cases before a score is considered comparable. */
+const DEFAULT_MIN_SAMPLE = 3;
+
+export interface ScoreComponent {
+  key: string;
+  label: string;
+  weight: number;
+  raw: number | null;
+  raw_label: string;
+  normalised: number | null;
+  contribution: number;
+  tracked: boolean;
 }
 
 function csvEscape(v: unknown): string {
@@ -110,6 +124,7 @@ Deno.serve(async (req) => {
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const isExport = body.mode === "export";
   const isAgentCases = body.mode === "agent_cases";
+  const isAgentActivity = body.mode === "agent_activity";
 
   let ctx;
   try {
@@ -122,6 +137,62 @@ Deno.serve(async (req) => {
 
   const admin = ctx.adminClient;
   const range = resolveRange(body);
+
+  // ---- per-agent operational activity (drawer) --------------------------
+  if (isAgentActivity) {
+    const agentId = String(body.agent_id ?? "");
+    if (!agentId) {
+      return new Response(JSON.stringify({ error: "agent_id_required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const [{ data: assignEvents }, { data: statusEvents }, { data: comments }] = await Promise.all([
+      admin.from("task_assignment_history")
+        .select("id, task_id, from_agent_id, to_agent_id, mode, reason, created_at")
+        .or(`from_agent_id.eq.${agentId},to_agent_id.eq.${agentId}`)
+        .order("created_at", { ascending: false }).limit(60),
+      admin.from("task_status_history")
+        .select("id, task_id, from_status, to_status, actor_id, created_at")
+        .eq("actor_id", agentId)
+        .order("created_at", { ascending: false }).limit(60),
+      admin.from("task_comments")
+        .select("id, task_id, created_at, author_id")
+        .eq("author_id", agentId)
+        .order("created_at", { ascending: false }).limit(40),
+    ]);
+    const events = [
+      ...(assignEvents ?? []).map((e) => ({
+        id: `a-${e.id}`,
+        at: e.created_at,
+        kind: e.to_agent_id === agentId ? "assigned" : "reassigned_away",
+        title: e.to_agent_id === agentId ? "Case assigned to agent" : "Case moved to another agent",
+        detail: [e.mode ? `mode: ${e.mode}` : null, e.reason].filter(Boolean).join(" · ") || null,
+        task_id: e.task_id,
+      })),
+      ...(statusEvents ?? []).map((e) => ({
+        id: `s-${e.id}`,
+        at: e.created_at,
+        kind: "status_change",
+        title: `Status changed${e.from_status ? ` from ${String(e.from_status).replace(/_/g, " ")}` : ""} to ${String(e.to_status).replace(/_/g, " ")}`,
+        detail: null as string | null,
+        task_id: e.task_id,
+      })),
+      ...(comments ?? []).map((c) => ({
+        id: `c-${c.id}`,
+        at: c.created_at,
+        kind: "comment",
+        title: "Added a case note",
+        detail: null as string | null,
+        task_id: c.task_id,
+      })),
+    ]
+      .filter((e) => !!e.at)
+      .sort((a, b) => new Date(String(b.at)).getTime() - new Date(String(a.at)).getTime())
+      .slice(0, 100);
+    return new Response(JSON.stringify({ events }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   // ---- per-agent case list (drawer) -------------------------------------
   if (isAgentCases) {
@@ -400,6 +471,9 @@ Deno.serve(async (req) => {
       min_overdue: Number(body.min_overdue ?? 0) || 0,
       score_min: Number(body.score_min ?? 0) || 0,
       score_max: body.score_max == null ? 100 : (Number(body.score_max) || 100),
+      min_completed: Number(body.min_completed ?? 0) || 0,
+      hide_insufficient: body.hide_insufficient === true,
+      performance_level: String(body.performance_level ?? "all"),
       case_priority: String(body.case_priority ?? "all"),
       case_status: String(body.case_status ?? "all"),
       case_sla: String(body.case_sla ?? "all"),
@@ -507,9 +581,23 @@ Deno.serve(async (req) => {
       const onTime = slaTracked.filter((t) => new Date(t.resolved_at!).getTime() <= new Date(t.due_at!).getTime());
       const breached = slaTracked.length - onTime.length;
       const slaCompliance = slaTracked.length ? pct(onTime.length, slaTracked.length) : null;
+      // Live SLA posture across the agent's open, SLA-tracked work.
+      const activeTracked = active.filter((t) => !!t.due_at && String(t.sla_status) !== "paused");
+      const atRisk = activeTracked.filter((t) => {
+        const left = new Date(t.due_at!).getTime() - now;
+        return left > 0 && left <= 2 * 60 * 60 * 1000;
+      }).length;
+      const onTrack = activeTracked.filter((t) => new Date(t.due_at!).getTime() - now > 2 * 60 * 60 * 1000).length;
 
       const windowHistory = (history ?? []).filter((h) => inWindow(h.created_at, range.from, range.to));
       const reassignedAway = windowHistory.filter((h) => h.from_agent_id === u.id).length;
+      // Manager-initiated load balancing must never count against an agent.
+      const rebalanceOut = windowHistory.filter(
+        (h) =>
+          h.from_agent_id === u.id &&
+          /rebalanc|balanc|capacity|workload/i.test(`${h.mode ?? ""} ${h.reason ?? ""}`),
+      ).length;
+      const avoidableReassignments = Math.max(0, reassignedAway - rebalanceOut);
       const reassignedIn = windowHistory.filter(
         (h) => h.to_agent_id === u.id && h.from_agent_id && h.from_agent_id !== u.id,
       ).length;
@@ -564,12 +652,34 @@ Deno.serve(async (req) => {
         breached,
         on_time: onTime.length,
         sla_compliance: slaCompliance,
+        sla_on_track: onTrack,
+        sla_at_risk: atRisk,
+        sla_completed_within: onTime.length,
+        sla_completed_outside: breached,
         reassignments: reassignedAway + reassignedIn,
         reassignments_out: reassignedAway,
         reassignments_in: reassignedIn,
         escalations,
+        first_action_sample: firstActionMs.length,
+        sla_sample: slaTracked.length,
+        avoidable_reassignments: avoidableReassignments,
+        // Cases deliberately kept out of penalty maths, with their reason.
+        score_exclusions: [
+          { reason: "Waiting on buyer or seller", count: waiting.length },
+          {
+            reason: "Paused by an authorised workflow",
+            count: active.filter((t) => String(t.sla_status) === "paused").length,
+          },
+          { reason: "No configured SLA", count: mine.filter((t) => !t.due_at).length },
+          { reason: "Manager rebalance reassignment", count: rebalanceOut },
+        ].filter((e) => e.count > 0),
         score: 0,
         score_band: "",
+        score_components: [] as ScoreComponent[],
+        score_penalties: [] as { reason: string; points: number }[],
+        score_included_cases: 0,
+        score_excluded_cases: 0,
+        insufficient_data: false,
       };
     };
 
@@ -599,22 +709,116 @@ Deno.serve(async (req) => {
       return xs.length ? xs[Math.floor(xs.length / 2)] : null;
     })();
 
+    const medianFirstAction = (() => {
+      const xs = rows.map((r) => r.avg_first_action_minutes).filter((x): x is number => x != null).sort((a, b) => a - b);
+      return xs.length ? xs[Math.floor(xs.length / 2)] : null;
+    })();
+    const maxResolved = Math.max(1, ...rows.map((r) => r.resolved));
+
     for (const r of rows) {
-      const slaPart = r.sla_compliance ?? 0; // 0..100; untracked SLA never becomes a fabricated 100%
-      const speedPart = r.avg_resolution_hours == null || !medianResolution
-        ? 100
-        : Math.max(0, Math.min(100, 100 - ((r.avg_resolution_hours - medianResolution) / Math.max(medianResolution, 0.5)) * 25));
       const load = r.active_cases + r.resolved;
-      const overduePart = Math.max(0, 100 - (load > 0 ? (r.overdue / Math.max(load, 1)) * 100 : 0) * 2);
-      const escalationPart = Math.max(0, 100 - (load > 0 ? (r.escalations / Math.max(load, 1)) * 100 : 0) * 1.5);
-      const score = Math.round((slaPart * 0.4 + speedPart * 0.25 + overduePart * 0.2 + escalationPart * 0.15) * 10) / 10;
-      r.score = Math.max(0, Math.min(100, score));
-      r.score_band = scoreBand(r.score);
+      const excluded = (r.score_exclusions ?? []).reduce((s: number, e: { count: number }) => s + e.count, 0);
+      // Penalty denominators ignore excluded cases so waiting / paused /
+      // unconfigured work can never drag a score down.
+      const penaltyBase = Math.max(1, load - excluded);
+
+      /** Speed component: relative to the cohort median, never absolute. */
+      const relSpeed = (value: number | null, median: number | null) =>
+        value == null || !median
+          ? null
+          : Math.max(0, Math.min(100, 100 - ((value - median) / Math.max(median, 0.5)) * 25));
+
+      const overdueRate = r.overdue / penaltyBase;
+      const escalationRate = r.escalations / penaltyBase;
+      // Log normalisation so raw case volume alone cannot dominate the score.
+      const workloadNorm = Math.round((Math.log10(1 + r.resolved) / Math.log10(1 + maxResolved)) * 1000) / 10;
+
+      const defs: Omit<ScoreComponent, "contribution">[] = [
+        {
+          key: "sla_compliance", label: "SLA compliance", weight: 0.3,
+          raw: r.sla_compliance, raw_label: r.sla_compliance == null ? "Not tracked" : `${r.sla_compliance}%`,
+          normalised: r.sla_compliance, tracked: r.sla_compliance != null,
+        },
+        {
+          key: "resolution_time", label: "Avg resolution time", weight: 0.2,
+          raw: r.avg_resolution_hours,
+          raw_label: r.avg_resolution_hours == null ? "No sample" : `${r.avg_resolution_hours}h`,
+          normalised: relSpeed(r.avg_resolution_hours, medianResolution),
+          tracked: r.avg_resolution_hours != null && medianResolution != null,
+        },
+        {
+          key: "first_action_time", label: "Avg first action", weight: 0.15,
+          raw: r.avg_first_action_minutes,
+          raw_label: r.avg_first_action_minutes == null ? "No sample" : `${r.avg_first_action_minutes}m`,
+          normalised: relSpeed(r.avg_first_action_minutes, medianFirstAction),
+          tracked: r.avg_first_action_minutes != null && medianFirstAction != null,
+        },
+        {
+          key: "overdue_rate", label: "Overdue rate", weight: 0.15,
+          raw: Math.round(overdueRate * 1000) / 10, raw_label: `${Math.round(overdueRate * 1000) / 10}%`,
+          normalised: Math.max(0, 100 - overdueRate * 200), tracked: true,
+        },
+        {
+          key: "escalation_accuracy", label: "Escalation accuracy", weight: 0.1,
+          raw: Math.round(escalationRate * 1000) / 10, raw_label: `${Math.round(escalationRate * 1000) / 10}%`,
+          normalised: Math.max(0, 100 - escalationRate * 150), tracked: true,
+        },
+        {
+          key: "resolved_workload", label: "Resolved workload (log-normalised)", weight: 0.1,
+          raw: r.resolved, raw_label: `${r.resolved} resolved`,
+          normalised: workloadNorm, tracked: true,
+        },
+      ];
+
+      // Untracked components are dropped and their weight redistributed, so a
+      // missing metric never reads as a zero.
+      const trackedWeight = defs.filter((d) => d.tracked && d.normalised != null)
+        .reduce((s, d) => s + d.weight, 0);
+      const components: ScoreComponent[] = defs.map((d) => {
+        const usable = d.tracked && d.normalised != null && trackedWeight > 0;
+        const effWeight = usable ? d.weight / trackedWeight : 0;
+        return {
+          ...d,
+          weight: Math.round(effWeight * 1000) / 10,
+          contribution: usable ? Math.round((d.normalised as number) * effWeight * 10) / 10 : 0,
+        };
+      });
+
+      const base = components.reduce((s, c) => s + c.contribution, 0);
+
+      const penalties: { reason: string; points: number }[] = [];
+      if (r.overdue > 0) penalties.push({ reason: `${r.overdue} overdue case(s)`, points: Math.min(6, r.overdue * 1.5) });
+      if (r.breached >= 3) penalties.push({ reason: `${r.breached} SLA breaches (repeated)`, points: Math.min(6, r.breached) });
+      if (r.avoidable_reassignments > 0) {
+        penalties.push({
+          reason: `${r.avoidable_reassignments} avoidable reassignment(s)`,
+          points: Math.min(4, r.avoidable_reassignments),
+        });
+      }
+      const penaltyTotal = penalties.reduce((s, p) => s + p.points, 0);
+
+      const minSample = f.min_completed > 0 ? f.min_completed : DEFAULT_MIN_SAMPLE;
+      const insufficient = r.resolved < minSample;
+
+      r.score = Math.max(0, Math.min(100, Math.round((base - penaltyTotal) * 10) / 10));
+      r.score_components = components;
+      r.score_penalties = penalties;
+      r.score_included_cases = Math.max(0, load - excluded);
+      r.score_excluded_cases = excluded;
+      r.insufficient_data = insufficient;
+      r.score_band = insufficient ? "Insufficient Data" : scoreBand(r.score);
     }
-    rows.sort((a, b) => b.score - a.score || b.resolved - a.resolved);
+    // Insufficient-data agents always rank after comparable agents.
+    rows.sort((a, b) =>
+      Number(a.insufficient_data) - Number(b.insufficient_data) ||
+      b.score - a.score || b.resolved - a.resolved);
     const ranked = rows
       .map((r, i) => ({ ...r, rank: i + 1 }))
-      .filter((r) => r.score >= f.score_min && r.score <= f.score_max);
+      .filter((r) => r.score >= f.score_min && r.score <= f.score_max)
+      .filter((r) => !f.hide_insufficient || !r.insufficient_data)
+      .filter((r) =>
+        f.performance_level === "all" ||
+        r.score_band.toLowerCase().replace(/\s+/g, "_") === f.performance_level);
 
     // ---- summary --------------------------------------------------------
     const liveAgents = ranked.filter((r) => r.is_live).length;
@@ -1072,7 +1276,7 @@ Deno.serve(async (req) => {
           all_time: range.allTime,
           comparison_available: !range.allTime,
           granularity,
-          contract_version: 3,
+        contract_version: 4,
         },
         permissions: {
           can_export: canExport,

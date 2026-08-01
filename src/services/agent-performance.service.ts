@@ -41,7 +41,44 @@ export interface AgentPerformanceRow {
   escalations: number;
   score: number;
   score_band: string;
+  first_action_sample?: number;
+  sla_sample?: number;
+  avoidable_reassignments?: number;
+  sla_on_track?: number;
+  sla_at_risk?: number;
+  sla_completed_within?: number;
+  sla_completed_outside?: number;
+  score_components?: ScoreComponent[];
+  score_penalties?: ScorePenalty[];
+  score_exclusions?: ScoreExclusion[];
+  score_included_cases?: number;
+  score_excluded_cases?: number;
+  insufficient_data?: boolean;
 }
+
+export interface ScoreComponent {
+  key: string;
+  label: string;
+  /** Effective weight in percent after untracked components are dropped. */
+  weight: number;
+  raw: number | null;
+  raw_label: string;
+  normalised: number | null;
+  contribution: number;
+  tracked: boolean;
+}
+
+export interface ScorePenalty { reason: string; points: number }
+export interface ScoreExclusion { reason: string; count: number }
+
+export const PERFORMANCE_LEVELS = [
+  { value: "all", label: "All levels" },
+  { value: "excellent", label: "Excellent" },
+  { value: "very_good", label: "Very Good" },
+  { value: "good", label: "Good" },
+  { value: "needs_attention", label: "Needs Attention" },
+  { value: "insufficient_data", label: "Insufficient Data" },
+] as const;
 
 export interface AgentPerformanceSummaryData {
   active_agents: number;
@@ -163,6 +200,10 @@ export interface AgentPerformanceFilters {
   case_sla: string;
   workload_status: string;
   search: string;
+  /** Minimum completed cases before a score is treated as comparable. */
+  min_completed: number;
+  performance_level: string;
+  hide_insufficient: boolean;
 }
 
 export const DEFAULT_AGENT_FILTERS: AgentPerformanceFilters = {
@@ -182,6 +223,9 @@ export const DEFAULT_AGENT_FILTERS: AgentPerformanceFilters = {
   case_sla: "all",
   workload_status: "all",
   search: "",
+  min_completed: 0,
+  performance_level: "all",
+  hide_insufficient: false,
 };
 
 export interface AgentPerformanceOverview {
@@ -372,6 +416,25 @@ export async function fetchAgentCases(
 }
 
 /** Display helpers shared across the Agent Performance components. */
+export interface AgentActivityEvent {
+  id: string;
+  at: string;
+  kind: string;
+  title: string;
+  detail: string | null;
+  task_id: string | null;
+}
+
+/** Operational activity for one agent (no authentication-sensitive data). */
+export async function fetchAgentActivity(agentId: string): Promise<AgentActivityEvent[]> {
+  const { data, error } = await supabase.functions.invoke("admin-agent-performance", {
+    body: { mode: "agent_activity", agent_id: agentId },
+  });
+  if (error) throw error;
+  if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
+  return ((data as { events?: AgentActivityEvent[] })?.events ?? []);
+}
+
 export function agentName(a: Pick<AgentPerformanceRow, "full_name" | "first_name" | "last_name" | "email">): string {
   const composed = [a.first_name, a.last_name].filter(Boolean).join(" ").trim();
   return a.full_name || composed || a.email || "Agent";

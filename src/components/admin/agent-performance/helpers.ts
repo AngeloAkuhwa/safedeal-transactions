@@ -29,6 +29,7 @@ export function scoreTone(band: string): string {
     case "Excellent": return "text-primary";
     case "Very Good": return "text-emerald-300";
     case "Good": return "text-amber-300";
+    case "Insufficient Data": return "text-muted-foreground";
     default: return "text-rose-300";
   }
 }
