@@ -55,6 +55,11 @@ function resolveRange(body: Record<string, unknown>): Range {
   } else if (key === "month") {
     from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
     label = "This Month";
+  } else if (key === "week") {
+    // Calendar week, Monday start.
+    const dow = (now.getUTCDay() + 6) % 7;
+    from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dow));
+    label = "This Week";
   } else {
     from = new Date(now.getTime() - 7 * 86_400_000);
   }
