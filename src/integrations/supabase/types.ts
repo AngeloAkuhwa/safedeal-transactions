@@ -1839,9 +1839,11 @@ export type Database = {
           currency_code: string
           entry_type: Database["public"]["Enums"]["escrow_ledger_entry_type"]
           id: string
+          idempotency_key: string | null
           is_cash_movement: boolean | null
           metadata: Json | null
           notes: string | null
+          payload_fingerprint: string | null
           reference_id: string | null
           reference_type: string | null
           transaction_id: string
@@ -1854,9 +1856,11 @@ export type Database = {
           currency_code: string
           entry_type: Database["public"]["Enums"]["escrow_ledger_entry_type"]
           id?: string
+          idempotency_key?: string | null
           is_cash_movement?: boolean | null
           metadata?: Json | null
           notes?: string | null
+          payload_fingerprint?: string | null
           reference_id?: string | null
           reference_type?: string | null
           transaction_id: string
@@ -1869,9 +1873,11 @@ export type Database = {
           currency_code?: string
           entry_type?: Database["public"]["Enums"]["escrow_ledger_entry_type"]
           id?: string
+          idempotency_key?: string | null
           is_cash_movement?: boolean | null
           metadata?: Json | null
           notes?: string | null
+          payload_fingerprint?: string | null
           reference_id?: string | null
           reference_type?: string | null
           transaction_id?: string
@@ -2155,6 +2161,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      financial_idempotency_conflicts: {
+        Row: {
+          actor_user_id: string | null
+          correlation_id: string | null
+          created_at: string
+          entry_type:
+            | Database["public"]["Enums"]["escrow_ledger_entry_type"]
+            | null
+          existing_fingerprint: string
+          first_seen: string
+          id: string
+          idempotency_key: string
+          incoming_fingerprint: string
+          last_seen: string
+          occurrence_count: number
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          entry_type?:
+            | Database["public"]["Enums"]["escrow_ledger_entry_type"]
+            | null
+          existing_fingerprint: string
+          first_seen?: string
+          id?: string
+          idempotency_key: string
+          incoming_fingerprint: string
+          last_seen?: string
+          occurrence_count?: number
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          entry_type?:
+            | Database["public"]["Enums"]["escrow_ledger_entry_type"]
+            | null
+          existing_fingerprint?: string
+          first_seen?: string
+          id?: string
+          idempotency_key?: string
+          incoming_fingerprint?: string
+          last_seen?: string
+          occurrence_count?: number
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       identity_submissions: {
         Row: {
