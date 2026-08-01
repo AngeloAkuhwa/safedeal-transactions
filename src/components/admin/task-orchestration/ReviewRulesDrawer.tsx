@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import type { AssignmentRulesConfig } from "@/services/task-orchestration.service";
+import type { AssignmentRulesConfig, RuleVersionRow } from "@/services/task-orchestration.service";
 
 function diffKeys(a: AssignmentRulesConfig, b: AssignmentRulesConfig): string[] {
   const keys = new Set<string>([...Object.keys(a ?? {}), ...Object.keys(b ?? {})]);
@@ -20,6 +20,7 @@ function fmt(v: unknown): string {
 export function ReviewRulesDrawer({
   open, onOpenChange, current, draft, impact, onConfirm, submitting,
   requiresApproval: requiresApprovalProp, serverError, readOnly, changeSetId,
+  history,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -33,6 +34,8 @@ export function ReviewRulesDrawer({
   /** Read-only review of an already-submitted change set (from the approvals queue). */
   readOnly?: boolean;
   changeSetId?: string | null;
+  /** Recent rule versions, newest first. */
+  history?: RuleVersionRow[];
 }) {
   const [reason, setReason] = useState("");
   useEffect(() => { if (open) setReason(""); }, [open]);
