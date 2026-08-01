@@ -33,6 +33,7 @@ const TAB_LABEL: Record<AgentTab, string> = {
 export default function AdminAgentPerformance() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState<Filters>(DEFAULT_AGENT_FILTERS);
+  const [activeCard, setActiveCard] = useState<string | null>(null);
   const [tab, setTab] = useState<AgentTab>("workload");
   const [data, setData] = useState<AgentPerformanceOverview | null>(null);
   const [loading, setLoading] = useState(true);
