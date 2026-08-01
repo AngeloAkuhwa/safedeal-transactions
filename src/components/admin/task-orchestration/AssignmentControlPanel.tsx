@@ -9,7 +9,8 @@ export function AssignmentControlPanel(props: {
   onModeChange: (v: string) => void;
   onAssignSelected: () => void;
   onAutoAssign: () => void;
-  onAssignToMe: () => void;
+  onAssignToMe: (reason: string) => void;
+  selfAssignEnabled?: boolean;
   onRebalance: () => void;
   onEscalate: () => void;
   onBulkExport: () => void;
@@ -36,6 +37,7 @@ export function AssignmentControlPanel(props: {
           onAssignSelected={props.onAssignSelected}
           onAutoAssign={props.onAutoAssign}
           onAssignToMe={props.onAssignToMe}
+          selfAssignEnabled={props.selfAssignEnabled}
           onRebalance={props.onRebalance}
           onEscalate={props.onEscalate}
           onBulkExport={props.onBulkExport}
