@@ -194,6 +194,8 @@ Conditional (Checkpoint A discovery; stop rule instead of silent expansion): any
 
 ## 10. Test matrix
 
+§3.1 settlement state machine and conservation (mandatory): pending→completed · pending→failed · failed→retry→completed · duplicate completion · completion after failure without an eligible retry · partial refund reservation · multiple permitted partial refunds · competing refund/release reservations · concurrent completion — each asserting identities A and B, exactly one debit per operation, and `committed_amount` counted once (never both remaining and settled).
+
 Canonical model units (parser, minor units, identities, settlement separation) · fingerprint golden vectors executed in both TypeScript and SQL · per-writer request-level duplicate, concurrent duplicate, and different-payload conflict · durable conflict-audit tests (zero mutation, exactly one event, failure surfaced) · bundle atomicity, conservation and crash/partial-failure · SQL invariants (over-refund, over-release, over-completion, over-reversal, duplicate finalization, terminal-state conflict, sign correctness, append-only, trigger inclusion/exclusion) · grant-bypass tests for `anon`/`authenticated`/`service_role` · reconciliation (lease overlap, stale takeover, heartbeat, dedup incl. severity change, proof closure, parity, single cron, lease-setting bounds) · RLS/grant denial on all new tables · consumers (per-screen parity, URL-filter/date-scope parity, export parity) · migration (lock_timeout failure, re-run safety, partial-deployment recovery, full rollback) · routes, permissions, error boundaries, console/network.
 
 ## 11. Expected UI impact
