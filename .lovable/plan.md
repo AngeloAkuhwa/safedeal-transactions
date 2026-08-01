@@ -124,7 +124,7 @@ Every Super Admin check — in the UI, the edge function and the SECURITY DEFINE
 
 Eight statuses stay separate and are never merged in display: transaction lifecycle, payment, escrow, dispute, resolution outcome, release approval, payout execution, reconciliation.
 
-`resolved + funds_pending_release`:
+`resolved + funds_pending_release` (confirmed decision: SLA source is the configurable `system_settings.release_review_target_hours`, currently 24; never hardcoded in UI):
 - **Normal** while `now() - resolved_at <= release_review_target_hours` (read from `system_settings` through the existing settings resolver; no UI hardcoding).
 - **Requires review** past that SLA — creates or updates one active finding.
 - **Mismatch** (severity by amount and cause) when the payout failed, no valid payout or release instruction exists, escrow says released while the payout is pending or failed, canonical values disagree with stored values, or the ledger balance contradicts the escrow state.
@@ -141,7 +141,7 @@ One transaction shows identical figures and statuses on every screen and export;
 ## 11. Risks, assumptions, stop conditions
 - A normal `CREATE INDEX` takes a `SHARE` lock, allowing reads but blocking writes for the duration of the build. `ALTER TABLE ... ADD COLUMN` may briefly take `ACCESS EXCLUSIVE`. Mitigated by single-statement migrations and `lock_timeout`.
 - Historical rows keep `idempotency_key = NULL` and continue to rely on the existing cash-movement unique index.
-- Assumption: `release_review_target_hours` is the correct SLA source for pending-release classification — please confirm.
+- Confirmed product decision: `system_settings.release_review_target_hours` (currently 24) is the SLA source for pending-release classification, read through the existing settings resolver. The value is never hardcoded in UI code.
 - Stop conditions: preflight duplicates, a failed post-check, a consumer parity failure, or any test in section 9 failing.
 
 ## 12. Explicitly unchanged
