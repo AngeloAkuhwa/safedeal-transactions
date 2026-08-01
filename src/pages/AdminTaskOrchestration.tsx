@@ -596,6 +596,7 @@ export default function AdminTaskOrchestration() {
         onOpenChange={(o) => { if (!o) { setReviewDraft(null); setReviewError(null); } }}
         current={data?.rules?.config ?? {}}
         draft={reviewDraft}
+        history={data?.rule_versions ?? []}
         impact={reviewImpact}
         onConfirm={handleConfirmSaveRules}
         submitting={savingRules}
