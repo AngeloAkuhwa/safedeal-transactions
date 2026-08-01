@@ -6469,6 +6469,7 @@ export type Database = {
           latest_tx_code: string
           latest_tx_id: string
           phone: string
+          public_user_id: string
           reason_keys: string[]
           refunds_30d: number
           reversed_payouts: number
@@ -6549,6 +6550,7 @@ export type Database = {
           last_active_at: string
           phone: string
           phone_verified: boolean
+          public_user_id: string
           roles: string[]
           total_count: number
           tx_count: number
