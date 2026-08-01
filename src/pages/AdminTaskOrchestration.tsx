@@ -697,7 +697,7 @@ export default function AdminTaskOrchestration() {
       />
       <TaskDetailsDrawer
         open={!!detailTask}
-        onOpenChange={o => { if (!o) setDetailTask(null); }}
+        onOpenChange={o => { if (!o) { setDetailTask(null); clearParams(["task"]); } }}
         task={detailTask}
         roster={data?.roster ?? []}
         onAssign={t => { setDetailTask(null); handleAssignRow(t); }}
