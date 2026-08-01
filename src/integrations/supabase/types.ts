@@ -4082,6 +4082,7 @@ export type Database = {
           is_region_eligible: boolean
           last_login_at: string | null
           phone: string | null
+          public_user_id: string
           state_name: string | null
           status: Database["public"]["Enums"]["profile_status"]
           store_slug: string | null
@@ -4104,6 +4105,7 @@ export type Database = {
           is_region_eligible?: boolean
           last_login_at?: string | null
           phone?: string | null
+          public_user_id: string
           state_name?: string | null
           status?: Database["public"]["Enums"]["profile_status"]
           store_slug?: string | null
@@ -4126,6 +4128,7 @@ export type Database = {
           is_region_eligible?: boolean
           last_login_at?: string | null
           phone?: string | null
+          public_user_id?: string
           state_name?: string | null
           status?: Database["public"]["Enums"]["profile_status"]
           store_slug?: string | null
