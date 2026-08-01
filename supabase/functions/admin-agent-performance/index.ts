@@ -762,6 +762,8 @@ Deno.serve(async (req) => {
         label,
         resolved: done.length + disputeDone,
         assigned: scopedTasks.filter((t) => inWindow(t.assigned_at, bStart, bEnd)).length,
+        completed: done.length,
+        untracked: done.length - slaDone.length + disputeDone,
         avg_hours: ms.length ? hours(avg(ms)) : null,
         prev_avg_hours: prevMs.length ? hours(avg(prevMs)) : null,
         on_time: onTimeCount,
