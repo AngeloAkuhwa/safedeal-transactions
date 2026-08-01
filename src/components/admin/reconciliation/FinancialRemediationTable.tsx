@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -65,8 +65,8 @@ export function FinancialRemediationTable({
                 {rows.map((r) => {
                   const open = expanded === r.transaction_id;
                   return (
-                    <>
-                      <tr key={r.transaction_id} className="border-t border-border/60">
+                    <Fragment key={r.transaction_id}>
+                      <tr className="border-t border-border/60">
                         <td className="p-3 align-top">
                           <button
                             type="button"
@@ -102,7 +102,7 @@ export function FinancialRemediationTable({
                         </td>
                       </tr>
                       {open && (
-                        <tr key={`${r.transaction_id}-detail`} className="bg-muted/20">
+                        <tr className="bg-muted/20">
                           <td />
                           <td colSpan={7} className="p-3">
                             <div className="space-y-3">
@@ -124,7 +124,7 @@ export function FinancialRemediationTable({
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>
