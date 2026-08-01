@@ -76,7 +76,10 @@ export function AgentDetailsDrawer({
                 <Stat label="Overdue" value={String(agent.overdue)} tone={agent.overdue > 0 ? "text-rose-300" : undefined} />
                 <Stat label="Breached" value={String(agent.breached)} tone={agent.breached > 0 ? "text-rose-300" : undefined} />
                 <Stat label="Escalations" value={String(agent.escalations)} />
-                <Stat label="Reassignments" value={String(agent.reassignments)} />
+                <Stat
+                  label="Reassignments"
+                  value={`${agent.reassignments_in} in / ${agent.reassignments_out} out`}
+                />
               </div>
 
               <div className={INNER_CARD_CLASS}>
