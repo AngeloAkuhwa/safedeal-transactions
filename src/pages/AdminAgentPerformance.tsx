@@ -4,6 +4,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AgentPerformanceHeader } from "@/components/admin/agent-performance/AgentPerformanceHeader";
 import { AgentPerformanceSummary } from "@/components/admin/agent-performance/AgentPerformanceSummary";
 import { ActiveFilterChips } from "@/components/admin/agent-performance/ActiveFilterChips";
+import { workloadStatus } from "@/components/admin/agent-performance/workloadStatus";
 import { AgentPerformanceTabs, type AgentTab } from "@/components/admin/agent-performance/AgentPerformanceTabs";
 import { AgentPerformanceFilters } from "@/components/admin/agent-performance/AgentPerformanceFilters";
 import { WorkloadTable } from "@/components/admin/agent-performance/WorkloadTable";
