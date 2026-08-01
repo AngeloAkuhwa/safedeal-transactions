@@ -50,6 +50,7 @@ export function AgentPerformanceFilters({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="week">This Week</SelectItem>
           <SelectItem value="7d">Last 7 Days</SelectItem>
           <SelectItem value="30d">Last 30 Days</SelectItem>
           <SelectItem value="month">This Month</SelectItem>

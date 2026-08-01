@@ -84,7 +84,7 @@ export function AgentPerformanceSummary({
       noteTone: (summary.avg_resolution_delta ?? 0) <= 0 ? "success" : "danger",
       onClick: onOpenPerformance,
       title: "Open the Performance tab",
-      tooltip: `Based on ${summary.avg_resolution_sample} completed case${summary.avg_resolution_sample === 1 ? "" : "s"} with a recorded start and resolution. Open, cancelled and incomplete records are excluded.`,
+      tooltip: `Based on ${summary.avg_resolution_sample} completed case${summary.avg_resolution_sample === 1 ? "" : "s"} with a recorded start and resolution (${summary.avg_resolution_sample_tasks ?? 0} from tasks, ${summary.avg_resolution_sample_disputes ?? 0} from disputes). Open, cancelled and incomplete records are excluded.`,
     },
     {
       key: "overdue",

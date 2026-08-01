@@ -74,6 +74,9 @@ export function WorkloadTable({
   }
   return (
     <TooltipProvider delayDuration={200}>
+      <div className="mb-2 text-xs text-muted-foreground">
+        Showing {Math.min((page - 1) * pageSize + 1, sorted.length)}–{Math.min(page * pageSize, sorted.length)} of {sorted.length} agents
+      </div>
       <div className="max-h-[65vh] overflow-auto rounded-xl">
         <table className="w-full min-w-[1240px]">
           <caption className="sr-only">Agent workload, sortable by active cases, resolved, average time, overdue and score</caption>

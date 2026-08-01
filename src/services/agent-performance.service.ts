@@ -55,6 +55,8 @@ export interface AgentPerformanceSummaryData {
   resolved_delta_pct: number | null;
   avg_resolution_hours: number | null;
   avg_resolution_sample: number;
+  avg_resolution_sample_tasks: number;
+  avg_resolution_sample_disputes: number;
   avg_resolution_delta: number | null;
   overdue_cases: number;
   top_agent: { user_id: string; name: string | null; score: number } | null;
@@ -68,7 +70,7 @@ export interface AgentTrendPoint {
 }
 
 export interface AgentPerformanceFilters {
-  range: "7d" | "30d" | "month" | "custom";
+  range: "week" | "7d" | "30d" | "month" | "custom";
   date_from?: string;
   date_to?: string;
   team: string;
@@ -156,6 +158,8 @@ export function downloadCsv(csv: string, filename: string) {
 
 export interface AgentCaseRow {
   id: string;
+  source: "task" | "dispute";
+  case_ref: string | null;
   task_code: string | null;
   title: string | null;
   type: string | null;
@@ -165,6 +169,7 @@ export interface AgentCaseRow {
   sla_status: string | null;
   due_at: string | null;
   created_at: string | null;
+  opened_at: string | null;
   assigned_at: string | null;
   resolved_at: string | null;
   dispute_id: string | null;
@@ -172,6 +177,8 @@ export interface AgentCaseRow {
   amount: number | null;
   currency: string | null;
   escalation_level: number | null;
+  outcome_type?: string | null;
+  decision_summary?: string | null;
   is_active: boolean;
   is_overdue: boolean;
 }

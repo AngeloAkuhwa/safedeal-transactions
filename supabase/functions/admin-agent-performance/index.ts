@@ -55,6 +55,11 @@ function resolveRange(body: Record<string, unknown>): Range {
   } else if (key === "month") {
     from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
     label = "This Month";
+  } else if (key === "week") {
+    // Calendar week, Monday start.
+    const dow = (now.getUTCDay() + 6) % 7;
+    from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dow));
+    label = "This Week";
   } else {
     from = new Date(now.getTime() - 7 * 86_400_000);
   }
@@ -129,12 +134,71 @@ Deno.serve(async (req) => {
       });
     }
     const nowTs = Date.now();
-    const cases = (caseRows ?? []).map((t) => ({
+    const cases: Record<string, unknown>[] = (caseRows ?? []).map((t) => ({
       ...t,
+      source: "task",
+      case_ref: t.task_code,
+      opened_at: t.created_at,
       is_active: ACTIVE_STATUSES.has(String(t.status)),
       is_overdue: ["overdue", "breached"].includes(String(t.sla_status)) ||
         (!!t.due_at && !t.resolved_at && new Date(t.due_at).getTime() < nowTs),
     }));
+
+    // Disputes this agent personally resolved may have no orchestration task
+    // (legacy or manually handled cases). Surface them as dispute-backed rows
+    // so the drawer never looks empty while the KPIs count the work.
+    const coveredDisputeIds = new Set(
+      (caseRows ?? []).map((t) => t.dispute_id).filter(Boolean) as string[],
+    );
+    const { data: agentOutcomes } = await admin
+      .from("dispute_outcomes")
+      .select("dispute_id, outcome_type, decision_summary, refund_amount, release_amount, resolved_at")
+      .eq("resolved_by_user_id", agentId)
+      .order("resolved_at", { ascending: false })
+      .limit(200);
+    const extraDisputeIds = (agentOutcomes ?? [])
+      .map((o) => o.dispute_id)
+      .filter((id): id is string => !!id && !coveredDisputeIds.has(id));
+    if (extraDisputeIds.length) {
+      const { data: disputeRows } = await admin
+        .from("disputes")
+        .select("id, reason, description, status, opened_at, resolved_at, transaction_id")
+        .in("id", extraDisputeIds);
+      const byId = new Map((disputeRows ?? []).map((d) => [d.id, d]));
+      for (const o of agentOutcomes ?? []) {
+        const d = o.dispute_id ? byId.get(o.dispute_id) : null;
+        if (!d) continue;
+        const amount = Number(o.refund_amount ?? 0) || Number(o.release_amount ?? 0) || null;
+        cases.push({
+          id: d.id,
+          source: "dispute",
+          case_ref: `DSP-${String(d.id).slice(0, 8).toUpperCase()}`,
+          task_code: null,
+          title: `${String(d.reason ?? "dispute").replace(/_/g, " ")} dispute`,
+          type: "dispute_review",
+          priority: null,
+          status: d.status,
+          stage: null,
+          sla_status: null,
+          due_at: null,
+          created_at: d.opened_at,
+          opened_at: d.opened_at,
+          assigned_at: null,
+          resolved_at: o.resolved_at ?? d.resolved_at,
+          dispute_id: d.id,
+          transaction_id: d.transaction_id,
+          amount,
+          currency: "NGN",
+          escalation_level: 0,
+          outcome_type: o.outcome_type,
+          decision_summary: o.decision_summary,
+          is_active: false,
+          is_overdue: false,
+        });
+      }
+      cases.sort((a, b) =>
+        new Date(String(b.created_at ?? 0)).getTime() - new Date(String(a.created_at ?? 0)).getTime());
+    }
     return new Response(JSON.stringify({ cases }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -501,17 +565,17 @@ Deno.serve(async (req) => {
     const taskDisputeIdsAll = new Set(
       scopedTasks.filter((t) => DONE_STATUSES.has(String(t.status)) && t.dispute_id).map((t) => t.dispute_id) as string[],
     );
-    const resolutionSamples = scopedTasks
+    const taskSamples = scopedTasks
       .filter((t) =>
         DONE_STATUSES.has(String(t.status)) &&
         !CANCELLED_STATUSES.has(String(t.status)) &&
         inWindow(t.resolved_at, range.from, range.to) &&
         t.assigned_at && t.resolved_at)
       .map((t) => new Date(t.resolved_at!).getTime() - new Date(t.assigned_at!).getTime())
-      .filter((ms) => ms >= 0)
-      .concat(
-        ranked.flatMap((r) => disputeResolutionMs(r.user_id, range.from, range.to, taskDisputeIdsAll)),
-      );
+      .filter((ms) => ms >= 0);
+    const disputeSamples = ranked.flatMap((r) =>
+      disputeResolutionMs(r.user_id, range.from, range.to, taskDisputeIdsAll));
+    const resolutionSamples = taskSamples.concat(disputeSamples);
     const avgResolution = resolutionSamples.length ? hours(avg(resolutionSamples)) : null;
 
     const prevResolutionMs = scopedTasks
@@ -542,6 +606,8 @@ Deno.serve(async (req) => {
       resolved_delta_pct: resolvedDeltaPct,
       avg_resolution_hours: avgResolution,
       avg_resolution_sample: resolutionSamples.length,
+      avg_resolution_sample_tasks: taskSamples.length,
+      avg_resolution_sample_disputes: disputeSamples.length,
       avg_resolution_delta: resolutionDelta,
       overdue_cases: overdueTotal,
       top_agent: top ? { user_id: top.user_id, name: top.full_name ?? top.email, score: top.score } : null,
