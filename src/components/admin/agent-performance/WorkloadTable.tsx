@@ -1,8 +1,10 @@
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   activeCasesPillClass, availabilityDot, availabilityLabel, availabilityTextClass,
-  hoursLabel, rankBadgeClass, rowRingClass, SCORE_FORMULA, scoreTone,
+  hoursLabel, minutesLabel, rankBadgeClass, rowRingClass, SCORE_FORMULA, scoreTone,
 } from "./helpers";
 import { EmptyState } from "./states/EmptyState";
 import { SortableTh, useAgentSort } from "./useAgentSort";
@@ -17,9 +19,13 @@ export interface RowActions {
   onReviewSla: (a: AgentPerformanceRow) => void;
   onRebalance: (a: AgentPerformanceRow) => void;
   canRebalance: boolean;
+  canViewCases: boolean;
+  canReviewSla: boolean;
 }
 
 const TH = "px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground";
+/** Sticky column header — the page header sits above it, so no extra offset. */
+const THEAD = "sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80";
 
 function ActionButton({ label, onClick, disabled, title }: { label: string; onClick: () => void; disabled?: boolean; title?: string }) {
   return (
@@ -38,28 +44,46 @@ function ActionButton({ label, onClick, disabled, title }: { label: string; onCl
   );
 }
 
-export function WorkloadTable({ agents, actions }: { agents: AgentPerformanceRow[]; actions: RowActions }) {
+export function WorkloadTable({
+  agents, actions, onClearFilters, filtered,
+}: {
+  agents: AgentPerformanceRow[];
+  actions: RowActions;
+  onClearFilters?: () => void;
+  filtered?: boolean;
+}) {
   const { sorted, sortKey, sortDir, toggle } = useAgentSort(agents);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [expanded, setExpanded] = useState<string | null>(null);
   useEffect(() => { setPage(1); }, [agents, sortKey, sortDir, pageSize]);
   const paged = useMemo(
     () => sorted.slice((page - 1) * pageSize, page * pageSize),
     [sorted, page, pageSize],
   );
   if (agents.length === 0) {
-    return <EmptyState title="No agents match these filters" hint="Adjust the team, date range or extra filters to widen the view." />;
+    return (
+      <EmptyState
+        title="No agents match these filters"
+        hint="Adjust the team, date range or extra filters to widen the view."
+        action={filtered && onClearFilters
+          ? <Button variant="outline" size="sm" onClick={onClearFilters}>Clear Filters</Button>
+          : undefined}
+      />
+    );
   }
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1180px]">
+      <div className="max-h-[65vh] overflow-auto rounded-xl">
+        <table className="w-full min-w-[1240px]">
           <caption className="sr-only">Agent workload, sortable by active cases, resolved, average time, overdue and score</caption>
-          <thead>
+          <thead className={THEAD}>
             <tr className="border-b border-border/70">
+              <th className={cn(TH, "w-8")}><span className="sr-only">Expand</span></th>
               <SortableTh label="Rank" sortKey="rank" active={sortKey === "rank"} dir={sortDir} onToggle={toggle} className="text-left" />
               <th className={cn(TH, "text-left")} scope="col">Agent</th>
               <th className={cn(TH, "text-left")} scope="col">Role</th>
+              <th className={cn(TH, "text-left")} scope="col">Availability</th>
               <SortableTh label="Active Cases" sortKey="active_cases" active={sortKey === "active_cases"} dir={sortDir} onToggle={toggle} className="text-center" />
               <SortableTh label="Waiting" sortKey="waiting_cases" active={sortKey === "waiting_cases"} dir={sortDir} onToggle={toggle} className="text-center" />
               <SortableTh label="Critical" sortKey="critical_cases" active={sortKey === "critical_cases"} dir={sortDir} onToggle={toggle} className="text-center" />
