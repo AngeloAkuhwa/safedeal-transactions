@@ -139,7 +139,7 @@ Read-only validation records: SD-2026-000019/21/23/24 plus 000002/000003/000004.
 One transaction shows identical figures and statuses on every screen and export; no page recomputes money; duplicate clicks, retries and webhook replays create no second movement; releases and refunds cannot exceed escrow; escrow reads released only after a completed payout; Dashboard and Escrow mismatch counts always agree; every correction is dry-run previewable, reasoned, audited and idempotent; no historical row changes without a confirmed authorised action; every migration has a rehearsed executable rollback.
 
 ## 11. Risks, assumptions, stop conditions
-- The index build takes a brief exclusive lock; mitigated by a single-statement migration and `lock_timeout`.
+- A normal `CREATE INDEX` takes a `SHARE` lock, allowing reads but blocking writes for the duration of the build. `ALTER TABLE ... ADD COLUMN` may briefly take `ACCESS EXCLUSIVE`. Mitigated by single-statement migrations and `lock_timeout`.
 - Historical rows keep `idempotency_key = NULL` and continue to rely on the existing cash-movement unique index.
 - Assumption: `release_review_target_hours` is the correct SLA source for pending-release classification — please confirm.
 - Stop conditions: preflight duplicates, a failed post-check, a consumer parity failure, or any test in section 9 failing.
