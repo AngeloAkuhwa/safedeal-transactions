@@ -63,18 +63,23 @@ Gate: report reviewed; confirmed zero relationships keyed by public ID, email or
 
 ### CP2B — Frozen mapping (first write, after implementation approval)
 Create `public.public_user_id_mapping (user_id uuid PK REFERENCES profiles(id), public_user_id text UNIQUE NOT NULL, generated_at timestamptz, frozen boolean)`. No grants to `anon` or `authenticated`; `GRANT ALL TO service_role` only; RLS enabled with no permissive policy. Populate it by calling the generator once per profile. `profiles` is not modified in this checkpoint.
-Gate: mapping row count equals profile count, mapping uniqueness holds, no mapping value collides with the tombstone registry, and a published checksum over the sorted `(user_id, public_user_id)` pairs is recorded. CP3 backfill reads only this frozen table; it never generates inline.
+Gate: mapping row count equals profile count, mapping uniqueness holds, no mapping value collides with the tombstone registry, and two checksums are published and recorded — `checksum_uuid` over the sorted profile UUID list, and `checksum_map` over the sorted `(user_id, public_user_id)` pairs. CP3 backfill reads only this frozen table; it never generates inline. If CP3 detects drift, control returns here: extend the mapping to cover the new profiles, re-verify uniqueness against the registry, and publish new checksums before re-attempting CP3.
 
 ### CP3 — Additive schema, tombstone registry, backfill (expand phase)
-Order, each step idempotent and resumable:
-1. `ALTER TABLE public.profiles ADD COLUMN public_user_id text` (nullable). Column privileges: no `anon` access; explicit column-safe handling per CP6.
-2. Create `public.public_user_id_registry (public_user_id text PK, first_assigned_at timestamptz, retired_at timestamptz)` — append-only, no DELETE grant to any role, `service_role` insert only. `generate_public_user_id()` checks both `profiles` and this registry before returning, so an ID is never reused after a hard delete. An AFTER DELETE trigger on `profiles` marks `retired_at` rather than removing the row.
-3. Backfill `UPDATE profiles p SET public_user_id = m.public_user_id FROM public_user_id_mapping m WHERE m.user_id = p.id AND p.public_user_id IS NULL`. Re-runnable; touches no UUID and no foreign key.
-4. Verify: null count = 0, duplicate count = 0, and the post-backfill checksum equals the CP2B checksum.
-5. Only then add `UNIQUE`, the format `CHECK`, `NOT NULL`, the BEFORE INSERT assignment trigger and the BEFORE UPDATE immutability trigger.
+The entire apply migration runs as **one short transaction** that is idempotent on re-run and fails closed on any drift. Ad hoc ID generation for unmapped profiles is forbidden at this checkpoint.
 
-Concurrency: the assignment trigger is installed before `NOT NULL`, so a signup racing the backfill still gets a valid ID; the backfill's `IS NULL` predicate makes a re-run safe. Each step is a single short transaction; at 5 rows the metadata locks are momentary.
-Gate: zero nulls, zero duplicates, zero ambiguous references, checksum match — before any constraint is enforced.
+1. `BEGIN`. Acquire `LOCK TABLE public.profiles IN SHARE ROW EXCLUSIVE MODE` — the minimum lock that blocks concurrent `INSERT`, `UPDATE` and `DELETE` on `profiles` while still permitting reads, so the rest of the app keeps serving pages. This closes the CP2B-to-CP3 signup race: no profile can appear after the checksum comparison and before the triggers exist.
+2. Recompute `checksum_uuid` over the sorted profile UUID list and compare it to the frozen CP2B baseline.
+3. **If it differs, `ROLLBACK` immediately** — no profile row has been touched. Return to CP2B to extend and refreeze the mapping for the new profiles, publish new checksums, then re-run CP3. There is no fallback path that invents an ID.
+4. If it matches, create the additive objects if they do not already exist: `ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS public_user_id text` (nullable, no `anon` access, column-safe handling per CP6); `public.generate_public_user_id()`; `public.public_user_id_registry (public_user_id text PK, first_assigned_at timestamptz, retired_at timestamptz)` — append-only, no DELETE grant to any role, `service_role` insert only, with an AFTER DELETE trigger on `profiles` that sets `retired_at` instead of removing the row; and the required grants. The generator checks both `profiles` and the registry, so an ID is never reused after a hard delete.
+5. Install the BEFORE INSERT assignment trigger and the BEFORE UPDATE immutability trigger **now, before the backfill**. Any insert that lands after commit is therefore already covered.
+6. Backfill only from the frozen mapping: `UPDATE profiles p SET public_user_id = m.public_user_id FROM public_user_id_mapping m WHERE m.user_id = p.id AND p.public_user_id IS NULL`. Touches no UUID and no foreign key; the `IS NULL` predicate makes re-runs safe.
+7. Verify inside the same transaction: post-backfill `checksum_map` equals the CP2B baseline, null count = 0, duplicate count = 0, and the UUID and foreign-key relationship checksums are unchanged from the CP0 baseline. Any failure raises and rolls the whole transaction back.
+8. Only then add the format `CHECK`, the `UNIQUE` constraint and `NOT NULL`, and `COMMIT`.
+9. The lock is released at commit. At five rows the whole transaction is momentary — this is an online migration.
+10. A signup or invitation that arrives during the lock window simply waits on the lock and then succeeds normally after commit, receiving a trigger-assigned ID. CP7 carries a concurrency test for exactly this boundary.
+
+Gate: checksum match, zero nulls, zero duplicates, zero ambiguous references and unchanged UUID/FK checksums — all asserted before the constraints are added and before commit.
 
 ### CP4 — Services and routes (migrate phase, no temporary fallback)
 All ten edge-function surfaces and the frontend read `profiles.public_user_id`. **Every UUID-slice derivation is deleted outright** — no fallback recreates a truncated ID, and a repository search for `slice(0, 8)`/`slice(0, 5)` on a user id must return zero hits. The wire field name `display_id` (and `short_id` on flagged users) is retained so old clients keep working, but after cutover its value comes only from stored `public_user_id`.
@@ -96,7 +101,7 @@ Gate: export column diff reviewed; audit rows present; UUID absent from every no
 Gate: grant and policy diff empty except the new generator/registry/mapping grants; no `select("*")` on `profiles` remains on any anon-reachable path.
 
 ### CP7 — Tests and staged rollout
-Automated coverage: generator format and charset; bounded collision retry; normalization; immutability trigger rejects updates; client-supplied value on insert is ignored; backfill idempotency and resumability; referential-integrity preservation; tombstone prevents reuse after hard delete; search exact-match and name-ambiguity disambiguation; routing from every affected admin module; unauthorized lookup and enumeration resistance; signup/invitation concurrency during backfill; rollback-only migration test; regenerated types compile; `tsgo` typecheck; production build.
+Automated coverage: generator format and charset; bounded collision retry; normalization; immutability trigger rejects updates; client-supplied value on insert is ignored; backfill idempotency and resumability; referential-integrity preservation; tombstone prevents reuse after hard delete; search exact-match and name-ambiguity disambiguation; routing from every affected admin module; unauthorized lookup and enumeration resistance; **CP3 lock-boundary concurrency — a signup/invitation issued while the migration holds the lock blocks, then commits successfully with a valid trigger-assigned ID**; **checksum drift fails closed — a profile inserted between CP2B and CP3 aborts the migration with no profile row modified**; rollback-only migration test; regenerated types compile; `tsgo` typecheck; production build.
 Rollout order (expand → migrate → contract): snapshot → CP3 migration → verification gate → edge-function deploy → frontend deploy → verification gate → drop `public_user_id_mapping` after CP8 sign-off.
 
 ### CP8 — Final acceptance evidence
