@@ -2,6 +2,13 @@
 
 Plan only. Nothing is built, migrated, published or pushed until you approve each checkpoint.
 
+## 0. Approval boundaries (read first)
+
+- Approving this plan authorises **Checkpoint 0 only** — a read-only baseline. It is not permission to implement Checkpoints 1 through 6.
+- After Checkpoint 0 completes, work stops and the baseline report is delivered.
+- Every later checkpoint requires a **new, explicit approval** before any code, migration, data or deployment action for that checkpoint.
+- No checkpoint is automatically queued or continued into the next one.
+
 ## 1. Current-state findings (verified this turn)
 
 **Exists and works — preserve**
@@ -43,7 +50,7 @@ Everything in the first bullet block above, plus all existing roles, permission 
 - Add `escrow_ledger_entries.idempotency_key text NULL`. Historical rows keep `NULL` and are never written to.
 - **Preflight (read-only, reported before the migration is proposed):** count rows, count `reference_id IS NULL` cash rows, and list any `(transaction_id, entry_type, reference_type, reference_id)` group with `count > 1` to prove `escrow_ledger_unique_cash_movement` has no conflict.
 - Index: `CREATE UNIQUE INDEX IF NOT EXISTS escrow_ledger_idem_key ON public.escrow_ledger_entries (idempotency_key) WHERE idempotency_key IS NOT NULL;`
-- **CONCURRENTLY:** the Supabase migration runner executes each migration inside a transaction, and `CREATE INDEX CONCURRENTLY` cannot run in a transaction block. It will therefore **not** be used. The plain partial index takes a short `ACCESS EXCLUSIVE` lock; at the current table size (low thousands of rows) that is sub-second. It is still applied as its own single-statement migration, at a low-traffic moment, with `SET lock_timeout = '3s'` so the migration fails fast rather than queueing behind a long transaction.
+- **CONCURRENTLY and locking:** the Supabase migration runner executes each migration inside a transaction, and `CREATE INDEX CONCURRENTLY` cannot run in a transaction block, so it will **not** be used. A normal `CREATE INDEX` takes a `SHARE` lock on the table: reads continue, writes to `escrow_ledger_entries` are blocked for the duration of the build. At the current table size (low thousands of rows) that is sub-second. Separately, `ALTER TABLE ... ADD COLUMN` may briefly require an `ACCESS EXCLUSIVE` lock. Both statements are applied as their own single-statement migrations, at a low-traffic moment, with `SET lock_timeout = '3s'` so they fail fast rather than queueing behind a long transaction. The actual lock behaviour will be verified against this project's running PostgreSQL version (via `server_version` and a rehearsal on a rolled-back transaction) before implementation.
 - **No backfill** of historical keys in this correction.
 - `escrow_ledger_unique_cash_movement` is preserved. It is touched only if the preflight proves a conflict, and then only with that evidence documented in the migration.
 - **Key strategy** (deterministic, stable across retries):
@@ -109,7 +116,9 @@ No role is created or renamed. Enforcement is layered: UI capability check → e
 | Finance-focused role (existing `financial_controls.approve` holder) | yes | yes | no — requires approval |
 | Support Agent / Dispute Agent / limited ops | only financial context already permitted | no | no |
 
-Reads use the existing `financial_controls.view`. Propose, assign and dismiss reuse `financial_controls.create` and `financial_controls.reject`, which already exist in this module and are semantically correct — no unrelated key is repurposed. **Apply** has no exact existing key: it is gated to Super Admin by role for now, and `financial_controls.remediate` is listed only as a **proposed future permission requiring separate approval**. It is not created in this work, and Apply stays disabled for every non-Super-Admin.
+Reads use the existing `financial_controls.view`. Propose, assign and dismiss reuse `financial_controls.create` and `financial_controls.reject`, which already exist in this module and are semantically correct — no unrelated key is repurposed. **Apply** has no exact existing key: it is gated to Super Admin for now, and `financial_controls.remediate` is listed only as a **proposed future permission requiring separate approval**. It is not created in this work, and Apply stays disabled for every non-Super-Admin.
+
+Every Super Admin check — in the UI, the edge function and the SECURITY DEFINER RPC — resolves the immutable role identifier (`internal_roles.key = 'super_admin'` / role ID) through the existing effective-permission services (`internal_effective_permissions`, `has_internal_role`, `useInternalPermissions`). Display labels, role names and UI text are never used for authorisation.
 
 ## 8. Status and SLA rules
 
