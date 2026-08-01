@@ -93,10 +93,24 @@ const avg = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.le
 const pct = (num: number, den: number) => (den > 0 ? Math.round((num / den) * 1000) / 10 : 0);
 
 function scoreBand(score: number): string {
-  if (score >= 97) return "Excellent";
-  if (score >= 93) return "Very Good";
-  if (score >= 85) return "Good";
-  return "Needs attention";
+  if (score >= 90) return "Excellent";
+  if (score >= 75) return "Very Good";
+  if (score >= 60) return "Good";
+  return "Needs Attention";
+}
+
+/** Default minimum completed cases before a score is considered comparable. */
+const DEFAULT_MIN_SAMPLE = 3;
+
+export interface ScoreComponent {
+  key: string;
+  label: string;
+  weight: number;
+  raw: number | null;
+  raw_label: string;
+  normalised: number | null;
+  contribution: number;
+  tracked: boolean;
 }
 
 function csvEscape(v: unknown): string {
