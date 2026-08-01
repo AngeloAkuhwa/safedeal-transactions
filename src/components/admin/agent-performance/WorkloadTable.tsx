@@ -102,9 +102,8 @@ export function WorkloadTable({
           </thead>
           <tbody>
             {paged.map((a) => (
-              <>
+              <Fragment key={a.user_id}>
               <tr
-                key={a.user_id}
                 className={cn("border-b border-border/60 transition-colors hover:bg-card/50", rowRingClass(a))}
               >
                 <td className="px-2 py-4">
@@ -204,7 +203,7 @@ export function WorkloadTable({
                 </td>
               </tr>
               {expanded === a.user_id && (
-                <tr key={`${a.user_id}-detail`} className="border-b border-border/60 bg-background/40">
+                <tr className="border-b border-border/60 bg-background/40">
                   <td colSpan={13} className="px-6 py-4">
                     <dl className="grid grid-cols-2 gap-4 text-xs sm:grid-cols-3 lg:grid-cols-6">
                       <div><dt className="text-muted-foreground">Team</dt><dd className="text-foreground">{a.team ?? "—"}</dd></div>
@@ -223,7 +222,7 @@ export function WorkloadTable({
                   </td>
                 </tr>
               )}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>
