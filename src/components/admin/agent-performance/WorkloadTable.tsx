@@ -102,10 +102,22 @@ export function WorkloadTable({
           </thead>
           <tbody>
             {paged.map((a) => (
+              <>
               <tr
                 key={a.user_id}
                 className={cn("border-b border-border/60 transition-colors hover:bg-card/50", rowRingClass(a))}
               >
+                <td className="px-2 py-4">
+                  <button
+                    type="button"
+                    onClick={() => setExpanded((id) => (id === a.user_id ? null : a.user_id))}
+                    className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+                    aria-expanded={expanded === a.user_id}
+                    aria-label={`${expanded === a.user_id ? "Hide" : "Show"} details for ${agentShortName(a)}`}
+                  >
+                    {expanded === a.user_id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </button>
+                </td>
                 <td className="px-4 py-4">
                   <div className={cn("flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold", rankBadgeClass(a.rank))}>
                     {a.rank}
@@ -121,14 +133,17 @@ export function WorkloadTable({
                     </div>
                     <div className="min-w-0">
                       <div className="truncate font-medium text-foreground">{agentShortName(a)}</div>
-                      <div className={cn("flex items-center gap-1 text-xs", availabilityTextClass(a.availability))}>
-                        <span className={cn("h-2 w-2 rounded-full", availabilityDot(a.availability), a.is_live && "animate-pulse")} />
-                        {availabilityLabel(a.availability)}
-                      </div>
+                      <div className="truncate text-xs text-muted-foreground">{a.email ?? a.user_id}</div>
                     </div>
                   </div>
                 </td>
                 <td className="px-4 py-4 text-sm text-muted-foreground">{a.role_label}</td>
+                <td className="px-4 py-4">
+                  <div className={cn("flex items-center gap-1.5 text-xs", availabilityTextClass(a.availability))}>
+                    <span className={cn("h-2 w-2 rounded-full", availabilityDot(a.availability), a.is_live && "animate-pulse")} />
+                    {availabilityLabel(a.availability)}
+                  </div>
+                </td>
                 <td className="px-4 py-4 text-center">
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -175,20 +190,40 @@ export function WorkloadTable({
                 <td className="px-4 py-4">
                   <div className="flex items-center justify-end gap-2">
                     <ActionButton label="View Detail" onClick={() => actions.onViewDetail(a)} />
-                    {a.overdue > 0 || a.breached > 0
-                      ? <ActionButton label="Review SLA" onClick={() => actions.onReviewSla(a)} />
-                      : <ActionButton label="View Cases" onClick={() => actions.onViewCases(a)} />}
-                    {(a.at_capacity || a.overdue > 0) && (
+                    {(a.overdue > 0 || a.breached > 0)
+                      ? actions.canReviewSla && <ActionButton label="Review SLA" onClick={() => actions.onReviewSla(a)} />
+                      : actions.canViewCases && <ActionButton label="View Cases" onClick={() => actions.onViewCases(a)} />}
+                    {(a.at_capacity || a.overdue > 0) && actions.canRebalance && (
                       <ActionButton
                         label="Rebalance"
                         onClick={() => actions.onRebalance(a)}
-                        disabled={!actions.canRebalance}
-                        title={actions.canRebalance ? "Rebalance this agent's workload" : "You do not have rebalance permission"}
+                        title="Open the Task Orchestration rebalance preview"
                       />
                     )}
                   </div>
                 </td>
               </tr>
+              {expanded === a.user_id && (
+                <tr key={`${a.user_id}-detail`} className="border-b border-border/60 bg-background/40">
+                  <td colSpan={13} className="px-6 py-4">
+                    <dl className="grid grid-cols-2 gap-4 text-xs sm:grid-cols-3 lg:grid-cols-6">
+                      <div><dt className="text-muted-foreground">Team</dt><dd className="text-foreground">{a.team ?? "—"}</dd></div>
+                      <div><dt className="text-muted-foreground">Capacity</dt><dd className="text-foreground">{a.active_cases} / {a.max_active}</dd></div>
+                      <div><dt className="text-muted-foreground">Avg first action</dt><dd className="text-foreground">{minutesLabel(a.avg_first_action_minutes)}</dd></div>
+                      <div><dt className="text-muted-foreground">Escalations</dt><dd className="text-foreground">{a.escalations}</dd></div>
+                      <div><dt className="text-muted-foreground">Reassignments</dt><dd className="text-foreground">{a.reassignments_in} in / {a.reassignments_out} out</dd></div>
+                      <div><dt className="text-muted-foreground">SLA compliance</dt><dd className="text-foreground">{a.sla_compliance}%</dd></div>
+                      <div><dt className="text-muted-foreground">Resolved (prev)</dt><dd className="text-foreground">{a.resolved_prev}</dd></div>
+                      <div><dt className="text-muted-foreground">Resolution sample</dt><dd className="text-foreground">{a.resolution_sample} case(s)</dd></div>
+                      <div className="col-span-2 lg:col-span-4">
+                        <dt className="text-muted-foreground">Skills</dt>
+                        <dd className="text-foreground">{a.skills.length ? a.skills.map((s) => s.skill).join(", ") : "—"}</dd>
+                      </div>
+                    </dl>
+                  </td>
+                </tr>
+              )}
+              </>
             ))}
           </tbody>
         </table>
