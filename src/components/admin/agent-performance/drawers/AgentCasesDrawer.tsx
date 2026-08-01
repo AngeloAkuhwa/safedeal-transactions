@@ -5,28 +5,40 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "../states/EmptyState";
 import { ErrorState } from "../states/ErrorState";
-import { fetchAgentCases, agentName, type AgentCaseRow, type AgentPerformanceRow } from "@/services/agent-performance.service";
+import {
+  fetchAgentCases, agentName,
+  type AgentCaseRow, type AgentPerformanceRow, type AgentPerformanceFilters,
+} from "@/services/agent-performance.service";
 import { FileSearch } from "lucide-react";
 
 export function AgentCasesDrawer({
-  agent, open, onOpenChange, slaOnly = false,
+  agent, open, onOpenChange, slaOnly = false, filters,
 }: {
   agent: AgentPerformanceRow | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   slaOnly?: boolean;
+  /** Dashboard filters — inherited so the counts match the workload row. */
+  filters?: AgentPerformanceFilters;
 }) {
   const navigate = useNavigate();
   const [rows, setRows] = useState<AgentCaseRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [truncated, setTruncated] = useState(false);
+  const [rangeLabel, setRangeLabel] = useState<string>("");
+  const [scopeOverride, setScopeOverride] = useState<"range" | "all_time" | null>(null);
+  const scope = scopeOverride ?? filters?.scope ?? "range";
 
   const load = async () => {
     if (!agent) return;
     setLoading(true);
     setError(null);
     try {
-      setRows(await fetchAgentCases(agent.user_id));
+      const res = await fetchAgentCases(agent.user_id, { ...filters, scope });
+      setRows(res.cases);
+      setTruncated(res.truncated);
+      setRangeLabel(res.range.label);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load cases");
     } finally {
@@ -37,7 +49,11 @@ export function AgentCasesDrawer({
   useEffect(() => {
     if (open && agent) void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, agent?.user_id]);
+  }, [open, agent?.user_id, scope, filters?.range, filters?.date_from, filters?.date_to,
+      filters?.case_priority, filters?.case_status, filters?.case_sla]);
+
+  // Reset any local widening whenever the drawer opens on a new agent.
+  useEffect(() => { if (!open) setScopeOverride(null); }, [open]);
 
   const visible = slaOnly ? rows.filter((r) => r.is_overdue || r.sla_status === "breached") : rows;
   const activeRows = visible.filter((r) => r.is_active);
