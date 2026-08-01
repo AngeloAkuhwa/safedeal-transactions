@@ -211,15 +211,61 @@ export interface AgentPerformanceOverview {
   generated_at: string;
 }
 
+/** Server-side SLA tab query (filters + pagination). */
+export interface SlaQuery {
+  sla_states: string[];
+  sla_agent: string;
+  sla_priority: string;
+  sla_stage: string;
+  sla_page: number;
+  sla_page_size: number;
+}
+
+export const DEFAULT_SLA_QUERY: SlaQuery = {
+  sla_states: [],
+  sla_agent: "all",
+  sla_priority: "all",
+  sla_stage: "all",
+  sla_page: 1,
+  sla_page_size: 50,
+};
+
 export async function fetchAgentPerformance(
   filters: AgentPerformanceFilters,
+  sla: SlaQuery = DEFAULT_SLA_QUERY,
 ): Promise<AgentPerformanceOverview> {
   const { data, error } = await supabase.functions.invoke("admin-agent-performance", {
-    body: { ...filters },
+    body: { ...filters, ...sla },
   });
   if (error) throw error;
   if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
-  return data as AgentPerformanceOverview;
+  const overview = data as AgentPerformanceOverview;
+  if (import.meta.env.DEV) void assertResolvedCountsReconcile(overview, filters);
+  return overview;
+}
+
+/**
+ * Development-only guard: each agent row's resolved count must match the case
+ * endpoint for the same agent, scope and filters. Logs a warning on drift.
+ */
+async function assertResolvedCountsReconcile(
+  overview: AgentPerformanceOverview,
+  filters: AgentPerformanceFilters,
+) {
+  const sample = (overview.agents ?? []).filter((a) => a.resolved > 0).slice(0, 3);
+  for (const agent of sample) {
+    try {
+      const res = await fetchAgentCases(agent.user_id, filters);
+      const resolved = res.cases.filter((c) => !c.is_active).length;
+      if (res.total <= res.page_size && resolved !== agent.resolved) {
+        console.warn(
+          `[agent-performance] resolved mismatch for ${agent.user_id}: row=${agent.resolved} drawer=${resolved}`,
+        );
+      }
+    } catch {
+      /* reconciliation is advisory only */
+    }
+  }
 }
 
 export async function exportAgentPerformance(
