@@ -37,6 +37,7 @@ const URL_FILTER_KEYS: (keyof Filters)[] = [
   "range", "scope", "date_from", "date_to", "team", "role", "availability", "sla",
   "overdue_only", "min_active", "min_overdue", "score_min", "score_max", "case_priority",
   "case_status", "case_sla", "workload_status", "search",
+  "min_completed", "performance_level", "hide_insufficient",
 ];
 
 function filtersFromParams(params: URLSearchParams): Filters {
@@ -44,8 +45,8 @@ function filtersFromParams(params: URLSearchParams): Filters {
   for (const key of URL_FILTER_KEYS) {
     const raw = params.get(key);
     if (raw == null) continue;
-    if (["overdue_only"].includes(key)) (next as Record<string, unknown>)[key] = raw === "true";
-    else if (["min_active", "min_overdue", "score_min", "score_max"].includes(key)) (next as Record<string, unknown>)[key] = Number(raw);
+    if (["overdue_only", "hide_insufficient"].includes(key)) (next as Record<string, unknown>)[key] = raw === "true";
+    else if (["min_active", "min_overdue", "score_min", "score_max", "min_completed"].includes(key)) (next as Record<string, unknown>)[key] = Number(raw);
     else (next as Record<string, unknown>)[key] = raw;
   }
   if (params.get("scope") === "all_time") next.scope = "all_time";
