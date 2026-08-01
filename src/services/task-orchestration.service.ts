@@ -150,7 +150,21 @@ export interface OrchestrationOverview {
     fastest_response: AgentRosterEntry | null;
   };
   rules: AssignmentRulesRow | null;
+  rule_versions?: RuleVersionRow[];
   scope?: { can_view_all: boolean; can_assign: boolean; can_view_load: boolean; user_id: string };
+}
+
+export interface RuleVersionRow {
+  id: string;
+  version: number;
+  note: string | null;
+  created_at: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  approved_by: string | null;
+  approver_name: string | null;
+  approved_at: string | null;
+  change_set_id: string | null;
 }
 
 export async function fetchOrchestrationOverview(
