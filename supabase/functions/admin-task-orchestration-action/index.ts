@@ -1316,10 +1316,8 @@ Deno.serve(async (req) => {
                   body: "This task passed its SLA due date and needs immediate attention.",
                   dedupeKey: `sla_overdue:${r.id}:${hourBucket}`,
                   dedupeMinutes: 60,
-                  data: {
-                    task_id: r.id,
-                    link: r.queue ? `/admin/task-orchestration?queue=${r.queue}&sla=overdue` : `/admin/task-orchestration?task=${r.id}`,
-                  },
+                  link: r.queue ? `/admin/task-orchestration?queue=${r.queue}&sla=overdue` : `/admin/task-orchestration?task=${r.id}`,
+                  data: { task_id: r.id },
                 });
                 slaOverdue++;
               } else if (r.assigned_agent_id) {
@@ -1330,7 +1328,8 @@ Deno.serve(async (req) => {
                   body: `Due in under ${thresholdMin} minutes.`,
                   dedupeKey: `sla_approaching:${r.id}:${quarterBucket}`,
                   dedupeMinutes: 15,
-                  data: { task_id: r.id, link: `/admin/task-orchestration?task=${r.id}` },
+                  link: `/admin/task-orchestration?task=${r.id}`,
+                  data: { task_id: r.id },
                 });
                 slaApproaching++;
               }
@@ -1407,6 +1406,16 @@ Deno.serve(async (req) => {
           }, admin);
           return respond({ ok: true, offline_agents: (offline ?? []).length, moved });
         } catch (err) {
+          try {
+            await notifyEvent({
+              event: "automation_rule_failed", recipients: await seniorAdmins(),
+              title: "Auto-reassign batch failed",
+              body: err instanceof Error ? err.message : "unknown",
+              dedupeKey: `auto_reassign_batch_fail:${new Date().toISOString().slice(0,13)}`,
+              link: `/admin/task-orchestration?status=unassigned`,
+              data: { rule: "auto_reassign_offline" },
+            });
+          } catch { /* best effort */ }
           return respond({ error: "auto_reassign_failed", detail: err instanceof Error ? err.message : String(err) }, 500);
         }
       }
