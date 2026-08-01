@@ -16,10 +16,16 @@ interface Item {
 }
 
 export function ProductivityInsights({
-  insights, onSelectAgent,
+  insights, onSelectAgent, range, team,
 }: {
   insights: OrchestrationOverview["insights"];
-  onSelectAgent?: (agent: AgentRosterEntry) => void;
+  onSelectAgent?: (
+    agent: AgentRosterEntry,
+    context: { metricLabel: string; range?: string; team?: string },
+  ) => void;
+  /** Active filter context, forwarded to the agent drawer. */
+  range?: string;
+  team?: string;
 }) {
   const items: Item[] = [
     { key: "active", label: "Most Active", icon: Activity, tone: "success",
@@ -52,7 +58,7 @@ export function ProductivityInsights({
                 <button
                   type="button"
                   disabled={!it.agent || !onSelectAgent}
-                  onClick={() => it.agent && onSelectAgent?.(it.agent)}
+                  onClick={() => it.agent && onSelectAgent?.(it.agent, { metricLabel: it.label, range, team })}
                   className={cn(
                     "group flex w-full flex-col rounded-xl border border-border/60 bg-background/40 p-4 text-left backdrop-blur-sm transition",
                     it.agent && onSelectAgent && "hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card/70",
