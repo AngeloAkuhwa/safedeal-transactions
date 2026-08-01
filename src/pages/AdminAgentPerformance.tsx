@@ -413,7 +413,7 @@ export default function AdminAgentPerformance() {
         rangeLabel={data?.range?.label ?? ""}
         agents={agents.map((a) => ({
           user_id: a.user_id,
-          name: a.full_name ?? `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim() || a.user_id,
+          name: (a.full_name ?? `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim()) || a.user_id,
         }))}
       />
     </AdminLayout>
