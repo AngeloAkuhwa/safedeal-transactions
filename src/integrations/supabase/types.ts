@@ -2216,6 +2216,42 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_job_leases: {
+        Row: {
+          acquired_at: string
+          created_at: string
+          expires_at: string
+          heartbeat_at: string
+          holder: string | null
+          job_name: string
+          lease_token: string
+          run_count: number
+          updated_at: string
+        }
+        Insert: {
+          acquired_at?: string
+          created_at?: string
+          expires_at: string
+          heartbeat_at?: string
+          holder?: string | null
+          job_name: string
+          lease_token: string
+          run_count?: number
+          updated_at?: string
+        }
+        Update: {
+          acquired_at?: string
+          created_at?: string
+          expires_at?: string
+          heartbeat_at?: string
+          holder?: string | null
+          job_name?: string
+          lease_token?: string
+          run_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       identity_submissions: {
         Row: {
           consent_accepted_at: string
@@ -6152,6 +6188,10 @@ export type Database = {
       }
     }
     Functions: {
+      acquire_job_lease: {
+        Args: { p_holder?: string; p_job_name: string; p_ttl_seconds?: number }
+        Returns: Json
+      }
       admin_correct_pricing: {
         Args: {
           p_item_amount: number
@@ -6551,6 +6591,7 @@ export type Database = {
         Args: { p_reason: string; p_refund_id: string }
         Returns: Json
       }
+      financial_lease_ttl_seconds: { Args: never; Returns: number }
       flag_for_release_review: {
         Args: {
           p_actor_user_id: string
@@ -6597,6 +6638,14 @@ export type Database = {
         Args: {
           _role: Database["public"]["Enums"]["user_role_type"]
           _user_id: string
+        }
+        Returns: boolean
+      }
+      heartbeat_job_lease: {
+        Args: {
+          p_job_name: string
+          p_lease_token: string
+          p_ttl_seconds?: number
         }
         Returns: boolean
       }
@@ -6734,6 +6783,10 @@ export type Database = {
           qty: number
           transaction_id: string
         }[]
+      }
+      release_job_lease: {
+        Args: { p_job_name: string; p_lease_token: string }
+        Returns: boolean
       }
       release_payout_atomic: {
         Args: {
