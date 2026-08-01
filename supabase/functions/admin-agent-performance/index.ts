@@ -1276,7 +1276,7 @@ Deno.serve(async (req) => {
           all_time: range.allTime,
           comparison_available: !range.allTime,
           granularity,
-          contract_version: 3,
+        contract_version: 4,
         },
         permissions: {
           can_export: canExport,
