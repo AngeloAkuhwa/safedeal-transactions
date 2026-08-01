@@ -4,12 +4,12 @@ import { cn } from "@/lib/utils";
 import type { AgentPerformanceRow } from "@/services/agent-performance.service";
 
 export type AgentSortKey =
-  | "rank" | "active_cases" | "resolved" | "avg_resolution_hours"
+  | "rank" | "active_cases" | "waiting_cases" | "critical_cases" | "resolved" | "avg_resolution_hours"
   | "overdue" | "breached" | "on_time" | "sla_compliance" | "score";
 export type SortDir = "asc" | "desc";
 
 const NUMERIC_DEFAULT_DESC: AgentSortKey[] = [
-  "active_cases", "resolved", "overdue", "breached", "on_time", "sla_compliance", "score",
+  "active_cases", "waiting_cases", "critical_cases", "resolved", "overdue", "breached", "on_time", "sla_compliance", "score",
 ];
 
 function valueOf(a: AgentPerformanceRow, key: AgentSortKey): number {
