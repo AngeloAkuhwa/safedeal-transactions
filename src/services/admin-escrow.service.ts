@@ -56,10 +56,20 @@ export interface EscrowRecordRow {
   state_mismatch?: boolean;
 }
 
+export interface ReconciliationSummary {
+  reconciled: number;
+  pending_settlement: number;
+  mismatch: number;
+  requires_review: number;
+  total: number;
+}
+
 export interface EscrowOverview {
   kpis: EscrowKpis;
   trends: EscrowTrends;
   alerts: EscrowAlerts;
+  /** Canonical reconciliation counts — identical to the Dashboard card. */
+  reconciliation?: ReconciliationSummary;
   records: { total: number; page: number; page_size: number; rows: EscrowRecordRow[] };
 }
 

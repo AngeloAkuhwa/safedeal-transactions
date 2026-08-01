@@ -430,6 +430,7 @@ Deno.serve(async (req) => {
     },
     trends: { balance_30d: balance30d, state_distribution: stateDistribution, flow_14d: flow14d },
     alerts,
+    reconciliation: reconSummary,
     records: { total, page, page_size: pageSize, rows: records },
   });
 });
