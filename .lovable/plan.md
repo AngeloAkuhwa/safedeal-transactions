@@ -1,0 +1,148 @@
+# Correction 1 — consolidated remaining financial source-of-truth plan (Checkpoints A–H), revised
+
+No implementation, migration, data change, commit or deployment occurred in this response. Every fact below comes from read-only inspection of the current repository and connected database.
+
+## 0. Approval and stop rule
+
+A future instruction saying exactly **"Approve Correction 1 implementation"** authorizes Checkpoints A through H **in order, without further approval after each successful gate**. At every gate the stated verification runs automatically. If a gate fails, or current inspection contradicts the scope in this plan, work stops immediately with a failure report — no continuation, no weakened tests, no bypassed safeguard, no speculative fix, no scope expansion.
+
+Excluded from that approval in all cases: publishing/deployment, destructive data change, bulk remediation, and executing (applying) any historical remediation. Items marked **conditional** below are discovered only at Checkpoint A; if reality differs from this plan, the stop rule applies rather than silent scope growth.
+
+## 1. Verified current state
+
+- HEAD `4b3c6943` (2026-08-01 14:44 UTC), clean tree. `.lovable/reports/checkpoint-0-financial-baseline.md` re-read; rollback point is this commit, superseding `501f1ddf`.
+- PostgreSQL 17.6. `system_settings` columns: `id, setting_key, setting_value, created_at, updated_at, scope, vendor_id, is_overridable, updated_by, auto_release_enabled_by, auto_release_enabled_at, auto_release_previous_value`. `release_review_target_hours = 24`, resolved dynamically through `_shared/settings-resolver.ts` → `get_effective_settings(...)`; never hardcoded.
+- `escrow_ledger_entries`: `id, transaction_id, entry_type (enum), currency_code, amount numeric, balance_after numeric NULL, reference_type text NULL, reference_id uuid NULL, notes, created_by_user_id, created_at, metadata jsonb NULL, is_cash_movement (GENERATED)`. **No idempotency or fingerprint column exists.** 19 rows have `reference_id IS NULL`. Indexes: pkey, `idx_escrow_ledger_transaction`, `idx_escrow_ledger_entry_type`, `idx_escrow_ledger_created_at`, `escrow_ledger_tx_type_idx`, and partial unique `escrow_ledger_unique_cash_movement (transaction_id, entry_type, reference_type, reference_id) WHERE reference_id IS NOT NULL AND entry_type IN (payment_credit, escrow_hold, payout_debit, refund_debit)`.
+- Enum `escrow_ledger_entry_type` (11): `payment_credit, escrow_hold, freeze_hold, payout_debit, refund_debit, fee_record, adjustment, payout_awaiting_release, dispute_refund_reserved, dispute_release_approved_pending_admin_release, dispute_no_action`.
+- Implemented `VALUE_AFFECTING_TYPES` (financial-model.ts:200) = `payment_credit, escrow_hold, payout_debit, refund_debit, adjustment, freeze_hold, payout_awaiting_release, dispute_refund_reserved, dispute_release_approved_pending_admin_release`. Excluded: `fee_record` (non-cash) and `dispute_no_action` (informational). Balance semantics in `escrow_available_balance`: credits `escrow_hold, adjustment`; debits `payout_debit, refund_debit`.
+- All money RPCs are `SECURITY DEFINER`, owner `postgres`, `search_path=public` (verified for all 13 named below).
+- Internal role keys (immutable): `super_admin, senior_admin, dispute_manager, dispute_agent, support_agent, identity_officer, finance_operator, finance_approver, compliance_officer, auditor`.
+- Existing permission keys in module `financial_controls`: `view, create, approve, reject, configure, export`. `financial_controls.approve` is held by `super_admin` and `finance_approver`; `senior_admin` is explicitly denied `approve`/`configure`; SoD rule forbids combining `financial_controls.approve` with `disputes.resolve_all`.
+- `escrow_reconciliation_results`: unique `(transaction_id, run_id)`; one RLS policy "Admins can read reconciliation results" (SELECT); no direct table grants recorded for anon/authenticated (service-role path only). 3,762 rows / 1,179 runs from a handful of transactions.
+- Cron (one schedule each): `reconcile-escrow-hourly @ 7 * * * *` plus 8 unrelated jobs.
+- `reconcile-escrow` **reads** ledger only (index.ts:97) — it creates no ledger movement today; that property must be preserved and asserted.
+- Volumes: 21 transactions, 44 ledger rows, 5 payouts, 1 refund.
+- `_shared/financial-model.ts` (693 lines) still has zero runtime consumers.
+
+## 2. Complete financial writer / RPC inventory
+
+Idempotency key format everywhere: `<domain>:<operation>:<transaction_id>:<stable_operation_id>:<entry_type>`. Fingerprint = SHA-256 over a deterministic canonical JSON serialization (sorted keys, integer minor units, `v1` algorithm tag).
+
+Lock order everywhere, without exception: **`transactions` row → operation row (`payouts` / `refunds` / `disputes`) → balance recomputation → ledger insert**, all inside one RPC transaction.
+
+| # | Writer / RPC (exact signature) | Operation & ledger entry type(s) | Current path | Planned guarded path | Stable operation ID | Fingerprint fields | Locks | Audit event | Tests |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | `release_payout_atomic(p_transaction_id uuid, p_payout_id uuid, p_actor_user_id uuid, p_notes text)` | release approval → `payout_awaiting_release` / `payout_debit` | called by `_shared/release-core.ts:136`, `retry-payout:101` | rewritten with balance + terminal-state guard, key + fingerprint | `payouts.id` | tx id, payout id, amount, entry type, currency | tx, payout | `admin_actions` release | over-release, duplicate release, concurrent release |
+| 2 | `complete_payout_atomic(p_payout_id uuid, p_amount numeric)` | payout completion → `payout_debit` | `paystack-webhook:513` | rewritten; completion may not exceed available escrow; requires completion timestamp | `payouts.id` | payout id, amount, provider ref | tx, payout | payout completed | duplicate webhook, over-amount, missing timestamp → requires_review |
+| 3 | `fail_payout_atomic(p_payout_id uuid, p_reason text, p_max_retries integer)` | payout failure, no value movement | `release-core:174`, `retry-payout:139`, `paystack-webhook:570` | state-only; add terminal-state guard + idempotent re-apply. No ledger row, so no key needed | `payouts.id` | n/a | tx, payout | payout failed | repeat-failure idempotency, retry-count cap |
+| 4 | `retry_payout_atomic(p_payout_id uuid, p_actor_user_id uuid, p_notes text)` | retry, state-only (value moves via #1) | `retry-payout:90` | terminal-state + max-retry guard | `payouts.id` + attempt | n/a | tx, payout | payout retried | retry after failure, retry after completion rejected |
+| 5 | `reverse_payout_atomic(p_payout_id uuid, p_amount numeric, p_reason text)` | reversal → `adjustment` (credit) | `paystack-webhook:612` | key + fingerprint; sign correctness; may not exceed the original debit | `payouts.id` + `reversal` | payout id, amount, reason | tx, payout | payout reversed | double reversal, over-reversal, sign |
+| 6 | `start_refund_atomic(p_transaction_id uuid, p_amount numeric, p_actor_user_id uuid, p_reason text, p_notes text)` | refund initiation → `dispute_refund_reserved` | `release-core:344` | **add missing balance guard**; key + fingerprint | `refunds.id` | tx id, refund id, amount | tx, refund | refund started | over-refund, duplicate open refund |
+| 7 | `complete_refund_atomic(p_refund_id uuid)` | refund settlement → `refund_debit` | `paystack-webhook:670` | **add missing balance guard**; key + fingerprint | `refunds.id` | refund id, amount, provider ref | tx, refund | refund completed | duplicate webhook, over-refund, reserved→debit consistency |
+| 8 | `fail_refund_atomic(p_refund_id uuid, p_reason text)` | refund failure; releases reservation | `release-core:369`, `paystack-webhook:718` | terminal-state guard; reservation release recorded as signed `adjustment` with key | `refunds.id` + `fail` | refund id, amount | tx, refund | refund failed | repeat failure, reservation restored once |
+| 9 | `freeze_funds_atomic(p_transaction_id uuid, p_actor uuid, p_reason text)` | freeze → `freeze_hold` | `admin-transaction-actions:211`, `resolve-release-review:103` | key + fingerprint; block double freeze | `admin_actions.id` | tx id, actor, reason hash | tx | funds frozen | double freeze, freeze after release |
+| 10 | `unfreeze_funds_atomic(p_transaction_id uuid, p_actor uuid, p_target money_status, p_reason text)` | unfreeze → `adjustment` | `admin-transaction-actions:262` | key + fingerprint; **this is the source of the 3-row adjustment anomaly** — new guard prevents recurrence, history untouched | `admin_actions.id` | tx id, target status, amount | tx | funds unfrozen | repeated unfreeze produces one entry |
+| 11 | `flag_for_release_review(p_transaction_id uuid, p_reason text, p_actor_user_id uuid, p_notes text)` | no value movement — queue flag only | `flag-for-release-review` fn | unchanged behaviour; state-transition test only | n/a | n/a | tx | review flagged | duplicate flag is a no-op |
+| 12 | direct insert `verify-paystack-payment/index.ts:193` | capture → `payment_credit`, `escrow_hold`, `fee_record` | ad-hoc service-role insert | **replaced** by new `record_payment_capture_atomic(p_payment_id uuid)` | `payments.id` | payment id, captured amount, fee split | tx, payment | payment captured | replayed verification, split identity A |
+| 13 | direct insert `paystack-webhook/index.ts:188` | capture via webhook, same types | ad-hoc insert | **replaced** by the same RPC (#12) | `payments.id` | same | tx, payment | payment captured | webhook + verify race → one movement |
+| 14 | direct inserts `seller-confirm-completion/index.ts:297,354` | completion → `dispute_release_approved_pending_admin_release` / `payout_awaiting_release` | ad-hoc inserts | **replaced** by new `record_completion_release_intent_atomic(p_transaction_id uuid, p_actor uuid)` | `transaction_completion_confirmations.id` | tx id, amount, entry type | tx | completion confirmed | double confirm, amount from snapshot only |
+| 15 | `reconcile-escrow` | read-only | read-only | must stay read-only; enforced by test + trigger | n/a | n/a | n/a | n/a | assert zero ledger inserts per run |
+
+Any writer discovered at Checkpoint A that is not in this table triggers the stop rule.
+
+## 3. Checkpoints
+
+### A — Fresh preflight and change map
+Re-verify HEAD/diff, schema, columns, constraints, indexes, enums, triggers, RLS, grants, function definitions (`pg_get_functiondef`, owner, `prosecdef`, `proconfig`, grants), cron rows, settings, and the writer inventory in section 2. Output `.lovable/reports/checkpoint-a-change-map.md` with the exact file/migration/RPC list, lock analysis and non-sensitive counts.
+Gate: any contradiction with sections 1–2 stops work.
+Rollback: none (read-only).
+
+### B — Idempotency schema foundation
+Migration `B`, additive only, executed with `SET lock_timeout = '3s'` and `statement_timeout`:
+1. `ALTER TABLE public.escrow_ledger_entries ADD COLUMN idempotency_key text` (nullable; ADD COLUMN with no default may briefly take ACCESS EXCLUSIVE).
+2. `ALTER TABLE ... ADD COLUMN payload_fingerprint text` — a minimal additive nullable column is chosen over reusing `metadata` because `metadata` is already written with free-form provider payloads (e.g. `verify-paystack-payment` writes `{reference, amount, currency}`) and is mutable by existing code, so it cannot serve as an immutable comparison field.
+3. `ADD CONSTRAINT escrow_ledger_idem_key_shape CHECK (idempotency_key IS NULL OR (length(idempotency_key) BETWEEN 8 AND 200 AND idempotency_key !~ '\s'))`, and `CHECK (payload_fingerprint IS NULL OR payload_fingerprint ~ '^v1:[0-9a-f]{64}$')`.
+4. `CREATE UNIQUE INDEX escrow_ledger_idem_key ON public.escrow_ledger_entries (idempotency_key) WHERE idempotency_key IS NOT NULL`. A normal CREATE INDEX takes a SHARE lock: reads allowed, writes blocked for the duration. With 44 rows the build is expected to be short, but preflight and `lock_timeout` are still enforced and the migration fails fast rather than waiting. `CONCURRENTLY` is not used because the migration runner wraps statements in a transaction.
+No backfill; historical rows keep NULL in both new columns. RLS and grants unchanged (verified before and after).
+Gate: columns/constraints/index present; zero duplicate non-null keys; RLS/grants byte-identical to preflight capture; full suite green.
+Rollback: `DROP INDEX escrow_ledger_idem_key; ALTER TABLE ... DROP CONSTRAINT ... ; DROP COLUMN payload_fingerprint; DROP COLUMN idempotency_key;` — no data touched.
+
+### C — Deterministic writer idempotency (no unguarded direct writes)
+- New RPCs `record_payment_capture_atomic` and `record_completion_release_intent_atomic` (rows 12–14) so that **no Edge Function inserts a value-affecting ledger row directly**. `_shared/release-core.ts`, `paystack-webhook`, `verify-paystack-payment`, `seller-confirm-completion`, `retry-payout`, `admin-transaction-actions`, `resolve-release-review` all call guarded RPCs only; `reconcile-escrow` stays read-only.
+- Bypass is additionally impossible at the database level: the Checkpoint D trigger rejects any insert of a value-affecting type without a valid `idempotency_key` + `payload_fingerprint`, and the guarded RPCs are the only code paths that can produce them correctly. Service-role clients therefore cannot insert ad hoc value rows even if new code tried.
+- Conflict semantics: each guarded RPC computes key + `v1` fingerprint, then `INSERT ... ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING RETURNING id`. If nothing is returned, the existing row is re-read inside the same transaction: identical fingerprint → return the existing result as success (no second movement, no second business outcome); different fingerprint → `RAISE EXCEPTION` (fail closed), roll back, and record an auditable conflict for review.
+- Canonical fields per operation are fixed in section 2; serialization is sorted-key JSON with integer minor units only. Missing authoritative snapshot (`seller_payout_amount`) or invalid money blocks the mutation — no `item_amount` fallback.
+- Frontend/Edge integration uses `_shared/financial-model.ts` plus a thin `_shared/financial-writer.ts` for key/fingerprint derivation shared by callers and mirrored in SQL.
+Gate: retry and concurrency tests show exactly one ledger movement and one business outcome; different-payload retry fails closed with an audit record; invalid money and missing snapshots block mutations.
+Rollback: revert Edge Function code and drop the two new RPCs; schema from B remains harmless.
+
+### D — Database invariants and atomic balance enforcement
+Migration `D`:
+- Trigger `escrow_ledger_require_idem` (BEFORE INSERT) requiring non-null `idempotency_key` and well-formed `payload_fingerprint` when `NEW.entry_type IN ('payment_credit','escrow_hold','payout_debit','refund_debit','adjustment','freeze_hold','payout_awaiting_release','dispute_refund_reserved','dispute_release_approved_pending_admin_release')` — an explicit list matching `VALUE_AFFECTING_TYPES` exactly, not the generated column. Excluded with reason: `fee_record` (non-cash accounting record, excluded from balance) and `dispute_no_action` (informational marker, no value).
+- Guarded rewrites of rows 1–10 plus the two new RPCs. Each: lock the `transactions` row `FOR UPDATE`, then the operation row (`payouts` / `refunds`) `FOR UPDATE`, **then** call `escrow_available_balance(tx)` — a calculation routine over the now-stable ledger, not a lockable row — and finally insert the ledger row in the same transaction. Because every writer takes the same two row locks in the same order before recomputing, no concurrent writer can change the balance between the check and the insert, and deadlocks are avoided.
+- Enforced: refund/release/payout amounts may not exceed authoritative available escrow; duplicate finalization rejected; conflicting terminal states rejected; adjustment/reversal signs validated; pending, failed and completed settlement amounts kept semantically separate with no double counting of escrow funding versus remaining balance; append-only history preserved (no UPDATE/DELETE on ledger rows).
+Gate: SQL tests for over-refund, over-release, over-completion, over-reversal, duplicate start/complete/fail/reverse/retry, concurrent requests, rollback behaviour, sign correctness, pending vs failed vs completed payouts, and all currently valid flows still succeeding.
+Rollback: migration `D` first captures `pg_get_functiondef`, owner, `prosecdef`, `proconfig` (`search_path`) and grants for every function it replaces into a rollback SQL artifact; rollback restores body, owner, security mode, search_path, signature and grants exactly, and drops the trigger.
+
+### E — Reconciliation foundation
+- `reconciliation_runs` (id, started_at, heartbeat_at, finished_at, status, lease_owner, all timestamptz/UTC) with `claim_reconciliation_lease()` / `heartbeat_reconciliation_lease()` / `close_reconciliation_lease()`. The Edge Function heartbeats throughout the run, so the lease outlives any single database transaction; a lease whose `heartbeat_at` is older than the configured stale window can be taken over exactly once by an atomic conditional update. Overlapping runs exit cleanly.
+- `reconciliation_findings` with identity **one active finding per `(transaction_id, rule_key)`** — severity is a mutable attribute, not part of identity, so a severity change updates the existing finding instead of opening a second one: `CREATE UNIQUE INDEX ON reconciliation_findings (transaction_id, rule_key) WHERE status = 'open'`. Columns: `first_seen, last_seen, occurrence_count, owner, severity, status CHECK (status IN ('open','closed')), resolution_proof jsonb, closed_at`. Each run updates `last_seen` and increments `occurrence_count`; auto-close happens only when a later authoritative run proves the condition cleared, with the proof stored.
+- `escrow_reconciliation_results` history is preserved untouched.
+- Security: both new tables get RLS enabled with **no** insert/update/delete policy for `anon`/`authenticated`; grants limited to `service_role` (`GRANT ALL`) plus `GRANT SELECT ... TO authenticated` only where the existing admin read pattern requires it, mirroring `escrow_reconciliation_results` ("Admins can read reconciliation results"). Admin reads go through the existing service-role Edge Function / secure RPC pattern with `requirePermission("financial_controls.view")`; `admin_financial_reconciliation_summary` keeps its service-role-only EXECUTE boundary.
+- One shared summary path (`admin_financial_reconciliation_summary` + `_shared/reconciliation.ts`) consumed by both Dashboard and Escrow. Cron cutover keeps exactly one schedule (`reconcile-escrow-hourly @ 7 * * * *`); no second job is created.
+Gate: overlapping-run test, stale-lease takeover test, retry test, finding-dedup test (including severity change), proof-based closure test, Dashboard/Escrow parity, RLS/grant tests, and single-cron assertion.
+Rollback, in this order: (1) restore the previous `reconcile-escrow` function code and query path and re-point the existing cron entry at it; (2) verify a full run succeeds against the legacy path; (3) only then drop the lease RPCs and the two new tables. Dropping first is forbidden while the new Edge Function still depends on them.
+
+### F — Canonical read service and controlled consumer cutover
+- Feature flag uses the **verified existing pattern**: a row in `system_settings` (`setting_key`/`setting_value`, `scope`, `is_overridable`) resolved server-side by `_shared/settings-resolver.ts` → `get_effective_settings`, exactly as `commerce.checkout_enabled` and `platform.auto_release_enabled` are today. New keys, boolean, **default `false`**: `finance.canonical_reads.transaction_detail`, `.transactions`, `.disputes`, `.escrow`, `.payouts`, `.flagged_users`, `.dashboard`, `.exports`. Only `financial_controls.configure` holders (super_admin, finance-configure holders) may change them, through the existing `admin-system-settings` function; no permission is broadened. Rollback per consumer = set the key back to `false`.
+- New `_shared/financial-read.ts` aggregation over the canonical model and authoritative RPCs; frontend contract `src/services/financial-model.service.ts`.
+- Pilot: `admin-transaction-detail`. Diagnostics log transaction IDs and minor-unit differences only — never names, emails, account numbers, tokens or provider payloads.
+- Rollout criterion per consumer: zero-minor-unit difference on every reconciled record, and every non-reconciled record explained by a named `requires_review` reason from the reconciliation rule catalogue. Only then is that consumer's key flipped on.
+- Cutover order: Transactions list/detail and nested records → Disputes and financial effects → Escrow and release/refund queues → Payouts (`admin-payouts-list`, `admin-payouts-detail`: payout ID, transaction ID, item, seller, payout-account owner, gross amount, deductions, net amount, status, timestamps) → Flagged Users financial context → Dashboard → exports (`admin-export-worker`, `admin-export-transaction-data`, `admin-escrow-export`) → financial audit summaries.
+- Summary cards recompute from the same filtered record set they display, or explicitly label all-time scope. Completed payouts without a valid completion timestamp display "Unavailable" and are marked `requires_review`.
+- Existing dark admin design, routes and components preserved; loading, empty, retry, access-denied and error-boundary states retained.
+Gate: per-consumer parity, **URL-filter and date-scope parity** (same filters produce identical totals on card and rows), **export parity** (CSV values equal on-screen canonical values), route tests, permission tests, feature-flag rollback test, and no console/network regressions.
+
+### G — Admin remediation report (read-only + dry run)
+- Extends the existing **Financial remediation** tab on `/admin/reconciliation`: stored values, canonical values, exact difference, affected records/screens, severity, evidence, recommended compensating action, status.
+- Read authorization: existing `financial_controls.view`, enforced in `PermissionRoute` in the UI and `requirePermission("financial_controls.view")` in `admin-reconciliation`.
+- Dry-run preview per record writes nothing and is repeatable with identical output.
+- **Apply authority:** the only existing permission that plausibly authorizes a corrective financial mutation is `financial_controls.approve` (held by immutable role keys `super_admin` and `finance_approver`; explicitly denied to `senior_admin`; SoD-conflicting with `disputes.resolve_all`). No new permission is created or granted in Correction 1. The apply action is **built as unavailable/disabled** in this correction: the build produces the report and dry-run only and never executes an apply, in code or in verification.
+- A future apply, when separately authorized, must append compensating ledger entries with deterministic idempotency key + fingerprint, reason, actor, correlation ID, before/after evidence and an audit event. No bulk fix-all action exists anywhere in the UI or API.
+Gate: unauthorized-role denial (UI + backend), dry-run repeatability, zero-write proof, idempotent apply simulation in tests only, audit completeness.
+Rollback: the tab reverts to its current read-only content.
+
+### H — Independent final verification and handoff
+Re-enumerate every writer and consumer **from the resulting codebase** and diff against the Checkpoint A inventory; require zero bypasses (zero direct value-affecting ledger inserts outside guarded RPCs). Then run: typecheck; configured lint; production build; the full existing suite; new unit/integration/SQL tests; RLS and grant tests; concurrency tests; migration preflight/postflight, lock_timeout-failure, re-run-safety, partial-deployment-recovery and rollback tests in a disposable environment; route and permission tests; browser console and network checks. Verify canonical values for the known inconsistent transactions (SD-2026-000019/21/23/24, the 3-row `adjustment`/`admin_unfreeze` anomaly, the completed payout without a timestamp) and for representative clean transactions across Transactions, Disputes, Escrow, Payouts, Flagged Users, Dashboard, exports and audit records under identical filters; verify the Dashboard mismatch count and compliance state exactly equal Escrow's under the same filters; exercise full release, partial refund, full refund, failed payout, retry, adjustment, reversal, mismatch, concurrent duplicate submission and completion-timestamp behaviour; confirm no historical deletion, silent rewrite, secret exposure, blank screen, dead route, console error or repeated network loop.
+Skipped tests are reported individually with reasons; **a skipped critical financial test is not a pass**. Deliverables: implementation report; exact changed files/migrations/functions; automated verification evidence; remaining non-applied remediation items; role-based UI smoke-test guide. Then stop — Correction 2 waits for the user's smoke-test confirmation.
+
+## 4. Exact scope (schema, data and permission impact)
+
+Migrations: **3** (`B` idempotency schema, `D` invariants + guarded function rewrites, `E` reconciliation foundation).
+
+- Columns added: **2** (`escrow_ledger_entries.idempotency_key`, `.payload_fingerprint`), both nullable, no backfill.
+- Checks added: **2** (key shape, fingerprint shape).
+- Indexes added: **2** (`escrow_ledger_idem_key` partial unique; `reconciliation_findings` partial unique on open findings).
+- Triggers added: **1** (`escrow_ledger_require_idem`).
+- Tables added: **2** (`reconciliation_runs`, `reconciliation_findings`), both RLS-enabled, service-role mutation only.
+- Functions rewritten: **10** (inventory rows 1–10). Functions unchanged but state-tested: **1** (`flag_for_release_review`). Functions added: **5** (`record_payment_capture_atomic`, `record_completion_release_intent_atomic`, `claim_reconciliation_lease`, `heartbeat_reconciliation_lease`, `close_reconciliation_lease`).
+- Policies added: **2** (admin read on each new reconciliation table), mirroring the existing reconciliation read policy.
+- Settings added: **8** boolean cutover keys listed in Checkpoint F, default `false`.
+- Edge Functions modified: `_shared/release-core.ts`, `_shared/reconciliation.ts`, new `_shared/financial-writer.ts`, new `_shared/financial-read.ts`, `verify-paystack-payment`, `paystack-webhook`, `seller-confirm-completion`, `retry-payout`, `admin-transaction-actions`, `resolve-release-review`, `reconcile-escrow`, `admin-transaction-detail`, `admin-transactions-monitor`, `admin-disputes-queue`, `dispute-detail`, `admin-escrow-overview`, `admin-escrow-detail`, `admin-payouts-list`, `admin-payouts-detail`, `admin-flagged-user-detail`, `admin-dashboard`, `admin-export-worker`, `admin-export-transaction-data`, `admin-escrow-export`, `admin-reconciliation`.
+- Frontend: `src/services/financial-model.service.ts` (new) plus consumer services/screens listed in F; no design or route change.
+- Permissions: **no new key, no new grant, no role change.** Reads use `financial_controls.view`; settings changes use `financial_controls.configure`; remediation apply would require `financial_controls.approve` and is not enabled.
+- Data: no historical row modified or deleted anywhere in Correction 1.
+
+Conditional (Checkpoint A discovery, stop rule applies if reality differs): any additional writer not in section 2; any pre-existing `idempotency_key`-like column; any second cron path; any consumer not listed above.
+
+## 5. Test matrix
+
+Canonical model unit tests (parser, minor units, identities, settlement separation) · key/fingerprint derivation and determinism · per-writer idempotency: same key/same payload, same key/different payload, concurrent duplicate · SQL invariants: over-refund, over-release, over-completion, over-reversal, duplicate finalization, terminal-state conflicts, sign correctness, append-only enforcement, trigger inclusion/exclusion list · reconciliation: lease overlap, stale takeover, heartbeat, dedup incl. severity change, proof closure, Dashboard/Escrow parity, single-cron · security: RLS, grants, service-role boundary, unauthorized-role denial · consumers: per-screen parity, URL-filter/date-scope parity, export parity · migration: lock_timeout failure, re-run safety, partial deployment recovery, full rollback · routes, permissions, error boundaries, console/network.
+
+## 6. Expected UI impact
+
+No visual redesign, no route change. Money figures become consistent across Transactions, Disputes, Escrow, Payouts, Flagged Users, Dashboard and exports; payout detail fields corrected; missing completion timestamps display "Unavailable" with a `requires_review` marker; the remediation tab gains per-record dry-run detail with the apply action disabled.
+
+## 7. Exclusions and blockers
+
+Excluded: publishing/deploying, bulk historical remediation, executing any remediation apply, destructive data change, non-NGN currency work, any Correction 2 scope, and any permission or role broadening. Routed to remediation review rather than migration: the 3-row `adjustment`/`admin_unfreeze` anomaly, the 19 null-`reference_id` ledger rows, the completed payout without a completion timestamp, and the resolved-dispute/funds-pending-release rows. No blocking product question remains; every decision above is answered by the existing schema, settings and permission catalogue.
