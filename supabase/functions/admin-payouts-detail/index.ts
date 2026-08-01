@@ -80,8 +80,17 @@ Deno.serve(async (req) => {
     : (itemTotal != null && protectionFee != null && paymentProcessingFee != null
         ? itemTotal + protectionFee + paymentProcessingFee
         : null);
-  // Seller payout always comes from payouts.amount (single source of truth)
-  const sellerPayout = Number(payout.amount ?? 0);
+  // Canonical seller release amount = the immutable pricing snapshot.
+  // payouts.amount is the *recorded* movement; when the two disagree the
+  // record is flagged instead of silently showing a different number.
+  const snapshotSellerPayout = hasPricing && pricing!.seller_payout_amount != null
+    ? Number(pricing!.seller_payout_amount)
+    : null;
+  const recordedPayoutAmount = Number(payout.amount ?? 0);
+  const sellerPayout = snapshotSellerPayout ?? recordedPayoutAmount;
+  const releaseAmountMismatch =
+    snapshotSellerPayout != null &&
+    Math.abs(snapshotSellerPayout - recordedPayoutAmount) > 0.005;
 
   const investigationOpen = investigation && ["open","under_review","escalated"].includes(investigation.status);
   const refundInFlight = (refunds ?? []).some((r: any) => ["pending","processing"].includes(r.status));
@@ -249,6 +258,9 @@ Deno.serve(async (req) => {
       payment_processing_fee: paymentProcessingFee,
       total_charged: totalCharged,
       seller_payout: sellerPayout,
+      seller_payout_source: snapshotSellerPayout != null ? "pricing_snapshot" : "payout_record",
+      recorded_payout_amount: recordedPayoutAmount,
+      release_amount_mismatch: releaseAmountMismatch,
       currency: pricing?.currency_code ?? "NGN",
       has_pricing_snapshot: hasPricing,
     },
