@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { INNER_CARD_CLASS } from "./helpers";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { AgentPerformanceSummaryData } from "@/services/agent-performance.service";
 
 type Card = {
@@ -11,6 +12,7 @@ type Card = {
   accent?: boolean;
   onClick?: () => void;
   title?: string;
+  tooltip?: string;
 };
 
 const NOTE_TONE: Record<Card["noteTone"], string> = {
@@ -22,16 +24,20 @@ const NOTE_TONE: Record<Card["noteTone"], string> = {
 };
 
 export function AgentPerformanceSummary({
-  summary, rangeLabel, onOpenRoster, onOpenOverdue, onOpenResolved, onOpenTopAgent, onOpenDisputes,
+  summary, rangeLabel, selected, onOpenRoster, onOpenOverdue, onOpenResolved,
+  onOpenTopAgent, onOpenDisputes, onOpenPerformance,
 }: {
   summary: AgentPerformanceSummaryData;
   rangeLabel: string;
+  selected?: string | null;
   onOpenRoster?: () => void;
   onOpenOverdue?: () => void;
   onOpenResolved?: () => void;
   onOpenTopAgent?: () => void;
   onOpenDisputes?: () => void;
+  onOpenPerformance?: () => void;
 }) {
+  const resolvedLabel = summary.resolved_label ?? rangeLabel;
   const cards: Card[] = [
     {
       key: "active",
@@ -48,32 +54,37 @@ export function AgentPerformanceSummary({
       key: "open",
       label: "Open Disputes",
       value: String(summary.open_disputes),
-      note: "Assigned",
+      note: `${summary.open_disputes} assigned · ${summary.open_disputes_unassigned} unassigned`,
       noteTone: "warning",
       onClick: onOpenDisputes,
-      title: "Open the dispute queue",
+      title: "Filter to open dispute work",
     },
     {
       key: "resolved",
-      label: "Resolved This Week",
+      label: `Resolved · ${resolvedLabel}`,
       value: String(summary.resolved_in_window),
       note: summary.resolved_delta_pct == null
         ? "No prior period"
         : `${summary.resolved_delta_pct >= 0 ? "+" : ""}${summary.resolved_delta_pct}% vs last period`,
       noteTone: (summary.resolved_delta_pct ?? 0) >= 0 ? "success" : "danger",
       onClick: onOpenResolved,
-      title: "Rank agents by resolved volume",
+      title: "Open resolved work for this period",
     },
     {
       key: "avg",
       label: "Avg Resolution",
       value: summary.avg_resolution_hours == null ? "—" : `${summary.avg_resolution_hours}h`,
-      note: summary.avg_resolution_delta == null
-        ? "No prior period"
-        : summary.avg_resolution_delta <= 0
-          ? `${Math.abs(summary.avg_resolution_delta)}h improvement`
-          : `+${summary.avg_resolution_delta}h slower`,
+      note: summary.avg_resolution_sample === 0
+        ? "No completed cases"
+        : summary.avg_resolution_delta == null
+          ? "No prior period"
+          : summary.avg_resolution_delta <= 0
+            ? `${Math.abs(summary.avg_resolution_delta)}h improvement`
+            : `+${summary.avg_resolution_delta}h slower`,
       noteTone: (summary.avg_resolution_delta ?? 0) <= 0 ? "success" : "danger",
+      onClick: onOpenPerformance,
+      title: "Open the Performance tab",
+      tooltip: `Based on ${summary.avg_resolution_sample} completed case${summary.avg_resolution_sample === 1 ? "" : "s"} with a recorded start and resolution. Open, cancelled and incomplete records are excluded.`,
     },
     {
       key: "overdue",
@@ -88,8 +99,8 @@ export function AgentPerformanceSummary({
     {
       key: "top",
       label: "Top Agent",
-      value: summary.top_agent?.name ?? "—",
-      note: summary.top_agent ? `${summary.top_agent.score}% score` : "No ranked agents",
+      value: summary.top_agent?.name ?? "Insufficient data",
+      note: summary.top_agent ? `${summary.top_agent.score}% score` : "Not enough completed work",
       noteTone: "primary",
       onClick: summary.top_agent ? onOpenTopAgent : undefined,
       title: "Open top agent detail",
@@ -97,24 +108,28 @@ export function AgentPerformanceSummary({
   ];
 
   return (
+   <TooltipProvider delayDuration={200}>
     <section className="rounded-2xl border border-border/60 bg-card/60 p-4 backdrop-blur-sm shadow-[0_1px_0_hsl(var(--border)/0.4)_inset] lg:p-6">
       <div className="mb-3 text-[11px] text-muted-foreground">
         Range: <span className="text-foreground">{rangeLabel}</span> · Live now:{" "}
         <span className="text-foreground">{summary.live_agents}</span>
       </div>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-        {cards.map((c) => (
+        {cards.map((c) => {
+          const button = (
           <button
             key={c.key}
             type="button"
             onClick={c.onClick}
             disabled={!c.onClick}
             title={c.onClick ? c.title : undefined}
+            aria-pressed={selected === c.key}
             className={cn(
               INNER_CARD_CLASS,
               "text-left transition",
               c.accent && "border-l-4 border-l-rose-500",
               c.onClick && "hover:-translate-y-0.5 hover:border-primary/40",
+              selected === c.key && "border-primary/60 ring-1 ring-inset ring-primary/40",
             )}
           >
             <div className="text-sm text-muted-foreground">{c.label}</div>
@@ -126,8 +141,17 @@ export function AgentPerformanceSummary({
             </div>
             <div className={cn("text-xs", NOTE_TONE[c.noteTone])}>{c.note}</div>
           </button>
-        ))}
+          );
+          if (!c.tooltip) return button;
+          return (
+            <Tooltip key={c.key}>
+              <TooltipTrigger asChild>{button}</TooltipTrigger>
+              <TooltipContent className="max-w-xs text-xs">{c.tooltip}</TooltipContent>
+            </Tooltip>
+          );
+        })}
       </div>
     </section>
+   </TooltipProvider>
   );
 }
