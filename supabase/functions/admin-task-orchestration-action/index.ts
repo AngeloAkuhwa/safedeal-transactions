@@ -4,6 +4,13 @@
 import { requirePermission, requireAnyPermission, authErrorResponse } from "../_shared/auth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
+import {
+  INELIGIBLE_STATUSES,
+  pickAgent,
+  applyRules,
+  dedupeNotification,
+  type AgentSnapshot,
+} from "../_shared/orchestration-rules.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,11 +132,11 @@ Deno.serve(async (req) => {
   const respond = (payload: unknown, status = 200) =>
     new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-  const INELIGIBLE = new Set(["offline", "on_leave", "suspended"]);
+  const INELIGIBLE = INELIGIBLE_STATUSES;
 
-  // -------- Notification helper with lightweight dedupe --------
-  // Prevents identical unchanged conditions from re-firing within a window
-  // by scanning the last hour of notifications for a matching dedupe_key.
+  // -------- Notification helper with durable dedupe --------
+  // Reservations live in `orchestration_notification_dedupe` so identical
+  // unchanged conditions never re-fire inside the configured window.
   async function notifyEvent(opts: {
     event: string;
     recipients: string[];
@@ -143,20 +150,14 @@ Deno.serve(async (req) => {
     const recipients = [...new Set(opts.recipients.filter(Boolean))];
     if (!recipients.length) return;
     const windowMin = opts.dedupeMinutes ?? 60;
-    const cutoff = new Date(Date.now() - windowMin * 60_000).toISOString();
     if (opts.dedupeKey) {
-      const { data: recent } = await admin
-        .from("notifications")
-        .select("id, user_id, metadata")
-        .gte("created_at", cutoff)
-        .eq("type", opts.event)
-        .in("user_id", recipients);
-      const dedup = new Set(
-        (recent ?? [])
-          .filter((r: any) => (r.metadata?.dedupe_key ?? null) === opts.dedupeKey)
-          .map((r: any) => r.user_id),
+      const remaining = await dedupeNotification(
+        admin,
+        opts.event,
+        opts.dedupeKey,
+        recipients,
+        windowMin,
       );
-      const remaining = recipients.filter((u) => !dedup.has(u));
       if (!remaining.length) return;
       const rows = remaining.map((uid) => ({
         user_id: uid,
