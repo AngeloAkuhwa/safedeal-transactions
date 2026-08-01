@@ -253,6 +253,40 @@ Deno.serve(async (req) => {
       search: String(body.search ?? "").trim().toLowerCase(),
     };
     const caseFiltered = f.case_priority !== "all" || f.case_status !== "all" || f.case_sla !== "all";
+    // Dispute records carry no priority or task SLA, so they only participate
+    // when no case-level priority/SLA filter is active and the status filter
+    // is compatible with completed dispute work.
+    const disputesEligibleForFilters =
+      f.case_priority === "all" && f.case_sla === "all" &&
+      (f.case_status === "all" || f.case_status === "resolved");
+    const disputeById = new Map((disputes ?? []).map((d) => [d.id, d]));
+    /** Recognised investigation start for a dispute-backed case. */
+    const disputeStart = (disputeId: string): number | null => {
+      const d = disputeById.get(disputeId);
+      const task = allTasks.find((t) => t.dispute_id === disputeId);
+      const raw = task?.assigned_at ?? task?.started_at ?? d?.opened_at ?? null;
+      if (!raw) return null;
+      const ms = new Date(raw).getTime();
+      return Number.isNaN(ms) ? null : ms;
+    };
+    /** Resolution durations for disputes personally resolved by an agent. */
+    const disputeResolutionMs = (userId: string, from: Date, to: Date, skip: Set<string>) => {
+      if (!disputesEligibleForFilters) return [] as number[];
+      const out: number[] = [];
+      for (const o of outcomes ?? []) {
+        if (o.resolved_by_user_id !== userId) continue;
+        if (!inWindow(o.resolved_at, from, to)) continue;
+        if (!o.dispute_id || skip.has(o.dispute_id)) continue;
+        const d = disputeById.get(o.dispute_id);
+        if (d && CANCELLED_STATUSES.has(String(d.status))) continue;
+        const start = disputeStart(o.dispute_id);
+        const end = new Date(String(o.resolved_at)).getTime();
+        if (start == null || Number.isNaN(end)) continue;
+        const ms = end - start;
+        if (ms >= 0) out.push(ms);
+      }
+      return out;
+    };
     const caseMatch = (t: Record<string, any>) => {
       if (f.case_priority !== "all" && String(t.priority) !== f.case_priority) return false;
       if (f.case_status !== "all") {
