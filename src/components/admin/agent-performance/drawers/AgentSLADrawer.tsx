@@ -8,7 +8,7 @@ import { ErrorState } from "../states/ErrorState";
 import { INNER_CARD_CLASS, hoursLabel, slaTone } from "../helpers";
 import {
   fetchAgentCases, agentName,
-  type AgentCaseRow, type AgentPerformanceRow,
+  type AgentCaseRow, type AgentPerformanceRow, type AgentPerformanceFilters,
 } from "@/services/agent-performance.service";
 import { ShieldCheck } from "lucide-react";
 
@@ -54,11 +54,13 @@ const BUCKET_BADGE: Record<SlaCase["bucket"], { label: string; className: string
  * breached split, and per-case target vs actual with hours past due.
  */
 export function AgentSLADrawer({
-  agent, open, onOpenChange,
+  agent, open, onOpenChange, filters,
 }: {
   agent: AgentPerformanceRow | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** Dashboard filters — keeps the SLA list on the same window as the KPIs. */
+  filters?: AgentPerformanceFilters;
 }) {
   const navigate = useNavigate();
   const [rows, setRows] = useState<AgentCaseRow[]>([]);
