@@ -5,6 +5,13 @@
  * counts + the non-complete pricing audit list (capped at 200).
  */
 import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
+import {
+  fetchReconciliationRows,
+  fetchReconciliationSummary,
+  EMPTY_SUMMARY,
+  ISSUE_CATALOG,
+  type ReconciliationRow,
+} from "../_shared/reconciliation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -96,10 +103,28 @@ Deno.serve(async (req) => {
     money_status_live: codes[r.transaction_id as string]?.money_status ?? null,
   }));
 
+  // Canonical remediation report — the same routine the Dashboard and Escrow
+  // page read, so every screen reports identical counts.
+  let summary = { ...EMPTY_SUMMARY };
+  let remediationRows: ReconciliationRow[] = [];
+  try {
+    [summary, remediationRows] = await Promise.all([
+      fetchReconciliationSummary(admin, null),
+      fetchReconciliationRows(admin, { onlyIssues: true }),
+    ]);
+  } catch (e) {
+    console.error("[admin-reconciliation] remediation fetch failed", e);
+  }
+
   return json(200, {
     latest_run: latestRun,
     drift,
     coverage: coverage.data ?? [],
     pricing_audit: audit.data ?? [],
+    remediation: {
+      summary,
+      rows: remediationRows,
+      issue_catalog: ISSUE_CATALOG,
+    },
   });
 });
