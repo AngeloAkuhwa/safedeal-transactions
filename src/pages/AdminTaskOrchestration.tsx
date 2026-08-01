@@ -251,10 +251,10 @@ export default function AdminTaskOrchestration() {
         ...(selection && selection.length ? { task_ids: selection } : {}),
       }));
   };
-  const handleAssignToMe = () => {
+  const handleAssignToMe = (reason: string) => {
     if (!selectedIds.size) return;
     return runAction("assign_to_me",
-      () => runOrchestrationAction({ action: "assign_to_me", task_ids: Array.from(selectedIds) }));
+      () => runOrchestrationAction({ action: "assign_to_me", task_ids: Array.from(selectedIds), reason }));
   };
   const handleRebalance = async () => {
     try {
@@ -481,6 +481,7 @@ export default function AdminTaskOrchestration() {
               onAssignSelected={handleAssignSelected}
               onAutoAssign={handleAutoAssign}
               onAssignToMe={handleAssignToMe}
+              selfAssignEnabled={(data?.rules?.config as any)?.super_admin_self_assign !== false && !!(data?.rules?.config as any)?.super_admin_self_assign}
               onRebalance={handleRebalance}
               onEscalate={handleEscalate}
               onBulkExport={handleBulkExport}

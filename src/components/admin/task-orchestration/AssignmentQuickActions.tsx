@@ -96,6 +96,34 @@ export function AssignmentQuickActions({
           </button>
         ))}
       </div>
+
+      <Dialog open={selfOpen} onOpenChange={setSelfOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign {selectedCount} task{selectedCount === 1 ? "" : "s"} to yourself</DialogTitle>
+            <DialogDescription>Self-assignment is audited. Give a reason (min 8 characters).</DialogDescription>
+          </DialogHeader>
+          <div>
+            <Label className="text-xs">Reason</Label>
+            <Textarea
+              className="mt-1 min-h-[90px]"
+              value={selfReason}
+              onChange={(e) => setSelfReason(e.target.value)}
+              placeholder="Why are you taking ownership of this work?"
+            />
+            <div className="mt-1 text-[11px] text-muted-foreground">{selfReason.trim().length}/8</div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelfOpen(false)}>Cancel</Button>
+            <Button
+              disabled={selfReason.trim().length < 8}
+              onClick={() => { setSelfOpen(false); onAssignToMe(selfReason.trim()); }}
+            >
+              Assign to me
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
