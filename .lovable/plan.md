@@ -1,44 +1,36 @@
 # Push the SafeDeal codebase to GitHub
 
-## What I checked
+## Current state (verified)
 
-The sandbox checkout has a clean working tree (nothing uncommitted) and its only Git remote is Lovable's internal project storage. There is no GitHub remote in this checkout. That is expected: Lovable pushes to GitHub from the platform side, not from this sandbox, so GitHub sync is enabled and driven through the Lovable UI rather than by Git commands I can run.
+- Your settings screen shows `AngeloAkuhwa/safedeal-transactions` on branch `main` with status **Connected**.
+- The sandbox checkout has a **clean working tree** — zero uncommitted or unstaged files. Every file, including this turn's financial-source-of-truth work under `supabase/functions/_shared/`, is already committed.
 
-## What this means
+Those two facts together mean the code is already committed and synced. Lovable's GitHub integration is a live two-way sync: each change I make is committed and pushed to `main` automatically, with no manual staging or commit step. There is no pending batch of work sitting locally waiting for a push.
 
-I cannot run `git add`, `git commit`, or `git push` — Git state is managed by the platform, and manual Git commands here would not reach a GitHub repository. Getting the full codebase into GitHub is a one-time connect action you take in the Lovable UI, after which every change syncs automatically in both directions.
+I also cannot run `git add` / `git commit` / `git push` myself — Git state is managed by the platform, and the sandbox's only remote is Lovable's internal project storage, not GitHub. The push happens on the platform side.
 
 ## Steps
 
-1. **Connect the project to GitHub (you do this once)**
-   - In the Lovable editor, open the **Plus (+) menu** in the chat input (bottom left) → **GitHub** → **Connect project**.
-   - Authorize the Lovable GitHub App.
-   - Pick the GitHub account or organization that should own the repository.
-   - Click **Create Repository**.
+1. **Confirm the sync landed on GitHub**
+   - Open https://github.com/AngeloAkuhwa/safedeal-transactions on branch `main`.
+   - Check the timestamp on the latest commit — it should match the most recent change from this session.
+   - Confirm the tree contains `src/`, `supabase/functions/`, `supabase/migrations/`, `package.json`, and `index.html`.
 
-   This pushes the entire current codebase — every file in the project, including `src/`, `supabase/functions/`, and `supabase/migrations/` — as the initial commit on the default branch.
+2. **If the latest commit is stale (older than today's work)**
+   - In Lovable: **Project settings → Git**, open the **Connected** dropdown next to the repository row.
+   - Disconnect, then reconnect to `AngeloAkuhwa/safedeal-transactions`. Reconnecting re-pushes the current full codebase to `main`.
+   - Re-check the commit list on GitHub afterwards.
 
-2. **Verify the push landed**
-   - Open the new repository on GitHub and confirm the file tree contains `src/`, `supabase/functions/`, `supabase/migrations/`, `package.json`, and `index.html`.
-   - Confirm the commit count and the default branch name.
+3. **If a specific file is missing from the repo**
+   - Tell me which path, and I'll check whether it is gitignored (for example `.env`, `node_modules/`, or build output) rather than missing from the sync.
 
-3. **Ongoing sync (automatic after step 1)**
-   - Every change I make in Lovable is committed and pushed to GitHub automatically.
-   - Every push you make to GitHub syncs back into Lovable in real time.
-   - No manual commit step is needed from either side.
+## What is intentionally not in the repository
 
-## What does NOT go to GitHub
-
-- **Database contents.** The repository carries schema migrations under `supabase/migrations/`, but not the rows in your tables. A data export is separate: **Cloud → Advanced settings → Export data**.
-- **Secrets.** Backend secrets and edge-function environment variables stay in Lovable Cloud and are never written into the repository. After cloning, anyone running the project locally has to supply their own values.
-
-## If the project is already connected
-
-If the Plus menu shows the project as already connected to a GitHub repository, then the financial-source-of-truth work from the previous turn is already pushed and no action is needed — open the repository and check the latest commit timestamp to confirm.
+- **Database rows.** Schema migrations under `supabase/migrations/` are tracked; your table data is not. Export it separately via **Cloud → Advanced settings → Export data**.
+- **Secrets.** `.env` and backend/edge-function secrets stay in Lovable Cloud and are never written to GitHub. Anyone cloning the repo has to supply their own values.
 
 ## Technical notes
 
-- Git sync is bidirectional and commit-per-change; there is no batching or manual staging.
+- Sync is bidirectional: pushes you make to `main` on GitHub flow back into Lovable in real time.
 - Only one GitHub account can be linked to a Lovable account at a time.
 - Branch switching is experimental and off by default (Account Settings → Labs → GitHub Branch Switching).
-- As an alternative to GitHub, a paid workspace can download the code directly: open the Code Editor and click **Download codebase** at the bottom of the file tree.
