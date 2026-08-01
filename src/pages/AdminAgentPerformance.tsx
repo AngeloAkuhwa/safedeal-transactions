@@ -89,7 +89,10 @@ export default function AdminAgentPerformance() {
     () => JSON.stringify(filters) !== JSON.stringify(DEFAULT_AGENT_FILTERS),
     [filters],
   );
-  const clearFilters = () => { setFilters(DEFAULT_AGENT_FILTERS); setActiveCard(null); };
+  const clearFilters = () => {
+    setFilters({ ...DEFAULT_AGENT_FILTERS, scope: filters.scope });
+    setActiveCard(null);
+  };
 
   const patchFilters = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
 
