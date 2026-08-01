@@ -27,6 +27,9 @@ export function AgentCasesDrawer({
   const [error, setError] = useState<string | null>(null);
   const [truncated, setTruncated] = useState(false);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(100);
+  const [hasMore, setHasMore] = useState(false);
   const [rangeLabel, setRangeLabel] = useState<string>("");
   const [scopeOverride, setScopeOverride] = useState<"range" | "all_time" | null>(null);
   const scope = scopeOverride ?? filters?.scope ?? "range";
@@ -36,10 +39,12 @@ export function AgentCasesDrawer({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchAgentCases(agent.user_id, { ...filters, scope });
+      const res = await fetchAgentCases(agent.user_id, { ...filters, scope }, page);
       setRows(res.cases);
       setTruncated(res.truncated);
       setTotal(res.total);
+      setPageSize(res.page_size ?? 100);
+      setHasMore(!!res.has_more);
       setRangeLabel(res.range.label);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load cases");
@@ -52,10 +57,11 @@ export function AgentCasesDrawer({
     if (open && agent) void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, agent?.user_id, scope, filters?.range, filters?.date_from, filters?.date_to,
-      filters?.case_priority, filters?.case_status, filters?.case_sla]);
+      filters?.case_priority, filters?.case_status, filters?.case_sla, page]);
 
-  // Reset any local widening whenever the drawer opens on a new agent.
-  useEffect(() => { if (!open) setScopeOverride(null); }, [open]);
+  // Reset any local widening and paging whenever the drawer opens on a new agent.
+  useEffect(() => { if (!open) { setScopeOverride(null); setPage(1); } }, [open]);
+  useEffect(() => { setPage(1); }, [agent?.user_id, scope]);
 
   const visible = slaOnly ? rows.filter((r) => r.is_overdue || r.sla_status === "breached") : rows;
   const activeRows = visible.filter((r) => r.is_active);
@@ -167,6 +173,31 @@ export function AgentCasesDrawer({
               </div>
               {resolvedRows.map((c) => <CaseCard key={`${c.source}-${c.id}`} c={c} />)}
             </>
+          )}
+          {!loading && !error && (total > pageSize || page > 1) && (
+            <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground">
+              <span>
+                Showing {(page - 1) * pageSize + 1}–{(page - 1) * pageSize + rows.length} of {total}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage(page - 1)}
+                  className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  disabled={!hasMore}
+                  onClick={() => setPage(page + 1)}
+                  className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </SheetContent>
