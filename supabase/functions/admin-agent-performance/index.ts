@@ -19,6 +19,12 @@ const ACTIVE_STATUSES = new Set([
   "escalated", "pending_approval",
 ]);
 const DONE_STATUSES = new Set(["resolved", "closed"]);
+/** Task types that represent dispute-side casework. */
+const DISPUTE_TASK_TYPES = new Set([
+  "new_dispute_review", "buyer_complaint", "seller_complaint",
+  "evidence_review", "seller_response_review", "buyer_response_review",
+  "compliance_escalation",
+]);
 /** Modules whose permissions make an internal user a case-handling agent. */
 const AGENT_MODULES = ["disputes", "task_orchestration"];
 const HEARTBEAT_WINDOW_MS = 5 * 60_000;
@@ -105,7 +111,7 @@ Deno.serve(async (req) => {
     }
     const { data: caseRows, error: caseErr } = await admin
       .from("orchestration_tasks")
-      .select("id, task_code, title, type, priority, status, stage, sla_status, due_at, assigned_at, resolved_at, dispute_id, transaction_id, amount, currency, escalation_level")
+      .select("id, task_code, title, type, priority, status, stage, sla_status, due_at, created_at, assigned_at, resolved_at, dispute_id, transaction_id, amount, currency, escalation_level")
       .eq("assigned_agent_id", agentId)
       .order("created_at", { ascending: false })
       .limit(200);
@@ -140,6 +146,7 @@ Deno.serve(async (req) => {
       { data: history },
       { data: outcomes },
       { data: disputes },
+      { data: escalationEvents },
     ] = await Promise.all([
       admin.rpc("internal_effective_permissions", { _user_id: ctx.userId }),
       admin.from("role_permissions").select("role_key, permission_key"),
@@ -157,6 +164,9 @@ Deno.serve(async (req) => {
       admin.from("dispute_outcomes").select("id, dispute_id, outcome_type, resolved_by_user_id, resolved_at")
         .gte("resolved_at", range.prevFrom.toISOString()),
       admin.from("disputes").select("id, status, opened_at, resolved_at"),
+      admin.from("task_status_history").select("task_id, to_status, created_at")
+        .eq("to_status", "escalated")
+        .gte("created_at", range.prevFrom.toISOString()),
     ]);
 
     const callerPerms = new Set<string>(Array.isArray(permRows) ? (permRows as string[]) : []);
@@ -203,6 +213,20 @@ Deno.serve(async (req) => {
     // ---- per-agent metrics -------------------------------------------
     const now = Date.now();
     const allTasks = tasks ?? [];
+    const taskById = new Map(allTasks.map((t) => [t.id, t]));
+
+    // Escalations attributed to the agent who owns the task, counted at the
+    // moment the escalation happened (not when the task was created).
+    const escalationsByAgent = new Map<string, number>();
+    for (const e of escalationEvents ?? []) {
+      if (!inWindow(e.created_at, range.from, range.to)) continue;
+      const owner = taskById.get(e.task_id)?.assigned_agent_id;
+      if (!owner) continue;
+      escalationsByAgent.set(owner, (escalationsByAgent.get(owner) ?? 0) + 1);
+    }
+    // Fall back to escalation_level for tasks with no recorded event, so older
+    // records created before status history existed are still represented.
+    const escalatedTaskIds = new Set((escalationEvents ?? []).map((e) => e.task_id));
 
     const buildRow = (u: Record<string, any>) => {
       const mine = allTasks.filter((t) => t.assigned_agent_id === u.id);
@@ -240,12 +264,18 @@ Deno.serve(async (req) => {
       const breached = resolvedTasks.length - onTime.length;
       const slaCompliance = pct(onTime.length, resolvedTasks.length);
 
-      const reassignedAway = (history ?? []).filter(
-        (h) => h.from_agent_id === u.id && inWindow(h.created_at, range.from, range.to),
+      const windowHistory = (history ?? []).filter((h) => inWindow(h.created_at, range.from, range.to));
+      const reassignedAway = windowHistory.filter((h) => h.from_agent_id === u.id).length;
+      const reassignedIn = windowHistory.filter(
+        (h) => h.to_agent_id === u.id && h.from_agent_id && h.from_agent_id !== u.id,
       ).length;
-      const escalations = mine.filter(
-        (t) => Number(t.escalation_level ?? 0) > 0 && inWindow(t.created_at, range.from, range.to),
+      const legacyEscalations = mine.filter(
+        (t) =>
+          Number(t.escalation_level ?? 0) > 0 &&
+          !escalatedTaskIds.has(t.id) &&
+          inWindow(t.created_at, range.from, range.to),
       ).length;
+      const escalations = (escalationsByAgent.get(u.id) ?? 0) + legacyEscalations;
 
       const cap = capByUser.get(u.id);
       const maxActive = Number(cap?.max_active_tasks ?? 10);
@@ -287,7 +317,9 @@ Deno.serve(async (req) => {
         breached,
         on_time: onTime.length,
         sla_compliance: slaCompliance,
-        reassignments: reassignedAway,
+        reassignments: reassignedAway + reassignedIn,
+        reassignments_out: reassignedAway,
+        reassignments_in: reassignedIn,
         escalations,
         score: 0,
         score_band: "",
@@ -353,8 +385,19 @@ Deno.serve(async (req) => {
 
     const scopedIds = new Set(ranked.map((r) => r.user_id));
     const scopedTasks = allTasks.filter((t) => t.assigned_agent_id && scopedIds.has(t.assigned_agent_id));
-    const openDisputeTasks = scopedTasks.filter((t) => ACTIVE_STATUSES.has(String(t.status)));
-    const openDisputes = (disputes ?? []).filter((d) => !["resolved", "closed", "cancelled"].includes(String(d.status))).length;
+    // Open dispute work owned by the agents currently in scope. Always
+    // dispute-backed and always assigned — never a global fallback count.
+    const openDisputeTasks = scopedTasks.filter(
+      (t) => ACTIVE_STATUSES.has(String(t.status)) && (t.dispute_id || DISPUTE_TASK_TYPES.has(String(t.type))),
+    );
+    // Platform-wide open disputes, reported separately as context.
+    const openDisputesPlatform = (disputes ?? []).filter(
+      (d) => !["resolved", "closed", "cancelled"].includes(String(d.status)),
+    ).length;
+    const coveredDisputeIds = new Set(
+      openDisputeTasks.map((t) => t.dispute_id).filter(Boolean) as string[],
+    );
+    const unassignedDisputes = Math.max(0, openDisputesPlatform - coveredDisputeIds.size);
 
     const resolvedTotal = ranked.reduce((s, r) => s + r.resolved, 0);
     const prevResolvedTotal = ranked.reduce((s, r) => s + r.resolved_prev, 0);
@@ -381,7 +424,9 @@ Deno.serve(async (req) => {
       active_agents: activeAgents,
       active_agents_delta: activeAgents - prevActiveAgents,
       live_agents: liveAgents,
-      open_disputes: openDisputeTasks.length || openDisputes,
+      open_disputes: openDisputeTasks.length,
+      open_disputes_platform: openDisputesPlatform,
+      open_disputes_unassigned: unassignedDisputes,
       resolved_in_window: resolvedTotal,
       resolved_delta_pct: resolvedDeltaPct,
       avg_resolution_hours: avgResolution,
@@ -450,7 +495,12 @@ Deno.serve(async (req) => {
         trend: days,
         facets: {
           teams,
-          roles: (roles ?? []).map((r) => ({ key: r.key, name: r.name })),
+          // Only roles that actually qualify someone for this screen — the
+          // same eligibility rule used above, plus any role already held by a
+          // listed agent.
+          roles: (roles ?? [])
+            .filter((r) => agentRoleKeys.has(r.key) || ranked.some((a) => a.role_keys.includes(r.key)))
+            .map((r) => ({ key: r.key, name: r.name })),
         },
         range: { key: String(body.range ?? "7d"), label: range.label, from: range.from.toISOString(), to: range.to.toISOString() },
         permissions: { can_export: canExport, can_rebalance: canRebalance },

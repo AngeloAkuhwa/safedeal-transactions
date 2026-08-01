@@ -9,9 +9,10 @@ import { WorkloadTable } from "@/components/admin/agent-performance/WorkloadTabl
 import { PerformanceDashboard } from "@/components/admin/agent-performance/PerformanceDashboard";
 import { SLAComplianceTable } from "@/components/admin/agent-performance/SLAComplianceTable";
 import { RankingsTable } from "@/components/admin/agent-performance/RankingsTable";
-import { AgentPerformanceDetailDrawer } from "@/components/admin/agent-performance/drawers/AgentPerformanceDetailDrawer";
+import { AgentDetailsDrawer } from "@/components/admin/agent-performance/drawers/AgentDetailsDrawer";
 import { AgentCasesDrawer } from "@/components/admin/agent-performance/drawers/AgentCasesDrawer";
-import { ExportReportDialog } from "@/components/admin/agent-performance/drawers/ExportReportDialog";
+import { AgentSLADrawer } from "@/components/admin/agent-performance/drawers/AgentSLADrawer";
+import { ExportPerformanceDialog } from "@/components/admin/agent-performance/drawers/ExportPerformanceDialog";
 import { LoadingSkeleton } from "@/components/admin/agent-performance/states/LoadingSkeleton";
 import { ErrorState } from "@/components/admin/agent-performance/states/ErrorState";
 import { CARD_CLASS } from "@/components/admin/agent-performance/helpers";
@@ -38,7 +39,7 @@ export default function AdminAgentPerformance() {
 
   const [detailAgent, setDetailAgent] = useState<AgentPerformanceRow | null>(null);
   const [casesAgent, setCasesAgent] = useState<AgentPerformanceRow | null>(null);
-  const [casesSlaOnly, setCasesSlaOnly] = useState(false);
+  const [slaAgent, setSlaAgent] = useState<AgentPerformanceRow | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -70,10 +71,8 @@ export default function AdminAgentPerformance() {
     navigate(`/admin/task-orchestration?rebalance=1&agent=${a.user_id}`);
   };
 
-  const openCases = (a: AgentPerformanceRow, slaOnly = false) => {
-    setCasesSlaOnly(slaOnly);
-    setCasesAgent(a);
-  };
+  const openCases = (a: AgentPerformanceRow) => setCasesAgent(a);
+  const openSla = (a: AgentPerformanceRow) => setSlaAgent(a);
 
   const runExport = async ({ maskPii, reason }: { maskPii: boolean; reason: string }) => {
     setExporting(true);
@@ -98,8 +97,8 @@ export default function AdminAgentPerformance() {
             agents={agents}
             actions={{
               onViewDetail: setDetailAgent,
-              onViewCases: (a) => openCases(a, false),
-              onReviewSla: (a) => openCases(a, true),
+              onViewCases: openCases,
+              onReviewSla: openSla,
               onRebalance: openRebalance,
               canRebalance,
             }}
@@ -108,7 +107,7 @@ export default function AdminAgentPerformance() {
       case "performance":
         return <PerformanceDashboard agents={agents} trend={data.trend} onViewDetail={setDetailAgent} />;
       case "sla":
-        return <SLAComplianceTable agents={agents} onReviewSla={(a) => openCases(a, true)} />;
+        return <SLAComplianceTable agents={agents} onReviewSla={openSla} />;
       case "rankings":
         return <RankingsTable agents={agents} onViewDetail={setDetailAgent} />;
     }
@@ -165,12 +164,12 @@ export default function AdminAgentPerformance() {
         )}
       </div>
 
-      <AgentPerformanceDetailDrawer
+      <AgentDetailsDrawer
         agent={detailAgent}
         open={!!detailAgent}
         onOpenChange={(v) => !v && setDetailAgent(null)}
-        onViewCases={(a) => { setDetailAgent(null); openCases(a, false); }}
-        onReviewSla={(a) => { setDetailAgent(null); openCases(a, true); }}
+        onViewCases={(a) => { setDetailAgent(null); openCases(a); }}
+        onReviewSla={(a) => { setDetailAgent(null); openSla(a); }}
         onRebalance={openRebalance}
         canRebalance={canRebalance}
       />
@@ -179,10 +178,15 @@ export default function AdminAgentPerformance() {
         agent={casesAgent}
         open={!!casesAgent}
         onOpenChange={(v) => !v && setCasesAgent(null)}
-        slaOnly={casesSlaOnly}
       />
 
-      <ExportReportDialog
+      <AgentSLADrawer
+        agent={slaAgent}
+        open={!!slaAgent}
+        onOpenChange={(v) => !v && setSlaAgent(null)}
+      />
+
+      <ExportPerformanceDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
         tabLabel={TAB_LABEL[tab]}

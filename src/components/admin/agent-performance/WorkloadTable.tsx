@@ -5,6 +5,7 @@ import {
   hoursLabel, rankBadgeClass, rowRingClass, SCORE_FORMULA, scoreTone,
 } from "./helpers";
 import { EmptyState } from "./states/EmptyState";
+import { SortableTh, useAgentSort } from "./useAgentSort";
 import { agentInitials, agentShortName, type AgentPerformanceRow } from "@/services/agent-performance.service";
 
 export interface RowActions {
@@ -35,6 +36,7 @@ function ActionButton({ label, onClick, disabled, title }: { label: string; onCl
 }
 
 export function WorkloadTable({ agents, actions }: { agents: AgentPerformanceRow[]; actions: RowActions }) {
+  const { sorted, sortKey, sortDir, toggle } = useAgentSort(agents);
   if (agents.length === 0) {
     return <EmptyState title="No agents match these filters" hint="Adjust the team, date range or extra filters to widen the view." />;
   }
@@ -42,26 +44,27 @@ export function WorkloadTable({ agents, actions }: { agents: AgentPerformanceRow
     <TooltipProvider delayDuration={200}>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[980px]">
+          <caption className="sr-only">Agent workload, sortable by active cases, resolved, average time, overdue and score</caption>
           <thead>
             <tr className="border-b border-border/70">
-              <th className={cn(TH, "text-left")}>Rank</th>
-              <th className={cn(TH, "text-left")}>Agent</th>
-              <th className={cn(TH, "text-left")}>Role</th>
-              <th className={cn(TH, "text-center")}>Active Cases</th>
-              <th className={cn(TH, "text-center")}>Resolved</th>
-              <th className={cn(TH, "text-center")}>Avg Time</th>
-              <th className={cn(TH, "text-center")}>Overdue</th>
-              <th className={cn(TH, "text-center")}>
+              <SortableTh label="Rank" sortKey="rank" active={sortKey === "rank"} dir={sortDir} onToggle={toggle} className="text-left" />
+              <th className={cn(TH, "text-left")} scope="col">Agent</th>
+              <th className={cn(TH, "text-left")} scope="col">Role</th>
+              <SortableTh label="Active Cases" sortKey="active_cases" active={sortKey === "active_cases"} dir={sortDir} onToggle={toggle} className="text-center" />
+              <SortableTh label="Resolved" sortKey="resolved" active={sortKey === "resolved"} dir={sortDir} onToggle={toggle} className="text-center" />
+              <SortableTh label="Avg Time" sortKey="avg_resolution_hours" active={sortKey === "avg_resolution_hours"} dir={sortDir} onToggle={toggle} className="text-center" />
+              <SortableTh label="Overdue" sortKey="overdue" active={sortKey === "overdue"} dir={sortDir} onToggle={toggle} className="text-center" />
+              <SortableTh label="Score" sortKey="score" active={sortKey === "score"} dir={sortDir} onToggle={toggle} className="text-center">
                 <Tooltip>
                   <TooltipTrigger asChild><span className="cursor-help underline decoration-dotted">Score</span></TooltipTrigger>
                   <TooltipContent className="max-w-xs text-xs">{SCORE_FORMULA}</TooltipContent>
                 </Tooltip>
-              </th>
+              </SortableTh>
               <th className={cn(TH, "text-right")}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {agents.map((a) => (
+            {sorted.map((a) => (
               <tr
                 key={a.user_id}
                 className={cn("border-b border-border/60 transition-colors hover:bg-card/50", rowRingClass(a))}
@@ -96,7 +99,10 @@ export function WorkloadTable({ agents, actions }: { agents: AgentPerformanceRow
                         {a.active_cases}
                       </span>
                     </TooltipTrigger>
-                    <TooltipContent className="text-xs">{a.active_cases} of {a.max_active} capacity</TooltipContent>
+                    <TooltipContent className="text-xs">
+                      Capacity: {a.active_cases} of {a.max_active} concurrent cases
+                      {a.at_capacity ? " — at capacity" : ""}
+                    </TooltipContent>
                   </Tooltip>
                 </td>
                 <td className="px-4 py-4 text-center font-medium text-foreground">{a.resolved}</td>

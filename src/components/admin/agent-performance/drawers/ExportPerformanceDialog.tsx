@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
-export function ExportReportDialog({
+export function ExportPerformanceDialog({
   open, onOpenChange, tabLabel, rowCount, onConfirm, busy,
 }: {
   open: boolean;
