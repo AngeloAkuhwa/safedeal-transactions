@@ -8,6 +8,8 @@ import {
   agentShortName, type AgentPerformanceRow, type SlaCaseRow, type SlaState,
 } from "@/services/agent-performance.service";
 import { Timer } from "lucide-react";
+import type { SlaSummary } from "@/services/agent-performance.service";
+import { hoursLabel, minutesLabel } from "./helpers";
 
 const STATE_META: Record<SlaState, { label: string; className: string }> = {
   on_track: { label: "On track", className: "bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-500/30" },
@@ -40,22 +42,25 @@ function remainingLabel(mins: number | null): string {
  * never counted as a breach.
  */
 export function SLAComplianceTable({
-  agents, cases, truncated, rangeLabel, stateFilter, onStateFilterChange, onReviewSla, onOpenCase, onEscalate, onRebalance, canRebalance,
+  agents, cases, summary, truncated, rangeLabel, stateFilter, onStateFilterChange, agentFilter, onAgentFilterChange, onReviewSla, onOpenCase, onEscalate, onRebalance, canRebalance, canEscalate,
 }: {
   agents: AgentPerformanceRow[];
   cases: SlaCaseRow[];
+  summary: SlaSummary;
   truncated: boolean;
   rangeLabel: string;
   stateFilter: string;
   onStateFilterChange: (v: string) => void;
+  agentFilter: string;
+  onAgentFilterChange: (v: string) => void;
   onReviewSla: (a: AgentPerformanceRow) => void;
   onOpenCase: (c: SlaCaseRow) => void;
   onEscalate: (c: SlaCaseRow) => void;
   onRebalance: (a: AgentPerformanceRow) => void;
   canRebalance: boolean;
+  canEscalate: boolean;
 }) {
   const { sorted, sortKey, sortDir, toggle } = useAgentSort(agents, "sla_compliance");
-  const [agentFilter, setAgentFilter] = useState<string>("all");
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -63,8 +68,9 @@ export function SLAComplianceTable({
     return c;
   }, [cases]);
 
+  const selectedStates = stateFilter === "all" ? [] : stateFilter.split(",");
   const visible = useMemo(() => cases.filter((c) =>
-    (stateFilter === "all" || c.sla_state === stateFilter) &&
+    (selectedStates.length === 0 || selectedStates.includes(c.sla_state)) &&
     (agentFilter === "all" || c.agent_id === agentFilter)), [cases, stateFilter, agentFilter]);
 
   const completed = (counts.completed_within ?? 0) + (counts.completed_outside ?? 0);
@@ -76,7 +82,27 @@ export function SLAComplianceTable({
   }
 
   return (
-    <div className="space-y-6">
+    <div id="sla-investigation" className="scroll-mt-28 space-y-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
+        {[
+          ["SLA tracked", String(summary.tracked)],
+          ["On track", String(summary.on_track)],
+          ["At risk", String(summary.at_risk)],
+          ["Breached", String(summary.breached)],
+          ["Compliance", summary.compliance == null ? "No tracked cases" : `${summary.compliance}%`],
+          ["Avg first action", minutesLabel(summary.avg_first_action_minutes)],
+          ["Avg resolution", hoursLabel(summary.avg_resolution_hours)],
+          ["Within SLA", String(summary.completed_within)],
+          ["Outside SLA", String(summary.completed_outside)],
+          ["Paused", String(summary.paused)],
+          ["Not configured", String(summary.not_configured)],
+        ].map(([label, value]) => (
+          <div key={label} className={cn(INNER_CARD_CLASS, "p-3")}>
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+            <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">{value}</div>
+          </div>
+        ))}
+      </div>
       <div className={cn(INNER_CARD_CLASS, "flex flex-wrap items-end justify-between gap-4")}>
         <div>
           <div className="text-[11px] uppercase tracking-wide text-muted-foreground">SLA compliance · {rangeLabel}</div>
@@ -104,7 +130,7 @@ export function SLAComplianceTable({
               aria-pressed={stateFilter === s}
               onClick={() => onStateFilterChange(s)}
               className={cn("rounded-full border px-3 py-1 text-xs transition",
-                stateFilter === s ? "border-primary/40 bg-primary/15 text-primary" : "border-border/60 bg-background/60 text-muted-foreground hover:text-foreground")}
+              selectedStates.includes(s) ? "border-primary/40 bg-primary/15 text-primary" : "border-border/60 bg-background/60 text-muted-foreground hover:text-foreground")}
             >
               {STATE_META[s].label} {counts[s]}
             </button>
@@ -120,7 +146,7 @@ export function SLAComplianceTable({
         <select
           aria-label="Filter cases by agent"
           value={agentFilter}
-          onChange={(e) => setAgentFilter(e.target.value)}
+          onChange={(e) => onAgentFilterChange(e.target.value)}
           className="h-9 rounded-lg border border-border/60 bg-card/60 px-2 text-xs text-foreground"
         >
           <option value="all">All agents</option>
@@ -172,6 +198,7 @@ export function SLAComplianceTable({
                     <td className="px-3 py-2.5 text-xs text-muted-foreground">{dt(c.updated_at)}</td>
                     <td className="px-3 py-2.5 text-right">
                       <div className="flex justify-end gap-1.5">
+                        {canEscalate && (
                         <button
                           type="button"
                           onClick={() => onEscalate(c)}
@@ -179,6 +206,7 @@ export function SLAComplianceTable({
                         >
                           Escalate
                         </button>
+                        )}
                         {canRebalance && agent && (
                           <button
                             type="button"
@@ -221,9 +249,9 @@ export function SLAComplianceTable({
               <td className={cn("px-4 py-3 text-center text-sm", a.breached > 0 ? "text-rose-300" : "text-muted-foreground")}>{a.breached}</td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <Progress value={a.sla_compliance} className="h-1.5 flex-1" />
+                   <Progress value={a.sla_compliance ?? 0} className="h-1.5 flex-1" />
                   <span className={cn("w-12 text-right text-sm font-semibold", slaTone(a.sla_compliance))}>
-                    {a.sla_compliance}%
+                     {a.sla_compliance == null ? "—" : `${a.sla_compliance}%`}
                   </span>
                 </div>
               </td>

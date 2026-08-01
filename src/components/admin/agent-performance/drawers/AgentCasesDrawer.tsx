@@ -26,6 +26,7 @@ export function AgentCasesDrawer({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [truncated, setTruncated] = useState(false);
+  const [total, setTotal] = useState(0);
   const [rangeLabel, setRangeLabel] = useState<string>("");
   const [scopeOverride, setScopeOverride] = useState<"range" | "all_time" | null>(null);
   const scope = scopeOverride ?? filters?.scope ?? "range";
@@ -38,6 +39,7 @@ export function AgentCasesDrawer({
       const res = await fetchAgentCases(agent.user_id, { ...filters, scope });
       setRows(res.cases);
       setTruncated(res.truncated);
+      setTotal(res.total);
       setRangeLabel(res.range.label);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load cases");
@@ -111,7 +113,7 @@ export function AgentCasesDrawer({
         <SheetHeader className="text-left">
           <SheetTitle>{slaOnly ? "SLA review" : "Assigned cases"}</SheetTitle>
           <SheetDescription>
-            {agent ? agentName(agent) : ""} · {visible.length} {visible.length === 1 ? "case" : "cases"}
+             {agent ? agentName(agent) : ""} · {total || visible.length} {(total || visible.length) === 1 ? "case" : "cases"}
             {slaOnly ? " breaching or overdue" : " in the current workload"}
             {rangeLabel ? ` · ${rangeLabel}` : ""}
           </SheetDescription>
@@ -134,7 +136,7 @@ export function AgentCasesDrawer({
             ))}
           </div>
           {truncated && (
-            <span className="text-[11px] text-amber-400">Showing the first 1,000 cases</span>
+             <span className="text-[11px] text-amber-400">More results are available; narrow the filters to investigate the complete set.</span>
           )}
         </div>
 

@@ -67,7 +67,7 @@ export function PerformanceCharts({
     name: agentShortName(a), active: a.active_cases, resolved: a.resolved,
   }));
   const comparison = agents.slice(0, 10).map((a) => ({
-    name: agentShortName(a), score: a.score, sla: a.sla_compliance,
+    name: agentShortName(a), score: a.score, sla: a.sla_compliance ?? 0,
   }));
   const statusData = Object.entries(statusDistribution ?? {})
     .filter(([, v]) => v > 0)
