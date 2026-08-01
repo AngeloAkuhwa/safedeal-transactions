@@ -432,23 +432,25 @@ Deno.serve(async (req) => {
         try {
           const ok = results.filter(r => r.ok).map(r => r.task_id);
           if (ok.length) {
+            const managers = await managersFor(admin, body.agent_id);
             await notifyEvent({
               event: "task_assigned",
-              recipients: [body.agent_id],
+              recipients: [body.agent_id, ...managers],
               title: `${ok.length} task${ok.length === 1 ? "" : "s"} assigned to you`,
               body: body.reason ?? "New work in your queue.",
               dedupeKey: `assign:${ok.slice().sort().join(",")}`,
+              link: `/admin/task-orchestration?task=${ok[0]}`,
               data: { task_ids: ok, mode: body.mode ?? "manual" },
             });
             if (max > 0 && current + ok.length >= max) {
-              const seniors = await seniorAdmins();
               await notifyEvent({
                 event: "agent_at_capacity",
-                recipients: [body.agent_id, ...seniors],
+                recipients: [body.agent_id, ...managers],
                 title: "Agent at capacity",
                 body: `Agent load reached ${current + ok.length}/${max}.`,
                 dedupeKey: `at_capacity:${body.agent_id}:${max}`,
                 dedupeMinutes: 180,
+                link: `/admin/task-orchestration?agent=${body.agent_id}`,
                 data: { agent_id: body.agent_id, current: current + ok.length, max },
               });
             }
