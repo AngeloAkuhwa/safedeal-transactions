@@ -8,9 +8,9 @@ import {
   INELIGIBLE_STATUSES,
   pickAgent,
   applyRules,
-  dedupeNotification,
   type AgentSnapshot,
 } from "../_shared/orchestration-rules.ts";
+import { notifyOrchestration, managersFor } from "../_shared/orchestration.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -144,41 +144,11 @@ Deno.serve(async (req) => {
     body: string;
     dedupeKey?: string;
     dedupeMinutes?: number;
+    link?: string;
     data?: Record<string, unknown>;
     channel?: string;
   }) {
-    const recipients = [...new Set(opts.recipients.filter(Boolean))];
-    if (!recipients.length) return;
-    const windowMin = opts.dedupeMinutes ?? 60;
-    if (opts.dedupeKey) {
-      const remaining = await dedupeNotification(
-        admin,
-        opts.event,
-        opts.dedupeKey,
-        recipients,
-        windowMin,
-      );
-      if (!remaining.length) return;
-      const rows = remaining.map((uid) => ({
-        user_id: uid,
-        type: opts.event,
-        channel: opts.channel ?? "in_app",
-        title: opts.title,
-        message: opts.body,
-        metadata: { ...(opts.data ?? {}), dedupe_key: opts.dedupeKey },
-      }));
-      await admin.from("notifications").insert(rows);
-      return;
-    }
-    const rows = recipients.map((uid) => ({
-      user_id: uid,
-      type: opts.event,
-      channel: opts.channel ?? "in_app",
-      title: opts.title,
-      message: opts.body,
-      metadata: opts.data ?? {},
-    }));
-    await admin.from("notifications").insert(rows);
+    await notifyOrchestration(admin, opts);
   }
 
   async function seniorAdmins(): Promise<string[]> {
@@ -381,22 +351,25 @@ Deno.serve(async (req) => {
 
   // Fire a notification for both sides of a reassignment / move.
   async function notifyReassignment(taskId: string, fromAgentId: string | null, toAgentId: string, reason: string | null) {
+    const managers = await managersFor(admin, toAgentId);
     if (fromAgentId) {
       await notifyEvent({
         event: "task_reassigned",
-        recipients: [fromAgentId],
+        recipients: [fromAgentId, ...managers],
         title: "Task removed from your queue",
         body: reason ?? "A task was reassigned to another agent.",
         dedupeKey: `reassign_from:${taskId}`,
+        link: `/admin/task-orchestration?task=${taskId}`,
         data: { task_id: taskId, to_agent: toAgentId, direction: "from" },
       });
     }
     await notifyEvent({
       event: "task_assigned",
-      recipients: [toAgentId],
+      recipients: [toAgentId, ...managers],
       title: "New task assigned to you",
       body: reason ?? "You have been assigned an orchestration task.",
       dedupeKey: `assign_to:${taskId}`,
+      link: `/admin/task-orchestration?task=${taskId}`,
       data: { task_id: taskId, from_agent: fromAgentId, direction: "to" },
     });
   }
@@ -459,23 +432,25 @@ Deno.serve(async (req) => {
         try {
           const ok = results.filter(r => r.ok).map(r => r.task_id);
           if (ok.length) {
+            const managers = await managersFor(admin, body.agent_id);
             await notifyEvent({
               event: "task_assigned",
-              recipients: [body.agent_id],
+              recipients: [body.agent_id, ...managers],
               title: `${ok.length} task${ok.length === 1 ? "" : "s"} assigned to you`,
               body: body.reason ?? "New work in your queue.",
               dedupeKey: `assign:${ok.slice().sort().join(",")}`,
+              link: `/admin/task-orchestration?task=${ok[0]}`,
               data: { task_ids: ok, mode: body.mode ?? "manual" },
             });
             if (max > 0 && current + ok.length >= max) {
-              const seniors = await seniorAdmins();
               await notifyEvent({
                 event: "agent_at_capacity",
-                recipients: [body.agent_id, ...seniors],
+                recipients: [body.agent_id, ...managers],
                 title: "Agent at capacity",
                 body: `Agent load reached ${current + ok.length}/${max}.`,
                 dedupeKey: `at_capacity:${body.agent_id}:${max}`,
                 dedupeMinutes: 180,
+                link: `/admin/task-orchestration?agent=${body.agent_id}`,
                 data: { agent_id: body.agent_id, current: current + ok.length, max },
               });
             }
@@ -563,7 +538,8 @@ Deno.serve(async (req) => {
             recipients: [ctx.userId, ...managers],
             title: `${ids.length} task${ids.length === 1 ? "" : "s"} self-assigned`,
             body: `Task ownership was taken directly. Reason: ${selfReason}`,
-            data: { task_ids: ids, mode: "self", link: `/admin/task-orchestration?task=${ids[0]}` },
+            link: `/admin/task-orchestration?task=${ids[0]}`,
+            data: { task_ids: ids, mode: "self" },
             dedupeKey: `assign_self:${ids.slice().sort().join(",")}`,
           });
         } catch { /* best effort */ }
@@ -703,6 +679,9 @@ Deno.serve(async (req) => {
           title: `${ids.length} task${ids.length === 1 ? "" : "s"} escalated`,
           body: body.reason,
           dedupeKey: `escalate:${ids.slice().sort().join(",")}`,
+          link: targetQueue
+            ? `/admin/task-orchestration?queue=${targetQueue}`
+            : `/admin/task-orchestration?task=${ids[0]}`,
           data: { task_ids: ids, target_queue: targetQueue ?? null, priority: body.escalate_priority ?? null },
         });
         await logAdminAction({
@@ -1006,6 +985,7 @@ Deno.serve(async (req) => {
               body: "Auto-assign preview left tasks unmatched — check skills, capacity, or availability.",
               dedupeKey: `no_eligible:${new Date().toISOString().slice(0,13)}`,
               dedupeMinutes: 60,
+              link: `/admin/task-orchestration?status=unassigned`,
               data: { count: unmatched.length, mode },
             });
             // Look up critical/unassigned tasks explicitly.
@@ -1019,6 +999,7 @@ Deno.serve(async (req) => {
                 body: "Critical priority tasks require attention.",
                 dedupeKey: `critical_unassigned:${crit!.map((c:any)=>c.task_code).sort().join(",")}`,
                 dedupeMinutes: 30,
+                link: `/admin/task-orchestration?status=unassigned&priority=critical`,
                 data: { count: crit!.length },
               });
             }
@@ -1295,6 +1276,7 @@ Deno.serve(async (req) => {
                 body: `Task ${(t as any).task_code}: ${err instanceof Error ? err.message : "unknown"}`,
                 dedupeKey: `auto_esc_fail:${(t as any).id}`,
                 dedupeMinutes: 60,
+                link: `/admin/task-orchestration?task=${(t as any).id}`,
                 data: { task_id: (t as any).id, rule: "auto_escalate_stale" },
               });
             }
@@ -1334,10 +1316,8 @@ Deno.serve(async (req) => {
                   body: "This task passed its SLA due date and needs immediate attention.",
                   dedupeKey: `sla_overdue:${r.id}:${hourBucket}`,
                   dedupeMinutes: 60,
-                  data: {
-                    task_id: r.id,
-                    link: r.queue ? `/admin/task-orchestration?queue=${r.queue}&sla=overdue` : `/admin/task-orchestration?task=${r.id}`,
-                  },
+                  link: r.queue ? `/admin/task-orchestration?queue=${r.queue}&sla=overdue` : `/admin/task-orchestration?task=${r.id}`,
+                  data: { task_id: r.id },
                 });
                 slaOverdue++;
               } else if (r.assigned_agent_id) {
@@ -1348,7 +1328,8 @@ Deno.serve(async (req) => {
                   body: `Due in under ${thresholdMin} minutes.`,
                   dedupeKey: `sla_approaching:${r.id}:${quarterBucket}`,
                   dedupeMinutes: 15,
-                  data: { task_id: r.id, link: `/admin/task-orchestration?task=${r.id}` },
+                  link: `/admin/task-orchestration?task=${r.id}`,
+                  data: { task_id: r.id },
                 });
                 slaApproaching++;
               }
@@ -1362,6 +1343,7 @@ Deno.serve(async (req) => {
             title: "Auto-escalation batch failed",
             body: err instanceof Error ? err.message : "unknown",
             dedupeKey: `auto_esc_batch_fail:${new Date().toISOString().slice(0,13)}`,
+            link: `/admin/task-orchestration?status=unassigned`,
             data: { rule: "auto_escalate_stale" },
           });
           return respond({ error: "auto_escalate_failed", detail: err instanceof Error ? err.message : String(err) }, 500);
@@ -1394,6 +1376,7 @@ Deno.serve(async (req) => {
                   title: "Offline reassign — no eligible target",
                   body: `Task ${(t as any).task_code} could not be moved off offline agent.`,
                   dedupeKey: `offline_reassign_no_target:${(t as any).id}`,
+                  link: `/admin/task-orchestration?status=unassigned`,
                   data: { task_id: (t as any).id, rule: "auto_reassign_offline" },
                 });
                 continue;
@@ -1408,6 +1391,7 @@ Deno.serve(async (req) => {
                   title: "Auto-reassign error",
                   body: `Task ${(t as any).task_code}: ${err instanceof Error ? err.message : "unknown"}`,
                   dedupeKey: `auto_reassign_fail:${(t as any).id}`,
+                  link: `/admin/task-orchestration?task=${(t as any).id}`,
                   data: { task_id: (t as any).id, rule: "auto_reassign_offline" },
                 });
               }
@@ -1422,6 +1406,16 @@ Deno.serve(async (req) => {
           }, admin);
           return respond({ ok: true, offline_agents: (offline ?? []).length, moved });
         } catch (err) {
+          try {
+            await notifyEvent({
+              event: "automation_rule_failed", recipients: await seniorAdmins(),
+              title: "Auto-reassign batch failed",
+              body: err instanceof Error ? err.message : "unknown",
+              dedupeKey: `auto_reassign_batch_fail:${new Date().toISOString().slice(0,13)}`,
+              link: `/admin/task-orchestration?status=unassigned`,
+              data: { rule: "auto_reassign_offline" },
+            });
+          } catch { /* best effort */ }
           return respond({ error: "auto_reassign_failed", detail: err instanceof Error ? err.message : String(err) }, 500);
         }
       }
