@@ -57,6 +57,17 @@ function resolveRange(body: Record<string, unknown>): Range {
     from = new Date(String(body.date_from));
     to = body.date_to ? new Date(String(body.date_to)) : now;
     label = "Custom range";
+  } else if (key === "today") {
+    from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    label = "Today";
+  } else if (key === "prev_month") {
+    from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+    to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    label = "Previous Month";
+  } else if (key === "quarter") {
+    const q = Math.floor(now.getUTCMonth() / 3) * 3;
+    from = new Date(Date.UTC(now.getUTCFullYear(), q, 1));
+    label = "Current Quarter";
   } else if (key === "30d") {
     from = new Date(now.getTime() - 30 * 86_400_000);
     label = "Last 30 Days";
