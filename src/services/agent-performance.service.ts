@@ -71,6 +71,8 @@ export interface AgentTrendPoint {
 
 export interface AgentPerformanceFilters {
   range: "week" | "7d" | "30d" | "month" | "custom";
+  /** "range" = selected time frame, "all_time" = ignore the window entirely. */
+  scope: "range" | "all_time";
   date_from?: string;
   date_to?: string;
   team: string;
@@ -91,6 +93,7 @@ export interface AgentPerformanceFilters {
 
 export const DEFAULT_AGENT_FILTERS: AgentPerformanceFilters = {
   range: "7d",
+  scope: "range",
   team: "all",
   role: "all",
   availability: "all",
