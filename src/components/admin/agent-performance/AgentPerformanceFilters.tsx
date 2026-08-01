@@ -259,7 +259,7 @@ export function AgentPerformanceFilters({
             variant="ghost"
             size="sm"
             className="w-full"
-            onClick={() => onChange({ ...DEFAULT_AGENT_FILTERS, range: filters.range, team: filters.team })}
+            onClick={() => onChange({ ...DEFAULT_AGENT_FILTERS, range: filters.range, scope: filters.scope, team: filters.team })}
           >
             <RotateCcw className="mr-2 h-3.5 w-3.5" /> Clear Filters
           </Button>

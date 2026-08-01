@@ -56,9 +56,9 @@ export function PerformanceMetricGrid({
     },
     {
       label: "SLA compliance",
-      value: metrics.sla_compliance == null ? "—" : `${metrics.sla_compliance}%`,
+       value: metrics.sla_compliance == null ? "No tracked cases" : `${metrics.sla_compliance}%`,
       tone: metrics.sla_compliance == null ? undefined : slaTone(metrics.sla_compliance),
-      note: "Completed on time",
+       note: metrics.sla_compliance == null ? "SLA due dates unavailable" : "Completed on time",
       hint: "Completed cases closed on or before their due date.",
     },
     {

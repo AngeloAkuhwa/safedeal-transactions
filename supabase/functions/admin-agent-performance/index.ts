@@ -88,7 +88,7 @@ const inWindow = (ts: string | null | undefined, a: Date, b: Date) => {
 };
 const hours = (ms: number) => Math.round((ms / 3_600_000) * 10) / 10;
 const avg = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : 0);
-const pct = (num: number, den: number) => (den > 0 ? Math.round((num / den) * 1000) / 10 : 100);
+const pct = (num: number, den: number) => (den > 0 ? Math.round((num / den) * 1000) / 10 : 0);
 
 function scoreBand(score: number): string {
   if (score >= 97) return "Excellent";
@@ -129,12 +129,15 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { data: caseRows, error: caseErr } = await admin
+    const page = Math.max(1, Number(body.page ?? 1) || 1);
+    const pageSize = Math.min(200, Math.max(25, Number(body.page_size ?? 100) || 100));
+    const { data: caseRows, error: caseErr, count: taskCount } = await admin
       .from("orchestration_tasks")
       .select("id, task_code, title, type, priority, status, stage, sla_status, due_at, created_at, assigned_at, resolved_at, dispute_id, transaction_id, amount, currency, escalation_level")
       .eq("assigned_agent_id", agentId)
       .order("created_at", { ascending: false })
-      .limit(1001);
+      .range((page - 1) * pageSize, page * pageSize - 1)
+      .limit(pageSize);
     if (caseErr) {
       return new Response(JSON.stringify({ error: "cases_fetch_failed" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -257,10 +260,15 @@ Deno.serve(async (req) => {
     }
     cases.sort((a, b) =>
       new Date(String(b.created_at ?? 0)).getTime() - new Date(String(a.created_at ?? 0)).getTime());
-    const truncated = (caseRows?.length ?? 0) > 1000 || (agentOutcomes?.length ?? 0) > 1000;
+    const total = cases.length;
+    const hasMore = (taskCount ?? 0) > page * pageSize || (agentOutcomes?.length ?? 0) > pageSize;
     return new Response(JSON.stringify({
-      cases: cases.slice(0, 1000),
-      truncated,
+      cases,
+      total,
+      page,
+      page_size: pageSize,
+      has_more: hasMore,
+      truncated: hasMore,
       range: { key: range.allTime ? "all_time" : String(body.range ?? "7d"), label: range.label },
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -307,6 +315,7 @@ Deno.serve(async (req) => {
     const callerPerms = new Set<string>(Array.isArray(permRows) ? (permRows as string[]) : []);
     const canExport = callerPerms.has("agent_performance.export");
     const canRebalance = callerPerms.has("task_orchestration.rebalance") || callerPerms.has("task_orchestration.assign");
+    const canEscalate = callerPerms.has("task_orchestration.escalate");
     const canViewOrchestration = callerPerms.has("task_orchestration.view_all") ||
       callerPerms.has("task_orchestration.view_assigned") || callerPerms.has("task_orchestration.view");
     const canViewDisputes = callerPerms.has("disputes.view_all") || callerPerms.has("disputes.view");
@@ -352,6 +361,18 @@ Deno.serve(async (req) => {
     const now = Date.now();
     const allTasks = tasks ?? [];
     const taskById = new Map(allTasks.map((t) => [t.id, t]));
+    if (range.allTime) {
+      const firstRecordedAt = [
+        ...allTasks.flatMap((t) => [t.created_at, t.assigned_at, t.resolved_at]),
+        ...(outcomes ?? []).map((o) => o.resolved_at),
+        ...(disputes ?? []).map((d) => d.opened_at),
+      ]
+        .filter(Boolean)
+        .map((value) => new Date(String(value)).getTime())
+        .filter((value) => Number.isFinite(value) && value > 0)
+        .sort((a, b) => a - b)[0];
+      if (firstRecordedAt) range.from = new Date(firstRecordedAt);
+    }
 
     // Escalations attributed to the agent who owns the task, counted at the
     // moment the escalation happened (not when the task was created).
@@ -480,9 +501,10 @@ Deno.serve(async (req) => {
       const overdue = active.filter(
         (t) => ["overdue", "breached"].includes(String(t.sla_status)) || (t.due_at && new Date(t.due_at).getTime() < now),
       );
-      const onTime = resolvedTasks.filter((t) => !t.due_at || (t.resolved_at && new Date(t.resolved_at).getTime() <= new Date(t.due_at).getTime()));
-      const breached = resolvedTasks.length - onTime.length;
-      const slaCompliance = pct(onTime.length, resolvedTasks.length);
+      const slaTracked = resolvedTasks.filter((t) => !!t.due_at && !!t.resolved_at);
+      const onTime = slaTracked.filter((t) => new Date(t.resolved_at!).getTime() <= new Date(t.due_at!).getTime());
+      const breached = slaTracked.length - onTime.length;
+      const slaCompliance = slaTracked.length ? pct(onTime.length, slaTracked.length) : null;
 
       const windowHistory = (history ?? []).filter((h) => inWindow(h.created_at, range.from, range.to));
       const reassignedAway = windowHistory.filter((h) => h.from_agent_id === u.id).length;
@@ -561,7 +583,7 @@ Deno.serve(async (req) => {
       if (f.min_overdue > 0 && r.overdue < f.min_overdue) return false;
       if (caseFiltered && r.active_cases === 0 && r.resolved === 0) return false;
       if (f.sla === "breached" && r.breached === 0) return false;
-      if (f.sla === "compliant" && r.sla_compliance < 100) return false;
+      if (f.sla === "compliant" && r.sla_compliance !== 100) return false;
       if (f.search) {
         const hay = `${r.first_name ?? ""} ${r.last_name ?? ""} ${r.full_name ?? ""} ${r.email ?? ""} ${r.user_id}`.toLowerCase();
         if (!hay.includes(f.search)) return false;
@@ -576,7 +598,7 @@ Deno.serve(async (req) => {
     })();
 
     for (const r of rows) {
-      const slaPart = r.sla_compliance; // 0..100
+      const slaPart = r.sla_compliance ?? 0; // 0..100; untracked SLA never becomes a fabricated 100%
       const speedPart = r.avg_resolution_hours == null || !medianResolution
         ? 100
         : Math.max(0, Math.min(100, 100 - ((r.avg_resolution_hours - medianResolution) / Math.max(medianResolution, 0.5)) * 25));
@@ -597,8 +619,9 @@ Deno.serve(async (req) => {
     // Eligible, active-status agents in the current team/role scope. Being
     // signed in is never the criterion — suspended / on-leave are excluded.
     const activeAgents = ranked.filter((r) => !["on_leave", "suspended"].includes(r.availability)).length;
-    const prevActiveAgents = (users ?? []).filter(
-      (u) => u.status === "active" && u.last_active_at && new Date(u.last_active_at) < range.from,
+    const rankedIds = new Set(ranked.map((r) => r.user_id));
+    const prevActiveAgents = eligible.filter(
+      (u) => rankedIds.has(u.id) && u.last_active_at && new Date(u.last_active_at) < range.from,
     ).length;
 
     const scopedIds = new Set(ranked.map((r) => r.user_id));
@@ -684,8 +707,11 @@ Deno.serve(async (req) => {
     // All-time windows start at the first recorded case instead of 1970 so the
     // chart never renders decades of empty buckets.
     const DAY = 86_400_000;
-    const earliestTask = scopedTasks
-      .map((t) => new Date(String(t.created_at ?? "")).getTime())
+    const earliestTask = [
+      ...scopedTasks.map((t) => t.created_at),
+      ...(outcomes ?? []).filter((o) => o.resolved_by_user_id && scopedIds.has(o.resolved_by_user_id)).map((o) => o.resolved_at),
+    ]
+      .map((value) => new Date(String(value ?? "")).getTime())
       .filter((n) => Number.isFinite(n) && n > 0)
       .sort((a, b) => a - b)[0];
     const trendStart = range.allTime
@@ -723,9 +749,10 @@ Deno.serve(async (req) => {
           !(o.dispute_id && taskDisputeIdsAll.has(o.dispute_id)),
       ).length;
       const ms = taskMsBetween(bStart, bEnd);
-      const prevMs = taskMsBetween(new Date(bStart.getTime() - bucketMs), new Date(bEnd.getTime() - bucketMs));
-      const onTimeCount = done.filter(
-        (t) => !t.due_at || (t.resolved_at && new Date(t.resolved_at).getTime() <= new Date(t.due_at).getTime()),
+      const prevMs = range.allTime ? [] : taskMsBetween(new Date(bStart.getTime() - bucketMs), new Date(bEnd.getTime() - bucketMs));
+      const slaDone = done.filter((t) => !!t.due_at && !!t.resolved_at);
+      const onTimeCount = slaDone.filter(
+        (t) => new Date(t.resolved_at!).getTime() <= new Date(t.due_at!).getTime(),
       ).length;
       const label = granularity === "month"
         ? bEnd.toISOString().slice(0, 7)
@@ -738,8 +765,8 @@ Deno.serve(async (req) => {
         avg_hours: ms.length ? hours(avg(ms)) : null,
         prev_avg_hours: prevMs.length ? hours(avg(prevMs)) : null,
         on_time: onTimeCount,
-        breached: done.length - onTimeCount,
-        compliance: done.length ? pct(onTimeCount, done.length) : null,
+        breached: slaDone.length - onTimeCount,
+        compliance: slaDone.length ? pct(onTimeCount, slaDone.length) : null,
       });
     }
 
@@ -765,7 +792,7 @@ Deno.serve(async (req) => {
       resolution_rate: assignedInWindow > 0 ? pct(resolvedTotal, assignedInWindow) : null,
       avg_first_action_minutes: firstActionSamples.length ? Math.round(avg(firstActionSamples) / 60_000) : null,
       avg_resolution_hours: avgResolution,
-      avg_resolution_prev_hours: prevAvgResolution,
+      avg_resolution_prev_hours: range.allTime ? null : prevAvgResolution,
       sla_compliance: onTimeTotal + breachedTotal > 0 ? pct(onTimeTotal, onTimeTotal + breachedTotal) : null,
       overdue_rate: activeTotal > 0 ? pct(overdueTotal, activeTotal) : null,
       // Not modelled anywhere in the schema yet — surfaced as "not tracked"
@@ -847,6 +874,32 @@ Deno.serve(async (req) => {
           new Date(a.due_at ?? 0).getTime() - new Date(b.due_at ?? 0).getTime();
       })
       .slice(0, 500);
+    const slaCounts = slaCases.reduce((acc, item) => {
+      acc[item.sla_state] = (acc[item.sla_state] ?? 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    const slaCompleted = (slaCounts.completed_within ?? 0) + (slaCounts.completed_outside ?? 0);
+    const slaFirstActionSamples = scopedTasks
+      .filter((t) => t.assigned_at && t.first_action_at)
+      .map((t) => new Date(t.first_action_at!).getTime() - new Date(t.assigned_at!).getTime())
+      .filter((ms) => ms >= 0);
+    const slaResolutionSamples = scopedTasks
+      .filter((t) => t.assigned_at && t.resolved_at && t.due_at)
+      .map((t) => new Date(t.resolved_at!).getTime() - new Date(t.assigned_at!).getTime())
+      .filter((ms) => ms >= 0);
+    const slaSummary = {
+      tracked: slaCases.length - (slaCounts.not_configured ?? 0) - (slaCounts.cancelled ?? 0),
+      on_track: slaCounts.on_track ?? 0,
+      at_risk: slaCounts.at_risk ?? 0,
+      breached: slaCounts.breached ?? 0,
+      paused: slaCounts.paused ?? 0,
+      not_configured: slaCounts.not_configured ?? 0,
+      completed_within: slaCounts.completed_within ?? 0,
+      completed_outside: slaCounts.completed_outside ?? 0,
+      compliance: slaCompleted ? pct(slaCounts.completed_within ?? 0, slaCompleted) : null,
+      avg_first_action_minutes: slaFirstActionSamples.length ? Math.round(avg(slaFirstActionSamples) / 60_000) : null,
+      avg_resolution_hours: slaResolutionSamples.length ? hours(avg(slaResolutionSamples)) : null,
+    };
 
     // ---- export -----------------------------------------------------------
     if (isExport) {
@@ -874,13 +927,13 @@ Deno.serve(async (req) => {
         action: "export_agent_performance",
         targetType: "system",
         reason: typeof body.reason === "string" ? body.reason : undefined,
-        metadata: { tab, range: range.label, rows: ranked.length, mask_pii: maskPii, filters: f },
+         metadata: { tab, scope: range.allTime ? "all_time" : "range", range: range.label, from: range.from.toISOString(), to: range.to.toISOString(), rows: ranked.length, mask_pii: maskPii, filters: f },
         mirrorToAuditLogs: true,
         ip: meta.ip,
         userAgent: meta.userAgent,
       });
       return new Response(
-        JSON.stringify({ csv: lines.join("\n"), filename: `agent-performance-${tab}-${new Date().toISOString().slice(0, 10)}.csv` }),
+         JSON.stringify({ csv: lines.join("\n"), filename: `agent-performance-${tab}-${range.allTime ? "all-time" : String(body.range ?? "range")}-${new Date().toISOString().slice(0, 10)}.csv` }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -895,6 +948,7 @@ Deno.serve(async (req) => {
         status_distribution: statusBuckets,
         sla_cases: slaCases,
         sla_cases_truncated: slaCases.length >= 500,
+        sla_summary: slaSummary,
         facets: {
           teams,
           // Only roles that actually qualify someone for this screen — the
@@ -910,10 +964,14 @@ Deno.serve(async (req) => {
           from: range.from.toISOString(),
           to: range.to.toISOString(),
           all_time: range.allTime,
+          comparison_available: !range.allTime,
+          granularity,
+          contract_version: 2,
         },
         permissions: {
           can_export: canExport,
           can_rebalance: canRebalance,
+          can_escalate: canEscalate,
           can_view_orchestration: canViewOrchestration,
           can_view_disputes: canViewDisputes,
         },
