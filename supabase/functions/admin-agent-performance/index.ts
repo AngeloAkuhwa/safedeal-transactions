@@ -415,6 +415,7 @@ Deno.serve(async (req) => {
       score_min: Number(body.score_min ?? 0) || 0,
       score_max: body.score_max == null ? 100 : (Number(body.score_max) || 100),
       min_completed: Number(body.min_completed ?? 0) || 0,
+      hide_insufficient: body.hide_insufficient === true,
       performance_level: String(body.performance_level ?? "all"),
       case_priority: String(body.case_priority ?? "all"),
       case_status: String(body.case_status ?? "all"),
@@ -746,7 +747,7 @@ Deno.serve(async (req) => {
     const ranked = rows
       .map((r, i) => ({ ...r, rank: i + 1 }))
       .filter((r) => r.score >= f.score_min && r.score <= f.score_max)
-      .filter((r) => f.min_completed <= 0 || r.resolved >= f.min_completed)
+      .filter((r) => !f.hide_insufficient || !r.insufficient_data)
       .filter((r) =>
         f.performance_level === "all" ||
         r.score_band.toLowerCase().replace(/\s+/g, "_") === f.performance_level);
