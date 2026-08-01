@@ -59,7 +59,11 @@ export default function AdminAgentPerformance() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const agents = data?.agents ?? [];
+  // Workload status is derived from capacity + availability on the client,
+  // so this one filter is applied here rather than server-side.
+  const agents = (data?.agents ?? []).filter(
+    (a) => filters.workload_status === "all" || workloadStatus(a) === filters.workload_status,
+  );
   const canExport = data?.permissions.can_export ?? false;
   const canRebalance = data?.permissions.can_rebalance ?? false;
 
