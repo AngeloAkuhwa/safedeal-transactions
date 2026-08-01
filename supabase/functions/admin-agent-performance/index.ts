@@ -37,11 +37,17 @@ const DISPUTE_TASK_TYPES = new Set([
 const AGENT_MODULES = ["disputes", "task_orchestration"];
 const HEARTBEAT_WINDOW_MS = 5 * 60_000;
 
-type Range = { from: Date; to: Date; prevFrom: Date; prevTo: Date; label: string };
+type Range = { from: Date; to: Date; prevFrom: Date; prevTo: Date; label: string; allTime: boolean };
 
 function resolveRange(body: Record<string, unknown>): Range {
   const now = new Date();
   const key = String(body.range ?? "7d");
+  // "All time" scope ignores the range selector entirely and suppresses
+  // period-over-period deltas (there is no meaningful previous window).
+  if (String(body.scope ?? "range") === "all_time") {
+    const from = new Date(0);
+    return { from, to: now, prevFrom: from, prevTo: from, label: "All time", allTime: true };
+  }
   let from: Date;
   let to = now;
   let label = "Last 7 Days";
@@ -71,6 +77,7 @@ function resolveRange(body: Record<string, unknown>): Range {
     prevFrom: new Date(from.getTime() - span),
     prevTo: from,
     label,
+    allTime: false,
   };
 }
 
