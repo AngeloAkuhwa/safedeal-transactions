@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import {
   DEFAULT_AGENT_FILTERS, downloadCsv, exportAgentPerformance, fetchAgentPerformance,
   type AgentPerformanceFilters as Filters, type AgentPerformanceOverview, type AgentPerformanceRow,
+  type SlaCaseRow,
 } from "@/services/agent-performance.service";
 
 const TAB_LABEL: Record<AgentTab, string> = {
@@ -39,7 +40,12 @@ export default function AdminAgentPerformance() {
     scope: searchParams.get("scope") === "all_time" ? "all_time" : "range",
   }));
   const [activeCard, setActiveCard] = useState<string | null>(null);
-  const [tab, setTab] = useState<AgentTab>("workload");
+  const [tab, setTab] = useState<AgentTab>(
+    (["workload", "performance", "sla", "rankings"] as const).includes(searchParams.get("tab") as AgentTab)
+      ? (searchParams.get("tab") as AgentTab)
+      : "workload",
+  );
+  const [slaState, setSlaState] = useState<string>(searchParams.get("sla_state") ?? "all");
   const [data, setData] = useState<AgentPerformanceOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,16 +70,19 @@ export default function AdminAgentPerformance() {
 
   useEffect(() => { void load(); }, [load]);
 
-  // Keep the scope in the URL so a shared link reproduces the exact view.
+  // Keep the scope, tab and SLA state in the URL so a shared link reproduces
+  // the exact view an investigator was looking at.
   useEffect(() => {
-    const current = searchParams.get("scope") ?? "range";
-    if (current === filters.scope) return;
     const next = new URLSearchParams(searchParams);
     if (filters.scope === "all_time") next.set("scope", "all_time");
     else next.delete("scope");
+    if (tab !== "workload") next.set("tab", tab); else next.delete("tab");
+    if (tab === "sla" && slaState !== "all") next.set("sla_state", slaState);
+    else next.delete("sla_state");
+    if (next.toString() === searchParams.toString()) return;
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.scope]);
+  }, [filters.scope, tab, slaState]);
 
   // Workload status is derived from capacity + availability on the client,
   // so this one filter is applied here rather than server-side.
@@ -106,6 +115,22 @@ export default function AdminAgentPerformance() {
 
   const openCases = (a: AgentPerformanceRow) => setCasesAgent(a);
   const openSla = (a: AgentPerformanceRow) => setSlaAgent(a);
+
+  /** Case-level jumps out of the SLA tab into the orchestration workspace. */
+  const openCase = (c: SlaCaseRow) => {
+    if (!canViewCases) {
+      toast.error("You do not have permission to open this case.");
+      return;
+    }
+    navigate(`/admin/task-orchestration?task=${c.id}`);
+  };
+  const escalateCase = (c: SlaCaseRow) => {
+    if (!canViewCases) {
+      toast.error("You do not have permission to escalate this case.");
+      return;
+    }
+    navigate(`/admin/task-orchestration?task=${c.id}&action=escalate`);
+  };
 
   const runExport = async ({ maskPii, reason }: { maskPii: boolean; reason: string }) => {
     setExporting(true);
@@ -142,13 +167,37 @@ export default function AdminAgentPerformance() {
           />
         );
       case "performance":
-        return <PerformanceDashboard agents={agents} trend={data.trend} onViewDetail={setDetailAgent} />;
+        return (
+          <PerformanceDashboard
+            agents={agents}
+            trend={data.trend ?? []}
+            metrics={data.performance}
+            statusDistribution={data.status_distribution ?? {}}
+            rangeLabel={data.range.label}
+            allTime={filters.scope === "all_time"}
+            onViewDetail={setDetailAgent}
+          />
+        );
       case "sla":
-        return <SLAComplianceTable agents={agents} onReviewSla={openSla} />;
+        return (
+          <SLAComplianceTable
+            agents={agents}
+            cases={data.sla_cases ?? []}
+            truncated={!!data.sla_cases_truncated}
+            rangeLabel={data.range.label}
+            stateFilter={slaState}
+            onStateFilterChange={setSlaState}
+            onReviewSla={openSla}
+            onOpenCase={openCase}
+            onEscalate={escalateCase}
+            onRebalance={openRebalance}
+            canRebalance={canRebalance}
+          />
+        );
       case "rankings":
         return <RankingsTable agents={agents} onViewDetail={setDetailAgent} />;
     }
-  }, [data, tab, agents, canRebalance, canViewCases, canReviewSla, filtersDirty]);
+  }, [data, tab, agents, canRebalance, canViewCases, canReviewSla, filtersDirty, slaState, filters.scope]);
 
   return (
     <AdminLayout
@@ -177,7 +226,7 @@ export default function AdminAgentPerformance() {
                 patchFilters({ overdue_only: false, availability: "all", case_status: "all", case_sla: "all" });
               }}
               onOpenOverdue={() => {
-                setActiveCard("overdue"); setTab("sla");
+                setActiveCard("overdue"); setTab("sla"); setSlaState("breached");
                 patchFilters({ overdue_only: true, case_sla: "overdue" });
               }}
               onOpenResolved={() => {

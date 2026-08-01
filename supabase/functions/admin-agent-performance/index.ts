@@ -680,21 +680,173 @@ Deno.serve(async (req) => {
       top_agent: top ? { user_id: top.user_id, name: top.full_name ?? top.email, score: top.score } : null,
     };
 
-    // ---- trend (per day, for the Performance tab) -------------------------
-    const days: { date: string; resolved: number; avg_hours: number | null; breached: number }[] = [];
-    const dayCount = Math.min(30, Math.max(1, Math.ceil((range.to.getTime() - range.from.getTime()) / 86_400_000)));
-    for (let i = dayCount - 1; i >= 0; i--) {
-      const dayEnd = new Date(range.to.getTime() - i * 86_400_000);
-      const dayStart = new Date(dayEnd.getTime() - 86_400_000);
-      const dayTasks = scopedTasks.filter((t) => DONE_STATUSES.has(String(t.status)) && inWindow(t.resolved_at, dayStart, dayEnd));
-      const ms = dayTasks.filter((t) => t.assigned_at).map((t) => new Date(t.resolved_at!).getTime() - new Date(t.assigned_at!).getTime());
+    // ---- trend (bucketed, for the Performance tab) ------------------------
+    // All-time windows start at the first recorded case instead of 1970 so the
+    // chart never renders decades of empty buckets.
+    const DAY = 86_400_000;
+    const earliestTask = scopedTasks
+      .map((t) => new Date(String(t.created_at ?? "")).getTime())
+      .filter((n) => Number.isFinite(n) && n > 0)
+      .sort((a, b) => a - b)[0];
+    const trendStart = range.allTime
+      ? new Date(earliestTask ?? range.to.getTime() - 30 * DAY)
+      : range.from;
+    const trendSpan = Math.max(DAY, range.to.getTime() - trendStart.getTime());
+    const granularity: "day" | "week" | "month" =
+      trendSpan <= 31 * DAY ? "day" : trendSpan <= 200 * DAY ? "week" : "month";
+    const bucketMs = granularity === "day" ? DAY : granularity === "week" ? 7 * DAY : 30 * DAY;
+    const bucketCount = Math.min(36, Math.max(1, Math.ceil(trendSpan / bucketMs)));
+
+    /** Resolution durations for tasks closed inside an arbitrary window. */
+    const taskMsBetween = (a: Date, b: Date) =>
+      scopedTasks
+        .filter((t) =>
+          DONE_STATUSES.has(String(t.status)) &&
+          !CANCELLED_STATUSES.has(String(t.status)) &&
+          inWindow(t.resolved_at, a, b) && t.assigned_at)
+        .map((t) => new Date(t.resolved_at!).getTime() - new Date(t.assigned_at!).getTime())
+        .filter((ms) => ms >= 0);
+
+    const days: {
+      date: string; label: string;
+      resolved: number; assigned: number;
+      avg_hours: number | null; prev_avg_hours: number | null;
+      on_time: number; breached: number; compliance: number | null;
+    }[] = [];
+    for (let i = bucketCount - 1; i >= 0; i--) {
+      const bEnd = new Date(range.to.getTime() - i * bucketMs);
+      const bStart = new Date(Math.max(trendStart.getTime(), bEnd.getTime() - bucketMs));
+      const done = scopedTasks.filter((t) => DONE_STATUSES.has(String(t.status)) && inWindow(t.resolved_at, bStart, bEnd));
+      const disputeDone = (outcomes ?? []).filter(
+        (o) => o.resolved_by_user_id && scopedIds.has(o.resolved_by_user_id) &&
+          inWindow(o.resolved_at, bStart, bEnd) &&
+          !(o.dispute_id && taskDisputeIdsAll.has(o.dispute_id)),
+      ).length;
+      const ms = taskMsBetween(bStart, bEnd);
+      const prevMs = taskMsBetween(new Date(bStart.getTime() - bucketMs), new Date(bEnd.getTime() - bucketMs));
+      const onTimeCount = done.filter(
+        (t) => !t.due_at || (t.resolved_at && new Date(t.resolved_at).getTime() <= new Date(t.due_at).getTime()),
+      ).length;
+      const label = granularity === "month"
+        ? bEnd.toISOString().slice(0, 7)
+        : bEnd.toISOString().slice(5, 10);
       days.push({
-        date: dayEnd.toISOString().slice(0, 10),
-        resolved: dayTasks.length,
+        date: bEnd.toISOString().slice(0, 10),
+        label,
+        resolved: done.length + disputeDone,
+        assigned: scopedTasks.filter((t) => inWindow(t.assigned_at, bStart, bEnd)).length,
         avg_hours: ms.length ? hours(avg(ms)) : null,
-        breached: dayTasks.filter((t) => t.due_at && new Date(t.resolved_at!).getTime() > new Date(t.due_at).getTime()).length,
+        prev_avg_hours: prevMs.length ? hours(avg(prevMs)) : null,
+        on_time: onTimeCount,
+        breached: done.length - onTimeCount,
+        compliance: done.length ? pct(onTimeCount, done.length) : null,
       });
     }
+
+    // ---- performance block (Performance tab headline metrics) -------------
+    const assignedInWindow = scopedTasks.filter((t) => inWindow(t.assigned_at, range.from, range.to)).length;
+    const startedInWindow = scopedTasks.filter((t) => inWindow(t.started_at, range.from, range.to)).length;
+    const firstActionSamples = scopedTasks
+      .filter((t) => t.assigned_at && t.first_action_at && inWindow(t.first_action_at, range.from, range.to))
+      .map((t) => new Date(t.first_action_at!).getTime() - new Date(t.assigned_at!).getTime())
+      .filter((ms) => ms >= 0);
+    const activeTotal = ranked.reduce((s, r) => s + r.active_cases, 0);
+    const onTimeTotal = ranked.reduce((s, r) => s + r.on_time, 0);
+    const breachedTotal = ranked.reduce((s, r) => s + r.breached, 0);
+    const escalationsTotal = ranked.reduce((s, r) => s + r.escalations, 0);
+    const reassignedOutTotal = ranked.reduce((s, r) => s + r.reassignments_out, 0);
+
+    const performance = {
+      cases_assigned: assignedInWindow,
+      cases_started: startedInWindow,
+      cases_resolved: resolvedTotal,
+      cases_escalated: escalationsTotal,
+      cases_reassigned_away: reassignedOutTotal,
+      resolution_rate: assignedInWindow > 0 ? pct(resolvedTotal, assignedInWindow) : null,
+      avg_first_action_minutes: firstActionSamples.length ? Math.round(avg(firstActionSamples) / 60_000) : null,
+      avg_resolution_hours: avgResolution,
+      avg_resolution_prev_hours: prevAvgResolution,
+      sla_compliance: onTimeTotal + breachedTotal > 0 ? pct(onTimeTotal, onTimeTotal + breachedTotal) : null,
+      overdue_rate: activeTotal > 0 ? pct(overdueTotal, activeTotal) : null,
+      // Not modelled anywhere in the schema yet — surfaced as "not tracked"
+      // rather than a fabricated zero.
+      reopened_cases: null as number | null,
+      quality_review_score: null as number | null,
+      agents_counted: ranked.length,
+      granularity,
+    };
+
+    const statusBuckets = { active: 0, waiting: 0, escalated: 0, overdue: 0, resolved: 0 } as Record<string, number>;
+    for (const t of scopedTasks) {
+      const st = String(t.status);
+      if (DONE_STATUSES.has(st)) {
+        if (inWindow(t.resolved_at, range.from, range.to)) statusBuckets.resolved += 1;
+        continue;
+      }
+      if (!ACTIVE_STATUSES.has(st)) continue;
+      if (["overdue", "breached"].includes(String(t.sla_status)) || (t.due_at && new Date(t.due_at).getTime() < now)) {
+        statusBuckets.overdue += 1;
+      } else if (st === "escalated") statusBuckets.escalated += 1;
+      else if (WAITING_STATUSES.has(st)) statusBuckets.waiting += 1;
+      else statusBuckets.active += 1;
+    }
+
+    // ---- SLA case rows (SLA Compliance tab) --------------------------------
+    const agentNameById = new Map(ranked.map((r) => [
+      r.user_id,
+      { name: r.full_name ?? [r.first_name, r.last_name].filter(Boolean).join(" ") ?? r.email, team: r.team, role: r.role_label },
+    ]));
+    const slaState = (t: Record<string, any>) => {
+      const st = String(t.status);
+      if (CANCELLED_STATUSES.has(st)) return "cancelled";
+      if (!t.due_at) return "not_configured";
+      const due = new Date(t.due_at).getTime();
+      if (DONE_STATUSES.has(st)) {
+        const end = t.resolved_at ? new Date(t.resolved_at).getTime() : due;
+        return end <= due ? "completed_within" : "completed_outside";
+      }
+      if (WAITING_STATUSES.has(st)) return "paused";
+      if (due < now) return "breached";
+      const start = t.assigned_at ? new Date(t.assigned_at).getTime() : new Date(String(t.created_at)).getTime();
+      const total = Math.max(1, due - start);
+      if (String(t.sla_status) === "at_risk" || (due - now) / total <= 0.25) return "at_risk";
+      return "on_track";
+    };
+    const slaCases = scopedTasks
+      .filter((t) => caseMatch(t) && scopedIds.has(String(t.assigned_agent_id)))
+      .filter((t) =>
+        ACTIVE_STATUSES.has(String(t.status)) ||
+        (DONE_STATUSES.has(String(t.status)) && inWindow(t.resolved_at, range.from, range.to)))
+      .map((t) => ({
+        id: t.id,
+        task_code: t.task_code,
+        title: t.title,
+        type: t.type,
+        agent_id: t.assigned_agent_id,
+        agent_name: agentNameById.get(String(t.assigned_agent_id))?.name ?? null,
+        team: agentNameById.get(String(t.assigned_agent_id))?.team ?? null,
+        role_label: agentNameById.get(String(t.assigned_agent_id))?.role ?? null,
+        priority: t.priority,
+        stage: t.stage,
+        status: t.status,
+        assigned_at: t.assigned_at,
+        first_action_at: t.first_action_at,
+        due_at: t.due_at,
+        resolved_at: t.resolved_at,
+        updated_at: t.resolved_at ?? t.first_action_at ?? t.started_at ?? t.assigned_at ?? t.created_at,
+        dispute_id: t.dispute_id,
+        transaction_id: t.transaction_id,
+        sla_state: slaState(t),
+        remaining_minutes: t.due_at && !t.resolved_at
+          ? Math.round((new Date(t.due_at).getTime() - now) / 60_000)
+          : null,
+      }))
+      .sort((a, b) => {
+        const rank: Record<string, number> = { breached: 0, at_risk: 1, on_track: 2, paused: 3, completed_outside: 4, completed_within: 5, not_configured: 6, cancelled: 7 };
+        return (rank[a.sla_state] ?? 9) - (rank[b.sla_state] ?? 9) ||
+          new Date(a.due_at ?? 0).getTime() - new Date(b.due_at ?? 0).getTime();
+      })
+      .slice(0, 500);
 
     // ---- export -----------------------------------------------------------
     if (isExport) {
@@ -739,6 +891,10 @@ Deno.serve(async (req) => {
         agents: ranked,
         total: ranked.length,
         trend: days,
+        performance,
+        status_distribution: statusBuckets,
+        sla_cases: slaCases,
+        sla_cases_truncated: slaCases.length >= 500,
         facets: {
           teams,
           // Only roles that actually qualify someone for this screen — the
@@ -748,7 +904,13 @@ Deno.serve(async (req) => {
             .filter((r) => agentRoleKeys.has(r.key) || ranked.some((a) => a.role_keys.includes(r.key)))
             .map((r) => ({ key: r.key, name: r.name })),
         },
-        range: { key: String(body.range ?? "7d"), label: range.label, from: range.from.toISOString(), to: range.to.toISOString() },
+        range: {
+          key: range.allTime ? "all_time" : String(body.range ?? "7d"),
+          label: range.label,
+          from: range.from.toISOString(),
+          to: range.to.toISOString(),
+          all_time: range.allTime,
+        },
         permissions: {
           can_export: canExport,
           can_rebalance: canRebalance,
