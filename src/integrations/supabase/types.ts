@@ -6464,10 +6464,17 @@ export type Database = {
         Returns: undefined
       }
       complete_payout_atomic: {
-        Args: { p_amount: number; p_payout_id: string }
+        Args: {
+          p_amount: number
+          p_payout_id: string
+          p_provider_event_id?: string
+        }
         Returns: Json
       }
-      complete_refund_atomic: { Args: { p_refund_id: string }; Returns: Json }
+      complete_refund_atomic: {
+        Args: { p_provider_event_id?: string; p_refund_id: string }
+        Returns: Json
+      }
       compute_transaction_search_tsv: {
         Args: { _tx_id: string }
         Returns: unknown
@@ -6517,6 +6524,22 @@ export type Database = {
       }
       escrow_available_balance: {
         Args: { _transaction_id: string }
+        Returns: number
+      }
+      escrow_open_commitments: {
+        Args: {
+          _exclude_payout_id?: string
+          _exclude_refund_id?: string
+          _transaction_id: string
+        }
+        Returns: number
+      }
+      escrow_uncommitted_available: {
+        Args: {
+          _exclude_payout_id?: string
+          _exclude_refund_id?: string
+          _transaction_id: string
+        }
         Returns: number
       }
       expire_stale_offers: { Args: never; Returns: number }
@@ -6752,7 +6775,12 @@ export type Database = {
         Returns: Json
       }
       reverse_payout_atomic: {
-        Args: { p_amount: number; p_payout_id: string; p_reason: string }
+        Args: {
+          p_amount: number
+          p_payout_id: string
+          p_provider_event_id?: string
+          p_reason: string
+        }
         Returns: Json
       }
       set_permission_template_items: {
