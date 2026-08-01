@@ -236,6 +236,41 @@ Deno.serve(async (req) => {
     // records created before status history existed are still represented.
     const escalatedTaskIds = new Set((escalationEvents ?? []).map((e) => e.task_id));
 
+    // ---- filters (case-level filters must apply before metrics) ---------
+    const f = {
+      team: String(body.team ?? "all"),
+      role: String(body.role ?? "all"),
+      availability: String(body.availability ?? "all"),
+      sla: String(body.sla ?? "all"),
+      overdue_only: body.overdue_only === true,
+      min_active: Number(body.min_active ?? 0) || 0,
+      min_overdue: Number(body.min_overdue ?? 0) || 0,
+      score_min: Number(body.score_min ?? 0) || 0,
+      score_max: body.score_max == null ? 100 : (Number(body.score_max) || 100),
+      case_priority: String(body.case_priority ?? "all"),
+      case_status: String(body.case_status ?? "all"),
+      case_sla: String(body.case_sla ?? "all"),
+      search: String(body.search ?? "").trim().toLowerCase(),
+    };
+    const caseFiltered = f.case_priority !== "all" || f.case_status !== "all" || f.case_sla !== "all";
+    const caseMatch = (t: Record<string, any>) => {
+      if (f.case_priority !== "all" && String(t.priority) !== f.case_priority) return false;
+      if (f.case_status !== "all") {
+        const st = String(t.status);
+        if (f.case_status === "open" && !ACTIVE_STATUSES.has(st)) return false;
+        if (f.case_status === "waiting" && !WAITING_STATUSES.has(st)) return false;
+        if (f.case_status === "resolved" && !DONE_STATUSES.has(st)) return false;
+        if (!["open", "waiting", "resolved"].includes(f.case_status) && st !== f.case_status) return false;
+      }
+      if (f.case_sla !== "all") {
+        const overdue = ["overdue", "breached"].includes(String(t.sla_status)) ||
+          (!!t.due_at && !t.resolved_at && new Date(t.due_at).getTime() < Date.now());
+        if (f.case_sla === "overdue" && !overdue) return false;
+        if (f.case_sla === "on_track" && overdue) return false;
+      }
+      return true;
+    };
+
     const buildRow = (u: Record<string, any>) => {
       const mine = allTasks.filter((t) => t.assigned_agent_id === u.id && caseMatch(t));
       const active = mine.filter((t) => ACTIVE_STATUSES.has(String(t.status)));
@@ -340,17 +375,6 @@ Deno.serve(async (req) => {
     };
 
     let rows = eligible.map(buildRow);
-
-    // ---- filters ------------------------------------------------------
-    const f = {
-      team: String(body.team ?? "all"),
-      role: String(body.role ?? "all"),
-      availability: String(body.availability ?? "all"),
-      sla: String(body.sla ?? "all"),
-      overdue_only: body.overdue_only === true,
-      min_active: Number(body.min_active ?? 0) || 0,
-      search: String(body.search ?? "").trim().toLowerCase(),
-    };
     const teams = Array.from(new Set(rows.map((r) => r.team).filter(Boolean))) as string[];
 
     rows = rows.filter((r) => {
@@ -359,10 +383,12 @@ Deno.serve(async (req) => {
       if (f.availability !== "all" && r.availability !== f.availability) return false;
       if (f.overdue_only && r.overdue === 0) return false;
       if (f.min_active > 0 && r.active_cases < f.min_active) return false;
+      if (f.min_overdue > 0 && r.overdue < f.min_overdue) return false;
+      if (caseFiltered && r.active_cases === 0 && r.resolved === 0) return false;
       if (f.sla === "breached" && r.breached === 0) return false;
       if (f.sla === "compliant" && r.sla_compliance < 100) return false;
       if (f.search) {
-        const hay = `${r.first_name ?? ""} ${r.last_name ?? ""} ${r.full_name ?? ""} ${r.email ?? ""}`.toLowerCase();
+        const hay = `${r.first_name ?? ""} ${r.last_name ?? ""} ${r.full_name ?? ""} ${r.email ?? ""} ${r.user_id}`.toLowerCase();
         if (!hay.includes(f.search)) return false;
       }
       return true;
