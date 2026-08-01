@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     admin.from("disputes").select("id, status, opened_at, resolved_at").eq("transaction_id", payout.transaction_id).order("opened_at", { ascending: false }).maybeSingle(),
     admin.from("admin_investigations").select("id, status, priority").eq("transaction_id", payout.transaction_id).maybeSingle(),
     admin.from("refunds").select("id, status, refund_amount, created_at").eq("transaction_id", payout.transaction_id).order("created_at", { ascending: false }),
-    admin.from("payments").select("id, status, amount, provider_reference, paid_at").eq("transaction_id", payout.transaction_id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    admin.from("payments").select("id, status, amount, provider_reference, captured_at, authorized_at, created_at").eq("transaction_id", payout.transaction_id).eq("status", "succeeded").order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   const productTitle = (() => { return null; })();
@@ -211,6 +211,21 @@ Deno.serve(async (req) => {
       entered_queue_at: payout.created_at,
       released_at: payout.released_at,
       initiated_at: payout.initiated_at,
+      // A completed payout MUST carry a completion timestamp. When it is
+      // missing we surface "Unavailable" and flag the record for review
+      // instead of rendering a blank value.
+      completed_at: payout.completed_at ?? null,
+      completed_at_display:
+        payout.status === "completed" && !payout.completed_at
+          ? "Unavailable"
+          : payout.completed_at ?? null,
+      needs_review: payout.status === "completed" && !payout.completed_at,
+      needs_review_reason:
+        payout.status === "completed" && !payout.completed_at
+          ? "Completed payout has no completion timestamp."
+          : null,
+      transaction_id: payout.transaction_id,
+      seller_id: payout.seller_id,
       notes: payout.notes ?? null,
     },
     transaction: tx ? {
