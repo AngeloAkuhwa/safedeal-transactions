@@ -124,6 +124,7 @@ Deno.serve(async (req) => {
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const isExport = body.mode === "export";
   const isAgentCases = body.mode === "agent_cases";
+  const isAgentActivity = body.mode === "agent_activity";
 
   let ctx;
   try {
@@ -136,6 +137,62 @@ Deno.serve(async (req) => {
 
   const admin = ctx.adminClient;
   const range = resolveRange(body);
+
+  // ---- per-agent operational activity (drawer) --------------------------
+  if (isAgentActivity) {
+    const agentId = String(body.agent_id ?? "");
+    if (!agentId) {
+      return new Response(JSON.stringify({ error: "agent_id_required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const [{ data: assignEvents }, { data: statusEvents }, { data: comments }] = await Promise.all([
+      admin.from("task_assignment_history")
+        .select("id, task_id, from_agent_id, to_agent_id, mode, reason, created_at")
+        .or(`from_agent_id.eq.${agentId},to_agent_id.eq.${agentId}`)
+        .order("created_at", { ascending: false }).limit(60),
+      admin.from("task_status_history")
+        .select("id, task_id, from_status, to_status, changed_by, created_at")
+        .eq("changed_by", agentId)
+        .order("created_at", { ascending: false }).limit(60),
+      admin.from("task_comments")
+        .select("id, task_id, created_at, author_id")
+        .eq("author_id", agentId)
+        .order("created_at", { ascending: false }).limit(40),
+    ]);
+    const events = [
+      ...(assignEvents ?? []).map((e) => ({
+        id: `a-${e.id}`,
+        at: e.created_at,
+        kind: e.to_agent_id === agentId ? "assigned" : "reassigned_away",
+        title: e.to_agent_id === agentId ? "Case assigned to agent" : "Case moved to another agent",
+        detail: [e.mode ? `mode: ${e.mode}` : null, e.reason].filter(Boolean).join(" · ") || null,
+        task_id: e.task_id,
+      })),
+      ...(statusEvents ?? []).map((e) => ({
+        id: `s-${e.id}`,
+        at: e.created_at,
+        kind: "status_change",
+        title: `Status changed${e.from_status ? ` from ${String(e.from_status).replace(/_/g, " ")}` : ""} to ${String(e.to_status).replace(/_/g, " ")}`,
+        detail: null as string | null,
+        task_id: e.task_id,
+      })),
+      ...(comments ?? []).map((c) => ({
+        id: `c-${c.id}`,
+        at: c.created_at,
+        kind: "comment",
+        title: "Added a case note",
+        detail: null as string | null,
+        task_id: c.task_id,
+      })),
+    ]
+      .filter((e) => !!e.at)
+      .sort((a, b) => new Date(String(b.at)).getTime() - new Date(String(a.at)).getTime())
+      .slice(0, 100);
+    return new Response(JSON.stringify({ events }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   // ---- per-agent case list (drawer) -------------------------------------
   if (isAgentCases) {
