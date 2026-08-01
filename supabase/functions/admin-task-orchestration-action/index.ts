@@ -2,12 +2,13 @@
 // auto_assign, rebalance, escalate, complete, save_rules, comments,
 // send_for_approval, preview_* dry-runs, and task_detail reads.
 import { requirePermission, requireAnyPermission, authErrorResponse } from "../_shared/auth.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 type Body = {
@@ -83,12 +84,40 @@ Deno.serve(async (req) => {
   };
   const permission = permMap[body.action] ?? "task_orchestration.view";
 
-  let ctx;
-  try { ctx = await requirePermission(req, permission); }
-  catch (err) {
-    const resp = authErrorResponse(err, corsHeaders);
-    if (resp) return resp;
-    throw err;
+  // --- Scheduled worker path -------------------------------------------
+  // The two automation sweeps may also be invoked by the platform scheduler
+  // with the shared CRON_SECRET (no interactive admin session). Everything
+  // else always requires an authenticated admin with the mapped permission.
+  const AUTOMATION_ACTIONS = new Set(["auto_escalate_stale_tasks", "auto_reassign_offline_agents"]);
+  const cronSecret = req.headers.get("x-cron-secret");
+  const expectedCronSecret = Deno.env.get("CRON_SECRET");
+  const isCronCall = !!cronSecret && !!expectedCronSecret && cronSecret === expectedCronSecret
+    && AUTOMATION_ACTIONS.has(body.action);
+
+  // deno-lint-ignore no-explicit-any
+  let ctx: any;
+  if (isCronCall) {
+    const systemClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    // Attribute automated runs to a super admin so RPCs that require a real
+    // actor id (escalate_task, assign_task) still satisfy their FKs.
+    const { data: sysActor } = await systemClient
+      .from("user_roles").select("user_id").eq("role", "super_admin").limit(1).maybeSingle();
+    if (!sysActor?.user_id) {
+      return new Response(JSON.stringify({ error: "no_system_actor" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    ctx = { userId: sysActor.user_id, adminClient: systemClient, hasPermission: () => true };
+  } else {
+    try { ctx = await requirePermission(req, permission); }
+    catch (err) {
+      const resp = authErrorResponse(err, corsHeaders);
+      if (resp) return resp;
+      throw err;
+    }
   }
   const admin = ctx.adminClient;
   const meta = extractRequestMeta(req);

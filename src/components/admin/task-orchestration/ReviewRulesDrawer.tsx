@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import type { AssignmentRulesConfig } from "@/services/task-orchestration.service";
+import type { AssignmentRulesConfig, RuleVersionRow } from "@/services/task-orchestration.service";
 
 function diffKeys(a: AssignmentRulesConfig, b: AssignmentRulesConfig): string[] {
   const keys = new Set<string>([...Object.keys(a ?? {}), ...Object.keys(b ?? {})]);
@@ -20,6 +20,7 @@ function fmt(v: unknown): string {
 export function ReviewRulesDrawer({
   open, onOpenChange, current, draft, impact, onConfirm, submitting,
   requiresApproval: requiresApprovalProp, serverError, readOnly, changeSetId,
+  history,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -33,6 +34,8 @@ export function ReviewRulesDrawer({
   /** Read-only review of an already-submitted change set (from the approvals queue). */
   readOnly?: boolean;
   changeSetId?: string | null;
+  /** Recent rule versions, newest first. */
+  history?: RuleVersionRow[];
 }) {
   const [reason, setReason] = useState("");
   useEffect(() => { if (open) setReason(""); }, [open]);
@@ -159,6 +162,34 @@ export function ReviewRulesDrawer({
             />
             <div className="mt-1 text-[11px] text-muted-foreground">{reason.trim().length}/20 minimum</div>
           </section>
+          )}
+
+          {(history?.length ?? 0) > 0 && (
+            <section>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Rules history</div>
+              <div className="divide-y divide-border/40 overflow-hidden rounded-xl border border-border/60">
+                {history!.map((v) => (
+                  <div key={v.id} className="p-2.5 text-[11px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-foreground">v{v.version}</span>
+                      <span className="text-muted-foreground">{new Date(v.created_at).toLocaleString()}</span>
+                    </div>
+                    <div className="mt-0.5 text-muted-foreground">
+                      Saved by {v.actor_name ?? "—"}
+                      {v.note ? ` · ${v.note}` : ""}
+                    </div>
+                    {v.approved_by ? (
+                      <div className="mt-0.5 text-emerald-300">
+                        Approved by {v.approver_name ?? "admin"}
+                        {v.approved_at ? ` · ${new Date(v.approved_at).toLocaleString()}` : ""}
+                      </div>
+                    ) : (
+                      <div className="mt-0.5 text-muted-foreground/70">Direct save (no approval)</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
         </div>
 

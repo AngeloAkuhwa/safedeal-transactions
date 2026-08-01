@@ -7,12 +7,16 @@ import { ListChecks, Repeat, AlertTriangle, Flame, Clock, Mail, Users } from "lu
 import type { AgentRosterEntry } from "@/services/task-orchestration.service";
 
 export function AgentDetailsDrawer({
-  open, onOpenChange, agent, onReassign,
+  open, onOpenChange, agent, onReassign, focus, context,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   agent: AgentRosterEntry | null;
   onReassign?: (a: AgentRosterEntry) => void;
+  /** When "performance", the performance stats are highlighted on open. */
+  focus?: "performance" | null;
+  /** Filter context carried in from the insight cards. */
+  context?: { metricLabel?: string; range?: string; team?: string } | null;
 }) {
   const navigate = useNavigate();
   const capacityPct = agent && agent.max_active ? Math.min(100, Math.round((agent.active / agent.max_active) * 100)) : 0;
@@ -74,7 +78,18 @@ export function AgentDetailsDrawer({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
+            {focus === "performance" && context && (
+              <div className="rounded-xl border border-primary/30 bg-primary/10 p-3 text-[11px] text-primary">
+                Performance view{context.metricLabel ? ` · ${context.metricLabel}` : ""}
+                {context.range ? ` · ${context.range}` : ""}
+                {context.team ? ` · team ${context.team}` : ""}
+              </div>
+            )}
+
+            <div className={cn(
+              "grid grid-cols-2 gap-2.5 rounded-xl",
+              focus === "performance" && "ring-1 ring-primary/40 ring-offset-2 ring-offset-background",
+            )}>
               <Stat label="Tasks Today" value={String(agent.tasks_today)} />
               <Stat label="Resolved Today" value={String(agent.resolved_today)} />
               <Stat label="Avg First Action" value={agent.avg_first_action_seconds ? `${Math.round(agent.avg_first_action_seconds / 60)}m` : "—"} />
