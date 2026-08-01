@@ -379,8 +379,19 @@ Deno.serve(async (req) => {
 
     const scopedIds = new Set(ranked.map((r) => r.user_id));
     const scopedTasks = allTasks.filter((t) => t.assigned_agent_id && scopedIds.has(t.assigned_agent_id));
-    const openDisputeTasks = scopedTasks.filter((t) => ACTIVE_STATUSES.has(String(t.status)));
-    const openDisputes = (disputes ?? []).filter((d) => !["resolved", "closed", "cancelled"].includes(String(d.status))).length;
+    // Open dispute work owned by the agents currently in scope. Always
+    // dispute-backed and always assigned — never a global fallback count.
+    const openDisputeTasks = scopedTasks.filter(
+      (t) => ACTIVE_STATUSES.has(String(t.status)) && (t.dispute_id || DISPUTE_TASK_TYPES.has(String(t.type))),
+    );
+    // Platform-wide open disputes, reported separately as context.
+    const openDisputesPlatform = (disputes ?? []).filter(
+      (d) => !["resolved", "closed", "cancelled"].includes(String(d.status)),
+    ).length;
+    const coveredDisputeIds = new Set(
+      openDisputeTasks.map((t) => t.dispute_id).filter(Boolean) as string[],
+    );
+    const unassignedDisputes = Math.max(0, openDisputesPlatform - coveredDisputeIds.size);
 
     const resolvedTotal = ranked.reduce((s, r) => s + r.resolved, 0);
     const prevResolvedTotal = ranked.reduce((s, r) => s + r.resolved_prev, 0);
@@ -407,7 +418,9 @@ Deno.serve(async (req) => {
       active_agents: activeAgents,
       active_agents_delta: activeAgents - prevActiveAgents,
       live_agents: liveAgents,
-      open_disputes: openDisputeTasks.length || openDisputes,
+      open_disputes: openDisputeTasks.length,
+      open_disputes_platform: openDisputesPlatform,
+      open_disputes_unassigned: unassignedDisputes,
       resolved_in_window: resolvedTotal,
       resolved_delta_pct: resolvedDeltaPct,
       avg_resolution_hours: avgResolution,
