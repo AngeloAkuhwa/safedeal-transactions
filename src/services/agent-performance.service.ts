@@ -112,7 +112,12 @@ export interface AgentPerformanceOverview {
   trend: AgentTrendPoint[];
   facets: { teams: string[]; roles: { key: string; name: string }[] };
   range: { key: string; label: string; from: string; to: string };
-  permissions: { can_export: boolean; can_rebalance: boolean };
+  permissions: {
+    can_export: boolean;
+    can_rebalance: boolean;
+    can_view_orchestration: boolean;
+    can_view_disputes: boolean;
+  };
   generated_at: string;
 }
 
