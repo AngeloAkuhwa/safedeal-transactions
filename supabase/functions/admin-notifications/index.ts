@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
 
   const [{ data: profs }, { data: txs }] = await Promise.all([
     userIds.length
-      ? admin.from("profiles").select("id, full_name, email, avatar_url").in("id", userIds)
+      ? admin.from("profiles").select("id, public_user_id, full_name, email, avatar_url").in("id", userIds)
       : Promise.resolve({ data: [] as any[] }),
     txIds.length
       ? admin.from("transactions").select("id, transaction_code").in("id", txIds)
@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
       title: n?.title ?? "—",
       type: n?.type ?? null,
       message: n?.message ?? "",
-      user: p ? { id: p.id, full_name: p.full_name, email: p.email, avatar_url: p.avatar_url } : null,
+      user: p ? { id: p.id, public_user_id: (p as Record<string, unknown>).public_user_id ?? null, full_name: p.full_name, email: p.email, avatar_url: p.avatar_url } : null,
       transaction: tx ? { id: tx.id, code: tx.transaction_code } : null,
       dispute_id: n?.related_dispute_id ?? null,
       retriable: (d.attempt_count ?? 0) < 3,
@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
   const recentUserIds = Array.from(new Set(recentSlice.map((n) => n.user_id)));
   const missingProfs = recentUserIds.filter((id) => !profById.has(id));
   if (missingProfs.length) {
-    const { data: more } = await admin.from("profiles").select("id, full_name, email, avatar_url").in("id", missingProfs);
+    const { data: more } = await admin.from("profiles").select("id, public_user_id, full_name, email, avatar_url").in("id", missingProfs);
     for (const p of (more ?? [])) profById.set(p.id, p);
   }
   const recent = recentSlice.map((n) => {
@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
       channel: n.channel,
       status: d?.delivery_status ?? n.status,
       created_at: n.created_at,
-      user: p ? { id: p.id, full_name: p.full_name, email: p.email, avatar_url: p.avatar_url } : null,
+      user: p ? { id: p.id, public_user_id: (p as Record<string, unknown>).public_user_id ?? null, full_name: p.full_name, email: p.email, avatar_url: p.avatar_url } : null,
     };
   });
 

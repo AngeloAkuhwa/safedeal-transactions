@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
 
   // Load profile + payout + auth
   const [{ data: prof }, { data: authUser }, { data: payout }] = await Promise.all([
-    admin.from("profiles").select("id, full_name, phone, created_at, status, store_slug").eq("id", user_id).maybeSingle(),
+    admin.from("profiles").select("id, public_user_id, full_name, phone, created_at, status, store_slug").eq("id", user_id).maybeSingle(),
     admin.auth.admin.getUserById(user_id),
     admin.from("payout_accounts").select("bank_name, account_name, masked_account_number, verification_status, created_at").eq("user_id", user_id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
 
   const email = authUser?.user?.email ?? "";
   const phone = (prof as Record<string, unknown>).phone as string | null;
-  const displayId = (prof.id as string).slice(0, 8).toUpperCase();
+  const displayId = String((prof as Record<string, unknown>).public_user_id ?? "");
 
   const auditMeta: Record<string, unknown> = { export_type, user_id };
   if (reason) auditMeta.reason = reason;

@@ -89,7 +89,7 @@ export async function buildDirectory(admin: SupabaseClient): Promise<DirRow[]> {
   // 1) Profiles (universe)
   const { data: profiles, error: profErr } = await admin
     .from("profiles")
-    .select("id, full_name, email, phone, avatar_url, status, default_role, created_at, updated_at, last_login_at")
+    .select("id, public_user_id, full_name, email, phone, avatar_url, status, default_role, created_at, updated_at, last_login_at")
     .order("created_at", { ascending: false })
     .limit(2000);
   if (profErr) console.error("profiles_select_failed", profErr);
@@ -286,11 +286,12 @@ export async function buildDirectory(admin: SupabaseClient): Promise<DirRow[]> {
       : null;
 
     const email = (p.email as string) ?? "";
-    const handle = "@" + (email.split("@")[0] || uid.slice(0, 8));
+    const publicUserId = String((p as Record<string, unknown>).public_user_id ?? "");
+    const handle = "@" + (email.split("@")[0] || publicUserId.replace("USR-", "").toLowerCase());
 
     rows.push({
       user_id: uid,
-      display_id: `USR-${uid.slice(0, 8).toUpperCase()}`,
+      display_id: publicUserId,
       full_name: (p.full_name as string) ?? "Unknown user",
       handle,
       email,

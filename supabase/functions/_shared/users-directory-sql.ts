@@ -37,7 +37,8 @@ function mapRow(r: Record<string, unknown>): DirRow {
   else if (phoneV) level = "phone";
   else if (emailV) level = "email";
   const email = (r.email as string) ?? "";
-  const handle = "@" + (email.split("@")[0] || uid.slice(0, 8));
+  const publicUserId = String(r.public_user_id ?? "");
+  const handle = "@" + (email.split("@")[0] || publicUserId.replace("USR-", "").toLowerCase());
   const roles = ((r.roles as string[] | null) ?? []) as DirRole[];
   const txCount = Number(r.tx_count ?? 0);
   const dispActive = Number(r.disp_active ?? 0);
@@ -50,7 +51,7 @@ function mapRow(r: Record<string, unknown>): DirRow {
 
   return {
     user_id: uid,
-    display_id: `USR-${uid.slice(0, 8).toUpperCase()}`,
+    display_id: publicUserId,
     full_name: (r.full_name as string) ?? "Unknown user",
     handle,
     email,

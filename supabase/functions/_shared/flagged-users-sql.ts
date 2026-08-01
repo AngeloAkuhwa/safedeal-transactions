@@ -174,7 +174,7 @@ export async function getFlaggedPage(admin: SupabaseClient, input: PageInput) {
       user_id: r.user_id,
       user: {
         id: r.user_id,
-        display_id: `USR-${r.user_id.slice(0, 8).toUpperCase()}`,
+        display_id: String((r as Record<string, unknown>).public_user_id ?? ""),
         full_name: r.full_name || "Unknown user",
         email: r.email || "",
         phone: r.phone ?? null,
