@@ -985,6 +985,7 @@ Deno.serve(async (req) => {
               body: "Auto-assign preview left tasks unmatched — check skills, capacity, or availability.",
               dedupeKey: `no_eligible:${new Date().toISOString().slice(0,13)}`,
               dedupeMinutes: 60,
+              link: `/admin/task-orchestration?status=unassigned`,
               data: { count: unmatched.length, mode },
             });
             // Look up critical/unassigned tasks explicitly.
@@ -998,6 +999,7 @@ Deno.serve(async (req) => {
                 body: "Critical priority tasks require attention.",
                 dedupeKey: `critical_unassigned:${crit!.map((c:any)=>c.task_code).sort().join(",")}`,
                 dedupeMinutes: 30,
+                link: `/admin/task-orchestration?status=unassigned&priority=critical`,
                 data: { count: crit!.length },
               });
             }
@@ -1274,6 +1276,7 @@ Deno.serve(async (req) => {
                 body: `Task ${(t as any).task_code}: ${err instanceof Error ? err.message : "unknown"}`,
                 dedupeKey: `auto_esc_fail:${(t as any).id}`,
                 dedupeMinutes: 60,
+                link: `/admin/task-orchestration?task=${(t as any).id}`,
                 data: { task_id: (t as any).id, rule: "auto_escalate_stale" },
               });
             }
