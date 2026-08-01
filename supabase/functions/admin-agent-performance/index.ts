@@ -140,6 +140,7 @@ Deno.serve(async (req) => {
       { data: history },
       { data: outcomes },
       { data: disputes },
+      { data: escalationEvents },
     ] = await Promise.all([
       admin.rpc("internal_effective_permissions", { _user_id: ctx.userId }),
       admin.from("role_permissions").select("role_key, permission_key"),
@@ -157,6 +158,9 @@ Deno.serve(async (req) => {
       admin.from("dispute_outcomes").select("id, dispute_id, outcome_type, resolved_by_user_id, resolved_at")
         .gte("resolved_at", range.prevFrom.toISOString()),
       admin.from("disputes").select("id, status, opened_at, resolved_at"),
+      admin.from("task_status_history").select("task_id, to_status, created_at")
+        .eq("to_status", "escalated")
+        .gte("created_at", range.prevFrom.toISOString()),
     ]);
 
     const callerPerms = new Set<string>(Array.isArray(permRows) ? (permRows as string[]) : []);
