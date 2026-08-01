@@ -64,9 +64,59 @@ export interface AgentPerformanceSummaryData {
 
 export interface AgentTrendPoint {
   date: string;
+  label: string;
   resolved: number;
+  assigned: number;
   avg_hours: number | null;
+  prev_avg_hours: number | null;
+  on_time: number;
   breached: number;
+  compliance: number | null;
+}
+
+export interface AgentPerformanceMetrics {
+  cases_assigned: number;
+  cases_started: number;
+  cases_resolved: number;
+  cases_escalated: number;
+  cases_reassigned_away: number;
+  resolution_rate: number | null;
+  avg_first_action_minutes: number | null;
+  avg_resolution_hours: number | null;
+  avg_resolution_prev_hours: number | null;
+  sla_compliance: number | null;
+  overdue_rate: number | null;
+  reopened_cases: number | null;
+  quality_review_score: number | null;
+  agents_counted: number;
+  granularity: "day" | "week" | "month";
+}
+
+export type SlaState =
+  | "on_track" | "at_risk" | "breached" | "paused"
+  | "completed_within" | "completed_outside" | "not_configured" | "cancelled";
+
+export interface SlaCaseRow {
+  id: string;
+  task_code: string | null;
+  title: string | null;
+  type: string | null;
+  agent_id: string | null;
+  agent_name: string | null;
+  team: string | null;
+  role_label: string | null;
+  priority: string | null;
+  stage: string | null;
+  status: string | null;
+  assigned_at: string | null;
+  first_action_at: string | null;
+  due_at: string | null;
+  resolved_at: string | null;
+  updated_at: string | null;
+  dispute_id: string | null;
+  transaction_id: string | null;
+  sla_state: SlaState;
+  remaining_minutes: number | null;
 }
 
 export interface AgentPerformanceFilters {
@@ -115,8 +165,12 @@ export interface AgentPerformanceOverview {
   agents: AgentPerformanceRow[];
   total: number;
   trend: AgentTrendPoint[];
+  performance: AgentPerformanceMetrics;
+  status_distribution: Record<string, number>;
+  sla_cases: SlaCaseRow[];
+  sla_cases_truncated: boolean;
   facets: { teams: string[]; roles: { key: string; name: string }[] };
-  range: { key: string; label: string; from: string; to: string };
+  range: { key: string; label: string; from: string; to: string; all_time?: boolean };
   permissions: {
     can_export: boolean;
     can_rebalance: boolean;
