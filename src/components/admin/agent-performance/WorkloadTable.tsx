@@ -10,7 +10,7 @@ import { EmptyState } from "./states/EmptyState";
 import { SortableTh, useAgentSort } from "./useAgentSort";
 import { TablePagination } from "./TablePagination";
 import { workloadStatus, workloadStatusClass, workloadStatusLabel } from "./workloadStatus";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { agentInitials, agentShortName, type AgentPerformanceRow } from "@/services/agent-performance.service";
 
 export interface RowActions {
