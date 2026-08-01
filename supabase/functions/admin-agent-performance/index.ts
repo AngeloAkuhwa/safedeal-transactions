@@ -638,17 +638,104 @@ Deno.serve(async (req) => {
       return xs.length ? xs[Math.floor(xs.length / 2)] : null;
     })();
 
+    const medianFirstAction = (() => {
+      const xs = rows.map((r) => r.avg_first_action_minutes).filter((x): x is number => x != null).sort((a, b) => a - b);
+      return xs.length ? xs[Math.floor(xs.length / 2)] : null;
+    })();
+    const maxResolved = Math.max(1, ...rows.map((r) => r.resolved));
+
     for (const r of rows) {
-      const slaPart = r.sla_compliance ?? 0; // 0..100; untracked SLA never becomes a fabricated 100%
-      const speedPart = r.avg_resolution_hours == null || !medianResolution
-        ? 100
-        : Math.max(0, Math.min(100, 100 - ((r.avg_resolution_hours - medianResolution) / Math.max(medianResolution, 0.5)) * 25));
       const load = r.active_cases + r.resolved;
-      const overduePart = Math.max(0, 100 - (load > 0 ? (r.overdue / Math.max(load, 1)) * 100 : 0) * 2);
-      const escalationPart = Math.max(0, 100 - (load > 0 ? (r.escalations / Math.max(load, 1)) * 100 : 0) * 1.5);
-      const score = Math.round((slaPart * 0.4 + speedPart * 0.25 + overduePart * 0.2 + escalationPart * 0.15) * 10) / 10;
-      r.score = Math.max(0, Math.min(100, score));
-      r.score_band = scoreBand(r.score);
+      const excluded = (r.score_exclusions ?? []).reduce((s: number, e: { count: number }) => s + e.count, 0);
+      // Penalty denominators ignore excluded cases so waiting / paused /
+      // unconfigured work can never drag a score down.
+      const penaltyBase = Math.max(1, load - excluded);
+
+      /** Speed component: relative to the cohort median, never absolute. */
+      const relSpeed = (value: number | null, median: number | null) =>
+        value == null || !median
+          ? null
+          : Math.max(0, Math.min(100, 100 - ((value - median) / Math.max(median, 0.5)) * 25));
+
+      const overdueRate = r.overdue / penaltyBase;
+      const escalationRate = r.escalations / penaltyBase;
+      // Log normalisation so raw case volume alone cannot dominate the score.
+      const workloadNorm = Math.round((Math.log10(1 + r.resolved) / Math.log10(1 + maxResolved)) * 1000) / 10;
+
+      const defs: Omit<ScoreComponent, "contribution">[] = [
+        {
+          key: "sla_compliance", label: "SLA compliance", weight: 0.3,
+          raw: r.sla_compliance, raw_label: r.sla_compliance == null ? "Not tracked" : `${r.sla_compliance}%`,
+          normalised: r.sla_compliance, tracked: r.sla_compliance != null,
+        },
+        {
+          key: "resolution_time", label: "Avg resolution time", weight: 0.2,
+          raw: r.avg_resolution_hours,
+          raw_label: r.avg_resolution_hours == null ? "No sample" : `${r.avg_resolution_hours}h`,
+          normalised: relSpeed(r.avg_resolution_hours, medianResolution),
+          tracked: r.avg_resolution_hours != null && medianResolution != null,
+        },
+        {
+          key: "first_action_time", label: "Avg first action", weight: 0.15,
+          raw: r.avg_first_action_minutes,
+          raw_label: r.avg_first_action_minutes == null ? "No sample" : `${r.avg_first_action_minutes}m`,
+          normalised: relSpeed(r.avg_first_action_minutes, medianFirstAction),
+          tracked: r.avg_first_action_minutes != null && medianFirstAction != null,
+        },
+        {
+          key: "overdue_rate", label: "Overdue rate", weight: 0.15,
+          raw: Math.round(overdueRate * 1000) / 10, raw_label: `${Math.round(overdueRate * 1000) / 10}%`,
+          normalised: Math.max(0, 100 - overdueRate * 200), tracked: true,
+        },
+        {
+          key: "escalation_accuracy", label: "Escalation accuracy", weight: 0.1,
+          raw: Math.round(escalationRate * 1000) / 10, raw_label: `${Math.round(escalationRate * 1000) / 10}%`,
+          normalised: Math.max(0, 100 - escalationRate * 150), tracked: true,
+        },
+        {
+          key: "resolved_workload", label: "Resolved workload (log-normalised)", weight: 0.1,
+          raw: r.resolved, raw_label: `${r.resolved} resolved`,
+          normalised: workloadNorm, tracked: true,
+        },
+      ];
+
+      // Untracked components are dropped and their weight redistributed, so a
+      // missing metric never reads as a zero.
+      const trackedWeight = defs.filter((d) => d.tracked && d.normalised != null)
+        .reduce((s, d) => s + d.weight, 0);
+      const components: ScoreComponent[] = defs.map((d) => {
+        const usable = d.tracked && d.normalised != null && trackedWeight > 0;
+        const effWeight = usable ? d.weight / trackedWeight : 0;
+        return {
+          ...d,
+          weight: Math.round(effWeight * 1000) / 10,
+          contribution: usable ? Math.round((d.normalised as number) * effWeight * 10) / 10 : 0,
+        };
+      });
+
+      const base = components.reduce((s, c) => s + c.contribution, 0);
+
+      const penalties: { reason: string; points: number }[] = [];
+      if (r.overdue > 0) penalties.push({ reason: `${r.overdue} overdue case(s)`, points: Math.min(6, r.overdue * 1.5) });
+      if (r.breached >= 3) penalties.push({ reason: `${r.breached} SLA breaches (repeated)`, points: Math.min(6, r.breached) });
+      if (r.avoidable_reassignments > 0) {
+        penalties.push({
+          reason: `${r.avoidable_reassignments} avoidable reassignment(s)`,
+          points: Math.min(4, r.avoidable_reassignments),
+        });
+      }
+      const penaltyTotal = penalties.reduce((s, p) => s + p.points, 0);
+
+      const minSample = f.min_completed > 0 ? f.min_completed : DEFAULT_MIN_SAMPLE;
+      const insufficient = r.resolved < minSample;
+
+      r.score = Math.max(0, Math.min(100, Math.round((base - penaltyTotal) * 10) / 10));
+      r.score_components = components;
+      r.score_penalties = penalties;
+      r.score_included_cases = Math.max(0, load - excluded);
+      r.score_excluded_cases = excluded;
+      r.insufficient_data = insufficient;
+      r.score_band = insufficient ? "Insufficient Data" : scoreBand(r.score);
     }
     rows.sort((a, b) => b.score - a.score || b.resolved - a.resolved);
     const ranked = rows
