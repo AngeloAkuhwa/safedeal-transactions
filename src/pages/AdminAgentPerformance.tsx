@@ -19,9 +19,9 @@ import { ErrorState } from "@/components/admin/agent-performance/states/ErrorSta
 import { CARD_CLASS } from "@/components/admin/agent-performance/helpers";
 import { toast } from "sonner";
 import {
-  DEFAULT_AGENT_FILTERS, downloadCsv, exportAgentPerformance, fetchAgentPerformance,
+  DEFAULT_AGENT_FILTERS, DEFAULT_SLA_QUERY, downloadCsv, exportAgentPerformance, fetchAgentPerformance,
   type AgentPerformanceFilters as Filters, type AgentPerformanceOverview, type AgentPerformanceRow,
-  type SlaCaseRow,
+  type SlaCaseRow, type SlaQuery,
 } from "@/services/agent-performance.service";
 
 const TAB_LABEL: Record<AgentTab, string> = {
@@ -62,6 +62,9 @@ export default function AdminAgentPerformance() {
   );
   const [slaState, setSlaState] = useState<string>(searchParams.get("sla_state") ?? "all");
   const [slaAgentId, setSlaAgentId] = useState<string>(searchParams.get("sla_agent") ?? "all");
+  const [slaPriority, setSlaPriority] = useState<string>(searchParams.get("sla_priority") ?? "all");
+  const [slaStage, setSlaStage] = useState<string>(searchParams.get("sla_stage") ?? "all");
+  const [slaPage, setSlaPage] = useState<number>(Number(searchParams.get("sla_page") ?? 1) || 1);
   const [data, setData] = useState<AgentPerformanceOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,17 +74,26 @@ export default function AdminAgentPerformance() {
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
+  const slaQuery: SlaQuery = useMemo(() => ({
+    ...DEFAULT_SLA_QUERY,
+    sla_states: slaState === "all" ? [] : slaState.split(","),
+    sla_agent: slaAgentId,
+    sla_priority: slaPriority,
+    sla_stage: slaStage,
+    sla_page: slaPage,
+  }), [slaState, slaAgentId, slaPriority, slaStage, slaPage]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setData(await fetchAgentPerformance(filters));
+      setData(await fetchAgentPerformance(filters, slaQuery));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load agent performance");
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, slaQuery]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -99,10 +111,16 @@ export default function AdminAgentPerformance() {
     else next.delete("sla_state");
     if (tab === "sla" && slaAgentId !== "all") next.set("sla_agent", slaAgentId);
     else next.delete("sla_agent");
+    if (tab === "sla" && slaPriority !== "all") next.set("sla_priority", slaPriority);
+    else next.delete("sla_priority");
+    if (tab === "sla" && slaStage !== "all") next.set("sla_stage", slaStage);
+    else next.delete("sla_stage");
+    if (tab === "sla" && slaPage > 1) next.set("sla_page", String(slaPage));
+    else next.delete("sla_page");
     if (next.toString() === searchParams.toString()) return;
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, tab, slaState, slaAgentId]);
+  }, [filters, tab, slaState, slaAgentId, slaPriority, slaStage, slaPage]);
 
   // Workload status is derived from capacity + availability on the client,
   // so this one filter is applied here rather than server-side.
@@ -138,11 +156,21 @@ export default function AdminAgentPerformance() {
     setTab("sla");
     setSlaAgentId(a.user_id);
     setSlaState("at_risk,breached");
+    setSlaPage(1);
     requestAnimationFrame(() => document.getElementById("sla-investigation")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
   /** Case-level jumps out of the SLA tab into the orchestration workspace. */
   const openCase = (c: SlaCaseRow) => {
+    // Dispute-only rows have no orchestration task to open.
+    if (c.source === "dispute") {
+      if (!(data?.permissions.can_view_disputes ?? false)) {
+        toast.error("You do not have permission to open this dispute.");
+        return;
+      }
+      navigate(`/admin/disputes/${c.dispute_id ?? c.id}`);
+      return;
+    }
     if (!canViewCases) {
       toast.error("You do not have permission to open this case.");
       return;
@@ -150,6 +178,10 @@ export default function AdminAgentPerformance() {
     navigate(`/admin/task-orchestration?task=${c.id}`);
   };
   const escalateCase = (c: SlaCaseRow) => {
+    if (c.source === "dispute") {
+      toast.error("Dispute-only cases are escalated from the dispute workspace.");
+      return;
+    }
     if (!canViewCases) {
       toast.error("You do not have permission to escalate this case.");
       return;
@@ -209,12 +241,21 @@ export default function AdminAgentPerformance() {
             agents={agents}
             cases={data.sla_cases ?? []}
             summary={data.sla_summary}
-            truncated={!!data.sla_cases_truncated}
             rangeLabel={data.range.label}
             stateFilter={slaState}
-            onStateFilterChange={setSlaState}
+            onStateFilterChange={(v) => { setSlaState(v); setSlaPage(1); }}
             agentFilter={slaAgentId}
-            onAgentFilterChange={setSlaAgentId}
+            onAgentFilterChange={(v) => { setSlaAgentId(v); setSlaPage(1); }}
+            priorityFilter={slaPriority}
+            onPriorityFilterChange={(v) => { setSlaPriority(v); setSlaPage(1); }}
+            stageFilter={slaStage}
+            onStageFilterChange={(v) => { setSlaStage(v); setSlaPage(1); }}
+            counts={data.sla_counts ?? {}}
+            total={data.sla_total ?? (data.sla_cases ?? []).length}
+            page={data.sla_page ?? slaPage}
+            pageSize={data.sla_page_size ?? 50}
+            hasMore={!!data.sla_has_more}
+            onPageChange={setSlaPage}
             onReviewSla={openSla}
             onOpenCase={openCase}
             onEscalate={escalateCase}
@@ -226,7 +267,7 @@ export default function AdminAgentPerformance() {
       case "rankings":
         return <RankingsTable agents={agents} onViewDetail={setDetailAgent} />;
     }
-  }, [data, tab, agents, canRebalance, canViewCases, canReviewSla, filtersDirty, slaState, slaAgentId, filters.scope]);
+  }, [data, tab, agents, canRebalance, canViewCases, canReviewSla, filtersDirty, slaState, slaAgentId, slaPriority, slaStage, slaPage, filters.scope]);
 
   return (
     <AdminLayout

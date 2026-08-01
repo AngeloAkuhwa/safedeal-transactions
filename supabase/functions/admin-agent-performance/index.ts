@@ -21,6 +21,8 @@ const ACTIVE_STATUSES = new Set([
 const DONE_STATUSES = new Set(["resolved", "closed"]);
 /** Statuses that mean the case is parked waiting on somebody else. */
 const WAITING_STATUSES = new Set(["waiting_on_buyer", "waiting_on_seller", "waiting_on_evidence", "pending_approval"]);
+/** Waiting states where the workflow genuinely stops the SLA clock. */
+const PAUSED_STATUSES = new Set(["waiting_on_buyer", "waiting_on_seller", "waiting_on_evidence"]);
 /** Priorities treated as critical work. */
 const CRITICAL_PRIORITIES = new Set(["critical", "urgent"]);
 /** Statuses that must never feed resolution-time maths. */
@@ -736,6 +738,7 @@ Deno.serve(async (req) => {
     const days: {
       date: string; label: string;
       resolved: number; assigned: number;
+      completed: number; untracked: number;
       avg_hours: number | null; prev_avg_hours: number | null;
       on_time: number; breached: number; compliance: number | null;
     }[] = [];
@@ -762,6 +765,8 @@ Deno.serve(async (req) => {
         label,
         resolved: done.length + disputeDone,
         assigned: scopedTasks.filter((t) => inWindow(t.assigned_at, bStart, bEnd)).length,
+        completed: done.length,
+        untracked: done.length - slaDone.length + disputeDone,
         avg_hours: ms.length ? hours(avg(ms)) : null,
         prev_avg_hours: prevMs.length ? hours(avg(prevMs)) : null,
         on_time: onTimeCount,
@@ -801,6 +806,12 @@ Deno.serve(async (req) => {
       quality_review_score: null as number | null,
       agents_counted: ranked.length,
       granularity,
+      // Sample sizes so every average can state what it was measured on.
+      resolution_sample: resolutionSamples.length,
+      resolution_sample_tasks: taskSamples.length,
+      resolution_sample_disputes: disputeSamples.length,
+      first_action_sample: firstActionSamples.length,
+      sla_sample: onTimeTotal + breachedTotal,
     };
 
     const statusBuckets = { active: 0, waiting: 0, escalated: 0, overdue: 0, resolved: 0 } as Record<string, number>;
@@ -817,6 +828,14 @@ Deno.serve(async (req) => {
       else if (WAITING_STATUSES.has(st)) statusBuckets.waiting += 1;
       else statusBuckets.active += 1;
     }
+    // Dispute-only resolutions have no task row but are counted in the
+    // resolved KPI, so the distribution must include them to reconcile.
+    for (const o of outcomes ?? []) {
+      if (!o.resolved_by_user_id || !scopedIds.has(o.resolved_by_user_id)) continue;
+      if (!inWindow(o.resolved_at, range.from, range.to)) continue;
+      if (o.dispute_id && taskDisputeIdsAll.has(o.dispute_id)) continue;
+      statusBuckets.resolved += 1;
+    }
 
     // ---- SLA case rows (SLA Compliance tab) --------------------------------
     const agentNameById = new Map(ranked.map((r) => [
@@ -828,24 +847,35 @@ Deno.serve(async (req) => {
       if (CANCELLED_STATUSES.has(st)) return "cancelled";
       if (!t.due_at) return "not_configured";
       const due = new Date(t.due_at).getTime();
+      if (!Number.isFinite(due)) return "not_configured";
       if (DONE_STATUSES.has(st)) {
         const end = t.resolved_at ? new Date(t.resolved_at).getTime() : due;
         return end <= due ? "completed_within" : "completed_outside";
       }
-      if (WAITING_STATUSES.has(st)) return "paused";
+      const stored = String(t.sla_status ?? "");
+      // Only the states where the workflow genuinely stops the clock pause the
+      // SLA. Approval waits keep counting, and a stored breach always wins.
+      if (["overdue", "breached"].includes(stored)) return "breached";
+      if (PAUSED_STATUSES.has(st)) return "paused";
       if (due < now) return "breached";
+      if (stored === "at_risk") return "at_risk";
       const start = t.assigned_at ? new Date(t.assigned_at).getTime() : new Date(String(t.created_at)).getTime();
       const total = Math.max(1, due - start);
-      if (String(t.sla_status) === "at_risk" || (due - now) / total <= 0.25) return "at_risk";
+      if ((due - now) / total <= 0.25) return "at_risk";
       return "on_track";
     };
-    const slaCases = scopedTasks
+    const slaRank: Record<string, number> = {
+      breached: 0, at_risk: 1, on_track: 2, paused: 3,
+      completed_outside: 4, completed_within: 5, not_configured: 6, cancelled: 7,
+    };
+    const slaTaskRows = scopedTasks
       .filter((t) => caseMatch(t) && scopedIds.has(String(t.assigned_agent_id)))
       .filter((t) =>
         ACTIVE_STATUSES.has(String(t.status)) ||
         (DONE_STATUSES.has(String(t.status)) && inWindow(t.resolved_at, range.from, range.to)))
       .map((t) => ({
         id: t.id,
+        source: "task" as const,
         task_code: t.task_code,
         title: t.title,
         type: t.type,
@@ -867,28 +897,97 @@ Deno.serve(async (req) => {
         remaining_minutes: t.due_at && !t.resolved_at
           ? Math.round((new Date(t.due_at).getTime() - now) / 60_000)
           : null,
-      }))
-      .sort((a, b) => {
-        const rank: Record<string, number> = { breached: 0, at_risk: 1, on_track: 2, paused: 3, completed_outside: 4, completed_within: 5, not_configured: 6, cancelled: 7 };
-        return (rank[a.sla_state] ?? 9) - (rank[b.sla_state] ?? 9) ||
-          new Date(a.due_at ?? 0).getTime() - new Date(b.due_at ?? 0).getTime();
+      }));
+
+    // Dispute-only resolutions have no orchestration task and therefore no SLA
+    // configuration. They are listed so the tab reconciles with the resolved
+    // KPI, but always excluded from every SLA denominator.
+    const slaDisputeRows = (disputesEligibleForFilters ? (outcomes ?? []) : [])
+      .filter((o) =>
+        o.resolved_by_user_id && scopedIds.has(o.resolved_by_user_id) &&
+        inWindow(o.resolved_at, range.from, range.to) &&
+        o.dispute_id && !taskDisputeIdsAll.has(o.dispute_id))
+      .filter((o) => {
+        const d = disputeById.get(String(o.dispute_id));
+        return !(d && CANCELLED_STATUSES.has(String(d.status)));
       })
-      .slice(0, 500);
-    const slaCounts = slaCases.reduce((acc, item) => {
+      .map((o) => {
+        const d = disputeById.get(String(o.dispute_id));
+        const meta = agentNameById.get(String(o.resolved_by_user_id));
+        return {
+          id: String(o.dispute_id),
+          source: "dispute" as const,
+          task_code: `DSP-${String(o.dispute_id).slice(0, 8).toUpperCase()}`,
+          title: "Dispute resolution",
+          type: "dispute_review",
+          agent_id: o.resolved_by_user_id,
+          agent_name: meta?.name ?? null,
+          team: meta?.team ?? null,
+          role_label: meta?.role ?? null,
+          priority: null as string | null,
+          stage: null as string | null,
+          status: d?.status ?? "resolved",
+          assigned_at: d?.opened_at ?? null,
+          first_action_at: null as string | null,
+          due_at: null as string | null,
+          resolved_at: o.resolved_at,
+          updated_at: o.resolved_at,
+          dispute_id: o.dispute_id,
+          transaction_id: null as string | null,
+          sla_state: "not_configured",
+          remaining_minutes: null as number | null,
+        };
+      });
+
+    const slaAll = [...slaTaskRows, ...slaDisputeRows].sort((a, b) =>
+      (slaRank[a.sla_state] ?? 9) - (slaRank[b.sla_state] ?? 9) ||
+      new Date(a.due_at ?? 0).getTime() - new Date(b.due_at ?? 0).getTime());
+
+    // Server-side SLA filters so chips, counts, pages and the table agree.
+    const slaFilter = {
+      states: Array.isArray(body.sla_states)
+        ? (body.sla_states as unknown[]).map(String).filter(Boolean)
+        : String(body.sla_states ?? "").split(",").map((s) => s.trim()).filter((s) => s && s !== "all"),
+      agent: String(body.sla_agent ?? "all"),
+      priority: String(body.sla_priority ?? "all"),
+      stage: String(body.sla_stage ?? "all"),
+    };
+    const slaFiltered = slaAll.filter((c) => {
+      if (slaFilter.states.length && !slaFilter.states.includes(c.sla_state)) return false;
+      if (slaFilter.agent !== "all" && String(c.agent_id) !== slaFilter.agent) return false;
+      if (slaFilter.priority !== "all" && String(c.priority ?? "") !== slaFilter.priority) return false;
+      if (slaFilter.stage !== "all" && String(c.stage ?? "") !== slaFilter.stage) return false;
+      return true;
+    });
+    const slaPageSize = Math.min(200, Math.max(25, Number(body.sla_page_size ?? 50) || 50));
+    const slaPage = Math.max(1, Number(body.sla_page ?? 1) || 1);
+    const slaCases = slaFiltered.slice((slaPage - 1) * slaPageSize, slaPage * slaPageSize);
+    // Counts always describe the complete (unpaged, state-unfiltered) set so
+    // the chips never shrink as the operator pages through results.
+    const slaCountBase = slaAll.filter((c) =>
+      (slaFilter.agent === "all" || String(c.agent_id) === slaFilter.agent) &&
+      (slaFilter.priority === "all" || String(c.priority ?? "") === slaFilter.priority) &&
+      (slaFilter.stage === "all" || String(c.stage ?? "") === slaFilter.stage));
+    const slaCounts = slaCountBase.reduce((acc, item) => {
       acc[item.sla_state] = (acc[item.sla_state] ?? 0) + 1;
       return acc;
     }, {} as Record<string, number>);
     const slaCompleted = (slaCounts.completed_within ?? 0) + (slaCounts.completed_outside ?? 0);
-    const slaFirstActionSamples = scopedTasks
-      .filter((t) => t.assigned_at && t.first_action_at)
-      .map((t) => new Date(t.first_action_at!).getTime() - new Date(t.assigned_at!).getTime())
+    // Averages are measured on the same SLA-tracked, in-scope case set that
+    // backs the table — never on every task the agents ever touched.
+    const slaTracked = slaCountBase.filter(
+      (c) => c.sla_state !== "not_configured" && c.sla_state !== "cancelled",
+    );
+    const slaFirstActionSamples = slaTracked
+      .filter((c) => c.assigned_at && c.first_action_at)
+      .map((c) => new Date(String(c.first_action_at)).getTime() - new Date(String(c.assigned_at)).getTime())
       .filter((ms) => ms >= 0);
-    const slaResolutionSamples = scopedTasks
-      .filter((t) => t.assigned_at && t.resolved_at && t.due_at)
-      .map((t) => new Date(t.resolved_at!).getTime() - new Date(t.assigned_at!).getTime())
+    const slaResolutionSamples = slaTracked
+      .filter((c) => c.assigned_at && c.resolved_at)
+      .map((c) => new Date(String(c.resolved_at)).getTime() - new Date(String(c.assigned_at)).getTime())
       .filter((ms) => ms >= 0);
     const slaSummary = {
-      tracked: slaCases.length - (slaCounts.not_configured ?? 0) - (slaCounts.cancelled ?? 0),
+      tracked: slaTracked.length,
       on_track: slaCounts.on_track ?? 0,
       at_risk: slaCounts.at_risk ?? 0,
       breached: slaCounts.breached ?? 0,
@@ -899,6 +998,8 @@ Deno.serve(async (req) => {
       compliance: slaCompleted ? pct(slaCounts.completed_within ?? 0, slaCompleted) : null,
       avg_first_action_minutes: slaFirstActionSamples.length ? Math.round(avg(slaFirstActionSamples) / 60_000) : null,
       avg_resolution_hours: slaResolutionSamples.length ? hours(avg(slaResolutionSamples)) : null,
+      first_action_sample: slaFirstActionSamples.length,
+      resolution_sample: slaResolutionSamples.length,
     };
 
     // ---- export -----------------------------------------------------------
@@ -947,7 +1048,12 @@ Deno.serve(async (req) => {
         performance,
         status_distribution: statusBuckets,
         sla_cases: slaCases,
-        sla_cases_truncated: slaCases.length >= 500,
+        sla_total: slaFiltered.length,
+        sla_page: slaPage,
+        sla_page_size: slaPageSize,
+        sla_has_more: slaPage * slaPageSize < slaFiltered.length,
+        sla_counts: slaCounts,
+        sla_cases_truncated: false,
         sla_summary: slaSummary,
         facets: {
           teams,
@@ -966,7 +1072,7 @@ Deno.serve(async (req) => {
           all_time: range.allTime,
           comparison_available: !range.allTime,
           granularity,
-          contract_version: 2,
+          contract_version: 3,
         },
         permissions: {
           can_export: canExport,

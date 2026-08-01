@@ -67,6 +67,8 @@ export interface AgentTrendPoint {
   label: string;
   resolved: number;
   assigned: number;
+  completed: number;
+  untracked: number;
   avg_hours: number | null;
   prev_avg_hours: number | null;
   on_time: number;
@@ -90,6 +92,11 @@ export interface AgentPerformanceMetrics {
   quality_review_score: number | null;
   agents_counted: number;
   granularity: "day" | "week" | "month";
+  resolution_sample?: number;
+  resolution_sample_tasks?: number;
+  resolution_sample_disputes?: number;
+  first_action_sample?: number;
+  sla_sample?: number;
 }
 
 export type SlaState =
@@ -98,6 +105,7 @@ export type SlaState =
 
 export interface SlaCaseRow {
   id: string;
+  source?: "task" | "dispute";
   task_code: string | null;
   title: string | null;
   type: string | null;
@@ -131,6 +139,8 @@ export interface SlaSummary {
   compliance: number | null;
   avg_first_action_minutes: number | null;
   avg_resolution_hours: number | null;
+  first_action_sample?: number;
+  resolution_sample?: number;
 }
 
 export interface AgentPerformanceFilters {
@@ -183,6 +193,11 @@ export interface AgentPerformanceOverview {
   status_distribution: Record<string, number>;
   sla_cases: SlaCaseRow[];
   sla_cases_truncated: boolean;
+  sla_total?: number;
+  sla_page?: number;
+  sla_page_size?: number;
+  sla_has_more?: boolean;
+  sla_counts?: Record<string, number>;
   sla_summary: SlaSummary;
   facets: { teams: string[]; roles: { key: string; name: string }[] };
   range: { key: string; label: string; from: string; to: string; all_time?: boolean; comparison_available?: boolean; granularity?: string; contract_version?: number };
@@ -196,15 +211,61 @@ export interface AgentPerformanceOverview {
   generated_at: string;
 }
 
+/** Server-side SLA tab query (filters + pagination). */
+export interface SlaQuery {
+  sla_states: string[];
+  sla_agent: string;
+  sla_priority: string;
+  sla_stage: string;
+  sla_page: number;
+  sla_page_size: number;
+}
+
+export const DEFAULT_SLA_QUERY: SlaQuery = {
+  sla_states: [],
+  sla_agent: "all",
+  sla_priority: "all",
+  sla_stage: "all",
+  sla_page: 1,
+  sla_page_size: 50,
+};
+
 export async function fetchAgentPerformance(
   filters: AgentPerformanceFilters,
+  sla: SlaQuery = DEFAULT_SLA_QUERY,
 ): Promise<AgentPerformanceOverview> {
   const { data, error } = await supabase.functions.invoke("admin-agent-performance", {
-    body: { ...filters },
+    body: { ...filters, ...sla },
   });
   if (error) throw error;
   if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
-  return data as AgentPerformanceOverview;
+  const overview = data as AgentPerformanceOverview;
+  if (import.meta.env.DEV) void assertResolvedCountsReconcile(overview, filters);
+  return overview;
+}
+
+/**
+ * Development-only guard: each agent row's resolved count must match the case
+ * endpoint for the same agent, scope and filters. Logs a warning on drift.
+ */
+async function assertResolvedCountsReconcile(
+  overview: AgentPerformanceOverview,
+  filters: AgentPerformanceFilters,
+) {
+  const sample = (overview.agents ?? []).filter((a) => a.resolved > 0).slice(0, 3);
+  for (const agent of sample) {
+    try {
+      const res = await fetchAgentCases(agent.user_id, filters);
+      const resolved = res.cases.filter((c) => !c.is_active).length;
+      if (res.total <= res.page_size && resolved !== agent.resolved) {
+        console.warn(
+          `[agent-performance] resolved mismatch for ${agent.user_id}: row=${agent.resolved} drawer=${resolved}`,
+        );
+      }
+    } catch {
+      /* reconciliation is advisory only */
+    }
+  }
 }
 
 export async function exportAgentPerformance(

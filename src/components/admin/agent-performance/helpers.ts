@@ -1,3 +1,15 @@
+/**
+ * Multi-select SLA chip toggling. "all" means no state filter, so selecting a
+ * chip from "all" narrows to that single state and clearing the last chip
+ * returns to "all".
+ */
+export function toggleStateFilter(current: string, state: string): string {
+  const selected = !current || current === "all" ? [] : current.split(",");
+  const next = selected.includes(state)
+    ? selected.filter((s) => s !== state)
+    : [...selected, state];
+  return next.length ? next.join(",") : "all";
+}
 import type { AgentPerformanceRow } from "@/services/agent-performance.service";
 
 export const CARD_CLASS =

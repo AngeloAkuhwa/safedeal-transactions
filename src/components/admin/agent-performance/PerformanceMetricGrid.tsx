@@ -10,6 +10,9 @@ type Tile = {
   note?: string;
   tone?: string;
   hint: string;
+  /** Calculation and data-source detail shown under the hint. */
+  calc?: string;
+  sample?: number | null;
 };
 
 /** Headline metrics for the Performance tab, all scoped to the active filters. */
@@ -22,16 +25,19 @@ export function PerformanceMetricGrid({
       label: "Cases assigned", value: String(metrics.cases_assigned),
       note: `${metrics.agents_counted} agents in scope`,
       hint: "Cases whose assignment timestamp falls inside the selected window.",
+      calc: "count(orchestration_tasks.assigned_at in window) · source: orchestration_tasks",
     },
     {
       label: "Cases started", value: String(metrics.cases_started),
       note: "First work logged",
       hint: "Cases an agent actively started (started_at) inside the window.",
+      calc: "count(orchestration_tasks.started_at in window) · source: orchestration_tasks",
     },
     {
       label: "Cases resolved", value: String(metrics.cases_resolved),
       note: rangeLabel,
       hint: "Tasks closed plus disputes personally resolved by these agents in the window.",
+      calc: "count(distinct case identity: task resolved_at, plus dispute outcomes with no task) · sources: orchestration_tasks, dispute_outcomes",
     },
     {
       label: "Resolution rate",
@@ -39,12 +45,15 @@ export function PerformanceMetricGrid({
       tone: metrics.resolution_rate == null ? undefined : slaTone(metrics.resolution_rate),
       note: "Resolved ÷ assigned",
       hint: "Share of cases assigned in this window that are already resolved.",
+      calc: "cases_resolved ÷ cases_assigned × 100",
     },
     {
       label: "Avg first action",
       value: minutesLabel(metrics.avg_first_action_minutes),
       note: "Assignment → first action",
       hint: "Mean time between assignment and the first recorded action on the case.",
+      calc: "mean(first_action_at − assigned_at) over cases with both timestamps",
+      sample: metrics.first_action_sample ?? null,
     },
     {
       label: "Avg resolution",
@@ -53,6 +62,8 @@ export function PerformanceMetricGrid({
         ? "No comparable previous window"
         : `Previous ${hoursLabel(metrics.avg_resolution_prev_hours)}`,
       hint: "Mean assignment-to-resolution time across completed cases.",
+      calc: "mean(resolved_at − assigned_at) over resolved cases (tasks + dispute-only)",
+      sample: metrics.resolution_sample ?? null,
     },
     {
       label: "SLA compliance",
@@ -60,6 +71,8 @@ export function PerformanceMetricGrid({
       tone: metrics.sla_compliance == null ? undefined : slaTone(metrics.sla_compliance),
        note: metrics.sla_compliance == null ? "SLA due dates unavailable" : "Completed on time",
       hint: "Completed cases closed on or before their due date.",
+      calc: "on-time completions ÷ completions with a due date × 100 · cases without SLA excluded",
+      sample: metrics.sla_sample ?? null,
     },
     {
       label: "Overdue rate",
@@ -67,6 +80,7 @@ export function PerformanceMetricGrid({
       tone: metrics.overdue_rate == null ? undefined : slaTone(100 - metrics.overdue_rate),
       note: "Of live cases",
       hint: "Share of currently open cases that are past their due date.",
+      calc: "open cases past due_at ÷ open cases with a due date × 100",
     },
     {
       label: "Escalated", value: String(metrics.cases_escalated),
@@ -105,7 +119,11 @@ export function PerformanceMetricGrid({
                     <Info className="h-3 w-3" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent className="max-w-[240px] text-xs">{t.hint}</TooltipContent>
+                <TooltipContent className="max-w-[280px] space-y-1 text-xs">
+                  <div>{t.hint}</div>
+                  {t.calc && <div className="text-muted-foreground">{t.calc}</div>}
+                  {t.sample != null && <div className="text-muted-foreground">Sample size: {t.sample}</div>}
+                </TooltipContent>
               </Tooltip>
             </div>
             <div className={cn(
