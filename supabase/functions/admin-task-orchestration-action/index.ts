@@ -581,7 +581,9 @@ Deno.serve(async (req) => {
           .select("id, config, round_robin_state").eq("scope", scopeKey).maybeSingle();
         const mode = (rules?.config as any)?.mode ?? body.mode ?? "round_robin";
         const rrState = ((rules as any)?.round_robin_state ?? {}) as Record<string, string>;
-        const { plan: fullPlan, rr_last_picked } = await buildAutoAssignPlan(mode, rrState[scopeKey] ?? null);
+        const { plan: fullPlan, rr_last_picked } = await buildAutoAssignPlan(
+          mode, rrState[scopeKey] ?? null, (rules?.config as Record<string, unknown>) ?? {},
+        );
         const excluded = new Set(body.exclude_task_ids ?? []);
         const plan = fullPlan.filter(p => !excluded.has(p.task_id));
         let count = 0;
@@ -988,7 +990,9 @@ Deno.serve(async (req) => {
         const mode = (rules?.config as any)?.mode ?? body.mode ?? "round_robin";
         const rrState = ((rules as any)?.round_robin_state ?? {}) as Record<string, string>;
         // Preview honours the stored cursor but never writes it back.
-        const { plan, unmatched, agent_loads } = await buildAutoAssignPlan(mode, rrState[previewScope] ?? null);
+        const { plan, unmatched, agent_loads } = await buildAutoAssignPlan(
+          mode, rrState[previewScope] ?? null, (rules?.config as Record<string, unknown>) ?? {},
+        );
         const { count: pending } = await admin.from("orchestration_tasks")
           .select("id", { count: "exact", head: true }).eq("status","unassigned");
         // Emit senior-admin alerts when the queue exposes serious eligibility gaps.
