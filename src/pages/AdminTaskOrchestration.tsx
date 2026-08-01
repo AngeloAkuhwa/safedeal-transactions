@@ -69,6 +69,9 @@ export default function AdminTaskOrchestration() {
   const [assignBulk, setAssignBulk] = useState(false);
   const [escalateOpen, setEscalateOpen] = useState(false);
   const [agentDetail, setAgentDetail] = useState<AgentRosterEntry | null>(null);
+  const [agentFocus, setAgentFocus] = useState<
+    { focus: "performance"; context: { metricLabel?: string; range?: string; team?: string } } | null
+  >(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [savingRules, setSavingRules] = useState(false);
   const [testingRules, setTestingRules] = useState(false);
