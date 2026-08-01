@@ -6822,6 +6822,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      identity_acl_violations: {
+        Args: never
+        Returns: {
+          grantee: string
+          object_kind: string
+          object_name: string
+          privilege: string
+        }[]
+      }
       internal_effective_access_level: {
         Args: { _user_id: string }
         Returns: string
