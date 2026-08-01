@@ -19,6 +19,12 @@ const ACTIVE_STATUSES = new Set([
   "escalated", "pending_approval",
 ]);
 const DONE_STATUSES = new Set(["resolved", "closed"]);
+/** Task types that represent dispute-side casework. */
+const DISPUTE_TASK_TYPES = new Set([
+  "new_dispute_review", "buyer_complaint", "seller_complaint",
+  "evidence_review", "seller_response_review", "buyer_response_review",
+  "compliance_escalation",
+]);
 /** Modules whose permissions make an internal user a case-handling agent. */
 const AGENT_MODULES = ["disputes", "task_orchestration"];
 const HEARTBEAT_WINDOW_MS = 5 * 60_000;
