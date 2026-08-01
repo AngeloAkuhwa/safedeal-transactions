@@ -207,6 +207,20 @@ Deno.serve(async (req) => {
     // ---- per-agent metrics -------------------------------------------
     const now = Date.now();
     const allTasks = tasks ?? [];
+    const taskById = new Map(allTasks.map((t) => [t.id, t]));
+
+    // Escalations attributed to the agent who owns the task, counted at the
+    // moment the escalation happened (not when the task was created).
+    const escalationsByAgent = new Map<string, number>();
+    for (const e of escalationEvents ?? []) {
+      if (!inWindow(e.created_at, range.from, range.to)) continue;
+      const owner = taskById.get(e.task_id)?.assigned_agent_id;
+      if (!owner) continue;
+      escalationsByAgent.set(owner, (escalationsByAgent.get(owner) ?? 0) + 1);
+    }
+    // Fall back to escalation_level for tasks with no recorded event, so older
+    // records created before status history existed are still represented.
+    const escalatedTaskIds = new Set((escalationEvents ?? []).map((e) => e.task_id));
 
     const buildRow = (u: Record<string, any>) => {
       const mine = allTasks.filter((t) => t.assigned_agent_id === u.id);
@@ -244,12 +258,18 @@ Deno.serve(async (req) => {
       const breached = resolvedTasks.length - onTime.length;
       const slaCompliance = pct(onTime.length, resolvedTasks.length);
 
-      const reassignedAway = (history ?? []).filter(
-        (h) => h.from_agent_id === u.id && inWindow(h.created_at, range.from, range.to),
+      const windowHistory = (history ?? []).filter((h) => inWindow(h.created_at, range.from, range.to));
+      const reassignedAway = windowHistory.filter((h) => h.from_agent_id === u.id).length;
+      const reassignedIn = windowHistory.filter(
+        (h) => h.to_agent_id === u.id && h.from_agent_id && h.from_agent_id !== u.id,
       ).length;
-      const escalations = mine.filter(
-        (t) => Number(t.escalation_level ?? 0) > 0 && inWindow(t.created_at, range.from, range.to),
+      const legacyEscalations = mine.filter(
+        (t) =>
+          Number(t.escalation_level ?? 0) > 0 &&
+          !escalatedTaskIds.has(t.id) &&
+          inWindow(t.created_at, range.from, range.to),
       ).length;
+      const escalations = (escalationsByAgent.get(u.id) ?? 0) + legacyEscalations;
 
       const cap = capByUser.get(u.id);
       const maxActive = Number(cap?.max_active_tasks ?? 10);
@@ -291,7 +311,9 @@ Deno.serve(async (req) => {
         breached,
         on_time: onTime.length,
         sla_compliance: slaCompliance,
-        reassignments: reassignedAway,
+        reassignments: reassignedAway + reassignedIn,
+        reassignments_out: reassignedAway,
+        reassignments_in: reassignedIn,
         escalations,
         score: 0,
         score_band: "",
