@@ -1,17 +1,194 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { ComingSoonPanel } from "@/components/admin/ComingSoonPanel";
+import { AgentPerformanceHeader } from "@/components/admin/agent-performance/AgentPerformanceHeader";
+import { AgentPerformanceSummary } from "@/components/admin/agent-performance/AgentPerformanceSummary";
+import { AgentPerformanceTabs, type AgentTab } from "@/components/admin/agent-performance/AgentPerformanceTabs";
+import { AgentPerformanceFilters } from "@/components/admin/agent-performance/AgentPerformanceFilters";
+import { WorkloadTable } from "@/components/admin/agent-performance/WorkloadTable";
+import { PerformanceDashboard } from "@/components/admin/agent-performance/PerformanceDashboard";
+import { SLAComplianceTable } from "@/components/admin/agent-performance/SLAComplianceTable";
+import { RankingsTable } from "@/components/admin/agent-performance/RankingsTable";
+import { AgentPerformanceDetailDrawer } from "@/components/admin/agent-performance/drawers/AgentPerformanceDetailDrawer";
+import { AgentCasesDrawer } from "@/components/admin/agent-performance/drawers/AgentCasesDrawer";
+import { ExportReportDialog } from "@/components/admin/agent-performance/drawers/ExportReportDialog";
+import { LoadingSkeleton } from "@/components/admin/agent-performance/states/LoadingSkeleton";
+import { ErrorState } from "@/components/admin/agent-performance/states/ErrorState";
+import { CARD_CLASS } from "@/components/admin/agent-performance/helpers";
+import { toast } from "sonner";
+import {
+  DEFAULT_AGENT_FILTERS, downloadCsv, exportAgentPerformance, fetchAgentPerformance,
+  type AgentPerformanceFilters as Filters, type AgentPerformanceOverview, type AgentPerformanceRow,
+} from "@/services/agent-performance.service";
+
+const TAB_LABEL: Record<AgentTab, string> = {
+  workload: "Workload",
+  performance: "Performance",
+  sla: "SLA Compliance",
+  rankings: "Rankings",
+};
 
 export default function AdminAgentPerformance() {
+  const navigate = useNavigate();
+  const [filters, setFilters] = useState<Filters>(DEFAULT_AGENT_FILTERS);
+  const [tab, setTab] = useState<AgentTab>("workload");
+  const [data, setData] = useState<AgentPerformanceOverview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [detailAgent, setDetailAgent] = useState<AgentPerformanceRow | null>(null);
+  const [casesAgent, setCasesAgent] = useState<AgentPerformanceRow | null>(null);
+  const [casesSlaOnly, setCasesSlaOnly] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setData(await fetchAgentPerformance(filters));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load agent performance");
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const agents = data?.agents ?? [];
+  const canExport = data?.permissions.can_export ?? false;
+  const canRebalance = data?.permissions.can_rebalance ?? false;
+
+  const patchFilters = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
+
+  const openRebalance = (a: AgentPerformanceRow) => {
+    if (!canRebalance) {
+      toast.error("You do not have permission to rebalance workloads.");
+      return;
+    }
+    navigate(`/admin/task-orchestration?rebalance=1&agent=${a.user_id}`);
+  };
+
+  const openCases = (a: AgentPerformanceRow, slaOnly = false) => {
+    setCasesSlaOnly(slaOnly);
+    setCasesAgent(a);
+  };
+
+  const runExport = async ({ maskPii, reason }: { maskPii: boolean; reason: string }) => {
+    setExporting(true);
+    try {
+      const res = await exportAgentPerformance(filters, { tab, maskPii, reason });
+      downloadCsv(res.csv, res.filename);
+      toast.success("Export ready", { description: res.filename });
+      setExportOpen(false);
+    } catch (e) {
+      toast.error("Export failed", { description: e instanceof Error ? e.message : undefined });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const body = useMemo(() => {
+    if (!data) return null;
+    switch (tab) {
+      case "workload":
+        return (
+          <WorkloadTable
+            agents={agents}
+            actions={{
+              onViewDetail: setDetailAgent,
+              onViewCases: (a) => openCases(a, false),
+              onReviewSla: (a) => openCases(a, true),
+              onRebalance: openRebalance,
+              canRebalance,
+            }}
+          />
+        );
+      case "performance":
+        return <PerformanceDashboard agents={agents} trend={data.trend} onViewDetail={setDetailAgent} />;
+      case "sla":
+        return <SLAComplianceTable agents={agents} onReviewSla={(a) => openCases(a, true)} />;
+      case "rankings":
+        return <RankingsTable agents={agents} onViewDetail={setDetailAgent} />;
+    }
+  }, [data, tab, agents, canRebalance]);
+
   return (
-    <AdminLayout title="Agent performance" subtitle="Throughput, SLA hit-rate and quality metrics per agent">
-      <ComingSoonPanel
-        module="Agent Performance"
-        description="Per-agent scorecards, dispute resolution time, verification throughput and quality signals — with drill-down back to individual cases."
-        planned={[
-          "Weekly SLA and quality scorecards",
-          "Comparative team leaderboards",
-          "Alerts when an agent trends outside their peer band",
-        ]}
+    <AdminLayout
+      title="Agent performance"
+      subtitle="Performance tracking · Workload management"
+      headerSlot={
+        <AgentPerformanceHeader
+          liveAgents={data?.summary.live_agents ?? 0}
+          onExport={() => setExportOpen(true)}
+          canExport={canExport}
+        />
+      }
+    >
+      <div className="space-y-6">
+        {loading && !data && <LoadingSkeleton />}
+        {error && !loading && <ErrorState message={error} onRetry={() => void load()} />}
+
+        {data && (
+          <>
+            <AgentPerformanceSummary
+              summary={data.summary}
+              rangeLabel={data.range.label}
+              onOpenRoster={() => { setTab("workload"); patchFilters({ overdue_only: false, availability: "all" }); }}
+              onOpenOverdue={() => { setTab("sla"); patchFilters({ overdue_only: true }); }}
+              onOpenResolved={() => setTab("performance")}
+              onOpenDisputes={() => navigate("/admin/disputes")}
+              onOpenTopAgent={() => {
+                const top = agents.find((a) => a.user_id === data.summary.top_agent?.user_id);
+                if (top) setDetailAgent(top);
+              }}
+            />
+
+            <section className={CARD_CLASS}>
+              <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+                <AgentPerformanceTabs value={tab} onChange={setTab} />
+                <AgentPerformanceFilters
+                  filters={filters}
+                  onChange={patchFilters}
+                  teams={data.facets.teams}
+                  roles={data.facets.roles}
+                />
+              </div>
+              <div className={loading ? "opacity-60 transition-opacity" : "transition-opacity"}>{body}</div>
+            </section>
+
+            <p className="pb-4 text-center text-[11px] text-muted-foreground">
+              Generated {new Date(data.generated_at).toLocaleString()} · Metrics derive from orchestration tasks and dispute outcomes.
+            </p>
+          </>
+        )}
+      </div>
+
+      <AgentPerformanceDetailDrawer
+        agent={detailAgent}
+        open={!!detailAgent}
+        onOpenChange={(v) => !v && setDetailAgent(null)}
+        onViewCases={(a) => { setDetailAgent(null); openCases(a, false); }}
+        onReviewSla={(a) => { setDetailAgent(null); openCases(a, true); }}
+        onRebalance={openRebalance}
+        canRebalance={canRebalance}
+      />
+
+      <AgentCasesDrawer
+        agent={casesAgent}
+        open={!!casesAgent}
+        onOpenChange={(v) => !v && setCasesAgent(null)}
+        slaOnly={casesSlaOnly}
+      />
+
+      <ExportReportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        tabLabel={TAB_LABEL[tab]}
+        rowCount={agents.length}
+        onConfirm={runExport}
+        busy={exporting}
       />
     </AdminLayout>
   );
