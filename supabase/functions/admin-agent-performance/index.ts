@@ -234,12 +234,14 @@ Deno.serve(async (req) => {
       priority: String(body.case_priority ?? "all"),
       status: String(body.case_status ?? "all"),
       sla: String(body.case_sla ?? "all"),
+      stage: String(body.case_stage ?? "all"),
     };
     const isOverdueTask = (t: Record<string, any>) =>
       ["overdue", "breached"].includes(String(t.sla_status)) ||
       (!!t.due_at && !t.resolved_at && new Date(t.due_at).getTime() < nowTs);
     const taskMatches = (t: Record<string, any>) => {
       if (cf.priority !== "all" && String(t.priority) !== cf.priority) return false;
+      if (cf.stage !== "all" && String(t.stage) !== cf.stage) return false;
       if (cf.status !== "all") {
         const st = String(t.status);
         if (cf.status === "open" && !ACTIVE_STATUSES.has(st)) return false;
@@ -488,14 +490,16 @@ Deno.serve(async (req) => {
       case_priority: String(body.case_priority ?? "all"),
       case_status: String(body.case_status ?? "all"),
       case_sla: String(body.case_sla ?? "all"),
+      case_stage: String(body.case_stage ?? "all"),
       search: String(body.search ?? "").trim().toLowerCase(),
     };
-    const caseFiltered = f.case_priority !== "all" || f.case_status !== "all" || f.case_sla !== "all";
+    const caseFiltered = f.case_priority !== "all" || f.case_status !== "all" ||
+      f.case_sla !== "all" || f.case_stage !== "all";
     // Dispute records carry no priority or task SLA, so they only participate
     // when no case-level priority/SLA filter is active and the status filter
     // is compatible with completed dispute work.
     const disputesEligibleForFilters =
-      f.case_priority === "all" && f.case_sla === "all" &&
+      f.case_priority === "all" && f.case_sla === "all" && f.case_stage === "all" &&
       (f.case_status === "all" || f.case_status === "resolved");
     const disputeById = new Map((disputes ?? []).map((d) => [d.id, d]));
     /** Recognised investigation start for a dispute-backed case. */
@@ -527,6 +531,7 @@ Deno.serve(async (req) => {
     };
     const caseMatch = (t: Record<string, any>) => {
       if (f.case_priority !== "all" && String(t.priority) !== f.case_priority) return false;
+      if (f.case_stage !== "all" && String(t.stage) !== f.case_stage) return false;
       if (f.case_status !== "all") {
         const st = String(t.status);
         if (f.case_status === "open" && !ACTIVE_STATUSES.has(st)) return false;
