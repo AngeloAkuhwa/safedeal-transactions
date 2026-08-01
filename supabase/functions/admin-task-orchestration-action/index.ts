@@ -351,22 +351,25 @@ Deno.serve(async (req) => {
 
   // Fire a notification for both sides of a reassignment / move.
   async function notifyReassignment(taskId: string, fromAgentId: string | null, toAgentId: string, reason: string | null) {
+    const managers = await managersFor(admin, toAgentId);
     if (fromAgentId) {
       await notifyEvent({
         event: "task_reassigned",
-        recipients: [fromAgentId],
+        recipients: [fromAgentId, ...managers],
         title: "Task removed from your queue",
         body: reason ?? "A task was reassigned to another agent.",
         dedupeKey: `reassign_from:${taskId}`,
+        link: `/admin/task-orchestration?task=${taskId}`,
         data: { task_id: taskId, to_agent: toAgentId, direction: "from" },
       });
     }
     await notifyEvent({
       event: "task_assigned",
-      recipients: [toAgentId],
+      recipients: [toAgentId, ...managers],
       title: "New task assigned to you",
       body: reason ?? "You have been assigned an orchestration task.",
       dedupeKey: `assign_to:${taskId}`,
+      link: `/admin/task-orchestration?task=${taskId}`,
       data: { task_id: taskId, from_agent: fromAgentId, direction: "to" },
     });
   }
