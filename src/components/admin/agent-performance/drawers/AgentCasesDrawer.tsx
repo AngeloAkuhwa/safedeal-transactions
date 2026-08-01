@@ -113,8 +113,30 @@ export function AgentCasesDrawer({
           <SheetDescription>
             {agent ? agentName(agent) : ""} · {visible.length} {visible.length === 1 ? "case" : "cases"}
             {slaOnly ? " breaching or overdue" : " in the current workload"}
+            {rangeLabel ? ` · ${rangeLabel}` : ""}
           </SheetDescription>
         </SheetHeader>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-lg border border-border/60 bg-background/60 p-0.5">
+            {(["range", "all_time"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setScopeOverride(s)}
+                className={cn(
+                  "rounded-md px-3 py-1 text-xs font-medium transition",
+                  scope === s ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {s === "range" ? "In range" : "All time"}
+              </button>
+            ))}
+          </div>
+          {truncated && (
+            <span className="text-[11px] text-amber-400">Showing the first 1,000 cases</span>
+          )}
+        </div>
 
         <div className="mt-6 space-y-3 pb-8">
           {loading && Array.from({ length: 5 }).map((_, i) => (
@@ -139,7 +161,7 @@ export function AgentCasesDrawer({
           {!loading && !error && resolvedRows.length > 0 && (
             <>
               <div className="pt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Resolved ({resolvedRows.length})
+                Resolved ({resolvedRows.length}){rangeLabel ? ` · ${rangeLabel}` : ""}
               </div>
               {resolvedRows.map((c) => <CaseCard key={`${c.source}-${c.id}`} c={c} />)}
             </>
