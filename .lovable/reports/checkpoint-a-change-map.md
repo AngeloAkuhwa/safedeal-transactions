@@ -32,3 +32,13 @@ No instrumented wall-time sample is available for `reconcile-escrow` (row timest
 
 ## Gate result
 PASS — schema, grants, triggers, cron, volumes and writer inventory all match the approved plan. Proceeding to Checkpoint B.
+
+## Checkpoint C — completed
+
+- SQL: `canonical_payload_v1`, `canonical_fingerprint_v1` (v1 = `v1:` + sha256 of flat sorted `key=value` lines), `ledger_write_guarded`, `record_payment_capture_atomic` (#12), `record_completion_release_intent_atomic` (#13). All `SECURITY DEFINER`, execute revoked from `anon`/`authenticated`, granted to `service_role` only.
+- Guard semantics: same key + same fingerprint → `duplicate` (no second movement); same key + different fingerprint → durable row in `financial_idempotency_conflicts` and the calling routine raises, so nothing is written.
+- TS twin: `supabase/functions/_shared/financial-writer.ts` (canonical form, `toMinorUnits`, `buildIdempotencyKey`) with SQL-generated golden vectors in `__tests__/financial-writer.test.ts` (10 tests, passing alongside the 24 financial-model tests).
+- Callers cut over (no direct ledger DML remains in edge functions): `verify-paystack-payment`, `paystack-webhook` (both → #12, keyed on the Paystack event id), `seller-confirm-completion` (both payout paths → #13, keyed on the seller confirmation id; commitment only, never a debit).
+- `vitest.config.ts` now includes `supabase/functions/**/*.test.ts` and excludes the Deno-only `pricing.parity.test.ts`.
+
+Next: Checkpoint D — rewrite the remaining money RPCs (#1–#10) on top of `ledger_write_guarded` and revoke direct ledger DML from application roles.
