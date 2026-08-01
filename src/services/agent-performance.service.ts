@@ -45,7 +45,7 @@ export interface AgentPerformanceRow {
 
 export interface AgentPerformanceSummaryData {
   active_agents: number;
-  active_agents_delta: number;
+  active_agents_delta: number | null;
   live_agents: number;
   open_disputes: number;
   open_disputes_platform: number;
@@ -186,13 +186,41 @@ export interface AgentCaseRow {
   is_overdue: boolean;
 }
 
-export async function fetchAgentCases(agentId: string): Promise<AgentCaseRow[]> {
+export interface AgentCasesResult {
+  cases: AgentCaseRow[];
+  truncated: boolean;
+  range: { key: string; label: string };
+}
+
+/**
+ * Case list for one agent. The window and case filters are passed through so
+ * the drawer's "Resolved" count always matches the workload row / KPI card.
+ */
+export async function fetchAgentCases(
+  agentId: string,
+  filters?: Partial<AgentPerformanceFilters>,
+): Promise<AgentCasesResult> {
   const { data, error } = await supabase.functions.invoke("admin-agent-performance", {
-    body: { mode: "agent_cases", agent_id: agentId },
+    body: {
+      mode: "agent_cases",
+      agent_id: agentId,
+      scope: filters?.scope ?? "range",
+      range: filters?.range ?? "7d",
+      date_from: filters?.date_from,
+      date_to: filters?.date_to,
+      case_priority: filters?.case_priority ?? "all",
+      case_status: filters?.case_status ?? "all",
+      case_sla: filters?.case_sla ?? "all",
+    },
   });
   if (error) throw error;
   if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
-  return ((data as { cases: AgentCaseRow[] }).cases) ?? [];
+  const res = data as AgentCasesResult;
+  return {
+    cases: res?.cases ?? [],
+    truncated: !!res?.truncated,
+    range: res?.range ?? { key: "7d", label: "Selected range" },
+  };
 }
 
 /** Display helpers shared across the Agent Performance components. */
