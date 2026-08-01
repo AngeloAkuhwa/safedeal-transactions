@@ -253,17 +253,19 @@ Deno.serve(async (req) => {
 
   // 3. Bulk upsert (idempotent per run_id).
   if (rowsToInsert.length) {
+    await heartbeat();
     const { error: insErr } = await admin
       .from("escrow_reconciliation_results")
       .upsert(rowsToInsert, { onConflict: "transaction_id,run_id" });
     if (insErr) {
       console.error("[reconcile-escrow] insert failed", insErr);
-      return json(500, { error: "insert_failed", detail: insErr.message });
+      return await finish(500, { error: "insert_failed", detail: insErr.message });
     }
   }
 
   // 4. Fan out ops alerts (best-effort, one per drift tx).
   for (const a of driftAlerts) {
+    await heartbeat();
     const severity = Math.abs(a.delta) >= 100 ? "high" : "medium";
     await notifyOpsTeam(admin, {
       type: "security_alert",
@@ -290,7 +292,7 @@ Deno.serve(async (req) => {
     console.warn("[reconcile-escrow] system_logs insert skipped", e);
   }
 
-  return json(200, {
+  return await finish(200, {
     ok: true,
     run_id: runId,
     considered: txIds.length,
