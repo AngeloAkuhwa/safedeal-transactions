@@ -2752,6 +2752,36 @@ export type Database = {
           },
         ]
       }
+      orchestration_notification_dedupe: {
+        Row: {
+          created_at: string
+          event: string
+          expires_at: string
+          first_sent_at: string
+          id: string
+          key: string
+          recipient_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          expires_at: string
+          first_sent_at?: string
+          id?: string
+          key: string
+          recipient_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          expires_at?: string
+          first_sent_at?: string
+          id?: string
+          key?: string
+          recipient_id?: string | null
+        }
+        Relationships: []
+      }
       orchestration_tasks: {
         Row: {
           amount: number | null

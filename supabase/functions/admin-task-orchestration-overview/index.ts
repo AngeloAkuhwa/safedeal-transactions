@@ -2,6 +2,7 @@
 // (with server-side filters + pagination), agent roster, live task progression,
 // productivity insights and the current assignment rules in a single call.
 import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
+import { INELIGIBLE_STATUSES } from "../_shared/orchestration-rules.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,7 +10,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const INELIGIBLE = new Set(["offline", "on_leave", "suspended"]);
+const INELIGIBLE = INELIGIBLE_STATUSES;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });

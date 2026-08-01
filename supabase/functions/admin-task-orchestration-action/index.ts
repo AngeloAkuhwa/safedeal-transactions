@@ -4,6 +4,13 @@
 import { requirePermission, requireAnyPermission, authErrorResponse } from "../_shared/auth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { logAdminAction, extractRequestMeta } from "../_shared/audit.ts";
+import {
+  INELIGIBLE_STATUSES,
+  pickAgent,
+  applyRules,
+  dedupeNotification,
+  type AgentSnapshot,
+} from "../_shared/orchestration-rules.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,11 +132,11 @@ Deno.serve(async (req) => {
   const respond = (payload: unknown, status = 200) =>
     new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-  const INELIGIBLE = new Set(["offline", "on_leave", "suspended"]);
+  const INELIGIBLE = INELIGIBLE_STATUSES;
 
-  // -------- Notification helper with lightweight dedupe --------
-  // Prevents identical unchanged conditions from re-firing within a window
-  // by scanning the last hour of notifications for a matching dedupe_key.
+  // -------- Notification helper with durable dedupe --------
+  // Reservations live in `orchestration_notification_dedupe` so identical
+  // unchanged conditions never re-fire inside the configured window.
   async function notifyEvent(opts: {
     event: string;
     recipients: string[];
@@ -143,20 +150,14 @@ Deno.serve(async (req) => {
     const recipients = [...new Set(opts.recipients.filter(Boolean))];
     if (!recipients.length) return;
     const windowMin = opts.dedupeMinutes ?? 60;
-    const cutoff = new Date(Date.now() - windowMin * 60_000).toISOString();
     if (opts.dedupeKey) {
-      const { data: recent } = await admin
-        .from("notifications")
-        .select("id, user_id, metadata")
-        .gte("created_at", cutoff)
-        .eq("type", opts.event)
-        .in("user_id", recipients);
-      const dedup = new Set(
-        (recent ?? [])
-          .filter((r: any) => (r.metadata?.dedupe_key ?? null) === opts.dedupeKey)
-          .map((r: any) => r.user_id),
+      const remaining = await dedupeNotification(
+        admin,
+        opts.event,
+        opts.dedupeKey,
+        recipients,
+        windowMin,
       );
-      const remaining = recipients.filter((u) => !dedup.has(u));
       if (!remaining.length) return;
       const rows = remaining.map((uid) => ({
         user_id: uid,
@@ -217,7 +218,7 @@ Deno.serve(async (req) => {
     return { ok: current === expected, current };
   }
 
-  async function buildAutoAssignPlan(mode: string, rrCursor?: string | null) {
+  async function buildAutoAssignPlan(mode: string, rrCursor?: string | null, rulesConfig?: Record<string, unknown>) {
     const [{ data: pending }, { data: cap }, { data: avail }, { data: skillRows }] = await Promise.all([
       admin.from("orchestration_tasks")
         .select("id, task_code, priority, required_permissions")
@@ -228,6 +229,9 @@ Deno.serve(async (req) => {
       admin.from("agent_availability").select("*"),
       admin.from("agent_skills").select("user_id, permission_key"),
     ]);
+    const { data: seniorRows } = await admin
+      .from("user_roles").select("user_id").in("role", ["super_admin", "senior_admin"]);
+    const seniorSet = new Set((seniorRows ?? []).map((r: any) => r.user_id));
     const availMap = new Map((avail ?? []).map((a: any) => [a.user_id, a.status]));
     const skillsByAgent = new Map<string, Set<string>>();
     (skillRows ?? []).forEach((s: any) => {
@@ -243,45 +247,45 @@ Deno.serve(async (req) => {
     const projected = new Map(initialCurrent);
     const plan: Array<{ task_id: string; task_code: string; agent_id: string; reason: string }> = [];
     const unmatched: Array<{ task_id: string; task_code: string; reason: string }> = [];
-    // Round-robin cursor: the last agent picked for this queue scope. The
-    // eligible list is rotated so the scan resumes *after* that agent instead
-    // of restarting at the top of the roster on every run.
-    const rrOrder = [...seats.keys()];
-    let rrPointer = rrCursor ? rrOrder.indexOf(rrCursor) : -1;
+    // Shared eligibility + selection logic (see _shared/orchestration-rules.ts).
+    const effectiveRules = applyRules({ ...(rulesConfig ?? {}), mode });
+    const agents: AgentSnapshot[] = (cap ?? [])
+      .filter((c: any) => seats.has(c.user_id))
+      .map((c: any) => ({
+        agent_id: c.user_id,
+        status: availMap.get(c.user_id) ?? "offline",
+        current_active: c.current_active ?? 0,
+        max_active_tasks: c.max_active_tasks ?? 0,
+        overdue_count: c.overdue_count ?? 0,
+        skills: skillsByAgent.get(c.user_id) ?? new Set<string>(),
+        is_senior: seniorSet.has(c.user_id),
+      }));
     let rrLastPicked: string | null = rrCursor ?? null;
     for (const t of pending ?? []) {
-      const req = new Set<string>(((t as any).required_permissions ?? []) as string[]);
-      let candidates = [...seats.entries()]
-        .filter(([, s]) => s > 0)
-        .filter(([aid]) => {
-          if (req.size === 0) return true;
-          const held = skillsByAgent.get(aid) ?? new Set();
-          for (const p of req) if (!held.has(p)) return false;
-          return true;
-        })
-        .sort((a, b) => b[1] - a[1]);
-      if (mode === "round_robin" && candidates.length > 1) {
-        // Rotate the eligible agents so the one after the cursor comes first.
-        const rotated = rrOrder
-          .slice(rrPointer + 1)
-          .concat(rrOrder.slice(0, rrPointer + 1))
-          .map((aid) => candidates.find(([c]) => c === aid))
-          .filter(Boolean) as [string, number][];
-        if (rotated.length) candidates = rotated;
-      }
-      if (candidates.length === 0) {
-        const reason = req.size > 0 ? "no_eligible_agent_with_skill" : "no_available_seats";
-        unmatched.push({ task_id: (t as any).id, task_code: (t as any).task_code, reason });
+      const picked = pickAgent(
+        mode,
+        {
+          id: (t as any).id,
+          task_code: (t as any).task_code,
+          priority: (t as any).priority,
+          required_permissions: (t as any).required_permissions ?? [],
+        },
+        effectiveRules,
+        agents,
+        seats,
+        rrLastPicked,
+      );
+      if (!picked.agent_id) {
+        unmatched.push({ task_id: (t as any).id, task_code: (t as any).task_code, reason: picked.reason });
         continue;
       }
-      const [agentId, s] = candidates[0];
-      seats.set(agentId, s - 1);
-      if (mode === "round_robin") {
-        rrLastPicked = agentId;
-        rrPointer = rrOrder.indexOf(agentId);
-      }
+      const agentId = picked.agent_id;
+      seats.set(agentId, (seats.get(agentId) ?? 1) - 1);
+      const snap = agents.find((a) => a.agent_id === agentId);
+      if (snap) snap.current_active += 1;
+      if (mode === "round_robin") rrLastPicked = agentId;
       projected.set(agentId, (projected.get(agentId) ?? 0) + 1);
-      plan.push({ task_id: (t as any).id, task_code: (t as any).task_code, agent_id: agentId, reason: `auto:${mode}` });
+      plan.push({ task_id: (t as any).id, task_code: (t as any).task_code, agent_id: agentId, reason: picked.rule_used });
     }
     const agentLoads = (cap ?? [])
       .filter((c: any) => !INELIGIBLE.has(availMap.get(c.user_id) ?? "offline"))
@@ -577,7 +581,9 @@ Deno.serve(async (req) => {
           .select("id, config, round_robin_state").eq("scope", scopeKey).maybeSingle();
         const mode = (rules?.config as any)?.mode ?? body.mode ?? "round_robin";
         const rrState = ((rules as any)?.round_robin_state ?? {}) as Record<string, string>;
-        const { plan: fullPlan, rr_last_picked } = await buildAutoAssignPlan(mode, rrState[scopeKey] ?? null);
+        const { plan: fullPlan, rr_last_picked } = await buildAutoAssignPlan(
+          mode, rrState[scopeKey] ?? null, (rules?.config as Record<string, unknown>) ?? {},
+        );
         const excluded = new Set(body.exclude_task_ids ?? []);
         const plan = fullPlan.filter(p => !excluded.has(p.task_id));
         let count = 0;
@@ -984,7 +990,9 @@ Deno.serve(async (req) => {
         const mode = (rules?.config as any)?.mode ?? body.mode ?? "round_robin";
         const rrState = ((rules as any)?.round_robin_state ?? {}) as Record<string, string>;
         // Preview honours the stored cursor but never writes it back.
-        const { plan, unmatched, agent_loads } = await buildAutoAssignPlan(mode, rrState[previewScope] ?? null);
+        const { plan, unmatched, agent_loads } = await buildAutoAssignPlan(
+          mode, rrState[previewScope] ?? null, (rules?.config as Record<string, unknown>) ?? {},
+        );
         const { count: pending } = await admin.from("orchestration_tasks")
           .select("id", { count: "exact", head: true }).eq("status","unassigned");
         // Emit senior-admin alerts when the queue exposes serious eligibility gaps.
