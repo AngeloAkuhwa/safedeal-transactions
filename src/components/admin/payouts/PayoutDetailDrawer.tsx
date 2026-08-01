@@ -263,6 +263,16 @@ export function PayoutDetailDrawer({ open, payoutId, detail, loading, onClose, o
                     </span>
                   } />
                   <Row label="Seller Payout" value={<span className="font-semibold text-emerald-400">{formatMoney(detail.pricing.seller_payout, detail.pricing.currency)}</span>} />
+                  {detail.pricing.release_amount_mismatch && (
+                    <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5">
+                      <p className="text-amber-300 text-xs font-semibold">Release amount mismatch</p>
+                      <p className="text-amber-200/80 text-[11px] mt-1">
+                        Agreement snapshot says {formatMoney(detail.pricing.seller_payout, detail.pricing.currency)} but the payout
+                        record holds {formatMoney(detail.pricing.recorded_payout_amount ?? 0, detail.pricing.currency)}. The snapshot
+                        is authoritative — reconcile before releasing.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
