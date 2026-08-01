@@ -1,20 +1,205 @@
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { EmptyState } from "./states/EmptyState";
-import { slaTone } from "./helpers";
+import { INNER_CARD_CLASS, slaTone } from "./helpers";
 import { SortableTh, useAgentSort } from "./useAgentSort";
-import { agentShortName, type AgentPerformanceRow } from "@/services/agent-performance.service";
+import {
+  agentShortName, type AgentPerformanceRow, type SlaCaseRow, type SlaState,
+} from "@/services/agent-performance.service";
 import { Timer } from "lucide-react";
 
+const STATE_META: Record<SlaState, { label: string; className: string }> = {
+  on_track: { label: "On track", className: "bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-500/30" },
+  at_risk: { label: "At risk", className: "bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-500/30" },
+  breached: { label: "Breached", className: "bg-rose-500/15 text-rose-300 ring-1 ring-inset ring-rose-500/30" },
+  paused: { label: "Paused", className: "bg-sky-500/15 text-sky-300 ring-1 ring-inset ring-sky-500/30" },
+  completed_within: { label: "Completed within SLA", className: "bg-emerald-500/10 text-emerald-300 ring-1 ring-inset ring-emerald-500/20" },
+  completed_outside: { label: "Completed outside SLA", className: "bg-rose-500/10 text-rose-300 ring-1 ring-inset ring-rose-500/20" },
+  not_configured: { label: "No SLA configured", className: "bg-muted text-muted-foreground ring-1 ring-inset ring-border" },
+  cancelled: { label: "Cancelled", className: "bg-muted text-muted-foreground ring-1 ring-inset ring-border" },
+};
+
+const STATE_ORDER: SlaState[] = [
+  "breached", "at_risk", "on_track", "paused",
+  "completed_outside", "completed_within", "not_configured",
+];
+
+const dt = (v: string | null) => (v ? new Date(v).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
+
+function remainingLabel(mins: number | null): string {
+  if (mins == null) return "—";
+  const abs = Math.abs(mins);
+  const text = abs >= 1440 ? `${Math.round(abs / 1440)}d` : abs >= 60 ? `${Math.round(abs / 60)}h` : `${abs}m`;
+  return mins < 0 ? `${text} over` : `${text} left`;
+}
+
+/**
+ * SLA Compliance tab: case-level investigation table with an agent roll-up.
+ * States follow the case's own due date, so paused and unconfigured work is
+ * never counted as a breach.
+ */
 export function SLAComplianceTable({
-  agents, onReviewSla,
-}: { agents: AgentPerformanceRow[]; onReviewSla: (a: AgentPerformanceRow) => void }) {
+  agents, cases, truncated, rangeLabel, stateFilter, onStateFilterChange, onReviewSla, onOpenCase, onEscalate, onRebalance, canRebalance,
+}: {
+  agents: AgentPerformanceRow[];
+  cases: SlaCaseRow[];
+  truncated: boolean;
+  rangeLabel: string;
+  stateFilter: string;
+  onStateFilterChange: (v: string) => void;
+  onReviewSla: (a: AgentPerformanceRow) => void;
+  onOpenCase: (c: SlaCaseRow) => void;
+  onEscalate: (c: SlaCaseRow) => void;
+  onRebalance: (a: AgentPerformanceRow) => void;
+  canRebalance: boolean;
+}) {
   const { sorted, sortKey, sortDir, toggle } = useAgentSort(agents, "sla_compliance");
+  const [agentFilter, setAgentFilter] = useState<string>("all");
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const row of cases) c[row.sla_state] = (c[row.sla_state] ?? 0) + 1;
+    return c;
+  }, [cases]);
+
+  const visible = useMemo(() => cases.filter((c) =>
+    (stateFilter === "all" || c.sla_state === stateFilter) &&
+    (agentFilter === "all" || c.agent_id === agentFilter)), [cases, stateFilter, agentFilter]);
+
+  const completed = (counts.completed_within ?? 0) + (counts.completed_outside ?? 0);
+  const compliance = completed ? Math.round(((counts.completed_within ?? 0) / completed) * 1000) / 10 : null;
+  const agentById = new Map(agents.map((a) => [a.user_id, a]));
+
   if (agents.length === 0) {
     return <EmptyState icon={Timer} title="No SLA data" hint="No cases were handled in this range." />;
   }
+
   return (
-    <div className="overflow-x-auto">
+    <div className="space-y-6">
+      <div className={cn(INNER_CARD_CLASS, "flex flex-wrap items-end justify-between gap-4")}>
+        <div>
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">SLA compliance · {rangeLabel}</div>
+          <div className={cn("text-3xl font-semibold tabular-nums", compliance == null ? "text-muted-foreground" : slaTone(compliance))}>
+            {compliance == null ? "—" : `${compliance}%`}
+          </div>
+          <div className="mt-0.5 text-[11px] text-muted-foreground">
+            {completed} completed case{completed === 1 ? "" : "s"} measured
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter cases by SLA state">
+          <button
+            type="button"
+            aria-pressed={stateFilter === "all"}
+            onClick={() => onStateFilterChange("all")}
+            className={cn("rounded-full border px-3 py-1 text-xs transition",
+              stateFilter === "all" ? "border-primary/40 bg-primary/15 text-primary" : "border-border/60 bg-background/60 text-muted-foreground hover:text-foreground")}
+          >
+            All {cases.length}
+          </button>
+          {STATE_ORDER.filter((s) => (counts[s] ?? 0) > 0).map((s) => (
+            <button
+              key={s}
+              type="button"
+              aria-pressed={stateFilter === s}
+              onClick={() => onStateFilterChange(s)}
+              className={cn("rounded-full border px-3 py-1 text-xs transition",
+                stateFilter === s ? "border-primary/40 bg-primary/15 text-primary" : "border-border/60 bg-background/60 text-muted-foreground hover:text-foreground")}
+            >
+              {STATE_META[s].label} {counts[s]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="text-xs text-muted-foreground">
+          Showing {visible.length} of {cases.length} case{cases.length === 1 ? "" : "s"}
+          {truncated && " · list capped at 500 rows, narrow the filters for a complete view"}
+        </div>
+        <select
+          aria-label="Filter cases by agent"
+          value={agentFilter}
+          onChange={(e) => setAgentFilter(e.target.value)}
+          className="h-9 rounded-lg border border-border/60 bg-card/60 px-2 text-xs text-foreground"
+        >
+          <option value="all">All agents</option>
+          {agents.map((a) => <option key={a.user_id} value={a.user_id}>{agentShortName(a)}</option>)}
+        </select>
+      </div>
+
+      {visible.length === 0 ? (
+        <EmptyState icon={Timer} title="No cases match this SLA filter" hint="Clear the state or agent filter to see more." />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1080px]">
+            <caption className="sr-only">Case-level SLA tracking</caption>
+            <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur">
+              <tr className="border-b border-border/70">
+                {["Case", "Agent", "Priority", "Stage", "Assigned", "First action", "Due", "Remaining", "SLA state", "Updated", ""].map((h) => (
+                  <th key={h} scope="col" className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((c) => {
+                const agent = c.agent_id ? agentById.get(c.agent_id) : undefined;
+                return (
+                  <tr key={c.id} className="border-b border-border/60 transition-colors hover:bg-card/50">
+                    <td className="px-3 py-2.5 text-sm">
+                      <button type="button" onClick={() => onOpenCase(c)} className="font-mono text-xs text-primary hover:underline">
+                        {c.task_code ?? c.id.slice(0, 8)}
+                      </button>
+                      <div className="max-w-[220px] truncate text-[11px] text-muted-foreground">{c.title ?? c.type}</div>
+                    </td>
+                    <td className="px-3 py-2.5 text-sm text-foreground">{c.agent_name ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-xs capitalize text-muted-foreground">{c.priority ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground">{String(c.stage ?? "—").replace(/_/g, " ")}</td>
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground">{dt(c.assigned_at)}</td>
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground">{dt(c.first_action_at)}</td>
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground">{dt(c.due_at)}</td>
+                    <td className={cn("px-3 py-2.5 text-xs tabular-nums",
+                      c.remaining_minutes != null && c.remaining_minutes < 0 ? "text-rose-300" : "text-muted-foreground")}>
+                      {remainingLabel(c.remaining_minutes)}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className={cn("rounded-full px-2 py-0.5 text-[11px]", STATE_META[c.sla_state].className)}>
+                        {STATE_META[c.sla_state].label}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground">{dt(c.updated_at)}</td>
+                    <td className="px-3 py-2.5 text-right">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => onEscalate(c)}
+                          className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          Escalate
+                        </button>
+                        {canRebalance && agent && (
+                          <button
+                            type="button"
+                            onClick={() => onRebalance(agent)}
+                            className="rounded-lg border border-border/70 bg-card/60 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          >
+                            Rebalance
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="overflow-x-auto">
+      <div className="mb-2 text-sm font-medium text-foreground">By agent</div>
       <table className="w-full min-w-[880px]">
         <caption className="sr-only">SLA compliance per agent, sortable by on time, overdue, breached and compliance</caption>
         <thead>
@@ -55,6 +240,7 @@ export function SLAComplianceTable({
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
