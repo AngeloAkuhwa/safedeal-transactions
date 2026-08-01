@@ -40,6 +40,54 @@ export function AgentCasesDrawer({
   }, [open, agent?.user_id]);
 
   const visible = slaOnly ? rows.filter((r) => r.is_overdue || r.sla_status === "breached") : rows;
+  const activeRows = visible.filter((r) => r.is_active);
+  const resolvedRows = visible.filter((r) => !r.is_active);
+
+  const openCase = (c: AgentCaseRow) => {
+    if (c.source === "dispute") navigate(`/admin/disputes/${c.dispute_id ?? c.id}`);
+    else navigate(`/admin/task-orchestration?task=${c.id}`);
+  };
+
+  const CaseCard = ({ c }: { c: AgentCaseRow }) => (
+    <button
+      type="button"
+      onClick={() => openCase(c)}
+      className={cn(
+        "w-full rounded-xl border border-border/60 bg-background/60 p-4 text-left backdrop-blur-sm transition hover:border-primary/40",
+        c.is_overdue && "ring-1 ring-inset ring-rose-500/30",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[11px] text-muted-foreground">
+              {c.case_ref ?? c.task_code ?? c.id.slice(0, 8)}
+            </span>
+            <Badge variant="outline" className="text-[10px] capitalize">{c.source}</Badge>
+          </div>
+          <div className="truncate text-sm font-medium capitalize text-foreground">{c.title ?? c.type ?? "Case"}</div>
+          <div className="mt-1 text-xs capitalize text-muted-foreground">
+            {(c.stage ?? c.status ?? "").replace(/_/g, " ")}
+            {" · "}
+            {c.resolved_at
+              ? `resolved ${new Date(c.resolved_at).toLocaleDateString()}`
+              : c.due_at
+                ? `due ${new Date(c.due_at).toLocaleString()}`
+                : "no SLA configured"}
+          </div>
+          {c.decision_summary && (
+            <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{c.decision_summary}</div>
+          )}
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <Badge variant={c.is_overdue ? "destructive" : "secondary"} className="text-[10px] capitalize">
+            {c.is_overdue ? "Overdue" : ((c.outcome_type ?? c.sla_status ?? "On track") as string).replace(/_/g, " ")}
+          </Badge>
+          {c.priority && <span className="text-[10px] uppercase text-muted-foreground">{c.priority}</span>}
+        </div>
+      </div>
+    </button>
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -64,33 +112,22 @@ export function AgentCasesDrawer({
               hint={slaOnly ? "This agent has no overdue or breached cases." : "This agent currently has no tasks in the queue."}
             />
           )}
-          {!loading && !error && visible.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => navigate(`/admin/task-orchestration?task=${c.id}`)}
-              className={cn(
-                "w-full rounded-xl border border-border/60 bg-background/60 p-4 text-left backdrop-blur-sm transition hover:border-primary/40",
-                c.is_overdue && "ring-1 ring-inset ring-rose-500/30",
-              )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-mono text-[11px] text-muted-foreground">{c.task_code ?? c.id.slice(0, 8)}</div>
-                  <div className="truncate text-sm font-medium text-foreground">{c.title ?? c.type ?? "Task"}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {c.stage ?? c.status} · due {c.due_at ? new Date(c.due_at).toLocaleString() : "—"}
-                  </div>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  <Badge variant={c.is_overdue ? "destructive" : "secondary"} className="text-[10px]">
-                    {c.is_overdue ? "Overdue" : (c.sla_status ?? "On track")}
-                  </Badge>
-                  {c.priority && <span className="text-[10px] uppercase text-muted-foreground">{c.priority}</span>}
-                </div>
+          {!loading && !error && activeRows.length > 0 && (
+            <>
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Active ({activeRows.length})
               </div>
-            </button>
-          ))}
+              {activeRows.map((c) => <CaseCard key={`${c.source}-${c.id}`} c={c} />)}
+            </>
+          )}
+          {!loading && !error && resolvedRows.length > 0 && (
+            <>
+              <div className="pt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Resolved ({resolvedRows.length})
+              </div>
+              {resolvedRows.map((c) => <CaseCard key={`${c.source}-${c.id}`} c={c} />)}
+            </>
+          )}
         </div>
       </SheetContent>
     </Sheet>
