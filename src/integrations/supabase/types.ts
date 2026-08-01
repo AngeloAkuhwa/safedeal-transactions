@@ -2252,6 +2252,86 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_remediations: {
+        Row: {
+          actor_user_id: string | null
+          adjustment_amount: number
+          after_balance: number
+          before_balance: number
+          correlation_id: string | null
+          created_at: string
+          evidence: Json
+          finding_key: string
+          id: string
+          idempotency_key: string
+          ledger_entry_id: string | null
+          reason_code: string
+          rule_code: string
+          transaction_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          adjustment_amount: number
+          after_balance: number
+          before_balance: number
+          correlation_id?: string | null
+          created_at?: string
+          evidence?: Json
+          finding_key: string
+          id?: string
+          idempotency_key: string
+          ledger_entry_id?: string | null
+          reason_code: string
+          rule_code: string
+          transaction_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          adjustment_amount?: number
+          after_balance?: number
+          before_balance?: number
+          correlation_id?: string | null
+          created_at?: string
+          evidence?: Json
+          finding_key?: string
+          id?: string
+          idempotency_key?: string
+          ledger_entry_id?: string | null
+          reason_code?: string
+          rule_code?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_remediations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_remediations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "seller_transactions_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_remediations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_remediations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "v_pricing_snapshot_audit"
+            referencedColumns: ["transaction_id"]
+          },
+        ]
+      }
       identity_submissions: {
         Row: {
           consent_accepted_at: string
@@ -6426,6 +6506,21 @@ export type Database = {
           total_users: number
         }[]
       }
+      apply_financial_remediation_atomic: {
+        Args: {
+          p_actor_user_id?: string
+          p_adjustment: number
+          p_correlation_id?: string
+          p_evidence?: Json
+          p_expected_after: number
+          p_expected_before: number
+          p_finding_key: string
+          p_reason_code: string
+          p_rule_code: string
+          p_transaction_id: string
+        }
+        Returns: Json
+      }
       apply_permission_change_set:
         | {
             Args: { _id: string; _reason?: string }
@@ -6566,6 +6661,10 @@ export type Database = {
         Args: { _transaction_id: string }
         Returns: number
       }
+      escrow_canonical_balance: {
+        Args: { _transaction_id: string }
+        Returns: number
+      }
       escrow_open_commitments: {
         Args: {
           _exclude_payout_id?: string
@@ -6590,6 +6689,13 @@ export type Database = {
       fail_refund_atomic: {
         Args: { p_reason: string; p_refund_id: string }
         Returns: Json
+      }
+      financial_acl_violations: {
+        Args: never
+        Returns: {
+          issue: string
+          routine: string
+        }[]
       }
       financial_lease_ttl_seconds: { Args: never; Returns: number }
       flag_for_release_review: {
@@ -6863,6 +6969,7 @@ export type Database = {
       }
       timeout_transaction_atomic: { Args: { p_tx_id: string }; Returns: Json }
       touch_internal_user_last_active: { Args: never; Returns: undefined }
+      trigger_reconcile_escrow: { Args: never; Returns: number }
       unfreeze_funds_atomic: {
         Args: {
           p_actor: string
@@ -6891,6 +6998,10 @@ export type Database = {
           _new_status: Database["public"]["Enums"]["transaction_status"]
           _old_status: Database["public"]["Enums"]["transaction_status"]
         }
+        Returns: boolean
+      }
+      verify_reconcile_cron_secret: {
+        Args: { p_secret: string }
         Returns: boolean
       }
     }

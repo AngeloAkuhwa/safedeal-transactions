@@ -15,12 +15,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { notifyOpsTeam } from "../_shared/notify.ts";
 import { formatMoney } from "../_shared/money-copy.ts";
+import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 function json(status: number, body: Record<string, unknown>): Response {
@@ -49,10 +50,49 @@ Deno.serve(async (req) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(supabaseUrl, serviceRoleKey);
 
+  // ---------------------------------------------------------------------
+  // AUTHORIZATION. Two — and only two — authorized callers:
+  //   1. the pg_cron scheduler, presenting the vault-held cron secret;
+  //   2. a signed-in back-office user holding `financial_controls.manage`.
+  // Anonymous / publishable-key / unauthenticated requests are rejected
+  // before any lease is taken or any row is read.
+  // ---------------------------------------------------------------------
+  const cronSecret = req.headers.get("x-cron-secret");
+  let caller: "scheduler" | "admin";
+  if (cronSecret) {
+    const { data: ok, error: verifyErr } = await admin.rpc(
+      "verify_reconcile_cron_secret",
+      { p_secret: cronSecret },
+    );
+    if (verifyErr) {
+      console.error("[reconcile-escrow] cron secret verification failed", verifyErr.message);
+      return json(500, { error: "cron_auth_unavailable" });
+    }
+    if (ok !== true) return json(401, { error: "unauthorized" });
+    caller = "scheduler";
+  } else {
+    try {
+      await requirePermission(req, "financial_controls.manage");
+      caller = "admin";
+    } catch (err) {
+      const r = authErrorResponse(err, corsHeaders);
+      if (r) return r;
+      console.error("[reconcile-escrow] auth error", err);
+      return json(500, { error: "auth_failed" });
+    }
+  }
+
   let body: Record<string, unknown> = {};
   try { body = await req.json(); } catch { /* allow empty */ }
   const runId = (typeof body.run_id === "string" ? body.run_id : crypto.randomUUID());
   const lookbackHours = Number((body as { lookback_hours?: unknown }).lookback_hours) || 24;
+  const dryRun = (body as { dry_run?: unknown }).dry_run === true;
+  console.log("[reconcile-escrow] authorized run", { caller, runId, dryRun });
+
+  if (dryRun) {
+    // Authorization smoke-check that touches no lease and writes no rows.
+    return json(200, { ok: true, dry_run: true, caller, run_id: runId });
+  }
 
   const since = new Date(Date.now() - lookbackHours * 60 * 60 * 1000).toISOString();
 
