@@ -71,7 +71,7 @@ export function AgentSLADrawer({
     setLoading(true);
     setError(null);
     try {
-      setRows(await fetchAgentCases(agent.user_id));
+      setRows((await fetchAgentCases(agent.user_id, filters)).cases);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load SLA data");
     } finally {
