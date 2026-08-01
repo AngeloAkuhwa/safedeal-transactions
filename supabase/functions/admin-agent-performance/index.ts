@@ -524,6 +524,13 @@ Deno.serve(async (req) => {
 
       const windowHistory = (history ?? []).filter((h) => inWindow(h.created_at, range.from, range.to));
       const reassignedAway = windowHistory.filter((h) => h.from_agent_id === u.id).length;
+      // Manager-initiated load balancing must never count against an agent.
+      const rebalanceOut = windowHistory.filter(
+        (h) =>
+          h.from_agent_id === u.id &&
+          /rebalanc|balanc|capacity|workload/i.test(`${h.mode ?? ""} ${h.reason ?? ""}`),
+      ).length;
+      const avoidableReassignments = Math.max(0, reassignedAway - rebalanceOut);
       const reassignedIn = windowHistory.filter(
         (h) => h.to_agent_id === u.id && h.from_agent_id && h.from_agent_id !== u.id,
       ).length;
@@ -582,8 +589,26 @@ Deno.serve(async (req) => {
         reassignments_out: reassignedAway,
         reassignments_in: reassignedIn,
         escalations,
+        first_action_sample: firstActionMs.length,
+        sla_sample: slaTracked.length,
+        avoidable_reassignments: avoidableReassignments,
+        // Cases deliberately kept out of penalty maths, with their reason.
+        score_exclusions: [
+          { reason: "Waiting on buyer or seller", count: waiting.length },
+          {
+            reason: "Paused by an authorised workflow",
+            count: active.filter((t) => String(t.sla_status) === "paused").length,
+          },
+          { reason: "No configured SLA", count: mine.filter((t) => !t.due_at).length },
+          { reason: "Manager rebalance reassignment", count: rebalanceOut },
+        ].filter((e) => e.count > 0),
         score: 0,
         score_band: "",
+        score_components: [] as ScoreComponent[],
+        score_penalties: [] as { reason: string; points: number }[],
+        score_included_cases: 0,
+        score_excluded_cases: 0,
+        insufficient_data: false,
       };
     };
 
