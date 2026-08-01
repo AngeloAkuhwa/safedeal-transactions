@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { EmptyState } from "./states/EmptyState";
-import { INNER_CARD_CLASS, slaTone } from "./helpers";
+import { INNER_CARD_CLASS, slaTone, toggleStateFilter } from "./helpers";
 import { SortableTh, useAgentSort } from "./useAgentSort";
 import {
   agentShortName, type AgentPerformanceRow, type SlaCaseRow, type SlaState,
@@ -79,12 +79,7 @@ export function SLAComplianceTable({
     [stateFilter],
   );
   /** Multi-select: chips toggle in and out of the server-side state filter. */
-  const toggleState = (s: SlaState) => {
-    const next = selectedStates.includes(s)
-      ? selectedStates.filter((x) => x !== s)
-      : [...selectedStates, s];
-    onStateFilterChange(next.length ? next.join(",") : "all");
-  };
+  const toggleState = (s: SlaState) => onStateFilterChange(toggleStateFilter(stateFilter, s));
   const visible = cases;
   const totalAll = useMemo(
     () => Object.values(counts).reduce((a, b) => a + b, 0),
