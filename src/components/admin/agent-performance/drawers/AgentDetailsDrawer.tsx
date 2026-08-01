@@ -18,7 +18,7 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: str
   );
 }
 
-export function AgentPerformanceDetailDrawer({
+export function AgentDetailsDrawer({
   agent, open, onOpenChange, onViewCases, onReviewSla, onRebalance, canRebalance,
 }: {
   agent: AgentPerformanceRow | null;
