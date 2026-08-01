@@ -193,10 +193,16 @@ export default function AdminAgentPerformance() {
     navigate(`/admin/task-orchestration?task=${c.id}&action=escalate`);
   };
 
-  const runExport = async ({ maskPii, reason }: { maskPii: boolean; reason: string }) => {
+  const runExport = async (
+    { maskPii, reason, report, agentId }:
+    { maskPii: boolean; reason: string; report: string; agentId: string | null },
+  ) => {
     setExporting(true);
     try {
-      const res = await exportAgentPerformance(filters, { tab, maskPii, reason });
+      const res = await exportAgentPerformance(filters, {
+        tab: report === "filtered_agent" ? tab : report,
+        maskPii, reason, agentId,
+      });
       downloadCsv(res.csv, res.filename);
       toast.success("Export ready", { description: res.filename });
       setExportOpen(false);
@@ -403,6 +409,12 @@ export default function AdminAgentPerformance() {
         rowCount={agents.length}
         onConfirm={runExport}
         busy={exporting}
+        defaultReport={tab}
+        rangeLabel={data?.range?.label ?? ""}
+        agents={agents.map((a) => ({
+          user_id: a.user_id,
+          name: a.full_name ?? `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim() || a.user_id,
+        }))}
       />
     </AdminLayout>
   );
