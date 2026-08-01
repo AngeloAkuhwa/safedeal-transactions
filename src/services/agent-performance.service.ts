@@ -33,6 +33,8 @@ export interface AgentPerformanceRow {
   on_time: number;
   sla_compliance: number;
   reassignments: number;
+  reassignments_in: number;
+  reassignments_out: number;
   escalations: number;
   score: number;
   score_band: string;
@@ -43,6 +45,8 @@ export interface AgentPerformanceSummaryData {
   active_agents_delta: number;
   live_agents: number;
   open_disputes: number;
+  open_disputes_platform: number;
+  open_disputes_unassigned: number;
   resolved_in_window: number;
   resolved_delta_pct: number | null;
   avg_resolution_hours: number | null;
@@ -135,6 +139,7 @@ export interface AgentCaseRow {
   stage: string | null;
   sla_status: string | null;
   due_at: string | null;
+  created_at: string | null;
   assigned_at: string | null;
   resolved_at: string | null;
   dispute_id: string | null;
