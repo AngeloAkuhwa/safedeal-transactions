@@ -736,6 +736,7 @@ Deno.serve(async (req) => {
     const days: {
       date: string; label: string;
       resolved: number; assigned: number;
+      completed: number; untracked: number;
       avg_hours: number | null; prev_avg_hours: number | null;
       on_time: number; breached: number; compliance: number | null;
     }[] = [];
