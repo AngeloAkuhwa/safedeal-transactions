@@ -2,29 +2,33 @@ import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { EmptyState } from "./states/EmptyState";
 import { slaTone } from "./helpers";
+import { SortableTh, useAgentSort } from "./useAgentSort";
 import { agentShortName, type AgentPerformanceRow } from "@/services/agent-performance.service";
 import { Timer } from "lucide-react";
 
 export function SLAComplianceTable({
   agents, onReviewSla,
 }: { agents: AgentPerformanceRow[]; onReviewSla: (a: AgentPerformanceRow) => void }) {
+  const { sorted, sortKey, sortDir, toggle } = useAgentSort(agents, "sla_compliance");
   if (agents.length === 0) {
     return <EmptyState icon={Timer} title="No SLA data" hint="No cases were handled in this range." />;
   }
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[880px]">
+        <caption className="sr-only">SLA compliance per agent, sortable by on time, overdue, breached and compliance</caption>
         <thead>
           <tr className="border-b border-border/70">
-            {["Agent", "On Time", "Overdue", "Breached", "Compliance", ""].map((h, i) => (
-              <th key={h || i} className={cn("px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground", i === 0 ? "text-left" : i === 5 ? "text-right" : "text-center")}>
-                {h}
-              </th>
-            ))}
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground" scope="col">Agent</th>
+            <SortableTh label="On Time" sortKey="on_time" active={sortKey === "on_time"} dir={sortDir} onToggle={toggle} className="text-center" />
+            <SortableTh label="Overdue" sortKey="overdue" active={sortKey === "overdue"} dir={sortDir} onToggle={toggle} className="text-center" />
+            <SortableTh label="Breached" sortKey="breached" active={sortKey === "breached"} dir={sortDir} onToggle={toggle} className="text-center" />
+            <SortableTh label="Compliance" sortKey="sla_compliance" active={sortKey === "sla_compliance"} dir={sortDir} onToggle={toggle} className="text-left" />
+            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground" scope="col" />
           </tr>
         </thead>
         <tbody>
-          {agents.map((a) => (
+          {sorted.map((a) => (
             <tr key={a.user_id} className="border-b border-border/60 transition-colors hover:bg-card/50">
               <td className="px-4 py-3 text-sm font-medium text-foreground">{agentShortName(a)}</td>
               <td className="px-4 py-3 text-center text-sm text-emerald-300">{a.on_time}</td>
