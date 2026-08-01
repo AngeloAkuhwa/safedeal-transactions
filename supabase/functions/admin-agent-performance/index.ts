@@ -606,6 +606,8 @@ Deno.serve(async (req) => {
       resolved_delta_pct: resolvedDeltaPct,
       avg_resolution_hours: avgResolution,
       avg_resolution_sample: resolutionSamples.length,
+      avg_resolution_sample_tasks: taskSamples.length,
+      avg_resolution_sample_disputes: disputeSamples.length,
       avg_resolution_delta: resolutionDelta,
       overdue_cases: overdueTotal,
       top_agent: top ? { user_id: top.user_id, name: top.full_name ?? top.email, score: top.score } : null,
