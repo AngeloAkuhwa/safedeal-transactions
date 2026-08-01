@@ -124,7 +124,7 @@ Every Super Admin check — in the UI, the edge function and the SECURITY DEFINE
 
 Eight statuses stay separate and are never merged in display: transaction lifecycle, payment, escrow, dispute, resolution outcome, release approval, payout execution, reconciliation.
 
-`resolved + funds_pending_release`:
+`resolved + funds_pending_release` (confirmed decision: SLA source is the configurable `system_settings.release_review_target_hours`, currently 24; never hardcoded in UI):
 - **Normal** while `now() - resolved_at <= release_review_target_hours` (read from `system_settings` through the existing settings resolver; no UI hardcoding).
 - **Requires review** past that SLA — creates or updates one active finding.
 - **Mismatch** (severity by amount and cause) when the payout failed, no valid payout or release instruction exists, escrow says released while the payout is pending or failed, canonical values disagree with stored values, or the ledger balance contradicts the escrow state.
