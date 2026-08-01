@@ -26,6 +26,7 @@ export interface AdminNotifPerformance {
 
 export interface AdminNotifUser {
   id: string;
+  public_user_id?: string | null;
   full_name: string | null;
   email: string | null;
   avatar_url: string | null;

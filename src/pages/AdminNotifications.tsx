@@ -86,8 +86,7 @@ const InlineDot = ({ online }: { online: boolean }) => (
     className={`inline-block h-2 w-2 rounded-full shrink-0 ${online ? "bg-emerald-500" : "bg-slate-500/60"}`}
   />
 );
-const shortUsrId = (id?: string | null) =>
-  id ? `USR-${id.replace(/-/g, "").slice(0, 5).toUpperCase()}` : "USR-—";
+const shortUsrId = (publicUserId?: string | null) => publicUserId || "USR-—";
 const shortTxnCode = (t: { code: string | null; id: string } | null) =>
   t ? (t.code || `TXN-${t.id.replace(/-/g, "").slice(0, 5).toUpperCase()}`) : "";
 const shortDisId = (id: string | null) =>
@@ -362,7 +361,7 @@ function FailedTable({ rows, onRetry, onRetryAll, retrying, onExport, onDetails 
                                 onClick={() => navigate(`/admin/users/${r.user!.id}`)}
                                 className="text-purple-400 hover:text-purple-300 font-mono"
                               >
-                                {shortUsrId(r.user.id)}
+                                {shortUsrId(r.user.public_user_id)}
                               </button>
                             ) : "—"}
                           </div>
@@ -672,7 +671,7 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
                         {r.user?.id && <InlineDot online={isOnline(r.user.id)} />}
                         <span className="truncate">{r.user?.email ?? r.user?.full_name ?? "—"}</span>
                       </div>
-                      <div className="text-xs text-muted-foreground">ID: {shortUsrId(r.user?.id)}</div>
+                      <div className="text-xs text-muted-foreground">ID: {shortUsrId(r.user?.public_user_id)}</div>
                     </div>
                   </div>
                 </td>
@@ -908,7 +907,7 @@ export default function AdminNotifications() {
               <div>
                 <div className="text-xs uppercase text-muted-foreground tracking-wider mb-1">Recipient</div>
                 <div className="text-foreground">{details.user?.email ?? "—"}</div>
-                <div className="text-xs text-muted-foreground font-mono">{shortUsrId(details.user?.id)}</div>
+                <div className="text-xs text-muted-foreground font-mono">{shortUsrId(details.user?.public_user_id)}</div>
               </div>
             </div>
           )}

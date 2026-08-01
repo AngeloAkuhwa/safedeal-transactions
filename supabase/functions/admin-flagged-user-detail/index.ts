@@ -43,14 +43,14 @@ Deno.serve(async (req) => {
   // Profile (even if no flag, return 404 only when neither profile nor signals exist)
   const { data: profile } = await admin
     .from("profiles")
-    .select("id, full_name, email, phone, avatar_url, status, default_role, created_at")
+    .select("id, public_user_id, full_name, email, phone, avatar_url, status, default_role, created_at")
     .eq("id", user_id).maybeSingle();
 
   if (!row && !profile) return json(404, { error: "user_not_found" });
 
   const user = row?.user ?? {
     id: user_id,
-    display_id: `USR-${user_id.slice(0, 8).toUpperCase()}`,
+    display_id: String((prof as Record<string, unknown> | null)?.public_user_id ?? ""),
     full_name: (profile?.full_name as string) ?? "Unknown user",
     email: (profile?.email as string) ?? "",
     phone: (profile?.phone as string) ?? null,

@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
   }
 
   const header = [
-    "user_id", "display_id", "full_name", "handle", "email", "phone",
+    "public_user_id", "full_name", "handle", "email", "phone",
     "roles", "verification_level", "id_status",
     "transactions_count", "transactions_volume_ngn",
     "disputes_total", "disputes_active",
@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
   for (const r of body.rows ?? []) {
     const v = r as Record<string, any>;
     lines.push([
-      v.user_id, v.display_id, v.full_name, v.handle, v.email, v.phone ?? "",
+      v.display_id, v.full_name, v.handle, v.email, v.phone ?? "",
       (v.roles ?? []).join("; "),
       v.verification?.level ?? "", v.verification?.id_status ?? "",
       v.transactions?.count ?? 0, v.transactions?.volume ?? 0,

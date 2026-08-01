@@ -4082,6 +4082,7 @@ export type Database = {
           is_region_eligible: boolean
           last_login_at: string | null
           phone: string | null
+          public_user_id: string
           state_name: string | null
           status: Database["public"]["Enums"]["profile_status"]
           store_slug: string | null
@@ -4104,6 +4105,7 @@ export type Database = {
           is_region_eligible?: boolean
           last_login_at?: string | null
           phone?: string | null
+          public_user_id: string
           state_name?: string | null
           status?: Database["public"]["Enums"]["profile_status"]
           store_slug?: string | null
@@ -4126,6 +4128,7 @@ export type Database = {
           is_region_eligible?: boolean
           last_login_at?: string | null
           phone?: string | null
+          public_user_id?: string
           state_name?: string | null
           status?: Database["public"]["Enums"]["profile_status"]
           store_slug?: string | null
@@ -4158,6 +4161,67 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      public_user_id_mapping: {
+        Row: {
+          frozen: boolean
+          generated_at: string
+          public_user_id: string
+          user_id: string
+        }
+        Insert: {
+          frozen?: boolean
+          generated_at?: string
+          public_user_id: string
+          user_id: string
+        }
+        Update: {
+          frozen?: boolean
+          generated_at?: string
+          public_user_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_user_id_mapping_public_user_id_fkey"
+            columns: ["public_user_id"]
+            isOneToOne: true
+            referencedRelation: "public_user_id_registry"
+            referencedColumns: ["public_user_id"]
+          },
+          {
+            foreignKeyName: "public_user_id_mapping_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "admin_user_directory_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "public_user_id_mapping_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_user_id_registry: {
+        Row: {
+          first_assigned_at: string
+          public_user_id: string
+          retired_at: string | null
+        }
+        Insert: {
+          first_assigned_at?: string
+          public_user_id: string
+          retired_at?: string | null
+        }
+        Update: {
+          first_assigned_at?: string
+          public_user_id?: string
+          retired_at?: string | null
+        }
+        Relationships: []
       }
       refunds: {
         Row: {
@@ -6405,6 +6469,7 @@ export type Database = {
           latest_tx_code: string
           latest_tx_id: string
           phone: string
+          public_user_id: string
           reason_keys: string[]
           refunds_30d: number
           reversed_payouts: number
@@ -6485,6 +6550,7 @@ export type Database = {
           last_active_at: string
           phone: string
           phone_verified: boolean
+          public_user_id: string
           roles: string[]
           total_count: number
           tx_count: number
@@ -6712,6 +6778,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["money_status"]
       }
       generate_employee_id: { Args: never; Returns: string }
+      generate_public_user_id: { Args: never; Returns: string }
       generate_transaction_code: { Args: never; Returns: string }
       get_effective_setting: {
         Args: { _key: string; _vendor_id: string }

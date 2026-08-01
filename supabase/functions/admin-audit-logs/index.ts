@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
     } else {
       const like = `%${q.replace(/[,()]/g, " ")}%`;
       const [{ data: matchedProfiles }, { data: matchedTx }, allTypes] = await Promise.all([
-        admin.from("profiles").select("id").or(`full_name.ilike.${like},email.ilike.${like}`).limit(200),
+        admin.from("profiles").select("id").or(`full_name.ilike.${like},email.ilike.${like},public_user_id.eq.${q.trim().toUpperCase()}`).limit(200),
         admin.from("transactions").select("id").ilike("transaction_code", like).limit(200),
         listActionTypes(admin),
       ]);
@@ -207,10 +207,10 @@ Deno.serve(async (req) => {
   const userIds = Array.from(new Set(
     list.flatMap((r) => [r.admin_user_id, r.target_user_id]).filter(Boolean) as string[],
   ));
-  const profileMap = new Map<string, { full_name: string | null; email: string | null; avatar_url: string | null }>();
+  const profileMap = new Map<string, { public_user_id: string | null; full_name: string | null; email: string | null; avatar_url: string | null }>();
   if (userIds.length) {
     const { data: profs } = await admin.from("profiles")
-      .select("id, full_name, email, avatar_url")
+      .select("id, public_user_id, full_name, email, avatar_url")
       .in("id", userIds);
     for (const p of profs ?? []) profileMap.set(p.id, p);
   }
@@ -240,6 +240,7 @@ Deno.serve(async (req) => {
       },
       target: {
         user_id: r.target_user_id,
+        public_user_id: targetProf?.public_user_id ?? null,
         user_email: targetProf?.email ?? null,
         user_name: targetProf?.full_name ?? null,
         transaction_id: r.transaction_id,

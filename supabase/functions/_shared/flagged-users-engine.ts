@@ -492,7 +492,7 @@ export async function buildRows(admin: SupabaseClient, range: string): Promise<R
   if (userIds.length) {
     const { data: ps } = await admin
       .from("profiles")
-      .select("id, full_name, email, avatar_url, status, phone, default_role, created_at")
+      .select("id, public_user_id, full_name, email, avatar_url, status, phone, default_role, created_at")
       .in("id", userIds);
     for (const p of ps ?? []) profiles.set(p.id as string, p as never);
   }
@@ -546,7 +546,7 @@ export async function buildRows(admin: SupabaseClient, range: string): Promise<R
       user_id: u.user_id,
       user: {
         id: u.user_id,
-        display_id: `USR-${u.user_id.slice(0, 8).toUpperCase()}`,
+        display_id: String((p as Record<string, unknown> | undefined)?.public_user_id ?? ""),
         full_name: (p?.full_name as string) ?? "Unknown user",
         email: (p?.email as string) ?? "",
         phone: (p?.phone as string) ?? null,

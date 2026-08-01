@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
   const body = await res.json() as { rows: any[] };
 
   const header = [
-    "user_id", "display_id", "full_name", "email", "phone",
+    "public_user_id", "full_name", "email", "phone",
     "risk_level", "risk_score", "status",
     "flag_reasons", "amount_at_risk",
     "disputes_30d", "refunds_30d",
@@ -81,7 +81,6 @@ Deno.serve(async (req) => {
   const lines = [header.join(",")];
   for (const r of body.rows ?? []) {
     lines.push([
-      r.user_id,
       r.user?.display_id ?? "",
       r.user?.full_name ?? "",
       r.user?.email ?? "",
