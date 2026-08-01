@@ -6938,6 +6938,8 @@ export type Database = {
         | "permission_updated"
         | "permission_status_changed"
         | "permission_deprecated"
+        | "retry_payout"
+        | "request_more_info"
       admin_investigation_priority: "low" | "medium" | "high" | "critical"
       admin_investigation_status:
         | "open"
@@ -7409,6 +7411,8 @@ export const Constants = {
         "permission_updated",
         "permission_status_changed",
         "permission_deprecated",
+        "retry_payout",
+        "request_more_info",
       ],
       admin_investigation_priority: ["low", "medium", "high", "critical"],
       admin_investigation_status: [
