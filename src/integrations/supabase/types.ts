@@ -2216,6 +2216,42 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_job_leases: {
+        Row: {
+          acquired_at: string
+          created_at: string
+          expires_at: string
+          heartbeat_at: string
+          holder: string | null
+          job_name: string
+          lease_token: string
+          run_count: number
+          updated_at: string
+        }
+        Insert: {
+          acquired_at?: string
+          created_at?: string
+          expires_at: string
+          heartbeat_at?: string
+          holder?: string | null
+          job_name: string
+          lease_token: string
+          run_count?: number
+          updated_at?: string
+        }
+        Update: {
+          acquired_at?: string
+          created_at?: string
+          expires_at?: string
+          heartbeat_at?: string
+          holder?: string | null
+          job_name?: string
+          lease_token?: string
+          run_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       identity_submissions: {
         Row: {
           consent_accepted_at: string
@@ -6152,6 +6188,10 @@ export type Database = {
       }
     }
     Functions: {
+      acquire_job_lease: {
+        Args: { p_holder?: string; p_job_name: string; p_ttl_seconds?: number }
+        Returns: Json
+      }
       admin_correct_pricing: {
         Args: {
           p_item_amount: number
@@ -6464,10 +6504,17 @@ export type Database = {
         Returns: undefined
       }
       complete_payout_atomic: {
-        Args: { p_amount: number; p_payout_id: string }
+        Args: {
+          p_amount: number
+          p_payout_id: string
+          p_provider_event_id?: string
+        }
         Returns: Json
       }
-      complete_refund_atomic: { Args: { p_refund_id: string }; Returns: Json }
+      complete_refund_atomic: {
+        Args: { p_provider_event_id?: string; p_refund_id: string }
+        Returns: Json
+      }
       compute_transaction_search_tsv: {
         Args: { _tx_id: string }
         Returns: unknown
@@ -6519,6 +6566,22 @@ export type Database = {
         Args: { _transaction_id: string }
         Returns: number
       }
+      escrow_open_commitments: {
+        Args: {
+          _exclude_payout_id?: string
+          _exclude_refund_id?: string
+          _transaction_id: string
+        }
+        Returns: number
+      }
+      escrow_uncommitted_available: {
+        Args: {
+          _exclude_payout_id?: string
+          _exclude_refund_id?: string
+          _transaction_id: string
+        }
+        Returns: number
+      }
       expire_stale_offers: { Args: never; Returns: number }
       fail_payout_atomic: {
         Args: { p_max_retries?: number; p_payout_id: string; p_reason: string }
@@ -6528,6 +6591,7 @@ export type Database = {
         Args: { p_reason: string; p_refund_id: string }
         Returns: Json
       }
+      financial_lease_ttl_seconds: { Args: never; Returns: number }
       flag_for_release_review: {
         Args: {
           p_actor_user_id: string
@@ -6574,6 +6638,14 @@ export type Database = {
         Args: {
           _role: Database["public"]["Enums"]["user_role_type"]
           _user_id: string
+        }
+        Returns: boolean
+      }
+      heartbeat_job_lease: {
+        Args: {
+          p_job_name: string
+          p_lease_token: string
+          p_ttl_seconds?: number
         }
         Returns: boolean
       }
@@ -6712,6 +6784,10 @@ export type Database = {
           transaction_id: string
         }[]
       }
+      release_job_lease: {
+        Args: { p_job_name: string; p_lease_token: string }
+        Returns: boolean
+      }
       release_payout_atomic: {
         Args: {
           p_actor_user_id: string
@@ -6752,7 +6828,12 @@ export type Database = {
         Returns: Json
       }
       reverse_payout_atomic: {
-        Args: { p_amount: number; p_payout_id: string; p_reason: string }
+        Args: {
+          p_amount: number
+          p_payout_id: string
+          p_provider_event_id?: string
+          p_reason: string
+        }
         Returns: Json
       }
       set_permission_template_items: {
