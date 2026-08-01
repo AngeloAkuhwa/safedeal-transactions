@@ -38,6 +38,8 @@ const DEBIT_ENTRY_TYPES = new Set([
   "refund_debit",
 ]);
 const TOLERANCE = 0.01;
+const LEASE_JOB_NAME = "reconcile-escrow";
+const HEARTBEAT_EVERY_MS = 30_000;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -54,6 +56,52 @@ Deno.serve(async (req) => {
 
   const since = new Date(Date.now() - lookbackHours * 60 * 60 * 1000).toISOString();
 
+  // 0. Single-runner lease. A stale lease (no heartbeat within the configured
+  //    TTL) is taken over automatically; an active one short-circuits the run.
+  const { data: leaseRes, error: leaseErr } = await admin.rpc("acquire_job_lease", {
+    p_job_name: LEASE_JOB_NAME,
+    p_holder: runId,
+  });
+  if (leaseErr) {
+    console.error("[reconcile-escrow] lease acquire failed", leaseErr);
+    return json(500, { error: "lease_acquire_failed", detail: leaseErr.message });
+  }
+  const lease = (leaseRes ?? {}) as {
+    acquired?: boolean; lease_token?: string; held_by?: string; expires_at?: string;
+  };
+  if (!lease.acquired) {
+    console.warn("[reconcile-escrow] another run holds the lease", lease);
+    return json(409, {
+      error: "reconciliation_already_running",
+      held_by: lease.held_by ?? null,
+      expires_at: lease.expires_at ?? null,
+    });
+  }
+  const leaseToken = lease.lease_token!;
+  let lastHeartbeat = Date.now();
+  const heartbeat = async () => {
+    if (Date.now() - lastHeartbeat < HEARTBEAT_EVERY_MS) return;
+    lastHeartbeat = Date.now();
+    const { data: alive } = await admin.rpc("heartbeat_job_lease", {
+      p_job_name: LEASE_JOB_NAME,
+      p_lease_token: leaseToken,
+    });
+    if (alive === false) {
+      console.warn("[reconcile-escrow] lease lost mid-run", { runId });
+    }
+  };
+  const finish = async (status: number, payload: Record<string, unknown>) => {
+    try {
+      await admin.rpc("release_job_lease", {
+        p_job_name: LEASE_JOB_NAME,
+        p_lease_token: leaseToken,
+      });
+    } catch (e) {
+      console.warn("[reconcile-escrow] lease release failed", e);
+    }
+    return json(status, payload);
+  };
+
   // 1. Candidate transactions: anything updated in window + anything with an
   //    open drift from a prior run.
   const { data: recentTx, error: recentErr } = await admin
@@ -63,7 +111,7 @@ Deno.serve(async (req) => {
     .not("money_status", "in", "(not_secured,payment_pending)");
   if (recentErr) {
     console.error("[reconcile-escrow] tx fetch failed", recentErr);
-    return json(500, { error: "tx_fetch_failed", detail: recentErr.message });
+    return await finish(500, { error: "tx_fetch_failed", detail: recentErr.message });
   }
 
   const { data: openDrift } = await admin
@@ -77,7 +125,7 @@ Deno.serve(async (req) => {
   const txIds = Array.from(ids);
 
   if (txIds.length === 0) {
-    return json(200, { ok: true, run_id: runId, considered: 0, drift_count: 0 });
+    return await finish(200, { ok: true, run_id: runId, considered: 0, drift_count: 0 });
   }
 
   // 2. Fetch all relevant operational rows in one round-trip each.
@@ -109,7 +157,7 @@ Deno.serve(async (req) => {
       payments: payments.error, payouts: payouts.error, refunds: refunds.error,
       ledger: ledger.error, tx: txRows.error,
     });
-    return json(500, { error: "fetch_failed" });
+    return await finish(500, { error: "fetch_failed" });
   }
 
   const sumBy = <T extends { transaction_id: string }>(
