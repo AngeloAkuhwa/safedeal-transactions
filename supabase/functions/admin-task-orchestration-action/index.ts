@@ -94,7 +94,8 @@ Deno.serve(async (req) => {
   const isCronCall = !!cronSecret && !!expectedCronSecret && cronSecret === expectedCronSecret
     && AUTOMATION_ACTIONS.has(body.action);
 
-  let ctx: { userId: string; adminClient: any; hasPermission?: (k: string) => boolean };
+  // deno-lint-ignore no-explicit-any
+  let ctx: any;
   if (isCronCall) {
     const systemClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
