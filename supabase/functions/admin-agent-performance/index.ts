@@ -565,17 +565,17 @@ Deno.serve(async (req) => {
     const taskDisputeIdsAll = new Set(
       scopedTasks.filter((t) => DONE_STATUSES.has(String(t.status)) && t.dispute_id).map((t) => t.dispute_id) as string[],
     );
-    const resolutionSamples = scopedTasks
+    const taskSamples = scopedTasks
       .filter((t) =>
         DONE_STATUSES.has(String(t.status)) &&
         !CANCELLED_STATUSES.has(String(t.status)) &&
         inWindow(t.resolved_at, range.from, range.to) &&
         t.assigned_at && t.resolved_at)
       .map((t) => new Date(t.resolved_at!).getTime() - new Date(t.assigned_at!).getTime())
-      .filter((ms) => ms >= 0)
-      .concat(
-        ranked.flatMap((r) => disputeResolutionMs(r.user_id, range.from, range.to, taskDisputeIdsAll)),
-      );
+      .filter((ms) => ms >= 0);
+    const disputeSamples = ranked.flatMap((r) =>
+      disputeResolutionMs(r.user_id, range.from, range.to, taskDisputeIdsAll));
+    const resolutionSamples = taskSamples.concat(disputeSamples);
     const avgResolution = resolutionSamples.length ? hours(avg(resolutionSamples)) : null;
 
     const prevResolutionMs = scopedTasks
