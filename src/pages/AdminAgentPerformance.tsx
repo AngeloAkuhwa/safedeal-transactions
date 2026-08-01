@@ -11,6 +11,8 @@ import { WorkloadTable } from "@/components/admin/agent-performance/WorkloadTabl
 import { PerformanceDashboard } from "@/components/admin/agent-performance/PerformanceDashboard";
 import { SLAComplianceTable } from "@/components/admin/agent-performance/SLAComplianceTable";
 import { RankingsTable } from "@/components/admin/agent-performance/RankingsTable";
+import { RankingsFilters } from "@/components/admin/agent-performance/RankingsFilters";
+import { ScoreBreakdownDialog } from "@/components/admin/agent-performance/ScoreBreakdownDialog";
 import { AgentDetailsDrawer } from "@/components/admin/agent-performance/drawers/AgentDetailsDrawer";
 import { AgentCasesDrawer } from "@/components/admin/agent-performance/drawers/AgentCasesDrawer";
 import { ExportPerformanceDialog } from "@/components/admin/agent-performance/drawers/ExportPerformanceDialog";
@@ -71,6 +73,7 @@ export default function AdminAgentPerformance() {
 
   const [detailAgent, setDetailAgent] = useState<AgentPerformanceRow | null>(null);
   const [casesAgent, setCasesAgent] = useState<AgentPerformanceRow | null>(null);
+  const [scoreAgent, setScoreAgent] = useState<AgentPerformanceRow | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -265,9 +268,14 @@ export default function AdminAgentPerformance() {
           />
         );
       case "rankings":
-        return <RankingsTable agents={agents} onViewDetail={setDetailAgent} />;
+        return (
+          <div className="space-y-4">
+            <RankingsFilters filters={filters} onChange={patchFilters} />
+            <RankingsTable agents={agents} onViewDetail={setDetailAgent} onViewScore={setScoreAgent} />
+          </div>
+        );
     }
-  }, [data, tab, agents, canRebalance, canViewCases, canReviewSla, filtersDirty, slaState, slaAgentId, slaPriority, slaStage, slaPage, filters.scope]);
+  }, [data, tab, agents, canRebalance, canViewCases, canReviewSla, filtersDirty, slaState, slaAgentId, slaPriority, slaStage, slaPage, filters]);
 
   return (
     <AdminLayout
@@ -357,10 +365,27 @@ export default function AdminAgentPerformance() {
         agent={detailAgent}
         open={!!detailAgent}
         onOpenChange={(v) => !v && setDetailAgent(null)}
+        filters={filters}
         onViewCases={(a) => { setDetailAgent(null); openCases(a); }}
+        onViewOverdue={(a) => {
+          setDetailAgent(null);
+          setTab("sla");
+          setSlaAgentId(a.user_id);
+          setSlaState("breached");
+          setSlaPage(1);
+        }}
         onReviewSla={(a) => { setDetailAgent(null); openSla(a); }}
         onRebalance={openRebalance}
+        onOpenOrchestration={(a) => navigate(`/admin/task-orchestration?tab=queue&assignee=${a.user_id}`)}
+        onOpenUserRecord={(a) => navigate(`/admin/access-control?user=${a.user_id}`)}
+        onOpenAuditHistory={(a) => navigate(`/admin/audit-logs?actor=${a.user_id}`)}
         canRebalance={canRebalance}
+      />
+
+      <ScoreBreakdownDialog
+        agent={scoreAgent}
+        open={!!scoreAgent}
+        onOpenChange={(v) => !v && setScoreAgent(null)}
       />
 
       <AgentCasesDrawer
