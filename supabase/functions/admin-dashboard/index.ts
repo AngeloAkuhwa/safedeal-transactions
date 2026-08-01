@@ -641,8 +641,16 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       high_severity_actions_24h: highSev24h,
       impersonation_sessions_24h: 0,
       failed_admin_logins_24h: 0,
-      compliance_status: highSev24h > 10 ? "amber" : "green",
+      // Compliance can only be "green" when reconciliation is clean — the
+      // same figure the Escrow page reports.
+      compliance_status:
+        reconSummary.mismatch > 0
+          ? "red"
+          : (reconSummary.requires_review > 0 || highSev24h > 10)
+            ? "amber"
+            : "green",
       compliance_last_check_iso: now.toISOString(),
+      reconciliation: reconSummary,
     },
     critical_alerts: criticalAlerts,
     recent_activity: recentActivity,

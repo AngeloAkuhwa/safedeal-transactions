@@ -98,6 +98,14 @@ export interface AuditComplianceSignal {
   failed_admin_logins_24h: number;
   compliance_status: "green" | "amber" | "red";
   compliance_last_check_iso: string;
+  /** Canonical reconciliation counts — identical to the Escrow page. */
+  reconciliation?: {
+    reconciled: number;
+    pending_settlement: number;
+    mismatch: number;
+    requires_review: number;
+    total: number;
+  };
 }
 
 export interface AdminAlert {
