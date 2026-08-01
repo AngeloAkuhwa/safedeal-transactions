@@ -804,6 +804,12 @@ Deno.serve(async (req) => {
       quality_review_score: null as number | null,
       agents_counted: ranked.length,
       granularity,
+      // Sample sizes so every average can state what it was measured on.
+      resolution_sample: resolutionSamples.length,
+      resolution_sample_tasks: taskSamples.length,
+      resolution_sample_disputes: disputeSamples.length,
+      first_action_sample: firstActionSamples.length,
+      sla_sample: onTimeTotal + breachedTotal,
     };
 
     const statusBuckets = { active: 0, waiting: 0, escalated: 0, overdue: 0, resolved: 0 } as Record<string, number>;
@@ -819,6 +825,14 @@ Deno.serve(async (req) => {
       } else if (st === "escalated") statusBuckets.escalated += 1;
       else if (WAITING_STATUSES.has(st)) statusBuckets.waiting += 1;
       else statusBuckets.active += 1;
+    }
+    // Dispute-only resolutions have no task row but are counted in the
+    // resolved KPI, so the distribution must include them to reconcile.
+    for (const o of outcomes ?? []) {
+      if (!o.resolved_by_user_id || !scopedIds.has(o.resolved_by_user_id)) continue;
+      if (!inWindow(o.resolved_at, range.from, range.to)) continue;
+      if (o.dispute_id && taskDisputeIdsAll.has(o.dispute_id)) continue;
+      statusBuckets.resolved += 1;
     }
 
     // ---- SLA case rows (SLA Compliance tab) --------------------------------
