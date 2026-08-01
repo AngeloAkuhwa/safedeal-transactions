@@ -81,6 +81,7 @@ Deno.serve(async (req) => {
 
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const isExport = body.mode === "export";
+  const isAgentCases = body.mode === "agent_cases";
 
   let ctx;
   try {
@@ -93,6 +94,37 @@ Deno.serve(async (req) => {
 
   const admin = ctx.adminClient;
   const range = resolveRange(body);
+
+  // ---- per-agent case list (drawer) -------------------------------------
+  if (isAgentCases) {
+    const agentId = String(body.agent_id ?? "");
+    if (!agentId) {
+      return new Response(JSON.stringify({ error: "agent_id_required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: caseRows, error: caseErr } = await admin
+      .from("orchestration_tasks")
+      .select("id, task_code, title, type, priority, status, stage, sla_status, due_at, assigned_at, resolved_at, dispute_id, transaction_id, amount, currency, escalation_level")
+      .eq("assigned_agent_id", agentId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (caseErr) {
+      return new Response(JSON.stringify({ error: "cases_fetch_failed" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const nowTs = Date.now();
+    const cases = (caseRows ?? []).map((t) => ({
+      ...t,
+      is_active: ACTIVE_STATUSES.has(String(t.status)),
+      is_overdue: ["overdue", "breached"].includes(String(t.sla_status)) ||
+        (!!t.due_at && !t.resolved_at && new Date(t.due_at).getTime() < nowTs),
+    }));
+    return new Response(JSON.stringify({ cases }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const [
