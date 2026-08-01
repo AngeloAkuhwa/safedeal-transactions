@@ -461,9 +461,11 @@ async function handleTransferSuccess(
       return;
     }
     const amount = Number(payout.amount);
+    const eventId = String(payload.data?.id ?? reference);
     const { error } = await supabase.rpc("complete_payout_atomic", {
       p_payout_id: payout.id,
       p_amount: amount,
+      p_provider_event_id: eventId,
     });
     if (error) {
       await updateWebhookLog(supabase, reference, false, `complete_payout_atomic: ${error.message}`);
@@ -560,10 +562,12 @@ async function handleTransferReversed(
       return;
     }
     const reason = payload.data?.reason || payload.data?.message || "reversed by Paystack";
+    const eventId = String(payload.data?.id ?? reference);
     const { error } = await supabase.rpc("reverse_payout_atomic", {
       p_payout_id: payout.id,
       p_amount: Number(payout.amount),
       p_reason: reason,
+      p_provider_event_id: eventId,
     });
     if (error) {
       await updateWebhookLog(supabase, reference, false, `reverse_payout_atomic: ${error.message}`);
@@ -618,7 +622,10 @@ async function handleRefundProcessed(
       await updateWebhookLog(supabase, reference, true, "refund.processed: no matching refund");
       return;
     }
-    const { error } = await supabase.rpc("complete_refund_atomic", { p_refund_id: refund.id });
+    const { error } = await supabase.rpc("complete_refund_atomic", {
+      p_refund_id: refund.id,
+      p_provider_event_id: String(payload.data?.id ?? reference),
+    });
     if (error) {
       await updateWebhookLog(supabase, reference, false, `complete_refund_atomic: ${error.message}`);
       return;
