@@ -180,6 +180,9 @@ Deno.serve(async (req) => {
     const callerPerms = new Set<string>(Array.isArray(permRows) ? (permRows as string[]) : []);
     const canExport = callerPerms.has("agent_performance.export");
     const canRebalance = callerPerms.has("task_orchestration.rebalance") || callerPerms.has("task_orchestration.assign");
+    const canViewOrchestration = callerPerms.has("task_orchestration.view_all") ||
+      callerPerms.has("task_orchestration.view_assigned") || callerPerms.has("task_orchestration.view");
+    const canViewDisputes = callerPerms.has("disputes.view_all") || callerPerms.has("disputes.view");
 
     // ---- eligibility -------------------------------------------------
     const agentRoleKeys = new Set<string>();
