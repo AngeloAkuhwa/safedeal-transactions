@@ -29,6 +29,7 @@ export function AgentPerformanceFilters({
     (filters.case_priority !== "all" ? 1 : 0) +
     (filters.case_status !== "all" ? 1 : 0) +
     (filters.case_sla !== "all" ? 1 : 0) +
+    (filters.case_stage !== "all" ? 1 : 0) +
     (filters.min_overdue > 0 ? 1 : 0) +
     (filters.score_min > 0 || filters.score_max < 100 ? 1 : 0) +
     (filters.search ? 1 : 0);
@@ -57,12 +58,36 @@ export function AgentPerformanceFilters({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="today">Today</SelectItem>
           <SelectItem value="week">This Week</SelectItem>
           <SelectItem value="7d">Last 7 Days</SelectItem>
           <SelectItem value="30d">Last 30 Days</SelectItem>
-          <SelectItem value="month">This Month</SelectItem>
+          <SelectItem value="month">Current Month</SelectItem>
+          <SelectItem value="prev_month">Previous Month</SelectItem>
+          <SelectItem value="quarter">Current Quarter</SelectItem>
+          <SelectItem value="custom">Custom Range</SelectItem>
         </SelectContent>
       </Select>
+
+      {filters.range === "custom" && filters.scope !== "all_time" && (
+        <div className="flex items-center gap-2">
+          <Input
+            type="date"
+            aria-label="Custom range start date"
+            className="h-9 w-[150px] bg-card/60"
+            value={(filters.date_from ?? "").slice(0, 10)}
+            onChange={(e) => onChange({ date_from: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+          />
+          <span className="text-xs text-muted-foreground">to</span>
+          <Input
+            type="date"
+            aria-label="Custom range end date"
+            className="h-9 w-[150px] bg-card/60"
+            value={(filters.date_to ?? "").slice(0, 10)}
+            onChange={(e) => onChange({ date_to: e.target.value ? new Date(`${e.target.value}T23:59:59Z`).toISOString() : undefined })}
+          />
+        </div>
+      )}
 
       {/* Scope: windowed stats vs lifetime stats. Drives cards, table, trend,
           exports and drawers together so no mixed reading is possible. */}
