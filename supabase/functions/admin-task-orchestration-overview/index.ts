@@ -114,6 +114,13 @@ Deno.serve(async (req) => {
   ]);
 
   // Fetch role names for the roster in a single call.
+  // Recent assignment-rule versions (with approval provenance).
+  const { data: ruleVersions } = rules?.id
+    ? await admin.from("assignment_rule_versions")
+        .select("id,version,note,created_at,actor_id,approved_by,approved_at,change_set_id")
+        .eq("rule_id", rules.id).order("version", { ascending: false }).limit(5)
+    : { data: [] as any[] };
+
   const roleIds = Array.from(new Set((internalUsers ?? []).map((u: any) => u.role_id).filter(Boolean)));
   const { data: internalRoles } = roleIds.length
     ? await admin.from("internal_roles").select("id,key,name").in("id", roleIds)
@@ -248,5 +255,10 @@ Deno.serve(async (req) => {
       highest_overdue: null, fastest_response: null,
     },
     rules: rules ?? null,
+    rule_versions: (ruleVersions ?? []).map((v: any) => ({
+      ...v,
+      actor_name: nameFor(v.actor_id),
+      approver_name: v.approved_by ? nameFor(v.approved_by) : null,
+    })),
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
