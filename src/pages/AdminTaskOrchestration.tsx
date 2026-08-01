@@ -519,7 +519,12 @@ export default function AdminTaskOrchestration() {
               onReassign={(t) => setReassignTarget(t)}
             /></div>
 
-            <ProductivityInsights insights={data.insights} />
+            <ProductivityInsights
+              insights={data.insights}
+              team={queueFilters.queue ?? undefined}
+              range="today"
+              onSelectAgent={(a, ctx) => { setAgentFocus({ focus: "performance", context: ctx }); setAgentDetail(a); }}
+            />
 
             <div className="flex justify-end">
               <ExportScopePopover
@@ -574,8 +579,10 @@ export default function AdminTaskOrchestration() {
       />
       <AgentDetailsDrawer
         open={!!agentDetail}
-        onOpenChange={o => { if (!o) setAgentDetail(null); }}
+        onOpenChange={o => { if (!o) { setAgentDetail(null); setAgentFocus(null); } }}
         agent={agentDetail}
+        focus={agentFocus?.focus ?? null}
+        context={agentFocus?.context ?? null}
         onReassign={a => {
           setAgentDetail(null);
           navigate(`/admin/task-orchestration?tab=queue&assignee=${a.user_id}&view=reassign`);
