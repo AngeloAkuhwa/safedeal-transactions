@@ -125,6 +125,46 @@ export function downloadCsv(csv: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+export interface AgentCaseRow {
+  id: string;
+  task_code: string | null;
+  title: string | null;
+  type: string | null;
+  priority: string | null;
+  status: string | null;
+  stage: string | null;
+  sla_status: string | null;
+  due_at: string | null;
+  assigned_at: string | null;
+  resolved_at: string | null;
+  dispute_id: string | null;
+  transaction_id: string | null;
+  amount: number | null;
+  currency: string | null;
+  escalation_level: number | null;
+  is_active: boolean;
+  is_overdue: boolean;
+}
+
+export async function fetchAgentCases(agentId: string): Promise<AgentCaseRow[]> {
+  const { data, error } = await supabase.functions.invoke("admin-agent-performance", {
+    body: { mode: "agent_cases", agent_id: agentId },
+  });
+  if (error) throw error;
+  if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
+  return ((data as { cases: AgentCaseRow[] }).cases) ?? [];
+}
+
+function _unusedDownloadCsv(csv: string, filename: string) {
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /** Display helpers shared across the Agent Performance components. */
 export function agentName(a: Pick<AgentPerformanceRow, "full_name" | "first_name" | "last_name" | "email">): string {
   const composed = [a.first_name, a.last_name].filter(Boolean).join(" ").trim();
