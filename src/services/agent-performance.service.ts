@@ -270,10 +270,16 @@ export async function fetchAgentCases(
   if (error) throw error;
   if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
   const res = data as AgentCasesResult;
+  const requestedAllTime = (filters?.scope ?? "range") === "all_time";
   return {
     cases: res?.cases ?? [],
     truncated: !!res?.truncated,
-    range: res?.range ?? { key: "7d", label: "Selected range" },
+    // Fall back to a scope-derived label so a stale backend never mislabels an
+    // all-time list as the selected range.
+    range: res?.range ?? {
+      key: requestedAllTime ? "all_time" : (filters?.range ?? "7d"),
+      label: requestedAllTime ? "All time" : "Selected range",
+    },
   };
 }
 
