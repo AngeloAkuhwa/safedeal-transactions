@@ -67,6 +67,8 @@ export interface AgentTrendPoint {
   label: string;
   resolved: number;
   assigned: number;
+  completed: number;
+  untracked: number;
   avg_hours: number | null;
   prev_avg_hours: number | null;
   on_time: number;
@@ -90,6 +92,11 @@ export interface AgentPerformanceMetrics {
   quality_review_score: number | null;
   agents_counted: number;
   granularity: "day" | "week" | "month";
+  resolution_sample?: number;
+  resolution_sample_tasks?: number;
+  resolution_sample_disputes?: number;
+  first_action_sample?: number;
+  sla_sample?: number;
 }
 
 export type SlaState =
@@ -98,6 +105,7 @@ export type SlaState =
 
 export interface SlaCaseRow {
   id: string;
+  source?: "task" | "dispute";
   task_code: string | null;
   title: string | null;
   type: string | null;
@@ -131,6 +139,8 @@ export interface SlaSummary {
   compliance: number | null;
   avg_first_action_minutes: number | null;
   avg_resolution_hours: number | null;
+  first_action_sample?: number;
+  resolution_sample?: number;
 }
 
 export interface AgentPerformanceFilters {
@@ -183,6 +193,11 @@ export interface AgentPerformanceOverview {
   status_distribution: Record<string, number>;
   sla_cases: SlaCaseRow[];
   sla_cases_truncated: boolean;
+  sla_total?: number;
+  sla_page?: number;
+  sla_page_size?: number;
+  sla_has_more?: boolean;
+  sla_counts?: Record<string, number>;
   sla_summary: SlaSummary;
   facets: { teams: string[]; roles: { key: string; name: string }[] };
   range: { key: string; label: string; from: string; to: string; all_time?: boolean; comparison_available?: boolean; granularity?: string; contract_version?: number };
