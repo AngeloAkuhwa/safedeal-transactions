@@ -69,7 +69,7 @@ export function AgentDetailsDrawer({
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <Stat label="Resolved (range)" value={String(agent.resolved)} />
+                 <Stat label="Resolved (scope)" value={String(agent.resolved)} />
                 <Stat label="Previous period" value={String(agent.resolved_prev)} />
                 <Stat label="Avg resolution" value={hoursLabel(agent.avg_resolution_hours)} />
                 <Stat label="Avg first action" value={minutesLabel(agent.avg_first_action_minutes)} />
@@ -85,9 +85,9 @@ export function AgentDetailsDrawer({
               <div className={INNER_CARD_CLASS}>
                 <div className="mb-2 flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">SLA compliance</span>
-                  <span className={cn("font-semibold", slaTone(agent.sla_compliance))}>{agent.sla_compliance}%</span>
+                   <span className={cn("font-semibold", slaTone(agent.sla_compliance))}>{agent.sla_compliance == null ? "Not tracked" : `${agent.sla_compliance}%`}</span>
                 </div>
-                <Progress value={agent.sla_compliance} className="h-1.5" />
+                 <Progress value={agent.sla_compliance ?? 0} className="h-1.5" />
               </div>
 
               <div>

@@ -69,7 +69,8 @@ export function minutesLabel(m: number | null): string {
   return `${Math.round((m / 60) * 10) / 10}h`;
 }
 
-export function slaTone(pctValue: number): string {
+export function slaTone(pctValue: number | null): string {
+  if (pctValue == null) return "text-muted-foreground";
   if (pctValue >= 95) return "text-emerald-300";
   if (pctValue >= 85) return "text-amber-300";
   return "text-rose-300";

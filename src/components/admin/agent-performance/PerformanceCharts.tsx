@@ -50,12 +50,13 @@ const STATUS_LABEL: Record<string, string> = {
 
 /** The six visual panels of the Performance tab. */
 export function PerformanceCharts({
-  trend, agents, statusDistribution, granularity,
+  trend, agents, statusDistribution, granularity, allTime,
 }: {
   trend: AgentTrendPoint[];
   agents: AgentPerformanceRow[];
   statusDistribution: Record<string, number>;
   granularity: "day" | "week" | "month";
+  allTime: boolean;
 }) {
   const bucketWord = granularity === "day" ? "day" : granularity === "week" ? "week" : "month";
   const trendEmpty = trend.length === 0 || trend.every((t) => t.resolved === 0 && t.assigned === 0);
@@ -66,7 +67,7 @@ export function PerformanceCharts({
     name: agentShortName(a), active: a.active_cases, resolved: a.resolved,
   }));
   const comparison = agents.slice(0, 10).map((a) => ({
-    name: agentShortName(a), score: a.score, sla: a.sla_compliance,
+    name: agentShortName(a), score: a.score, sla: a.sla_compliance ?? 0,
   }));
   const statusData = Object.entries(statusDistribution ?? {})
     .filter(([, v]) => v > 0)
@@ -96,7 +97,7 @@ export function PerformanceCharts({
         </LineChart>
       </ChartCard>
 
-      <ChartCard title="Average resolution time" subtitle="Current window versus the preceding one" empty={resolutionPoints.length === 0}>
+      <ChartCard title="Average resolution time" subtitle={allTime ? "Lifetime resolution duration" : "Current window versus the preceding one"} empty={resolutionPoints.length === 0}>
         <LineChart data={trend} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
           <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} />
@@ -104,7 +105,7 @@ export function PerformanceCharts({
           <RTooltip contentStyle={TOOLTIP_STYLE} />
           <Legend wrapperStyle={{ fontSize: 11 }} />
           <Line type="monotone" dataKey="avg_hours" name="Current" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} connectNulls />
-          <Line type="monotone" dataKey="prev_avg_hours" name="Previous" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} strokeDasharray="4 4" dot={false} connectNulls />
+          {!allTime && <Line type="monotone" dataKey="prev_avg_hours" name="Previous" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} strokeDasharray="4 4" dot={false} connectNulls />}
         </LineChart>
       </ChartCard>
 

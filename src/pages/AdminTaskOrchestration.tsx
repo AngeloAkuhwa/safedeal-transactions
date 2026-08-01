@@ -398,15 +398,32 @@ export default function AdminTaskOrchestration() {
     setSearchParams(next, { replace: true });
   };
 
+  const clearParams = useCallback((keys: string[]) => {
+    const next = new URLSearchParams(searchParams);
+    let changed = false;
+    for (const k of keys) if (next.has(k)) { next.delete(k); changed = true; }
+    if (changed) setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   // Deep link from Agent Performance (and notifications): ?task=<task_id>
   const deepTaskId = searchParams.get("task");
+  const deepTaskAction = searchParams.get("action");
   useEffect(() => {
     let cancelled = false;
     if (!deepTaskId) return;
     (async () => {
       const local =
         data?.unassigned_queue.find(t => t.id === deepTaskId) ?? null;
-      if (local) { if (!cancelled) setDetailTask(local); return; }
+      if (local) {
+        if (!cancelled) {
+          if (deepTaskAction === "escalate" && perms.canEscalate) {
+            setSelectedIds(new Set([local.id]));
+            setEscalateOpen(true);
+            clearParams(["action"]);
+          } else setDetailTask(local);
+        }
+        return;
+      }
       const { data: row, error } = await supabase
         .from("orchestration_tasks")
         .select(
@@ -418,17 +435,15 @@ export default function AdminTaskOrchestration() {
         if (!cancelled && !error) toast.error("That task is no longer available");
         return;
       }
-      setDetailTask(row as unknown as UnassignedTask);
+      const task = row as unknown as UnassignedTask;
+      if (deepTaskAction === "escalate" && perms.canEscalate) {
+        setSelectedIds(new Set([task.id]));
+        setEscalateOpen(true);
+        clearParams(["action"]);
+      } else setDetailTask(task);
     })();
     return () => { cancelled = true; };
-  }, [deepTaskId, data]);
-
-  const clearParams = useCallback((keys: string[]) => {
-    const next = new URLSearchParams(searchParams);
-    let changed = false;
-    for (const k of keys) if (next.has(k)) { next.delete(k); changed = true; }
-    if (changed) setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams]);
+  }, [deepTaskId, deepTaskAction, data, perms.canEscalate, clearParams]);
 
   // Deep link from Agent Performance: ?rebalance=1&agent=<user_id>
   const rebalanceFlag = searchParams.get("rebalance");

@@ -37,6 +37,7 @@ export function PerformanceDashboard({
         agents={agents}
         statusDistribution={statusDistribution}
         granularity={metrics.granularity}
+        allTime={allTime}
       />
 
       <div className="overflow-x-auto">

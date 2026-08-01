@@ -34,7 +34,7 @@ export interface AgentPerformanceRow {
   overdue: number;
   breached: number;
   on_time: number;
-  sla_compliance: number;
+  sla_compliance: number | null;
   reassignments: number;
   reassignments_in: number;
   reassignments_out: number;
@@ -119,6 +119,20 @@ export interface SlaCaseRow {
   remaining_minutes: number | null;
 }
 
+export interface SlaSummary {
+  tracked: number;
+  on_track: number;
+  at_risk: number;
+  breached: number;
+  paused: number;
+  not_configured: number;
+  completed_within: number;
+  completed_outside: number;
+  compliance: number | null;
+  avg_first_action_minutes: number | null;
+  avg_resolution_hours: number | null;
+}
+
 export interface AgentPerformanceFilters {
   range: "week" | "7d" | "30d" | "month" | "custom";
   /** "range" = selected time frame, "all_time" = ignore the window entirely. */
@@ -169,11 +183,13 @@ export interface AgentPerformanceOverview {
   status_distribution: Record<string, number>;
   sla_cases: SlaCaseRow[];
   sla_cases_truncated: boolean;
+  sla_summary: SlaSummary;
   facets: { teams: string[]; roles: { key: string; name: string }[] };
-  range: { key: string; label: string; from: string; to: string; all_time?: boolean };
+  range: { key: string; label: string; from: string; to: string; all_time?: boolean; comparison_available?: boolean; granularity?: string; contract_version?: number };
   permissions: {
     can_export: boolean;
     can_rebalance: boolean;
+    can_escalate: boolean;
     can_view_orchestration: boolean;
     can_view_disputes: boolean;
   };
@@ -243,6 +259,10 @@ export interface AgentCaseRow {
 export interface AgentCasesResult {
   cases: AgentCaseRow[];
   truncated: boolean;
+  total: number;
+  page: number;
+  page_size: number;
+  has_more: boolean;
   range: { key: string; label: string };
 }
 
@@ -253,6 +273,7 @@ export interface AgentCasesResult {
 export async function fetchAgentCases(
   agentId: string,
   filters?: Partial<AgentPerformanceFilters>,
+  page = 1,
 ): Promise<AgentCasesResult> {
   const { data, error } = await supabase.functions.invoke("admin-agent-performance", {
     body: {
@@ -265,6 +286,8 @@ export async function fetchAgentCases(
       case_priority: filters?.case_priority ?? "all",
       case_status: filters?.case_status ?? "all",
       case_sla: filters?.case_sla ?? "all",
+      page,
+      page_size: 100,
     },
   });
   if (error) throw error;
@@ -274,6 +297,10 @@ export async function fetchAgentCases(
   return {
     cases: res?.cases ?? [],
     truncated: !!res?.truncated,
+    total: res?.total ?? res?.cases?.length ?? 0,
+    page: res?.page ?? page,
+    page_size: res?.page_size ?? 100,
+    has_more: !!res?.has_more,
     // Fall back to a scope-derived label so a stale backend never mislabels an
     // all-time list as the selected range.
     range: res?.range ?? {
