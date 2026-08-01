@@ -67,6 +67,14 @@ export default function AdminAgentPerformance() {
   );
   const canExport = data?.permissions.can_export ?? false;
   const canRebalance = data?.permissions.can_rebalance ?? false;
+  const canViewCases = data?.permissions.can_view_orchestration ?? false;
+  const canReviewSla = (data?.permissions.can_view_orchestration ?? false) ||
+    (data?.permissions.can_view_disputes ?? false);
+  const filtersDirty = useMemo(
+    () => JSON.stringify(filters) !== JSON.stringify(DEFAULT_AGENT_FILTERS),
+    [filters],
+  );
+  const clearFilters = () => { setFilters(DEFAULT_AGENT_FILTERS); setActiveCard(null); };
 
   const patchFilters = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
 
@@ -108,7 +116,11 @@ export default function AdminAgentPerformance() {
               onReviewSla: openSla,
               onRebalance: openRebalance,
               canRebalance,
+              canViewCases,
+              canReviewSla,
             }}
+            filtered={filtersDirty}
+            onClearFilters={clearFilters}
           />
         );
       case "performance":
@@ -118,7 +130,7 @@ export default function AdminAgentPerformance() {
       case "rankings":
         return <RankingsTable agents={agents} onViewDetail={setDetailAgent} />;
     }
-  }, [data, tab, agents, canRebalance]);
+  }, [data, tab, agents, canRebalance, canViewCases, canReviewSla, filtersDirty]);
 
   return (
     <AdminLayout

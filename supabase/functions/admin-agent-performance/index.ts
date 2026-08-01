@@ -180,6 +180,9 @@ Deno.serve(async (req) => {
     const callerPerms = new Set<string>(Array.isArray(permRows) ? (permRows as string[]) : []);
     const canExport = callerPerms.has("agent_performance.export");
     const canRebalance = callerPerms.has("task_orchestration.rebalance") || callerPerms.has("task_orchestration.assign");
+    const canViewOrchestration = callerPerms.has("task_orchestration.view_all") ||
+      callerPerms.has("task_orchestration.view_assigned") || callerPerms.has("task_orchestration.view");
+    const canViewDisputes = callerPerms.has("disputes.view_all") || callerPerms.has("disputes.view");
 
     // ---- eligibility -------------------------------------------------
     const agentRoleKeys = new Set<string>();
@@ -253,6 +256,40 @@ Deno.serve(async (req) => {
       search: String(body.search ?? "").trim().toLowerCase(),
     };
     const caseFiltered = f.case_priority !== "all" || f.case_status !== "all" || f.case_sla !== "all";
+    // Dispute records carry no priority or task SLA, so they only participate
+    // when no case-level priority/SLA filter is active and the status filter
+    // is compatible with completed dispute work.
+    const disputesEligibleForFilters =
+      f.case_priority === "all" && f.case_sla === "all" &&
+      (f.case_status === "all" || f.case_status === "resolved");
+    const disputeById = new Map((disputes ?? []).map((d) => [d.id, d]));
+    /** Recognised investigation start for a dispute-backed case. */
+    const disputeStart = (disputeId: string): number | null => {
+      const d = disputeById.get(disputeId);
+      const task = allTasks.find((t) => t.dispute_id === disputeId);
+      const raw = task?.assigned_at ?? task?.started_at ?? d?.opened_at ?? null;
+      if (!raw) return null;
+      const ms = new Date(raw).getTime();
+      return Number.isNaN(ms) ? null : ms;
+    };
+    /** Resolution durations for disputes personally resolved by an agent. */
+    const disputeResolutionMs = (userId: string, from: Date, to: Date, skip: Set<string>) => {
+      if (!disputesEligibleForFilters) return [] as number[];
+      const out: number[] = [];
+      for (const o of outcomes ?? []) {
+        if (o.resolved_by_user_id !== userId) continue;
+        if (!inWindow(o.resolved_at, from, to)) continue;
+        if (!o.dispute_id || skip.has(o.dispute_id)) continue;
+        const d = disputeById.get(o.dispute_id);
+        if (d && CANCELLED_STATUSES.has(String(d.status))) continue;
+        const start = disputeStart(o.dispute_id);
+        const end = new Date(String(o.resolved_at)).getTime();
+        if (start == null || Number.isNaN(end)) continue;
+        const ms = end - start;
+        if (ms >= 0) out.push(ms);
+      }
+      return out;
+    };
     const caseMatch = (t: Record<string, any>) => {
       if (f.case_priority !== "all" && String(t.priority) !== f.case_priority) return false;
       if (f.case_status !== "all") {
@@ -290,13 +327,24 @@ Deno.serve(async (req) => {
           .map((o) => o.dispute_id),
       );
       for (const t of resolvedTasks) if (t.dispute_id) outcomeIds.delete(t.dispute_id);
-      const resolvedCount = resolvedTasks.length + outcomeIds.size;
-      const prevResolvedCount = prevResolved.length;
+      const disputeResolvedCount = disputesEligibleForFilters ? outcomeIds.size : 0;
+      const resolvedCount = resolvedTasks.length + disputeResolvedCount;
+      const prevOutcomeIds = new Set(
+        (outcomes ?? [])
+          .filter((o) => o.resolved_by_user_id === u.id && inWindow(o.resolved_at, range.prevFrom, range.prevTo))
+          .map((o) => o.dispute_id),
+      );
+      for (const t of prevResolved) if (t.dispute_id) prevOutcomeIds.delete(t.dispute_id);
+      const prevResolvedCount = prevResolved.length + (disputesEligibleForFilters ? prevOutcomeIds.size : 0);
 
+      const taskDisputeIds = new Set(resolvedTasks.map((t) => t.dispute_id).filter(Boolean) as string[]);
       const resolutionMs = resolvedTasks
         .filter((t) => t.assigned_at && t.resolved_at && !CANCELLED_STATUSES.has(String(t.status)))
         .map((t) => new Date(t.resolved_at!).getTime() - new Date(t.assigned_at!).getTime())
-        .filter((ms) => ms >= 0);
+        .filter((ms) => ms >= 0)
+        // Disputes this agent personally resolved without a task record still
+        // count toward their average resolution time.
+        .concat(disputeResolutionMs(u.id, range.from, range.to, taskDisputeIds));
       const firstActionMs = mine
         .filter((t) => t.assigned_at && t.first_action_at && inWindow(t.first_action_at, range.from, range.to))
         .map((t) => new Date(t.first_action_at!).getTime() - new Date(t.assigned_at!).getTime())
@@ -450,6 +498,9 @@ Deno.serve(async (req) => {
 
     // Case-level mean over completed cases only (both timestamps present,
     // not cancelled/invalid), so the tooltip sample size is meaningful.
+    const taskDisputeIdsAll = new Set(
+      scopedTasks.filter((t) => DONE_STATUSES.has(String(t.status)) && t.dispute_id).map((t) => t.dispute_id) as string[],
+    );
     const resolutionSamples = scopedTasks
       .filter((t) =>
         DONE_STATUSES.has(String(t.status)) &&
@@ -457,13 +508,19 @@ Deno.serve(async (req) => {
         inWindow(t.resolved_at, range.from, range.to) &&
         t.assigned_at && t.resolved_at)
       .map((t) => new Date(t.resolved_at!).getTime() - new Date(t.assigned_at!).getTime())
-      .filter((ms) => ms >= 0);
+      .filter((ms) => ms >= 0)
+      .concat(
+        ranked.flatMap((r) => disputeResolutionMs(r.user_id, range.from, range.to, taskDisputeIdsAll)),
+      );
     const avgResolution = resolutionSamples.length ? hours(avg(resolutionSamples)) : null;
 
     const prevResolutionMs = scopedTasks
       .filter((t) => DONE_STATUSES.has(String(t.status)) && inWindow(t.resolved_at, range.prevFrom, range.prevTo) && t.assigned_at)
       .map((t) => new Date(t.resolved_at!).getTime() - new Date(t.assigned_at!).getTime())
-      .filter((ms) => ms >= 0);
+      .filter((ms) => ms >= 0)
+      .concat(
+        ranked.flatMap((r) => disputeResolutionMs(r.user_id, range.prevFrom, range.prevTo, taskDisputeIdsAll)),
+      );
     const prevAvgResolution = prevResolutionMs.length ? hours(avg(prevResolutionMs)) : null;
     const resolutionDelta = avgResolution != null && prevAvgResolution != null
       ? Math.round((avgResolution - prevAvgResolution) * 10) / 10
@@ -559,7 +616,12 @@ Deno.serve(async (req) => {
             .map((r) => ({ key: r.key, name: r.name })),
         },
         range: { key: String(body.range ?? "7d"), label: range.label, from: range.from.toISOString(), to: range.to.toISOString() },
-        permissions: { can_export: canExport, can_rebalance: canRebalance },
+        permissions: {
+          can_export: canExport,
+          can_rebalance: canRebalance,
+          can_view_orchestration: canViewOrchestration,
+          can_view_disputes: canViewDisputes,
+        },
         generated_at: new Date().toISOString(),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
