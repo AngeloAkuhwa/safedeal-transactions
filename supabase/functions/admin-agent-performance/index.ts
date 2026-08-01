@@ -21,6 +21,8 @@ const ACTIVE_STATUSES = new Set([
 const DONE_STATUSES = new Set(["resolved", "closed"]);
 /** Statuses that mean the case is parked waiting on somebody else. */
 const WAITING_STATUSES = new Set(["waiting_on_buyer", "waiting_on_seller", "waiting_on_evidence", "pending_approval"]);
+/** Waiting states where the workflow genuinely stops the SLA clock. */
+const PAUSED_STATUSES = new Set(["waiting_on_buyer", "waiting_on_seller", "waiting_on_evidence"]);
 /** Priorities treated as critical work. */
 const CRITICAL_PRIORITIES = new Set(["critical", "urgent"]);
 /** Statuses that must never feed resolution-time maths. */
@@ -1046,7 +1048,12 @@ Deno.serve(async (req) => {
         performance,
         status_distribution: statusBuckets,
         sla_cases: slaCases,
-        sla_cases_truncated: slaCases.length >= 500,
+        sla_total: slaFiltered.length,
+        sla_page: slaPage,
+        sla_page_size: slaPageSize,
+        sla_has_more: slaPage * slaPageSize < slaFiltered.length,
+        sla_counts: slaCounts,
+        sla_cases_truncated: false,
         sla_summary: slaSummary,
         facets: {
           teams,
@@ -1065,7 +1072,7 @@ Deno.serve(async (req) => {
           all_time: range.allTime,
           comparison_available: !range.allTime,
           granularity,
-          contract_version: 2,
+          contract_version: 3,
         },
         permissions: {
           can_export: canExport,
