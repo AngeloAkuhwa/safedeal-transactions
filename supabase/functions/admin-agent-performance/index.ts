@@ -152,8 +152,8 @@ Deno.serve(async (req) => {
         .or(`from_agent_id.eq.${agentId},to_agent_id.eq.${agentId}`)
         .order("created_at", { ascending: false }).limit(60),
       admin.from("task_status_history")
-        .select("id, task_id, from_status, to_status, changed_by, created_at")
-        .eq("changed_by", agentId)
+        .select("id, task_id, from_status, to_status, actor_id, created_at")
+        .eq("actor_id", agentId)
         .order("created_at", { ascending: false }).limit(60),
       admin.from("task_comments")
         .select("id, task_id, created_at, author_id")
