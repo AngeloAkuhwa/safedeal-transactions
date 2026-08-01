@@ -324,13 +324,24 @@ Deno.serve(async (req) => {
           .map((o) => o.dispute_id),
       );
       for (const t of resolvedTasks) if (t.dispute_id) outcomeIds.delete(t.dispute_id);
-      const resolvedCount = resolvedTasks.length + outcomeIds.size;
-      const prevResolvedCount = prevResolved.length;
+      const disputeResolvedCount = disputesEligibleForFilters ? outcomeIds.size : 0;
+      const resolvedCount = resolvedTasks.length + disputeResolvedCount;
+      const prevOutcomeIds = new Set(
+        (outcomes ?? [])
+          .filter((o) => o.resolved_by_user_id === u.id && inWindow(o.resolved_at, range.prevFrom, range.prevTo))
+          .map((o) => o.dispute_id),
+      );
+      for (const t of prevResolved) if (t.dispute_id) prevOutcomeIds.delete(t.dispute_id);
+      const prevResolvedCount = prevResolved.length + (disputesEligibleForFilters ? prevOutcomeIds.size : 0);
 
+      const taskDisputeIds = new Set(resolvedTasks.map((t) => t.dispute_id).filter(Boolean) as string[]);
       const resolutionMs = resolvedTasks
         .filter((t) => t.assigned_at && t.resolved_at && !CANCELLED_STATUSES.has(String(t.status)))
         .map((t) => new Date(t.resolved_at!).getTime() - new Date(t.assigned_at!).getTime())
-        .filter((ms) => ms >= 0);
+        .filter((ms) => ms >= 0)
+        // Disputes this agent personally resolved without a task record still
+        // count toward their average resolution time.
+        .concat(disputeResolutionMs(u.id, range.from, range.to, taskDisputeIds));
       const firstActionMs = mine
         .filter((t) => t.assigned_at && t.first_action_at && inWindow(t.first_action_at, range.from, range.to))
         .map((t) => new Date(t.first_action_at!).getTime() - new Date(t.assigned_at!).getTime())
