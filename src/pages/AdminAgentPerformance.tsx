@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AgentPerformanceHeader } from "@/components/admin/agent-performance/AgentPerformanceHeader";
 import { AgentPerformanceSummary } from "@/components/admin/agent-performance/AgentPerformanceSummary";
+import { ActiveFilterChips } from "@/components/admin/agent-performance/ActiveFilterChips";
 import { AgentPerformanceTabs, type AgentTab } from "@/components/admin/agent-performance/AgentPerformanceTabs";
 import { AgentPerformanceFilters } from "@/components/admin/agent-performance/AgentPerformanceFilters";
 import { WorkloadTable } from "@/components/admin/agent-performance/WorkloadTable";
@@ -134,11 +135,26 @@ export default function AdminAgentPerformance() {
             <AgentPerformanceSummary
               summary={data.summary}
               rangeLabel={data.range.label}
-              onOpenRoster={() => { setTab("workload"); patchFilters({ overdue_only: false, availability: "all" }); }}
-              onOpenOverdue={() => { setTab("sla"); patchFilters({ overdue_only: true }); }}
-              onOpenResolved={() => setTab("performance")}
-              onOpenDisputes={() => navigate("/admin/disputes")}
+              selected={activeCard}
+              onOpenRoster={() => {
+                setActiveCard("active"); setTab("workload");
+                patchFilters({ overdue_only: false, availability: "all", case_status: "all", case_sla: "all" });
+              }}
+              onOpenOverdue={() => {
+                setActiveCard("overdue"); setTab("sla");
+                patchFilters({ overdue_only: true, case_sla: "overdue" });
+              }}
+              onOpenResolved={() => {
+                setActiveCard("resolved"); setTab("performance");
+                patchFilters({ case_status: "resolved", case_sla: "all", overdue_only: false });
+              }}
+              onOpenPerformance={() => { setActiveCard("avg"); setTab("performance"); }}
+              onOpenDisputes={() => {
+                setActiveCard("open"); setTab("workload");
+                patchFilters({ case_status: "open", overdue_only: false });
+              }}
               onOpenTopAgent={() => {
+                setActiveCard("top");
                 const top = agents.find((a) => a.user_id === data.summary.top_agent?.user_id);
                 if (top) setDetailAgent(top);
               }}
@@ -152,6 +168,14 @@ export default function AdminAgentPerformance() {
                   onChange={patchFilters}
                   teams={data.facets.teams}
                   roles={data.facets.roles}
+                />
+              </div>
+              <div className="mb-4">
+                <ActiveFilterChips
+                  filters={filters}
+                  roles={data.facets.roles}
+                  onChange={patchFilters}
+                  onClear={() => { setActiveCard(null); setFilters({ ...DEFAULT_AGENT_FILTERS, range: filters.range }); }}
                 />
               </div>
               <div className={loading ? "opacity-60 transition-opacity" : "transition-opacity"}>{body}</div>
