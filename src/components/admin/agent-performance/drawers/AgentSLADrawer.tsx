@@ -84,7 +84,7 @@ export function AgentSLADrawer({
   useEffect(() => {
     if (open && agent) { setBucket("all"); void load(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, agent?.user_id]);
+  }, [open, agent?.user_id, filters?.scope, filters?.range, filters?.date_from, filters?.date_to]);
 
   const cases = useMemo(() => rows.map(classify), [rows]);
   const counts = useMemo(() => ({
