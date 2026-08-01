@@ -413,11 +413,15 @@ Deno.serve(async (req) => {
       r.score_band = scoreBand(r.score);
     }
     rows.sort((a, b) => b.score - a.score || b.resolved - a.resolved);
-    const ranked = rows.map((r, i) => ({ ...r, rank: i + 1 }));
+    const ranked = rows
+      .map((r, i) => ({ ...r, rank: i + 1 }))
+      .filter((r) => r.score >= f.score_min && r.score <= f.score_max);
 
     // ---- summary --------------------------------------------------------
     const liveAgents = ranked.filter((r) => r.is_live).length;
-    const activeAgents = ranked.filter((r) => !["offline", "on_leave", "suspended"].includes(r.availability)).length;
+    // Eligible, active-status agents in the current team/role scope. Being
+    // signed in is never the criterion — suspended / on-leave are excluded.
+    const activeAgents = ranked.filter((r) => !["on_leave", "suspended"].includes(r.availability)).length;
     const prevActiveAgents = (users ?? []).filter(
       (u) => u.status === "active" && u.last_active_at && new Date(u.last_active_at) < range.from,
     ).length;
@@ -444,8 +448,17 @@ Deno.serve(async (req) => {
       ? Math.round(((resolvedTotal - prevResolvedTotal) / prevResolvedTotal) * 1000) / 10
       : null;
 
-    const resolutionValues = ranked.map((r) => r.avg_resolution_hours).filter((x): x is number => x != null);
-    const avgResolution = resolutionValues.length ? Math.round(avg(resolutionValues) * 10) / 10 : null;
+    // Case-level mean over completed cases only (both timestamps present,
+    // not cancelled/invalid), so the tooltip sample size is meaningful.
+    const resolutionSamples = scopedTasks
+      .filter((t) =>
+        DONE_STATUSES.has(String(t.status)) &&
+        !CANCELLED_STATUSES.has(String(t.status)) &&
+        inWindow(t.resolved_at, range.from, range.to) &&
+        t.assigned_at && t.resolved_at)
+      .map((t) => new Date(t.resolved_at!).getTime() - new Date(t.assigned_at!).getTime())
+      .filter((ms) => ms >= 0);
+    const avgResolution = resolutionSamples.length ? hours(avg(resolutionSamples)) : null;
 
     const prevResolutionMs = scopedTasks
       .filter((t) => DONE_STATUSES.has(String(t.status)) && inWindow(t.resolved_at, range.prevFrom, range.prevTo) && t.assigned_at)
@@ -457,7 +470,8 @@ Deno.serve(async (req) => {
       : null;
 
     const overdueTotal = ranked.reduce((s, r) => s + r.overdue, 0);
-    const top = ranked[0] ?? null;
+    const topCandidates = ranked.filter((r) => r.resolved >= TOP_AGENT_MIN_CASES);
+    const top = topCandidates[0] ?? null;
 
     const summary = {
       active_agents: activeAgents,
@@ -467,8 +481,10 @@ Deno.serve(async (req) => {
       open_disputes_platform: openDisputesPlatform,
       open_disputes_unassigned: unassignedDisputes,
       resolved_in_window: resolvedTotal,
+      resolved_label: range.label,
       resolved_delta_pct: resolvedDeltaPct,
       avg_resolution_hours: avgResolution,
+      avg_resolution_sample: resolutionSamples.length,
       avg_resolution_delta: resolutionDelta,
       overdue_cases: overdueTotal,
       top_agent: top ? { user_id: top.user_id, name: top.full_name ?? top.email, score: top.score } : null,
