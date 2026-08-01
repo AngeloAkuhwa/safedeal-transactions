@@ -511,7 +511,7 @@ Deno.serve(async (req) => {
       const tab = String(body.tab ?? "workload");
       const header = [
         "rank", "agent", "email", "role", "team", "availability",
-        "active_cases", "resolved", "avg_resolution_hours", "avg_first_action_minutes",
+        "active_cases", "waiting_cases", "critical_cases", "resolved", "avg_resolution_hours", "avg_first_action_minutes",
         "overdue", "breached", "sla_compliance_pct", "reassignments", "escalations", "score", "band",
       ];
       const maskPii = body.mask_pii === true;
@@ -522,7 +522,7 @@ Deno.serve(async (req) => {
           maskPii ? `Agent ${r.rank}` : (r.full_name ?? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim()),
           maskPii ? "" : (r.email ?? ""),
           r.role_label, r.team ?? "", r.availability,
-          r.active_cases, r.resolved, r.avg_resolution_hours ?? "", r.avg_first_action_minutes ?? "",
+          r.active_cases, r.waiting_cases, r.critical_cases, r.resolved, r.avg_resolution_hours ?? "", r.avg_first_action_minutes ?? "",
           r.overdue, r.breached, r.sla_compliance, r.reassignments, r.escalations, r.score, r.score_band,
         ].map(csvEscape).join(","));
       }
@@ -547,6 +547,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         summary,
         agents: ranked,
+        total: ranked.length,
         trend: days,
         facets: {
           teams,
