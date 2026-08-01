@@ -9,9 +9,9 @@ import { WorkloadTable } from "@/components/admin/agent-performance/WorkloadTabl
 import { PerformanceDashboard } from "@/components/admin/agent-performance/PerformanceDashboard";
 import { SLAComplianceTable } from "@/components/admin/agent-performance/SLAComplianceTable";
 import { RankingsTable } from "@/components/admin/agent-performance/RankingsTable";
-import { AgentPerformanceDetailDrawer } from "@/components/admin/agent-performance/drawers/AgentPerformanceDetailDrawer";
+import { AgentDetailsDrawer } from "@/components/admin/agent-performance/drawers/AgentDetailsDrawer";
 import { AgentCasesDrawer } from "@/components/admin/agent-performance/drawers/AgentCasesDrawer";
-import { ExportReportDialog } from "@/components/admin/agent-performance/drawers/ExportReportDialog";
+import { ExportPerformanceDialog } from "@/components/admin/agent-performance/drawers/ExportPerformanceDialog";
 import { LoadingSkeleton } from "@/components/admin/agent-performance/states/LoadingSkeleton";
 import { ErrorState } from "@/components/admin/agent-performance/states/ErrorState";
 import { CARD_CLASS } from "@/components/admin/agent-performance/helpers";
@@ -165,7 +165,7 @@ export default function AdminAgentPerformance() {
         )}
       </div>
 
-      <AgentPerformanceDetailDrawer
+      <AgentDetailsDrawer
         agent={detailAgent}
         open={!!detailAgent}
         onOpenChange={(v) => !v && setDetailAgent(null)}
@@ -182,7 +182,7 @@ export default function AdminAgentPerformance() {
         slaOnly={casesSlaOnly}
       />
 
-      <ExportReportDialog
+      <ExportPerformanceDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
         tabLabel={TAB_LABEL[tab]}
