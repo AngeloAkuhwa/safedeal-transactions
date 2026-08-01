@@ -416,6 +416,25 @@ export async function fetchAgentCases(
 }
 
 /** Display helpers shared across the Agent Performance components. */
+export interface AgentActivityEvent {
+  id: string;
+  at: string;
+  kind: string;
+  title: string;
+  detail: string | null;
+  task_id: string | null;
+}
+
+/** Operational activity for one agent (no authentication-sensitive data). */
+export async function fetchAgentActivity(agentId: string): Promise<AgentActivityEvent[]> {
+  const { data, error } = await supabase.functions.invoke("admin-agent-performance", {
+    body: { mode: "agent_activity", agent_id: agentId },
+  });
+  if (error) throw error;
+  if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
+  return ((data as { events?: AgentActivityEvent[] })?.events ?? []);
+}
+
 export function agentName(a: Pick<AgentPerformanceRow, "full_name" | "first_name" | "last_name" | "email">): string {
   const composed = [a.first_name, a.last_name].filter(Boolean).join(" ").trim();
   return a.full_name || composed || a.email || "Agent";
