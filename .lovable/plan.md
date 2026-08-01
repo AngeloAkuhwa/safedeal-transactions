@@ -1,61 +1,33 @@
-# Agent Performance — All-time fix, Performance tab, SLA Compliance tab
+# All-time scope: the screen is talking to a stale backend
 
-## 1. Why "All time" still shows Last 7 Days
+## What the screenshots show
 
-The client already sends `scope`, and the edge function source already has the all-time branch (`resolveRange` returns `label: "All time"`, `allTime: true`). But the screenshot shows `Range: Last 7 Days`, `Resolved · Last 7 Days`, and `Active Agents +2 this period` — under all-time the roster note would read "All-time roster". That combination points at a deployed `admin-agent-performance` build that is behind the repo.
+With `?scope=all_time` in the URL and the "All time" pill selected:
 
-This diagnosis is unconfirmed, so step one is to call the function directly with `scope: "all_time"` and inspect `resolved_label` / `range.key`:
+- The header still reads `Range: Last 7 Days`, the third KPI still reads `Resolved · Last 7 Days`, and every number is identical to the "In range" view.
+- The Assigned cases drawer still says `RESOLVED (3) · SELECTED RANGE` in both states.
 
-- If the response says "Last 7 Days" → redeploy `admin-agent-performance` and re-check.
-- If the response is correct → the bug is client-side: the `rangeLabel` passed into the summary/header comes from local filter state instead of `data.range.label`; switch both to the server label.
+## The diagnosis
 
-Also in this step:
-- Header shows an "All time" pill and the range dropdown stays disabled/greyed.
-- Summary, workload table and drawer all inherit `resolved_label` — never a locally derived label.
-- Delta chips render "—" when the server returns `null`.
-- Exports and the trend chart carry `scope`, so there is never a mixed window.
+The frontend is wired correctly: the toggle sets `filters.scope`, the page mirrors it into the URL, and both `fetchAgentPerformance` and `fetchAgentCases` put `scope` in the request body. The edge function source also handles it — `resolveRange()` returns `{ label: "All time", allTime: true }` when `scope === "all_time"`, and both responses include a `range` block.
 
-## 2. Drawer / dashboard reconciliation
+The tell is the drawer wording. `"Selected range"` does not exist anywhere in the edge function; it is only the client-side fallback used when the response has **no `range` field at all**:
 
-The scope toggle, filter pass-through, dedupe reuse, orphan outcomes, raised caps + `truncated` flag and drawer scope label are already implemented. Remaining:
-- Verify end-to-end after the redeploy that the drawer's windowed Resolved equals the workload row's Resolved for the same agent, in both scopes.
-- Add the dev-only reconciliation warning when the two disagree.
+```ts
+range: res?.range ?? { key: "7d", label: "Selected range" }
+```
 
-## 3. Performance tab (real data only)
+So the running `admin-agent-performance` function is an older build that predates the scope/`range` work. Every number and label the page renders is coming from that stale deployment, which is why "All time" changes nothing.
 
-Replace the current three-card + single-line-chart view with a full panel driven by the same filters and scope.
+## The fix
 
-Summary metrics: cases assigned, started, resolved, escalated, reassigned away, resolution rate, avg first-action time, avg resolution time, SLA compliance rate, overdue rate. Reopened cases and quality-review results render "Not currently tracked" unless a real source exists — no placeholder numbers.
-
-Visuals (each with title, calculation tooltip, empty state, non-misleading axis):
-- Resolved cases trend — bucketed day / week / month from the selected range (all-time buckets monthly).
-- Avg resolution-time trend — current vs previous comparable period; comparison series omitted under all-time.
-- SLA compliance trend — compliant / at-risk / breached.
-- Workload versus completion — assigned vs completed per agent.
-- Status distribution — active, waiting, escalated, overdue, resolved.
-- Agent comparison — selected agents over the same range.
-
-Interpretation: the tab never labels the highest resolved count as "best". Ranking context shows workload, priority mix, SLA performance, escalations and overdue alongside volume, with a note that resolved volume alone is not performance.
-
-## 4. SLA Compliance tab
-
-Reuse the existing SafeDeal SLA/due-date configuration — no new SLA definitions.
-
-Summary strip: total SLA-tracked cases, on track, at risk, breached, avg first-action time, avg resolution time, compliance %.
-
-States mapped from current data: On Track, At Risk, Breached, Paused, Not Configured, Completed Within SLA, Completed Outside SLA. A case with no SLA definition or due date is "Not Configured" — never counted as compliant or breached.
-
-Case-level table (the existing per-agent view stays above it as a roll-up): Agent, Dispute/Task ID, Priority, Current Stage, Assigned Date, First Action, SLA Due, Time Remaining or Overdue, Status, Last Updated, Action.
-
-Filters: agent, team, role, priority, stage, SLA status, date range — shared with the page filter bar.
-
-Actions: View Case, View Agent, Escalate (only where already permitted), Rebalance via Task Orchestration, View Timeline. No direct assignment edits from this table.
-
-"Review SLA" on a workload row opens this tab with that agent applied, Overdue + At Risk selected, and the current date range/scope preserved.
+1. Redeploy `supabase/functions/admin-agent-performance` so the running version matches the source (scope handling, `range` block, all-time trend start, suppressed deltas).
+2. Verify after deploy: with scope `all_time` the header must read `Range: All time`, the resolved KPI must read `Resolved · All time`, deltas must show "No comparison"/"All-time roster", and the drawer heading must read `RESOLVED (n) · All time`.
+3. Add two small guards so a version skew can never silently look like a working filter again:
+   - `fetchAgentCases` falls back to a label derived from the requested scope (`All time` vs the range label) instead of the generic `"Selected range"`.
+   - The page shows a one-line warning when the response `range.all_time` disagrees with the requested scope, so a stale function is visible rather than confusing.
 
 ## Technical notes
 
-- `admin-agent-performance` gains an `sla_cases` mode (case-level rows honouring the same range/filters) and extends the overview payload with the performance metric block plus multi-series trend buckets. `resolveRange` and the shared case filter are reused so every tab counts the same set.
-- New components under `src/components/admin/agent-performance/`: `PerformanceSummaryGrid.tsx`, chart components, `SLASummaryStrip.tsx`, `SLACaseTable.tsx`. `PerformanceDashboard.tsx` and `SLAComplianceTable.tsx` are refactored to compose them.
-- `agent-performance.service.ts` gains SLA case types and a fetcher; `AdminAgentPerformance.tsx` syncs tab and SLA-status filters to the URL alongside `scope`.
-- No schema changes and no new permissions; the `agent_performance.view` gate stays.
+- No schema or SQL changes; this is a deploy plus two defensive client tweaks.
+- Files touched: `supabase/functions/admin-agent-performance/index.ts` (redeploy only, no logic change expected), `src/services/agent-performance.service.ts`, `src/pages/AdminAgentPerformance.tsx`.
