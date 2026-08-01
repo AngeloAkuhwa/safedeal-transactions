@@ -19,6 +19,14 @@ const ACTIVE_STATUSES = new Set([
   "escalated", "pending_approval",
 ]);
 const DONE_STATUSES = new Set(["resolved", "closed"]);
+/** Statuses that mean the case is parked waiting on somebody else. */
+const WAITING_STATUSES = new Set(["waiting_on_buyer", "waiting_on_seller", "waiting_on_evidence", "pending_approval"]);
+/** Priorities treated as critical work. */
+const CRITICAL_PRIORITIES = new Set(["critical", "urgent"]);
+/** Statuses that must never feed resolution-time maths. */
+const CANCELLED_STATUSES = new Set(["cancelled", "canceled", "void", "invalid"]);
+/** Minimum completed cases before an agent can be named Top Agent. */
+const TOP_AGENT_MIN_CASES = 1;
 /** Task types that represent dispute-side casework. */
 const DISPUTE_TASK_TYPES = new Set([
   "new_dispute_review", "buyer_complaint", "seller_complaint",
@@ -229,8 +237,10 @@ Deno.serve(async (req) => {
     const escalatedTaskIds = new Set((escalationEvents ?? []).map((e) => e.task_id));
 
     const buildRow = (u: Record<string, any>) => {
-      const mine = allTasks.filter((t) => t.assigned_agent_id === u.id);
+      const mine = allTasks.filter((t) => t.assigned_agent_id === u.id && caseMatch(t));
       const active = mine.filter((t) => ACTIVE_STATUSES.has(String(t.status)));
+      const waiting = active.filter((t) => WAITING_STATUSES.has(String(t.status)));
+      const critical = active.filter((t) => CRITICAL_PRIORITIES.has(String(t.priority)));
       const resolvedTasks = mine.filter(
         (t) => DONE_STATUSES.has(String(t.status)) && inWindow(t.resolved_at, range.from, range.to),
       );
@@ -249,7 +259,7 @@ Deno.serve(async (req) => {
       const prevResolvedCount = prevResolved.length;
 
       const resolutionMs = resolvedTasks
-        .filter((t) => t.assigned_at && t.resolved_at)
+        .filter((t) => t.assigned_at && t.resolved_at && !CANCELLED_STATUSES.has(String(t.status)))
         .map((t) => new Date(t.resolved_at!).getTime() - new Date(t.assigned_at!).getTime())
         .filter((ms) => ms >= 0);
       const firstActionMs = mine
@@ -307,11 +317,14 @@ Deno.serve(async (req) => {
         last_active_at: u.last_active_at ?? null,
         skills: skillsByUser.get(u.id) ?? [],
         active_cases: active.length,
+        waiting_cases: waiting.length,
+        critical_cases: critical.length,
         max_active: maxActive,
         at_capacity: active.length >= maxActive,
         resolved: resolvedCount,
         resolved_prev: prevResolvedCount,
         avg_resolution_hours: resolutionMs.length ? hours(avg(resolutionMs)) : null,
+        resolution_sample: resolutionMs.length,
         avg_first_action_minutes: firstActionMs.length ? Math.round(avg(firstActionMs) / 60_000) : null,
         overdue: overdue.length,
         breached,
