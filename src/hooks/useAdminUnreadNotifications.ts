@@ -30,7 +30,7 @@ export function useAdminUnreadNotifications(): { unread: number; refresh: () => 
         .select("id", { count: "exact", head: true })
         .eq("user_id", uid)
         .eq("is_read", false)
-        .in("type", ADMIN_TYPES as unknown as string[]);
+        .in("type", [...ADMIN_TYPES]);
       if (!mounted) return;
       setUnread(error ? 0 : count ?? 0);
     };
