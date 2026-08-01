@@ -538,7 +538,8 @@ Deno.serve(async (req) => {
             recipients: [ctx.userId, ...managers],
             title: `${ids.length} task${ids.length === 1 ? "" : "s"} self-assigned`,
             body: `Task ownership was taken directly. Reason: ${selfReason}`,
-            data: { task_ids: ids, mode: "self", link: `/admin/task-orchestration?task=${ids[0]}` },
+            link: `/admin/task-orchestration?task=${ids[0]}`,
+            data: { task_ids: ids, mode: "self" },
             dedupeKey: `assign_self:${ids.slice().sort().join(",")}`,
           });
         } catch { /* best effort */ }
@@ -678,6 +679,9 @@ Deno.serve(async (req) => {
           title: `${ids.length} task${ids.length === 1 ? "" : "s"} escalated`,
           body: body.reason,
           dedupeKey: `escalate:${ids.slice().sort().join(",")}`,
+          link: targetQueue
+            ? `/admin/task-orchestration?queue=${targetQueue}`
+            : `/admin/task-orchestration?task=${ids[0]}`,
           data: { task_ids: ids, target_queue: targetQueue ?? null, priority: body.escalate_priority ?? null },
         });
         await logAdminAction({
