@@ -10,6 +10,7 @@ import {
   fetchReconciliationSummary,
   EMPTY_SUMMARY,
   ISSUE_CATALOG,
+  toRemediationRows,
   type ReconciliationRow,
 } from "../_shared/reconciliation.ts";
 
@@ -123,7 +124,7 @@ Deno.serve(async (req) => {
     pricing_audit: audit.data ?? [],
     remediation: {
       summary,
-      rows: remediationRows,
+      rows: toRemediationRows(remediationRows),
       issue_catalog: ISSUE_CATALOG,
     },
   });
