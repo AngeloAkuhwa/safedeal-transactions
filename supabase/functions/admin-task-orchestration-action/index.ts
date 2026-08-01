@@ -8,9 +8,9 @@ import {
   INELIGIBLE_STATUSES,
   pickAgent,
   applyRules,
-  dedupeNotification,
   type AgentSnapshot,
 } from "../_shared/orchestration-rules.ts";
+import { notifyOrchestration, managersFor } from "../_shared/orchestration.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -144,41 +144,11 @@ Deno.serve(async (req) => {
     body: string;
     dedupeKey?: string;
     dedupeMinutes?: number;
+    link?: string;
     data?: Record<string, unknown>;
     channel?: string;
   }) {
-    const recipients = [...new Set(opts.recipients.filter(Boolean))];
-    if (!recipients.length) return;
-    const windowMin = opts.dedupeMinutes ?? 60;
-    if (opts.dedupeKey) {
-      const remaining = await dedupeNotification(
-        admin,
-        opts.event,
-        opts.dedupeKey,
-        recipients,
-        windowMin,
-      );
-      if (!remaining.length) return;
-      const rows = remaining.map((uid) => ({
-        user_id: uid,
-        type: opts.event,
-        channel: opts.channel ?? "in_app",
-        title: opts.title,
-        message: opts.body,
-        metadata: { ...(opts.data ?? {}), dedupe_key: opts.dedupeKey },
-      }));
-      await admin.from("notifications").insert(rows);
-      return;
-    }
-    const rows = recipients.map((uid) => ({
-      user_id: uid,
-      type: opts.event,
-      channel: opts.channel ?? "in_app",
-      title: opts.title,
-      message: opts.body,
-      metadata: opts.data ?? {},
-    }));
-    await admin.from("notifications").insert(rows);
+    await notifyOrchestration(admin, opts);
   }
 
   async function seniorAdmins(): Promise<string[]> {
