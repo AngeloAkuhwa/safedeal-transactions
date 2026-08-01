@@ -141,7 +141,7 @@ One transaction shows identical figures and statuses on every screen and export;
 ## 11. Risks, assumptions, stop conditions
 - A normal `CREATE INDEX` takes a `SHARE` lock, allowing reads but blocking writes for the duration of the build. `ALTER TABLE ... ADD COLUMN` may briefly take `ACCESS EXCLUSIVE`. Mitigated by single-statement migrations and `lock_timeout`.
 - Historical rows keep `idempotency_key = NULL` and continue to rely on the existing cash-movement unique index.
-- Assumption: `release_review_target_hours` is the correct SLA source for pending-release classification — please confirm.
+- Confirmed product decision: `system_settings.release_review_target_hours` (currently 24) is the SLA source for pending-release classification, read through the existing settings resolver. The value is never hardcoded in UI code.
 - Stop conditions: preflight duplicates, a failed post-check, a consumer parity failure, or any test in section 9 failing.
 
 ## 12. Explicitly unchanged
