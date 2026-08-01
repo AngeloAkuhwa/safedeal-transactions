@@ -519,6 +519,9 @@ export type Database = {
       assignment_rule_versions: {
         Row: {
           actor_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          change_set_id: string | null
           config: Json
           created_at: string
           id: string
@@ -528,6 +531,9 @@ export type Database = {
         }
         Insert: {
           actor_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          change_set_id?: string | null
           config: Json
           created_at?: string
           id?: string
@@ -537,6 +543,9 @@ export type Database = {
         }
         Update: {
           actor_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          change_set_id?: string | null
           config?: Json
           created_at?: string
           id?: string
