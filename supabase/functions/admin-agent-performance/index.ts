@@ -1225,36 +1225,88 @@ Deno.serve(async (req) => {
     // ---- export -----------------------------------------------------------
     if (isExport) {
       const tab = String(body.tab ?? "workload");
-      const header = [
-        "rank", "agent", "email", "role", "team", "availability",
-        "active_cases", "waiting_cases", "critical_cases", "resolved", "avg_resolution_hours", "avg_first_action_minutes",
-        "overdue", "breached", "sla_compliance_pct", "reassignments", "escalations", "score", "band",
-      ];
       const maskPii = body.mask_pii === true;
-      const lines = [header.join(",")];
-      for (const r of ranked) {
-        lines.push([
-          r.rank,
-          maskPii ? `Agent ${r.rank}` : (r.full_name ?? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim()),
-          maskPii ? "" : (r.email ?? ""),
-          r.role_label, r.team ?? "", r.availability,
-          r.active_cases, r.waiting_cases, r.critical_cases, r.resolved, r.avg_resolution_hours ?? "", r.avg_first_action_minutes ?? "",
-          r.overdue, r.breached, r.sla_compliance, r.reassignments, r.escalations, r.score, r.score_band,
-        ].map(csvEscape).join(","));
+      const reportAgentId = typeof body.agent_id === "string" ? body.agent_id : null;
+      // "Filtered agent" report narrows the same rows to one agent; every other
+      // report keeps the current filter scope and only changes its columns.
+      const rows = reportAgentId ? ranked.filter((r) => r.user_id === reportAgentId) : ranked;
+      const reportType = reportAgentId ? "filtered_agent" : tab;
+      const REPORT_LABELS: Record<string, string> = {
+        workload: "Workload report",
+        performance: "Performance report",
+        sla: "SLA compliance report",
+        rankings: "Rankings report",
+        filtered_agent: "Filtered agent report",
+      };
+      const identity = (r: Record<string, any>) => [
+        maskPii ? `Agent ${r.rank}` : (r.full_name ?? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim()),
+        maskPii ? "" : (r.email ?? ""),
+        r.role_label, r.team ?? "",
+      ];
+      const IDENTITY_HEADER = ["agent", "email", "role", "team"];
+      let header: string[];
+      let build: (r: Record<string, any>) => (string | number)[];
+      if (reportType === "performance") {
+        header = ["rank", ...IDENTITY_HEADER, "resolved", "avg_first_action_minutes", "avg_resolution_hours",
+          "sla_compliance_pct", "overdue", "escalations", "reassignments", "score", "band"];
+        build = (r) => [r.rank, ...identity(r), r.resolved, r.avg_first_action_minutes ?? "", r.avg_resolution_hours ?? "",
+          r.sla_compliance, r.overdue, r.escalations, r.reassignments, r.score, r.score_band];
+      } else if (reportType === "sla") {
+        header = ["rank", ...IDENTITY_HEADER, "sla_on_track", "sla_at_risk", "overdue", "breached",
+          "completed_within_sla", "completed_outside_sla", "sla_compliance_pct"];
+        build = (r) => [r.rank, ...identity(r), r.sla_on_track ?? 0, r.sla_at_risk ?? 0, r.overdue, r.breached,
+          r.sla_completed_within ?? 0, r.sla_completed_outside ?? 0, r.sla_compliance];
+      } else if (reportType === "rankings") {
+        header = ["rank", ...IDENTITY_HEADER, "score", "band", "completed_cases", "cases_included", "cases_excluded",
+          "insufficient_data", "sla_compliance_pct", "avg_resolution_hours", "overdue"];
+        build = (r) => [r.rank, ...identity(r), r.insufficient_data ? "" : r.score, r.score_band, r.resolved,
+          r.score_included_cases ?? 0, r.score_excluded_cases ?? 0, r.insufficient_data ? "yes" : "no",
+          r.sla_compliance, r.avg_resolution_hours ?? "", r.overdue];
+      } else if (reportType === "filtered_agent") {
+        header = ["rank", ...IDENTITY_HEADER, "availability", "active_cases", "waiting_cases", "critical_cases",
+          "resolved", "avg_first_action_minutes", "avg_resolution_hours", "sla_compliance_pct", "sla_on_track",
+          "sla_at_risk", "overdue", "breached", "reassignments", "escalations", "score", "band"];
+        build = (r) => [r.rank, ...identity(r), r.availability, r.active_cases, r.waiting_cases, r.critical_cases,
+          r.resolved, r.avg_first_action_minutes ?? "", r.avg_resolution_hours ?? "", r.sla_compliance,
+          r.sla_on_track ?? 0, r.sla_at_risk ?? 0, r.overdue, r.breached, r.reassignments, r.escalations,
+          r.score, r.score_band];
+      } else {
+        header = ["rank", ...IDENTITY_HEADER, "availability", "active_cases", "waiting_cases", "critical_cases",
+          "capacity", "utilisation_pct", "overdue", "resolved", "score", "band"];
+        build = (r) => [r.rank, ...identity(r), r.availability, r.active_cases, r.waiting_cases, r.critical_cases,
+          r.capacity ?? "", r.utilisation ?? "", r.overdue, r.resolved, r.score, r.score_band];
       }
+      // Context preamble so a downloaded file is self-describing in audit.
+      const appliedFilters = Object.entries(f)
+        .filter(([, v]) => v !== "all" && v !== "" && v !== false && v !== 0 && v !== 100)
+        .map(([k, v]) => `${k}=${v}`)
+        .join("; ");
+      const lines = [
+        ["Report type", REPORT_LABELS[reportType] ?? reportType].map(csvEscape).join(","),
+        ["Date range", range.label].map(csvEscape).join(","),
+        ["Range from", range.allTime ? "" : range.from.toISOString()].map(csvEscape).join(","),
+        ["Range to", range.allTime ? "" : range.to.toISOString()].map(csvEscape).join(","),
+        ["Applied filters", appliedFilters || "None"].map(csvEscape).join(","),
+        ["Generated date", new Date().toISOString()].map(csvEscape).join(","),
+        ["Generated by", ctx.email ?? ctx.userId].map(csvEscape).join(","),
+        ["Rows", String(rows.length)].map(csvEscape).join(","),
+        "",
+        header.join(","),
+      ];
+      for (const r of rows) lines.push(build(r).map(csvEscape).join(","));
       const meta = extractRequestMeta(req);
       await logAdminAction(admin, {
         actorId: ctx.userId,
         action: "export_agent_performance",
         targetType: "system",
         reason: typeof body.reason === "string" ? body.reason : undefined,
-         metadata: { tab, scope: range.allTime ? "all_time" : "range", range: range.label, from: range.from.toISOString(), to: range.to.toISOString(), rows: ranked.length, mask_pii: maskPii, filters: f },
+        metadata: { tab, report_type: reportType, agent_id: reportAgentId, scope: range.allTime ? "all_time" : "range", range: range.label, from: range.from.toISOString(), to: range.to.toISOString(), rows: rows.length, mask_pii: maskPii, filters: f },
         mirrorToAuditLogs: true,
         ip: meta.ip,
         userAgent: meta.userAgent,
       });
       return new Response(
-         JSON.stringify({ csv: lines.join("\n"), filename: `agent-performance-${tab}-${range.allTime ? "all-time" : String(body.range ?? "range")}-${new Date().toISOString().slice(0, 10)}.csv` }),
+        JSON.stringify({ csv: lines.join("\n"), filename: `agent-performance-${reportType}-${range.allTime ? "all-time" : String(body.range ?? "range")}-${new Date().toISOString().slice(0, 10)}.csv` }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
