@@ -495,7 +495,12 @@ Deno.serve(async (req) => {
         trend: days,
         facets: {
           teams,
-          roles: (roles ?? []).map((r) => ({ key: r.key, name: r.name })),
+          // Only roles that actually qualify someone for this screen — the
+          // same eligibility rule used above, plus any role already held by a
+          // listed agent.
+          roles: (roles ?? [])
+            .filter((r) => agentRoleKeys.has(r.key) || ranked.some((a) => a.role_keys.includes(r.key)))
+            .map((r) => ({ key: r.key, name: r.name })),
         },
         range: { key: String(body.range ?? "7d"), label: range.label, from: range.from.toISOString(), to: range.to.toISOString() },
         permissions: { can_export: canExport, can_rebalance: canRebalance },
