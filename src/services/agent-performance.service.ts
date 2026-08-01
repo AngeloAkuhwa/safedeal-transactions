@@ -22,11 +22,14 @@ export interface AgentPerformanceRow {
   last_active_at: string | null;
   skills: { skill: string; proficiency: number | null }[];
   active_cases: number;
+  waiting_cases: number;
+  critical_cases: number;
   max_active: number;
   at_capacity: boolean;
   resolved: number;
   resolved_prev: number;
   avg_resolution_hours: number | null;
+  resolution_sample: number;
   avg_first_action_minutes: number | null;
   overdue: number;
   breached: number;
@@ -48,8 +51,10 @@ export interface AgentPerformanceSummaryData {
   open_disputes_platform: number;
   open_disputes_unassigned: number;
   resolved_in_window: number;
+  resolved_label: string;
   resolved_delta_pct: number | null;
   avg_resolution_hours: number | null;
+  avg_resolution_sample: number;
   avg_resolution_delta: number | null;
   overdue_cases: number;
   top_agent: { user_id: string; name: string | null; score: number } | null;
@@ -72,6 +77,13 @@ export interface AgentPerformanceFilters {
   sla: string;
   overdue_only: boolean;
   min_active: number;
+  min_overdue: number;
+  score_min: number;
+  score_max: number;
+  case_priority: string;
+  case_status: string;
+  case_sla: string;
+  workload_status: string;
   search: string;
 }
 
@@ -83,12 +95,20 @@ export const DEFAULT_AGENT_FILTERS: AgentPerformanceFilters = {
   sla: "all",
   overdue_only: false,
   min_active: 0,
+  min_overdue: 0,
+  score_min: 0,
+  score_max: 100,
+  case_priority: "all",
+  case_status: "all",
+  case_sla: "all",
+  workload_status: "all",
   search: "",
 };
 
 export interface AgentPerformanceOverview {
   summary: AgentPerformanceSummaryData;
   agents: AgentPerformanceRow[];
+  total: number;
   trend: AgentTrendPoint[];
   facets: { teams: string[]; roles: { key: string; name: string }[] };
   range: { key: string; label: string; from: string; to: string };

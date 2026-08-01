@@ -19,6 +19,14 @@ const ACTIVE_STATUSES = new Set([
   "escalated", "pending_approval",
 ]);
 const DONE_STATUSES = new Set(["resolved", "closed"]);
+/** Statuses that mean the case is parked waiting on somebody else. */
+const WAITING_STATUSES = new Set(["waiting_on_buyer", "waiting_on_seller", "waiting_on_evidence", "pending_approval"]);
+/** Priorities treated as critical work. */
+const CRITICAL_PRIORITIES = new Set(["critical", "urgent"]);
+/** Statuses that must never feed resolution-time maths. */
+const CANCELLED_STATUSES = new Set(["cancelled", "canceled", "void", "invalid"]);
+/** Minimum completed cases before an agent can be named Top Agent. */
+const TOP_AGENT_MIN_CASES = 1;
 /** Task types that represent dispute-side casework. */
 const DISPUTE_TASK_TYPES = new Set([
   "new_dispute_review", "buyer_complaint", "seller_complaint",
@@ -228,9 +236,46 @@ Deno.serve(async (req) => {
     // records created before status history existed are still represented.
     const escalatedTaskIds = new Set((escalationEvents ?? []).map((e) => e.task_id));
 
+    // ---- filters (case-level filters must apply before metrics) ---------
+    const f = {
+      team: String(body.team ?? "all"),
+      role: String(body.role ?? "all"),
+      availability: String(body.availability ?? "all"),
+      sla: String(body.sla ?? "all"),
+      overdue_only: body.overdue_only === true,
+      min_active: Number(body.min_active ?? 0) || 0,
+      min_overdue: Number(body.min_overdue ?? 0) || 0,
+      score_min: Number(body.score_min ?? 0) || 0,
+      score_max: body.score_max == null ? 100 : (Number(body.score_max) || 100),
+      case_priority: String(body.case_priority ?? "all"),
+      case_status: String(body.case_status ?? "all"),
+      case_sla: String(body.case_sla ?? "all"),
+      search: String(body.search ?? "").trim().toLowerCase(),
+    };
+    const caseFiltered = f.case_priority !== "all" || f.case_status !== "all" || f.case_sla !== "all";
+    const caseMatch = (t: Record<string, any>) => {
+      if (f.case_priority !== "all" && String(t.priority) !== f.case_priority) return false;
+      if (f.case_status !== "all") {
+        const st = String(t.status);
+        if (f.case_status === "open" && !ACTIVE_STATUSES.has(st)) return false;
+        if (f.case_status === "waiting" && !WAITING_STATUSES.has(st)) return false;
+        if (f.case_status === "resolved" && !DONE_STATUSES.has(st)) return false;
+        if (!["open", "waiting", "resolved"].includes(f.case_status) && st !== f.case_status) return false;
+      }
+      if (f.case_sla !== "all") {
+        const overdue = ["overdue", "breached"].includes(String(t.sla_status)) ||
+          (!!t.due_at && !t.resolved_at && new Date(t.due_at).getTime() < Date.now());
+        if (f.case_sla === "overdue" && !overdue) return false;
+        if (f.case_sla === "on_track" && overdue) return false;
+      }
+      return true;
+    };
+
     const buildRow = (u: Record<string, any>) => {
-      const mine = allTasks.filter((t) => t.assigned_agent_id === u.id);
+      const mine = allTasks.filter((t) => t.assigned_agent_id === u.id && caseMatch(t));
       const active = mine.filter((t) => ACTIVE_STATUSES.has(String(t.status)));
+      const waiting = active.filter((t) => WAITING_STATUSES.has(String(t.status)));
+      const critical = active.filter((t) => CRITICAL_PRIORITIES.has(String(t.priority)));
       const resolvedTasks = mine.filter(
         (t) => DONE_STATUSES.has(String(t.status)) && inWindow(t.resolved_at, range.from, range.to),
       );
@@ -249,7 +294,7 @@ Deno.serve(async (req) => {
       const prevResolvedCount = prevResolved.length;
 
       const resolutionMs = resolvedTasks
-        .filter((t) => t.assigned_at && t.resolved_at)
+        .filter((t) => t.assigned_at && t.resolved_at && !CANCELLED_STATUSES.has(String(t.status)))
         .map((t) => new Date(t.resolved_at!).getTime() - new Date(t.assigned_at!).getTime())
         .filter((ms) => ms >= 0);
       const firstActionMs = mine
@@ -307,11 +352,14 @@ Deno.serve(async (req) => {
         last_active_at: u.last_active_at ?? null,
         skills: skillsByUser.get(u.id) ?? [],
         active_cases: active.length,
+        waiting_cases: waiting.length,
+        critical_cases: critical.length,
         max_active: maxActive,
         at_capacity: active.length >= maxActive,
         resolved: resolvedCount,
         resolved_prev: prevResolvedCount,
         avg_resolution_hours: resolutionMs.length ? hours(avg(resolutionMs)) : null,
+        resolution_sample: resolutionMs.length,
         avg_first_action_minutes: firstActionMs.length ? Math.round(avg(firstActionMs) / 60_000) : null,
         overdue: overdue.length,
         breached,
@@ -327,17 +375,6 @@ Deno.serve(async (req) => {
     };
 
     let rows = eligible.map(buildRow);
-
-    // ---- filters ------------------------------------------------------
-    const f = {
-      team: String(body.team ?? "all"),
-      role: String(body.role ?? "all"),
-      availability: String(body.availability ?? "all"),
-      sla: String(body.sla ?? "all"),
-      overdue_only: body.overdue_only === true,
-      min_active: Number(body.min_active ?? 0) || 0,
-      search: String(body.search ?? "").trim().toLowerCase(),
-    };
     const teams = Array.from(new Set(rows.map((r) => r.team).filter(Boolean))) as string[];
 
     rows = rows.filter((r) => {
@@ -346,10 +383,12 @@ Deno.serve(async (req) => {
       if (f.availability !== "all" && r.availability !== f.availability) return false;
       if (f.overdue_only && r.overdue === 0) return false;
       if (f.min_active > 0 && r.active_cases < f.min_active) return false;
+      if (f.min_overdue > 0 && r.overdue < f.min_overdue) return false;
+      if (caseFiltered && r.active_cases === 0 && r.resolved === 0) return false;
       if (f.sla === "breached" && r.breached === 0) return false;
       if (f.sla === "compliant" && r.sla_compliance < 100) return false;
       if (f.search) {
-        const hay = `${r.first_name ?? ""} ${r.last_name ?? ""} ${r.full_name ?? ""} ${r.email ?? ""}`.toLowerCase();
+        const hay = `${r.first_name ?? ""} ${r.last_name ?? ""} ${r.full_name ?? ""} ${r.email ?? ""} ${r.user_id}`.toLowerCase();
         if (!hay.includes(f.search)) return false;
       }
       return true;
@@ -374,11 +413,15 @@ Deno.serve(async (req) => {
       r.score_band = scoreBand(r.score);
     }
     rows.sort((a, b) => b.score - a.score || b.resolved - a.resolved);
-    const ranked = rows.map((r, i) => ({ ...r, rank: i + 1 }));
+    const ranked = rows
+      .map((r, i) => ({ ...r, rank: i + 1 }))
+      .filter((r) => r.score >= f.score_min && r.score <= f.score_max);
 
     // ---- summary --------------------------------------------------------
     const liveAgents = ranked.filter((r) => r.is_live).length;
-    const activeAgents = ranked.filter((r) => !["offline", "on_leave", "suspended"].includes(r.availability)).length;
+    // Eligible, active-status agents in the current team/role scope. Being
+    // signed in is never the criterion — suspended / on-leave are excluded.
+    const activeAgents = ranked.filter((r) => !["on_leave", "suspended"].includes(r.availability)).length;
     const prevActiveAgents = (users ?? []).filter(
       (u) => u.status === "active" && u.last_active_at && new Date(u.last_active_at) < range.from,
     ).length;
@@ -405,8 +448,17 @@ Deno.serve(async (req) => {
       ? Math.round(((resolvedTotal - prevResolvedTotal) / prevResolvedTotal) * 1000) / 10
       : null;
 
-    const resolutionValues = ranked.map((r) => r.avg_resolution_hours).filter((x): x is number => x != null);
-    const avgResolution = resolutionValues.length ? Math.round(avg(resolutionValues) * 10) / 10 : null;
+    // Case-level mean over completed cases only (both timestamps present,
+    // not cancelled/invalid), so the tooltip sample size is meaningful.
+    const resolutionSamples = scopedTasks
+      .filter((t) =>
+        DONE_STATUSES.has(String(t.status)) &&
+        !CANCELLED_STATUSES.has(String(t.status)) &&
+        inWindow(t.resolved_at, range.from, range.to) &&
+        t.assigned_at && t.resolved_at)
+      .map((t) => new Date(t.resolved_at!).getTime() - new Date(t.assigned_at!).getTime())
+      .filter((ms) => ms >= 0);
+    const avgResolution = resolutionSamples.length ? hours(avg(resolutionSamples)) : null;
 
     const prevResolutionMs = scopedTasks
       .filter((t) => DONE_STATUSES.has(String(t.status)) && inWindow(t.resolved_at, range.prevFrom, range.prevTo) && t.assigned_at)
@@ -418,7 +470,8 @@ Deno.serve(async (req) => {
       : null;
 
     const overdueTotal = ranked.reduce((s, r) => s + r.overdue, 0);
-    const top = ranked[0] ?? null;
+    const topCandidates = ranked.filter((r) => r.resolved >= TOP_AGENT_MIN_CASES);
+    const top = topCandidates[0] ?? null;
 
     const summary = {
       active_agents: activeAgents,
@@ -428,8 +481,10 @@ Deno.serve(async (req) => {
       open_disputes_platform: openDisputesPlatform,
       open_disputes_unassigned: unassignedDisputes,
       resolved_in_window: resolvedTotal,
+      resolved_label: range.label,
       resolved_delta_pct: resolvedDeltaPct,
       avg_resolution_hours: avgResolution,
+      avg_resolution_sample: resolutionSamples.length,
       avg_resolution_delta: resolutionDelta,
       overdue_cases: overdueTotal,
       top_agent: top ? { user_id: top.user_id, name: top.full_name ?? top.email, score: top.score } : null,
@@ -456,7 +511,7 @@ Deno.serve(async (req) => {
       const tab = String(body.tab ?? "workload");
       const header = [
         "rank", "agent", "email", "role", "team", "availability",
-        "active_cases", "resolved", "avg_resolution_hours", "avg_first_action_minutes",
+        "active_cases", "waiting_cases", "critical_cases", "resolved", "avg_resolution_hours", "avg_first_action_minutes",
         "overdue", "breached", "sla_compliance_pct", "reassignments", "escalations", "score", "band",
       ];
       const maskPii = body.mask_pii === true;
@@ -467,7 +522,7 @@ Deno.serve(async (req) => {
           maskPii ? `Agent ${r.rank}` : (r.full_name ?? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim()),
           maskPii ? "" : (r.email ?? ""),
           r.role_label, r.team ?? "", r.availability,
-          r.active_cases, r.resolved, r.avg_resolution_hours ?? "", r.avg_first_action_minutes ?? "",
+          r.active_cases, r.waiting_cases, r.critical_cases, r.resolved, r.avg_resolution_hours ?? "", r.avg_first_action_minutes ?? "",
           r.overdue, r.breached, r.sla_compliance, r.reassignments, r.escalations, r.score, r.score_band,
         ].map(csvEscape).join(","));
       }
@@ -492,6 +547,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         summary,
         agents: ranked,
+        total: ranked.length,
         trend: days,
         facets: {
           teams,

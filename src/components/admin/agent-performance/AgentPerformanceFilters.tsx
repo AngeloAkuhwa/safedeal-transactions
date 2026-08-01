@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import type { AgentPerformanceFilters as Filters } from "@/services/agent-performance.service";
 import { DEFAULT_AGENT_FILTERS } from "@/services/agent-performance.service";
+import { WORKLOAD_STATUS_OPTIONS } from "./workloadStatus";
 
 export function AgentPerformanceFilters({
   filters, onChange, teams, roles,
@@ -24,6 +25,12 @@ export function AgentPerformanceFilters({
     (filters.sla !== "all" ? 1 : 0) +
     (filters.overdue_only ? 1 : 0) +
     (filters.min_active > 0 ? 1 : 0) +
+    (filters.workload_status !== "all" ? 1 : 0) +
+    (filters.case_priority !== "all" ? 1 : 0) +
+    (filters.case_status !== "all" ? 1 : 0) +
+    (filters.case_sla !== "all" ? 1 : 0) +
+    (filters.min_overdue > 0 ? 1 : 0) +
+    (filters.score_min > 0 || filters.score_max < 100 ? 1 : 0) +
     (filters.search ? 1 : 0);
 
   return (
@@ -61,15 +68,15 @@ export function AgentPerformanceFilters({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-80 space-y-4 bg-popover">
+        <PopoverContent align="end" className="max-h-[70vh] w-80 space-y-4 overflow-y-auto bg-popover">
           <div className="space-y-1.5">
-            <Label className="text-xs">Search agent</Label>
+            <Label className="text-xs">Search agent (name, user ID or email)</Label>
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden />
               <Input
                 value={filters.search}
                 onChange={(e) => onChange({ search: e.target.value })}
-                placeholder="Name or email"
+                placeholder="Name, user ID or email"
                 className="h-9 pl-8"
               />
             </div>
@@ -104,6 +111,56 @@ export function AgentPerformanceFilters({
           </div>
 
           <div className="space-y-1.5">
+            <Label className="text-xs">Workload status</Label>
+            <Select value={filters.workload_status} onValueChange={(v) => onChange({ workload_status: v })}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any workload</SelectItem>
+                {WORKLOAD_STATUS_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Case priority</Label>
+            <Select value={filters.case_priority} onValueChange={(v) => onChange({ case_priority: v })}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any priority</SelectItem>
+                <SelectItem value="critical">Critical</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Case status</Label>
+            <Select value={filters.case_status} onValueChange={(v) => onChange({ case_status: v })}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any case status</SelectItem>
+                <SelectItem value="open">Open work</SelectItem>
+                <SelectItem value="waiting">Waiting</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Case SLA</Label>
+            <Select value={filters.case_sla} onValueChange={(v) => onChange({ case_sla: v })}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any</SelectItem>
+                <SelectItem value="on_track">On track</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
             <Label className="text-xs">SLA state</Label>
             <Select value={filters.sla} onValueChange={(v) => onChange({ sla: v })}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
@@ -126,6 +183,36 @@ export function AgentPerformanceFilters({
             />
           </div>
 
+          <div className="space-y-1.5">
+            <Label className="text-xs">Minimum overdue cases</Label>
+            <Input
+              type="number"
+              min={0}
+              value={filters.min_overdue}
+              onChange={(e) => onChange({ min_overdue: Number(e.target.value) || 0 })}
+              className="h-9"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Score range</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number" min={0} max={100} aria-label="Minimum score"
+                value={filters.score_min}
+                onChange={(e) => onChange({ score_min: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
+                className="h-9"
+              />
+              <span className="text-xs text-muted-foreground">to</span>
+              <Input
+                type="number" min={0} max={100} aria-label="Maximum score"
+                value={filters.score_max}
+                onChange={(e) => onChange({ score_max: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
+                className="h-9"
+              />
+            </div>
+          </div>
+
           <div className="flex items-center justify-between">
             <Label htmlFor="overdue-only" className="text-xs">Overdue agents only</Label>
             <Switch
@@ -141,7 +228,7 @@ export function AgentPerformanceFilters({
             className="w-full"
             onClick={() => onChange({ ...DEFAULT_AGENT_FILTERS, range: filters.range, team: filters.team })}
           >
-            <RotateCcw className="mr-2 h-3.5 w-3.5" /> Reset extra filters
+            <RotateCcw className="mr-2 h-3.5 w-3.5" /> Clear Filters
           </Button>
         </PopoverContent>
       </Popover>

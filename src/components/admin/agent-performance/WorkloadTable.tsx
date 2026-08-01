@@ -6,6 +6,9 @@ import {
 } from "./helpers";
 import { EmptyState } from "./states/EmptyState";
 import { SortableTh, useAgentSort } from "./useAgentSort";
+import { TablePagination } from "./TablePagination";
+import { workloadStatus, workloadStatusClass, workloadStatusLabel } from "./workloadStatus";
+import { useEffect, useMemo, useState } from "react";
 import { agentInitials, agentShortName, type AgentPerformanceRow } from "@/services/agent-performance.service";
 
 export interface RowActions {
@@ -37,13 +40,20 @@ function ActionButton({ label, onClick, disabled, title }: { label: string; onCl
 
 export function WorkloadTable({ agents, actions }: { agents: AgentPerformanceRow[]; actions: RowActions }) {
   const { sorted, sortKey, sortDir, toggle } = useAgentSort(agents);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  useEffect(() => { setPage(1); }, [agents, sortKey, sortDir, pageSize]);
+  const paged = useMemo(
+    () => sorted.slice((page - 1) * pageSize, page * pageSize),
+    [sorted, page, pageSize],
+  );
   if (agents.length === 0) {
     return <EmptyState title="No agents match these filters" hint="Adjust the team, date range or extra filters to widen the view." />;
   }
   return (
     <TooltipProvider delayDuration={200}>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px]">
+        <table className="w-full min-w-[1180px]">
           <caption className="sr-only">Agent workload, sortable by active cases, resolved, average time, overdue and score</caption>
           <thead>
             <tr className="border-b border-border/70">
@@ -51,6 +61,9 @@ export function WorkloadTable({ agents, actions }: { agents: AgentPerformanceRow
               <th className={cn(TH, "text-left")} scope="col">Agent</th>
               <th className={cn(TH, "text-left")} scope="col">Role</th>
               <SortableTh label="Active Cases" sortKey="active_cases" active={sortKey === "active_cases"} dir={sortDir} onToggle={toggle} className="text-center" />
+              <SortableTh label="Waiting" sortKey="waiting_cases" active={sortKey === "waiting_cases"} dir={sortDir} onToggle={toggle} className="text-center" />
+              <SortableTh label="Critical" sortKey="critical_cases" active={sortKey === "critical_cases"} dir={sortDir} onToggle={toggle} className="text-center" />
+              <th className={cn(TH, "text-center")} scope="col">Workload</th>
               <SortableTh label="Resolved" sortKey="resolved" active={sortKey === "resolved"} dir={sortDir} onToggle={toggle} className="text-center" />
               <SortableTh label="Avg Time" sortKey="avg_resolution_hours" active={sortKey === "avg_resolution_hours"} dir={sortDir} onToggle={toggle} className="text-center" />
               <SortableTh label="Overdue" sortKey="overdue" active={sortKey === "overdue"} dir={sortDir} onToggle={toggle} className="text-center" />
@@ -64,7 +77,7 @@ export function WorkloadTable({ agents, actions }: { agents: AgentPerformanceRow
             </tr>
           </thead>
           <tbody>
-            {sorted.map((a) => (
+            {paged.map((a) => (
               <tr
                 key={a.user_id}
                 className={cn("border-b border-border/60 transition-colors hover:bg-card/50", rowRingClass(a))}
@@ -105,6 +118,20 @@ export function WorkloadTable({ agents, actions }: { agents: AgentPerformanceRow
                     </TooltipContent>
                   </Tooltip>
                 </td>
+                <td className="px-4 py-4 text-center text-sm text-muted-foreground">{a.waiting_cases}</td>
+                <td className="px-4 py-4 text-center text-sm">
+                  {a.critical_cases > 0
+                    ? <span className="font-medium text-amber-300">{a.critical_cases}</span>
+                    : <span className="text-muted-foreground">0</span>}
+                </td>
+                <td className="px-4 py-4 text-center">
+                  <span className={cn(
+                    "rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset",
+                    workloadStatusClass(workloadStatus(a)),
+                  )}>
+                    {workloadStatusLabel(workloadStatus(a))}
+                  </span>
+                </td>
                 <td className="px-4 py-4 text-center font-medium text-foreground">{a.resolved}</td>
                 <td className={cn(
                   "px-4 py-4 text-center font-medium",
@@ -142,6 +169,13 @@ export function WorkloadTable({ agents, actions }: { agents: AgentPerformanceRow
           </tbody>
         </table>
       </div>
+      <TablePagination
+        total={sorted.length}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
     </TooltipProvider>
   );
 }
