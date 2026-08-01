@@ -155,16 +155,6 @@ export async function fetchAgentCases(agentId: string): Promise<AgentCaseRow[]> 
   return ((data as { cases: AgentCaseRow[] }).cases) ?? [];
 }
 
-function _unusedDownloadCsv(csv: string, filename: string) {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 /** Display helpers shared across the Agent Performance components. */
 export function agentName(a: Pick<AgentPerformanceRow, "full_name" | "first_name" | "last_name" | "email">): string {
   const composed = [a.first_name, a.last_name].filter(Boolean).join(" ").trim();
