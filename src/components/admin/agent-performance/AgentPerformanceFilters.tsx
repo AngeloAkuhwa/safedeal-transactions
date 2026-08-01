@@ -11,6 +11,15 @@ import type { AgentPerformanceFilters as Filters } from "@/services/agent-perfor
 import { DEFAULT_AGENT_FILTERS } from "@/services/agent-performance.service";
 import { WORKLOAD_STATUS_OPTIONS } from "./workloadStatus";
 
+/** Lifecycle stages of an orchestration task (matches the database enum). */
+const CASE_STAGE_OPTIONS = [
+  "initial_review", "investigation", "evidence_collection", "buyer_response",
+  "seller_response", "evidence_review", "resolution_preparation",
+  "pending_approval", "final_decision", "completed",
+] as const;
+
+const humanizeStage = (s: string) => s.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+
 export function AgentPerformanceFilters({
   filters, onChange, teams, roles,
 }: {
@@ -214,6 +223,19 @@ export function AgentPerformanceFilters({
                 <SelectItem value="all">Any</SelectItem>
                 <SelectItem value="on_track">On track</SelectItem>
                 <SelectItem value="overdue">Overdue</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Case stage</Label>
+            <Select value={filters.case_stage} onValueChange={(v) => onChange({ case_stage: v })}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any stage</SelectItem>
+                {CASE_STAGE_OPTIONS.map((s) => (
+                  <SelectItem key={s} value={s}>{humanizeStage(s)}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
