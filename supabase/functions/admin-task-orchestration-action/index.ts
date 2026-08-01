@@ -499,18 +499,45 @@ Deno.serve(async (req) => {
       case "assign_to_me": {
         const ids = body.task_ids ?? (body.task_id ? [body.task_id] : []);
         if (!ids.length) return respond({ error: "missing_task_ids" }, 400);
+        // Self-assign must be explicitly enabled in the active assignment rules.
+        const selfScope = String(body.queue_scope ?? "global");
+        const { data: selfRules } = await admin.from("assignment_rules")
+          .select("config").eq("scope", selfScope).maybeSingle();
+        const { data: globalRules } = selfScope === "global"
+          ? { data: selfRules }
+          : await admin.from("assignment_rules").select("config").eq("scope", "global").maybeSingle();
+        const selfCfg = ((selfRules as any)?.config ?? (globalRules as any)?.config ?? {}) as Record<string, unknown>;
+        if (!selfCfg.super_admin_self_assign) {
+          return respond({ error: "self_assign_disabled" }, 403);
+        }
+        const selfReason = String(body.reason ?? "").trim();
+        if (selfReason.length < 8) {
+          return respond({ error: "self_assign_reason_required" }, 400);
+        }
         const canOverrideSod = ctx.hasPermission?.("task_orchestration.override_capacity") ?? false;
         const sod = await sodViolations(ctx.userId, ids, canOverrideSod, body.reason);
         if (sod.length) return respond({ error: "sod_conflict", tasks: sod }, 409);
         for (const id of ids) {
           await admin.rpc("assign_task", {
             _task_id: id, _agent_id: ctx.userId,
-            _mode: "self", _reason: body.reason ?? "self-assigned", _actor_id: ctx.userId,
+            _mode: "self", _reason: selfReason, _actor_id: ctx.userId,
           });
         }
+        try {
+          const managers = await seniorAdmins();
+          await notifyEvent({
+            event: "task_assigned",
+            recipients: [ctx.userId, ...managers],
+            title: `${ids.length} task${ids.length === 1 ? "" : "s"} self-assigned`,
+            body: `Task ownership was taken directly. Reason: ${selfReason}`,
+            data: { task_ids: ids, mode: "self", link: `/admin/task-orchestration?task=${ids[0]}` },
+            dedupeKey: `assign_self:${ids.slice().sort().join(",")}`,
+          });
+        } catch { /* best effort */ }
         await logAdminAction({
           actorId: ctx.userId, action: "orchestration_self_assign",
-          targetType: "system", metadata: { task_ids: ids },
+          targetType: "system", metadata: { task_ids: ids, reason: selfReason },
+          mirrorToAuditLogs: true,
           ip: meta.ip, userAgent: meta.userAgent,
         }, admin);
         return respond({ ok: true, count: ids.length });
