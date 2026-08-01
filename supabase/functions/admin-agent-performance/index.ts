@@ -134,66 +134,117 @@ Deno.serve(async (req) => {
       .select("id, task_code, title, type, priority, status, stage, sla_status, due_at, created_at, assigned_at, resolved_at, dispute_id, transaction_id, amount, currency, escalation_level")
       .eq("assigned_agent_id", agentId)
       .order("created_at", { ascending: false })
-      .limit(200);
+      .limit(1001);
     if (caseErr) {
       return new Response(JSON.stringify({ error: "cases_fetch_failed" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const nowTs = Date.now();
-    const cases: Record<string, unknown>[] = (caseRows ?? []).map((t) => ({
+    // Same filter semantics as the dashboard rows so the drawer count and the
+    // workload row can never disagree.
+    const cf = {
+      priority: String(body.case_priority ?? "all"),
+      status: String(body.case_status ?? "all"),
+      sla: String(body.case_sla ?? "all"),
+    };
+    const isOverdueTask = (t: Record<string, any>) =>
+      ["overdue", "breached"].includes(String(t.sla_status)) ||
+      (!!t.due_at && !t.resolved_at && new Date(t.due_at).getTime() < nowTs);
+    const taskMatches = (t: Record<string, any>) => {
+      if (cf.priority !== "all" && String(t.priority) !== cf.priority) return false;
+      if (cf.status !== "all") {
+        const st = String(t.status);
+        if (cf.status === "open" && !ACTIVE_STATUSES.has(st)) return false;
+        if (cf.status === "waiting" && !WAITING_STATUSES.has(st)) return false;
+        if (cf.status === "resolved" && !DONE_STATUSES.has(st)) return false;
+        if (!["open", "waiting", "resolved"].includes(cf.status) && st !== cf.status) return false;
+      }
+      if (cf.sla !== "all") {
+        const overdue = isOverdueTask(t);
+        if (cf.sla === "overdue" && !overdue) return false;
+        if (cf.sla === "on_track" && overdue) return false;
+      }
+      return true;
+    };
+    // Active work is window-independent (open now is open now); resolved work
+    // must fall inside the selected window, matching the dashboard KPI.
+    const scopedRows = (caseRows ?? []).filter((t) => {
+      if (!taskMatches(t)) return false;
+      if (ACTIVE_STATUSES.has(String(t.status))) return true;
+      if (DONE_STATUSES.has(String(t.status))) return inWindow(t.resolved_at, range.from, range.to);
+      return false;
+    });
+    const cases: Record<string, unknown>[] = scopedRows.map((t) => ({
       ...t,
       source: "task",
       case_ref: t.task_code,
       opened_at: t.created_at,
       is_active: ACTIVE_STATUSES.has(String(t.status)),
-      is_overdue: ["overdue", "breached"].includes(String(t.sla_status)) ||
-        (!!t.due_at && !t.resolved_at && new Date(t.due_at).getTime() < nowTs),
+      is_overdue: isOverdueTask(t),
     }));
 
     // Disputes this agent personally resolved may have no orchestration task
     // (legacy or manually handled cases). Surface them as dispute-backed rows
     // so the drawer never looks empty while the KPIs count the work.
+    // Dedupe rule mirrors buildRow: only the agent's resolved-in-window tasks
+    // suppress a dispute row, so one case is never listed twice.
     const coveredDisputeIds = new Set(
-      (caseRows ?? []).map((t) => t.dispute_id).filter(Boolean) as string[],
+      scopedRows
+        .filter((t) => DONE_STATUSES.has(String(t.status)))
+        .map((t) => t.dispute_id)
+        .filter(Boolean) as string[],
     );
     const { data: agentOutcomes } = await admin
       .from("dispute_outcomes")
       .select("dispute_id, outcome_type, decision_summary, refund_amount, release_amount, resolved_at")
       .eq("resolved_by_user_id", agentId)
+      .gte("resolved_at", range.from.toISOString())
+      .lte("resolved_at", range.to.toISOString())
       .order("resolved_at", { ascending: false })
-      .limit(200);
+      .limit(1001);
     const extraDisputeIds = (agentOutcomes ?? [])
       .map((o) => o.dispute_id)
       .filter((id): id is string => !!id && !coveredDisputeIds.has(id));
-    if (extraDisputeIds.length) {
+    // Dispute rows are always "resolved" cases, so they are dropped whenever
+    // the case-status filter is asking for open/waiting work only.
+    const disputesPassFilters = cf.priority === "all" &&
+      cf.sla !== "overdue" &&
+      ["all", "resolved"].includes(cf.status);
+    if (extraDisputeIds.length && disputesPassFilters) {
       const { data: disputeRows } = await admin
         .from("disputes")
         .select("id, reason, description, status, opened_at, resolved_at, transaction_id")
         .in("id", extraDisputeIds);
       const byId = new Map((disputeRows ?? []).map((d) => [d.id, d]));
+      const seen = new Set<string>();
       for (const o of agentOutcomes ?? []) {
-        const d = o.dispute_id ? byId.get(o.dispute_id) : null;
-        if (!d) continue;
+        if (!o.dispute_id || coveredDisputeIds.has(o.dispute_id)) continue;
+        if (seen.has(o.dispute_id)) continue;
+        seen.add(o.dispute_id);
+        // Orphan outcome (parent dispute unreadable) still counts — the
+        // dashboard counts it, so the drawer must list it too.
+        const d = byId.get(o.dispute_id) ?? null;
         const amount = Number(o.refund_amount ?? 0) || Number(o.release_amount ?? 0) || null;
+        if (d && CANCELLED_STATUSES.has(String(d.status))) continue;
         cases.push({
-          id: d.id,
+          id: o.dispute_id,
           source: "dispute",
-          case_ref: `DSP-${String(d.id).slice(0, 8).toUpperCase()}`,
+          case_ref: `DSP-${String(o.dispute_id).slice(0, 8).toUpperCase()}`,
           task_code: null,
-          title: `${String(d.reason ?? "dispute").replace(/_/g, " ")} dispute`,
+          title: `${String(d?.reason ?? "dispute").replace(/_/g, " ")} dispute`,
           type: "dispute_review",
           priority: null,
-          status: d.status,
+          status: d?.status ?? "resolved",
           stage: null,
           sla_status: null,
           due_at: null,
-          created_at: d.opened_at,
-          opened_at: d.opened_at,
+          created_at: d?.opened_at ?? o.resolved_at,
+          opened_at: d?.opened_at ?? null,
           assigned_at: null,
-          resolved_at: o.resolved_at ?? d.resolved_at,
-          dispute_id: d.id,
-          transaction_id: d.transaction_id,
+          resolved_at: o.resolved_at ?? d?.resolved_at ?? null,
+          dispute_id: o.dispute_id,
+          transaction_id: d?.transaction_id ?? null,
           amount,
           currency: "NGN",
           escalation_level: 0,
@@ -203,10 +254,15 @@ Deno.serve(async (req) => {
           is_overdue: false,
         });
       }
-      cases.sort((a, b) =>
-        new Date(String(b.created_at ?? 0)).getTime() - new Date(String(a.created_at ?? 0)).getTime());
     }
-    return new Response(JSON.stringify({ cases }), {
+    cases.sort((a, b) =>
+      new Date(String(b.created_at ?? 0)).getTime() - new Date(String(a.created_at ?? 0)).getTime());
+    const truncated = (caseRows?.length ?? 0) > 1000 || (agentOutcomes?.length ?? 0) > 1000;
+    return new Response(JSON.stringify({
+      cases: cases.slice(0, 1000),
+      truncated,
+      range: { key: range.allTime ? "all_time" : String(body.range ?? "7d"), label: range.label },
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
