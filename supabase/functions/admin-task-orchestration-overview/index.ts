@@ -115,6 +115,12 @@ Deno.serve(async (req) => {
 
   // Fetch role names for the roster in a single call.
   // Recent assignment-rule versions (with approval provenance).
+  const nameFor = (uid: string | null) => {
+    if (!uid) return null;
+    const u = (internalUsers ?? []).find((x: any) => x.user_id === uid || x.id === uid);
+    if (!u) return null;
+    return u.full_name ?? [u.first_name, u.last_name].filter(Boolean).join(" ") ?? u.email ?? null;
+  };
   const { data: ruleVersions } = rules?.id
     ? await admin.from("assignment_rule_versions")
         .select("id,version,note,created_at,actor_id,approved_by,approved_at,change_set_id")
