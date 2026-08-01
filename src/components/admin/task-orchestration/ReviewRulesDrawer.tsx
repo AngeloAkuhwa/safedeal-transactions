@@ -163,6 +163,34 @@ export function ReviewRulesDrawer({
             <div className="mt-1 text-[11px] text-muted-foreground">{reason.trim().length}/20 minimum</div>
           </section>
           )}
+
+          {(history?.length ?? 0) > 0 && (
+            <section>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Rules history</div>
+              <div className="divide-y divide-border/40 overflow-hidden rounded-xl border border-border/60">
+                {history!.map((v) => (
+                  <div key={v.id} className="p-2.5 text-[11px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-foreground">v{v.version}</span>
+                      <span className="text-muted-foreground">{new Date(v.created_at).toLocaleString()}</span>
+                    </div>
+                    <div className="mt-0.5 text-muted-foreground">
+                      Saved by {v.actor_name ?? "—"}
+                      {v.note ? ` · ${v.note}` : ""}
+                    </div>
+                    {v.approved_by ? (
+                      <div className="mt-0.5 text-emerald-300">
+                        Approved by {v.approver_name ?? "admin"}
+                        {v.approved_at ? ` · ${new Date(v.approved_at).toLocaleString()}` : ""}
+                      </div>
+                    ) : (
+                      <div className="mt-0.5 text-muted-foreground/70">Direct save (no approval)</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
         <SheetFooter className="mt-6">
