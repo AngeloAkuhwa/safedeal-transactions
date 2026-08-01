@@ -396,6 +396,7 @@ export async function fetchAgentCases(
       case_priority: filters?.case_priority ?? "all",
       case_status: filters?.case_status ?? "all",
       case_sla: filters?.case_sla ?? "all",
+      case_stage: filters?.case_stage ?? "all",
       page,
       page_size: 100,
     },
