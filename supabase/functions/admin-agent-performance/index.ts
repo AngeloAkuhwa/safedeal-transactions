@@ -563,7 +563,9 @@ Deno.serve(async (req) => {
 
     const resolvedTotal = ranked.reduce((s, r) => s + r.resolved, 0);
     const prevResolvedTotal = ranked.reduce((s, r) => s + r.resolved_prev, 0);
-    const resolvedDeltaPct = prevResolvedTotal > 0
+    const resolvedDeltaPct = range.allTime
+      ? null
+      : prevResolvedTotal > 0
       ? Math.round(((resolvedTotal - prevResolvedTotal) / prevResolvedTotal) * 1000) / 10
       : null;
 
@@ -593,7 +595,9 @@ Deno.serve(async (req) => {
         ranked.flatMap((r) => disputeResolutionMs(r.user_id, range.prevFrom, range.prevTo, taskDisputeIdsAll)),
       );
     const prevAvgResolution = prevResolutionMs.length ? hours(avg(prevResolutionMs)) : null;
-    const resolutionDelta = avgResolution != null && prevAvgResolution != null
+    const resolutionDelta = range.allTime
+      ? null
+      : avgResolution != null && prevAvgResolution != null
       ? Math.round((avgResolution - prevAvgResolution) * 10) / 10
       : null;
 
@@ -603,7 +607,7 @@ Deno.serve(async (req) => {
 
     const summary = {
       active_agents: activeAgents,
-      active_agents_delta: activeAgents - prevActiveAgents,
+      active_agents_delta: range.allTime ? null : activeAgents - prevActiveAgents,
       live_agents: liveAgents,
       open_disputes: openDisputeTasks.length,
       open_disputes_platform: openDisputesPlatform,
