@@ -28,7 +28,7 @@ export function usePendingApprovalsBadge(): { count: number; loading: boolean } 
     const poll = setInterval(refresh, 60_000);
 
     const channel = supabase
-      .channel(`pending-approvals:${uid}`)
+      .channel(`pending-approvals:${uid}:${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "permission_change_sets" }, refresh)
       .subscribe();
 
