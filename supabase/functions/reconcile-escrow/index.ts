@@ -323,12 +323,21 @@ Deno.serve(async (req) => {
     if (alertErr) console.error("[reconcile-escrow] alert upsert failed", alertErr.message);
   }
 
-  // Auto-resolve drift alerts whose condition is no longer active.
-  const { data: resolvedCount, error: resolveErr } = await admin.rpc("resolve_system_alerts", {
-    _key_prefix: "escrow_drift:",
-    _active_keys: activeAlertKeys,
-  });
-  if (resolveErr) console.error("[reconcile-escrow] alert resolve failed", resolveErr.message);
+  // Auto-resolve drift alerts for transactions examined in this run whose
+  // condition has cleared. Scoped per transaction so alerts for transactions
+  // outside this run's window are never touched.
+  const activeKeySet = new Set(activeAlertKeys);
+  let resolvedAlerts = 0;
+  for (const txId of txIds) {
+    const key = `escrow_drift:${txId}`;
+    if (activeKeySet.has(key)) continue;
+    const { data: n, error: resolveErr } = await admin.rpc("resolve_system_alerts", {
+      _key_prefix: key,
+      _active_keys: [],
+    });
+    if (resolveErr) console.error("[reconcile-escrow] alert resolve failed", resolveErr.message);
+    else resolvedAlerts += Number(n ?? 0);
+  }
 
   // 5. Log summary to system_logs (best-effort).
   try {
