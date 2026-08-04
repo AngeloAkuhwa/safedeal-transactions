@@ -1,4 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  BUYER_AWAITING_DELIVERY_STATUSES,
+  BUYER_AWAITING_VERIFICATION_STATUSES,
+} from "../_shared/transaction-status.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -103,17 +107,11 @@ Deno.serve(async (req) => {
     if (metricsResult.status === "fulfilled" && metricsResult.value.data) {
       const txRows = metricsResult.value.data as Array<{ id: string; status: string }>;
       metrics.active_purchases = txRows.length;
-      metrics.awaiting_delivery = txRows.filter(
-        (t) =>
-          t.status === "awaiting_fulfillment" ||
-          t.status === "seller_dispatched" ||
-          t.status === "in_transit"
+      metrics.awaiting_delivery = txRows.filter((t) =>
+        (BUYER_AWAITING_DELIVERY_STATUSES as string[]).includes(t.status)
       ).length;
-      metrics.awaiting_verification = txRows.filter(
-        (t) =>
-          t.status === "delivered_awaiting_verification" ||
-          t.status === "delivered" ||
-          t.status === "awaiting_buyer_confirmation"
+      metrics.awaiting_verification = txRows.filter((t) =>
+        (BUYER_AWAITING_VERIFICATION_STATUSES as string[]).includes(t.status)
       ).length;
     } else if (metricsResult.status === "rejected") {
       console.error("[buyer-dashboard] metrics query failed:", metricsResult.reason);
