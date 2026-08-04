@@ -200,8 +200,8 @@ export function UsersTable({ rows, total, page, pageSize, onOpenDetail, onPage, 
                   <td className="p-4">
                     <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                       <button title="Quick preview" onClick={(e) => { e.stopPropagation(); onOpenDetail(r.user_id); }} className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs"><UserIcon className="h-3.5 w-3.5" /></button>
-                      <button title="Transactions" onClick={(e) => { e.stopPropagation(); navigate(`/admin/transactions?user=${r.user_id}`); }} className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs"><ArrowLeftRight className="h-3.5 w-3.5" /></button>
-                      <button title="Disputes" disabled={r.disputes.total === 0} onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes?user=${r.user_id}`); }} className={`px-2.5 py-1.5 rounded text-xs relative ${r.disputes.total === 0 ? "bg-slate-700/50 text-slate-500 cursor-not-allowed" : "bg-orange-600 hover:bg-orange-700 text-white"}`}>
+                      <button title="Transactions" onClick={(e) => { e.stopPropagation(); navigate(`/admin/transactions?q=${r.user_id}`); }} className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs"><ArrowLeftRight className="h-3.5 w-3.5" /></button>
+                      <button title="Disputes" disabled={r.disputes.total === 0} onClick={(e) => { e.stopPropagation(); navigate(`/admin/disputes?q=${r.user_id}`); }} className={`px-2.5 py-1.5 rounded text-xs relative ${r.disputes.total === 0 ? "bg-slate-700/50 text-slate-500 cursor-not-allowed" : "bg-orange-600 hover:bg-orange-700 text-white"}`}>
                         <Scale className="h-3.5 w-3.5" />
                         {r.disputes.active > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">{r.disputes.active}</span>}
                       </button>

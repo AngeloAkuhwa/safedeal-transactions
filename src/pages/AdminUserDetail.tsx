@@ -10,6 +10,7 @@ import {
   RotateCcw, ArrowDown, ArrowUp, AlertCircle, Info,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { useAdminNav } from "@/components/admin/useAdminNav";
 import { fetchUserDirectoryDetail, exportUserDetail, revealUserSensitiveField, type UserExportType } from "@/services/admin-users-directory.service";
 import { performFlaggedAction } from "@/services/admin-flagged-users.service";
 import { setVendorStatus } from "@/services/admin-settings.service";
@@ -224,11 +225,11 @@ export default function AdminUserDetail() {
                 <StickyNote className="h-4 w-4" /> Add Note
               </button>
               {actions?.can_impersonate && (
-                <button onClick={() => userId && navigate(`/admin/users/${userId}/impersonate`)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-purple-600/20">
+                <button onClick={() => go("/admin/impersonation", "Impersonation")} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-purple-600/20">
                   <UserCog className="h-4 w-4" /> Impersonate
                 </button>
               )}
-              <button onClick={() => userId && navigate(`/admin/transactions?user=${userId}`)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-blue-600/20">
+              <button onClick={() => userId && navigate(`/admin/transactions?q=${userId}`)} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium shadow-lg shadow-blue-600/20">
                 <Search className="h-4 w-4" /> View Transactions
               </button>
             </div>
@@ -552,7 +553,7 @@ export default function AdminUserDetail() {
                   value={stats ? `${stats.disputes.total} Total` : "—"}
                   sub={stats ? `${stats.disputes.filed} filed, ${stats.disputes.received} received` : ""}
                   pill={stats && stats.disputes.active > 0 ? { text: `${stats.disputes.active} Active`, tone: "red" } : undefined}
-                  onClick={() => userId && navigate(`/admin/disputes?user=${userId}`)}
+                  onClick={() => userId && navigate(`/admin/disputes?q=${userId}`)}
                 />
               </div>
 
@@ -564,7 +565,7 @@ export default function AdminUserDetail() {
                     <h3 className="text-white text-lg font-semibold flex items-center gap-2">
                       <RotateCcw className="h-5 w-5 text-blue-400" /> Recent Transactions
                     </h3>
-                    <button onClick={() => navigate(`/admin/transactions?user=${userId}`)} className="text-blue-400 hover:text-blue-300 text-sm font-medium">View All</button>
+                    <button onClick={() => navigate(`/admin/transactions?q=${userId}`)} className="text-blue-400 hover:text-blue-300 text-sm font-medium">View All</button>
                   </div>
                   <div className="divide-y divide-slate-800">
                     {recent.length === 0 && <div className="p-8 text-center text-slate-500 text-sm">No recent transactions.</div>}
@@ -664,7 +665,7 @@ export default function AdminUserDetail() {
                     <StickyNote className="h-5 w-5 text-yellow-400" /> Admin Notes &amp; Flags
                   </h3>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => navigate(`/admin/flagged-users?user_id=${userId}`)} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700">
+                    <button onClick={() => navigate(`/admin/flagged-users?u=${userId}`)} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700">
                       Open in Flagged Users
                     </button>
                     <button onClick={() => setPendingAction({ kind: "add_note" })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">

@@ -385,7 +385,7 @@ export default function AdminAgentPerformance() {
         onRebalance={openRebalance}
         onOpenOrchestration={(a) => navigate(`/admin/task-orchestration?tab=queue&assignee=${a.user_id}`)}
         onOpenUserRecord={(a) => navigate(`/admin/access-control?user=${a.user_id}`)}
-        onOpenAuditHistory={(a) => navigate(`/admin/audit-logs?actor=${a.user_id}`)}
+        onOpenAuditHistory={(a) => navigate(`/admin/audit-logs?ref=${a.user_id}`)}
         canRebalance={canRebalance}
       />
 

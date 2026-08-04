@@ -671,7 +671,7 @@ export default function AdminTaskOrchestration() {
         context={agentFocus?.context ?? null}
         onReassign={a => {
           setAgentDetail(null);
-          navigate(`/admin/task-orchestration?tab=queue&assignee=${a.user_id}&view=reassign`);
+          navigate(`/admin/task-orchestration?tab=queue&assignee=${a.user_id}`);
         }}
       />
       <ReviewRulesDrawer
