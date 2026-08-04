@@ -98,13 +98,29 @@ export async function releasePayoutCore(
   // rather than moving a number nobody agreed to.
   const { data: pricingSnap } = await admin
     .from("transaction_pricing")
-    .select("seller_payout_amount, currency_code")
+    .select("seller_payout_amount, platform_fee_amount, payment_processing_fee_amount, currency_code")
     .eq("transaction_id", transaction_id)
     .maybeSingle();
   const snapshotAmount = (pricingSnap as any)?.seller_payout_amount != null
     ? Number((pricingSnap as any).seller_payout_amount)
     : null;
   const payoutAmount = Number((payout as any).amount ?? 0);
+  // No snapshot → no agreed net figure. Refuse rather than transferring an
+  // unverified (potentially gross) number, which is what produced the
+  // historical gross `payout_debit` rows.
+  if (snapshotAmount == null) {
+    try {
+      await admin.rpc("flag_for_release_review", {
+        p_transaction_id: transaction_id,
+        p_reason: "pricing_missing",
+        p_actor_user_id: actor_user_id,
+        p_notes: "No pricing snapshot: cannot establish the net seller payout amount.",
+      });
+    } catch (e) {
+      console.error("releasePayoutCore: flag_for_release_review failed", e);
+    }
+    return { ok: false, status: 409, body: { error: "pricing_missing" } };
+  }
   if (snapshotAmount != null && Math.abs(snapshotAmount - payoutAmount) > 0.005) {
     try {
       await admin.rpc("flag_for_release_review", {
@@ -141,7 +157,9 @@ export async function releasePayoutCore(
 
   // 7. Paystack transfer
   const reference = `payout_${(payout as any).id}`;
-  const amountKobo = nairaToKobo(Number((payout as any).amount));
+  // Transfer (and therefore the eventual `payout_debit`) is always the NET
+  // snapshot figure. `payoutAmount` is guaranteed equal to it by step 5b.
+  const amountKobo = nairaToKobo(snapshotAmount);
   const transferReason = `SafeDeal release for ${(tx as any).transaction_code}`;
 
   let transfer: { ok: boolean; status?: number; message?: string; data?: any; raw?: any };
