@@ -5,6 +5,8 @@ import { permissionForPath } from "@/services/admin-route-permissions";
 interface AdminMePayload {
   user_id: string;
   email: string | null;
+  full_name?: string | null;
+  display_id?: string | null;
   roles: string[];
   permissions: string[]; // may contain "*" sentinel for super
   access_level: string;
@@ -15,6 +17,8 @@ interface AdminPermissionsValue {
   loading: boolean;
   error: string | null;
   userId: string | null;
+  email: string | null;
+  fullName: string | null;
   roles: string[];
   permissions: string[];
   accessLevel: string;
@@ -109,6 +113,8 @@ export function AdminPermissionsProvider({ children }: { children: ReactNode }) 
       loading,
       error,
       userId: data?.user_id ?? null,
+      email: data?.email ?? null,
+      fullName: data?.full_name ?? null,
       roles: data?.roles ?? [],
       permissions,
       accessLevel: data?.access_level ?? "limited",
@@ -134,6 +140,8 @@ export function useAdminPermissions(): AdminPermissionsValue {
       loading: false,
       error: null,
       userId: null,
+      email: null,
+      fullName: null,
       roles: [],
       permissions: [],
       accessLevel: "limited",

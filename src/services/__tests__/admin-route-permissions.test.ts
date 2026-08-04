@@ -33,4 +33,18 @@ describe("permissionForPath", () => {
   it("normalises trailing slash", () => {
     expect(permissionForPath("/admin/dashboard/")).toBe("dashboard.view");
   });
+
+  it("maps the support page to dashboard.view", () => {
+    expect(permissionForPath("/admin/support")).toBe("dashboard.view");
+  });
+
+  it("ignores query strings and hashes on dashboard action hrefs", () => {
+    expect(permissionForPath("/admin/users?status=pending&verification=id")).toBe(
+      permissionForPath("/admin/users"),
+    );
+    expect(permissionForPath("/admin/payouts?tab=failed")).toBe(permissionForPath("/admin/payouts"));
+    expect(permissionForPath("/admin/escrow?state=pending_release#top")).toBe(
+      permissionForPath("/admin/escrow"),
+    );
+  });
 });

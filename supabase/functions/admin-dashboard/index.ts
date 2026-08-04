@@ -597,12 +597,12 @@ async function buildDashboardPayload(client: SupabaseClient, userId: string) {
       flagged_activity_delta_pct: calculateDeltaPct(flaggedActivity, flaggedActivityPrev),
     },
     action_required: [
-      { key: "awaiting_release", label: "Funds Awaiting Release", count: awaitingRelease, severity: "blue", action_label: "Open Release Queue", action_href: "/admin/release-queue" },
-      { key: "failed_payouts", label: "Failed Payouts", count: failedPayouts, severity: "red", action_label: "Investigate", action_href: "/admin/payouts" },
+      { key: "awaiting_release", label: "Funds Awaiting Release", count: awaitingRelease, severity: "blue", action_label: "Open Release Queue", action_href: "/admin/escrow?state=pending_release" },
+      { key: "failed_payouts", label: "Failed Payouts", count: failedPayouts, severity: "red", action_label: "Investigate", action_href: "/admin/payouts?tab=failed" },
       { key: "disputes_needing_decision", label: "Disputes Needing Decision", count: disputesOpen, severity: "orange", action_label: "Decide", action_href: "/admin/disputes" },
-      { key: "stuck_transactions", label: "Stuck Transactions", count: stuckTx > 0 ? stuckTx : flaggedNeedsReview, severity: "purple", action_label: "Review Queue", action_href: "/admin/transactions/stuck" },
-      { key: "identity_reviews_pending", label: "Identity Reviews Pending", count: identityPending, severity: "cyan", action_label: "Open Reviews", action_href: "/admin/identity-reviews" },
-      { key: "webhook_recon_issues", label: "Webhook & Reconciliation", count: webhookFailures, severity: "yellow", action_label: "Investigate", action_href: "/admin/webhooks" },
+      { key: "stuck_transactions", label: "Stuck Transactions", count: stuckTx > 0 ? stuckTx : flaggedNeedsReview, severity: "purple", action_label: "Review Queue", action_href: "/admin/transactions?quick=overdue" },
+      { key: "identity_reviews_pending", label: "Identity Reviews Pending", count: identityPending, severity: "cyan", action_label: "Review users", action_href: "/admin/users?status=pending&verification=id" },
+      { key: "webhook_recon_issues", label: "Webhook & Reconciliation", count: webhookFailures, severity: "yellow", action_label: "Investigate", action_href: "/admin/reconciliation" },
     ],
     trends: {
       transactions_vs_disputes: txDisputeTrend,

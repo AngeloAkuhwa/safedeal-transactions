@@ -24,11 +24,15 @@ const BUILT_ROUTES = new Set<string>([
   "/admin/access-approvals",
   "/admin/task-orchestration",
   "/admin/agent-performance",
+  "/admin/support",
 ]);
 
 export function isBuiltAdminRoute(href: string | null | undefined): boolean {
   if (!href) return false;
-  return BUILT_ROUTES.has(href);
+  // Destinations may carry query/hash filters (e.g. "/admin/payouts?tab=failed").
+  // Only the pathname decides whether the screen exists.
+  const path = href.split(/[?#]/)[0].replace(/\/+$/g, "") || href;
+  return BUILT_ROUTES.has(path);
 }
 
 export function useAdminNav() {

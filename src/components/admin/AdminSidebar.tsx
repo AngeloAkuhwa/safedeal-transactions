@@ -28,13 +28,15 @@ import {
   Inbox,
   ListChecks,
   Gauge,
+  Tag,
+  Landmark,
 } from "lucide-react";
 import { useLocation } from "react-router";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAdminNav, isBuiltAdminRoute } from "./useAdminNav";
 import { signOut } from "@/services/auth.service";
 import { useAdminPermissions } from "@/context/AdminPermissionsContext";
 import { permissionForPath } from "@/services/admin-route-permissions";
+import { adminDisplayName, adminInitials, adminRoleLabel } from "@/lib/admin-identity";
 import type { AdminDashboardResponse } from "@/services/admin-dashboard.service";
 import { usePendingApprovalsBadge } from "@/hooks/usePendingApprovalsBadge";
 
@@ -79,6 +81,7 @@ function buildGroups(badges?: SidebarBadges): NavGroup[] {
       label: "Operations",
       items: [
         { label: "Transactions", href: "/admin/transactions", icon: Receipt },
+        { label: "Offers", href: "/admin/offers", icon: Tag },
         {
           label: "Disputes",
           href: "/admin/disputes",
@@ -99,6 +102,7 @@ function buildGroups(badges?: SidebarBadges): NavGroup[] {
       label: "Financial",
       items: [
         { label: "Escrow", href: "/admin/escrow", icon: PiggyBank },
+        { label: "Reconciliation", href: "/admin/reconciliation", icon: Landmark },
         {
           label: "Payouts",
           href: "/admin/payouts",
@@ -171,7 +175,10 @@ interface AdminSidebarProps {
 export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
   const { go } = useAdminNav();
   const { pathname } = useLocation();
-  const { has, isSuper, loading } = useAdminPermissions();
+  const { has, isSuper, loading, roles, fullName, email } = useAdminPermissions();
+  const displayName = adminDisplayName(fullName, email);
+  const initials = adminInitials(fullName, email);
+  const roleLabel = adminRoleLabel(roles, isSuper);
   const { count: pendingApprovals } = usePendingApprovalsBadge();
   const badgesWithApprovals: SidebarBadges | undefined = badges
     ? { ...badges, access_approvals: pendingApprovals }
@@ -206,7 +213,7 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
   };
 
   return (
-    <TooltipProvider delayDuration={150}>
+    <>
       <aside className="flex h-full w-full flex-col bg-card text-foreground">
         {/* Logo */}
         <div className="flex items-center gap-3 border-b border-border px-5 py-5">
@@ -230,20 +237,17 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
                 {group.items.map((item) => {
                   const Icon = item.icon;
                   const active = pathname === item.href;
-                  const built = true; // items are pre-filtered above
-                  const row = (
+                  return (
+                    <li key={item.href}>
                     <button
                       type="button"
                       onClick={() => handleClick(item)}
                       aria-current={active ? "page" : undefined}
-                      aria-disabled={!built}
                       className={[
                         "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                         active
                           ? "border border-blue-500/30 bg-blue-500/10 text-blue-300"
-                          : built
-                            ? "text-foreground/90 hover:bg-muted/70 hover:text-foreground"
-                            : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                          : "text-foreground/90 hover:bg-muted/70 hover:text-foreground",
                       ].join(" ")}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
@@ -256,19 +260,6 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
                         </span>
                       )}
                     </button>
-                  );
-                  return (
-                    <li key={item.href}>
-                      {built ? (
-                        row
-                      ) : (
-                        <Tooltip>
-                          <TooltipTrigger asChild>{row}</TooltipTrigger>
-                          <TooltipContent side="right" className="border-border bg-muted text-foreground">
-                            Coming soon
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
                     </li>
                   );
                 })}
@@ -280,11 +271,20 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
         {/* Profile */}
         <div className="flex items-center gap-3 border-t border-border px-4 py-4">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 text-sm font-semibold text-foreground">
-            A
+            {loading ? <span className="h-3 w-3 rounded-full bg-foreground/30" /> : initials}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium text-foreground">Admin User</div>
-            <div className="truncate text-xs text-muted-foreground">Super Admin</div>
+            {loading ? (
+              <>
+                <div className="h-5 w-28 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+              </>
+            ) : (
+              <>
+                <div className="truncate text-sm font-medium leading-5 text-foreground">{displayName}</div>
+                <div className="truncate text-xs leading-4 text-muted-foreground">{roleLabel}</div>
+              </>
+            )}
           </div>
           <button
             type="button"
@@ -296,6 +296,6 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
           </button>
         </div>
       </aside>
-    </TooltipProvider>
+    </>
   );
 }

@@ -72,6 +72,9 @@ import AdminPermissionMatrix from "./pages/AdminPermissionMatrix";
 import AdminAccessApprovals from "./pages/AdminAccessApprovals";
 import AdminTaskOrchestration from "./pages/AdminTaskOrchestration";
 import AdminAgentPerformance from "./pages/AdminAgentPerformance";
+import AdminSupport from "./pages/AdminSupport";
+import LegalPrivacy from "./pages/LegalPrivacy";
+import LegalTerms from "./pages/LegalTerms";
 import DeliveryConfirm from "./pages/DeliveryConfirm";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -110,6 +113,8 @@ const App = () => (
             <Route path="/offer/:offerToken" element={<OfferClaimLanding />} />
             <Route path="/delivery/confirm/:token" element={<DeliveryConfirm />} />
             <Route path="/marketplace" element={<BuyerMarketplace />} />
+            <Route path="/legal/privacy" element={<LegalPrivacy />} />
+            <Route path="/legal/terms" element={<LegalTerms />} />
 
             {/* Protected: requires session */}
             <Route element={<ProtectedRoute />}>
@@ -171,6 +176,7 @@ const App = () => (
                 <Route path="/admin/access-approvals" element={<AdminAccessApprovals />} />
                 <Route path="/admin/task-orchestration" element={<AdminTaskOrchestration />} />
                 <Route path="/admin/agent-performance" element={<AdminAgentPerformance />} />
+                <Route path="/admin/support" element={<AdminSupport />} />
               </Route>
             </Route>
 
