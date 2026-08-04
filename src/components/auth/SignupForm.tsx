@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import EmailVerificationPending from "./EmailVerificationPending";
 import { signUp } from "@/services/auth.service";
+import { Link } from "react-router";
 
 const signupSchema = z
   .object({
@@ -83,6 +84,9 @@ const SignupForm = ({ defaultRole, onGoToLogin }: SignupFormProps) => {
       const { error } = await signUp(values.email, values.password, {
         full_name: values.full_name,
         phone: values.phone,
+        terms_accepted: "true",
+        terms_accepted_at: new Date().toISOString(),
+        terms_version: "2026-08-04",
         ...(defaultRole ? { default_role: defaultRole } : {}),
       });
 
@@ -233,9 +237,9 @@ const SignupForm = ({ defaultRole, onGoToLogin }: SignupFormProps) => {
               </FormControl>
               <FormLabel className="text-sm font-normal text-muted-foreground leading-snug cursor-pointer">
                 I agree to SafeDeal's{" "}
-                <a href="/terms" className="text-primary hover:underline">Terms of Service</a>
+                <Link to="/legal/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms of Service</Link>
                 {" "}and{" "}
-                <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
+                <Link to="/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Privacy Policy</Link>
               </FormLabel>
               <FormMessage />
             </FormItem>
