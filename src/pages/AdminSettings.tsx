@@ -601,9 +601,9 @@ export default function AdminSettings() {
                     <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">Whether service fees are refundable</p>
                     <select
                       value={refundPolicy}
-                      disabled={isLocked("fees.refund_policy")}
+                      disabled={isLocked("fees.refund_policy") || !canConfigureFinancial}
                       onChange={(e) => setStr(setRefundPolicy)(e.target.value)}
-                      className={`w-full h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${isLocked("fees.refund_policy") ? "cursor-not-allowed" : ""}`}
+                      className={`w-full h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${isLocked("fees.refund_policy") || !canConfigureFinancial ? "cursor-not-allowed" : ""}`}
                     >
                       <option>Non-refundable</option>
                       <option>Refundable on cancellation</option>
