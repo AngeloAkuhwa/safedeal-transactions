@@ -21,7 +21,7 @@ describe("adminInitials", () => {
     expect(adminInitials(null, "ada.lovelace@safedeal.ng")).toBe("AL");
   });
   it("defaults to A", () => {
-    expect(adminInitials(null, null)).toBe("AD");
+    expect(adminInitials(null, null)).toBe("A");
   });
 });
 
