@@ -18,6 +18,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { useAdminPermissions } from "@/context/AdminPermissionsContext";
+
+/** Keys whose values change money behaviour — mirror of the edge function gate. */
+const isFinancialSettingKey = (key: string) =>
+  key.startsWith("pricing.") || key === "fees.refund_policy";
 
 /* ---- audit value formatting ---- */
 function formatSettingValue(v: unknown): string {
@@ -227,6 +232,9 @@ export default function AdminSettings() {
   // Which platform keys are overridable per-vendor
   const [overridable, setOverridable] = useState<Record<string, boolean>>({});
   const isLocked = (key: string) => scope === "vendor" && overridable[key] === false;
+  // Money-behaviour keys additionally require `financial_controls.configure`.
+  const { has: hasPermission } = useAdminPermissions();
+  const canConfigureFinancial = hasPermission("financial_controls.configure");
   // Which keys currently have a vendor-scoped override for the selected vendor
   const [overriddenKeys, setOverriddenKeys] = useState<Set<string>>(new Set());
   const isOverridden = (key: string) => scope === "vendor" && overriddenKeys.has(key);
@@ -408,6 +416,13 @@ export default function AdminSettings() {
         if (!vendorWritable.has(k)) delete updates[k];
       }
     }
+    // Without `financial_controls.configure` the server rejects money keys;
+    // drop them client-side so the rest of the save still succeeds.
+    if (!canConfigureFinancial) {
+      for (const k of Object.keys(updates)) {
+        if (isFinancialSettingKey(k)) delete updates[k];
+      }
+    }
     const timeouts = [
       { rule_type: "seller_fulfillment_timeout", hours: Number(sellerFulfil) * 24 },
       { rule_type: "buyer_verification_timeout", hours: Number(buyerVerify) },
@@ -540,9 +555,17 @@ export default function AdminSettings() {
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1 ml-10">Protection fee structure and limits</p>
                 </div>
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                  <Coins className="h-3 w-3 text-emerald-400" />
-                  <span className="text-emerald-300 text-[11px] font-medium">Active Rules</span>
+                <div className="flex items-center gap-2">
+                  {!canConfigureFinancial && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full">
+                      <ShieldAlert className="h-3 w-3 text-amber-400" />
+                      <span className="text-amber-300 text-[11px] font-medium">Read-only — needs financial access</span>
+                    </div>
+                  )}
+                  <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                    <Coins className="h-3 w-3 text-emerald-400" />
+                    <span className="text-emerald-300 text-[11px] font-medium">Active Rules</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -554,8 +577,8 @@ export default function AdminSettings() {
                 </h4>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
                   <FeeField label="Platform Fee Rate" suffix="%" value={platformRate} onChange={setStr(setPlatformRate)} help="Applied to all standard transactions" />
-                  <FeeField label="Minimum Platform Fee" prefix="₦" value={minFee} onChange={setStr(setMinFee)} help="Floor charged even on small orders" locked={isLocked("pricing.min_platform_fee_ngn")} overridden={isOverridden("pricing.min_platform_fee_ngn")} />
-                  <FeeField label="Total Service Fee Cap" prefix="₦" value={feeCap} onChange={setStr(setFeeCap)} help="Buyer-friendly ceiling on service fees" locked={isLocked("pricing.max_total_service_fee_ngn")} overridden={isOverridden("pricing.max_total_service_fee_ngn")} />
+                  <FeeField label="Minimum Platform Fee" prefix="₦" value={minFee} onChange={setStr(setMinFee)} help="Floor charged even on small orders" locked={isLocked("pricing.min_platform_fee_ngn") || !canConfigureFinancial} overridden={isOverridden("pricing.min_platform_fee_ngn")} />
+                  <FeeField label="Total Service Fee Cap" prefix="₦" value={feeCap} onChange={setStr(setFeeCap)} help="Buyer-friendly ceiling on service fees" locked={isLocked("pricing.max_total_service_fee_ngn") || !canConfigureFinancial} overridden={isOverridden("pricing.max_total_service_fee_ngn")} />
                 </div>
               </div>
 
@@ -578,9 +601,9 @@ export default function AdminSettings() {
                     <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">Whether service fees are refundable</p>
                     <select
                       value={refundPolicy}
-                      disabled={isLocked("fees.refund_policy")}
+                      disabled={isLocked("fees.refund_policy") || !canConfigureFinancial}
                       onChange={(e) => setStr(setRefundPolicy)(e.target.value)}
-                      className={`w-full h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${isLocked("fees.refund_policy") ? "cursor-not-allowed" : ""}`}
+                      className={`w-full h-9 px-2 bg-muted/40 border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${isLocked("fees.refund_policy") || !canConfigureFinancial ? "cursor-not-allowed" : ""}`}
                     >
                       <option>Non-refundable</option>
                       <option>Refundable on cancellation</option>

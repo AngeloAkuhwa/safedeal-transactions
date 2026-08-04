@@ -489,7 +489,26 @@ async function handleTransferSuccess(
       await updateWebhookLog(supabase, reference, true, "transfer.success: already completed");
       return;
     }
-    const amount = Number(payout.amount);
+    // Ledger invariant: `payout_debit` must be booked at NET
+    // (`transaction_pricing.seller_payout_amount`), so that
+    // payment_credit = payout_debit + fee_record reconciles without any
+    // compensating adjustment. The pricing snapshot is the source of truth;
+    // the payout row is only a mirror of it.
+    const { data: pricingSnap } = await supabase
+      .from("transaction_pricing")
+      .select("seller_payout_amount")
+      .eq("transaction_id", payout.transaction_id)
+      .maybeSingle();
+    const snapshotNet = (pricingSnap as any)?.seller_payout_amount != null
+      ? Number((pricingSnap as any).seller_payout_amount)
+      : null;
+    const payoutRowAmount = Number(payout.amount);
+    const amount = snapshotNet ?? payoutRowAmount;
+    if (snapshotNet != null && Math.abs(snapshotNet - payoutRowAmount) > 0.005) {
+      console.error(
+        `[paystack-webhook] payout ${payout.id} amount ${payoutRowAmount} != snapshot net ${snapshotNet}; booking ledger at NET`,
+      );
+    }
     const eventId = String(payload.data?.id ?? reference);
     const { error } = await supabase.rpc("complete_payout_atomic", {
       p_payout_id: payout.id,
