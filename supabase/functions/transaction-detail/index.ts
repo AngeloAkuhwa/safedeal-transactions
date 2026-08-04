@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computePricing } from "../_shared/pricing.ts";
+import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -145,9 +146,12 @@ Deno.serve(async (req) => {
 
     // Use the stored snapshot as the source of truth; fall back to computed
     // values only when the snapshot is missing (pre-payment) or columns are null.
+    // FALLBACK: recompute using the seller's vendor config for display only.
     const fallback = computePricing(
       pricingRaw ? Number(pricingRaw.item_amount) || 0 : 0,
       pricingRaw?.currency_code || "NGN",
+      "local",
+      await loadPricingConfig(tx.seller_id),
     );
     const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
     const processingSnapshot = pricingRaw

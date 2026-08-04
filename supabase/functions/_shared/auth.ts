@@ -62,22 +62,42 @@ export async function requireAdmin(req: Request): Promise<AuthContext> {
   if (consumerErr || internalErr) throw new AuthError(500, "role_check_failed");
   if (!hasConsumerAdmin && !hasInternal) throw new AuthError(403, "admin_required");
 
-  // Optional AAL2 gate — enforced when platform setting
-  // `security.two_factor_admin` is truthy. Fails open on read errors so a
-  // misconfigured setting can't lock every admin out.
+  // AAL2 gate.
+  //   `security.two_factor_admin`          — ADVISORY policy signal only.
+  //   `security.two_factor_admin_enforced` — the real switch (default OFF).
+  // Until the enforcement key is turned on we run in log-only mode so the
+  // platform can measure how many admins would be blocked. Fails open on read
+  // errors so a misconfigured setting can't lock every admin out.
   try {
-    const { data: row } = await ctx.adminClient
+    const { data: rows } = await ctx.adminClient
       .from("system_settings")
-      .select("value")
+      .select("setting_key, setting_value")
       .eq("scope", "platform")
-      .eq("key", "security.two_factor_admin")
-      .maybeSingle();
-    const raw = (row as { value?: unknown } | null)?.value;
-    const requireMfa =
+      .in("setting_key", [
+        "security.two_factor_admin",
+        "security.two_factor_admin_enforced",
+      ]);
+    const truthy = (raw: unknown) =>
       raw === true || raw === "true" ||
       (typeof raw === "object" && raw !== null && (raw as { enabled?: unknown }).enabled === true);
-    if (requireMfa && ctx.aal !== "aal2") {
-      throw new AuthError(403, "mfa_required");
+    const byKey = new Map<string, unknown>(
+      ((rows ?? []) as { setting_key: string; setting_value: unknown }[])
+        .map((r) => [r.setting_key, r.setting_value]),
+    );
+    const advisory = truthy(byKey.get("security.two_factor_admin"));
+    const enforced = truthy(byKey.get("security.two_factor_admin_enforced"));
+    if (ctx.aal !== "aal2" && (advisory || enforced)) {
+      if (enforced) {
+        throw new AuthError(403, "mfa_required");
+      }
+      console.warn(
+        JSON.stringify({
+          event: "mfa_gate_log_only",
+          user_id: ctx.userId,
+          aal: ctx.aal ?? null,
+          note: "would_block_if_security.two_factor_admin_enforced_were_on",
+        }),
+      );
     }
   } catch (e) {
     if (e instanceof AuthError) throw e;

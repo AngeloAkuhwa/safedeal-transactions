@@ -267,6 +267,7 @@ export default function AdminSettings() {
   const [idThreshold, setIdThreshold] = useState("100000");
   const [sessionTimeout, setSessionTimeout] = useState("30");
   const [twoFA, setTwoFA] = useState(true);
+  const [twoFAEnforced, setTwoFAEnforced] = useState(false);
 
   // Commerce (kill switches)
   const [checkoutEnabled, setCheckoutEnabled] = useState(false);
@@ -317,6 +318,7 @@ export default function AdminSettings() {
         if (byKey["security.require_id_verification"] != null) setIdRequired(Boolean(byKey["security.require_id_verification"]));
         if (byKey["security.session_timeout_minutes"] != null) setSessionTimeout(num(byKey["security.session_timeout_minutes"], "30"));
         if (byKey["security.two_factor_admin"] != null) setTwoFA(Boolean(byKey["security.two_factor_admin"]));
+        if (byKey["security.two_factor_admin_enforced"] != null) setTwoFAEnforced(Boolean(byKey["security.two_factor_admin_enforced"]));
         if (byKey["notifications.email_enabled"] != null) setEmailOn(Boolean(byKey["notifications.email_enabled"]));
         if (byKey["notifications.sms_enabled"] != null) setSmsOn(Boolean(byKey["notifications.sms_enabled"]));
         if (byKey["escrow.auto_release_enabled"] != null) setAutoReleaseOn(Boolean(byKey["escrow.auto_release_enabled"]));
@@ -383,6 +385,7 @@ export default function AdminSettings() {
       "security.id_verification_threshold": Number(idThreshold),
       "security.session_timeout_minutes": Number(sessionTimeout),
       "security.two_factor_admin": twoFA,
+      "security.two_factor_admin_enforced": twoFAEnforced,
       "notifications.email_enabled": emailOn,
       "notifications.sms_enabled": smsOn,
       "escrow.auto_release_enabled": autoReleaseOn,
@@ -709,7 +712,22 @@ export default function AdminSettings() {
                         <span className="text-muted-foreground text-xs">minutes</span>
                       </div>
                     </div>
-                    <ToggleRow title="Two-Factor Authentication" desc="Require 2FA for admin accounts" on={twoFA} onChange={setBool(setTwoFA)} overridden={isOverridden("security.two_factor_admin")} />
+                    <ToggleRow
+                      title="Two-Factor Authentication (advisory)"
+                      desc={twoFAEnforced
+                        ? "Policy signal. Enforcement is active via the switch below."
+                        : "Policy signal only — this does NOT block sign-in. Admin access is not gated until enforcement is turned on."}
+                      on={twoFA}
+                      onChange={setBool(setTwoFA)}
+                      overridden={isOverridden("security.two_factor_admin")}
+                    />
+                    <ToggleRow
+                      title="Enforce 2FA for admins"
+                      desc="Rejects admin API calls from sessions without a second factor (AAL2). Leave off until every internal user has enrolled."
+                      on={twoFAEnforced}
+                      onChange={setBool(setTwoFAEnforced)}
+                      overridden={isOverridden("security.two_factor_admin_enforced")}
+                    />
                   </div>
                 </div>
               </div>

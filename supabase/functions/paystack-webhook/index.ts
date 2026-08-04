@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
+import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 import { notifyUser, notifyOpsTeam } from "../_shared/notify.ts";
 import { koboToNaira } from "../_shared/money.ts";
 import { emitHighValueFlagIfNeeded } from "../_shared/security-resolver.ts";
@@ -150,16 +151,44 @@ Deno.serve(async (req) => {
         // Fetch pricing
         const { data: pricingRow } = await supabase
           .from("transaction_pricing")
-          .select("currency_code, item_amount")
+          .select("currency_code, item_amount, platform_fee_amount, payment_processing_fee_amount, buyer_total_amount, seller_payout_amount")
           .eq("transaction_id", txId)
           .maybeSingle();
 
-        if (!pricingRow) {
-          await updateWebhookLog(supabase, providerReference, false, "Pricing not found");
-          return new Response("OK", { status: 200 });
+        // SNAPSHOT-FIRST: display the locked transaction_pricing row. Only
+        // recompute (display only — the charge already happened) when no
+        // snapshot row exists.
+        const numW = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+        let pricing: {
+          currency_code: string;
+          item_amount: number;
+          paystack_fee_amount: number;
+          platform_fee_amount: number;
+          service_fee_amount: number;
+          total_amount: number;
+        };
+        if (pricingRow) {
+          const processingFee = numW(pricingRow.payment_processing_fee_amount) ?? 0;
+          const platformFee = numW(pricingRow.platform_fee_amount) ?? 0;
+          const itemAmount = Number(pricingRow.item_amount) || 0;
+          pricing = {
+            currency_code: pricingRow.currency_code || "NGN",
+            item_amount: itemAmount,
+            paystack_fee_amount: processingFee,
+            platform_fee_amount: platformFee,
+            service_fee_amount: processingFee + platformFee,
+            total_amount: numW(pricingRow.buyer_total_amount) ?? itemAmount + processingFee + platformFee,
+          };
+        } else {
+          // FALLBACK: no snapshot row exists (should not happen). Recompute
+          // using the seller's vendor config for display only.
+          pricing = computePricing(
+            koboToNaira(psData.amount) || 0,
+            psData.currency || "NGN",
+            "local",
+            await loadPricingConfig(tx.seller_id),
+          );
         }
-
-        const pricing = computePricing(Number(pricingRow.item_amount) || 0, pricingRow.currency_code || "NGN");
 
         // Payment capture goes through the same guarded routine the verify path
         // uses. Keyed on the Paystack event id, so verify + webhook racing on the

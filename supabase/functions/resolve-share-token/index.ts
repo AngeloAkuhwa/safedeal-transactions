@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
+import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -67,7 +68,7 @@ Deno.serve(async (req) => {
           .maybeSingle(),
         supabase
           .from("transaction_pricing")
-          .select("currency_code, item_amount")
+          .select("currency_code, item_amount, platform_fee_amount, payment_processing_fee_amount, buyer_total_amount, seller_payout_amount")
           .eq("transaction_id", txId)
           .maybeSingle(),
         supabase
@@ -117,11 +118,39 @@ Deno.serve(async (req) => {
         .maybeSingle(),
     ]);
 
-    // 4. Compute pricing dynamically using SafeDeal tiered policy
+    // SNAPSHOT-FIRST: display the immutable transaction_pricing row. Only
+    // recompute (display only) when no snapshot row exists.
     const pricingRaw = pricingRes.data;
-    const computedPricing = pricingRaw
-      ? computePricing(Number(pricingRaw.item_amount) || 0, pricingRaw.currency_code || "NGN")
-      : null;
+    const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+    let computedPricing: {
+      currency_code: string;
+      item_amount: number;
+      paystack_fee_amount: number;
+      platform_fee_amount: number;
+      service_fee_amount: number;
+      total_amount: number;
+      seller_payout_amount: number | null;
+    } | null = null;
+
+    if (pricingRaw) {
+      const processingFee = num((pricingRaw as any).payment_processing_fee_amount) ?? 0;
+      const platformFee = num((pricingRaw as any).platform_fee_amount) ?? 0;
+      const itemAmount = Number(pricingRaw.item_amount) || 0;
+      computedPricing = {
+        currency_code: pricingRaw.currency_code || "NGN",
+        item_amount: itemAmount,
+        paystack_fee_amount: processingFee,
+        platform_fee_amount: platformFee,
+        service_fee_amount: processingFee + platformFee,
+        total_amount: num((pricingRaw as any).buyer_total_amount) ?? itemAmount + processingFee + platformFee,
+        seller_payout_amount: num((pricingRaw as any).seller_payout_amount),
+      };
+    } else {
+      // FALLBACK: no transaction_pricing snapshot row exists. Recompute using
+      // the seller's vendor config for display only.
+      const fallback = computePricing(0, "NGN", "local", await loadPricingConfig(tx.seller_id));
+      computedPricing = { ...fallback, seller_payout_amount: null };
+    }
 
     // 5. Resolve media: prefer transaction_media; fall back to product_media
     //    (offer-claimed transactions store media on the source product, not on the transaction)

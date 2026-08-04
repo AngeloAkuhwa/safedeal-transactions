@@ -1,6 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computePricing } from "../_shared/pricing.ts";
+import { loadPricingConfig } from "../_shared/settings-resolver.ts";
 import { emitHighValueFlagIfNeeded } from "../_shared/security-resolver.ts";
+
+function koboToNairaSafe(kobo: unknown): number {
+  const n = Number(kobo);
+  return Number.isFinite(n) ? Math.round(n) / 100 : 0;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -89,7 +95,7 @@ export async function processPaystackVerification(
       .single(),
     supabase
       .from("transaction_pricing")
-      .select("currency_code, item_amount")
+      .select("currency_code, item_amount, platform_fee_amount, payment_processing_fee_amount, buyer_total_amount, seller_payout_amount")
       .eq("transaction_id", txId)
       .maybeSingle(),
   ]);
@@ -106,9 +112,46 @@ export async function processPaystackVerification(
     return { success: false, error: `Unexpected money_status: ${tx.money_status}` };
   }
 
-  const pricing = pricingRes.data
-    ? computePricing(Number(pricingRes.data.item_amount) || 0, pricingRes.data.currency_code || "NGN")
-    : null;
+  // SNAPSHOT-FIRST: display the immutable transaction_pricing row that was
+  // locked at checkout time. Only recompute (for display only — never for
+  // what is charged) when no snapshot row exists at all.
+  const pricingSnapshot = pricingRes.data;
+  const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  let pricing: {
+    currency_code: string;
+    item_amount: number;
+    paystack_fee_amount: number;
+    platform_fee_amount: number;
+    service_fee_amount: number;
+    total_amount: number;
+    seller_payout_amount: number | null;
+  } | null = null;
+
+  if (pricingSnapshot) {
+    const processingFee = num(pricingSnapshot.payment_processing_fee_amount) ?? 0;
+    const platformFee = num(pricingSnapshot.platform_fee_amount) ?? 0;
+    const itemAmount = Number(pricingSnapshot.item_amount) || 0;
+    pricing = {
+      currency_code: pricingSnapshot.currency_code || "NGN",
+      item_amount: itemAmount,
+      paystack_fee_amount: processingFee,
+      platform_fee_amount: platformFee,
+      service_fee_amount: processingFee + platformFee,
+      total_amount: num(pricingSnapshot.buyer_total_amount) ?? itemAmount + processingFee + platformFee,
+      seller_payout_amount: num(pricingSnapshot.seller_payout_amount),
+    };
+  } else {
+    // FALLBACK: no transaction_pricing snapshot row exists (should not happen
+    // post-checkout). Recompute using the seller's vendor config for display
+    // only — the actual charge already happened via Paystack.
+    const fallback = computePricing(
+      koboToNairaSafe(psData.amount),
+      psData.currency || "NGN",
+      "local",
+      await loadPricingConfig(tx.seller_id),
+    );
+    pricing = { ...fallback, seller_payout_amount: null };
+  }
 
   if (!pricing) {
     return { success: false, error: "Transaction pricing not found" };

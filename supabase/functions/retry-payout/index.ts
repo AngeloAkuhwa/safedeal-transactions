@@ -4,6 +4,7 @@ import { createTransfer } from "../_shared/paystack.ts";
 import { nairaToKobo } from "../_shared/money.ts";
 import { notifyUser, notifyOpsTeam } from "../_shared/notify.ts";
 import { formatMoney, PRICING_LINE_LABELS } from "../_shared/money-copy.ts";
+import { assertPayoutEligible } from "../_shared/payout-eligibility.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,14 +69,9 @@ Deno.serve(async (req) => {
     return json(409, { error: "tx_not_in_pending_release", money_status: tx.money_status });
   }
 
-  const { data: account } = await admin
-    .from("v_payout_account_state")
-    .select("provider_recipient_code, verification_status, account_state")
-    .eq("user_id", tx.seller_id)
-    .maybeSingle();
-  const recipientCode = account?.provider_recipient_code;
-  if (account?.account_state !== "verified_ready" || !recipientCode) {
-    const state = account?.account_state ?? "no_account";
+  const eligibility = await assertPayoutEligible(admin, tx.seller_id);
+  if (!eligibility.ok) {
+    const state = eligibility.accountState ?? "no_account";
     return json(409, {
       error: state === "verified_no_recipient"
         ? "payout_account_recipient_missing"
@@ -85,6 +81,7 @@ Deno.serve(async (req) => {
       account_state: state,
     });
   }
+  const recipientCode = eligibility.recipientCode;
 
   // Re-arm: failed -> awaiting_release (audited).
   const { error: armErr } = await admin.rpc("retry_payout_atomic", {
