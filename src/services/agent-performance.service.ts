@@ -298,7 +298,8 @@ async function assertResolvedCountsReconcile(
   overview: AgentPerformanceOverview,
   filters: AgentPerformanceFilters,
 ) {
-  const sample = (overview.agents ?? []).filter((a) => a.resolved > 0).slice(0, 3);
+  if (!overview) return;
+  const sample = (overview?.agents ?? []).filter((a) => a.resolved > 0).slice(0, 3);
   for (const agent of sample) {
     try {
       const res = await fetchAgentCases(agent.user_id, filters);
