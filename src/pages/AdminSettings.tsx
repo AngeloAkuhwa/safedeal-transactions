@@ -18,6 +18,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { useAdminPermissions } from "@/context/AdminPermissionsContext";
+
+/** Keys whose values change money behaviour — mirror of the edge function gate. */
+const isFinancialSettingKey = (key: string) =>
+  key.startsWith("pricing.") || key === "fees.refund_policy";
 
 /* ---- audit value formatting ---- */
 function formatSettingValue(v: unknown): string {
