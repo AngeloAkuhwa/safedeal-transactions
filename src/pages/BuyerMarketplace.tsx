@@ -26,8 +26,15 @@ import { Input as PriceInput } from "@/components/ui/input";
 import { getMarketplaceProducts } from "@/services/marketplace.service";
 import { useAuthState } from "@/hooks/useSavedProducts";
 import { formatMoney } from "@/lib/format";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 export default function BuyerMarketplace() {
+  usePageMeta({
+    title: "Marketplace — Protected Listings | SafeDeal",
+    description:
+      "Browse SafeDeal marketplace listings from verified sellers. Every purchase is paid into escrow and released only after you confirm delivery.",
+    path: "/marketplace",
+  });
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthState();
   const [searchParams] = useSearchParams();

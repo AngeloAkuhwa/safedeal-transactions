@@ -104,6 +104,16 @@ export function VerificationActions({
               a dispute, the SafeDeal review team will review the case and make a final decision.
               Choose wisely based on your verification.
             </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              <a
+                href="/legal/refund-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Read the refund &amp; dispute policy
+              </a>
+            </p>
           </div>
         </div>
       </div>

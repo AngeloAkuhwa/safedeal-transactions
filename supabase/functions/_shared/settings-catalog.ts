@@ -66,3 +66,19 @@ export function clampSetting(
   }
   return { ok: true, value };
 }
+/**
+ * DEPRECATED setting keys — mirror of `src/lib/settings-catalog.ts`.
+ *
+ * These rows still exist in `system_settings` but no code reads them. They are
+ * kept (not deleted) because historical settings rows are part of the audit
+ * record. Never write to these; read the `replacedBy` key instead.
+ */
+export const DEPRECATED_SETTING_KEYS: Record<string, { replacedBy: string | null; note: string }> = {
+  "platform.auto_release_enabled": { replacedBy: "escrow.auto_release_enabled", note: "Superseded by the audited escrow auto-release switch." },
+  "platform.email_notifications": { replacedBy: "notifications.email_enabled", note: "Superseded by the notifications channel kill switch." },
+  "platform.sms_notifications": { replacedBy: "notifications.sms_enabled", note: "Superseded by the notifications channel kill switch." },
+  "security.two_factor_required": { replacedBy: "security.two_factor_admin", note: "Superseded by the admin-scoped 2FA key." },
+  "security.kyc_required_over_ngn": { replacedBy: "security.id_verification_threshold", note: "Superseded by the ID verification threshold." },
+  platform_fee_percentage: { replacedBy: "pricing.tier_rates", note: "Flat-percentage pricing generation (G1). See docs/pricing-fee-generations.md." },
+  processing_fee_percentage: { replacedBy: "pricing.tier_rates", note: "Flat-percentage pricing generation (G1). See docs/pricing-fee-generations.md." },
+};

@@ -10,10 +10,11 @@ const productLinks = [
 
 const companyLinks = ["About Us", "Careers", "Blog", "Press Kit"];
 const supportLinks: { label: string; href?: string }[] = [
-  { label: "Help Center" },
-  { label: "Contact Us" },
+  { label: "Help Center", href: "/contact" },
+  { label: "Contact Us", href: "/contact" },
   { label: "Terms of Service", href: "/legal/terms" },
   { label: "Privacy Policy", href: "/legal/privacy" },
+  { label: "Refund & Dispute Policy", href: "/legal/refund-policy" },
 ];
 const socials = [
   { icon: Twitter, label: "Twitter" },

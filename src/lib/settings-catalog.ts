@@ -140,6 +140,60 @@ export const CATALOG_BY_KEY: Record<string, CatalogEntry> = Object.fromEntries(
 );
 
 /**
+ * DEPRECATED setting keys.
+ *
+ * These rows still exist in `system_settings` but NO code reads them. They are
+ * superseded by the canonical keys in `SETTINGS_CATALOG` above. They are
+ * intentionally NOT deleted — historical settings rows are part of the audit
+ * record, and deleting them would erase who configured what and when.
+ *
+ * Rules:
+ * - Never add a deprecated key back to `SETTINGS_CATALOG`.
+ * - Never write to a deprecated key.
+ * - Read the `replacedBy` key instead.
+ */
+export const DEPRECATED_SETTING_KEYS: Record<string, { replacedBy: string | null; note: string }> = {
+  "platform.auto_release_enabled": {
+    replacedBy: "escrow.auto_release_enabled",
+    note: "Superseded by the audited escrow auto-release switch.",
+  },
+  "platform.email_notifications": {
+    replacedBy: "notifications.email_enabled",
+    note: "Superseded by the notifications channel kill switch.",
+  },
+  "platform.sms_notifications": {
+    replacedBy: "notifications.sms_enabled",
+    note: "Superseded by the notifications channel kill switch.",
+  },
+  "security.two_factor_required": {
+    replacedBy: "security.two_factor_admin",
+    note: "Superseded by the admin-scoped 2FA key.",
+  },
+  "security.kyc_required_over_ngn": {
+    replacedBy: "security.id_verification_threshold",
+    note: "Superseded by the ID verification threshold.",
+  },
+  platform_fee_percentage: {
+    replacedBy: "pricing.tier_rates",
+    note: "Flat-percentage pricing generation (G1). Replaced by tiered rates — see docs/pricing-fee-generations.md.",
+  },
+  processing_fee_percentage: {
+    replacedBy: "pricing.tier_rates",
+    note: "Flat-percentage pricing generation (G1). Replaced by tiered rates — see docs/pricing-fee-generations.md.",
+  },
+};
+
+/**
+ * Keys that are live in the catalog but currently INERT because the feature
+ * behind them is not implemented yet. They are read but do not change
+ * behaviour. Kept so the switch is already audited when the channel ships.
+ */
+export const INERT_SETTING_KEYS: Record<string, string> = {
+  "notifications.sms_enabled":
+    "No SMS delivery channel is implemented; only the email channel is processed by process-notification-deliveries.",
+};
+
+/**
  * Validate + clamp a single setting value against the catalog.
  * Returns `{ ok, value, error }`. Unknown keys pass through untouched.
  */

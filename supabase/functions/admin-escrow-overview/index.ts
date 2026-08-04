@@ -139,7 +139,14 @@ Deno.serve(async (req) => {
     .gte("created_at", since60)
     .order("created_at", { ascending: true });
 
-  // Sum of payment_credit minus payout_debit/refund_debit, partitioned by date threshold
+  // Canonical cash chain (must match reconcile-escrow):
+  //   credits = payment_credit + adjustment   (adjustments are signed append-only corrections)
+  //   debits  = payout_debit + refund_debit
+  // Deliberately EXCLUDED from the cash chain:
+  //   - escrow_hold: mirror of payment_credit, would double-count
+  //   - fee_record: platform fee bookkeeping, not escrow cash movement
+  //   - freeze_hold, payout_awaiting_release,
+  //     dispute_release_approved_pending_admin_release: intent markers, no cash moved
   const sevenDaysAgo = now - 7 * DAY_MS;
   let heldBaseline = 0, refundedBaseline = 0;
   for (const e of ledgerWide ?? []) {
@@ -147,7 +154,7 @@ Deno.serve(async (req) => {
     if (t > sevenDaysAgo) continue;
     const type = e.entry_type as string;
     const amt = Number(e.amount ?? 0);
-    if (type === "payment_credit") heldBaseline += amt;
+    if (type === "payment_credit" || type === "adjustment") heldBaseline += amt;
     else if (type === "payout_debit") heldBaseline -= amt;
     else if (type === "refund_debit") { heldBaseline -= amt; refundedBaseline += amt; }
   }
@@ -168,7 +175,8 @@ Deno.serve(async (req) => {
     .gte("created_at", since30)
     .order("created_at", { ascending: true });
 
-  const CREDIT = new Set(["payment_credit"]);
+  // Same canonical credit/debit sets as reconcile-escrow — see note above.
+  const CREDIT = new Set(["payment_credit", "adjustment"]);
   const DEBIT = new Set(["payout_debit", "refund_debit"]);
 
   const balanceByDay = new Map<string, number>();
