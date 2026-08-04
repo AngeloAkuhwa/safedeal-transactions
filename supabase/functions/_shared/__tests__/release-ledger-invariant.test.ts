@@ -3,6 +3,7 @@ import {
   buildCanonicalFinancials,
   checkCaptureIdentity,
   checkEscrowMovementIdentity,
+  escrowBalanceMinor,
   type BuildInput,
 } from "../financial-model.ts";
 
@@ -59,6 +60,8 @@ describe("release ledger invariants", () => {
     const input = simulateRelease(BUYER_TOTAL);
     const built = buildCanonicalFinancials(input);
     expect(built.amount_captured).not.toBe(built.payout_amount + built.fees_retained);
-    expect(checkEscrowMovementIdentity(input.ledger)).toBe(false);
+    // Booking gross drives the escrow position negative — an impossible state
+    // that previously had to be papered over with a compensating adjustment.
+    expect(escrowBalanceMinor(input.ledger)).toBeLessThan(0);
   });
 });
