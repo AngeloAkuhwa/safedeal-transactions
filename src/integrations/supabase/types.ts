@@ -2757,13 +2757,18 @@ export type Database = {
         Row: {
           channel: Database["public"]["Enums"]["notification_channel"]
           created_at: string
+          dedupe_key: string | null
+          first_seen_at: string | null
           id: string
           is_read: boolean
+          last_seen_at: string | null
           message: string
           metadata: Json | null
+          occurrence_count: number
           read_at: string | null
           related_dispute_id: string | null
           related_transaction_id: string | null
+          resolved_at: string | null
           status: Database["public"]["Enums"]["notification_status"]
           title: string
           type: Database["public"]["Enums"]["notification_type"]
@@ -2773,13 +2778,18 @@ export type Database = {
         Insert: {
           channel: Database["public"]["Enums"]["notification_channel"]
           created_at?: string
+          dedupe_key?: string | null
+          first_seen_at?: string | null
           id?: string
           is_read?: boolean
+          last_seen_at?: string | null
           message: string
           metadata?: Json | null
+          occurrence_count?: number
           read_at?: string | null
           related_dispute_id?: string | null
           related_transaction_id?: string | null
+          resolved_at?: string | null
           status?: Database["public"]["Enums"]["notification_status"]
           title: string
           type: Database["public"]["Enums"]["notification_type"]
@@ -2789,13 +2799,18 @@ export type Database = {
         Update: {
           channel?: Database["public"]["Enums"]["notification_channel"]
           created_at?: string
+          dedupe_key?: string | null
+          first_seen_at?: string | null
           id?: string
           is_read?: boolean
+          last_seen_at?: string | null
           message?: string
           metadata?: Json | null
+          occurrence_count?: number
           read_at?: string | null
           related_dispute_id?: string | null
           related_transaction_id?: string | null
+          resolved_at?: string | null
           status?: Database["public"]["Enums"]["notification_status"]
           title?: string
           type?: Database["public"]["Enums"]["notification_type"]
@@ -6867,6 +6882,20 @@ export type Database = {
         Returns: Json
       }
       orch_generate_task_code: { Args: never; Returns: string }
+      raise_system_alert: {
+        Args: {
+          _dedupe_key: string
+          _message: string
+          _metadata?: Json
+          _related_transaction_id?: string
+          _title: string
+          _type: Database["public"]["Enums"]["notification_type"]
+        }
+        Returns: {
+          inserted_count: number
+          updated_count: number
+        }[]
+      }
       recompute_agent_capacity: {
         Args: { _user_id: string }
         Returns: undefined
@@ -7005,6 +7034,10 @@ export type Database = {
             }
             Returns: Json
           }
+      resolve_system_alerts: {
+        Args: { _active_keys?: string[]; _key_prefix: string }
+        Returns: number
+      }
       retry_payout_atomic: {
         Args: { p_actor_user_id: string; p_notes: string; p_payout_id: string }
         Returns: Json
