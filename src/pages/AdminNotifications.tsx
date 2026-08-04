@@ -658,7 +658,14 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
           <tbody className="divide-y divide-border">
             {rows.map((r) => (
               <tr key={r.notification_id} className="hover:bg-muted/30 transition-colors">
-                <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">{formatRelative(r.created_at)}</td>
+                <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">
+                  {formatRelative(r.last_seen_at ?? r.created_at)}
+                  {(r.occurrence_count ?? 1) > 1 && (
+                    <div className="text-[10px] text-muted-foreground/80">
+                      first seen {formatRelative(r.first_seen_at ?? r.created_at)}
+                    </div>
+                  )}
+                </td>
                 <td className="px-3 py-2 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
@@ -677,7 +684,15 @@ function RecentActivity({ rows, onRefresh, onFilter }: {
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap"><TypePill type={r.type} /></td>
                 <td className="px-3 py-2 whitespace-nowrap"><ChannelCell ch={r.channel} /></td>
-                <td className="px-3 py-2 text-xs text-foreground max-w-xs truncate">{r.title}</td>
+                <td className="px-3 py-2 text-xs text-foreground max-w-xs truncate">
+                  {r.title}
+                  {(r.occurrence_count ?? 1) > 1 && (
+                    <span className="ml-1.5 text-[10px] text-muted-foreground">×{r.occurrence_count} occurrences</span>
+                  )}
+                  {r.resolved_at && (
+                    <span className="ml-1.5 text-[10px] text-emerald-400">resolved</span>
+                  )}
+                </td>
                 <td className="px-3 py-2 whitespace-nowrap">
                   <span className={`px-2 py-1 border text-xs font-semibold rounded flex items-center gap-1.5 w-fit ${statusPill(r.status)}`}>
                     {r.status === "failed" ? <XCircle className="h-3 w-3" /> : (r.status === "pending" || r.status === "retrying") ? <Clock className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}

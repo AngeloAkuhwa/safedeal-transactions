@@ -7,13 +7,13 @@
  *   paystack_refunded  (sum of refunds.amount where status in processing/completed)
  *   ledger_balance     (signed sum of escrow_ledger_entries by entry_type)
  * Writes one row per (transaction, run) into `escrow_reconciliation_results`.
- * Drift (|delta| >= 0.01) fans out a notifyOpsTeam alert.
+ * Drift (|delta| >= 0.01) raises a deduplicated ops alert (one active alert per
+ * transaction, refreshed on repeat runs and resolved when the drift clears).
  *
  * Triggered hourly by pg_cron (no auth required — the function is locked to
  * the service role and only writes its own table + sends ops notifications).
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { notifyOpsTeam } from "../_shared/notify.ts";
 import { formatMoney } from "../_shared/money-copy.ts";
 import { requirePermission, authErrorResponse } from "../_shared/auth.ts";
 
@@ -303,17 +303,40 @@ Deno.serve(async (req) => {
     }
   }
 
-  // 4. Fan out ops alerts (best-effort, one per drift tx).
+  // 4. Raise-or-refresh one deduplicated ops alert per drifting transaction.
+  //    Repeat runs update the existing active alert instead of inserting a new
+  //    row; transactions whose drift cleared get their alert resolved.
+  const activeAlertKeys: string[] = [];
   for (const a of driftAlerts) {
     await heartbeat();
     const severity = Math.abs(a.delta) >= 100 ? "high" : "medium";
-    await notifyOpsTeam(admin, {
-      type: "security_alert",
-      title: `Escrow drift detected (${formatMoney(a.delta, a.currency)})`,
-      message: `Reconciliation found a delta of ${formatMoney(a.delta, a.currency)} on ${a.code}.`,
-      related_transaction_id: a.txId,
-      metadata: { severity, run_id: runId, delta: a.delta },
+    const dedupeKey = `escrow_drift:${a.txId}`;
+    activeAlertKeys.push(dedupeKey);
+    const { error: alertErr } = await admin.rpc("raise_system_alert", {
+      _dedupe_key: dedupeKey,
+      _type: "security_alert",
+      _title: `Escrow drift detected (${formatMoney(a.delta, a.currency)})`,
+      _message: `Reconciliation found a delta of ${formatMoney(a.delta, a.currency)} on ${a.code}.`,
+      _related_transaction_id: a.txId,
+      _metadata: { severity, run_id: runId, delta: a.delta, transaction_code: a.code },
     });
+    if (alertErr) console.error("[reconcile-escrow] alert upsert failed", alertErr.message);
+  }
+
+  // Auto-resolve drift alerts for transactions examined in this run whose
+  // condition has cleared. Scoped per transaction so alerts for transactions
+  // outside this run's window are never touched.
+  const activeKeySet = new Set(activeAlertKeys);
+  let resolvedAlerts = 0;
+  for (const txId of txIds) {
+    const key = `escrow_drift:${txId}`;
+    if (activeKeySet.has(key)) continue;
+    const { data: n, error: resolveErr } = await admin.rpc("resolve_system_alerts", {
+      _key_prefix: key,
+      _active_keys: [],
+    });
+    if (resolveErr) console.error("[reconcile-escrow] alert resolve failed", resolveErr.message);
+    else resolvedAlerts += Number(n ?? 0);
   }
 
   // 5. Log summary to system_logs (best-effort).
@@ -325,6 +348,7 @@ Deno.serve(async (req) => {
         run_id: runId,
         considered: txIds.length,
         drift_count: driftAlerts.length,
+      resolved_alerts: resolvedAlerts,
         lookback_hours: lookbackHours,
       },
     });
@@ -337,5 +361,6 @@ Deno.serve(async (req) => {
     run_id: runId,
     considered: txIds.length,
     drift_count: driftAlerts.length,
+    resolved_alerts: resolvedAlerts,
   });
 });

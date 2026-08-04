@@ -37,8 +37,8 @@ Deno.serve(async (req) => {
   // Pull last-48h so we can compare current 24h to the prior 24h window.
   const [{ data: notifs48 }, { data: dels48 }] = await Promise.all([
     admin.from("notifications")
-      .select("id, user_id, type, channel, title, message, status, is_read, created_at, related_transaction_id, related_dispute_id")
-      .gte("created_at", twoDaysAgo)
+      .select("id, user_id, type, channel, title, message, status, is_read, created_at, related_transaction_id, related_dispute_id, occurrence_count, first_seen_at, last_seen_at, resolved_at")
+      .or(`created_at.gte.${twoDaysAgo},last_seen_at.gte.${twoDaysAgo}`)
       .order("created_at", { ascending: false })
       .limit(2000),
     admin.from("notification_deliveries")
@@ -50,9 +50,13 @@ Deno.serve(async (req) => {
 
   const notifsAll = notifs48 ?? [];
   const delsAll = dels48 ?? [];
-  const notifs = notifsAll.filter((n) => n.created_at >= dayAgo);
+  // Deduplicated alerts keep their original created_at but refresh last_seen_at,
+  // so activity windows are measured on the effective (most recent) timestamp.
+  const seenAt = (n: { created_at: string; last_seen_at?: string | null }) =>
+    n.last_seen_at && n.last_seen_at > n.created_at ? n.last_seen_at : n.created_at;
+  const notifs = notifsAll.filter((n) => seenAt(n) >= dayAgo);
   const dels = delsAll.filter((d) => d.created_at >= dayAgo);
-  const notifsPrev = notifsAll.filter((n) => n.created_at < dayAgo);
+  const notifsPrev = notifsAll.filter((n) => seenAt(n) < dayAgo);
   const delsPrev = delsAll.filter((d) => d.created_at < dayAgo);
 
   // Latest delivery per notification.
@@ -198,6 +202,10 @@ Deno.serve(async (req) => {
       channel: n.channel,
       status: d?.delivery_status ?? n.status,
       created_at: n.created_at,
+      occurrence_count: Number(n.occurrence_count ?? 1),
+      first_seen_at: n.first_seen_at ?? n.created_at,
+      last_seen_at: seenAt(n),
+      resolved_at: n.resolved_at ?? null,
       user: p ? { id: p.id, public_user_id: (p as Record<string, unknown>).public_user_id ?? null, full_name: p.full_name, email: p.email, avatar_url: p.avatar_url } : null,
     };
   });

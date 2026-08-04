@@ -55,6 +55,11 @@ export interface AdminNotifRecentRow {
   channel: "in_app" | "email" | "sms" | "push";
   status: string;
   created_at: string;
+  /** Deduplicated system alerts: how many times the condition has been seen. */
+  occurrence_count?: number;
+  first_seen_at?: string | null;
+  last_seen_at?: string | null;
+  resolved_at?: string | null;
   user: AdminNotifUser | null;
 }
 
