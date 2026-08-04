@@ -143,6 +143,41 @@ export async function releasePayoutCore(
     };
   }
 
+  // 5c. Fee-chain guard. Fees are booked as `fee_record` at capture time by
+  // `record_payment_capture_atomic`, so by release the chain must satisfy
+  //   payment_credit = escrow_hold + fee_record   (and therefore
+  //   payment_credit = payout_debit + fee_record, since payout_debit is NET).
+  // Releasing on a broken chain is what forced the Fix 2 remediations, so we
+  // refuse and flag instead of moving money.
+  const expectedFees =
+    Number((pricingSnap as any)?.platform_fee_amount ?? 0) +
+    Number((pricingSnap as any)?.payment_processing_fee_amount ?? 0);
+  if (expectedFees > 0.005) {
+    const { data: feeRows } = await admin
+      .from("escrow_ledger_entries")
+      .select("amount")
+      .eq("transaction_id", transaction_id)
+      .eq("entry_type", "fee_record");
+    const bookedFees = (feeRows ?? []).reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0);
+    if (Math.abs(bookedFees - expectedFees) > 0.005) {
+      try {
+        await admin.rpc("flag_for_release_review", {
+          p_transaction_id: transaction_id,
+          p_reason: "fee_record_mismatch",
+          p_actor_user_id: actor_user_id,
+          p_notes: `Ledger holds ${bookedFees} in fee_record entries but the snapshot expects ${expectedFees}.`,
+        });
+      } catch (e) {
+        console.error("releasePayoutCore: flag_for_release_review failed", e);
+      }
+      return {
+        ok: false,
+        status: 409,
+        body: { error: "fee_record_mismatch", booked_fees: bookedFees, expected_fees: expectedFees },
+      };
+    }
+  }
+
   // 6. Atomic state flip
   const { error: rpcErr } = await admin.rpc("release_payout_atomic", {
     p_transaction_id: transaction_id,
