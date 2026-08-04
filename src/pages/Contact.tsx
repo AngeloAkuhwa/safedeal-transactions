@@ -1,6 +1,6 @@
-import { useEffect } from "react";
 import { Link } from "react-router";
 import { ArrowLeft, Mail, Clock, ShieldAlert } from "lucide-react";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 const TITLE = "Contact SafeDeal Support";
 const DESCRIPTION =
@@ -9,22 +9,7 @@ const DESCRIPTION =
 const SUPPORT_EMAIL = "support@safedeal.example";
 
 export default function Contact() {
-  useEffect(() => {
-    const previousTitle = document.title;
-    document.title = TITLE;
-    let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
-    const previousDescription = meta?.getAttribute("content") ?? null;
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.setAttribute("name", "description");
-      document.head.appendChild(meta);
-    }
-    meta.setAttribute("content", DESCRIPTION);
-    return () => {
-      document.title = previousTitle;
-      if (previousDescription !== null) meta?.setAttribute("content", previousDescription);
-    };
-  }, []);
+  usePageMeta({ title: TITLE, description: DESCRIPTION, path: "/contact" });
 
   return (
     <main className="min-h-screen bg-background px-4 py-12 text-foreground sm:px-6">
