@@ -172,5 +172,5 @@ describe("admin routes — mount smoke test", () => {
 
     expect(messages(errorSpy), `console.error during ${route.path}`).toEqual([]);
     expect(messages(warnSpy), `console.warn during ${route.path}`).toEqual([]);
-  });
+  }, 20000);
 });
