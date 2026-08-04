@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,9 +18,14 @@ import { getSellerDisputes, type SellerDisputeFilters as FiltersType } from "@/s
 import { getSellerDashboard } from "@/services/seller-dashboard.service";
 
 const SellerDisputes = () => {
+  const [searchParams] = useSearchParams();
+  const initialStatus = (() => {
+    const f = searchParams.get("filter");
+    return f === "seller_response_pending" || f === "open" || f === "under_review" || f === "resolved" ? f : "all";
+  })();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState(initialStatus);
   const [reason, setReason] = useState("all");
   const [page, setPage] = useState(1);
   const [exportOpen, setExportOpen] = useState(false);

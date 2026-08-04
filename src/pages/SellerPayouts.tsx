@@ -53,6 +53,7 @@ function PayoutStatusBadge({ status }: { status: string }) {
 
 function RowAction({ row, onFixPayout }: { row: PayoutHistoryItem; onFixPayout: () => void }) {
   if (row.status === "completed") {
+    if (!row.transaction_id) return null;
     return (
       <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
         <Link to={`/seller/transactions/${row.transaction_id}`}>
@@ -71,6 +72,7 @@ function RowAction({ row, onFixPayout }: { row: PayoutHistoryItem; onFixPayout: 
     );
   }
   if (row.status === "pending" || row.status === "processing") {
+    if (!row.transaction_id) return null;
     return (
       <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
         <Link to={`/seller/transactions/${row.transaction_id}`}>
@@ -311,12 +313,16 @@ const SellerPayouts = () => {
                             <TableRow key={row.payout_id_full}>
                               <TableCell className="font-mono text-xs">{row.payout_id}</TableCell>
                               <TableCell className="font-medium text-xs">
-                                <Link
-                                  to={`/seller/transactions/${row.transaction_id}`}
-                                  className="text-primary hover:underline"
-                                >
-                                  {row.transaction_code}
-                                </Link>
+                                {row.transaction_id ? (
+                                  <Link
+                                    to={`/seller/transactions/${row.transaction_id}`}
+                                    className="text-primary hover:underline"
+                                  >
+                                    {row.transaction_code}
+                                  </Link>
+                                ) : (
+                                  <span>{row.transaction_code}</span>
+                                )}
                               </TableCell>
                               <TableCell className="hidden md:table-cell text-sm">{row.buyer_name}</TableCell>
                               <TableCell className="hidden lg:table-cell text-sm max-w-[120px] truncate">{row.item_title}</TableCell>
@@ -374,9 +380,13 @@ const SellerPayouts = () => {
                     <ul className="text-xs text-muted-foreground space-y-0.5 mt-1.5">
                       {stuckPayouts.slice(0, 3).map((sp) => (
                         <li key={sp.payout_id_full} className="flex items-center justify-between gap-2">
-                          <Link to={`/seller/transactions/${sp.transaction_id}`} className="font-mono text-primary hover:underline">
-                            {sp.transaction_code}
-                          </Link>
+                          {sp.transaction_id ? (
+                            <Link to={`/seller/transactions/${sp.transaction_id}`} className="font-mono text-primary hover:underline">
+                              {sp.transaction_code}
+                            </Link>
+                          ) : (
+                            <span className="font-mono">{sp.transaction_code}</span>
+                          )}
                           <span>{formatMoney(sp.amount)} · {sp.hours_pending}h</span>
                         </li>
                       ))}
@@ -404,9 +414,13 @@ const SellerPayouts = () => {
                   upcoming_releases.map((r: UpcomingRelease) => (
                     <div key={r.transaction_id} className="border rounded-md p-2.5 space-y-1.5 hover:bg-muted/30 transition-colors">
                       <div className="flex items-center justify-between">
-                        <Link to={`/seller/transactions/${r.transaction_id}`} className="text-xs font-mono text-primary hover:underline">
-                          {r.transaction_code}
-                        </Link>
+                        {r.transaction_id ? (
+                          <Link to={`/seller/transactions/${r.transaction_id}`} className="text-xs font-mono text-primary hover:underline">
+                            {r.transaction_code}
+                          </Link>
+                        ) : (
+                          <span className="text-xs font-mono">{r.transaction_code}</span>
+                        )}
                         <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-[10px] py-0">{r.release_trigger}</Badge>
                       </div>
                       <p className="text-xs font-medium text-foreground truncate">{r.item_title}</p>
@@ -433,9 +447,13 @@ const SellerPayouts = () => {
                   {blocked_funds.map((b: BlockedFund) => (
                     <div key={b.transaction_id} className="border border-warning/20 bg-warning/[0.03] rounded-md p-2.5 space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <Link to={`/seller/transactions/${b.transaction_id}`} className="text-xs font-mono text-primary hover:underline">
-                          {b.transaction_code}
-                        </Link>
+                        {b.transaction_id ? (
+                          <Link to={`/seller/transactions/${b.transaction_id}`} className="text-xs font-mono text-primary hover:underline">
+                            {b.transaction_code}
+                          </Link>
+                        ) : (
+                          <span className="text-xs font-mono">{b.transaction_code}</span>
+                        )}
                         <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-[10px] py-0">On Hold</Badge>
                       </div>
                       <p className="text-xs font-medium text-foreground truncate">{b.item_title}</p>
@@ -448,7 +466,7 @@ const SellerPayouts = () => {
                         <span className="text-xs font-bold text-foreground tabular-nums">{formatMoney(b.amount)}</span>
                       </div>
                       {/* Context-aware action for blocked funds */}
-                      {b.blocker_reason.includes("Dispute") && (
+                      {b.blocker_reason.includes("Dispute") && b.transaction_id && (
                         <Button variant="outline" size="sm" className="w-full h-7 text-xs mt-1" asChild>
                           <Link to={`/seller/transactions/${b.transaction_id}`}>View Dispute</Link>
                         </Button>

@@ -83,7 +83,7 @@ export function SellerOnboardingChecklist({ onboarding }: Props) {
       </ol>
 
       <div className="mt-4 text-center">
-        <Link to="/how-it-works" className="text-xs font-medium text-primary hover:underline">
+        <Link to="/#how-it-works" className="text-xs font-medium text-primary hover:underline">
           Learn how SafeDeal works →
         </Link>
       </div>

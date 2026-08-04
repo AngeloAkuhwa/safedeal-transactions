@@ -48,7 +48,7 @@ export function SellerDisputeBlockedPanel({ items }: Props) {
             </div>
             {item.dispute_id && (
               <Button variant="outline" size="sm" className="w-full h-7 text-xs mt-1" asChild>
-                <Link to={`/seller/disputes/${item.dispute_id}?section=payout`}>View Case</Link>
+                <Link to={`/seller/disputes/${item.dispute_id}?section=resolution`}>View Case</Link>
               </Button>
             )}
           </div>
