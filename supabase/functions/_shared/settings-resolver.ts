@@ -1,6 +1,8 @@
 // Shared resolver: fetch effective settings for a vendor.
 // Falls back to defaults when the DB is empty.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { computePricing, DEFAULT_PRICING_CONFIG as PRICING_FALLBACK } from "./pricing.ts";
+import { checkPricingInvariant } from "./pricing-invariant.ts";
 
 export interface EffectivePricingConfig {
   min_platform_fee: number;
@@ -8,16 +10,45 @@ export interface EffectivePricingConfig {
   tier_rates: Array<{ upto: number | null; rate: number }>;
 }
 
-export const DEFAULT_PRICING_CONFIG: EffectivePricingConfig = {
-  min_platform_fee: 250,
-  max_total_service_fee: 2500,
-  tier_rates: [
-    { upto: 100_000, rate: 0.039 },
-    { upto: 500_000, rate: 0.035 },
-    { upto: 2_000_000, rate: 0.029 },
-    { upto: null, rate: 0.025 },
-  ],
-};
+/**
+ * Re-exported disaster-recovery fallback. Rates are DEFINED only in the
+ * `pricing.*` rows of `system_settings`; this mirrors the seeded platform
+ * rows so a failed read degrades to an identical price.
+ * See docs/pricing-source-of-truth.md.
+ */
+export const DEFAULT_PRICING_CONFIG: EffectivePricingConfig = PRICING_FALLBACK;
+
+/**
+ * Load-time economic guard: a stored config that would net SafeDeal a
+ * loss-making (or negative-margin) platform fee must never reach charging.
+ * Falls back to the platform defaults and raises a deduped system alert.
+ */
+async function guardPricingConfig(
+  cfg: EffectivePricingConfig,
+  vendorId: string,
+): Promise<EffectivePricingConfig> {
+  const verdict = checkPricingInvariant(cfg, (amount, c) => computePricing(amount, "NGN", "local", c));
+  if (verdict.ok) return cfg;
+  console.error("[settings-resolver] pricing invariant violated", { vendorId, verdict });
+  try {
+    await admin().rpc("raise_system_alert", {
+      _dedupe_key: `pricing_invariant_violation:${vendorId}`,
+      _type: "security_alert",
+      _title: "Pricing configuration violates the economic invariant",
+      _message:
+        `${verdict.message} Charging fell back to the platform default rate card for this vendor.`,
+      _metadata: {
+        vendor_id: vendorId,
+        failing_amount: verdict.failing_amount,
+        platform_fee_at_failure: verdict.platform_fee_at_failure,
+        rejected_config: cfg,
+      },
+    });
+  } catch (e) {
+    console.error("[settings-resolver] raise_system_alert failed", e);
+  }
+  return DEFAULT_PRICING_CONFIG;
+}
 
 function admin(): SupabaseClient {
   const url = Deno.env.get("SUPABASE_URL")!;
@@ -45,13 +76,14 @@ export async function loadPricingConfig(vendorId: string | null | undefined): Pr
     (data as Array<{ setting_key: string; setting_value: unknown }>).forEach((r) => {
       map[r.setting_key] = r.setting_value;
     });
-    return {
+    const resolved: EffectivePricingConfig = {
       min_platform_fee: numOr(map["pricing.min_platform_fee_ngn"], DEFAULT_PRICING_CONFIG.min_platform_fee),
       max_total_service_fee: numOr(map["pricing.max_total_service_fee_ngn"], DEFAULT_PRICING_CONFIG.max_total_service_fee),
       tier_rates: Array.isArray(map["pricing.tier_rates"])
         ? (map["pricing.tier_rates"] as EffectivePricingConfig["tier_rates"])
         : DEFAULT_PRICING_CONFIG.tier_rates,
     };
+    return await guardPricingConfig(resolved, vendorId);
   } catch (_e) {
     return DEFAULT_PRICING_CONFIG;
   }

@@ -4,6 +4,8 @@
 import { requireAdmin, authErrorResponse , requirePermission} from "../_shared/auth.ts";
 import { clampSetting } from "../_shared/settings-catalog.ts";
 import { logAdminAction } from "../_shared/audit.ts";
+import { computePricing } from "../_shared/pricing.ts";
+import { checkPricingInvariant } from "../_shared/pricing-invariant.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,6 +28,12 @@ function json(status: number, body: Record<string, unknown>): Response {
 function isFinancialKey(key: string): boolean {
   return key.startsWith("pricing.") || key === "fees.refund_policy";
 }
+
+const PRICING_KEYS = [
+  "pricing.min_platform_fee_ngn",
+  "pricing.max_total_service_fee_ngn",
+  "pricing.tier_rates",
+] as const;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -163,6 +171,38 @@ Deno.serve(async (req) => {
         });
       }
 
+      // ── Economic invariant (save-time) ────────────────────────────────
+      // Rates, floor and cap are coupled: validate the resolved card as a
+      // whole (proposed values merged over the currently effective ones).
+      if (Object.keys(updates).some((k) => (PRICING_KEYS as readonly string[]).includes(k))) {
+        const effective: Record<string, unknown> = {};
+        const { data: effRows } = await adminClient.rpc("get_effective_settings", {
+          _vendor_id: vendorId,
+          _keys: PRICING_KEYS as unknown as string[],
+        });
+        (effRows ?? []).forEach((r: { setting_key: string; setting_value: unknown }) => {
+          effective[r.setting_key] = r.setting_value;
+        });
+        const merged = { ...effective, ...Object.fromEntries(rows.map((r) => [r.setting_key, r.setting_value])) };
+        const candidate = {
+          min_platform_fee: Number(merged["pricing.min_platform_fee_ngn"]),
+          max_total_service_fee: Number(merged["pricing.max_total_service_fee_ngn"]),
+          tier_rates: merged["pricing.tier_rates"] as Array<{ upto: number | null; rate: number }>,
+        };
+        const verdict = checkPricingInvariant(
+          candidate,
+          (amount, c) => computePricing(amount, "NGN", "local", c),
+        );
+        if (!verdict.ok) {
+          return json(400, {
+            error: "pricing_invariant_violated",
+            message: verdict.message,
+            failing_amount: verdict.failing_amount,
+            platform_fee_at_failure: verdict.platform_fee_at_failure,
+          });
+        }
+      }
+
       // Manual upsert: the unique index uses COALESCE(vendor_id, '000...'),
       // which PostgREST/ON CONFLICT can't target by column list. Do a
       // scoped select then update-or-insert per row.
@@ -191,6 +231,7 @@ Deno.serve(async (req) => {
 
       // Timeouts
       for (const t of timeouts) {
+        // (unchanged)
         const payload = {
           rule_type: t.rule_type,
           hours_until_trigger: t.hours,
@@ -226,6 +267,18 @@ Deno.serve(async (req) => {
 
       // Audit
       const afterSettings: Record<string, unknown> = {};
+      // Stamp the reason onto the version row the DB trigger just appended
+      // for each pricing key (effective-dated rate history).
+      for (const key of PRICING_KEYS) {
+        if (!Object.prototype.hasOwnProperty.call(updates, key)) continue;
+        const { error: annErr } = await adminClient.rpc("annotate_setting_version_reason", {
+          _setting_key: key,
+          _scope: scope,
+          _vendor_id: vendorId,
+          _reason: reason,
+        });
+        if (annErr) console.error("[admin-system-settings] annotate reason failed", key, annErr.message);
+      }
       for (const [k, v] of Object.entries(updates)) {
         const c = clampSetting(k, v, scope);
         afterSettings[k] = c.ok ? c.value : v;

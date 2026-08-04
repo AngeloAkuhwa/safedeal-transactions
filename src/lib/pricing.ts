@@ -9,14 +9,34 @@
  * callers unchanged.
  */
 
-export const DEFAULT_MIN_PLATFORM_FEE = 250;
-export const DEFAULT_MAX_TOTAL_FEE = 2500;
-const DEFAULT_TIER_RATES: Array<{ upto: number | null; rate: number }> = [
-  { upto: 100_000, rate: 0.039 },
-  { upto: 500_000, rate: 0.035 },
-  { upto: 2_000_000, rate: 0.029 },
-  { upto: null, rate: 0.025 },
-];
+/**
+ * DISASTER-RECOVERY FALLBACK ONLY — this is NOT where rates are defined.
+ *
+ * The only place a rate is DEFINED is the `pricing.*` rows in
+ * `system_settings` (written solely through the admin settings page, resolved
+ * vendor-over-platform by `supabase/functions/_shared/settings-resolver.ts`).
+ * These literals exist for one case: the resolved config could not be read
+ * (network/DB failure, or config rejected by the economic invariant), where
+ * charging an *identical* price beats charging a silently different one.
+ * They MUST equal the seeded platform rows — enforced by
+ * `src/__tests__/pricing-fallback-parity.contract.test.ts` and mirrored in
+ * `supabase/functions/_shared/settings-resolver.ts` (DEFAULT_PRICING_CONFIG).
+ * See docs/pricing-source-of-truth.md.
+ */
+export const FALLBACK_PRICING_CONFIG: Required<PricingConfigOverride> = {
+  min_platform_fee: 250,
+  max_total_service_fee: 2500,
+  tier_rates: [
+    { upto: 100_000, rate: 0.039 },
+    { upto: 500_000, rate: 0.035 },
+    { upto: 2_000_000, rate: 0.029 },
+    { upto: null, rate: 0.025 },
+  ],
+};
+
+/** Derived aliases kept for existing call sites; no independent definition. */
+export const DEFAULT_MIN_PLATFORM_FEE = FALLBACK_PRICING_CONFIG.min_platform_fee;
+export const DEFAULT_MAX_TOTAL_FEE = FALLBACK_PRICING_CONFIG.max_total_service_fee;
 
 export interface PricingConfigOverride {
   min_platform_fee?: number;
@@ -56,9 +76,9 @@ export function computePricing(
   currencyCode: string = "NGN",
   config?: PricingConfigOverride,
 ): PricingResult {
-  const minPlatformFee = config?.min_platform_fee ?? DEFAULT_MIN_PLATFORM_FEE;
-  const maxTotalFee = config?.max_total_service_fee ?? DEFAULT_MAX_TOTAL_FEE;
-  const tiers = config?.tier_rates ?? DEFAULT_TIER_RATES;
+  const minPlatformFee = config?.min_platform_fee ?? FALLBACK_PRICING_CONFIG.min_platform_fee;
+  const maxTotalFee = config?.max_total_service_fee ?? FALLBACK_PRICING_CONFIG.max_total_service_fee;
+  const tiers = config?.tier_rates ?? FALLBACK_PRICING_CONFIG.tier_rates;
   if (itemAmount <= 0) {
     return {
       currency_code: currencyCode,
@@ -112,9 +132,9 @@ export interface FeeBreakdownInput {
  * (never hardcoded prose about rates/amounts).
  */
 export function describeFeeBreakdown(input: FeeBreakdownInput, result: PricingResult): string {
-  const minPlatformFee = input.config?.min_platform_fee ?? DEFAULT_MIN_PLATFORM_FEE;
-  const maxTotalFee = input.config?.max_total_service_fee ?? DEFAULT_MAX_TOTAL_FEE;
-  const tiers = input.config?.tier_rates ?? DEFAULT_TIER_RATES;
+  const minPlatformFee = input.config?.min_platform_fee ?? FALLBACK_PRICING_CONFIG.min_platform_fee;
+  const maxTotalFee = input.config?.max_total_service_fee ?? FALLBACK_PRICING_CONFIG.max_total_service_fee;
+  const tiers = input.config?.tier_rates ?? FALLBACK_PRICING_CONFIG.tier_rates;
   const rate = tierRate(input.itemAmount, tiers);
   const ratePct = (rate * 100).toFixed(1);
 
