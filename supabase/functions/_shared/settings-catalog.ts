@@ -50,7 +50,7 @@ export const SETTINGS_CATALOG: CatalogEntry[] = [
  */
 export function validateTierRates(
   value: unknown,
-): { ok: true } | { ok: false; error: string } {
+): { ok: true; error?: undefined } | { ok: false; error: string } {
   if (!Array.isArray(value) || value.length === 0) {
     return { ok: false, error: "tiers_must_be_non_empty_array" };
   }
