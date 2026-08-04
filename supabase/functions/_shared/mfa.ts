@@ -3,8 +3,8 @@
 //
 // Entropy: each code is 10 characters drawn uniformly (rejection-sampled) from
 // a 32-symbol Crockford base32 alphabet => 50 bits of entropy per code.
-// Codes and salts both come from crypto.getRandomValues (CSPRNG). Math.random
-// is never used. Salted SHA-256 is sound here precisely because the codes are
+// Codes and salts both come from crypto.getRandomValues (CSPRNG); no
+// non-cryptographic RNG is used. Salted SHA-256 is sound here precisely because the codes are
 // high-entropy machine-generated values, not user-chosen passwords.
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
