@@ -38,6 +38,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { computePricing } from "@/lib/pricing";
 import { useEffectivePricingConfig } from "@/hooks/useEffectivePricingConfig";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 
 
@@ -345,7 +346,7 @@ const SellerCreateTransaction = () => {
   };
 
   const currentUserId = useCurrentUserId();
-  const vendorPricingConfig = useEffectivePricingConfig(currentUserId);
+  const { config: vendorPricingConfig, loading: pricingConfigLoading } = useEffectivePricingConfig(currentUserId);
   const pricing = form.price > 0 ? computePricing(form.price, form.currency_code, vendorPricingConfig) : null;
   const currSymbol = CURRENCY_OPTIONS.find((c) => c.value === form.currency_code)?.symbol ?? "₦";
   const progressPct = (currentStep / 5) * 100;
@@ -693,7 +694,14 @@ const SellerCreateTransaction = () => {
                       </Select>
                     </div>
                   </div>
-                  {pricing && (
+                  {pricing && pricingConfigLoading && (
+                    <div className="bg-muted/50 rounded-xl p-4 space-y-2 border">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-5 w-2/3" />
+                    </div>
+                  )}
+                  {pricing && !pricingConfigLoading && (
                     <div className="bg-muted/50 rounded-xl p-4 space-y-2 border">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Item Price</span>
@@ -842,7 +850,7 @@ const SellerCreateTransaction = () => {
                     <div className="flex justify-between"><span className="text-muted-foreground">Amount:</span><span className="font-medium text-foreground">{form.price > 0 ? formatMoney(form.price, form.currency_code) : "—"}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Media:</span><span className="font-medium text-foreground">{photos.length} photo{photos.length !== 1 ? "s" : ""}{video ? ", 1 video" : ""}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Delivery:</span><span className="font-medium text-foreground">{DELIVERY_OPTIONS.find((d) => d.value === form.delivery_method)?.label ?? "—"}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">You'll Receive:</span><span className="font-bold text-success">{pricing ? formatMoney(pricing.item_amount - pricing.platform_fee_amount, form.currency_code) : "—"}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">You'll Receive:</span>{pricing && pricingConfigLoading ? <Skeleton className="h-4 w-20" /> : <span className="font-bold text-success">{pricing ? formatMoney(pricing.item_amount - pricing.platform_fee_amount, form.currency_code) : "—"}</span>}</div>
                   </div>
                 </CardContent>
               </Card>
