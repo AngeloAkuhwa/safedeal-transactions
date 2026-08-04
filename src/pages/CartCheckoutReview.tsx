@@ -475,6 +475,8 @@ const CartCheckoutReview = () => {
                   <Link to="/legal/terms" className="text-primary hover:underline">Terms of Service</Link>
                   {" "}and{" "}
                   <Link to="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+                  {", including the "}
+                  <Link to="/legal/refund-policy" className="text-primary hover:underline">Refund &amp; Dispute Policy</Link>
                 </p>
               </div>
             </div>
