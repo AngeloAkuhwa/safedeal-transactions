@@ -74,10 +74,11 @@ describe("pricing fallback parity: no-config defaults mirror seeded platform row
     const rateCases: Array<{ amount: number; rate: number }> = [
       { amount: 50_000, rate: 0.039 }, // <= 100k tier
       { amount: 60_000, rate: 0.035 }, // <= 500k tier (well below its own upper bound)
-      { amount: 4_000_000, rate: 0.025 }, // open-ended tier (cap already binds, checked separately)
     ];
     for (const { amount, rate } of rateCases) {
       const result = computePricing(amount, "NGN");
+      expect(result.is_capped, `cap must not bind at amount=${amount}`).toBe(false);
+      expect(result.is_floored, `floor must not bind at amount=${amount}`).toBe(false);
       // service_fee_rate is the effective all-in rate (paystack + platform),
       // so it must be at least the seeded platform tier rate.
       expect(
@@ -85,5 +86,12 @@ describe("pricing fallback parity: no-config defaults mirror seeded platform row
         `amount=${amount} should reflect at least the seeded ${rate} tier rate`,
       ).toBeGreaterThanOrEqual(rate - 0.0005);
     }
+
+    // The open-ended 0.025 tier can never surface as an effective rate: it only
+    // starts above ₦500k, by which point the ₦2,500 total-fee cap always binds.
+    // Assert the cap instead of a tier rate that is unreachable by construction.
+    const large = computePricing(4_000_000, "NGN");
+    expect(large.is_capped).toBe(true);
+    expect(large.service_fee_amount).toBe(2_500);
   });
 });
