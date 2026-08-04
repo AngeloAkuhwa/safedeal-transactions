@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BuyerSidebar } from "@/components/marketplace/BuyerSidebar";
 import { Footer } from "@/components/landing/Footer";
 import { PurchaseAuthModal } from "@/components/storefront/PurchaseAuthModal";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { useLocation } from "react-router";
 import { useIsProductSaved, useToggleSave } from "@/hooks/useSavedProducts";
 import { formatMoney } from "@/lib/format";
