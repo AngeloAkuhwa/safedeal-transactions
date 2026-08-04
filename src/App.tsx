@@ -100,6 +100,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <TestModeBanner />
+          <TwoFactorPrompt />
           <AppShell>
           <Routes>
             {/* Public routes */}
