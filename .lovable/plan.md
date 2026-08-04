@@ -1,144 +1,73 @@
-# Fixes 6 & 7 — Remove admin Offers module, then verify tab & cross-link connectivity
+# Batch 1 — P0 security + money fixes
 
-Standing preservation rules apply: no redesigns, no changes to buyer `/dashboard/*` or seller `/seller/*` screens, reuse existing patterns, keep `App.tsx`, `BUILT_ROUTES` (`src/components/admin/useAdminNav.ts`) and `src/services/admin-route-permissions.ts` in lockstep.
+Six items. Design system, layouts and existing admin work stay untouched; every change reuses existing services, components and permission patterns.
 
----
+## Verified current state (read before planning)
 
-## FIX 6 — Remove the Offers module from the internal admin
-
-### 1. Discovery results (complete inbound reference list)
-
-Every reference to `/admin/offers`, `/admin/offers/:offerId`, the admin pages or the admin-only service/function:
-
-| # | Reference | Kind |
-|---|---|---|
-| 1 | `src/App.tsx:54` `import AdminOffers` | route wiring |
-| 2 | `src/App.tsx:55` `import AdminOfferDetail` | route wiring |
-| 3 | `src/App.tsx:159` `<Route path="/admin/offers" …>` | route |
-| 4 | `src/App.tsx:160` `<Route path="/admin/offers/:offerId" …>` | route |
-| 5 | `src/components/admin/AdminSidebar.tsx:84` `{ label: "Offers", href: "/admin/offers", icon: Tag }` | sidebar nav (added in Fix 4c) |
-| 6 | `src/components/admin/useAdminNav.ts:9` `"/admin/offers"` in `BUILT_ROUTES` | route registry |
-| 7 | `src/services/admin-route-permissions.ts:41` `{ path: "/admin/offers", permission: "transactions.view" }` | route guard map |
-| 8 | `src/__tests__/admin-routes.smoke.test.tsx:117` `/admin/offers` case | test |
-| 9 | `src/__tests__/admin-routes.smoke.test.tsx:118` `/admin/offers/:offerId` case | test |
-| 10 | `src/pages/AdminOffers.tsx` (whole file) | admin page |
-| 11 | `src/pages/AdminOfferDetail.tsx` (whole file) | admin page |
-| 12 | `src/pages/AdminOffers.tsx:97` `Link to={/admin/offers/${o.id}}` | internal link (dies with the file) |
-| 13 | `src/pages/AdminOfferDetail.tsx:30` `Link to="/admin/offers"` | internal link (dies with the file) |
-| 14 | `src/services/admin-offers.service.ts` (whole file, admin-only) | service |
-| 15 | `src/__tests__/helpers/adminAuth.ts:67` `"admin-offers"` in the contract-test function list | test fixture |
-| 16 | `supabase/functions/admin-offers/index.ts` | edge function |
-
-Confirmed **absent** (checked, no hits): no dashboard card, dashboard alert, notification deep link, transaction-detail link, dispute-detail link, breadcrumb, export column or edge function anywhere emits an `/admin/offers` href. Grep over `src/pages/AdminDashboard.tsx`, `src/pages/AdminNotifications.tsx`, `src/services/admin-dashboard.service.ts`, `src/components/admin/**` and `supabase/functions/**` returned zero `/admin/offers` strings besides the rows above.
-
-### 2. Removal set (file-by-file change list)
-
-| File | Change |
-|---|---|
-| `src/App.tsx` | delete the two imports (54–55) and the two `<Route>` lines (159–160) |
-| `src/components/admin/AdminSidebar.tsx` | delete the "Offers" nav item (line 84); drop the `Tag` lucide import if it becomes unused |
-| `src/components/admin/useAdminNav.ts` | delete `"/admin/offers"` from `BUILT_ROUTES` |
-| `src/services/admin-route-permissions.ts` | delete the `/admin/offers` entry |
-| `src/pages/AdminOffers.tsx` | delete file |
-| `src/pages/AdminOfferDetail.tsx` | delete file |
-| `src/services/admin-offers.service.ts` | delete file (admin-only; not imported by buyer/seller code) |
-| `src/__tests__/admin-routes.smoke.test.tsx` | delete the two offer route cases (24 → 22 cases) |
-| `src/__tests__/helpers/adminAuth.ts` | remove `"admin-offers"` from the function list |
-| `supabase/functions/admin-offers/` | delete function directory + deregister via the delete-function tool |
-
-No component lives only under an admin-offers folder — both pages are self-contained and use shared shadcn primitives only, so no component deletions.
-
-### 3. Replacement for each inbound reference
-
-All 16 references are either the module itself or pure navigation into it. **No admin workflow currently consumes offer context through these routes** — transaction and dispute detail already resolve offer-sourced transactions server-side (`supabase/functions/transaction-detail/index.ts:227–236` expands `source_offer_id` into offer items inline, no link out). Therefore: **plain removal for all 16**, no inline replacement section is needed and none will be added (adding one would be scope creep beyond the removal request).
-
-If, during Fix 7's cross-link audit, any admin screen turns out to render an offer identifier that previously invited a click-through, it will be reported as a finding rather than silently re-linked.
-
-### 4. Buyer / seller isolation
-
-Untouched, verified by import graph:
-- `src/pages/BuyerPrivateOffers.tsx`, `src/pages/SellerPrivateOffers.tsx`, `src/pages/SellerOfferDetail.tsx`, `src/pages/OfferClaimLanding.tsx`
-- `src/services/buyer-offers.service.ts`, `src/services/seller-offers.service.ts`
-- edge functions `buyer-offers`, `seller-offers`, `claim-offer`, `create-offer` and all offer logic in `transaction-detail`, `transaction-agreement`, `resolve-share-token`, `paystack-webhook`
-
-`admin-offers.service.ts` is **not shared** — it is imported only by the two admin pages, so full deletion is safe. No shared service is partially edited.
-
-### 5. DB impact
-
-**NONE.** `buyer_specific_product_offers`, `buyer_specific_offer_items`, `offer_events`, `transactions.source_offer_id` and all RLS/grants stay exactly as-is. No migration in this fix.
-
-Edge functions:
-- `admin-offers` — **remove.** Admin-only reader with no other caller; keeping it leaves an unreferenced privileged surface.
-- `buyer-offers`, `seller-offers`, `claim-offer`, `create-offer` — **leave.** Buyer/seller feature paths.
-- `expire_stale_offers` RPC (called by `admin-offers`) — **leave.** Also called from the buyer/seller offer paths.
-
-### 6. Tests & verification for Fix 6
-
-- Smoke suite drops to 22 route cases; must stay green with zero console errors.
-- `src/services/__tests__/admin-route-permissions.test.ts` re-run (asserts the map); update expectations only if it counts entries.
-- `rg "admin/offers|AdminOffers|AdminOfferDetail|admin-offers" src supabase` must return **zero** hits afterwards.
-- Full suite + `tsgo --noEmit` clean.
+- `public.profiles` policies today: `anon_select_public_profile_info` for role `anon` with qual `store_slug IS NOT NULL` (row-level only → `email`, `phone`, `public_user_id`, `status`, `last_login_at` of every storefront seller are readable with the anon key), plus `users_select_own_profile`, `users_update_own_profile`, `admins_select_all_profiles`.
+- `public-storefront` and `public-product-detail` edge functions use the **service role** client, not anon — so dropping the anon policy does not affect them.
+- `transaction_status` enum real values: `draft, awaiting_buyer, awaiting_payment, payment_secured, seller_preparing_delivery, seller_dispatched, delivered_awaiting_verification, completed, disputed, cancelled, timed_out, resolved, refunded`. `awaiting_fulfillment`, `in_transit`, `delivered`, `awaiting_buyer_confirmation` do **not** exist.
+- `transaction_pricing` already carries the canonical `seller_payout_amount` and `platform_fee_amount`; `src/lib/pricing.ts` exposes `platform_fee_amount` and `service_fee_amount`.
+- Messaging is **not** a route: `MessageThread` renders inline on `SellerTransactionDetail.tsx:637` under an `#messages` anchor. `/seller/transactions/:id/messages` is not in `App.tsx`.
+- `email_verified` is sourced from `auth.users.email_confirmed_at` in `buyer-profile` / `seller-profile` and is display-only; no checkout function checks it. Exact unconfirmed-user counts could not be read from this session (no `auth` schema access) — measuring them is Step 0 of item 2.
 
 ---
 
-## FIX 7 — Tab-level and cross-link connectivity verification
+## Item 1 — Seller PII leak (P0)
 
-Read-only verification pass plus permanent tab-switch test cases. No feature changes; any defect found is reported with a minimal proposed fix and implemented only after approval.
+**Column allowlist (public-safe):** `id`, `public_user_id`, `full_name`, `avatar_url`, `store_slug`, `city_name`, `state_name`, `country_code`, `vendor_status`. Explicitly excluded: `email`, `phone`, `status`, `last_login_at`, `default_role`, `default_region_id`, `is_region_eligible`, `vendor_status_reason/changed_at/changed_by`, timestamps.
 
-### 1. Enumerated tab / sub-view inventory (coverage list)
+**Approach:** migration creates `public.public_seller_profiles` view (`security_invoker = off`, i.e. a definer-style view owned by postgres) selecting only the allowlist `WHERE store_slug IS NOT NULL AND vendor_status = 'active'`; `GRANT SELECT` to `anon` and `authenticated`; then `DROP POLICY anon_select_public_profile_info ON public.profiles`. Authenticated own/admin policies are untouched.
 
-| Screen | Tabs / sub-views |
-|---|---|
-| `/admin/dashboard` | none (action cards only — covered by cross-link audit) |
-| `/admin/transactions` | quick-filter tablist (`role="tab"`, `AdminTransactions.tsx:169–177`): All, Awaiting Payment, Funds Held, In Dispute, Overdue, Refunded, Failed, Flagged |
-| `/admin/transactions/:id` | detail sections + drawers (sub-view enumeration during the pass) |
-| `/admin/disputes` | queue filters + row → detail with `tab=dispute` / `tab=resolution` (`AdminDisputes.tsx:302`) |
-| `/admin/disputes/:id` | shadcn `Tabs` in `AdminDisputeDetail.tsx` (dispute / resolution / evidence set — enumerated at execution) |
-| `/admin/payouts` | `VALID_TABS` (`AdminPayouts.tsx:24`): all, pending_release, blocked, processing, completed, failed, reversed, on_hold (URL `?tab=`) |
-| `/admin/escrow` | single view + filter query (`EscrowQuery`); no tabs |
-| `/admin/reconciliation` | Remediation, Escrow drift, Pricing coverage (`AdminReconciliation.tsx:122–126`) |
-| `/admin/agent-performance` | Workload, Performance, SLA Compliance, Rankings (`AgentPerformanceTabs.tsx:6–9`) + `AgentDetailsDrawer` 6-tab interface |
-| `/admin/task-orchestration` | assignment / escalation drawers, `TaskDetailsDrawer`, `AgentDetailsDrawer`, `TestConfigurationDialog` tabs |
-| `/admin/permission-matrix` | `TAB_DEFS` (`PermissionWorkspaceTabs.tsx:13–19`): Role Matrix, Role Detail, Feature Registry, User Overrides, Permission Templates, Pending Approvals, Change History (URL `?tab=`) + Environment switcher |
-| `/admin/access-control` | directory views + `AddUserDrawer`, `UserDetailsDrawer` tabs |
-| `/admin/access-approvals` | Pending, Approved, Rejected, Cancelled (`AdminAccessApprovals.tsx:29–34`) |
-| `/admin/users` | directory; `/admin/users/:id/profile` investigation hub sections |
-| `/admin/flagged-users` | filter views |
-| `/admin/notifications` | filter-driven views: Recent / Failed-only, channel, status, type (`AdminNotifications.tsx:720`) + broadcast composer |
-| `/admin/audit-logs` | filter-as-view set (actor / module / date range) + JSON drawer |
-| `/admin/settings` | settings section navigation (platform vs vendor scope) |
-| `/admin/support` | single view |
+**Consumers to repoint:** verified list — the two public edge functions already use the service role and need no change; client-side reads (`useBuyerIdentity`, `SellerTransactionAgreement`, `role.service`, seller/admin services) all run authenticated under `users_select_own_profile` / admin policy and are unaffected. Any remaining anon-context read found during implementation (storefront header, marketplace card seller block) is repointed to the new view.
 
-### 2. Per-tab render + data-target verification
+**Risk:** a public surface silently loses seller name/avatar if an anon read exists that I have not enumerated. Mitigation: before dropping the policy, run a repo-wide grep for unauthenticated `profiles` reads and load `/store/:slug` and `/store/:slug/:product` signed-out in the browser.
 
-For each tab above:
-- **Static**: resolve the query it fires (`queryKey`/`queryFn` → service → RPC / edge function / table) and confirm that RPC, function directory or table actually exists (`supabase/functions/*`, migrations, `src/integrations/supabase/types.ts`).
-- **Dynamic**: extend `src/__tests__/admin-routes.smoke.test.tsx` with a tab-switch block — mount the screen, click each tab trigger by accessible role/name, assert no console error/warning and that the tab panel renders. URL-driven tabs (`?tab=`, payouts, permission matrix) are mounted directly at each tab URL, which is cheaper than click-driving.
-- Anything not exercisable in jsdom (drawers requiring live data, realtime channels, file exports, focus traps) goes on an explicit **NEEDS MANUAL CHECK** list — never silently skipped.
+**Rollback:** re-create the dropped policy verbatim (kept in the migration comment).
 
-### 3. Cross-link audit
+**Tests/verification:** a test asserting the view's column set equals the allowlist; a live anon REST read of `profiles?select=email,phone` with the anon key must return `[]`/permission denied, captured in the report.
 
-Static extraction of every `Link to=`, `navigate(`, `href=` inside `src/pages/Admin*` and `src/components/admin/**`, including template-literal hrefs, then for each:
-- template resolves to a path present in `BUILT_ROUTES` / `App.tsx`;
-- required params are non-null at emit time (report any link that can emit `/admin/x/undefined`);
-- query params used as tab/filter values are in that screen's valid set (e.g. `?tab=failed` ∈ payouts `VALID_TABS`).
+## Item 2 — Server-side email verification gate (P0)
 
-Explicit targets: drawer "View transaction", escrow record → payout/dispute/audit, dispute detail → payment/escrow/payout/user, audit-log target links, notification deep links, dashboard action cards, permission-matrix deep links into access-control and audit-logs.
+**Step 0 (report first, no code):** service-role query counting `auth.users` with `email_confirmed_at IS NULL`, split by whether they have non-terminal transactions or cart items. Result decides the rollout switch below; if the count is material I will report before enforcing.
 
-### 4. Deliverable
+**Enforcement:** in `create-transaction`, `cart-checkout`, `storefront-checkout`, `initiate-paystack-payment`, after the existing JWT validation, read `email_confirmed_at` from the authenticated user and, when null, return `403 { error: "email_not_verified" }`. Enforcement applies at **transaction creation / payment initiation only** — existing in-flight transactions (delivery, verification, disputes, payouts) are never gated, so no user is locked out mid-flow. Gate is read from an existing `system_settings` key so it can be switched off without a deploy.
 
-Structured report in the established format — **PASSED / FAILED (+ minimal fix) / NEEDS MANUAL CHECK** — plus the raw enumerated tab table with each tab's resolved data target, and the tab-switch cases committed permanently in the smoke suite.
+**UI:** map `email_not_verified` in the affected services to a friendly inline alert (existing `Alert` + `Button` styling) with "Resend verification email" calling the existing Supabase resend path — no raw 403 text, no new page.
+
+**Risk:** legitimate users blocked at checkout. Mitigation: settings flag + resend path + Step 0 measurement.
+**Rollback:** flip the settings flag off.
+**Tests:** unit tests for the gate helper (confirmed → pass, unconfirmed → `email_not_verified`), and a UI test that the error renders the resend affordance.
+
+## Item 3 — F4 buyer dashboard dead enum literals
+
+`supabase/functions/buyer-dashboard/index.ts:105-117` → `awaiting_delivery` counts `seller_preparing_delivery` + `seller_dispatched`; `awaiting_verification` counts `delivered_awaiting_verification` only. Add a shared `TRANSACTION_STATUSES` constant in `supabase/functions/_shared/` plus a test that fails when any filtered literal is not a member — regression guard.
+Risk: low (counts change to correct values). Rollback: revert file. Verification: compare dashboard counts against a direct SQL group-by.
+
+## Item 4 — F5 seller net understated
+
+`SellerCreateTransaction.tsx:362` currently hand-computes `item_amount - service_fee_amount`. Change to consume the canonical seller payout from the pricing layer (`seller_payout_amount` / `item_amount - platform_fee_amount`) so the success screen matches the figures at :709 and :845. No new math introduced in the component.
+Risk: low, display-only. Test: pricing unit test asserting the success-screen value equals the canonical payout for a capped and an uncapped tier.
+
+## Item 5 — B1 dead route in completion flow
+
+`SellerConfirmCompletionCard.tsx:134` → navigate to `/seller/transactions/${transactionId}#messages`, the existing inline `MessageThread` anchor on seller transaction detail. No new route, so `App.tsx` / `BUILT_ROUTES` / `admin-route-permissions` stay in lockstep untouched.
+Risk: none beyond scroll-anchor behaviour. Test: assert the button's target path matches a route registered in `App.tsx`.
+
+## Item 6 — Legal at signup + checkout
+
+`Auth.tsx:159-163`: replace the prose with the same sentence containing inline `Link`s to `/legal/terms` and `/legal/privacy`. **Recommendation: explicit checkbox consent at signup** rather than clickwrap-by-signup — Nigerian consumer-payment and NDPA practice favours a recorded affirmative act, and it gives an auditable timestamp. The signup submit stays disabled until checked; wording: "I agree to SafeDeal's Terms of Service and Privacy Policy." Consent timestamp is recorded only if a suitable existing column/table exists; otherwise the plan records consent via the existing audit/event path rather than adding schema.
+Checkout: add a one-line terms/privacy link footer to `StorefrontCheckout` and `CartCheckoutReview`, matching existing muted-foreground styling.
+Risk: signup friction / a blocked submit. Tests: signup form test (submit disabled unblocked by checkbox), and link-integrity assertions that both legal paths resolve to registered routes.
 
 ---
 
-## Scalability note
+## Sequencing and independence
 
-Fix 6 only removes surface: 2 routes, 2 pages, 1 service, 1 edge function, −2 smoke cases. Fix 7 adds roughly 30–40 tab assertions. To keep the suite fast, URL-driven tabs are mounted directly (no re-render storms) and each screen mounts once per tab group with mocked network. Current suite ≈141 tests; expected after Fix 7: ≈175–185 tests, runtime target **under 3 minutes** total (currently ~2 min). If a screen's tab block exceeds ~10s it is moved to NEEDS MANUAL CHECK instead of slowing the suite.
+- **Independent, shippable alone:** items 3, 4, 5, 6.
+- **Must ship together:** item 1's view creation + consumer repoint + policy drop are a single migration/deploy unit (never drop the policy before the view is live).
+- **Item 2** ships after its Step 0 measurement is reported and accepted.
 
-## Risks
+## Verification for the whole batch
 
-- **Sidebar import cleanup**: removing the Offers entry may orphan the `Tag` icon import — typecheck catches it.
-- **Contract-test fixture**: `adminAuth.ts` counts functions; removing `admin-offers` must be reflected or the count assertion fails.
-- **Edge function deletion is irreversible** for the deployed instance; the source is removed from the repo too. Table data is untouched, so a future re-introduction is a UI rebuild only.
-- **Tab tests and flakiness**: click-driven tabs can be timing-sensitive in jsdom; mitigated by `findBy*` queries and by preferring URL-mounted tabs.
-- **False negatives in static link extraction**: dynamically composed hrefs may escape the regex; mitigated by manually reviewing every template-literal href found in admin files.
+Full vitest suite + typecheck green, anon PII read proven denied, signed-out storefront pages loading, buyer dashboard counts matched against SQL.
