@@ -48,6 +48,7 @@ type ComplianceExportPrompt = { open: boolean };
 export default function AdminUserDetail() {
   const { id: userId = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { go } = useAdminNav();
   const qc = useQueryClient();
   const [revealedEmail, setRevealedEmail] = useState<string | null>(null);
   const [revealedPhone, setRevealedPhone] = useState<string | null>(null);
