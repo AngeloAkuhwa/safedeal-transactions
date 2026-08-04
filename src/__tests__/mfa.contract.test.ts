@@ -74,7 +74,9 @@ describe("2FA — recovery endpoint contract", () => {
   it("authenticates at aal1 (requireUser) and never behind requireAdmin", () => {
     expect(recoveryFn).toContain("requireUser");
     expect(recoveryFn).not.toContain("requireAdmin");
-    expect(recoveryFn).not.toMatch(/aal2/);
+    // No runtime assurance-level gate anywhere in the handler.
+    expect(recoveryFn).not.toMatch(/ctx\.aal/);
+    expect(recoveryFn).not.toMatch(/mfa_required/);
   });
 
   it("rate limits failed recovery attempts in a sliding window", () => {
