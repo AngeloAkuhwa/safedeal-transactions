@@ -163,9 +163,11 @@ export async function releasePayoutCore(
       try {
         await admin.rpc("flag_for_release_review", {
           p_transaction_id: transaction_id,
-          p_reason: "fee_record_mismatch",
+          // `manual_hold` is the allowed queue_type for this class of stop;
+          // the notes carry the precise fee-chain discrepancy.
+          p_reason: "manual_hold",
           p_actor_user_id: actor_user_id,
-          p_notes: `Ledger holds ${bookedFees} in fee_record entries but the snapshot expects ${expectedFees}.`,
+          p_notes: `fee_record_mismatch: ledger holds ${bookedFees} in fee_record entries but the snapshot expects ${expectedFees}.`,
         });
       } catch (e) {
         console.error("releasePayoutCore: flag_for_release_review failed", e);
