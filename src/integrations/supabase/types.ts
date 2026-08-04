@@ -4912,6 +4912,54 @@ export type Database = {
           },
         ]
       }
+      system_settings_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          created_at: string
+          effective_from: string
+          id: string
+          new_value: Json
+          old_value: Json | null
+          reason: string | null
+          scope: string
+          setting_id: string | null
+          setting_key: string
+          vendor_id: string | null
+          version: number
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string
+          effective_from?: string
+          id?: string
+          new_value: Json
+          old_value?: Json | null
+          reason?: string | null
+          scope: string
+          setting_id?: string | null
+          setting_key: string
+          vendor_id?: string | null
+          version: number
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string
+          effective_from?: string
+          id?: string
+          new_value?: Json
+          old_value?: Json | null
+          reason?: string | null
+          scope?: string
+          setting_id?: string | null
+          setting_key?: string
+          vendor_id?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       task_assignment_history: {
         Row: {
           actor_id: string | null
@@ -6987,6 +7035,15 @@ export type Database = {
           total_users: number
         }[]
       }
+      annotate_setting_version_reason: {
+        Args: {
+          _reason: string
+          _scope: string
+          _setting_key: string
+          _vendor_id: string
+        }
+        Returns: undefined
+      }
       apply_financial_remediation_atomic: {
         Args: {
           p_actor_user_id?: string
@@ -7213,6 +7270,16 @@ export type Database = {
           _vendor_id: string
         }
         Returns: number
+      }
+      get_pricing_settings_at: {
+        Args: { _at: string; _vendor_id: string }
+        Returns: {
+          effective_from: string
+          scope: string
+          setting_key: string
+          setting_value: Json
+          version: number
+        }[]
       }
       has_any_internal_role: {
         Args: { _role_keys: string[]; _user_id: string }

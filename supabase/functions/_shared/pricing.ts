@@ -16,14 +16,32 @@
  * - Fees are non-refundable
  */
 
-const MIN_PLATFORM_FEE = 250;
-const MAX_TOTAL_FEE = 2500;
-
 export interface PricingConfigOverride {
   min_platform_fee?: number;
   max_total_service_fee?: number;
   tier_rates?: Array<{ upto: number | null; rate: number }>;
 }
+
+/**
+ * DISASTER-RECOVERY FALLBACK ONLY — rates are DEFINED in the `pricing.*`
+ * rows of `system_settings`, never here. Used when the resolver cannot read
+ * a config or rejects a stored one via the economic invariant. Must equal the
+ * seeded platform rows (see docs/pricing-source-of-truth.md and the
+ * fallback-parity contract test).
+ */
+export const DEFAULT_PRICING_CONFIG: Required<PricingConfigOverride> = {
+  min_platform_fee: 250,
+  max_total_service_fee: 2500,
+  tier_rates: [
+    { upto: 100_000, rate: 0.039 },
+    { upto: 500_000, rate: 0.035 },
+    { upto: 2_000_000, rate: 0.029 },
+    { upto: null, rate: 0.025 },
+  ],
+};
+
+const MIN_PLATFORM_FEE = DEFAULT_PRICING_CONFIG.min_platform_fee;
+const MAX_TOTAL_FEE = DEFAULT_PRICING_CONFIG.max_total_service_fee;
 
 export interface PricingResult {
   currency_code: string;
@@ -61,16 +79,6 @@ function computePaystackInternationalFee(itemAmount: number): number {
   const percentageFee = itemAmount * 0.039;
   const flatFee = 100;
   return Math.round(percentageFee + flatFee);
-}
-
-/**
- * SafeDeal buyer-facing tiered service fee rates for local NGN transactions.
- */
-function getSafeDealLocalTierRate(itemAmount: number): number {
-  if (itemAmount <= 100_000) return 0.039;
-  if (itemAmount <= 500_000) return 0.035;
-  if (itemAmount <= 2_000_000) return 0.029;
-  return 0.025;
 }
 
 function tierRateFromConfig(itemAmount: number, tiers: Array<{ upto: number | null; rate: number }>): number {
@@ -115,7 +123,7 @@ export function computePricing(
   // Step 2: Determine SafeDeal target service rate (config-aware)
   const baseTierRate = config?.tier_rates
     ? tierRateFromConfig(itemAmount, config.tier_rates)
-    : getSafeDealLocalTierRate(itemAmount);
+    : tierRateFromConfig(itemAmount, DEFAULT_PRICING_CONFIG.tier_rates);
   const tierRate = mode === "international" ? Math.max(baseTierRate, 0.039) : baseTierRate;
 
   // Step 3: Platform fee = max(minPlatformFee, tierRate × item - paystackFee)

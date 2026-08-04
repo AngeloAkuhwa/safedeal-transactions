@@ -73,7 +73,11 @@ export async function saveAdminSettings(input: SaveSettingsInput): Promise<void>
     body: JSON.stringify(input),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || "save_failed");
+  if (!res.ok) {
+    // Prefer the server's human-readable message (e.g. the economic
+    // invariant explains which amount range breaks) over the error code.
+    throw new Error(json.message || json.error || "save_failed");
+  }
 }
 
 export interface VendorLite { id: string; full_name: string | null; email: string | null }
