@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { TwoFactorDialog } from "./TwoFactorDialog";
 import { useAal } from "@/hooks/useAal";
+import { useAuthState } from "@/hooks/useAuthState";
 import {
   isPromptDeniedPath,
   isPromptSnoozed,
@@ -25,6 +26,7 @@ import {
  */
 export function TwoFactorPrompt() {
   const { pathname } = useLocation();
+  const { isAuthenticated, loading: authLoading } = useAuthState();
   const { hasVerifiedFactor, loading } = useAal();
   const [open, setOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
@@ -32,13 +34,13 @@ export function TwoFactorPrompt() {
   const blocked = isPromptDeniedPath(pathname);
 
   useEffect(() => {
-    if (loading || blocked || hasVerifiedFactor) return;
+    if (authLoading || !isAuthenticated || loading || blocked || hasVerifiedFactor) return;
     if (isPromptSnoozed()) return;
     const t = setTimeout(() => setOpen(true), 1200);
     return () => clearTimeout(t);
-  }, [loading, blocked, hasVerifiedFactor, pathname]);
+  }, [authLoading, isAuthenticated, loading, blocked, hasVerifiedFactor, pathname]);
 
-  if (blocked) return null;
+  if (blocked || !isAuthenticated) return null;
 
   const dismiss = () => {
     snoozePrompt();
