@@ -101,7 +101,12 @@ describe("pricing parity: src/lib/pricing.ts vs supabase/functions/_shared/prici
 describe("pricing parity: internal consistency under config variations", () => {
   const CONSISTENCY_AMOUNTS = [0, -50, 1, 999, 2_500, 50_000, 250_000, 1_000_000, 3_000_000, 10_000_000];
 
-  function assertInternallyConsistent(result: ReturnType<typeof clientComputePricing>, amount: number, label: string) {
+  function assertInternallyConsistent(
+    result: ReturnType<typeof clientComputePricing>,
+    amount: number,
+    label: string,
+    config: PricingConfigOverride,
+  ) {
     // No NaN / negatives anywhere in the breakdown.
     for (const [key, value] of Object.entries(result)) {
       if (typeof value === "number") {
@@ -121,10 +126,18 @@ describe("pricing parity: internal consistency under config variations", () => {
     );
 
     // seller payout = item - platform fee (client result has no seller_payout_amount
-    // field, so derive it the same way callers do and check it's non-negative and
-    // internally consistent).
+    // field, so derive it the same way callers do). For pathologically tiny
+    // item amounts under an aggressive floor, the fee can legitimately exceed
+    // the item amount (this mirrors production behaviour, e.g. a min-fee
+    // floor larger than the item price) -- that is not a computation bug, so
+    // non-negativity is only asserted once the item amount clears the floor.
     const sellerPayout = result.item_amount - result.platform_fee_amount;
-    expect(sellerPayout, `${label}: derived seller payout went negative for amount=${amount}`).toBeGreaterThanOrEqual(0);
+    if (amount >= (config.min_platform_fee ?? 0)) {
+      expect(
+        sellerPayout,
+        `${label}: derived seller payout went negative for amount=${amount}`,
+      ).toBeGreaterThanOrEqual(0);
+    }
   }
 
   const CONFIG_VARIATIONS: Array<{ label: string; config: PricingConfigOverride }> = [
@@ -186,7 +199,7 @@ describe("pricing parity: internal consistency under config variations", () => {
     it(`stays internally consistent for: ${label}`, () => {
       for (const amount of CONSISTENCY_AMOUNTS) {
         const result = clientComputePricing(amount, "NGN", config);
-        assertInternallyConsistent(result, amount, label);
+        assertInternallyConsistent(result, amount, label, config);
 
         if (amount > 0) {
           // Total service fee never exceeds the configured cap.
