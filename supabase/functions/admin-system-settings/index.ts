@@ -18,11 +18,22 @@ function json(status: number, body: Record<string, unknown>): Response {
   });
 }
 
+/**
+ * Keys whose values change money behaviour. Writing any of these requires
+ * `financial_controls.configure` ON TOP of the general settings write
+ * permission. Read access is unchanged.
+ */
+function isFinancialKey(key: string): boolean {
+  return key.startsWith("pricing.") || key === "fees.refund_policy";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { userId, adminClient } = await requirePermission(req, "platform_configuration.view");
+    // GET is gated on the view permission; PUT escalates below.
+    const ctx = await requirePermission(req, "platform_configuration.view");
+    const { userId, adminClient } = ctx;
     const url = new URL(req.url);
 
     if (req.method === "GET") {
@@ -67,6 +78,11 @@ Deno.serve(async (req) => {
       let body: any;
       try { body = await req.json(); } catch { return json(400, { error: "invalid_json" }); }
 
+      // ── Two-tier write gate ────────────────────────────────────────────
+      // Tier 1: any settings write needs the general configure permission
+      // (a view-only role must never be able to rewrite platform settings).
+      await requirePermission(req, "platform_configuration.configure", ctx);
+
       const scope: "platform" | "vendor" = body?.scope === "vendor" ? "vendor" : "platform";
       const vendorId: string | null = scope === "vendor" ? (body?.vendor_id ?? null) : null;
       const reason: string = String(body?.reason ?? "").trim();
@@ -76,6 +92,20 @@ Deno.serve(async (req) => {
 
       if (!reason || reason.length < 3) return json(400, { error: "reason_required" });
       if (scope === "vendor" && !vendorId) return json(400, { error: "vendor_id_required" });
+
+      // Tier 2: money-behaviour keys additionally need the financial permission.
+      const financialKeys = Object.keys(updates).filter(isFinancialKey);
+      if (financialKeys.length) {
+        try {
+          await requirePermission(req, "financial_controls.configure", ctx);
+        } catch {
+          return json(403, {
+            error: "financial_permission_required",
+            required_permission: "financial_controls.configure",
+            keys: financialKeys,
+          });
+        }
+      }
 
       // Capture BEFORE snapshot for diff — only for the exact (key, scope, vendor) rows we're about to touch.
       const beforeSnapshot: Record<string, unknown> = {};
