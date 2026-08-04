@@ -234,20 +234,17 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
                 {group.items.map((item) => {
                   const Icon = item.icon;
                   const active = pathname === item.href;
-                  const built = true; // items are pre-filtered above
-                  const row = (
+                  return (
+                    <li key={item.href}>
                     <button
                       type="button"
                       onClick={() => handleClick(item)}
                       aria-current={active ? "page" : undefined}
-                      aria-disabled={!built}
                       className={[
                         "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                         active
                           ? "border border-blue-500/30 bg-blue-500/10 text-blue-300"
-                          : built
-                            ? "text-foreground/90 hover:bg-muted/70 hover:text-foreground"
-                            : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                          : "text-foreground/90 hover:bg-muted/70 hover:text-foreground",
                       ].join(" ")}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
@@ -260,19 +257,6 @@ export function AdminSidebar({ badges, onNavigate }: AdminSidebarProps) {
                         </span>
                       )}
                     </button>
-                  );
-                  return (
-                    <li key={item.href}>
-                      {built ? (
-                        row
-                      ) : (
-                        <Tooltip>
-                          <TooltipTrigger asChild>{row}</TooltipTrigger>
-                          <TooltipContent side="right" className="border-border bg-muted text-foreground">
-                            Coming soon
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
                     </li>
                   );
                 })}
