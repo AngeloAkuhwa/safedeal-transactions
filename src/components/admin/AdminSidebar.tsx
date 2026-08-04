@@ -28,7 +28,6 @@ import {
   Inbox,
   ListChecks,
   Gauge,
-  Tag,
   Landmark,
 } from "lucide-react";
 import { useLocation } from "react-router";
