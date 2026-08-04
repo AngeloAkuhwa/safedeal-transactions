@@ -9,7 +9,12 @@ const productLinks = [
 ];
 
 const companyLinks = ["About Us", "Careers", "Blog", "Press Kit"];
-const supportLinks = ["Help Center", "Contact Us", "Terms of Service", "Privacy Policy"];
+const supportLinks: { label: string; href?: string }[] = [
+  { label: "Help Center" },
+  { label: "Contact Us" },
+  { label: "Terms of Service", href: "/legal/terms" },
+  { label: "Privacy Policy", href: "/legal/privacy" },
+];
 const socials = [
   { icon: Twitter, label: "Twitter" },
   { icon: Facebook, label: "Facebook" },
@@ -93,10 +98,14 @@ export function Footer() {
             <h4 className="mb-3 text-[13px] font-semibold text-background">Support</h4>
             <ul className="space-y-2">
               {supportLinks.map((item) => (
-                <li key={item}>
-                  <a href="#" className="text-[13px] text-background/75 transition-colors hover:text-background">
-                    {item}
-                  </a>
+                <li key={item.label}>
+                  {item.href ? (
+                    <Link to={item.href} className="text-[13px] text-background/75 transition-colors hover:text-background">
+                      {item.label}
+                    </Link>
+                  ) : (
+                    <span className="text-[13px] text-background/50">{item.label}</span>
+                  )}
                 </li>
               ))}
             </ul>
@@ -109,9 +118,8 @@ export function Footer() {
               © {new Date().getFullYear()} SafeDeal. All rights reserved.
             </p>
             <div className="flex items-center gap-6 text-xs text-background/65">
-              <a href="#" className="hover:text-background">Terms</a>
-              <a href="#" className="hover:text-background">Privacy</a>
-              <a href="#" className="hover:text-background">Cookies</a>
+              <Link to="/legal/terms" className="hover:text-background">Terms</Link>
+              <Link to="/legal/privacy" className="hover:text-background">Privacy</Link>
             </div>
           </div>
         </div>
