@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
   // ---------------------------------------------------------------------
   // AUTHORIZATION. Two — and only two — authorized callers:
   //   1. the pg_cron scheduler, presenting the vault-held cron secret;
-  //   2. a signed-in back-office user holding `financial_controls.manage`.
+  //   2. a signed-in back-office user holding `financial_controls.configure`.
   // Anonymous / publishable-key / unauthenticated requests are rejected
   // before any lease is taken or any row is read.
   // ---------------------------------------------------------------------
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     caller = "scheduler";
   } else {
     try {
-      await requirePermission(req, "financial_controls.manage");
+      await requirePermission(req, "financial_controls.configure");
       caller = "admin";
     } catch (err) {
       const r = authErrorResponse(err, corsHeaders);

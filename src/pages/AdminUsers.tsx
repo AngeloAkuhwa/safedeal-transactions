@@ -80,7 +80,7 @@ export default function AdminUsers() {
     if (page > 1) next.set("page", String(page));
     if (drawerUser && !((routeParams as { id?: string }).id)) next.set("u", drawerUser);
     setParams(next, { replace: true });
-  }, [filters, appliedSearch, page, drawerUser, setParams, routeParams]);
+  }, [filters, appliedSearch, page, drawerUser, setParams, (routeParams as { id?: string }).id]);
 
   const onApply = useCallback(() => { setAppliedSearch(search); setPage(1); }, [search]);
   const onReset = useCallback(() => { setFilters(DEFAULTS); setSearch(""); setAppliedSearch(""); setPage(1); }, []);
